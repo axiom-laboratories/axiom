@@ -1,17 +1,16 @@
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.Python
-env/
 venv/
 .env
 .DS_Store
-*.db
-!jobs.db 
-# Keep jobs.db tracked? No, user said "Persistent State". But usually we don't commit DBs.
-# However, for this specific request "Track all development... Contextual Persistence... Store all contextual learnings...". 
-# The DB is state, not code.
-# I will ignore *.db but maybe keep a schema file.
-*.log
-.vscode/
+jobs.db
+node_modules/
+dist/
+
+# Security - Certificates & Keys
+certs/
+ca/
+*.crt
+*.key
+*.pem
+ca_password.txt

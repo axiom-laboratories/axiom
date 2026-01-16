@@ -7,7 +7,7 @@ function App() {
 
     const fetchJobs = async () => {
         try {
-            const res = await fetch('http://localhost:8001/jobs');
+            const res = await fetch('https://localhost:8001/jobs');
             const data = await res.json();
             setJobs(data);
         } catch (e) {
@@ -24,9 +24,12 @@ function App() {
     const createJob = async () => {
         setLoading(true);
         try {
-            await fetch('http://localhost:8000/submit_intent', {
+            await fetch('https://localhost:8000/submit_intent', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': 'master-secret-key'
+                },
                 body: JSON.stringify({
                     task_type: 'web_task',
                     payload: {

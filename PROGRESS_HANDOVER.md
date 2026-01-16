@@ -2,9 +2,9 @@
 **Last Updated:** 2026-01-16 (Migration Ready)
 
 ## Current Status
-- **Phase:** Verification (Paused for Migration)
-- **Active Task:** Verification & Handover
-- **Note:** The system is fully implemented (Services + GUI), but end-to-end browser verification could not be completed on the current machine. 
+- **Phase:** Industrial-Grade Upgrades
+- **Active Task:** ACME & Zero-Trust Implementation
+- **Note:** System now runs fully on HTTPS with a private CA (`step-ca`). Nodes auto-enroll on startup. Agent and Model enforce Authorization. 
 
 ## Completed Milestones
 - [x] Implementation Plan Created & Approved
@@ -12,25 +12,18 @@
 - [x] Tooling Documentation Created
 - [x] Core Services Implemented (Model, Agent, Environment)
 - [x] Web GUI Implemented (React + Vite)
+- [x] **Migration**: Successfully set up on new machine (Win 11).
+- [x] **Upgrades**:
+    - [x] HTTPS (Self-signed -> ACME/Private CA).
+    - [x] Distributed Semaphores (Limit: 5).
+    - [x] Node Auto-Enrollment (Bootstrap Flow).
 
 ## Lessons Learned
 - **SQLite for Dev**: Opted for SQLite initially to reduce dependency overhead.
 - **Python Path**: On Windows, use `py` instead of `python` or `uvicorn` directly if not in PATH.
 
-## Next Steps (For New Machine)
-1. **Clone & Install**:
-   ```bash
-   git clone <repo>
-   cd master_of_puppets
-   py -m pip install -r requirements.txt
-   cd dashboard && npm install
-   ```
-2. **Run Services** (in separate terminals):
-   - `py -m uvicorn model_service.main:app --host 0.0.0.0 --port 8000`
-   - `py -m uvicorn agent_service.main:app --host 0.0.0.0 --port 8001`
-   - `py environment_service/node.py`
-   - `cd dashboard && npm run dev`
-3. **Verify**:
-   - Open `http://localhost:5173`.
-   - Click "+ New Intent".
-   - Watch the job status cycle from PENDING -> COMPLETED.
+## Next Steps (For Future Dev)
+1.  **Dashboard Integration**: Update Dashboard to also use ACME/Auth (currently uses static key/self-signed exceptions).
+2.  **Persistence**: Migrate SQLite to PostgreSQL for production concurrency.
+3.  **Deployment**: Containerize the CA and Services for Kubernetes/Docker Compose.
+

@@ -23,8 +23,18 @@
 - **Zero-Trust**: Every node must authenticate.
 - **Standard**: Easy to debug, widely supported, firewall-friendly.
 - **Pull-Model**: Nodes initiate connections, avoiding complexities of NAT traversal for the Agent.
-
-## Dependencies
+26: 
+27: ## Security: Zero-Trust & ACME (Internal CA)
+28: **Rationale**: 
+29: - **Zero-Trust**: No implicit trust. Nodes must authenticate dynamically.
+30: - **ACME (Automated Certificate Management Environment)**: Automates certificate issuance and renewal, replacing brittle static keys.
+31: - **Tooling**: `step-ca` (Smallstep) acts as a lightweight, internal "Let's Encrypt".
+32: - **Workflow**:
+33:   1. Node has a shared `client_secret`.
+34:   2. Node calls Agent `/auth/register` to get a one-time enrollment token.
+35:   3. Node uses `step` CLI to bind the token for a certificate from `step-ca`.
+36: 
+37: ## Dependencies
 ### Python 3.12+
 - `fastapi`: Web framework.
 - `uvicorn`: ASGI server.
