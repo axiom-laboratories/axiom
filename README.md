@@ -61,7 +61,10 @@ npm run dev
 
 ### 3. Usage
 -   **Dashboard**: Open `http://localhost:5173`.
--   **Trigger Job**: Click **"+ Test Script"** to verify the pipeline.
+-   **Node Management**: Use the Dashboard to Generate Join Tokens and Upload Verification Keys.
+-   **Trigger Job**:
+    *   *Web Task*: Can be triggered via API/Dashboard.
+    *   *Python Script*: **MUST** be signed. Use `tools/admin_signer.py` (see [Tools Docs](tools/README.md)).
 -   **View Results**: Job cards will update with "ASSIGNED" -> "COMPLETED". Secrets will be redacted in the UI (`******`).
 
 ## Design Log & Increments
@@ -89,6 +92,11 @@ This log tracks the evolution of the system based on user requirements.
 -   **UI Redaction**: APIs modified to return masked (`******`) values.
 -   **Safe Logging**: Node logs sanitized to prevent secret leakage.
 -   **Ephemeral Injection**: Secrets decrypted only at the edge (Node) and injected into ephemeral environment variables.
+
+### v0.5: RCE Prevention (Current)
+-   **Code Signing**: Implemented Ed25519 signature verification on Nodes.
+-   **Admin Tooling**: Added `tools/admin_signer.py` for offline signing.
+-   **File Hygiene**: Moved all keys and secrets to `secrets/` directory.
 
 ## Future Roadmap
 -   [ ] PostgreSQL Migration (Persistence).

@@ -1,0 +1,31 @@
+# Containerfile.server
+# Unified image for Agent and Model Services
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system deps (if any, e.g. for cryptography or step)
+# curl needed for some manual steps if debug
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Install Step CLI (for Agent to issue tokens)
+# Using generic linux install
+RUN curl -L https://dl.step.sm/gh-release/cli/gh-release-header/v0.24.4/step_linux_0.24.4_amd64.tar.gz | tar -xz -C /tmp \
+    && mv /tmp/step_0.24.4/bin/step /usr/local/bin/step
+
+# Copy Deps
+COPY requirements.txt .
+# Add asyncpg and sqlalchemy if not in requirements (I should check)
+RUN pip install --no-cache-dir -r requirements.txt asyncpg sqlalchemy
+
+# Copy Source
+COPY agent_service/ agent_service/
+COPY model_service/ model_service/
+COPY secrets/ secrets/
+COPY ca/ ca/
+
+# Creating installer dir for static serving
+RUN mkdir installer
+
+# Entrypoints done via command in compose

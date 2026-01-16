@@ -1,0 +1,63 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: puppet
+      POSTGRES_PASSWORD: masterpassword
+      POSTGRES_DB: puppet_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puppet -d puppet_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  agent:
+    build:
+      context: .
+      dockerfile: Containerfile.server
+    command: uvicorn agent_service.main:app --host 0.0.0.0 --port 8001 --ssl-keyfile secrets/agent.key --ssl-certfile secrets/agent.crt
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://puppet:masterpassword@db/puppet_db
+      - API_KEY=master-secret-key
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  model:
+    build:
+      context: .
+      dockerfile: Containerfile.server
+    command: uvicorn model_service.main:app --host 0.0.0.0 --port 8000 --ssl-keyfile secrets/key.pem --ssl-certfile secrets/cert.pem
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://puppet:masterpassword@db/puppet_db
+      - AGENT_URL=https://agent:8001
+      - ROOT_CA_PATH=ca/certs/root_ca.crt
+      - API_KEY=master-secret-key
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      agent:
+        condition: service_started
+
+  dashboard:
+    build:
+      context: dashboard
+      dockerfile: Containerfile
+    ports:
+      - "5173:80"
+    restart: always
+
+volumes:
+  pgdata:
