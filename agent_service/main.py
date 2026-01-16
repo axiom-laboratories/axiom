@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
 import uuid
@@ -7,6 +8,14 @@ import os
 from typing import Optional, List, Dict
 
 app = FastAPI(title="Agent Service", description="The Orchestrator. Manages state and assigns work.")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # For dev
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DB_NAME = "jobs.db"
 
@@ -19,6 +28,8 @@ class JobCreate(BaseModel):
 class JobResponse(BaseModel):
     guid: str
     status: str
+    payload: Dict
+    result: Optional[Dict] = None
 
 class WorkResponse(BaseModel):
     guid: str
@@ -40,6 +51,26 @@ def get_db_connection():
 @app.get("/")
 async def health_check():
     return {"status": "healthy", "service": "Agent Service"}
+
+@app.get("/jobs", response_model=List[JobResponse])
+async def list_jobs():
+    """For the Dashboard."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM jobs ORDER BY updated_at DESC LIMIT 50")
+        rows = cursor.fetchall()
+        jobs = []
+        for row in rows:
+            jobs.append({
+                "guid": row["guid"],
+                "status": row["status"],
+                "payload": json.loads(row["payload"]),
+                "result": json.loads(row["result"]) if row["result"] else None
+            })
+        return jobs
+    finally:
+        conn.close()
 
 @app.post("/jobs", response_model=JobResponse)
 async def create_job(job: JobCreate):
