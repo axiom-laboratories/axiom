@@ -83,9 +83,45 @@ class Node:
             print(f"[{self.node_id}] Error polling Agent: {e}")
         return None
 
+    def validate_requirements(self, requirements: List[Dict]) -> bool:
+        """
+        Runs pre-flight checks. Returns True if all pass, False otherwise.
+        """
+        for req in requirements:
+            req_type = req.get("type")
+            try:
+                if req_type == "dir_exists":
+                    path = req.get("path")
+                    if not os.path.exists(path) or not os.path.isdir(path):
+                        print(f"[{self.node_id}] Requirement Failed: dir_exists({path})")
+                        return False
+                
+                elif req_type == "tcp_connect":
+                    host = req.get("host")
+                    port = req.get("port")
+                    with socket.create_connection((host, port), timeout=5):
+                        pass # Connected successfully
+                
+                # Add more checks here
+                
+            except Exception as e:
+                print(f"[{self.node_id}] Requirement Failed: {req_type} - {e}")
+                return False
+        
+        return True
+
     async def execute_task(self, job: Dict):
         guid = job["guid"]
         payload = job["payload"]
+        
+        # 1. Pre-flight Checks
+        requirements = payload.get("requirements", [])
+        if requirements:
+            print(f"[{self.node_id}] Validating {len(requirements)} requirements...")
+            if not self.validate_requirements(requirements):
+                await self.report_result(guid, False, {"error": "Pre-flight requirements failed"})
+                return
+
         print(f"[{self.node_id}] Executing Job {guid} - Payload: {payload}")
         
         # Simulate work
