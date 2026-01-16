@@ -54,6 +54,7 @@ class JobResponse(BaseModel):
 
 class WorkResponse(BaseModel):
     guid: str
+    task_type: str
     payload: Dict
 
 class ResultReport(BaseModel):
@@ -149,7 +150,7 @@ async def pull_work(request: Request, api_key: str = Depends(verify_api_key)):
         
         # 2. Find highest priority PENDING job
         cursor.execute(
-            "SELECT guid, payload FROM jobs WHERE status = 'PENDING' ORDER BY priority DESC, created_at ASC LIMIT 1"
+            "SELECT guid, task_type, payload FROM jobs WHERE status = 'PENDING' ORDER BY priority DESC, created_at ASC LIMIT 1"
         )
         row = cursor.fetchone()
         
@@ -158,6 +159,7 @@ async def pull_work(request: Request, api_key: str = Depends(verify_api_key)):
             return None # No work
             
         guid = row["guid"]
+        task_type = row["task_type"]
         payload = json.loads(row["payload"])
         
         # 2. Assign to Node
@@ -171,7 +173,7 @@ async def pull_work(request: Request, api_key: str = Depends(verify_api_key)):
         # Ideally, we would append. For now, we rely on the state change.
         
         conn.commit()
-        return {"guid": guid, "payload": payload}
+        return {"guid": guid, "task_type": task_type, "payload": payload}
         
     except Exception as e:
         conn.rollback()
