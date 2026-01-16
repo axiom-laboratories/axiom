@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 from typing import Optional, List, Dict
+from cryptography.fernet import Fernet
 
 app = FastAPI(title="Agent Service", description="The Orchestrator. Manages state and assigns work.")
 
@@ -20,6 +21,52 @@ app.add_middleware(
 
 API_KEY_NAME = "X-API-KEY"
 API_KEY = "master-secret-key" # Hardcoded for demo/dev, usually env var
+# Encryption Key for Secrets (Hardcoded for demo longevity)
+# Generated via Fernet.generate_key()
+ENCRYPTION_KEY = b'wz72Q_M--s0lQk7P3t1z6k3lj1_s4_x7j9_q1_w2_e3=' 
+cipher_suite = Fernet(ENCRYPTION_KEY)
+
+def encrypt_secrets(payload: Dict) -> Dict:
+    """Recursively encrypts values in 'secrets' dictionary."""
+    if "secrets" in payload and isinstance(payload["secrets"], dict):
+        new_payload = payload.copy()
+        new_secrets = {}
+        for k, v in payload["secrets"].items():
+            if isinstance(v, str):
+                new_secrets[k] = cipher_suite.encrypt(v.encode()).decode()
+            else:
+                new_secrets[k] = v
+        new_payload["secrets"] = new_secrets
+        return new_payload
+    return payload
+
+def decrypt_secrets(payload: Dict) -> Dict:
+    """Recursively decrypts values in 'secrets' dictionary."""
+    if "secrets" in payload and isinstance(payload["secrets"], dict):
+        new_payload = payload.copy()
+        new_secrets = {}
+        for k, v in payload["secrets"].items():
+            try:
+                if isinstance(v, str):
+                    new_secrets[k] = cipher_suite.decrypt(v.encode()).decode()
+                else:
+                    new_secrets[k] = v
+            except Exception:
+                new_secrets[k] = "ERROR_DECRYPTING"
+        new_payload["secrets"] = new_secrets
+        return new_payload
+    return payload
+
+def mask_secrets(payload: Dict) -> Dict:
+    """Replaces secrets with redacted string."""
+    if "secrets" in payload and isinstance(payload["secrets"], dict):
+        new_payload = payload.copy()
+        new_secrets = {}
+        for k in payload["secrets"].keys():
+            new_secrets[k] = "****** (Redacted)"
+        new_payload["secrets"] = new_secrets
+        return new_payload
+    return payload
 
 from fastapi import Header
 
@@ -114,7 +161,7 @@ async def list_jobs():
             jobs.append({
                 "guid": row["guid"],
                 "status": row["status"],
-                "payload": json.loads(row["payload"]),
+                "payload": mask_secrets(json.loads(row["payload"])), # REDACT SECRETS FOR UI
                 "result": json.loads(row["result"]) if row["result"] else None
             })
         return jobs
@@ -129,9 +176,12 @@ async def create_job(job: JobCreate):
     cursor = conn.cursor()
     
     try:
+        # Encrypt secrets before storing
+        encrypted_payload = encrypt_secrets(job.payload)
+        
         cursor.execute(
             "INSERT INTO jobs (guid, task_type, status, priority, payload, lineage_log) VALUES (?, ?, ?, ?, ?, ?)",
-            (guid, job.task_type, "PENDING", job.priority, json.dumps(job.payload), json.dumps([{"event": "CREATED", "timestamp": "now"}]))
+            (guid, job.task_type, "PENDING", job.priority, json.dumps(encrypted_payload), json.dumps([{"event": "CREATED", "timestamp": "now"}]))
         )
         conn.commit()
     except Exception as e:
@@ -140,7 +190,7 @@ async def create_job(job: JobCreate):
     finally:
         conn.close()
     
-    return {"guid": guid, "status": "PENDING"}
+    return {"guid": guid, "status": "PENDING", "payload": encrypted_payload}
 
 @app.post("/work/pull", response_model=Optional[WorkResponse])
 async def pull_work(request: Request, api_key: str = Depends(verify_api_key)):
@@ -187,7 +237,10 @@ async def pull_work(request: Request, api_key: str = Depends(verify_api_key)):
             
         guid = row["guid"]
         task_type = row["task_type"]
-        payload = json.loads(row["payload"])
+        encrypted_payload = json.loads(row["payload"])
+        
+        # Decrypt secrets before sending to node
+        payload = decrypt_secrets(encrypted_payload)
         
         # 2. Assign to Node
         cursor.execute(

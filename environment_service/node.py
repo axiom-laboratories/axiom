@@ -23,6 +23,14 @@ class Node:
         self.key_file = f"{self.node_id}.key"
         self.root_ca = "c:/Development/Repos/master_of_puppets/ca/certs/root_ca.crt" # Hardcoded for now
 
+    def _safe_payload_log(self, payload: Dict) -> str:
+        """Returns a string rep of payload with secrets redacted."""
+        if "secrets" in payload:
+            safe = payload.copy()
+            safe["secrets"] = {k: "***" for k in payload["secrets"]}
+            return str(safe)
+        return str(payload)
+
     async def bootstrap_acme(self):
         if os.path.exists(self.cert_file) and os.path.exists(self.key_file):
             print(f"[{self.node_id}] Certs found. Skipping enrollment.")
@@ -166,6 +174,7 @@ class Node:
                 return
 
         print(f"[{self.node_id}] Executing Job {guid} [{task_type}]")
+        # print(f"[{self.node_id}] Payload: {self._safe_payload_log(payload)}") # Optional verbose log
         
         result_data = {}
         success = False
