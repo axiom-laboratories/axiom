@@ -9,8 +9,12 @@ import subprocess
 import socket
 from typing import Optional, Dict, List
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 AGENT_URL = os.getenv("AGENT_URL", "https://localhost:8001")
-API_KEY = "master-secret-key"
+API_KEY = os.getenv("API_KEY", "master-secret-key")
 NODE_ID = f"node-{uuid.uuid4().hex[:8]}"
 
 class Node:
@@ -21,7 +25,7 @@ class Node:
         self.running = False
         self.cert_file = f"{self.node_id}.crt"
         self.key_file = f"{self.node_id}.key"
-        self.root_ca = "c:/Development/Repos/master_of_puppets/ca/certs/root_ca.crt" # Hardcoded for now
+        self.root_ca = os.getenv("ROOT_CA_PATH", "c:/Development/Repos/master_of_puppets/ca/certs/root_ca.crt")
 
     def _safe_payload_log(self, payload: Dict) -> str:
         """Returns a string rep of payload with secrets redacted."""
@@ -43,7 +47,7 @@ class Node:
         # But Agent is currently using 'certs/cert.pem' (self-signed). 
         # So we trust it blindly for bootstrapping.
         try:
-            async with httpx.AsyncClient(verify=False) as client:
+            async with httpx.AsyncClient(verify=self.root_ca) as client:
                 resp = await client.post(
                     f"{self.agent_url}/auth/register",
                     json={"client_secret": "enrollment-secret", "hostname": self.node_id} # hostname=node_id
@@ -81,8 +85,8 @@ class Node:
             # But currently Agent uses 'certs/cert.pem' (Self-Signed).
             # To make mTLS work, Agent MUST use a cert signed by our CA.
             # For now, we continue to use key auth, but we try to present certs if strictly needed.
-            # Updated: verify=False for now until Agent uses CA certs.
-            async with httpx.AsyncClient(verify=False, cert=(self.cert_file, self.key_file)) as client:
+            # Updated: verify=self.root_ca enables strict mTLS (requires Agent to have valid cert)
+            async with httpx.AsyncClient(verify=self.root_ca, cert=(self.cert_file, self.key_file)) as client:
                 resp = await client.post(f"{self.agent_url}/work/pull", headers={"X-API-KEY": API_KEY})
                 if resp.status_code == 200:
                     data = resp.json()
@@ -201,7 +205,7 @@ class Node:
 
     async def report_result(self, guid: str, success: bool, result: Dict):
         try:
-            async with httpx.AsyncClient(verify=False, cert=(self.cert_file, self.key_file)) as client:
+            async with httpx.AsyncClient(verify=self.root_ca, cert=(self.cert_file, self.key_file)) as client:
                 await client.post(
                     f"{self.agent_url}/work/{guid}/result",
                     json={"success": success, "result": result},

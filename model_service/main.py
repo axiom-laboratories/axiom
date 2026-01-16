@@ -4,6 +4,9 @@ from pydantic import BaseModel
 import uuid
 import httpx
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="Model Service", description="The Automation Scheduler.")
 
@@ -32,7 +35,7 @@ class ScheduleResponse(BaseModel):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "http://localhost:5173"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,9 +43,13 @@ app.add_middleware(
 
 # Configuration
 # Configuration
-AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "https://localhost:8001")
+AGENT_SERVICE_URL = os.getenv("AGENT_URL", "https://localhost:8001")
 API_KEY_NAME = "X-API-KEY"
-API_KEY = "master-secret-key" # Hardcoded for demo/dev
+API_KEY = os.getenv("API_KEY", "master-secret-key")
+ROOT_CA_PATH = os.getenv("ROOT_CA_PATH")
+ROOT_CA_PATH = os.getenv("ROOT_CA_PATH")
+API_KEY_NAME = "X-API-KEY"
+API_KEY = os.getenv("API_KEY", "master-secret-key")
 
 from fastapi import Header, Depends
 
@@ -70,7 +77,7 @@ async def submit_task(task: TaskRequest, api_key: str = Depends(verify_api_key))
     Submits a task to the Agent Service (Immediate Execution).
     """
     try:
-        async with httpx.AsyncClient(verify=False) as client:
+        async with httpx.AsyncClient(verify=ROOT_CA_PATH) as client:
             response = await client.post(
                 f"{AGENT_SERVICE_URL}/jobs",
                 json={
@@ -104,7 +111,7 @@ async def _job_wrapper(task: TaskRequest):
     # Better to just use httpx to call Agent directly, or re-use logic.
     print(f"Executing Scheduled Task: {task.task_type}")
     try:
-        async with httpx.AsyncClient(verify=False) as client:
+        async with httpx.AsyncClient(verify=ROOT_CA_PATH) as client:
              await client.post(
                 f"{AGENT_SERVICE_URL}/jobs",
                 json={

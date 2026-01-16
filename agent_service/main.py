@@ -8,22 +8,25 @@ import os
 import subprocess
 from typing import Optional, List, Dict
 from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="Agent Service", description="The Orchestrator. Manages state and assigns work.")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For dev
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 API_KEY_NAME = "X-API-KEY"
-API_KEY = "master-secret-key" # Hardcoded for demo/dev, usually env var
-# Encryption Key for Secrets (Hardcoded for demo longevity)
-# Generated via Fernet.generate_key()
-ENCRYPTION_KEY = b'wz72Q_M--s0lQk7P3t1z6k3lj1_s4_x7j9_q1_w2_e3=' 
+API_KEY_NAME = "X-API-KEY"
+API_KEY = os.getenv("API_KEY", "master-secret-key")
+# Encryption Key for Secrets
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode() if os.getenv("ENCRYPTION_KEY") else Fernet.generate_key()
 cipher_suite = Fernet(ENCRYPTION_KEY)
 
 def encrypt_secrets(payload: Dict) -> Dict:
@@ -334,6 +337,6 @@ if __name__ == "__main__":
         app, 
         host="0.0.0.0", 
         port=8001,
-        ssl_keyfile="certs/key.pem",
-        ssl_certfile="certs/cert.pem"
+        ssl_keyfile="agent.key",
+        ssl_certfile="agent.crt"
     )
