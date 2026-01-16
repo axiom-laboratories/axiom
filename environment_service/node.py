@@ -110,8 +110,50 @@ class Node:
         
         return True
 
+    def run_python_script(self, guid: str, script_content: str, secrets: Dict = {}) -> Dict:
+        """
+        Executes a Python script in a separate process with injected secrets.
+        """
+        temp_filename = f"_temp_job_{guid}.py"
+        try:
+            # 1. Write Script to Temp File
+            with open(temp_filename, "w") as f:
+                f.write(script_content)
+                
+            # 2. Prepare Environment (Process Isolation)
+            # secrets are injected ONLY into this env dict
+            env_vars = os.environ.copy()
+            env_vars.update(secrets)
+            
+            # 3. Execute Subprocess
+            print(f"[{self.node_id}] Spawning subprocess for job {guid}...")
+            result = subprocess.run(
+                ["python", temp_filename],
+                env=env_vars,
+                capture_output=True,
+                text=True,
+                timeout=30 # Hard timeout for safety
+            )
+            
+            return {
+                "exit_code": result.returncode,
+                "stdout": result.stdout,
+                "stderr": result.stderr
+            }
+            
+        except subprocess.TimeoutExpired:
+            return {"error": "Execution timed out"}
+        except Exception as e:
+            return {"error": f"Execution failed: {e}"}
+        finally:
+            # 4. Cleanup
+            if os.path.exists(temp_filename):
+                os.remove(temp_filename)
+                print(f"[{self.node_id}] Cleaned up {temp_filename}")
+
     async def execute_task(self, job: Dict):
         guid = job["guid"]
+        task_type = job.get("task_type", "web_task") # Default for legacy
         payload = job["payload"]
         
         # 1. Pre-flight Checks
@@ -122,14 +164,28 @@ class Node:
                 await self.report_result(guid, False, {"error": "Pre-flight requirements failed"})
                 return
 
-        print(f"[{self.node_id}] Executing Job {guid} - Payload: {payload}")
+        print(f"[{self.node_id}] Executing Job {guid} [{task_type}]")
         
-        # Simulate work
-        await asyncio.sleep(2)
-        
-        # Result
-        success = True
-        result_data = {"processed": True, "details": "Task complete"}
+        result_data = {}
+        success = False
+
+        if task_type == "python_script":
+            script = payload.get("script_content")
+            secrets = payload.get("secrets", {})
+            
+            if not script:
+                result_data = {"error": "No script_content provided"}
+            else:
+                exec_result = self.run_python_script(guid, script, secrets)
+                result_data = exec_result
+                success = (exec_result.get("exit_code") == 0)
+                
+        else:
+            # Legacy/Default Web Task (Simulated)
+            print(f"[{self.node_id}] Simulating Web Task - Payload: {payload}")
+            await asyncio.sleep(2)
+            success = True
+            result_data = {"processed": True, "details": "Web Task complete"}
         
         await self.report_result(guid, success, result_data)
 
