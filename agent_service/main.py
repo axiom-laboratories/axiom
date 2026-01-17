@@ -479,7 +479,7 @@ async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = De
     return {"public_key": row.value}
 
 
-@app.get("/installer/compose")
+@app.get("/api/node/compose")
 async def generate_compose(token: str, mounts: Optional[str] = None):
     # Logic same as before
     normalized_mounts = []

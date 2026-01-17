@@ -18,8 +18,10 @@ if (-not $JoinToken) {
 
 # 1. Download Configuration
 Write-Host "Fetching configuration from Hub..."
-$Uri = "$ServerUrl/installer/compose?token=$JoinToken&mounts=$Mounts"
-Invoke-WebRequest -Uri $Uri -OutFile "node-compose.yaml" -SkipCertificateCheck
+$Uri = "$ServerUrl/api/node/compose?token=$JoinToken&mounts=$Mounts"
+# Use curl.exe for robust SSL bypass
+Write-Host "Fetching configuration using curl.exe..."
+curl.exe -k -o "node-compose.yaml" $Uri
 
 if (-not (Test-Path "node-compose.yaml")) {
     Write-Error "Failed to download configuration."
@@ -28,6 +30,15 @@ if (-not (Test-Path "node-compose.yaml")) {
 
 # 2. Start
 Write-Host "Starting Node..."
+
+# Ensure podman-compose is in path (User Install Location)
+$env:Path = "$env:Path;C:\Users\thoma\AppData\Roaming\Python\Python312\Scripts"
+
+if (-not (Get-Command podman-compose -ErrorAction SilentlyContinue)) {
+    Write-Error "podman-compose found. Please install it: pip install podman-compose"
+    exit 1
+}
+
 podman-compose -f node-compose.yaml up -d
 
 Write-Host "Node Started!" -ForegroundColor Green
