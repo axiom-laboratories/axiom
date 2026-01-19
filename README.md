@@ -1,18 +1,18 @@
 # Master of Puppets - Orchestration Toolkit
 
-> **Status**: Industrial-Grade / Containerized / RBAC Enabled
-> **Current Version**: 0.7.0 (Containers & Observability)
+> **Status**: Industrial-Grade / Containerized / Zero-Trust
+> **Current Version**: 0.8.0 (Security & Network Mounts)
 
 ## Overview
 "Master of Puppets" is a secure, scalable, and containerized orchestration framework designed for executing defined automation tasks with strict security and observability. It features a Pull-based architecture, Zero-Trust security (mTLS/JWT), a comprehensive React Dashboard, and is fully deployable via Podman Containers.
 
-## System Architecture (v0.7)
+## System Architecture (v0.8)
 
 ### Components
 1.  **Agent Service (`agent_service`)**: The core orchestrator.
     *   **Port**: `8001` (HTTPS)
     *   **Tech**: FastAPI, SQLAlchemy (Async), PostgreSQL.
-    *   **Role**: Manages Job Queue, Node Registration, Authentication (JWT), and State.
+    *   **Role**: Manages Job Queue, Node Registration, Authentication (JWT), PKI (CA), and State.
 2.  **Model Service (`model_service`)**: The Scheduling Engine.
     *   **Port**: `8000` (HTTPS)
     *   **Tech**: APScheduler, SQLAlchemy.
@@ -20,18 +20,24 @@
 3.  **Environment Node (`environment_service`)**: The Worker.
     *   **Tech**: Python, httpx, psutil.
     *   **Role**: Proactively heartbeats (stats) and polls for work. Executes tasks in isolated subprocesses.
+    *   **Security**: **Self-Bootstrapping Trust** (extracts CA from Token), **Strict mTLS** (Client Certs required).
 4.  **Dashboard (`dashboard`)**: The Control Plane.
     *   **Port**: `5173`
     *   **Tech**: React, Vite, Recharts, React Router.
-    *   **Role**: Visualizes Active Nodes, Job Trends, and manages Admin Keys.
+    *   **Role**: Visualizes Active Nodes, Job Trends, manages Admin Keys, and **Network Mounts**.
 
 ### Key Features
 *   **Containerized Stack**: Fully dockerized (Podman) with `compose.server.yaml`.
 *   **Database**: Migrated to **PostgreSQL** for robustness and concurrency.
-*   **Security (RBAC)**:
-    *   **Granular Roles**: Viewer (Read-only), Operator (Job Submission), Admin (Key Mgmt).
-    *   **JWT Auth**: Secure login mechanism.
-    *   **Secrets**: AES-128 Encryption at Rest (Fernet) + Redaction in UI.
+*   **Security (Zero-Trust)**:
+    *   **Strict mTLS**: Nodes must present a signed certificate to talk to the Agent.
+    *   **Trust Bootstrapping**: Join Tokens contain the Root CA, allowing Nodes to self-initialize trust without host mounts.
+    *   **RBAC**: Granular Roles (Viewer, Operator, Admin).
+    *   **Secrets**: AES-128 Encryption at Rest + Redaction in UI.
+*   **Managed Network Mounts**:
+    *   **Host-Passthrough**: Nodes inherit the Host's Windows Authentication (Kerberos/NTLM) to access network shares.
+    *   **Central Config**: Define mounts (`\\server\share` -> `/mnt/mop/share`) centrally in the Orchestrator.
+    *   **Isolation**: Nodes cannot mount arbitrary paths; only what is provisioned by the Admin.
 *   **Observability**:
     *   **Proactive Heartbeats**: Nodes push CPU/RAM stats every 30s.
     *   **Live Dashboard**: Real-time status of the mesh.
@@ -64,8 +70,11 @@ Nodes are designed to run on separate machines (or separate terminals).
 **Windows Node:**
 ```powershell
 # In a new PowerShell terminal
+# Usage: .\install_node.ps1 -JoinToken "..." [-Count N]
 ./installer/install_node.ps1
 ```
+*   **Join Token**: Generate one from the Dashboard (Admin -> Generate Token).
+*   **Scaling**: Use `-Count 5` to spin up 5 nodes on one machine.
 
 **Linux Node:**
 ```bash
@@ -85,12 +94,19 @@ Nodes are designed to run on separate machines (or separate terminals).
 *   **Stats**: Real-time CPU/RAM progress bars (Green -> Yellow -> Orange).
 
 ### ⚙ Admin
-*   **Node Onboarding**: Generate One-Time Join Tokens for new runners.
+*   **Node Onboarding**: Generate Join Tokens.
+*   **Network Mounts**: Configure global SMB/CIFS paths for Nodes.
 *   **Code Signing**: upload new public keys for script verification.
 
 ## Release Notes
 
-### v0.7: Observability & Containers (Current)
+### v0.8: Security & Connectivity (Current)
+*   **Managed Network Mounts**: Centralized "Host-Passthrough" SMB mounting.
+*   **Native mTLS**: Nodes generate their own keys and request certs (CSR) from the Agent.
+*   **Trust Bootstrapping**: Zero-config deployment; Token carries the Root CA.
+*   **Security Fixes**: Restored RCE Signature Verification, fixed CRL check issues on Windows.
+
+### v0.7: Observability & Containers
 *   **PostgreSQL**: Replaced SQLite for production-grade storage.
 *   **Containerization**: Full support for Podman/Docker.
 *   **RBAC**: Added User/Role models and JWT authentication.
@@ -105,6 +121,6 @@ Nodes are designed to run on separate machines (or separate terminals).
 *   **Code Signing**: Ed25519 signature verification for python scripts.
 
 ## Next Steps / Roadmap
-1.  **Production Hardening**: Replace self-signed certs with real Let's Encrypt / Step CA setup in containers.
-2.  **Orchestration**: Deploy to Kubernetes (Helm Charts).
-3.  **Logs**: Centralized logging (ELK/Loki) integration.
+1.  **Documentation Wiki**: Integrated documentation system in the Dashboard.
+2.  **Production Hardening**: Replace internal PKI with Step CA / Let's Encrypt options.
+3.  **Orchestration**: Deploy to Kubernetes (Helm Charts).
