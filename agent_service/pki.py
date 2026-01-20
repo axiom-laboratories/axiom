@@ -68,8 +68,25 @@ class CertificateAuthority:
             return f.read()
 
     def issue_server_cert(self, output_key_path, output_cert_path, sans: list[str]):
-        """Issues a leaf certificate signed by the Root CA."""
-        print(f"Issuing server cert for: {sans}")
+        """Issues a leaf certificate signed by the Root CA, unless a valid one exists."""
+        
+        # Check if certs already exist and are valid
+        if os.path.exists(output_key_path) and os.path.exists(output_cert_path):
+            try:
+                with open(output_cert_path, "rb") as f:
+                    existing_cert = x509.load_pem_x509_certificate(f.read())
+                
+                # Check Expiry (Buffer: 30 Days)
+                expires_on = existing_cert.not_valid_after
+                if expires_on > datetime.datetime.utcnow() + datetime.timedelta(days=30):
+                    print(f"Using existing valid server certificate (Expires: {expires_on})")
+                    return
+                else:
+                    print(f"Existing server certificate is expiring soon ({expires_on}). Regenerating...")
+            except Exception as e:
+                print(f"Error validating existing certificate: {e}. Regenerating...")
+
+        print(f"Issuing new server cert for: {sans}")
         
         # Load Root Key/Cert
         with open(self.key_path, "rb") as f:

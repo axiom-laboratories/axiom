@@ -71,6 +71,16 @@ if ($Role -eq "Node") {
         # Write Trusted Root CA
         [System.IO.File]::WriteAllText("$PWD/bootstrap_ca.crt", $CaContent, [System.Text.Encoding]::ASCII)
         Write-Log "✅ Trust Root extracted to bootstrap_ca.crt" "Green"
+
+        # 3b. Trust the Root (Auto-Import to CurrentUser)
+        try {
+            Write-Log "Importing CA to Trust Store (CurrentUser)..."
+            Import-Certificate -FilePath "$PWD/bootstrap_ca.crt" -CertStoreLocation "Cert:\CurrentUser\Root" -ErrorAction Stop | Out-Null
+            Write-Log "✅ CA Trust Established." "Green"
+        }
+        catch {
+            Write-Log "Warning: Failed to auto-import CA. Strictly secure fetches might fail. Error: $_" "Yellow"
+        }
         
     }
     catch {
@@ -85,10 +95,11 @@ if ($Role -eq "Node") {
     # We use the extracted CA to verify the server identity
     $ComposeUrl = "$ServerUrl/api/node/compose?token=$Token"
     
-    # Note: On Windows/Schannel, treating a file-based CA as a trust anchor often fails with 0x8 (Untrusted Root)
-    # unless installed to the System Store. To keep the installer "universal" and one-liner friendly,
-    # we use -k for the bootstrap fetch. The Node *Runtime* will use the Strict CA.
-    $CurlArgs = @("-k", "--fail", "-v", "$ComposeUrl", "-o", "node-compose.yaml")
+    # Security Hardening:
+    # We rely on the CA being trusted (Step 1). 
+    # We use --ssl-no-revoke to bypass CRL checks for the internal CA, 
+    # but we DO enforce signature, hostname, and expiry validation.
+    $CurlArgs = @("--ssl-no-revoke", "--fail", "-v", "$ComposeUrl", "-o", "node-compose.yaml")
     
     Write-Log "Executing: curl $($CurlArgs -join ' ')" "Gray"
     

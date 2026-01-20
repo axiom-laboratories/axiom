@@ -605,8 +605,8 @@ async def generate_compose(token: str, mounts: Optional[str] = None, db: AsyncSe
             for m in saved_mounts:
                 name = m["name"] # validated alphanumeric
                 
-                # Standardized Path: /mnt/mop/[name]
-                target_path = f"/mnt/mop/{name}"
+                # Standardized Path: Use configured path or default to /mnt/mop/[name]
+                target_path = m.get("path", f"/mnt/mop/{name}")
                 vol_name = f"vol_{name}"
                 
                 # Named Volume (VM -> Container) - Bypasses Windows Path Translation
@@ -664,7 +664,6 @@ services:
       - JOIN_TOKEN={token}
       - ROOT_CA_PATH=/app/secrets/root_ca.crt
       - PYTHONUNBUFFERED=1{env_block}
-    network_mode: host
 {volumes_block}
     restart: always
 

@@ -53,74 +53,50 @@ This starts Postgres, Agent, Model, and Dashboard.
 
 ```powershell
 # Windows (PowerShell)
-# Note: Ensure you have built the dashboard first if developing locally
-# cd dashboard; npm install; cd ..
-
 podman-compose -f compose.server.yaml build
 podman-compose -f compose.server.yaml up -d
 ```
 
 Validating:
 *   **Dashboard**: `http://localhost:5173` (Login: `admin` / `admin`)
-*   **Agent API**: `https://localhost:8001/` (Self-signed cert warning is expected)
+*   **Agent API**: `https://localhost:8001/` (Self-signed cert warning is expected initially, but `install_ca.ps1` can fix this).
 
-### 2. Deploy a Node
-Nodes are designed to run on separate machines (or separate terminals).
-
-**Windows Node:**
+### 2. Trust the CA (Optional but Recommended)
+To eliminate SSL warnings on your Host:
 ```powershell
-# In a new PowerShell terminal
-# Usage: .\install_node.ps1 -JoinToken "..." [-Count N]
-./installer/install_node.ps1
-```
-*   **Join Token**: Generate one from the Dashboard (Admin -> Generate Token).
-*   **Scaling**: Use `-Count 5` to spin up 5 nodes on one machine.
-
-**Linux Node:**
-```bash
-./installer/install_node.sh
+./installer/install_ca.ps1
 ```
 
-## Dashboard Guide
+### 3. Deploy a Node (Universal Installer)
+Nodes run in **Bridge Mode** and are fully isolated.
+Copy the "One-Liner" from the Dashboard (Admin -> Generate Token), or run:
 
-### 📊 Dashboard
-*   **KPI Cards**: Shows Active Nodes count, Running Jobs, and Success Rate.
-*   **Failure Trends**: 7-Day bar chart of job failures.
-*   **Recent Activity**: Scrolling feed of latest jobs.
-
-### 🖥 Nodes
-*   **Live Grid**: Visual representation of all enrolled nodes.
-*   **Badges**: `ONLINE` (Green), `OFFLINE` (Red).
-*   **Stats**: Real-time CPU/RAM progress bars (Green -> Yellow -> Orange).
-
-### ⚙ Admin
-*   **Node Onboarding**: Generate Join Tokens.
-*   **Network Mounts**: Configure global SMB/CIFS paths for Nodes.
-*   **Code Signing**: upload new public keys for script verification.
+```powershell
+iex (irm https://localhost:8001/api/installer) -Role Node -Token "..." -Count 3
+```
 
 ## Release Notes
 
-### v0.8: Security & Connectivity (Current)
+### v0.9: Hardening & Isolation (Current)
+*   **Network Hardening**: Database and Model ports are now locked down (Internal-Only).
+*   **Node Isolation**: Nodes run in **Bridge Mode** (no longer Host mode) but maintain SMB/DrvFS mount capabilities.
+*   **SSL Hardening**:
+    *   **Auto-Trust**: Installer automatically imports the Root CA to the Windows Trust Store.
+    *   **Split-Horizon PKI**: Support for "Bring Your Own Certs" (external SSL).
+    *   **Strict Verification**: All internal communication enforces strict SSL signature validation.
+*   **Universal Installer**: Single PowerShell script (`install_universal.ps1`) for bootstrapping nodes.
+
+### v0.8: Security & Connectivity
 *   **Managed Network Mounts**: Centralized "Host-Passthrough" SMB mounting.
 *   **Native mTLS**: Nodes generate their own keys and request certs (CSR) from the Agent.
 *   **Trust Bootstrapping**: Zero-config deployment; Token carries the Root CA.
-*   **Security Fixes**: Restored RCE Signature Verification, fixed CRL check issues on Windows.
 
 ### v0.7: Observability & Containers
 *   **PostgreSQL**: Replaced SQLite for production-grade storage.
 *   **Containerization**: Full support for Podman/Docker.
 *   **RBAC**: Added User/Role models and JWT authentication.
-*   **Heartbeats**: Added proactive node telemetry.
-*   **Dashboard**: Complete UI overhaul with separate views.
-
-### v0.6: Infrastructure
-*   **Containerfiles**: Dockerfiles created for all services.
-*   **Installers**: Cross-platform deployment scripts (`.ps1`, `.sh`).
-
-### v0.5: RCE Prevention
-*   **Code Signing**: Ed25519 signature verification for python scripts.
 
 ## Next Steps / Roadmap
-1.  **Documentation Wiki**: Integrated documentation system in the Dashboard.
-2.  **Production Hardening**: Replace internal PKI with Step CA / Let's Encrypt options.
-3.  **Orchestration**: Deploy to Kubernetes (Helm Charts).
+1.  **Cross-Platform Validation**: Verify stack on Docker Desktop (in progress).
+2.  **Orchestration**: Deploy to Kubernetes (Helm Charts).
+

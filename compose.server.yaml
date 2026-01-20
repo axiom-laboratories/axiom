@@ -26,6 +26,9 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     ports:
       - "8001:8001"
+    volumes:
+      - ca_data:/app/ca
+      - secrets_data:/app/secrets
     depends_on:
       db:
         condition: service_healthy
@@ -39,8 +42,9 @@ services:
       - AGENT_URL=https://agent:8001
       - ROOT_CA_PATH=ca/certs/root_ca.crt
       - API_KEY=master-secret-key
-    ports:
-      - "8000:8000"
+    volumes:
+      - ca_data:/app/ca
+      - secrets_data:/app/secrets
     depends_on:
       db:
         condition: service_healthy
@@ -55,3 +59,5 @@ services:
 
 volumes:
   pgdata:
+  ca_data:
+  secrets_data:

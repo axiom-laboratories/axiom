@@ -1,29 +1,29 @@
 # Next Session Handover
 
 ## Current Status
-**Phase 2 (Universal Installer & Token Security) is COMPLETE.**
-- **Installer**: `installer/install_universal.ps1` is the single source of truth.
-- **Security**: Nodes enroll using strictly validated SSL (via embedded CA in Token).
-    - *Note*: The verified "One-Liner" uses `curl -k` for the initial bootstrap of the compose file to avoid Windows Schannel trust store issues, but the *runtime* (Python) uses the strict CA path.
-- **Backend**: Legacy client-side mount logic removed from `agent_service/main.py`.
-- **Frontend**: Dashboard provides a copy-paste "One-Liner" for deployment.
+**v0.9 Hardening Phases Complete.**
+1.  **SSL Hardening (Phase 3)**:
+    *   **Trust**: `install_universal.ps1` auto-imports the CA to the Windows Trust Store.
+    *   **Validation**: `curl` and Node Runtime now use strict SSL verification (no more `-k` flag, except for the internal CA CRL bypass `--ssl-no-revoke`).
+    *   **Architecture**: Split-Horizon PKI implemented. Supports "Bring Your Own Certs" (BYOC).
+2.  **Network Hardening (Phase 4)**:
+    *   **Isolation**: Nodes now run in **Bridge Mode** (previously Host Mode).
+    *   **Connectivity**: Nodes connect via `host.containers.internal`.
+    *   **Server**: Database and Model ports are now internal-only.
+    *   **Mounts**: Fixed `agent_service/main.py` to correctly map `global_network_mounts` to specific Host Paths (e.g., `/mnt/c/Users/...`) even in Bridge Mode.
 
 ## Recent Changes
-- Created `installer/install_universal.ps1`.
-- Deleted `installer/install_node.ps1` (Legacy).
-- Modified `agent_service/main.py` -> `/api/installer` endpoint & legacy code removal.
-- Modified `dashboard/.../AddNodeModal.jsx`.
+- Modified `compose.server.yaml`: Removed `ports` for `db` and `model`.
+- Modified `node-compose.yaml` (via `main.py`): Removed `network_mode: host`.
+- Modified `install_universal.ps1`: Added CA import logic and strict `curl` flags.
+- Created `docs/ssl_guide.md`.
 
 ## Verification
-- **Universal Installer**: Verified on Windows Host using `iex (irm ...)` flow.
-- **Alpine Containers**: Confirmed functionality with `musl` libc.
-- **Token**: Validated decoding and cert extraction.
+- **SSL**: Host machine trusts the internal CA. `curl https://localhost:8001` works.
+- **Node Isolation**: Node connects successfully in Bridge mode.
+- **Mounts**: Validated Node can write to a specific Host directory via DrvFS/Podman mount while in Bridge mode.
 
-## Known Issues / Context
-- **Global Network Mounts**: The database config for `global_network_mounts` was cleared during verification to resolve permission errors. Re-configuring this requires a UI or DB Admin tool (Feature Request).
-- **SSL Trust on Windows Host**: `curl` via PowerShell/Schannel relies on the System Trust Store. We bypassed this for the bootstrap to keep the installer simple ("One-Liner"). Phase 3 (Real SSL) will resolve this permanently.
-
-## Next Objectives (Phase 3)
-1.  **SSL Hardening**: Obtain/Integrate proper SSL certificates (e.g., Let's Encrypt or Domain CA) to remove the need for CA extraction/trust workarounds.
-2.  **Security Review**: Address findings from the Security Review (e.g., RCE mitigation if any pending).
-3.  **Third Party Tool Audit**: Complete the audit if not finished.
+## Next Objectives
+**Cross-Platform Validation**
+- [ ] **Docker Desktop**: Validate the Universal Installer and Stack on a Docker Desktop environment (ensure `host.docker.internal` vs `host.containers.internal` logic holds or adapts).
+- [ ] **Alpine Optimization**: Review image sizes (optional).
