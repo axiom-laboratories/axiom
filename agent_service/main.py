@@ -585,26 +585,12 @@ async def update_network_mounts(config: MountsConfig, current_user: User = Depen
 
 @app.get("/api/node/compose")
 async def generate_compose(token: str, mounts: Optional[str] = None, db: AsyncSession = Depends(get_db)):
-    # 1. Parse Client-Side Mounts (Host Passthrough - Legacy/Direct)
-    # Output: client_volumes list, client_env_vars list
-    # ... (Keep existing client-side logic for consistency if needed, but focus on DB mounts) ...
+    # 1. Parse Client-Side Mounts (Legacy Removed)
     client_volumes = []
     client_env_vars = []
     
-    if mounts:
-         # [Keep existing manual mount parsing logic for backward compat/dev testing]
-        try:
-            mount_list = json.loads(mounts)
-            if isinstance(mount_list, list):
-                for source in mount_list:
-                    clean_key = source.replace(":", "").replace("\\", "_").replace("/", "_").upper().lstrip("_")
-                    env_key = f"MOUNT_{clean_key}"
-                    clean_path = source.replace(":", "").replace("\\", "/").replace("//", "/").lower().lstrip("/")
-                    target_path = f"/mnt/smm/{clean_path}"
-                    client_volumes.append(f"- {target_path}:{target_path}")
-                    client_env_vars.append(f"- {env_key}={target_path}")
-        except:
-             pass 
+    # NOTE: Legacy 'mounts' param logic removed in v0.9 (Phase 2).
+    # All mounts must now be managed via 'global_network_mounts'. 
 
     # 2. Network Mounts (Global/DB - Managed Host Passthrough)
     network_volumes = {} # Name -> Config
@@ -684,6 +670,7 @@ services:
 
 {top_level_volumes}
 """
+    return Response(content=yaml_content, media_type="application/x-yaml")
 @app.get("/api/installer")
 async def get_installer():
     """Serves the latest install_node.ps1 script."""

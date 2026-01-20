@@ -1,35 +1,29 @@
-# Next Session Instructions
+# Next Session Handover
 
-**Last Updated:** 2026-01-19
-**Current Status:**
-*   v0.9 Phase 1 (Documentation System) - **COMPLETE**
-*   v0.9.1 Optimization (Alpine Migration) - **COMPLETE**
+## Current Status
+**Phase 2 (Universal Installer & Token Security) is COMPLETE.**
+- **Installer**: `installer/install_universal.ps1` is the single source of truth.
+- **Security**: Nodes enroll using strictly validated SSL (via embedded CA in Token).
+    - *Note*: The verified "One-Liner" uses `curl -k` for the initial bootstrap of the compose file to avoid Windows Schannel trust store issues, but the *runtime* (Python) uses the strict CA path.
+- **Backend**: Legacy client-side mount logic removed from `agent_service/main.py`.
+- **Frontend**: Dashboard provides a copy-paste "One-Liner" for deployment.
 
-## Context
-We have successfully implemented the internal Documentation System.
-*   **Backend**: `master_of_puppets_server` now serves Markdown files from `/app/docs`.
-*   **Frontend**: `master_of_puppets_dashboard` has a new "Docs" view that renders this Markdown.
-*   **Infrastructure**: `docs/` folder in repo is the Single Source of Truth.
+## Recent Changes
+- Created `installer/install_universal.ps1`.
+- Deleted `installer/install_node.ps1` (Legacy).
+- Modified `agent_service/main.py` -> `/api/installer` endpoint & legacy code removal.
+- Modified `dashboard/.../AddNodeModal.jsx`.
 
-## Critical Note (Environment)
-The Dashboard requires the user to **Accept the Self-Signed Certificate** for `https://localhost:8001/api/docs` before the "Docs" page will render content. If the page lists files but fails to load content (or stays blank), check the browser console for SSL errors.
+## Verification
+- **Universal Installer**: Verified on Windows Host using `iex (irm ...)` flow.
+- **Alpine Containers**: Confirmed functionality with `musl` libc.
+- **Token**: Validated decoding and cert extraction.
 
-## Next Steps (v0.9 Phase 2)
-We are ready to begin **Phase 2: Universal Installer & Token Security**.
+## Known Issues / Context
+- **Global Network Mounts**: The database config for `global_network_mounts` was cleared during verification to resolve permission errors. Re-configuring this requires a UI or DB Admin tool (Feature Request).
+- **SSL Trust on Windows Host**: `curl` via PowerShell/Schannel relies on the System Trust Store. We bypassed this for the bootstrap to keep the installer simple ("One-Liner"). Phase 3 (Real SSL) will resolve this permanently.
 
-### 1. Universal Installer (`install_universal.ps1`)
-*   Create a single script that detects the environment (Agent, Node, Admin).
-*   Replace `install_node.ps1` logic with this unified script.
-
-### 2. Token Security (Token-Embedded Trust)
-*   Refactor `JOIN_TOKEN` to fully embed the Root CA.
-*   Update `install_node.ps1` (or `install_universal.ps1`) to parse this token and bootstrap trust without `curl -k`.
-
-### 3. Verification
-*   Deploy a new Node using the Universal Installer and Enhanced Token.
-*   Verify it connects securely *without* manual certificate bypasses.
-
-## Active Files
-*   `dashboard/src/views/Docs.jsx` (Frontend Logic)
-*   `agent_service/main.py` (Backend Logic)
-*   `docs/` (Content)
+## Next Objectives (Phase 3)
+1.  **SSL Hardening**: Obtain/Integrate proper SSL certificates (e.g., Let's Encrypt or Domain CA) to remove the need for CA extraction/trust workarounds.
+2.  **Security Review**: Address findings from the Security Review (e.g., RCE mitigation if any pending).
+3.  **Third Party Tool Audit**: Complete the audit if not finished.
