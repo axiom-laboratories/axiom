@@ -1,18 +1,14 @@
 # Containerfile.node
 # Image for Worker Nodes
 
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
 WORKDIR /app
 
-# Install Podman (if we want Node to spawn containers... user requirement "Run Worker nodes inside Podman containers too")
-# Wait, user said "run the Worker nodes INSIDE Podman".
-# He also said "I'd like to preconfigure the nodes... so we can use a single command... to pull the node container".
-# So the Node PROCESS itself is in a container.
-# Does the Node need to SPAWN things? 
-# "Python Script Execution" -> "Process Isolation: Scripts run in proper subprocesses".
-# In a container, subprocesses are fine. They just run inside the same container (or we can use sibling containers).
-# For now, standard python image is fine.
+# Install system deps for python wheels (cryptography etc)
+RUN apk add --no-cache \
+    gcc musl-dev libffi-dev python3-dev \
+    linux-headers curl
 
 # Dependencies
 COPY requirements.txt .

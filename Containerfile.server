@@ -1,13 +1,16 @@
 # Containerfile.server
 # Unified image for Agent and Model Services
 
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
 WORKDIR /app
 
-# Install system deps (if any, e.g. for cryptography or step)
-# curl needed for some manual steps if debug
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install system deps
+# Build deps: gcc, musl-dev, libffi-dev, python3-dev (for cryptography, asyncpg)
+# Runtime deps: libpq (for postgres), curl, tar (for step cli)
+RUN apk add --no-cache \
+    gcc musl-dev libffi-dev python3-dev postgresql-dev \
+    linux-headers curl tar
 
 # Install Step CLI (for Agent to issue tokens)
 # Using generic linux install
