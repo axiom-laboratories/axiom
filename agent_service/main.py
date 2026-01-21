@@ -584,7 +584,7 @@ async def update_network_mounts(config: MountsConfig, current_user: User = Depen
 
 
 @app.get("/api/node/compose")
-async def generate_compose(token: str, mounts: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def generate_compose(token: str, mounts: Optional[str] = None, platform: str = "Podman", db: AsyncSession = Depends(get_db)):
     # 1. Parse Client-Side Mounts (Legacy Removed)
     client_volumes = []
     client_env_vars = []
@@ -654,13 +654,18 @@ async def generate_compose(token: str, mounts: Optional[str] = None, db: AsyncSe
                 top_level_volumes += f"      {k}: \"{v}\"\n"
 
 
+    # Platform Handling
+    agent_host = "host.containers.internal"
+    if platform.lower() == "docker":
+        agent_host = "host.docker.internal"
+
     yaml_content = f"""
 version: "3"
 services:
   node:
     image: localhost/master-of-puppets-node:latest
     environment:
-      - AGENT_URL=https://host.containers.internal:8001
+      - AGENT_URL=https://{agent_host}:8001
       - JOIN_TOKEN={token}
       - ROOT_CA_PATH=/app/secrets/root_ca.crt
       - PYTHONUNBUFFERED=1{env_block}

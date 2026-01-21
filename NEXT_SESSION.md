@@ -13,17 +13,20 @@
     *   **Mounts**: Fixed `agent_service/main.py` to correctly map `global_network_mounts` to specific Host Paths (e.g., `/mnt/c/Users/...`) even in Bridge Mode.
 
 ## Recent Changes
-- Modified `compose.server.yaml`: Removed `ports` for `db` and `model`.
-- Modified `node-compose.yaml` (via `main.py`): Removed `network_mode: host`.
-- Modified `install_universal.ps1`: Added CA import logic and strict `curl` flags.
-- Created `docs/ssl_guide.md`.
+- **Cross-Platform Support (`v1.1`)**:
+    - Updated `install_universal.ps1` with `-Platform [Podman|Docker]`.
+    - Updated `main.py` Config API to inject `host.docker.internal` vs `host.containers.internal`.
+    - Verified functionality on Podman (Windows) and Docker (Simulated).
 
 ## Verification
 - **SSL**: Host machine trusts the internal CA. `curl https://localhost:8001` works.
 - **Node Isolation**: Node connects successfully in Bridge mode.
 - **Mounts**: Validated Node can write to a specific Host directory via DrvFS/Podman mount while in Bridge mode.
+- **Docker**: Config API returns correct Host URL when `platform=Docker` is requested.
 
 ## Next Objectives
-**Cross-Platform Validation**
-- [ ] **Docker Desktop**: Validate the Universal Installer and Stack on a Docker Desktop environment (ensure `host.docker.internal` vs `host.containers.internal` logic holds or adapts).
-- [ ] **Alpine Optimization**: Review image sizes (optional).
+**Remote Environment Validation**
+- [ ] **Remote Connect**: SSH into User-provided Debian environment.
+- [ ] **Deploy Stack**: Clone repo and deploy Server stack (Docker/Podman).
+- [ ] **Deploy Node**: Test Universal Installer on Linux (Bash equivalent needed or adapt PS1 if pwsh available).
+- [ ] **Validation**: Verify Node -> Server connectivity in a true remote Linux context.
