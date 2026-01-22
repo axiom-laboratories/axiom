@@ -1,104 +1,96 @@
 # Master of Puppets - Orchestration Toolkit
 
-> **Status**: Industrial-Grade / Containerized / Zero-Trust
-> **Current Version**: 1.2.0 (Job Scheduling & Signatures)
+> **Status**: Production-Ready / Zero-Trust / Observable
+> **Current Version**: 1.2.0 (Strict mTLS & Health Centre)
 
 ## Overview
-"Master of Puppets" is a secure, scalable, and containerized orchestration framework designed for executing defined automation tasks with strict security and observability. It features a Pull-based architecture, Zero-Trust security (mTLS/JWT), a comprehensive React Dashboard, and is fully deployable via Podman Containers.
+**Master of Puppets** is a secure, scalable, and containerized orchestration framework designed for executing defined automation tasks with strict security and observability. It features a Pull-based architecture, Zero-Trust security (mTLS/JWT/Signatures), a comprehensive React Dashboard, and is fully deployable via Docker/Podman.
 
-## System Architecture (v0.8)
+## System Architecture
 
-### Components
-1.  **Agent Service (`agent_service`)**: The core orchestrator.
-    *   **Port**: `8001` (HTTPS)
-    *   **Tech**: FastAPI, SQLAlchemy (Async), PostgreSQL.
-    *   **Role**: Manages Job Queue, Node Registration, Authentication (JWT), PKI (CA), and State.
-2.  **Model Service (`model_service`)**: The Scheduling Engine.
-    *   **Port**: `8000` (HTTPS)
-    *   **Tech**: APScheduler, SQLAlchemy.
-    *   **Role**: Defines recurring schedules and triggers jobs.
-3.  **Environment Node (`environment_service`)**: The Worker.
-    *   **Tech**: Python, httpx, psutil.
-    *   **Role**: Proactively heartbeats (stats) and polls for work. Executes tasks in isolated subprocesses.
-    *   **Security**: **Self-Bootstrapping Trust** (extracts CA from Token), **Strict mTLS** (Client Certs required).
-4.  **Dashboard (`dashboard`)**: The Control Plane.
-    *   **Port**: `5173`
-    *   **Tech**: React, Vite, Recharts, React Router.
-    *   **Role**: Visualizes Active Nodes, Job Trends, manages Admin Keys, and **Network Mounts**.
+### 1. Control Plane (`agent_service`)
+*   **Port**: `8001` (HTTPS, mTLS Required)
+*   **Tech**: FastAPI, SQLAlchemy (Async), PostgreSQL.
+*   **Role**: The brain. Manages Job Queue, Node Registration, Authentication (JWT), PKI (CA), and State.
+*   **Security**: Enforces strict mutual TLS. Rejects any connection without a valid client certificate signed by the internal Root CA.
 
-### Key Features
-*   **Containerized Stack**: Fully dockerized (Podman) with `compose.server.yaml`.
-*   **Database**: Migrated to **PostgreSQL** for robustness and concurrency.
-*   **Security (Zero-Trust)**:
-    *   **Strict mTLS**: Nodes must present a signed certificate to talk to the Agent.
-    *   **Trust Bootstrapping**: Join Tokens contain the Root CA, allowing Nodes to self-initialize trust without host mounts.
-    *   **RBAC**: Granular Roles (Viewer, Operator, Admin).
-    *   **Secrets**: AES-128 Encryption at Rest + Redaction in UI.
-*   **Managed Network Mounts**:
-    *   **Host-Passthrough**: Nodes inherit the Host's Windows Authentication (Kerberos/NTLM) to access network shares.
-    *   **Central Config**: Define mounts (`\\server\share` -> `/mnt/mop/share`) centrally in the Orchestrator.
-    *   **Isolation**: Nodes cannot mount arbitrary paths; only what is provisioned by the Admin.
-*   **Observability**:
-    *   **Proactive Heartbeats**: Nodes push CPU/RAM stats every 30s.
-    *   **Live Dashboard**: Real-time status of the mesh.
+### 2. Environment Node (`environment_service`)
+*   **Tech**: Python, httpx, psutil.
+*   **Role**: The efficient worker. Proactively heartbeats (stats) and polls for work. Executes tasks in isolated subprocesses.
+*   **Security**: 
+    *   **Self-Bootstrapping**: Bootstraps trust via a secure `JOIN_TOKEN` (embedded Root CA).
+    *   **Signature Verification**: Verifies digital signatures (RSA-2048) of all jobs before execution.
+    *   **Strict mTLS**: Refuses to connect to an unverified server.
 
-## Quick Start (Containerized)
+### 3. Dashboard Health Centre (`dashboard`)
+*   **Port**: `5173` (HTTP)
+*   **Tech**: React, Vite, TypeScript, TanStack Query, Recharts, Shadcn/ui.
+*   **Role**: Real-time telemetry and control.
+    *   **Live Metrics**: CPU/RAM sparklines for every node.
+    *   **Status Indicators**: Instant feedback on Node health (Online/Offline/Busy).
+    *   **Secure Integration**: Connects directly to the backend API via HTTPS.
+
+## Deployment & Operations
 
 ### Prerequisites
-*   **Podman** (with `podman-compose`) OR Docker.
-*   **Python 3.12+** (for local CLI tools).
+*   **Docker** (or Podman)
+*   **Python 3.12+** (for automation scripts)
+*   **SSH Access** to the target server (e.g., `speedy_mini`).
 
-### 1. Build & Start Server Stack
-This starts Postgres, Agent, Model, and Dashboard.
+### 1. Server Deployment
+Deploys the backend services (Agent, Model, DB) and updates the dashboard.
+```bash
+python deploy_server_update.py
+```
+*   Updates codebase.
+*   Regenerates/Uploads Certificates (Server Certs, Verification Keys).
+*   Restarts the Docker stack remotely.
 
-```powershell
-# Windows (PowerShell)
-podman-compose -f compose.server.yaml build
-podman-compose -f compose.server.yaml up -d
+### 2. Dashboard Deployment
+Builds the frontend and deploys the static assets.
+```bash
+python deploy_dashboard.py
+```
+*   Builds React app (Vite).
+*   Deploys to Nginx container.
+
+### 3. Node Cluster Deployment
+Updates the worker nodes with the latest trust anchors.
+```bash
+python sync_and_rebuild.py
 ```
 
-Validating:
-*   **Dashboard**: `http://localhost:5173` (Login: `admin` / `admin`)
-*   **Agent API**: `https://localhost:8001/` (Self-signed cert warning is expected initially, but `install_ca.ps1` can fix this).
+## Verification
 
-### 2. Trust the CA (Optional but Recommended)
-To eliminate SSL warnings on your Host:
-```powershell
-./installer/install_ca.ps1
+### Quick Health Check
+Run diagnostics to check container status and logs.
+```bash
+python diagnostic_v2.py
 ```
 
-### 3. Deploy a Node (Universal Installer)
-Nodes run in **Bridge Mode** and are fully isolated.
-Copy the "One-Liner" from the Dashboard (Admin -> Generate Token), or run:
-
-```powershell
-iex (irm https://localhost:8001/api/installer) -Role Node -Token "..." -Count 3
+### End-to-End Test (Signed Job)
+Dispatch a real, cryptographically signed job to the cluster.
+```bash
+python run_signed_job.py
 ```
+*   **Success**: Returns HTTP 200 and confirms execution in logs.
+*   **Failure**: HTTP 403/401 or Signature Verification Error (if keys mismatch).
 
-## Release Notes
+## Security Architecture (Zero-Trust)
+1.  **Transport**: All communication is TLS 1.3.
+2.  **Identity**: Nodes are identified by Client Certificates (CN=NodeID).
+3.  **Execution**: Jobs are signed by the Developer/Admin (Private Key) and verified by the Node (Public Key). The Server is a pass-through and cannot forge jobs.
 
-### v1.2: Job Scheduling & Signature Management (Pass-Through Security)
-*   **APScheduler Integration**: Native scheduling of jobs (Cron).
-*   **Signature Registry**: Centralized management of trusted Ed25519 Public Keys.
-*   **Security (Pass-Through)**: Nodes verify the *Original Developer Signature* against trusted keys (fetched via mTLS), ensuring zero tamper potential by the Orchestrator.
-*   **Observability**: Sparkline visualization for Job History.
+## Development
+- **Backend**: `agent_service/`
+- **Frontend**: `dashboard/`
+- **Nodes**: `environment_service/`
+- **Tooling**: Root directory scripts (`deploy_*.py`, `check_*.py`).
 
-### v0.9: Hardening & Isolation
-*   **Network Hardening**: Database and Model ports are now locked down (Internal-Only).
-*   **Node Isolation**: Nodes run in **Bridge Mode** (no longer Host mode) but maintain SMB/DrvFS mount capabilities.
-*   **SSL Hardening**:
-    *   **Auto-Trust**: Installer automatically imports the Root CA to the Windows Trust Store.
-    *   **Split-Horizon PKI**: Support for "Bring Your Own Certs" (external SSL).
-    *   **Strict Verification**: All internal communication enforces strict SSL signature validation.
-*   **Universal Installer**: Single PowerShell script (`install_universal.ps1`) for bootstrapping nodes.
+### Local Dev Setup
+1.  `pip install -r requirements.txt`
+2.  `cd dashboard && npm install`
+3.  Create `secrets.env` based on `.env.example`.
 
-### v0.8: Security & Connectivity
-*   **Managed Network Mounts**: Centralized "Host-Passthrough" SMB mounting.
-*   **Native mTLS**: Nodes generate their own keys and request certs (CSR) from the Agent.
-*   **Trust Bootstrapping**: Zero-config deployment; Token carries the Root CA.
-
-## Next Steps / Roadmap
-1.  **Kubernetes Support**: Helm Charts for k8s deployment.
-2.  **Secret Rotation**: Automated rotation of mTLS certs and Signing Keys.
 
 

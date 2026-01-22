@@ -51,6 +51,24 @@
 - `httpx`: Async HTTP client for the Nodes.
 - `pydantic`: Data validation and settings management.
 
+## Operational Scripts (v1.2)
+
+### Deployment
+- `deploy_server_update.py`: Main entry point for backend deployment. Updates code, secrets, and restarts services remotely.
+- `deploy_dashboard.py`: Builds and deploys the frontend React app.
+- `sync_and_rebuild.py`: Forces a node cluster rebuild and trust update.
+
+### Diagnostics & Verification
+- `diagnostic_v2.py`: The primary health check tool. Fetches logs and container status.
+- `run_signed_job.py`: E2E verification. Submits a signed job to the cluster.
+- `check_dashboard.py`: targeted verification of the frontend container.
+- `check_cert_sans.py`: Audits local certificate files for correct Subject Alternative Names.
+
+### Debugging (Low-Level)
+- `debug_remote.py`: Generic SSH command runner for inspecting the remote host.
+- `debug_node_run.py`: Runs the Node logic locally (outside Docker) for breakpoint debugging.
+- `debug_startup.py`: Validates server startup logic without launching the full stack.
+
 ## Development Tooling
 - **Git**: Version control. "Little and often" strategy.
 - **Progress Handover**: `PROGRESS_HANDOVER.md` ensures agentic continuity.
