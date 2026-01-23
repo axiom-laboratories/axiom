@@ -58,20 +58,20 @@ def diagnostic():
         print("\n--- Network Check ---")
         run_command(client, "docker network ls")
 
-        print("\n--- Inspect Node Compose ---")
+        print("\n--- Inspect Puppet Compose ---")
         run_command(client, f"cat {REMOTE_DIR}/puppets/node-compose-scale.yaml")
 
         print("\n--- Docker PS (All) ---")
         run_command(client, "docker ps -a")
         
-        print("\n--- Logs of a Node ---")
-        _, nodes_list = run_command(client, "docker ps --format '{{.Names}}' | grep node | head -n 1", print_output=False)
+        print("\n--- Logs of a Puppet ---")
+        _, nodes_list = run_command(client, "docker ps --format '{{.Names}}' | grep -E 'node|puppet' | head -n 1", print_output=False)
         node = nodes_list.strip()
         if node:
             print(f"Logs for {node}:")
             run_command(client, f"docker logs {node} 2>&1 | tail -n 20")
         else:
-            print("No node container found!")
+            print("No Puppet container found!")
             
     except Exception as e:
         print(f"Error: {e}")

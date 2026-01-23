@@ -44,7 +44,7 @@ def deploy_server():
         sftp = client.open_sftp()
         
         # 1. Upload Code (Agent Service)
-        print("--- Uploading Agent Service Code ---")
+        print("--- Uploading Puppeteer Code ---")
         run_command(client, f"mkdir -p {REMOTE_DIR}/puppeteer/agent_service")
         local_main = "puppeteer/agent_service/main.py"
         remote_main = f"{REMOTE_DIR}/puppeteer/agent_service/main.py"
@@ -115,7 +115,7 @@ def deploy_server():
         sftp.close()
 
         # 3. Restart Agent Service
-        print("--- Restarting Server Stack ---")
+        print("--- Restarting Puppeteer Stack ---")
         # Just restart the agent container to pick up code and certs
         # (Assuming mapped volumes for secrets? or needs rebuild?)
         # Inspecting previous diagnostics, secrets seem to be mounted or copied?
@@ -125,7 +125,7 @@ def deploy_server():
         run_command(client, f"cd {REMOTE_DIR}/puppeteer && docker compose -f compose.server.yaml build agent")
         run_command(client, f"cd {REMOTE_DIR}/puppeteer && docker compose -f compose.server.yaml up -d agent --force-recreate")
         
-        print("Waiting 10s for Server Startup...")
+        print("Waiting 10s for Puppeteer Startup...")
         time.sleep(10)
 
     except Exception as e:

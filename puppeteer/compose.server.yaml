@@ -22,7 +22,7 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
-      - API_KEY=${API_KEY}
+      - API_KEY=${API_KEY:-master-secret-key}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     ports:
       - "8001:8001"
@@ -41,7 +41,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
       - AGENT_URL=https://agent:8001
       - ROOT_CA_PATH=ca/certs/root_ca.crt
-      - API_KEY=${API_KEY}
+      - API_KEY=${API_KEY:-master-secret-key}
     volumes:
       - ./ca:/app/ca
       - ./secrets:/app/secrets

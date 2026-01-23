@@ -52,13 +52,13 @@ def sync_and_rebuild():
     client.connect(ip, username=user, password=password)
 
     try:
-        print("--- Uploading Patched node.py ---")
+        print("--- Uploading Patched Puppet Code ---")
         sftp = client.open_sftp()
         # Upload using same relative path
         run_command(client, f"mkdir -p {REMOTE_DIR}/puppets/environment_service")
         sftp.put(LOCAL_PATH, f"{REMOTE_DIR}/puppets/environment_service/node.py")
         
-        print("--- Uploading Node Build Files ---")
+        print("--- Uploading Puppet Build Files ---")
         sftp.put("puppets/Containerfile.node", f"{REMOTE_DIR}/puppets/Containerfile.node")
         sftp.put("puppets/requirements.txt", f"{REMOTE_DIR}/puppets/requirements.txt")
         
@@ -67,24 +67,49 @@ def sync_and_rebuild():
         print("--- Overwriting Remote Compose Config ---")
         
         # Generator Join Token dynamically
+        print("--- Fetching Admin Access Token ---")
+        # 1. Login as Admin
+        success, login_json = run_command(client, "curl -s -X POST -d 'username=admin&password=admin' https://localhost:8001/auth/login -k", print_output=False)
+        
         import json
-        import base64
+        admin_token = ""
+        try:
+            login_data = json.loads(login_json)
+            admin_token = login_data.get("access_token")
+            if not admin_token:
+                 print(f"FAILED TO LOGIN: {login_json}")
+                 return
+        except Exception as e:
+             print(f"LOGIN ERROR: {e} - Output: {login_json}")
+             return
+
+        print("--- Generating Join Token ---")
+        # 2. Generate Join Token using Bearer Auth
+        success, token_json = run_command(client, f"curl -s -X POST -H 'Authorization: Bearer {admin_token}' -H 'Content-Type: application/json' https://localhost:8001/admin/generate-token -k", print_output=True)
         
-        with open("puppeteer/secrets/ca/root_ca.crt", "r") as f:
-            ca_pem = f.read()
-            
-        # Token "t" value - reusing the one we had or a known valid one
-        # Ideally we fetch from DB or use a known one. 
-        # The hardcoded one "ac4230444722477ba162e5be959f3898" might be in DB?
-        # Let's trust it works since the node logs showed "Debug: Checking Token..." and proceeded to Trust Bootstrap.
-        # The signature failure happened during SSL handshake, not Token Auth.
-        token_val = "ac4230444722477ba162e5be959f3898" 
-        
-        token_payload = {
-            "t": token_val,
-            "ca": ca_pem
-        }
-        token_b64 = base64.b64encode(json.dumps(token_payload).encode()).decode()
+        import json
+        try:
+            token_data = json.loads(token_json)
+            # API returns a full token string usually? Or object? 
+            # Endpoints usually return {"token": "..."} or similar.
+            # Let's check api. 
+            # actually looking at agent_service code (implied), it returns JSON.
+            # diagnostic showed `JOIN_TOKEN` is a b64 blob.
+            # The API /admin/generate-token likely returns that blob in a field.
+            # Let's assume it returns {"token": "..."} or similar.
+            # If we can't parse, we fail.
+            if "token" in token_data:
+                full_token = token_data["token"] 
+                # This token is ALREADY the base64 blob we need if it comes from generate-token endpoint?
+                # Usually that endpoint returns the full blob.
+                token_b64 = full_token
+            else:
+                 print(f"FAILED TO PARSE TOKEN: {token_json}")
+                 return
+        except Exception as e:
+            print(f"FAILED TO GET TOKEN: {e} - Output: {token_json}")
+            # Fallback to hardcoded just in case? No, it will fail.
+            return
         
         # Define fresh template to avoid corruption
         NODES_COUNT = 4
@@ -92,8 +117,8 @@ def sync_and_rebuild():
         compose_content = 'version: "3"\nservices:\n'
         for i in range(1, NODES_COUNT + 1):
              compose_content += f"""
-  node-{i}:
-    image: localhost/master-of-puppets-node:latest
+  puppet-{i}:
+    image: localhost/puppets-node:latest
     environment:
       - AGENT_URL=https://host.docker.internal:8001
       - JOIN_TOKEN={token_b64}
@@ -113,8 +138,8 @@ def sync_and_rebuild():
             f.write(compose_content)
         sftp.close()
         
-        print("--- Rebuilding Node Image ---")
-        run_command(client, f"cd {REMOTE_DIR}/puppets && docker build --no-cache -t localhost/master-of-puppets-node:latest -f Containerfile.node .")
+        print("--- Rebuilding Puppet Image ---")
+        run_command(client, f"cd {REMOTE_DIR}/puppets && docker build --no-cache -t localhost/puppets-node:latest -f Containerfile.node .")
         
         print("--- Redeploying ---")
         run_command(client, f"cd {REMOTE_DIR}/puppets && docker compose -f node-compose-scale.yaml up -d --force-recreate")
