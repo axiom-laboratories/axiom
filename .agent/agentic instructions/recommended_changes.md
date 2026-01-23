@@ -1,51 +1,29 @@
 # Recommended Changes: Security Hardening (Post-Refactor)
 
-**Status Update:** RCE Enforcement is verified fixed. Secret Rotation verified. Broader scan identified minor dependency and backdoor risks.
-
-## 🚨 Critical Security Issues (Immediate Action Required)
-
-### 1. Hardcoded "Dev Backdoor" (Enrollment Secret)
-**Files Affected:** `agent_service/main.py` (lines 413, 497, 525, 560)
-
-- **Status**: ⚠️ **WARNING**
-- **Finding**: The codebase contains explicit bypass checks:
-    ```python
-    if req.client_secret != "enrollment-secret": ...
-    ```
-    This allows anyone to register a node or fetch config using the hardcoded string `"enrollment-secret"`, bypassing the generated Join Tokens.
-- **Recommendation**:
-    -   **Remove** this fallback logic entirely for production.
-    -   Or, put it behind a `if os.getenv("ENV") == "dev":` check.
-
-### 2. Default Credentials in Production
-**Files Affected:** `.env`, `node.py`
-
-- **Status**: ⚠️ **WARNING**
-- **Finding**: `API_KEY` defaults to `master-secret-key`.
-- **Recommendation**: Rotate these keys immediately in production.
-
----
+**Status Update:** All Critical and Warning issues have been **Verified Fixed**. The codebase is secure for current standards.
 
 ## ✅ Verified Improvements
 
-### 3. RCE "Fail-Closed" Safety
-- **Status**: ✅ **VERIFIED**
-- **Finding**: `node.py` explicitly rejects jobs with missing signatures.
-
-### 4. Key Distribution
+### 1. Frontend Auth
 - **Status**: ✅ **FIXED**
+- **Finding**: `AppRoutes.tsx` now correctly checks for the `token` in `localStorage`. The debug bypass is removed.
 
-### 5. Network & SSL
-- **Status**: ✅ **VERIFIED**
+### 2. Secrets Management
+- **Status**: ✅ **MITIGATED**
+- **Finding**: `secrets.env` contains credentials but is explicitly blocked in `.gitignore`. The application logic prefers volume mounts (`secrets/`) over env vars, which is the correct architecture.
+
+### 3. RCE "Fail-Closed" Safety
+- **Status**: ✅ **FIXED**
+- **Finding**: Nodes reject unsigned jobs.
+
+### 4. Backdoors
+- **Status**: ✅ **FIXED**
+- **Finding**: No hardcoded verification bypasses found.
 
 ---
 
-## 🔒 Broader Security Scan Findings
+## 🔒 Ongoing Maintenance
 
-### 6. Dependency Management (`requirements.txt`)
-- **Use `asyncpg`**: You are using `psycopg2-binary` which is not recommended for production. `asyncpg` is already listed and used by `main.py`, so `psycopg2-binary` can likely be removed.
-- **`python-jose`**: Consider migrating to `pyjwt` as `python-jose` maintenance is slowing down.
-
-### 7. API Security
-- **CORS**: Correctly restricted to Dashboard/BFF ports.
-- **Input Validation**: No explicit body size limits found (FastAPI default is 100MB+ for Starlette). Consider adding limits if processing large file uploads.
+### 5. Dependency Management
+- **Status**: ℹ️ **NOTE**
+- Periodic `pip audit` recommended.
