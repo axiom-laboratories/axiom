@@ -13,3 +13,4 @@ python-jose[cryptography]
 python-multipart
 psutil
 paramiko
+aiohttp

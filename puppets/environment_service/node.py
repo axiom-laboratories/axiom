@@ -14,6 +14,8 @@ from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography import x509
 from cryptography.x509.oid import NameOID
+from aiohttp import web
+import runtime
 
 from dotenv import load_dotenv
 
@@ -72,6 +74,10 @@ class Node:
         self.cert_file = CERT_FILE
         self.key_file = KEY_FILE
         self.verify_key_path = "secrets/verification.key"
+        self.concurrency_limit = 5
+        self.job_memory_limit = "512m"
+        self.active_tasks = set()
+        self.runtime_engine = runtime.ContainerRuntime()
         os.makedirs("secrets", exist_ok=True)
         
         # Self-Bootstrap Trust from Token (Container-Native)
@@ -251,59 +257,98 @@ class Node:
     async def execute_task(self, job: Dict):
         guid = job["guid"]
         task_type = job.get("task_type", "web_task")
-        payload = job["payload"]
+        payload = job.get("payload", {})
         
         print(f"[{self.node_id}] Executing Job {guid} [{task_type}]")
         
-        result_data = {}
-        success = False
-
         if task_type == "python_script":
             script = payload.get("script_content")
             secrets = payload.get("secrets", {})
             signature = payload.get("signature")
-
-            if not script:
-                 result_data = {"error": "No script_content provided"}
-            elif not signature:
-                 if INSECURE_NODE:
-                     print(f"[{self.node_id}] ⚠️ Unsigned Job Allowed (Insecure Mode)")
-                 else:
-                     print(f"[{self.node_id}] ❌ CRITICAL: Unsigned Job Rejected. Signature is MANDATORY.")
-                     await self.report_result(guid, False, {"error": "Security Check Failed: Signature Missing (Mandatory)"})
-                     return
-            else:
-                 # Check Signature
-                 if signature:
-                     if not os.path.exists(self.verify_key_path):
-                         print(f"[{self.node_id}] ❌ CRITICAL: Verification Key missing. Cannot verify signature.")
-                         await self.report_result(guid, False, {"error": "Security Check Failed: Verification Key missing"})
-                         return
-                         
-                     try:
-                         with open(self.verify_key_path, "rb") as f:
-                             public_key_bytes = f.read()
-                             public_key = serialization.load_pem_public_key(public_key_bytes)
-                             
-                         sig_bytes = base64.b64decode(signature)
-                         public_key.verify(sig_bytes, script.encode('utf-8'))
-                         print(f"[{self.node_id}] ✅ Signature Verified for Job {guid}")
-                     except Exception as e:
-                         print(f"[{self.node_id}] ❌ Signature Verification FAILED: {e}")
-                         await self.report_result(guid, False, {"error": "Signature Verification Failed"})
-                         return
+            
+            if not script or not signature:
+                 await self.report_result(guid, False, {"error": "Missing script or signature"})
+                 return
+            
+            # Verify Signature
+            if not os.path.exists(self.verify_key_path):
+                 print(f"[{self.node_id}] ❌ CRITICAL: Verification Key missing. Cannot verify signature.")
+                 await self.report_result(guid, False, {"error": "Security Check Failed: Verification Key missing"})
+                 return
                  
-                 exec_result = self.run_python_script(guid, script, secrets)
-                 result_data = exec_result
-                 success = (exec_result.get("exit_code") == 0)
+            try:
+                with open(self.verify_key_path, "rb") as f:
+                     public_key_bytes = f.read()
+                     public_key = serialization.load_pem_public_key(public_key_bytes)
+                     
+                sig_bytes = base64.b64decode(signature)
+                public_key.verify(sig_bytes, script.encode('utf-8'))
+                print(f"[{self.node_id}] ✅ Signature Verified for Job {guid}")
+            except Exception as e:
+                print(f"[{self.node_id}] ❌ Signature Verification FAILED: {e}")
+                await self.report_result(guid, False, {"error": "Signature Verification Failed"})
+                return
+            
+            # Prepare Environment
+            krb_ccname = os.environ.get("KRB5CCNAME")
+            env = {
+                "SIDECAR_URL": "http://localhost:8080", 
+                "KRB5CCNAME": krb_ccname if krb_ccname else ""
+            }
+            env.update(secrets)
+            
+            mounts = []
+            # Only mount if it's a file path
+            if krb_ccname and krb_ccname.startswith("/") and os.path.exists(krb_ccname):
+                mounts.append(f"{krb_ccname}:{krb_ccname}:ro")
+            
+            # Forward Network Mounts
+            for k, v in os.environ.items():
+                if k.startswith("MOUNT_"):
+                    env[k] = v # Pass Config to Job
+                    if os.path.exists(v):
+                         mounts.append(f"{v}:{v}")
+            
+            # Detect Hostname (Container ID) for Sidecar Networking
+            hostname = socket.gethostname() 
+
+            try:
+                # Use python - to read from stdin
+                # Assuming same image for now or configurable
+                image = os.getenv("JOB_IMAGE", "localhost/master-of-puppets-node:latest")
                 
+                result = await self.runtime_engine.run(
+                   image=image, 
+                   command=["python", "-"], 
+                   env=env,
+                   mounts=mounts,
+                   network_ref=hostname,
+                   input_data=script
+                )
+                
+                success = (result["exit_code"] == 0)
+                
+                runtime_report = {
+                    "exit_code": result["exit_code"],
+                    "stdout": result["stdout"],
+                    "stderr": result["stderr"]
+                }
+                
+                # Check if Sidecar already handled it? 
+                # We can't easily know in this stateless flow without global tracking.
+                # However, reporting again is usually safe if DB handles it (Update WHERE guid=...)
+                # We report the container output.
+                
+                await self.report_result(guid, success, runtime_report)
+                
+            except Exception as e:
+                 print(f"[{self.node_id}] Runtime Execution Failed: {e}")
+                 await self.report_result(guid, False, {"error": str(e)})
+
         else:
-            print(f"[{self.node_id}] Simulating Web Task")
-            await asyncio.sleep(2)
-            success = True
-            result_data = {"processed": True}
-        
-        await self.report_result(guid, success, result_data)
+             # Web Task (Simulation)
+             await asyncio.sleep(2)
+             await self.report_result(guid, True, {"processed": True})
 
     async def report_result(self, guid: str, success: bool, result: Dict):
         try:
@@ -320,13 +365,61 @@ class Node:
         except Exception as e:
             print(f"[{self.node_id}] Failed to report result: {e}")
 
+    async def start_sidecar(self):
+        app = web.Application()
+        app.add_routes([web.post('/job/status', self.handle_job_status)])
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', 8080)
+        await site.start()
+        print(f"[{self.node_id}] Sidecar listening on 8080")
+
+    async def handle_job_status(self, request):
+        try:
+            data = await request.json()
+            guid = data.get("guid")
+            success = data.get("success", False)
+            result = data.get("result", {})
+            print(f"[{self.node_id}] Sidecar received report for {guid}: {success}")
+            await self.report_result(guid, success, result)
+            return web.Response(text="OK")
+        except Exception as e:
+            print(f"[{self.node_id}] Sidecar Error: {e}")
+            return web.Response(status=500)
+
     async def start(self):
         print(f"[{self.node_id}] Starting Work Loop...")
+        try:
+            await self.start_sidecar()
+        except Exception as e:
+            print(f"[{self.node_id}] Failed to start Sidecar: {e}")
+            
         while True:
-            job = await self.poll_for_work()
-            if job:
-                await self.execute_task(job)
-            else:
+            try:
+                # Check Concurrency
+                if len(self.active_tasks) >= self.concurrency_limit:
+                    await asyncio.sleep(1)
+                    continue
+
+                job_data = await self.poll_for_work()
+                
+                if job_data:
+                    config = job_data.get("config", {})
+                    if config:
+                         self.concurrency_limit = config.get("concurrency_limit", 5)
+                         # self.job_memory_limit = config.get("job_memory_limit", "512m") # Used in execute_task
+
+                    work = job_data.get("job")
+                    if work:
+                        task = asyncio.create_task(self.execute_task(work))
+                        self.active_tasks.add(task)
+                        task.add_done_callback(self.active_tasks.discard)
+                    else:
+                        await asyncio.sleep(5) # No work, just heartbeat/config update
+                else:
+                    await asyncio.sleep(5)
+            except Exception as e:
+                print(f"[{self.node_id}] Loop Error: {e}")
                 await asyncio.sleep(5)
 
 def main():

@@ -326,44 +326,82 @@ async def create_job(job_req: JobCreate, db: AsyncSession = Depends(get_db)):
     
     return {"guid": guid, "status": "PENDING", "payload": encrypted_payload}
 
-@app.post("/work/pull", response_model=Optional[WorkResponse])
+class NodeConfig(BaseModel):
+    concurrency_limit: int
+    job_memory_limit: str
+
+class PollResponse(BaseModel):
+    job: Optional[WorkResponse] = None
+    config: NodeConfig
+
+@app.post("/work/pull", response_model=PollResponse)
 async def pull_work(request: Request, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
     """Called by Environment Nodes."""
-    node_id = request.client.host 
-    MAX_CONCURRENT_JOBS = 5 
+    node_ip = request.client.host
+    # Use X-Node-ID if available, else IP
+    node_id = request.headers.get("X-Node-ID", node_ip)
     
-    try:
-        # Check active jobs count
-        result = await db.execute(select(func.count(Job.guid)).where(Job.status == 'ASSIGNED'))
-        active_count = result.scalar()
-        
-        if active_count >= MAX_CONCURRENT_JOBS:
-            return None # Backoff
-        
-        # Find highest priority PENDING job
-        # Using row locking "FOR UPDATE" in Postgres is safer, but avoiding complication for now.
-        result = await db.execute(
-            select(Job).where(Job.status == 'PENDING').order_by(Job.created_at.asc()).limit(1)
+    # 1. Fetch Node Configuration
+    result = await db.execute(select(Node).where(Node.node_id == node_id))
+    node = result.scalar_one_or_none()
+    
+    # Default Config
+    concurrency = 5
+    memory = "512m"
+    
+    if node:
+        concurrency = node.concurrency_limit
+        memory = node.job_memory_limit
+        # Update last seen while we're here?
+        node.last_seen = datetime.utcnow()
+        if node.ip != node_ip:
+             node.ip = node_ip
+    else:
+        # Create Node if not exists (Auto-Registration on Poll)
+        # Typically Heartbeat handles this, but good for robustness
+        node = Node(
+            node_id=node_id, 
+            hostname=node_id, 
+            ip=node_ip, 
+            status="ONLINE", 
+            concurrency_limit=concurrency,
+            job_memory_limit=memory
         )
-        job = result.scalar_one_or_none()
+        db.add(node)
+    
+    # Commit node update/creation
+    await db.commit()
+    
+    node_config = NodeConfig(concurrency_limit=concurrency, job_memory_limit=memory)
+
+    # 2. Check Concurrency Limit (Server-Side Guard)
+    result = await db.execute(select(func.count(Job.guid)).where(Job.status == 'ASSIGNED', Job.node_id == node_id))
+    active_count = result.scalar()
+    
+    if active_count >= concurrency:
+        return PollResponse(job=None, config=node_config) # Backoff
+    
+    # 3. Find highest priority PENDING job
+    # Using row locking "FOR UPDATE" in Postgres is safer, but avoiding complication for now.
+    result = await db.execute(
+        select(Job).where(Job.status == 'PENDING').order_by(Job.created_at.asc()).limit(1)
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        return PollResponse(job=None, config=node_config) # No work
         
-        if not job:
-            return None # No work
-            
-        job.status = 'ASSIGNED'
-        job.node_id = node_id
-        job.started_at = datetime.utcnow()
-        
-        encrypted_payload = json.loads(job.payload)
-        payload = decrypt_secrets(encrypted_payload)
-        
-        await db.commit()
-        
-        return {"guid": job.guid, "task_type": job.task_type, "payload": payload}
-        
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    job.status = 'ASSIGNED'
+    job.node_id = node_id
+    job.started_at = datetime.utcnow()
+    
+    encrypted_payload = json.loads(job.payload)
+    payload = decrypt_secrets(encrypted_payload)
+    
+    await db.commit()
+    
+    work_resp = WorkResponse(guid=job.guid, task_type=job.task_type, payload=payload)
+    return PollResponse(job=work_resp, config=node_config)
 
 @app.post("/heartbeat")
 async def receive_heartbeat(req: Request, stats: Dict = None, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):

@@ -77,6 +77,8 @@ class Node(Base):
     last_seen: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     status: Mapped[str] = mapped_column(String) # ONLINE, OFFLINE
     stats: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON: cpu, ram
+    concurrency_limit: Mapped[Integer] = mapped_column(Integer, default=5)
+    job_memory_limit: Mapped[String] = mapped_column(String, default="512m")
 
 class Ping(Base):
     __tablename__ = "pings"
