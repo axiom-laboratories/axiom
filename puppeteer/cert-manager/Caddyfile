@@ -1,0 +1,35 @@
+{
+    # Global Options
+    email {$ACME_EMAIL}
+    debug
+}
+
+# 1. Management Plane: Dashboard (User Access)
+# Supports Green Lock automatic HTTPS via DNS Challenge
+# Fallback to HTTP on port 80 if SSL disabled
+:80 {
+    reverse_proxy dashboard:80
+}
+
+(tls_config) {
+    dns duckdns {$DUCKDNS_TOKEN}
+    resolvers 8.8.8.8
+}
+
+{$DUCKDNS_DOMAIN} {
+    tls {
+        import tls_config
+    }
+    reverse_proxy dashboard:80
+}
+
+{$DUCKDNS_DOMAIN}:8001 {
+    tls {
+       import tls_config
+       client_auth {
+            mode require_and_verify
+            trusted_ca_cert_file /etc/certs/root_ca.crt
+       }
+    }
+    reverse_proxy agent:8001
+}

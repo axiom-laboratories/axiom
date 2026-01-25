@@ -16,6 +16,34 @@ services:
       timeout: 5s
       retries: 5
 
+  cert-manager:
+    build:
+      context: ./cert-manager
+    ports:
+      - "8080:80"
+      - "8443:443"
+      # Expose internal API port if needed, or keep internal only
+    volumes:
+      - certs-volume:/etc/certs
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+      - DUCKDNS_DOMAIN=${DUCKDNS_DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    restart: always
+
+  ddns-updater:
+    image: favonia/cloudflare-ddns:latest # Using Cloudflare updater as placeholder, swap for linuxserver/ddclient if DuckDNS
+    # For DuckDNS, likely want a different image or specific script, but scaffolding here:
+    environment:
+      - IP6_PROVIDER=none
+      - IP4_PROVIDER=local
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN} # If supported by image, otherwise need different image
+      # Favonia is CF specific. Let's use a generic placeholder or assume user swaps image based on provider.
+      # For now, sticking to the architectural plan's structure.
+    restart: always
+
   agent:
     image: localhost/master-of-puppets-server:latest
     command: python -m agent_service.main
@@ -24,22 +52,24 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
       - API_KEY=${API_KEY:-master-secret-key}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-    ports:
-      - "8001:8001"
+    # Ports removed: Caddy proxies 8001
     volumes:
       - ./ca:/app/ca
       - ./secrets:/app/secrets
+      - certs-volume:/app/global_certs:ro # Read-only access to Caddy's certs
     depends_on:
       db:
         condition: service_healthy
+      cert-manager:
+        condition: service_started
 
   model:
     image: localhost/master-of-puppets-server:latest
-    command: uvicorn model_service.main:app --host 0.0.0.0 --port 8000 --ssl-keyfile secrets/key.pem --ssl-certfile secrets/cert.pem
+    command: uvicorn model_service.main:app --host 0.0.0.0 --port 8000
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
-      - AGENT_URL=https://agent:8001
+      - AGENT_URL=http://agent:8001 # Internal comms can be HTTP if trusted, or use Caddy proxy
       - ROOT_CA_PATH=ca/certs/root_ca.crt
       - API_KEY=${API_KEY:-master-secret-key}
     volumes:
@@ -56,9 +86,11 @@ services:
     build:
       context: ./dashboard
       dockerfile: Containerfile
-    ports:
-      - "5173:80"
+    # Ports removed: Caddy proxies 80/443
     restart: always
 
 volumes:
   pgdata:
+  certs-volume:
+  caddy_data:
+  caddy_config:

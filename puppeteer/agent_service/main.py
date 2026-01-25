@@ -1078,21 +1078,15 @@ async def get_doc_content(filename: str):
 if __name__ == "__main__":
     import uvicorn
     
-    # Ensure Certs Exist BEFORE starting Uvicorn (SSL Context Load)
-    ca_authority.ensure_root_ca()
-    ca_authority.issue_server_cert(
-        "secrets/server.key",
-        "secrets/server.crt", 
-        sans=["localhost", "127.0.0.1", "host.containers.internal", "master-of-puppets-server", "host.docker.internal", "192.168.50.128"]
-    )
+    # Ensure Certs Exist (Managed by Caddy sidecar, but we check root CA presence for trust if needed)
+    # ca_authority.ensure_root_ca() # Root CA is now managed/provided by cert-manager
     
-    # Ensure Code Signing Keys exist
+    # Ensure Code Signing Keys exist (Still needed for job signing)
     ca_authority.ensure_signing_key("secrets")
     
+    # Run WITHOUT SSL (TLS Termination handled by Caddy)
     uvicorn.run(
         app, 
         host="0.0.0.0", 
-        port=8001,
-        ssl_keyfile="secrets/server.key",
-        ssl_certfile="secrets/server.crt"
+        port=8001
     )

@@ -182,8 +182,76 @@ if ($Role -eq "Node") {
     }
 }
 elseif ($Role -eq "Agent") {
-    Write-Log "Agent (Server) deployment not yet fully automated via script (Use git clone + podman-compose)." "Yellow"
-    # Placeholder for potential server-in-a-box logic
+    Write-Log "Initializing Server (Agent) Deployment..." "Cyan"
+
+    # 1. Secrets Management
+    $SecretsFile = "secrets.env"
+    if (-not (Test-Path $SecretsFile)) {
+        # Check parent directory
+        if (Test-Path "../$SecretsFile") {
+            $SecretsFile = "../$SecretsFile"
+            Write-Log "Found secrets in parent directory: $SecretsFile" "Green"
+        }
+        else {
+            Write-Log "Secrets file not found. Interactive Setup:" "Yellow"
+            $DuckToken = Read-Host "Enter DuckDNS Token"
+            $DuckDomain = Read-Host "Enter DuckDNS Domain (e.g. my-app.duckdns.org)"
+            $Email = Read-Host "Enter Admin Email (for Let's Encrypt)"
+            
+            $Content = @"
+DUCKDNS_TOKEN=$DuckToken
+DUCKDNS_DOMAIN=$DuckDomain
+ACME_EMAIL=$Email
+"@
+            Set-Content -Path "secrets.env" -Value $Content
+            $SecretsFile = "secrets.env"
+            Write-Log "✅ Created secrets.env" "Green"
+        }
+    }
+
+    # 2. Build Cert Manager (Critical for Plugins)
+    Write-Log "Building Cert-Manager (Caddy + DNS Plugins)..." "Cyan"
+    
+    if ($Platform -eq "Podman") {
+        podman compose -f compose.server.yaml build cert-manager
+    }
+    else {
+        docker compose -f compose.server.yaml build cert-manager
+    }
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to build cert-manager image."
+    }
+
+    # 3. Launch Stack
+    Write-Log "Launching Puppeteer Stack..." "Cyan"
+    
+    # We must pass --env-file explicitly
+    if ($Platform -eq "Podman") {
+        podman compose -f compose.server.yaml --env-file $SecretsFile up -d --force-recreate
+    }
+    else {
+        docker compose -f compose.server.yaml --env-file $SecretsFile up -d --force-recreate
+    }
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Log "🚀 Server Deployed!" "Green"
+        
+        # Parse Domain from secrets to show URL
+        $EnvContent = Get-Content $SecretsFile
+        $DomainLine = $EnvContent | Select-String "DUCKDNS_DOMAIN"
+        if ($DomainLine) {
+            $Domain = ($DomainLine.ToString() -split "=")[1]
+            Write-Log "Dashboard: https://$Domain" "Green"
+        }
+        else {
+             Write-Log "Dashboard: https://localhost (Check domain in secrets)" "Green"
+        }
+    }
+    else {
+        Write-Error "Server deployment failed."
+    }
+    
     exit 0
 }
 

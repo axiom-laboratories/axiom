@@ -68,78 +68,12 @@ class CertificateAuthority:
             return f.read()
 
     def issue_server_cert(self, output_key_path, output_cert_path, sans: list[str]):
-        """Issues a leaf certificate signed by the Root CA, unless a valid one exists."""
-        
-        # Check if certs already exist and are valid
-        if os.path.exists(output_key_path) and os.path.exists(output_cert_path):
-            try:
-                with open(output_cert_path, "rb") as f:
-                    existing_cert = x509.load_pem_x509_certificate(f.read())
-                
-                # Check Expiry (Buffer: 30 Days)
-                expires_on = existing_cert.not_valid_after
-                if expires_on > datetime.datetime.utcnow() + datetime.timedelta(days=30):
-                    print(f"Using existing valid server certificate (Expires: {expires_on})")
-                    return
-                else:
-                    print(f"Existing server certificate is expiring soon ({expires_on}). Regenerating...")
-            except Exception as e:
-                print(f"Error validating existing certificate: {e}. Regenerating...")
-
-        print(f"Issuing new server cert for: {sans}")
-        
-        # Load Root Key/Cert
-        with open(self.key_path, "rb") as f:
-            root_key = serialization.load_pem_private_key(f.read(), password=None)
-        with open(self.cert_path, "rb") as f:
-            root_cert = x509.load_pem_x509_certificate(f.read())
-
-        # Generate Server Key
-        server_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-        )
-
-        # Build SANs
-        san_list = []
-        for name in sans:
-            try:
-                ip = ipaddress.ip_address(name)
-                san_list.append(x509.IPAddress(ip))
-            except ValueError:
-                san_list.append(x509.DNSName(name))
-
-        # Generate Server Cert
-        subject = x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, u"Puppet Master Server"),
-        ])
-
-        cert = x509.CertificateBuilder().subject_name(
-            subject
-        ).issuer_name(
-            root_cert.subject
-        ).public_key(
-            server_key.public_key()
-        ).serial_number(
-            x509.random_serial_number()
-        ).not_valid_before(
-            datetime.datetime.utcnow()
-        ).not_valid_after(
-            datetime.datetime.utcnow() + datetime.timedelta(days=825)
-        ).add_extension(
-            x509.SubjectAlternativeName(san_list), critical=False,
-        ).sign(root_key, hashes.SHA256())
-
-        # Save
-        with open(output_key_path, "wb") as f:
-            f.write(server_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption(),
-            ))
-
-        with open(output_cert_path, "wb") as f:
-            f.write(cert.public_bytes(serialization.Encoding.PEM))
+        """
+        No-op: Server certificate is now managed by Caddy sidecar.
+        This method is kept for compatibility but does nothing active.
+        """
+        print("Skipping internal server cert generation (Provided by Cert-Manager)")
+        return
 
     def sign_csr(self, csr_pem: str, common_name: str) -> str:
         """Signs a CSR with the Root CA."""
