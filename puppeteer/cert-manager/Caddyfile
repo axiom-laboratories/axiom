@@ -4,11 +4,19 @@
     debug
 }
 
-# 1. Management Plane: Dashboard (User Access)
-# Supports Green Lock automatic HTTPS via DNS Challenge
-# Fallback to HTTP on port 80 if SSL disabled
+# 1. Unified Management Gateway (HTTP/80)
+# Proxies both Dashboard and API for local/unencrypted access
 :80 {
-    reverse_proxy dashboard:80
+    # API Proxy (Relative path routing)
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy agent:8001
+    }
+
+    # Dashboard fallback
+    handle {
+        reverse_proxy dashboard:80
+    }
 }
 
 (tls_config) {
@@ -16,13 +24,26 @@
     resolvers 8.8.8.8
 }
 
+# 2. Secure UI Gateway (HTTPS/443)
 {$DUCKDNS_DOMAIN} {
     tls {
         import tls_config
     }
-    reverse_proxy dashboard:80
+    
+    # API Proxy
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy agent:8001
+    }
+
+    # Dashboard
+    handle {
+        reverse_proxy dashboard:80
+    }
 }
 
+# 3. Secure Node API (mTLS required)
+# Used by Puppets for heartbeats and job polling
 {$DUCKDNS_DOMAIN}:8001 {
     tls {
        import tls_config

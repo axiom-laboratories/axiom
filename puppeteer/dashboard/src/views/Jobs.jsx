@@ -8,7 +8,7 @@ const Jobs = () => {
 
     const fetchJobs = async () => {
         try {
-            const res = await authenticatedFetch('https://localhost:8001/jobs');
+            const res = await authenticatedFetch('/jobs');
             if (res.ok) {
                 setJobs(await res.json());
             }
@@ -26,7 +26,7 @@ const Jobs = () => {
     const createJob = async () => {
         try {
             const payload = JSON.parse(newTaskPayload);
-            const res = await authenticatedFetch('https://localhost:8001/jobs', {
+            const res = await authenticatedFetch('/jobs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

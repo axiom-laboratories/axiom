@@ -11,8 +11,8 @@ const Dashboard = () => {
         try {
             // Parallel Fetch
             const [nodesRes, jobsRes] = await Promise.all([
-                authenticatedFetch('https://localhost:8001/nodes'),
-                authenticatedFetch('https://localhost:8001/jobs')
+                authenticatedFetch('/nodes'),
+                authenticatedFetch('/jobs')
             ]);
 
             if (nodesRes.ok && jobsRes.ok) {

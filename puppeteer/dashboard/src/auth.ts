@@ -1,6 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:8001';
+const API_URL = import.meta.env.VITE_API_URL || ''; // Default to relative if not provided
 
 export const login = async (username: string, password: string): Promise<any> => {
     const formData = new FormData();
@@ -41,7 +41,7 @@ export const authenticatedFetch = async (endpoint: string, options: RequestInit 
     const headers = {
         ...options.headers,
         'Authorization': `Bearer ${token}`
-    };
+    } as any;
 
     // endpoint should be partial path like '/nodes' or full url?
     // Let's assume partial path if it starts with /

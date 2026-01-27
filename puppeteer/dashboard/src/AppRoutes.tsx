@@ -1,12 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-// import Login from './views/Login'; // TODO: Migrate or allows JS
+import Login from './views/Login';
 import Dashboard from './views/Dashboard';
 import Nodes from './views/Nodes';
 import Jobs from './views/Jobs';
 import JobDefinitions from './views/JobDefinitions';
-// import Signatures from './views/Signatures';
-// import Admin from './views/Admin';
+import Signatures from './views/Signatures';
+import Admin from './views/Admin';
 import Docs from './views/Docs';
 // import { getUser } from './auth';
 
@@ -15,13 +15,7 @@ import Docs from './views/Docs';
 // or assume vite handles it.
 // Ideally usage of `allowJs` in tsconfig handles these.
 
-const Login = () => <div className="p-10">Login Placeholder (Migrate me!)</div>;
-// const Dashboard = () => <div className="p-10">Dashboard Placeholder (Migrate me!)</div>;
-// const Jobs = () => <div className="p-10">Jobs Placeholder</div>;
-// const JobDefinitions = () => <div className="p-10">Schedules Placeholder</div>;
-const Signatures = () => <div className="p-10">Signatures Placeholder</div>;
-const Admin = () => <div className="p-10">Admin Placeholder</div>;
-// const Docs = () => <div className="p-10">Docs Placeholder</div>;
+// Views correctly imported above
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
     // const user = getUser();

@@ -26,9 +26,9 @@ const JobDefinitions = () => {
     const loadData = async () => {
         try {
             const [defRes, execRes, sigRes] = await Promise.all([
-                authenticatedFetch('https://localhost:8001/jobs/definitions'),
-                authenticatedFetch('https://localhost:8001/jobs'),
-                authenticatedFetch('https://localhost:8001/signatures')
+                authenticatedFetch('/jobs/definitions'),
+                authenticatedFetch('/jobs'),
+                authenticatedFetch('/signatures')
             ]);
 
             if (defRes.ok) setDefinitions(await defRes.json());
@@ -69,7 +69,7 @@ const JobDefinitions = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await authenticatedFetch('https://localhost:8001/jobs/definitions', {
+            const res = await authenticatedFetch('/jobs/definitions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

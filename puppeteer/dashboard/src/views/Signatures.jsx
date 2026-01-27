@@ -14,7 +14,7 @@ const Signatures = () => {
 
     const loadSignatures = async () => {
         try {
-            const res = await authenticatedFetch('https://localhost:8001/signatures');
+            const res = await authenticatedFetch('/signatures');
             if (res.ok) {
                 setSignatures(await res.json());
             }
@@ -28,7 +28,7 @@ const Signatures = () => {
     const handleDelete = async (id) => {
         if (!confirm("Are you sure? Jobs using this key will fail validation.")) return;
         try {
-            const res = await authenticatedFetch(`https://localhost:8001/signatures/${id}`, {
+            const res = await authenticatedFetch(`/signatures/${id}`, {
                 method: 'DELETE'
             });
             if (res.ok) loadSignatures();
@@ -38,7 +38,7 @@ const Signatures = () => {
     const handleUpload = async (e) => {
         e.preventDefault();
         try {
-            const res = await authenticatedFetch('https://localhost:8001/signatures', {
+            const res = await authenticatedFetch('/signatures', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

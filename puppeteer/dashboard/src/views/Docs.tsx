@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 // We'll fetch the raw markdown from GitHub or local server assets if possible.
 // For now, let's hardcode the import or fetch it from a public URL if strictly needed.

@@ -8,7 +8,7 @@ const Admin = () => {
     // Generate Token
     const generateToken = async () => {
         try {
-            const res = await authenticatedFetch('https://localhost:8001/admin/generate-token', { method: 'POST' });
+            const res = await authenticatedFetch('/admin/generate-token', { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
                 setJoinToken(data.token);
@@ -24,7 +24,7 @@ const Admin = () => {
 
     // Upload Key
     const uploadKey = async () => {
-        const res = await authenticatedFetch('https://localhost:8001/admin/upload-key', {
+        const res = await authenticatedFetch('/admin/upload-key', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ key_content: pubKey })
