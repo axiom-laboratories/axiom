@@ -1,7 +1,7 @@
 # Containerfile.server
 # Unified image for Agent and Model Services
 
-FROM python:3.12-alpine
+FROM docker.io/library/python:3.12-alpine
 
 WORKDIR /app
 
