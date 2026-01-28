@@ -67,11 +67,11 @@ app.add_middleware(
 # Configuration
 AGENT_SERVICE_URL = os.getenv("AGENT_URL", "https://localhost:8001")
 API_KEY_NAME = "X-API-KEY"
-API_KEY = os.getenv("API_KEY", "master-secret-key")
+API_KEY = os.environ["API_KEY"]
 ROOT_CA_PATH = os.getenv("ROOT_CA_PATH")
 ROOT_CA_PATH = os.getenv("ROOT_CA_PATH")
 API_KEY_NAME = "X-API-KEY"
-API_KEY = os.getenv("API_KEY", "master-secret-key")
+API_KEY = os.environ["API_KEY"]
 
 from fastapi import Header, Depends
 

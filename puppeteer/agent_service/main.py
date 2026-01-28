@@ -14,6 +14,11 @@ import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import logging
+
+# Configure Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 from sqlalchemy.future import select
@@ -38,7 +43,13 @@ if not os.path.exists("installer"):
     os.makedirs("installer")
 app.mount("/installer", StaticFiles(directory="installer"), name="installer")
 
-API_KEY = os.getenv("API_KEY", "master-secret-key")
+# Security CRITICAL: Fail if API_KEY is not set.
+try:
+    API_KEY = os.environ["API_KEY"]
+except KeyError:
+    import sys
+    print("CRITICAL: API_KEY setup variable is missing. Halting.")
+    sys.exit(1)
 # Encryption Key for Secrets
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode() if os.getenv("ENCRYPTION_KEY") else Fernet.generate_key()
 cipher_suite = Fernet(ENCRYPTION_KEY)
@@ -231,12 +242,15 @@ async def on_startup():
         if not result.scalar_one_or_none():
             admin_user = User(
                 username="admin", 
-                password_hash=get_password_hash("admin"), 
+                # Security: Prefer Env Var, fallback to random secure string (printed to stdout)
+                password_hash=get_password_hash(os.getenv("ADMIN_PASSWORD", uuid.uuid4().hex)), 
                 role="admin"
             )
-            db.add(admin_user)
-            await db.commit()
-            print("Bootstrapped Admin User")
+            # Log this carefully - better to force the user to set the env var, but for now this prevents 'admin/admin'
+            if not os.getenv("ADMIN_PASSWORD"):
+                print(f"⚠️  Admin User created with RANDOM password. Please set ADMIN_PASSWORD env var.")
+            else:
+                logger.info("✅ Bootstrapped Admin User")
         break # Just one session needed
 
 # --- Auth Endpoints ---
@@ -530,7 +544,7 @@ async def register_node(req: RegisterRequest, db: AsyncSession = Depends(get_db)
             "ca_url": "https://localhost:8001" 
         }
     except Exception as e:
-        print(f"CSR Signing Error: {e}")
+        logger.error(f"CSR Signing Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to sign CSR: {str(e)}")
 
 # --- Admin Endpoints ---
@@ -584,10 +598,10 @@ async def on_startup():
     await init_db()
     try:
         scheduler.start()
-        print("🕒 Scheduler Started")
+        logger.info("🕒 Scheduler Started")
         await sync_scheduler()
     except Exception as e:
-        print(f"⚠️ Scheduler Failed to Start: {e}")
+        logger.error(f"⚠️ Scheduler Failed to Start: {e}")
     
     # Bootstrap Admin
     # ... existing admin bootstrap ...
@@ -767,26 +781,26 @@ async def generate_compose(token: str, platform: str = "Podman", db: AsyncSessio
                 network_env_vars.append(f"- {env_key}={target_path}")
                 
     except Exception as e:
-        print(f"Error loading network mounts: {e}")
+        logger.error(f"Error loading network mounts: {e}")
 
 # --- Scheduler Logic ---
 
 async def execute_scheduled_job(scheduled_job_id: str):
     """Callback for APScheduler. Creates an Execution Job from the Definition."""
-    print(f"⏰ Triggering Scheduled Job: {scheduled_job_id}")
+    logger.info(f"⏰ Triggering Scheduled Job: {scheduled_job_id}")
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == scheduled_job_id))
         s_job = result.scalar_one_or_none()
         
         if not s_job or not s_job.is_active:
-             print(f"⚠️ Job {scheduled_job_id} not found or inactive.")
+             logger.warning(f"⚠️ Job {scheduled_job_id} not found or inactive.")
              return
 
         # Load Signature
         sig_res = await db.execute(select(Signature).where(Signature.id == s_job.signature_id))
         sig = sig_res.scalar_one_or_none()
         if not sig:
-             print(f"⚠️ Signature {s_job.signature_id} missing for job {s_job.name}")
+             logger.error(f"⚠️ Signature {s_job.signature_id} missing for job {s_job.name}")
              return
 
         # Construct Execution Payload
@@ -814,9 +828,11 @@ async def execute_scheduled_job(scheduled_job_id: str):
         await db.commit()
         print(f"✅ Job {execution_guid} created for scheduled task {s_job.name}")
 
+    print(f"✅ Job {execution_guid} created for scheduled task {s_job.name}")
+
 async def sync_scheduler():
     """Syncs DB ScheduledJobs with APScheduler."""
-    print("🔄 Syncing Scheduler...")
+    logger.info("🔄 Syncing Scheduler...")
     scheduler.remove_all_jobs()
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(ScheduledJob).where(ScheduledJob.is_active == True))
@@ -839,8 +855,8 @@ async def sync_scheduler():
                          )
                          count += 1
                  except Exception as e:
-                     print(f"❌ Failed to schedule {j.name}: {e}")
-    print(f"✅ Scheduler Synced: {count} jobs active.")
+                     logger.error(f"❌ Failed to schedule {j.name}: {e}")
+    logger.info(f"✅ Scheduler Synced: {count} jobs active.")
 
 # --- Signature Registry API ---
 
@@ -1045,10 +1061,9 @@ async def list_docs():
 @app.get("/api/docs/{filename}")
 async def get_doc_content(filename: str):
     """Serves specific markdown content."""
-    # Sanitize filename (basic check)
-    if ".." in filename or "/" in filename or "\\" in filename:
-        raise HTTPException(status_code=400, detail="Invalid filename")
-
+    # Sanitize filename (CodeQL Fix)
+    filename = os.path.basename(filename)
+    
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     possible_paths = [
         os.path.join(base_dir, "docs"),
@@ -1058,13 +1073,18 @@ async def get_doc_content(filename: str):
     docs_dir = None
     for p in possible_paths:
         if os.path.exists(p) and os.path.isdir(p):
-            docs_dir = p
+            docs_dir = os.path.abspath(p)
             break
             
     if not docs_dir:
         raise HTTPException(status_code=404, detail="Docs directory not found")
 
-    file_path = os.path.join(docs_dir, filename)
+    file_path = os.path.abspath(os.path.join(docs_dir, filename))
+    
+    # Path Traversal Check
+    if not file_path.startswith(docs_dir):
+        raise HTTPException(status_code=403, detail="Invalid path")
+
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 

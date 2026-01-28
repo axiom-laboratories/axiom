@@ -157,4 +157,4 @@ class CertificateAuthority:
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
             ))
         
-        print(f"✅ Code Signing Keys generated in {secrets_dir}")
+        print(f"✅ Code Signing Keys generated in secrets directory")
