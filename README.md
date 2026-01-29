@@ -1,10 +1,15 @@
 # Master of Puppets - Orchestration Toolkit
 
 > **Status**: Production-Ready / Zero-Trust / Observable
-> **Current Version**: 1.2.0 (Strict mTLS & Health Centre)
+> **Current Version**: v0.8 (Refactored Backend & Self-Healing Quality Loop)
 
 ## Overview
 **Master of Puppets** is a secure, scalable, and containerized orchestration framework designed for executing defined automation tasks with strict security and observability. It features a Pull-based architecture, Zero-Trust security (mTLS/JWT/Signatures), a comprehensive React Dashboard, and is fully deployable via Docker/Podman.
+
+## Recent Updates (v0.8)
+- **Backend Refactor**: `agent_service/main.py` has been split into `models.py` and `security.py` for improved maintainability.
+- **Automated Quality**: Introduced a "Self-Healing Quality Loop" workflow that maps features, identifies test gaps, and generates `pytest` coverage.
+- **Documentation**: New automated asset generation pipeline (in progress) and comprehensive Feature Manifests.
 
 ## System Architecture
 
@@ -28,54 +33,25 @@
 *   **Port**: `5173` (HTTP)
 *   **Tech**: React, Vite, TypeScript, TanStack Query, Recharts, Shadcn/ui.
 *   **Role**: Real-time telemetry and control.
-    *   **Live Metrics**: CPU/RAM sparklines for every node.
-    *   **Status Indicators**: Instant feedback on Node health (Online/Offline/Busy).
-    *   **Secure Integration**: Connects directly to the backend API via HTTPS.
 
 ## Deployment & Operations
 
 ### 1. Puppeteer (Server) Deployment
 The control plane is designed to be run as a containerized stack.
-*   **Location**: `/puppeteer`
-*   **Deployment**: Use `docker compose -f compose.server.yaml up -d` to launch the Agent, Model, and Database services.
-*   **Configuration**: Ensure `secrets.env` (see `.env.example`) and necessary certificates are present in `/puppeteer/secrets`.
+*   **Deploy**: `docker compose -f compose.server.yaml up -d`
+*   **Config**: Ensure `secrets.env` (see `.env.example`) and necessary certificates are present in `/puppeteer/secrets`.
 
-### 2. Dashboard
-The dashboard is a React/Vite application that integrates with the Agent Service.
-*   **Location**: `/puppeteer/dashboard`
-*   **Build**: `npm run build` from the dashboard directory.
-*   **Serve**: Assets are served via Nginx in the Puppeteer stack.
-
-### 3. Puppet (Node) Deployment
-Nodes are deployed on target execution environments.
-*   **Location**: `/puppets`
-*   **Deployment**: Use the provided installers in `/puppets/installer` or run via `docker compose -f node-compose.yaml up -d`.
-
-## Verification & Health
-
-The system provides several endpoints and logs for verification:
-*   **Health Check**: Access `https://<puppeteer-ip>:8001/health` (requires mTLS).
-*   **Dashboard**: Access the UI on port `5173` (or via Nginx proxy).
-*   **Logs**: Monitor container logs for secure handshake and job execution events.
-
-## Security Architecture (Zero-Trust)
-1.  **Transport**: All communication is TLS 1.3.
-2.  **Identity**: Nodes are identified by Client Certificates (CN=NodeID).
-3.  **Execution**: Jobs are signed by the Developer/Admin (Private Key) and verified by the Node (Public Key). The Server is a pass-through and cannot forge jobs.
+### 2. Verified Workflows
+New agentic workflows have been added to `.agent/workflows`:
+*   `full_audit.md`: Runs a complete 9-step audit (Security, Backend, Frontend, Docs, etc.).
+*   `self_healing_quality_loop.md`: Automatically finds missing tests and fills the gaps.
 
 ## Development
-- **Development Structure**
-- **Puppeteer (Central)**: `puppeteer/`
-    - Backend: `puppeteer/agent_service`
-    - Dashboard: `puppeteer/dashboard`
-- **Puppets (Nodes)**: `puppets/`
-    - Installer: `puppets/installer`
-- **Agent Context**: `.agent/`
+- **Puppeteer (Central)**: `puppeteer/agent_service` (Backend), `puppeteer/dashboard` (Frontend)
+- **Puppets (Nodes)**: `puppets/environment_service`
+- **Validation**: `mop_validation/` (Tests & Reports)
 
 ### Local Dev Setup
 1.  `pip install -r requirements.txt`
-2.  `cd dashboard && npm install`
-3.  Create `secrets.env` based on `.env.example`.
-
-
-
+2.  `cd puppeteer/dashboard && npm install`
+3.  `pytest` (Now enabled for backend!)

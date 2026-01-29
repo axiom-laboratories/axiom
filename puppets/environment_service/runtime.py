@@ -48,6 +48,7 @@ class ContainerRuntime:
         # 2. Namespace Mapping (Podman specific)
         if self.runtime == "podman":
             cmd.append("--userns=keep-id")
+            cmd.append("--storage-driver=vfs") # DinD Fix
             cmd.extend(["-v", "/etc/localtime:/etc/localtime:ro"])
 
         # 3. Environment Variables

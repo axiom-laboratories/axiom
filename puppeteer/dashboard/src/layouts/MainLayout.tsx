@@ -20,86 +20,88 @@ const MainLayout = () => {
         <NavLink
             to={to}
             className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground ${isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-zinc-800 hover:text-white ${isActive ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400"
                 }`
             }
             onClick={() => setIsMobileOpen(false)}
         >
-            <Icon className="h-4 w-4" />
-            {label}
+            <Icon className="h-4 w-4 shrink-0" />
+            <span>{label}</span>
         </NavLink>
     );
 
     const SidebarContent = () => (
-        <div className="flex h-full max-h-screen flex-col gap-2">
-            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <a href="/" className="flex items-center gap-2 font-semibold">
-                    <Network className="h-6 w-6" />
-                    <span className="">Master of Puppets</span>
+        <div className="flex h-full flex-col gap-4">
+            <div className="flex h-16 items-center px-6">
+                <a href="/" className="flex items-center gap-3 font-bold text-lg tracking-tight">
+                    <div className="bg-primary p-1.5 rounded-lg text-white">
+                        <Network className="h-5 w-5" />
+                    </div>
+                    <span>Puppeteer</span>
                 </a>
             </div>
-            <div className="flex-1 overflow-auto py-2">
-                <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+            <div className="flex-1 overflow-auto px-4 pb-4">
+                <nav className="space-y-1.5">
                     <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
-                    <Separator className="my-2" />
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                    <div className="pt-4 pb-1 px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                         Monitoring
                     </div>
                     <NavItem to="/nodes" icon={Server} label="Puppets" />
                     <NavItem to="/jobs" icon={Cpu} label="Orchestration" />
 
-                    <Separator className="my-2" />
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                    <div className="pt-4 pb-1 px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                         Security
                     </div>
-                    <NavItem to="/signatures" icon={ShieldCheck} label="Signatures & Keys" />
+                    <NavItem to="/signatures" icon={ShieldCheck} label="Trust Assets" />
 
-                    <Separator className="my-2" />
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                    <div className="pt-4 pb-1 px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                         System
                     </div>
                     <NavItem to="/admin" icon={Settings} label="Settings" />
                 </nav>
             </div>
-            <div className="mt-auto border-t p-4 text-xs text-muted-foreground text-center">
-                v1.2.0 • Online
+            <div className="p-6 border-t border-zinc-900">
+                <div className="flex items-center gap-2 text-[10px] font-medium text-zinc-500">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    v1.2.0 • Online
+                </div>
             </div>
         </div>
     );
 
     return (
-        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <div className="flex min-h-screen w-full bg-[#09090b] text-white">
             {/* Desktop Sidebar */}
-            <div className="hidden border-r bg-muted/40 md:block">
+            <aside className="hidden border-r border-zinc-900 w-64 shrink-0 md:block bg-[#09090b]">
                 <SidebarContent />
-            </div>
+            </aside>
 
             {/* Mobile Sidebar & Main Content */}
-            <div className="flex flex-col">
-                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+            <div className="flex flex-col flex-1 min-w-0">
+                <header className="flex h-16 items-center gap-4 border-b border-zinc-900 bg-[#09090b] px-4 lg:px-6 sticky top-0 z-10">
                     <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+                            <Button variant="ghost" size="icon" className="shrink-0 md:hidden hover:bg-zinc-800">
                                 <Menu className="h-5 w-5" />
                                 <span className="sr-only">Toggle navigation</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col p-0">
+                        <SheetContent side="left" className="flex flex-col p-4 bg-[#09090b] border-r-zinc-900 w-72">
                             <SidebarContent />
                         </SheetContent>
                     </Sheet>
 
-                    {/* Topbar Content */}
-                    <div className="w-full flex-1">
-                        {/* Breadcrumbs or Search could go here */}
+                    <div className="flex-1 flex items-center justify-between">
+                        <h1 className="text-sm font-semibold text-zinc-400 md:hidden">Puppeteer</h1>
+                        <div>{/* Spacer or search */}</div>
+                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                <span className="text-xs font-bold text-primary">A</span>
+                            </div>
+                        </Button>
                     </div>
-
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <span className="sr-only">User menu</span>
-                        <div className="h-8 w-8 rounded-full bg-slate-200 border border-slate-300"></div>
-                    </Button>
                 </header>
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+                <main className="flex-1 p-4 lg:p-8 overflow-auto max-w-7xl mx-auto w-full">
                     <Outlet />
                 </main>
             </div>

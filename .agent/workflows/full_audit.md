@@ -9,4 +9,5 @@ description: Sequentially runs all audit skills (Security, Backend, Frontend, et
 5. Run the **Data Privacy & Compliance** skill (`review-data-privacy`) to scan for PII.
 6. Run the **Database Engineer** skill (`review-database`) to check SQL safety.
 7. Run the **QA Engineering** skill (`review-qa`) to review test standards.
-8. Run the **Release Planner** skill (`plan-release`) to read all the reports generated above and create a prioritized action plan.
+8. Run the **Technical Writer** skill (`write-documentation`) to generate screenshot assets for critical flows.
+9. Run the **Release Planner** skill (`plan-release`) to read all the reports generated above and create a prioritized action plan.

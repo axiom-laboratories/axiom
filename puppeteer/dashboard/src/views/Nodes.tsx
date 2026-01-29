@@ -39,6 +39,7 @@ interface Node {
     stats?: NodeStats;
     version?: string;
     role?: string;
+    tags?: string[];
 }
 
 const fetchNodes = async (): Promise<Node[]> => {
@@ -69,6 +70,15 @@ const NodeCard = ({ node }: { node: Node }) => {
                 {isOnline ? <ShieldCheck className="h-4 w-4 text-green-500" /> : <AlertTriangle className="h-4 w-4 text-red-500" />}
             </CardHeader>
             <CardContent>
+                {node.tags && node.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-4">
+                        {node.tags.map(tag => (
+                            <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium border border-border">
+                                {tag}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

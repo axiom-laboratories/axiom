@@ -55,8 +55,11 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
       - API_KEY=${API_KEY:-master-secret-key}
+      - ADMIN_PASSWORD=admin123
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-    # Ports removed: Caddy proxies 8001
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8001:8001"
     volumes:
       - certs-volume:/app/global_certs:ro # Read-only access to Caddy's certs
     depends_on:
@@ -74,7 +77,7 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
-      - AGENT_URL=http://agent:8001 # Internal comms can be HTTP if trusted, or use Caddy proxy
+      - AGENT_URL=https://agent:8001 # Uses Internal HTTPS
       - ROOT_CA_PATH=ca/certs/root_ca.crt
       - API_KEY=${API_KEY:-master-secret-key}
     # No volumes needed, baked into image

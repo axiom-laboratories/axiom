@@ -2,19 +2,28 @@ from fastapi import FastAPI, HTTPException, Request, Depends, Header, status
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import uuid
 import json
 import os
 import subprocess
+import socket
 from typing import Optional, List, Dict
-from cryptography.fernet import Fernet
 import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
+from .models import (
+    JobCreate, RegisterRequest, RegisterResponse, JobResponse, WorkResponse, 
+    ResultReport, TokenResponse, HeartbeatPayload, NodeConfig, PollResponse, 
+    NodeResponse, SignatureCreate, SignatureResponse, JobDefinitionCreate, 
+    JobDefinitionResponse, PingRequest, NetworkMount, MountsConfig
+)
+from .security import (
+    encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
+    verify_client_cert, API_KEY, ENCRYPTION_KEY, cipher_suite, oauth2_scheme
+)
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -23,7 +32,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 from sqlalchemy.future import select
 from sqlalchemy import update, desc, func
-from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping
+from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
 load_dotenv()
@@ -43,76 +52,7 @@ if not os.path.exists("installer"):
     os.makedirs("installer")
 app.mount("/installer", StaticFiles(directory="installer"), name="installer")
 
-# Security CRITICAL: Fail if API_KEY is not set.
-try:
-    API_KEY = os.environ["API_KEY"]
-except KeyError:
-    import sys
-    print("CRITICAL: API_KEY setup variable is missing. Halting.")
-    sys.exit(1)
-# Encryption Key for Secrets
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode() if os.getenv("ENCRYPTION_KEY") else Fernet.generate_key()
-cipher_suite = Fernet(ENCRYPTION_KEY)
 
-# --- Auth Security Scheme ---
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-# --- Helpers ---
-
-def encrypt_secrets(payload: Dict) -> Dict:
-    if "secrets" in payload and isinstance(payload["secrets"], dict):
-        new_payload = payload.copy()
-        new_secrets = {}
-        for k, v in payload["secrets"].items():
-            if isinstance(v, str):
-                new_secrets[k] = cipher_suite.encrypt(v.encode()).decode()
-            else:
-                new_secrets[k] = v
-        new_payload["secrets"] = new_secrets
-        return new_payload
-    return payload
-
-def decrypt_secrets(payload: Dict) -> Dict:
-    if "secrets" in payload and isinstance(payload["secrets"], dict):
-        new_payload = payload.copy()
-        new_secrets = {}
-        for k, v in payload["secrets"].items():
-            try:
-                if isinstance(v, str):
-                    new_secrets[k] = cipher_suite.decrypt(v.encode()).decode()
-                else:
-                    new_secrets[k] = v
-            except Exception:
-                new_secrets[k] = "ERROR_DECRYPTING"
-        new_payload["secrets"] = new_secrets
-        return new_payload
-    return payload
-
-def mask_secrets(payload: Dict) -> Dict:
-    if "secrets" in payload and isinstance(payload["secrets"], dict):
-        new_payload = payload.copy()
-        new_secrets = {}
-        for k in payload["secrets"].keys():
-            new_secrets[k] = "****** (Redacted)"
-        new_payload["secrets"] = new_secrets
-        return new_payload
-    return payload
-
-async def verify_api_key(x_api_key: str = Header(None)):
-    """Legacy/Service Auth via API Key."""
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return x_api_key
-
-async def verify_client_cert(request: Request):
-    """Enforces mTLS: Requires a valid client certificate."""
-    # In a real proxy/Uvicorn setup, common_name is passed in header (e.g., X-SSL-Client-CN)
-    # or accessible via request.scope['client'] if SSL is terminated here.
-    # For now, we will trust X-SSL-Client-Verified: SUCCESS header from Uvicorn/Proxy
-    # OR (since we are using Uvicorn directly):
-    
-    # NOTE: Uvicorn does not expose client cert details in ASGI scope easily without quirks.
-    pass
 
 @app.get("/api/verification-key")
 async def get_verification_key():
@@ -146,6 +86,17 @@ async def get_installer_sh():
         raise HTTPException(status_code=404, detail="Installer not found")
     with open(file_path, "r") as f:
         return Response(content=f.read(), media_type="text/plain")
+
+@app.get("/api/system/root-ca")
+async def get_root_ca():
+    """Download the Internal Root CA (Public Key) to enable Green Tick trust."""
+    try:
+        # Use pki authority helper
+        pem_content = ca_authority.get_root_cert_pem()
+        return Response(content=pem_content, media_type="application/x-pem-file", headers={"Content-Disposition": "attachment; filename=root_ca.crt"})
+    except Exception as e:
+        logger.error(f"Failed to serve Root CA: {e}")
+        raise HTTPException(status_code=404, detail="Root CA not found")
     # We will assume mTLS is enforced at connection level if configured.
     # To be stricter, we'd inspect `request.scope.get('extensions', {}).get('tls', {})` if supported.
     
@@ -194,44 +145,7 @@ async def get_current_user_optional(token: Optional[str] = Depends(OAuth2Passwor
     result = await db.execute(select(User).where(User.username == username))
     return result.scalar_one_or_none()
 
-# --- Models (Pydantic) ---
-class JobCreate(BaseModel):
-    task_type: str
-    payload: Dict
-    priority: int = 0
 
-class RegisterRequest(BaseModel):
-    client_secret: str
-    hostname: str
-    csr_pem: str
-
-class RegisterResponse(BaseModel):
-    client_cert_pem: str
-    ca_url: str
-
-class JobResponse(BaseModel):
-    guid: str
-    status: str
-    payload: Dict
-    result: Optional[Dict] = None
-    node_id: Optional[str] = None
-    started_at: Optional[datetime] = None
-    duration_seconds: Optional[float] = None # Calculated field
-
-class WorkResponse(BaseModel):
-    guid: str
-    task_type: str
-    payload: Dict
-
-class ResultReport(BaseModel):
-    result: Optional[Dict] = None
-    error_details: Optional[Dict] = None
-    success: bool
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str
-    role: str
 
 @app.on_event("startup")
 async def on_startup():
@@ -250,6 +164,8 @@ async def on_startup():
             if not os.getenv("ADMIN_PASSWORD"):
                 print(f"⚠️  Admin User created with RANDOM password. Please set ADMIN_PASSWORD env var.")
             else:
+                db.add(admin_user)
+                await db.commit()
                 logger.info("✅ Bootstrapped Admin User")
         break # Just one session needed
 
@@ -308,7 +224,8 @@ async def list_jobs(db: AsyncSession = Depends(get_db)): # Allow public read for
             "result": json.loads(job.result) if job.result else None,
             "node_id": job.node_id,
             "started_at": job.started_at,
-            "duration_seconds": duration
+            "duration_seconds": duration,
+            "target_tags": json.loads(job.target_tags) if job.target_tags else None
         })
     return response_jobs
 
@@ -327,6 +244,7 @@ async def create_job(job_req: JobCreate, db: AsyncSession = Depends(get_db)):
         task_type=job_req.task_type,
         status="PENDING",
         payload=json.dumps(encrypted_payload),
+        target_tags=json.dumps(job_req.target_tags) if job_req.target_tags else None,
         created_at=datetime.utcnow()
     )
     
@@ -338,15 +256,9 @@ async def create_job(job_req: JobCreate, db: AsyncSession = Depends(get_db)):
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     
-    return {"guid": guid, "status": "PENDING", "payload": encrypted_payload}
+    return {"guid": guid, "status": "PENDING", "payload": encrypted_payload, "target_tags": job_req.target_tags}
 
-class NodeConfig(BaseModel):
-    concurrency_limit: int
-    job_memory_limit: str
 
-class PollResponse(BaseModel):
-    job: Optional[WorkResponse] = None
-    config: NodeConfig
 
 @app.post("/work/pull", response_model=PollResponse)
 async def pull_work(request: Request, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
@@ -395,12 +307,40 @@ async def pull_work(request: Request, api_key: str = Depends(verify_api_key), db
     if active_count >= concurrency:
         return PollResponse(job=None, config=node_config) # Backoff
     
-    # 3. Find highest priority PENDING job
-    # Using row locking "FOR UPDATE" in Postgres is safer, but avoiding complication for now.
+    # 3. Find highest priority PENDING job matching criteria
+    # We fetch a batch and filter logic in Python for JSON tag matching to ensure portability
     result = await db.execute(
-        select(Job).where(Job.status == 'PENDING').order_by(Job.created_at.asc()).limit(1)
+        select(Job).where(
+            Job.status == 'PENDING'
+        ).where(
+            (Job.node_id == None) | (Job.node_id == node_id)
+        ).order_by(Job.created_at.asc()).limit(50)
     )
-    job = result.scalar_one_or_none()
+    jobs = result.scalars().all()
+    
+    selected_job = None
+    node_tags_list = json.loads(node.tags) if node and node.tags else []
+    logger.info(f"DEBUG: Node {node_id} tags: {node.tags}")
+
+    for candidate in jobs:
+        logger.info(f"DEBUG: Job {candidate.guid} req {candidate.target_tags}")
+        # Check Tags
+        if candidate.target_tags:
+            try:
+                req_tags = json.loads(candidate.target_tags)
+                if not isinstance(req_tags, list):
+                     continue # Invalid tag format, skip
+                
+                # Logic: Node must have ALL required tags
+                if not all(t in node_tags_list for t in req_tags):
+                    continue
+            except:
+                continue # JSON parse error on job tags
+                
+        selected_job = candidate
+        break
+    
+    job = selected_job
     
     if not job:
         return PollResponse(job=None, config=node_config) # No work
@@ -418,7 +358,7 @@ async def pull_work(request: Request, api_key: str = Depends(verify_api_key), db
     return PollResponse(job=work_resp, config=node_config)
 
 @app.post("/heartbeat")
-async def receive_heartbeat(req: Request, stats: Dict = None, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
+async def receive_heartbeat(req: Request, hb: HeartbeatPayload, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
     """
     Received from Node background thread.
     """
@@ -427,7 +367,8 @@ async def receive_heartbeat(req: Request, stats: Dict = None, api_key: str = Dep
     # If we had a header x-node-id, use that
     node_id = req.headers.get("X-Node-ID", node_ip)
 
-    stats_json = json.dumps(stats) if stats else None
+    stats_json = json.dumps(hb.stats) if hb.stats else None
+    tags_json = json.dumps(hb.tags) if hb.tags else None
 
     # Upsert
     result = await db.execute(select(Node).where(Node.node_id == node_id))
@@ -436,12 +377,15 @@ async def receive_heartbeat(req: Request, stats: Dict = None, api_key: str = Dep
     if node:
         node.last_seen = datetime.utcnow()
         node.status = "ONLINE"
-        node.stats = stats_json
+        if stats_json:
+            node.stats = stats_json
+        if tags_json:
+            node.tags = tags_json
         # Check IP drift
         if node.ip != node_ip: 
             node.ip = node_ip
     else:
-        node = Node(node_id=node_id, hostname=node_id, ip=node_ip, status="ONLINE", stats=stats_json)
+        node = Node(node_id=node_id, hostname=node_id, ip=node_ip, status="ONLINE", stats=stats_json, tags=tags_json)
         db.add(node)
     
     await db.commit()
@@ -493,13 +437,7 @@ async def report_result(guid: str, report: ResultReport, req: Request, api_key: 
     await db.commit()
     return {"status": "updated"}
 
-class NodeResponse(BaseModel):
-    node_id: str
-    hostname: str
-    ip: str
-    last_seen: datetime
-    status: str
-    stats: Optional[Dict] = None
+
 
 @app.get("/nodes", response_model=List[NodeResponse])
 async def list_nodes(db: AsyncSession = Depends(get_db)):
@@ -515,6 +453,7 @@ async def list_nodes(db: AsyncSession = Depends(get_db)):
         
         # Parse Stats
         stats = json.loads(n.stats) if n.stats else None
+        tags = json.loads(n.tags) if n.tags else None
         
         resp.append({
             "node_id": n.node_id,
@@ -522,7 +461,8 @@ async def list_nodes(db: AsyncSession = Depends(get_db)):
             "ip": n.ip,
             "last_seen": n.last_seen,
             "status": status,
-            "stats": stats
+            "stats": stats,
+            "tags": tags
         })
     return resp
 
@@ -559,43 +499,12 @@ ca_authority = pki.CertificateAuthority(ca_dir="secrets/ca")
 # Initialize Scheduler
 scheduler = AsyncIOScheduler()
 
-# --- Pydantic Models for Signatures & Jobs ---
-class SignatureCreate(BaseModel):
-    name: str
-    public_key: str # PEM
 
-class SignatureResponse(BaseModel):
-    id: str
-    name: str
-    public_key: str
-    uploaded_by: str
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-class JobDefinitionCreate(BaseModel):
-    name: str
-    script_content: str
-    signature: str # Base64
-    signature_id: str # UUID of key
-    schedule_cron: Optional[str] = None
-    target_node_id: Optional[str] = None
-
-class JobDefinitionResponse(BaseModel):
-    id: str
-    name: str
-    is_active: bool
-    schedule_cron: Optional[str]
-    target_node_id: Optional[str]
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 @app.on_event("startup")
 async def on_startup():
     await init_db()
+    
     try:
         scheduler.start()
         logger.info("🕒 Scheduler Started")
@@ -655,9 +564,7 @@ async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = De
 
 # --- Test/Verification Endpoints ---
 
-class PingRequest(BaseModel):
-    node_id: str
-    message: str
+
 
 @app.post("/api/test/ping")
 async def receive_ping(req: PingRequest, db: AsyncSession = Depends(get_db)):
@@ -678,12 +585,7 @@ async def receive_ping(req: PingRequest, db: AsyncSession = Depends(get_db)):
 
 # --- Configuration Endpoints ---
 
-class NetworkMount(BaseModel):
-    name: str # e.g., finance_data
-    path: str # e.g., //server/share
 
-class MountsConfig(BaseModel):
-    mounts: List[NetworkMount]
 
 @app.get("/config/mounts", response_model=List[NetworkMount])
 async def get_network_mounts(
@@ -822,6 +724,7 @@ async def execute_scheduled_job(scheduled_job_id: str):
             payload=payload_json,
             status="PENDING",
             node_id=s_job.target_node_id,
+            target_tags=s_job.target_tags,
             scheduled_job_id=s_job.id
         )
         db.add(new_job)
@@ -936,6 +839,7 @@ async def create_job_definition(def_req: JobDefinitionCreate, current_user: User
         signature_payload=def_req.signature, # Store for Pass-Through
         schedule_cron=def_req.schedule_cron,
         target_node_id=def_req.target_node_id,
+        target_tags=json.dumps(def_req.target_tags) if def_req.target_tags else None,
         created_by=current_user.username
     )
     db.add(new_def)
@@ -1098,15 +1002,57 @@ async def get_doc_content(filename: str):
 if __name__ == "__main__":
     import uvicorn
     
-    # Ensure Certs Exist (Managed by Caddy sidecar, but we check root CA presence for trust if needed)
-    # ca_authority.ensure_root_ca() # Root CA is now managed/provided by cert-manager
-    
-    # Ensure Code Signing Keys exist (Still needed for job signing)
-    ca_authority.ensure_signing_key("secrets")
-    
-    # Run WITHOUT SSL (TLS Termination handled by Caddy)
-    uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=8001
-    )
+    # --- Local PKI Bootstrap ---
+    try:
+        print("🔐 Initializing Packet PKI...")
+        ca_authority.ensure_root_ca()
+        ca_authority.ensure_signing_key("secrets")
+        
+        # Check if Server Certs exist (provided by Caddy or previous run)
+        cert_path = "secrets/cert.pem"
+        key_path = "secrets/key.pem"
+        
+        ssl_enabled = False
+        
+        if os.path.exists(cert_path) and os.path.exists(key_path):
+             print(f"✅ Found Server Certs at {cert_path}. Enabling HTTPS.")
+             ssl_enabled = True
+        else:
+             # Fallback Generation
+             print(f"⚠️ No Server Cert found at {cert_path}. Generating Local Self-Signed Cert from Root CA...")
+            
+             # Determine SANs (Hostnames/IPs)
+             hostname = socket.gethostname()
+             try:
+                 ip = socket.gethostbyname(hostname)
+             except Exception:
+                 ip = "127.0.0.1"
+                 
+             sans = ["localhost", "master-of-puppets", "puppeteer-agent-1", hostname, ip]
+             
+             try:
+                ca_authority.issue_server_cert(key_path, cert_path, sans)
+                print(f"✅ Generated Local Server Cert for: {sans}")
+                ssl_enabled = True
+             except Exception as e:
+                print(f"❌ Failed to generate certs: {e}")
+                
+    except Exception as e:
+        print(f"❌ PKI Bootstrap Failed: {e}")
+
+    # Run with SSL (If available)
+    if ssl_enabled:
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=8001,
+            ssl_keyfile=key_path,
+            ssl_certfile=cert_path
+        )
+    else:
+        print("⚠️ Starting in HTTP Mode (No Certs found)")
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=8001
+        )

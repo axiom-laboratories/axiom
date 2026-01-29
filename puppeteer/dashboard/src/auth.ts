@@ -1,15 +1,18 @@
 import { jwtDecode } from "jwt-decode";
 
-const API_URL = import.meta.env.VITE_API_URL || ''; // Default to relative if not provided
+const API_URL = import.meta.env.VITE_API_URL || '/api'; // Use /api as default prefix
 
 export const login = async (username: string, password: string): Promise<any> => {
-    const formData = new FormData();
-    formData.append('username', username);
-    formData.append('password', password);
+    const params = new URLSearchParams();
+    params.append('username', username);
+    params.append('password', password);
 
     const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params
     });
 
     if (!res.ok) throw new Error("Login failed");

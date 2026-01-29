@@ -29,6 +29,8 @@ class Job(Base):
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     scheduled_job_id: Mapped[Optional[str]] = mapped_column(String, nullable=True) # FK to ScheduledJob.id
+    target_tags: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON list of tags required
+
 
 class Signature(Base):
     __tablename__ = "signatures"
@@ -46,7 +48,8 @@ class ScheduledJob(Base):
     signature_id: Mapped[str] = mapped_column(String) # FK to Signature.id
     signature_payload: Mapped[str] = mapped_column(Text) # Base64 Signature
     schedule_cron: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Cron Expression
-    target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True) # specific node or 'all'? Plan said nullable target_node_id
+    target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True) # specific node
+    target_tags: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON list of tags e.g. ["gpu", "secure"]
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -77,6 +80,7 @@ class Node(Base):
     last_seen: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     status: Mapped[str] = mapped_column(String) # ONLINE, OFFLINE
     stats: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON: cpu, ram
+    tags: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON list of tags e.g. ["linux", "prod"]
     concurrency_limit: Mapped[Integer] = mapped_column(Integer, default=5)
     job_memory_limit: Mapped[String] = mapped_column(String, default="512m")
 

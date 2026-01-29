@@ -1,56 +1,16 @@
-{
-    # Global Options
-    email {$ACME_EMAIL}
-    debug
-}
-
-# 1. Unified Management Gateway (HTTP/80)
-# Proxies both Dashboard and API for local/unencrypted access
 :80 {
-    # API Proxy (Relative path routing)
+    # API Proxy
     handle /api/* {
         uri strip_prefix /api
-        reverse_proxy agent:8001
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+        }
     }
 
     # Dashboard fallback
     handle {
         reverse_proxy dashboard:80
     }
-}
-
-(tls_config) {
-    dns duckdns {$DUCKDNS_TOKEN}
-    resolvers 8.8.8.8
-}
-
-# 2. Secure UI Gateway (HTTPS/443)
-{$DUCKDNS_DOMAIN} {
-    tls {
-        import tls_config
-    }
-    
-    # API Proxy
-    handle /api/* {
-        uri strip_prefix /api
-        reverse_proxy agent:8001
-    }
-
-    # Dashboard
-    handle {
-        reverse_proxy dashboard:80
-    }
-}
-
-# 3. Secure Node API (mTLS required)
-# Used by Puppets for heartbeats and job polling
-{$DUCKDNS_DOMAIN}:8001 {
-    tls {
-       import tls_config
-       client_auth {
-            mode require_and_verify
-            trusted_ca_cert_file /etc/certs/root_ca.crt
-       }
-    }
-    reverse_proxy agent:8001
 }

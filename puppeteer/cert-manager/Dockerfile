@@ -13,6 +13,6 @@ RUN apk add --no-cache curl step-cli
 
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY entrypoint.sh /bin/entrypoint.sh
-RUN chmod +x /bin/entrypoint.sh
+RUN sed -i 's/\r$//' /bin/entrypoint.sh && chmod +x /bin/entrypoint.sh
 
 ENTRYPOINT ["/bin/entrypoint.sh"]

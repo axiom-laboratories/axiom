@@ -53,11 +53,19 @@ def heartbeat_loop():
                     "cpu": psutil.cpu_percent(interval=None),
                     "ram": psutil.virtual_memory().percent
                 }
+                tags_str = os.getenv("NODE_TAGS", "")
+                tags = [t.strip() for t in tags_str.split(",") if t.strip()]
+
+                payload = {
+                    "stats": stats,
+                    "tags": tags
+                }
+
                 # Use X-Node-ID header if we have one, or just let server use IP
                 # We send NODE_ID to allow detailed tracking
                 client.post(
                     f"{AGENT_URL}/heartbeat", 
-                    json=stats, 
+                    json=payload, 
                     headers={"X-Node-ID": NODE_ID, API_KEY_NAME: API_KEY},
                     timeout=5.0
                 )
@@ -209,7 +217,7 @@ class Node:
                 verify=VERIFY_SSL, 
                 cert=(self.cert_file, self.key_file)
             ) as client:
-                headers = {API_KEY_NAME: API_KEY}
+                headers = {API_KEY_NAME: API_KEY, "X-Node-ID": self.node_id}
                 resp = await client.post(f"{self.agent_url}/work/pull", headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     data = resp.json()
@@ -292,7 +300,9 @@ class Node:
             # Prepare Environment
             krb_ccname = os.environ.get("KRB5CCNAME")
             env = {
-                "SIDECAR_URL": "http://localhost:8080", 
+                "HTTP_PROXY": "http://localhost:8080",
+                "HTTPS_PROXY": "http://localhost:8080",
+                "MOP_STATUS_API": "http://localhost:8081",
                 "KRB5CCNAME": krb_ccname if krb_ccname else ""
             }
             env.update(secrets)
@@ -370,9 +380,9 @@ class Node:
         app.add_routes([web.post('/job/status', self.handle_job_status)])
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 8080)
+        site = web.TCPSite(runner, '0.0.0.0', 8081)
         await site.start()
-        print(f"[{self.node_id}] Sidecar listening on 8080")
+        print(f"[{self.node_id}] Status Sidecar listening on 8081")
 
     async def handle_job_status(self, request):
         try:
