@@ -5,9 +5,10 @@ description: Sequentially runs all audit skills (Security, Backend, Frontend, et
 1. Run the **Security Audit** skill (`review-security`) to scan for vulnerabilities.
 2. Run the **Backend Code Review** skill (`review-backend`) to check Python architecture and performance.
 3. Run the **Frontend Code Review** skill (`review-frontend`) to check React patterns and bundle size.
-4. Run the **Accessibility Audit** skill (`review-accessibility`) to check for A11y barriers.
-5. Run the **Data Privacy & Compliance** skill (`review-data-privacy`) to scan for PII.
-6. Run the **Database Engineer** skill (`review-database`) to check SQL safety.
-7. Run the **QA Engineering** skill (`review-qa`) to review test standards.
-8. Run the **Technical Writer** skill (`write-documentation`) to generate screenshot assets for critical flows.
-9. Run the **Release Planner** skill (`plan-release`) to read all the reports generated above and create a prioritized action plan.
+4. Run the **Stack Integrity Analyst** skill (`review-stack-alignment`) to find orphaned API calls.
+5. Run the **Accessibility Audit** skill (`review-accessibility`) to check for A11y barriers.
+6. Run the **Data Privacy & Compliance** skill (`review-data-privacy`) to scan for PII.
+7. Run the **Database Engineer** skill (`review-database`) to check SQL safety.
+8. Run the **QA Engineering** skill (`review-qa`) to review test standards.
+9. Run the **Technical Writer** skill (`write-documentation`) to generate screenshot assets for critical flows.
+10. Run the **Release Planner** skill (`plan-release`) to read all the reports generated above and create a prioritized action plan.

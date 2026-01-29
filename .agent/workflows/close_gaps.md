@@ -18,4 +18,6 @@ This workflow identifies discrepancies between the Frontend design (React) and B
    `python3 .agent/skills/review-frontend-functional/scripts/functional_tester.py`
 
 4. **Synthesize Gap Report**
-   The Release Planner analyzes the outputs from the above steps and generates a unified report in `mop_validation/reports/gap_analysis_summary_[timestamp].md`.
+   Run the **Release Planner** skill (`plan-release`) which identifies the gaps from the reports.
+   `python3 .agent/skills/plan-release/scripts/synthesizer.py`
+   This will update `mop_validation/reports/gap_analysis_summary.md`.
