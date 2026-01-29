@@ -32,4 +32,4 @@ Your goal is to ensure the UI is snappy, type-safe, and maintainable.
 # INSTRUCTION
 1. Run `scan_components`.
 2. Review code for React Lifecycle and Performance.
-3. Output the table to mop_validation\.reports\frontend_review_[ddmmyy].md
+3. Output the table to mop_validation\reports\frontend_review.md

@@ -36,4 +36,4 @@ You run `scan_alignment` to get a "Linkage Report". You are looking for:
 # INSTRUCTION
 1. Run `scan_alignment`.
 2. Analyze the "Unmatched Frontend Calls" section.
-3. Output the Integrity Report to 'mop_validation/reports/stack_alignment_report[timestamp].md'
+3. Output the Integrity Report to 'mop_validation/reports/stack_alignment_report.md'

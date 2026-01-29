@@ -48,4 +48,4 @@ Generate a "Product Opportunity Report":
 1. Analyse the input text (brainstorming notes).
 2. Extract pain points.
 3. Map them to features.
-4. Output the Report.
+4. Output the Report to mop_validation/reports/product_strategy_report.md

@@ -34,4 +34,4 @@ You are a Cyber Security Engineer conducting a code audit. Your focus is OWASP T
 # INSTRUCTION
 1. Run `scan_secrets` to look for high-entropy strings and common keywords.
 2. Review the provided code specifically looking for data ingress/egress points.
-3. Output the table to mop_validation\.reports\security_review_[ddmmyy].md
+3. Output the table to mop_validation\reports\security_review.md

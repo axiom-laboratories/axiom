@@ -31,4 +31,4 @@ You are a QA Automation Engineer. You do not check feature code; you check the *
 # INSTRUCTION
 1. Run `scan_tests`.
 2. Review test structure in `mop_validation/tests` (and any local tests).
-3. Output QA Report.
+3. Output QA Report to mop_validation/reports/qa_review.md

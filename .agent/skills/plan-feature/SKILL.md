@@ -43,4 +43,4 @@ Generate a "Feasibility Report" in Markdown:
 1. Ask clarifying questions if the idea is vague.
 2. Draft the Technical Specs.
 3. Assess Risks.
-4. Output the Feasibility Report to mop_validation\.reports\feature_feasibility[ddmmyy].md
+4. Output the Feasibility Report to mop_validation\reports\feature_feasibility.md

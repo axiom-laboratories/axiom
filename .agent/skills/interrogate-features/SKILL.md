@@ -34,4 +34,4 @@ Generate a **Feature Manifest**:
 # INSTRUCTION
 1. Run `scan_intent`.
 2. Synthesise the raw data into high-level features.
-3. Output the Manifest to mop_validattion/feature_manifest_[YYYYMMDD_HHMMSS].md
+3. Output the Manifest to mop_validation/feature_manifest.md

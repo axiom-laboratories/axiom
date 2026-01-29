@@ -31,4 +31,4 @@ You are a Database Reliability Engineer (DBRE). You support a polyglot data envi
 # INSTRUCTION
 1. Run `scan_sql` to identify keywords.
 2. Detect the dialect based on file extension or syntax.
-3. Apply the specific dialect rules above.
+3. Apply the specific dialect rules above and output to mop_validation/reports/database_review.md

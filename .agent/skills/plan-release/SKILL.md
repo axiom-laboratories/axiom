@@ -42,4 +42,4 @@ Generate a "Release Readiness Report":
 1. Read the provided review reports (you can find these in mop_validation\.reports\)
 2. Discard duplicate findings.
 3. Resolve conflicting advice based on the logic above.
-4. Output the Release Readiness Report.
+4. Output the Release Readiness Report to mop_validation/reports/release_readiness.md

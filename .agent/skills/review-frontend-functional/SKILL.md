@@ -44,4 +44,4 @@ Generate a "Functional Gap Report":
 1. The tool requires the app to be running (e.g., `http://localhost:5173`).
 2. Run `test_interaction` on the suspect routes.
 3. Analyze the network logs for 404/500s.
-4. Output the Gap Report to 'mop_validation/reports/frontend_functional_report[timestamp].md'
+4. Output the Gap Report to 'mop_validation/reports/frontend_functional_report.md'

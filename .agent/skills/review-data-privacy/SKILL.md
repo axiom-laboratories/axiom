@@ -32,4 +32,4 @@ You must flag ANY potential Personally Identifiable Information (PII) or Payment
 # INSTRUCTION
 1. Run `scan_pii`.
 2. Review logging statements specifically.
-3. Output the Compliance Report.
+3. Output the Compliance Report to mop_validation/reports/compliance_review.md
