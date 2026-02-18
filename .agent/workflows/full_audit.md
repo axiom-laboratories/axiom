@@ -11,4 +11,4 @@ description: Sequentially runs all audit skills (Security, Backend, Frontend, et
 7. Run the **Database Engineer** skill (`review-database`) to check SQL safety.
 8. Run the **QA Engineering** skill (`review-qa`) to review test standards.
 9. Run the **Technical Writer** skill (`write-documentation`) to generate screenshot assets for critical flows.
-10. Run the **Release Planner** skill (`plan-release`) to read all the reports generated above and create a prioritized action plan.
+10. Run the **Release Planner** skill (`plan-release`) to read all the reports in mop_validation/reports and create a prioritized action plan.
