@@ -123,18 +123,18 @@ const Signatures = () => {
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {signatures.map(sig => (
-                        <Card key={sig.id} className="bg-[#121214] border-zinc-800/50 flex flex-col hover:border-primary/30 transition-all group">
+                        <Card key={sig.id} className="bg-zinc-925 border-zinc-800/50 flex flex-col hover:border-primary/30 transition-all group">
                             <CardHeader className="pb-4">
                                 <div className="flex items-start justify-between">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                         <ShieldCheck className="h-5 w-5" />
                                     </div>
-                                    <Badge variant="outline" className="text-[10px] font-mono border-zinc-800 text-zinc-500 uppercase">
+                                    <Badge variant="outline" className="text-2xs font-mono border-zinc-800 text-zinc-500 uppercase">
                                         Active
                                     </Badge>
                                 </div>
                                 <CardTitle className="mt-4 text-white font-bold">{sig.name}</CardTitle>
-                                <CardDescription className="flex items-center gap-1 text-[10px] text-zinc-500 font-mono">
+                                <CardDescription className="flex items-center gap-1 text-2xs text-zinc-500 font-mono">
                                     UID: {sig.id.substring(0, 8)}
                                 </CardDescription>
                             </CardHeader>
@@ -143,10 +143,10 @@ const Signatures = () => {
                                     <Textarea
                                         readOnly
                                         value={sig.public_key}
-                                        className="h-24 bg-zinc-900 border-zinc-800 text-[10px] font-mono text-zinc-400 resize-none focus-visible:ring-0"
+                                        className="h-24 bg-zinc-900 border-zinc-800 text-2xs font-mono text-zinc-400 resize-none focus-visible:ring-0"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 to-transparent flex items-end justify-center pb-2 opacity-0 group-hover/key:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="sm" className="h-7 text-[10px] text-white hover:bg-white/10 uppercase tracking-widest font-bold">
+                                        <Button variant="ghost" size="sm" className="h-7 text-2xs text-white hover:bg-white/10 uppercase tracking-widest font-bold">
                                             <ExternalLink className="mr-1 h-3 w-3" />
                                             View Full PEM
                                         </Button>
@@ -180,7 +180,7 @@ const Signatures = () => {
             )}
 
             <Dialog open={showModal} onOpenChange={setShowModal}>
-                <DialogContent className="bg-[#121214] border-zinc-800 text-white sm:max-w-[500px]">
+                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>Register Trusted Key</DialogTitle>
                         <DialogDescription className="text-zinc-500">
@@ -189,7 +189,7 @@ const Signatures = () => {
                     </DialogHeader>
                     <form onSubmit={handleUpload} className="space-y-6 pt-4">
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">Key Identifier</Label>
+                            <Label className="text-zinc-400 font-bold uppercase text-2xs tracking-widest">Key Identifier</Label>
                             <Input
                                 placeholder="e.g. Master Build Pipeline"
                                 className="bg-zinc-900 border-zinc-800 h-11"
@@ -199,7 +199,7 @@ const Signatures = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">Public Key Content (PEM)</Label>
+                            <Label className="text-zinc-400 font-bold uppercase text-2xs tracking-widest">Public Key Content (PEM)</Label>
                             <div className="relative">
                                 <div className="absolute top-3 left-3 h-4 w-4 text-zinc-600">
                                     <Shield className="h-full w-full" />

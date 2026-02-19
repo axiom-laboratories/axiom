@@ -106,7 +106,7 @@ const Jobs = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Create Job Box */}
-                <Card className="bg-[#121214] border-zinc-800/50">
+                <Card className="bg-zinc-925 border-zinc-800/50">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
                             <Plus className="h-5 w-5 text-primary" />
@@ -153,7 +153,7 @@ const Jobs = () => {
                 </Card>
 
                 {/* Jobs Table */}
-                <Card className="xl:col-span-2 bg-[#121214] border-zinc-800/50 overflow-hidden">
+                <Card className="xl:col-span-2 bg-zinc-925 border-zinc-800/50 overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle className="text-lg font-bold text-white">Queue Monitor</CardTitle>
@@ -169,12 +169,12 @@ const Jobs = () => {
                     <Table>
                         <TableHeader className="bg-zinc-900/50 border-zinc-800">
                             <TableRow className="border-zinc-800 hover:bg-transparent">
-                                <TableHead className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest pl-6">GUID</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Type</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Status</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Target Node</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest">Timestamp</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-[10px] tracking-widest pr-6 text-right">Action</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pl-6">GUID</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Type</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Status</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Target Node</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Timestamp</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pr-6 text-right">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -191,7 +191,7 @@ const Jobs = () => {
                                             {job.payload.task_type || job.task_type || 'Generic'}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant={getStatusVariant(job.status) as any} className="capitalize">
+                                            <Badge variant={getStatusVariant(job.status) as "success" | "destructive" | "secondary" | "outline"} className="capitalize">
                                                 {job.status.toLowerCase()}
                                             </Badge>
                                         </TableCell>

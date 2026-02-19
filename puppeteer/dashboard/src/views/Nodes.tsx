@@ -73,7 +73,7 @@ const NodeCard = ({ node }: { node: Node }) => {
                 {node.tags && node.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-4">
                         {node.tags.map(tag => (
-                            <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium border border-border">
+                            <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-2xs font-medium border border-border">
                                 {tag}
                             </span>
                         ))}
@@ -189,7 +189,7 @@ const Nodes = () => {
     );
 };
 
-function NetworkIcon(props: any) {
+function NetworkIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
             {...props}

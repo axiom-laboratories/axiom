@@ -65,7 +65,7 @@ const Dashboard = () => {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-[#121214] border-zinc-800/50 hover:border-primary/50 transition-colors">
+                <Card className="bg-zinc-925 border-zinc-800/50 hover:border-primary/50 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-zinc-400">Active Puppets</CardTitle>
                         <Network className="h-4 w-4 text-primary" />
@@ -79,7 +79,7 @@ const Dashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-[#121214] border-zinc-800/50 hover:border-primary/50 transition-colors">
+                <Card className="bg-zinc-925 border-zinc-800/50 hover:border-primary/50 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-zinc-400">Running Jobs</CardTitle>
                         <Activity className="h-4 w-4 text-primary" />
@@ -90,7 +90,7 @@ const Dashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-[#121214] border-zinc-800/50 hover:border-primary/50 transition-colors">
+                <Card className="bg-zinc-925 border-zinc-800/50 hover:border-primary/50 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-zinc-400">Success Rate</CardTitle>
                         <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -104,7 +104,7 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Chart */}
-                <Card className="lg:col-span-2 bg-[#121214] border-zinc-800/50">
+                <Card className="lg:col-span-2 bg-zinc-925 border-zinc-800/50">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold text-white">Failure Trend</CardTitle>
                         <CardDescription className="text-zinc-500">Security and execution failures across the mesh (7d)</CardDescription>
@@ -141,7 +141,7 @@ const Dashboard = () => {
                 </Card>
 
                 {/* Recent Activity */}
-                <Card className="bg-[#121214] border-zinc-800/50">
+                <Card className="bg-zinc-925 border-zinc-800/50">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle className="text-lg font-bold text-white">Recent Activity</CardTitle>
@@ -155,19 +155,19 @@ const Dashboard = () => {
                                 recentJobs.map(job => (
                                     <div key={job.guid} className="flex items-start gap-3 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/50 group hover:bg-zinc-900 transition-all">
                                         <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${job.status === 'COMPLETED' ? 'bg-green-500' :
-                                                job.status === 'FAILED' ? 'bg-red-500' : 'bg-yellow-500'
+                                            job.status === 'FAILED' ? 'bg-red-500' : 'bg-yellow-500'
                                             }`} />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between gap-2">
                                                 <p className="text-sm font-medium text-white truncate">
                                                     {job.payload.task_type || 'System Task'}
                                                 </p>
-                                                <span className="text-[10px] text-zinc-600 flex items-center gap-1">
+                                                <span className="text-2xs text-zinc-600 flex items-center gap-1">
                                                     <Clock className="h-3 w-3" />
                                                     {new Date(job.started_at || Date.now()).toLocaleTimeString()}
                                                 </span>
                                             </div>
-                                            <p className="text-[10px] text-zinc-500 font-mono mt-1 uppercase tracking-wider">
+                                            <p className="text-2xs text-zinc-500 font-mono mt-1 uppercase tracking-wider">
                                                 ID: {job.guid.substring(0, 8)}
                                             </p>
                                         </div>

@@ -21,8 +21,8 @@ const Login = () => {
     };
 
     return (
-        <div className="flex h-screen items-center justify-center bg-[#09090b] px-4">
-            <div className="w-full max-w-[400px] space-y-8 bg-[#121214] p-10 rounded-2xl border border-zinc-800/50 shadow-2xl">
+        <div className="flex h-screen items-center justify-center bg-zinc-975 px-4">
+            <div className="w-full max-w-[400px] space-y-8 bg-zinc-925 p-10 rounded-2xl border border-zinc-800/50 shadow-2xl">
                 <div className="text-center space-y-2">
                     <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
                         <Network className="h-6 w-6" />
@@ -64,7 +64,7 @@ const Login = () => {
                 </form>
 
                 <div className="text-center pt-4">
-                    <p className="text-zinc-600 text-[10px] uppercase font-bold tracking-widest">v1.2.0 • Secured by mTLS</p>
+                    <p className="text-zinc-600 text-2xs uppercase font-bold tracking-widest">v1.2.0 • Secured by mTLS</p>
                 </div>
             </div>
         </div>

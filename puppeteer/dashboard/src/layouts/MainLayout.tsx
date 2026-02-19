@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 const MainLayout = () => {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-    const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => (
+    const NavItem = ({ to, icon: Icon, label }: { to: string, icon: React.ComponentType<{ className?: string }>, label: string }) => (
         <NavLink
             to={to}
             className={({ isActive }) =>
@@ -43,25 +43,25 @@ const MainLayout = () => {
             <div className="flex-1 overflow-auto px-4 pb-4">
                 <nav className="space-y-1.5">
                     <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
-                    <div className="pt-4 pb-1 px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         Monitoring
                     </div>
                     <NavItem to="/nodes" icon={Server} label="Puppets" />
                     <NavItem to="/jobs" icon={Cpu} label="Orchestration" />
 
-                    <div className="pt-4 pb-1 px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         Security
                     </div>
                     <NavItem to="/signatures" icon={ShieldCheck} label="Trust Assets" />
 
-                    <div className="pt-4 pb-1 px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         System
                     </div>
                     <NavItem to="/admin" icon={Settings} label="Settings" />
                 </nav>
             </div>
             <div className="p-6 border-t border-zinc-900">
-                <div className="flex items-center gap-2 text-[10px] font-medium text-zinc-500">
+                <div className="flex items-center gap-2 text-2xs font-medium text-zinc-500">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                     v1.2.0 • Online
                 </div>
@@ -70,15 +70,15 @@ const MainLayout = () => {
     );
 
     return (
-        <div className="flex min-h-screen w-full bg-[#09090b] text-white">
+        <div className="flex min-h-screen w-full bg-zinc-975 text-white">
             {/* Desktop Sidebar */}
-            <aside className="hidden border-r border-zinc-900 w-64 shrink-0 md:block bg-[#09090b]">
+            <aside className="hidden border-r border-zinc-900 w-64 shrink-0 md:block bg-zinc-975">
                 <SidebarContent />
             </aside>
 
             {/* Mobile Sidebar & Main Content */}
             <div className="flex flex-col flex-1 min-w-0">
-                <header className="flex h-16 items-center gap-4 border-b border-zinc-900 bg-[#09090b] px-4 lg:px-6 sticky top-0 z-10">
+                <header className="flex h-16 items-center gap-4 border-b border-zinc-900 bg-zinc-975 px-4 lg:px-6 sticky top-0 z-10">
                     <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="shrink-0 md:hidden hover:bg-zinc-800">
@@ -86,7 +86,7 @@ const MainLayout = () => {
                                 <span className="sr-only">Toggle navigation</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col p-4 bg-[#09090b] border-r-zinc-900 w-72">
+                        <SheetContent side="left" className="flex flex-col p-4 bg-zinc-975 border-r-zinc-900 w-72">
                             <SidebarContent />
                         </SheetContent>
                     </Sheet>

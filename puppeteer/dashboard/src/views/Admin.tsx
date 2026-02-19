@@ -69,7 +69,7 @@ const Admin = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Node Onboarding */}
-                <Card className="bg-[#121214] border-zinc-800/50 flex flex-col">
+                <Card className="bg-zinc-925 border-zinc-800/50 flex flex-col">
                     <CardHeader>
                         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                             <Cpu className="h-5 w-5 text-primary" />
@@ -97,7 +97,7 @@ const Admin = () => {
                         ) : (
                             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Join Token</label>
+                                    <label className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Active Join Token</label>
                                     <div className="flex gap-2">
                                         <div className="flex-1 h-12 bg-zinc-900 border border-primary/30 rounded-xl flex items-center px-4 font-mono text-primary font-bold overflow-hidden truncate">
                                             {joinToken}
@@ -111,7 +111,7 @@ const Admin = () => {
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-green-500 font-bold uppercase tracking-tighter">
+                                <div className="flex items-center gap-2 text-2xs text-green-500 font-bold uppercase tracking-tighter">
                                     <CheckCircle2 className="h-3 w-3" />
                                     Token ready for deployment
                                 </div>
@@ -129,7 +129,7 @@ const Admin = () => {
                 </Card>
 
                 {/* Key Management */}
-                <Card className="bg-[#121214] border-zinc-800/50 flex flex-col">
+                <Card className="bg-zinc-925 border-zinc-800/50 flex flex-col">
                     <CardHeader>
                         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                             <Key className="h-5 w-5 text-primary" />
@@ -142,8 +142,8 @@ const Admin = () => {
                     <CardContent className="flex-1 space-y-4">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Master Public Key (PEM)</label>
-                                <Badge variant="outline" className="h-5 px-1.5 text-[9px] border-zinc-800 text-zinc-600">Rotation Required</Badge>
+                                <label className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Master Public Key (PEM)</label>
+                                <Badge variant="outline" className="h-5 px-1.5 text-2xs border-zinc-800 text-zinc-600">Rotation Required</Badge>
                             </div>
                             <div className="relative group/pk">
                                 <Terminal className="absolute top-3 left-3 h-4 w-4 text-zinc-600" />
@@ -166,7 +166,7 @@ const Admin = () => {
                             {isUploading ? 'Updating Root...' : 'Upload Root Key'}
                         </Button>
 
-                        <p className="text-[10px] text-zinc-600 text-center flex items-center justify-center gap-1">
+                        <p className="text-2xs text-zinc-600 text-center flex items-center justify-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             Changing this key will break validation for all existing nodes until they are updated.
                         </p>

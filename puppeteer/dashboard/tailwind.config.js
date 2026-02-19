@@ -4,6 +4,9 @@ export default {
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
     theme: {
         extend: {
+            fontSize: {
+                '2xs': '10px',
+            },
             borderRadius: {
                 lg: 'var(--radius)',
                 md: 'calc(var(--radius) - 2px)',
@@ -12,6 +15,10 @@ export default {
             colors: {
                 background: 'hsl(var(--background))',
                 foreground: 'hsl(var(--foreground))',
+                zinc: {
+                    925: '#121214',
+                    975: '#09090b',
+                },
                 card: {
                     DEFAULT: 'hsl(var(--card))',
                     foreground: 'hsl(var(--card-foreground))'
