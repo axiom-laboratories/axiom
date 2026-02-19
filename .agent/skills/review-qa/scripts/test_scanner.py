@@ -5,8 +5,17 @@ def scan_file(filepath):
     has_assert = False
     is_test_file = False
     
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
+    try:
+        with open(filepath, 'rb') as f:
+            chunk = f.read(1024)
+            if b'\0' in chunk: # Simple binary check
+                return
+        
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception as e:
+        print(f"Skipping {filepath} due to error: {e}")
+        return
         
     # Heuristics
     if "def test_" in content or "test(" in content or "it(" in content:
