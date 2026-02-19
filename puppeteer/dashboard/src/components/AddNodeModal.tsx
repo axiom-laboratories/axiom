@@ -40,14 +40,14 @@ const AddNodeModal = ({ open, onOpenChange }: AddNodeModalProps) => {
     }, [open]);
 
     const handleCopy = () => {
-        const cmd = `iex (irm "https://localhost:8001/api/installer") -Role Node -Token "${token}" -Count ${count}`;
+        const cmd = `iex (irm "https://localhost:8001/installer") -Role Node -Token "${token}" -Count ${count}`;
         navigator.clipboard.writeText(cmd);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     const handleDownload = () => {
-        window.location.href = "https://localhost:8001/api/installer";
+        window.location.href = "https://localhost:8001/installer";
     };
 
     return (
@@ -82,7 +82,7 @@ const AddNodeModal = ({ open, onOpenChange }: AddNodeModalProps) => {
                         <div className="space-y-2">
                             <Label>Option A: One-Liner (Recommended)</Label>
                             <div className="relative rounded-md bg-muted p-4 pr-12 font-mono text-sm break-all">
-                                {`iex (irm "https://localhost:8001/api/installer") -Role Node -Token "${token}" -Count ${count}`}
+                                {`iex (irm "https://localhost:8001/installer") -Role Node -Token "${token}" -Count ${count}`}
                                 <Button
                                     size="icon"
                                     variant="ghost"

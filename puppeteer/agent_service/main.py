@@ -34,6 +34,7 @@ from sqlalchemy.future import select
 from sqlalchemy import update, desc, func
 from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from .services.job_service import JobService
 
 load_dotenv()
 
@@ -54,7 +55,7 @@ app.mount("/installer", StaticFiles(directory="installer"), name="installer")
 
 
 
-@app.get("/api/verification-key")
+@app.get("/verification-key")
 async def get_verification_key():
     """Serves the Public Verification Key for Code Signing."""
     """Serves the Public Verification Key for Code Signing."""
@@ -69,7 +70,7 @@ async def get_verification_key():
     with open(key_path, "r") as f:
         return Response(content=f.read(), media_type="text/plain")
 
-@app.get("/api/installer")
+@app.get("/installer")
 async def get_installer_ps1():
     """Serves the Universal PowerShell Installer (One-Liner)."""
     file_path = "installer/install_universal.ps1"
@@ -78,7 +79,7 @@ async def get_installer_ps1():
     with open(file_path, "r") as f:
         return Response(content=f.read(), media_type="text/plain")
 
-@app.get("/api/installer.sh")
+@app.get("/installer.sh")
 async def get_installer_sh():
     """Serves the Universal Bash Installer."""
     file_path = "installer/install_universal.sh"
@@ -87,7 +88,7 @@ async def get_installer_sh():
     with open(file_path, "r") as f:
         return Response(content=f.read(), media_type="text/plain")
 
-@app.get("/api/system/root-ca")
+@app.get("/system/root-ca")
 async def get_root_ca():
     """Download the Internal Root CA (Public Key) to enable Green Tick trust."""
     try:
@@ -200,63 +201,16 @@ async def health_check():
 @app.get("/jobs", response_model=List[JobResponse])
 async def list_jobs(db: AsyncSession = Depends(get_db)): # Allow public read for now, or add Depends(get_current_user)
     """For the Dashboard. Filters system jobs by default unless requested?"""
-    # Only show user jobs
-    result = await db.execute(
-        select(Job).where(Job.task_type != 'system_heartbeat') \
-        .order_by(desc(Job.created_at)).limit(50)
-    )
-    jobs = result.scalars().all()
-    
-    response_jobs = []
-    for job in jobs:
-        payload = json.loads(job.payload)
-        
-        # Calculate duration
-        duration = None
-        if job.started_at:
-            end = job.completed_at or datetime.utcnow()
-            duration = (end - job.started_at).total_seconds()
-
-        response_jobs.append({
-            "guid": job.guid,
-            "status": job.status,
-            "payload": mask_secrets(payload), 
-            "result": json.loads(job.result) if job.result else None,
-            "node_id": job.node_id,
-            "started_at": job.started_at,
-            "duration_seconds": duration,
-            "target_tags": json.loads(job.target_tags) if job.target_tags else None
-        })
-    return response_jobs
+    return await JobService.list_jobs(db)
 
 @app.post("/jobs", response_model=JobResponse)
 async def create_job(job_req: JobCreate, db: AsyncSession = Depends(get_db)):
     """Received from Model Service or Authorized User."""
     # TODO: Add Auth check (User or API Key)
-    
-    guid = str(uuid.uuid4())
-    
-    # Encrypt secrets before storing
-    encrypted_payload = encrypt_secrets(job_req.payload)
-    
-    new_job = Job(
-        guid=guid,
-        task_type=job_req.task_type,
-        status="PENDING",
-        payload=json.dumps(encrypted_payload),
-        target_tags=json.dumps(job_req.target_tags) if job_req.target_tags else None,
-        created_at=datetime.utcnow()
-    )
-    
     try:
-        db.add(new_job)
-        await db.commit()
-        await db.refresh(new_job)
+        return await JobService.create_job(job_req, db)
     except Exception as e:
-        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    
-    return {"guid": guid, "status": "PENDING", "payload": encrypted_payload, "target_tags": job_req.target_tags}
 
 
 
@@ -264,98 +218,8 @@ async def create_job(job_req: JobCreate, db: AsyncSession = Depends(get_db)):
 async def pull_work(request: Request, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
     """Called by Environment Nodes."""
     node_ip = request.client.host
-    # Use X-Node-ID if available, else IP
     node_id = request.headers.get("X-Node-ID", node_ip)
-    
-    # 1. Fetch Node Configuration
-    result = await db.execute(select(Node).where(Node.node_id == node_id))
-    node = result.scalar_one_or_none()
-    
-    # Default Config
-    concurrency = 5
-    memory = "512m"
-    
-    if node:
-        concurrency = node.concurrency_limit
-        memory = node.job_memory_limit
-        # Update last seen while we're here?
-        node.last_seen = datetime.utcnow()
-        if node.ip != node_ip:
-             node.ip = node_ip
-    else:
-        # Create Node if not exists (Auto-Registration on Poll)
-        # Typically Heartbeat handles this, but good for robustness
-        node = Node(
-            node_id=node_id, 
-            hostname=node_id, 
-            ip=node_ip, 
-            status="ONLINE", 
-            concurrency_limit=concurrency,
-            job_memory_limit=memory
-        )
-        db.add(node)
-    
-    # Commit node update/creation
-    await db.commit()
-    
-    node_config = NodeConfig(concurrency_limit=concurrency, job_memory_limit=memory)
-
-    # 2. Check Concurrency Limit (Server-Side Guard)
-    result = await db.execute(select(func.count(Job.guid)).where(Job.status == 'ASSIGNED', Job.node_id == node_id))
-    active_count = result.scalar()
-    
-    if active_count >= concurrency:
-        return PollResponse(job=None, config=node_config) # Backoff
-    
-    # 3. Find highest priority PENDING job matching criteria
-    # We fetch a batch and filter logic in Python for JSON tag matching to ensure portability
-    result = await db.execute(
-        select(Job).where(
-            Job.status == 'PENDING'
-        ).where(
-            (Job.node_id == None) | (Job.node_id == node_id)
-        ).order_by(Job.created_at.asc()).limit(50)
-    )
-    jobs = result.scalars().all()
-    
-    selected_job = None
-    node_tags_list = json.loads(node.tags) if node and node.tags else []
-    logger.info(f"DEBUG: Node {node_id} tags: {node.tags}")
-
-    for candidate in jobs:
-        logger.info(f"DEBUG: Job {candidate.guid} req {candidate.target_tags}")
-        # Check Tags
-        if candidate.target_tags:
-            try:
-                req_tags = json.loads(candidate.target_tags)
-                if not isinstance(req_tags, list):
-                     continue # Invalid tag format, skip
-                
-                # Logic: Node must have ALL required tags
-                if not all(t in node_tags_list for t in req_tags):
-                    continue
-            except:
-                continue # JSON parse error on job tags
-                
-        selected_job = candidate
-        break
-    
-    job = selected_job
-    
-    if not job:
-        return PollResponse(job=None, config=node_config) # No work
-        
-    job.status = 'ASSIGNED'
-    job.node_id = node_id
-    job.started_at = datetime.utcnow()
-    
-    encrypted_payload = json.loads(job.payload)
-    payload = decrypt_secrets(encrypted_payload)
-    
-    await db.commit()
-    
-    work_resp = WorkResponse(guid=job.guid, task_type=job.task_type, payload=payload)
-    return PollResponse(job=work_resp, config=node_config)
+    return await JobService.pull_work(node_id, node_ip, db)
 
 @app.post("/heartbeat")
 async def receive_heartbeat(req: Request, hb: HeartbeatPayload, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
@@ -394,48 +258,11 @@ async def receive_heartbeat(req: Request, hb: HeartbeatPayload, api_key: str = D
 @app.post("/work/{guid}/result")
 async def report_result(guid: str, report: ResultReport, req: Request, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
     """Matches 'Environment -> Agent' reporting."""
-    result = await db.execute(select(Job).where(Job.guid == guid))
-    job = result.scalar_one_or_none()
-    
-    if not job:
+    node_ip = req.client.host
+    updated = await JobService.report_result(guid, report, node_ip, db)
+    if not updated:
         raise HTTPException(status_code=404, detail="Job not found")
-        
-    # HEARTBEAT LOGIC
-    if job.task_type == "system_heartbeat":
-        # Update Node Status
-        node_ip = req.client.host
-        # If result has stats, extract them
-        stats_json = None
-        if report.result and "stats" in report.result:
-            stats_json = json.dumps(report.result["stats"])
-            
-        # Upsert Node
-        # Check if node exists by IP (or hostname if we had it reliably in job)
-        # We used IP as node_id in pull... let's stick to that for now.
-        # Ideally, we should pass Node ID in header.
-        node_id = job.node_id or node_ip
-        
-        sub_result = await db.execute(select(Node).where(Node.node_id == node_id))
-        node = sub_result.scalar_one_or_none()
-        if node:
-            node.last_seen = datetime.utcnow()
-            node.status = "ONLINE"
-            if stats_json:
-                node.stats = stats_json
-        else:
-            node = Node(node_id=node_id, hostname=node_id, ip=node_ip, status="ONLINE", stats=stats_json)
-            db.add(node)
-
-        # Cleanup Heartbeat Job? Or keep it as log?
-        # Let's mark it complete.
-        pass
-
-    job.status = "COMPLETED" if report.success else "FAILED"
-    job.result = json.dumps(report.result) if report.result else None
-    job.completed_at = datetime.utcnow()
-
-    await db.commit()
-    return {"status": "updated"}
+    return updated
 
 
 
