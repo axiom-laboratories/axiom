@@ -2,7 +2,19 @@ import { jwtDecode } from "jwt-decode";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'; // Use /api as default prefix
 
-export const login = async (username: string, password: string): Promise<any> => {
+export interface LoginResponse {
+    access_token: string;
+    token_type: string;
+}
+
+export interface UserJwt {
+    sub: string;
+    exp: number;
+    username: string;
+    role?: string;
+}
+
+export const login = async (username: string, password: string): Promise<LoginResponse> => {
     const params = new URLSearchParams();
     params.append('username', username);
     params.append('password', password);
@@ -17,7 +29,7 @@ export const login = async (username: string, password: string): Promise<any> =>
 
     if (!res.ok) throw new Error("Login failed");
 
-    const data = await res.json();
+    const data: LoginResponse = await res.json();
     localStorage.setItem('token', data.access_token);
     return data;
 };
@@ -29,11 +41,11 @@ export const logout = () => {
 
 export const getToken = () => localStorage.getItem('token');
 
-export const getUser = () => {
+export const getUser = (): UserJwt | null => {
     const token = getToken();
     if (!token) return null;
     try {
-        return jwtDecode(token);
+        return jwtDecode<UserJwt>(token);
     } catch (e) {
         return null;
     }
@@ -41,10 +53,10 @@ export const getUser = () => {
 
 export const authenticatedFetch = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
     const token = getToken();
-    const headers = {
-        ...options.headers,
+    const headers: Record<string, string> = {
+        ...(options.headers as Record<string, string>),
         'Authorization': `Bearer ${token}`
-    } as any;
+    };
 
     // endpoint should be partial path like '/nodes' or full url?
     // Let's assume partial path if it starts with /
