@@ -110,7 +110,10 @@ const Dashboard = () => {
                         <CardDescription className="text-zinc-500">Security and execution failures across the mesh (7d)</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <div className="sr-only" id="failure-trend-desc">
+                            Bar chart showing failures over the last 7 days. Current fail count is {stats.runningJobs > 0 ? 'visible' : 'zero'}.
+                        </div>
+                        <ResponsiveContainer width="100%" height="100%" aria-describedby="failure-trend-desc">
                             <BarChart data={chartData}>
                                 <XAxis
                                     dataKey="name"

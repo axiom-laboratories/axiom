@@ -24,6 +24,7 @@ const MainLayout = () => {
                 }`
             }
             onClick={() => setIsMobileOpen(false)}
+            aria-label={label}
         >
             <Icon className="h-4 w-4 shrink-0" />
             <span>{label}</span>
@@ -72,7 +73,7 @@ const MainLayout = () => {
     return (
         <div className="flex min-h-screen w-full bg-zinc-975 text-white">
             {/* Desktop Sidebar */}
-            <aside className="hidden border-r border-zinc-900 w-64 shrink-0 md:block bg-zinc-975">
+            <aside className="hidden border-r border-zinc-900 w-64 shrink-0 md:block bg-zinc-975" role="navigation" aria-label="Main Sidebar">
                 <SidebarContent />
             </aside>
 
@@ -86,7 +87,7 @@ const MainLayout = () => {
                                 <span className="sr-only">Toggle navigation</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col p-4 bg-zinc-975 border-r-zinc-900 w-72">
+                        <SheetContent side="left" className="flex flex-col p-4 bg-zinc-975 border-r-zinc-900 w-72" aria-label="Mobile Menu">
                             <SidebarContent />
                         </SheetContent>
                     </Sheet>
@@ -94,7 +95,7 @@ const MainLayout = () => {
                     <div className="flex-1 flex items-center justify-between">
                         <h1 className="text-sm font-semibold text-zinc-400 md:hidden">Puppeteer</h1>
                         <div>{/* Spacer or search */}</div>
-                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800">
+                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800" aria-label="User Profile">
                             <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
                                 <span className="text-xs font-bold text-primary">A</span>
                             </div>
