@@ -1,0 +1,39 @@
+import paramiko
+from scp import SCPClient
+import os
+
+def deploy():
+    host = "192.168.50.128"
+    user = "speedy"
+    pw = "Sallyb01"
+    
+    # Hub details
+    hub_url = "https://192.168.50.178:8001"
+    token = "eyJ0IjogIjM1MjczMTA2MmE4MTQ2NWVhNWM1ZDUwY2FlMzVjNTk0IiwgImNhIjogIi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLVxuTUlJRmJUQ0NBMVdnQXdJQkFnSVVKMFE4NzV3T1crV09yaGt6SEV6cENPTnJkb0l3RFFZSktvWklodmNOQVFFTFxuQlFBd1pqRUxNQWtHQTFVRUJoTUNWVk14RXpBUkJnTlZCQWdNQ2tONVltVnljM0JoWTJVeElqQWdCZ05WQkFvTVxuR1ZCMWNIQmxkQ0JOWVhOMFpYSWdTVzUwWlhKdVlXd2dRMEV4SGpBY0JnTlZCQU1NRlZCMWNIQmxkQ0JOWVhOMFxuWlhJZ1VtOXZkQ0JEUVRBZUZ3MHlOakF4TWpJeU1EUTVNVEZhRncwek5qQXhNakF5TURRNU1URmFNR1l4Q3pBSlxuQmdOVkJBWVRBbFZUTVJNd0VRWURWUVFJREFwRGVXSmxjbk53WVdObE1TSXdJQVlEVlFRS0RCbFFkWEJ3WlhRZ1xuVFdGemRHVnlJRWx1ZEdViWJtRnNJRU5CTVI0d0hBWURWUVFEREJWUWRYQndaWFFnVFdGemRHVnlJRkp2YjNRZ1xuUTBFd2dnSWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUNEd0F3Z2dJS0FvSUNBUURLblRRNE9GdW1ScnlKWmJaTFxua1NpR3ZMWTdJN01pUnVVa2l0UGgzNS8rNGJxaWd3S0ZUOEJ1VTN5TTZaUmJSWFIxUWxMbmh3WGdFOXNvSllTcVxuU0xHeEUxRzBwLzA2Zmh0LzA1OU94U1lmbkZHZGJIQ2RNRmt3THdZbm5qckt4SENScnBEVHk5WWN0UWdJQnZLNlxuM2ZCN3ZBemJidlRjTGJ6RU4zL1JLYVFHbVl0V1g5K3NacDVBUHE5c1k3SHRBa25LZjEyTTc5M3drZHRTMUMrM1xuWDh1SUs3bmxVMVRrUlhNWmdYZ2dJNVZ4WVh5YllyeEZScUYycjU2TjNhaEhocXp0a1p3bFBJRm9yN3haek5DaFxuLytKRzBmRVVJaHhLL29pMUg4bk5kN3V5cVYzQlllWmlqZEJCTDdlOUNHTy9hbElYLyt6OXFGV0d4M0Q5ZkhOM1xuaklPTTlxZkVGTXd1WTJBeVg5S0l0aE1PNDVxOEdPREd2eTY1Z1BhNXh5REUwNnhQR0JOQ2ZjdkJtajBad0FKY1xuaG5IQWpiMXptblFGRXV6OWkyTDdheWhaclYxQUYraTBGYm0wWnlEY0llcTlIT2p1WlZXYzNBNHVJL0tPYlpybVxua2NWcFlhdzJrU3Fsb2MrZW9MTzdOSzZ3eHl1RDVNUVhZclFrMXVSdU4xTDg3M3NnVlo1RUFWVXRTdzZudG5ZeFxuSFlvZlhmUEptYmRTL3hkMUQ0VWRPWENuZXF0VkpJSFlBZ3h5dW1BSGVJdlBkdTg3ZDB0U1B2YUtjRlZsbVN4alxudHJ5dUpGdHgyNFpxYzJ3c0ZnU28xZ256MkpRS1pIM2hNdkh4dmdNRTlMWjdiWThab3dxSE1NYkovS2FsWW81NFxuNWt6WXpGanFJQVF6OUl3VDRLVFNLS2VzUXdJREFRQUJveE13RVRBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUEwR1xuQ1NxR1NJYjNEUUVCQ3dVQUE0SUNBUUI0eXpETWNVcG1tbmlxcTdQNksrNGg3M2VHdFAwWWJjbGUzaGZ1RHc5YVxuZWhWU3UydncxYVBYbjNVbWVveThqb0NBVlI4cWxvTjRrTGltS0V0TXRBQk9LVXl5UURtWWdQbklxZUFpQTlYK1xucVBTMjJEakNWaDVOZDR4WWVKZVhKa3U5ZXZtYjhyVEQ1RjZudG51TVBRNUNXSWcreW1QeVZaTkZaY0p6UFdOR1xuYVZnQ3JFeGQ2YTdsUG5VbHBZNWJ0dHdlQWk1cElaekd2U3FTL1NBNXJGd1NQcUFtdTZya1VkUStIbHNPZjhydFxuMlJGY3RjS0xzRi9LMldMdXhFZkN4bFlJYy9ETGhkTDFobEZJVkNhQ2d2RVZscUxQb2ZBclI4RGtlUVllS3FPSVxudjJOTDN1NXJITDFPV1k5UFFrNkN6V2RJSkdFMDUwc3JOcnFtQ0RaTjYrRWtVRndPNFdveDFRWjNOQlo3aDQzbVxuQ3FMYTJ1TGlMZ04wWkgvSVVnaW91Vk5xNUhtS0V3TGJVZ25VREV5ZkpUaEdxTXZUQ051NThoT1pmSFRobEI3QlxuaUpUZDJvWi9ZaDdQdGNmSnFFYW1zRDQrZW9sTGhBYlljblRTS2pDVEFTalRVamJvWkZnTUpmaUEwQThRSFVTcVxubk5GUmRPY0FMRzRZem8vK2dURWp0Q0U5Q1dkaURZUG55ZWxtekZpaU9xNFZWOUwzUFJBbjJteVBITFFVLzkzY1xuRndCVmFlMWFOaUJxV09HcHluK1YzUVZyQTJRK2VLS2o2OStxZUhaeHVoUWR5K0ZIZTVYaDdYemJUMTZjcU9JVFxuQlBPVktJZE10SzJDRUxUT3c4cUVmRWRFWXNNRFZNamMyVmJWT2pOeE5pM2d3ZThuNmRYd1JGTitWRTM2WjFES1xuWlE9PVxuLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLSJ9"
+    
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    print(f"Connecting to {host}...")
+    ssh.connect(host, username=user, password=pw)
+    
+    # 1. SCP the installer
+    with SCPClient(ssh.get_transport()) as scp:
+        print("Uploading install_node.sh...")
+        scp.put("puppets/installer/install_node.sh", "install_node.sh")
+    
+    # 2. Run the installer (using the already loaded image)
+    print("Running installer...")
+    command = f"chmod +x install_node.sh && ./install_node.sh {hub_url} '{token}'"
+    stdin, stdout, stderr = ssh.exec_command(command)
+    
+    for line in stdout:
+        print(line.strip())
+    for line in stderr:
+        print("ERR:", line.strip())
+        
+    ssh.close()
+    print("Deployment finished.")
+
+if __name__ == "__main__":
+    deploy()

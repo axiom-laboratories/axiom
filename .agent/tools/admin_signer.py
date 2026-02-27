@@ -9,8 +9,8 @@ from cryptography.hazmat.primitives import serialization
 # Configuration
 SIGNING_KEY_PATH = "secrets/signing.key"
 VERIFY_KEY_PATH = "secrets/verification.key"
-MODEL_SERVICE_URL = "https://localhost:8000"
-ROOT_CA_PATH = "../ca/certs/root_ca.crt"
+MODEL_SERVICE_URL = "https://localhost:8001"
+ROOT_CA_PATH = "secrets/ca/root_ca.crt"
 
 def generate_keys():
     """Generates Ed25519 keypair."""
@@ -66,13 +66,13 @@ def submit_job(script_path: str, task_type="python_script"):
     try:
         print(f"Submitting to {MODEL_SERVICE_URL}...")
         resp = httpx.post(
-            f"{MODEL_SERVICE_URL}/submit_intent",
+            f"{MODEL_SERVICE_URL}/jobs",
             json={
                 "task_type": task_type,
                 "payload": payload,
                 "priority": 10
             },
-            verify=ROOT_CA_PATH if os.path.exists(ROOT_CA_PATH) else False
+            verify=False # Bypass for local self-signed dev testing
         )
         print(f"Response: {resp.status_code}")
         print(resp.json())
