@@ -7,7 +7,8 @@ import {
     ShieldCheck,
     Settings,
     Menu,
-    Cpu
+    Cpu,
+    Boxes
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -54,6 +55,11 @@ const MainLayout = () => {
                         Security
                     </div>
                     <NavItem to="/signatures" icon={ShieldCheck} label="Trust Assets" />
+
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
+                        Foundry
+                    </div>
+                    <NavItem to="/templates" icon={Boxes} label="Templates" />
 
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         System

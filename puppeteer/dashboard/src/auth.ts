@@ -1,6 +1,8 @@
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'; // Use /api as default prefix
+
+const TOKEN_KEY = 'mop_auth_token';
 
 export interface LoginResponse {
     access_token: string;
@@ -30,16 +32,16 @@ export const login = async (username: string, password: string): Promise<LoginRe
     if (!res.ok) throw new Error("Login failed");
 
     const data: LoginResponse = await res.json();
-    localStorage.setItem('token', data.access_token);
+    localStorage.setItem(TOKEN_KEY, data.access_token);
     return data;
 };
 
 export const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_KEY);
     window.location.href = '/login';
 };
 
-export const getToken = () => localStorage.getItem('token');
+export const getToken = () => localStorage.getItem(TOKEN_KEY);
 
 export const getUser = (): UserJwt | null => {
     const token = getToken();

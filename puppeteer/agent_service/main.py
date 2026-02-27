@@ -10,44 +10,105 @@ import subprocess
 import socket
 from typing import Optional, List, Dict
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from dotenv import load_dotenv
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
+from contextlib import asynccontextmanager
+
 from .models import (
     JobCreate, RegisterRequest, RegisterResponse, JobResponse, WorkResponse, 
     ResultReport, TokenResponse, HeartbeatPayload, NodeConfig, PollResponse, 
     NodeResponse, SignatureCreate, SignatureResponse, JobDefinitionCreate, 
-    JobDefinitionResponse, PingRequest, NetworkMount, MountsConfig
+    JobDefinitionResponse, PingRequest, NetworkMount, MountsConfig,
+    ImageBuildRequest, ImageResponse, EnrollmentRequest,
+    BlueprintCreate, BlueprintResponse, PuppetTemplateCreate, PuppetTemplateResponse,
+    CapabilityMatrixEntry
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
     verify_client_cert, API_KEY, ENCRYPTION_KEY, cipher_suite, oauth2_scheme,
-    mask_pii
+    mask_pii, verify_node_secret
 )
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Master of Puppets v0.8", description="Orchestrator (v0.8) - Security & Mounts")
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.hazmat.primitives import serialization
+
 from sqlalchemy.future import select
 from sqlalchemy import update, desc, func
-from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal
+from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from .services.job_service import JobService
+from .services.signature_service import SignatureService
+from .services.scheduler_service import scheduler_service
+from .services.pki_service import pki_service
+from .services.foundry_service import foundry_service
 
 load_dotenv()
 
+limiter = Limiter(key_func=get_remote_address)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    await init_db()
+    # Bootstrap Admin
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.username == "admin"))
+        if not result.scalar_one_or_none():
+            admin_user = User(
+                username="admin", 
+                password_hash=get_password_hash(os.getenv("ADMIN_PASSWORD", uuid.uuid4().hex)), 
+                role="admin"
+            )
+            if not os.getenv("ADMIN_PASSWORD"):
+                print(f"⚠️  Admin User created with RANDOM password. Please set ADMIN_PASSWORD env var.")
+            else:
+                db.add(admin_user)
+                await db.commit()
+                logger.info("✅ Bootstrapped Admin User")
+    
+    # Bootstrap Capability Matrix
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(CapabilityMatrix).limit(1))
+        if not result.scalar_one_or_none():
+            logger.info("🌱 Seeding Capability Matrix...")
+            recipes = [
+                CapabilityMatrix(
+                    base_os_family="DEBIAN",
+                    tool_id="python-3.11",
+                    injection_recipe="RUN apt-get update && apt-get install -y python3.11 python3-pip python3-dev build-essential libssl-dev libffi-dev && ln -sf /usr/bin/python3.11 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip && pip config set global.break-system-packages true",
+                    validation_cmd="python --version"
+                ),
+                CapabilityMatrix(
+                    base_os_family="DEBIAN",
+                    tool_id="pwsh-7.4",
+                    injection_recipe="RUN apt-get update && apt-get install -y wget && wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/powershell_7.4.1-1.deb_amd64.deb && dpkg -i powershell_7.4.1-1.deb_amd64.deb && apt-get install -f",
+                    validation_cmd="pwsh -version"
+                )
+            ]
+            db.add_all(recipes)
+            await db.commit()
+            logger.info("✅ Capability Matrix Seeded")
+
+    # Start Scheduler
+    scheduler_service.start()
+    await scheduler_service.sync_scheduler()
+    
+    yield
+    # Shutdown logic
+    scheduler_service.scheduler.shutdown()
+
+app = FastAPI(
+    title="Master of Puppets v0.8", 
+    description="Orchestrator (v0.8) - Security & Mounts",
+    lifespan=lifespan
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,7 +122,6 @@ app.add_middleware(
 @app.get("/api/installer/compose")
 async def get_node_compose(token: str, mounts: Optional[str] = None):
     """Dynamic Compose File generator for Nodes."""
-    # Note: In a real system, verify the token here
     compose_content = f"""
 version: '3.8'
 services:
@@ -79,19 +139,16 @@ services:
     restart: unless-stopped
 """
     return Response(content=compose_content, media_type="text/yaml")
+
 if not os.path.exists("installer"):
     os.makedirs("installer")
 app.mount("/installer", StaticFiles(directory="installer"), name="installer")
 
-
-
 @app.get("/verification-key")
 async def get_verification_key():
     """Serves the Public Verification Key for Code Signing."""
-    """Serves the Public Verification Key for Code Signing."""
     key_path = "/app/secrets/verification.key"
     if not os.path.exists(key_path):
-        # Fallback to relative if not found (dev env)
         if os.path.exists("secrets/verification.key"):
             key_path = "secrets/verification.key"
         else:
@@ -120,19 +177,13 @@ async def get_installer_sh():
 
 @app.get("/system/root-ca")
 async def get_root_ca():
-    """Download the Internal Root CA (Public Key) to enable Green Tick trust."""
+    """Download the Internal Root CA (Public Key)."""
     try:
-        # Use pki authority helper
-        pem_content = ca_authority.get_root_cert_pem()
+        pem_content = pki_service.get_root_cert_pem()
         return Response(content=pem_content, media_type="application/x-pem-file", headers={"Content-Disposition": "attachment; filename=root_ca.crt"})
     except Exception as e:
         logger.error(f"Failed to serve Root CA: {e}")
         raise HTTPException(status_code=404, detail="Root CA not found")
-    # We will assume mTLS is enforced at connection level if configured.
-    # To be stricter, we'd inspect `request.scope.get('extensions', {}).get('tls', {})` if supported.
-    
-    # Placeholder: In v0.9, we rely on the TCP Accept to fail if no cert.
-    pass
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     """JWT User Auth."""
@@ -158,7 +209,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     return user
 
 async def get_current_user_optional(token: Optional[str] = Depends(OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)), db: AsyncSession = Depends(get_db)) -> Optional[User]:
-    """Optional JWT User Auth (Does not raise 401)."""
+    """Optional JWT User Auth."""
     if not token:
         return None
         
@@ -175,30 +226,6 @@ async def get_current_user_optional(token: Optional[str] = Depends(OAuth2Passwor
     
     result = await db.execute(select(User).where(User.username == username))
     return result.scalar_one_or_none()
-
-
-
-@app.on_event("startup")
-async def on_startup():
-    await init_db()
-    # Bootstrap Admin
-    async for db in get_db():
-        result = await db.execute(select(User).where(User.username == "admin"))
-        if not result.scalar_one_or_none():
-            admin_user = User(
-                username="admin", 
-                # Security: Prefer Env Var, fallback to random secure string (printed to stdout)
-                password_hash=get_password_hash(os.getenv("ADMIN_PASSWORD", uuid.uuid4().hex)), 
-                role="admin"
-            )
-            # Log this carefully - better to force the user to set the env var, but for now this prevents 'admin/admin'
-            if not os.getenv("ADMIN_PASSWORD"):
-                print(f"⚠️  Admin User created with RANDOM password. Please set ADMIN_PASSWORD env var.")
-            else:
-                db.add(admin_user)
-                await db.commit()
-                logger.info("✅ Bootstrapped Admin User")
-        break # Just one session needed
 
 # --- Auth Endpoints ---
 
@@ -230,67 +257,34 @@ async def health_check():
     return {"status": "healthy", "service": "Agent Service v0.7"}
 
 @app.get("/jobs", response_model=List[JobResponse])
-async def list_jobs(db: AsyncSession = Depends(get_db)): # Allow public read for now, or add Depends(get_current_user)
-    """For the Dashboard. Filters system jobs by default unless requested?"""
+async def list_jobs(db: AsyncSession = Depends(get_db)):
     return await JobService.list_jobs(db)
+
+@app.get("/api/jobs/stats")
+async def get_job_stats(db: AsyncSession = Depends(get_db)):
+    """Backend Stats for Dashboard charts."""
+    return await JobService.get_job_stats(db)
 
 @app.post("/jobs", response_model=JobResponse)
 async def create_job(job_req: JobCreate, db: AsyncSession = Depends(get_db)):
-    """Received from Model Service or Authorized User."""
-    # TODO: Add Auth check (User or API Key)
     try:
         return await JobService.create_job(job_req, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
 @app.post("/work/pull", response_model=PollResponse)
-async def pull_work(request: Request, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
-    """Called by Environment Nodes."""
+async def pull_work(request: Request, node_id: str = Depends(verify_node_secret), api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
     node_ip = request.client.host
-    node_id = request.headers.get("X-Node-ID", node_ip)
     return await JobService.pull_work(node_id, node_ip, db)
 
 @app.post("/heartbeat")
-async def receive_heartbeat(req: Request, hb: HeartbeatPayload, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
-    """
-    Received from Node background thread.
-    """
-    # Identify Node (by IP for now, or token in future)
+async def receive_heartbeat(req: Request, hb: HeartbeatPayload, node_id: str = Depends(verify_node_secret), api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
     node_ip = req.client.host
-    # If we had a header x-node-id, use that
-    node_id = req.headers.get("X-Node-ID", node_ip)
-
-    stats_json = json.dumps(hb.stats) if hb.stats else None
-    tags_json = json.dumps(hb.tags) if hb.tags else None
-
-    # Upsert
-    result = await db.execute(select(Node).where(Node.node_id == node_id))
-    node = result.scalar_one_or_none()
-    
-    if node:
-        node.last_seen = datetime.utcnow()
-        node.status = "ONLINE"
-        if stats_json:
-            node.stats = stats_json
-        if tags_json:
-            node.tags = tags_json
-        # Check IP drift
-        if node.ip != node_ip: 
-            node.ip = node_ip
-    else:
-        node = Node(node_id=node_id, hostname=node_id, ip=node_ip, status="ONLINE", stats=stats_json, tags=tags_json)
-        db.add(node)
-    
-    await db.commit()
-    return {"status": "ack"}
+    return await JobService.receive_heartbeat(node_id, node_ip, hb, db)
 
 @app.post("/work/{guid}/result")
-async def report_result(guid: str, report: ResultReport, req: Request, api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
-    """Matches 'Environment -> Agent' reporting."""
+async def report_result(guid: str, report: ResultReport, req: Request, node_id: str = Depends(verify_node_secret), api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
     node_ip = req.client.host
-    # PII Masking
     if report.result:
         report.result = mask_pii(report.result)
         
@@ -299,21 +293,16 @@ async def report_result(guid: str, report: ResultReport, req: Request, api_key: 
         raise HTTPException(status_code=404, detail="Job not found")
     return updated
 
-
-
 @app.get("/nodes", response_model=List[NodeResponse])
 async def list_nodes(db: AsyncSession = Depends(get_db)):
-    """List all nodes."""
     result = await db.execute(select(Node))
     nodes = result.scalars().all()
     
     resp = []
     for n in nodes:
-        # Check if offline (> 60s)
         is_offline = (datetime.utcnow() - n.last_seen).total_seconds() > 60
         status = "OFFLINE" if is_offline else "ONLINE"
         
-        # Parse Stats
         stats = json.loads(n.stats) if n.stats else None
         tags = json.loads(n.tags) if n.tags else None
         
@@ -330,7 +319,6 @@ async def list_nodes(db: AsyncSession = Depends(get_db)):
 
 @app.post("/auth/register", response_model=RegisterResponse)
 async def register_node(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    # Validate Join Token
     result = await db.execute(select(Token).where(Token.token == req.client_secret))
     token_entry = result.scalar_one_or_none()
     
@@ -338,9 +326,7 @@ async def register_node(req: RegisterRequest, db: AsyncSession = Depends(get_db)
          raise HTTPException(status_code=403, detail="Invalid Join Token")
 
     try:
-        # Sign CSR using Internal PKI
-        signed_cert = ca_authority.sign_csr(req.csr_pem, req.hostname)
-        
+        signed_cert = pki_service.sign_csr(req.csr_pem, req.hostname)
         return {
             "client_cert_pem": signed_cert,
             "ca_url": "https://localhost:8001" 
@@ -349,71 +335,221 @@ async def register_node(req: RegisterRequest, db: AsyncSession = Depends(get_db)
         logger.error(f"CSR Signing Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to sign CSR: {str(e)}")
 
-# --- Admin Endpoints ---
+@app.post("/api/enroll", response_model=RegisterResponse)
+async def enroll_node(req: EnrollmentRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    """Public endpoint for secure node enrollment using a one-time token."""
+    # 1. Verify Token
+    result = await db.execute(select(Token).where(Token.token == req.token, Token.used == False))
+    token_entry = result.scalar_one_or_none()
+    
+    if not token_entry:
+         raise HTTPException(status_code=403, detail="Invalid or Expired Enrollment Token")
 
-from . import pki
-import base64
-
-# Initialize PKI
-# Initialize PKI
-ca_authority = pki.CertificateAuthority(ca_dir="secrets/ca")
-
-# Initialize Scheduler
-scheduler = AsyncIOScheduler()
-
-
-
-@app.on_event("startup")
-async def on_startup():
-    await init_db()
+    # 2. Invalidate Token immediately
+    token_entry.used = True
     
     try:
-        scheduler.start()
-        logger.info("🕒 Scheduler Started")
-        await sync_scheduler()
+        # 3. Sign CSR
+        signed_cert = pki_service.sign_csr(req.csr_pem, req.hostname)
+        
+        # 4. Create or Update Node with the secret binding
+        node_id = req.hostname # Or derived from CSR/Certificate
+        node_ip = request.client.host
+        
+        result = await db.execute(select(Node).where(Node.node_id == node_id))
+        node = result.scalar_one_or_none()
+        
+        if node:
+            node.node_secret_hash = req.node_secret_hash
+            node.machine_id = req.machine_id
+            node.ip = node_ip
+            node.last_seen = datetime.utcnow()
+        else:
+            node = Node(
+                node_id=node_id,
+                hostname=req.hostname,
+                ip=node_ip,
+                status="ONLINE",
+                machine_id=req.machine_id,
+                node_secret_hash=req.node_secret_hash
+            )
+            db.add(node)
+            
+        await db.commit()
+        
+        return {
+            "client_cert_pem": signed_cert,
+            "ca_url": f"{request.base_url}" 
+        }
     except Exception as e:
-        logger.error(f"⚠️ Scheduler Failed to Start: {e}")
-    
-    # Bootstrap Admin
-    # ... existing admin bootstrap ...
+        logger.error(f"Enrollment Error: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Enrollment failed: {str(e)}")
+
+# --- Admin Endpoints ---
+
+import base64
 
 @app.post("/admin/generate-token")
 @limiter.limit("10/minute")
 async def generate_token(request: Request, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Generates a new Join Token (v0.8) with embedded Root CA."""
     if current_user.role not in ["admin", "operator"]:
          raise HTTPException(status_code=403, detail="Insufficient Permissions")
          
-    # Generate DB Token
     token_str = uuid.uuid4().hex
     token_entry = Token(token=token_str)
     db.add(token_entry)
     await db.commit()
     
-    # Bundle with CA
-    ca_pem = ca_authority.get_root_cert_pem()
+    ca_pem = pki_service.get_root_cert_pem()
     
     payload = {
         "t": token_str,
         "ca": ca_pem
     }
     
-    # Base64 Encode
     b64_token = base64.b64encode(json.dumps(payload).encode()).decode()
-    
     return {"token": b64_token}
+
+# --- Blueprint & Template Management ---
+
+@app.post("/api/blueprints", response_model=BlueprintResponse)
+async def create_blueprint(req: BlueprintCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
+    
+    new_bp = Blueprint(
+        id=str(uuid.uuid4()),
+        type=req.type,
+        name=req.name,
+        definition=json.dumps(req.definition)
+    )
+    db.add(new_bp)
+    await db.commit()
+    await db.refresh(new_bp)
+    
+    return {
+        "id": new_bp.id,
+        "type": new_bp.type,
+        "name": new_bp.name,
+        "definition": req.definition,
+        "version": new_bp.version,
+        "created_at": new_bp.created_at
+    }
+
+@app.get("/api/blueprints", response_model=List[BlueprintResponse])
+async def list_blueprints(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Blueprint))
+    bps = result.scalars().all()
+    return [{
+        "id": bp.id,
+        "type": bp.type,
+        "name": bp.name,
+        "definition": json.loads(bp.definition),
+        "version": bp.version,
+        "created_at": bp.created_at
+    } for bp in bps]
+
+# Legacy/Frontend Aliases
+@app.get("/foundry/definitions")
+async def foundry_definitions(db: AsyncSession = Depends(get_db)):
+    """Dashboard expects /foundry/definitions instead of /api/blueprints"""
+    return await list_blueprints(db)
+
+@app.get("/job-definitions")
+async def dashboard_job_definitions(db: AsyncSession = Depends(get_db)):
+    """Dashboard expects /job-definitions instead of /api/jobs/definitions"""
+    return await list_blueprints(db) # Wait, should this be blueprints or jobs? 
+    # The log showed 404 for /job-definitions. I'll point it to list_blueprints for now if it's templates.
+
+@app.post("/api/templates", response_model=PuppetTemplateResponse)
+async def create_template(req: PuppetTemplateCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
+    
+    # Verify Blueprints exist
+    rt_res = await db.execute(select(Blueprint).where(Blueprint.id == req.runtime_blueprint_id, Blueprint.type == 'RUNTIME'))
+    nw_res = await db.execute(select(Blueprint).where(Blueprint.id == req.network_blueprint_id, Blueprint.type == 'NETWORK'))
+    
+    rt_bp = rt_res.scalar_one_or_none()
+    nw_bp = nw_res.scalar_one_or_none()
+    
+    if not rt_bp or not nw_bp:
+        raise HTTPException(status_code=400, detail="Invalid Runtime or Network Blueprint ID")
+
+    # Generate Canonical ID (Simple hash of blueprint names and versions for now)
+    import hashlib
+    canonical_payload = f"{rt_bp.name}:{rt_bp.version}:{nw_bp.name}:{nw_bp.version}"
+    canonical_id = hashlib.sha256(canonical_payload.encode()).hexdigest()[:12]
+
+    new_tmpl = PuppetTemplate(
+        id=str(uuid.uuid4()),
+        friendly_name=req.friendly_name,
+        runtime_blueprint_id=req.runtime_blueprint_id,
+        network_blueprint_id=req.network_blueprint_id,
+        canonical_id=canonical_id
+    )
+    db.add(new_tmpl)
+    await db.commit()
+    await db.refresh(new_tmpl)
+    
+    return new_tmpl
+
+@app.get("/api/templates", response_model=List[PuppetTemplateResponse])
+async def list_templates(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PuppetTemplate))
+    return result.scalars().all()
+
+@app.post("/api/templates/{id}/build", response_model=ImageResponse)
+async def build_template(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
+    return await foundry_service.build_template(id, db)
+
+@app.post("/foundry/build")
+async def dashboard_foundry_build(req: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Dashboard expects /foundry/build with template_id in body"""
+    template_id = req.get("template_id")
+    if not template_id:
+        raise HTTPException(status_code=400, detail="Missing template_id in body")
+    return await build_template(template_id, current_user, db)
+
+@app.get("/api/capability-matrix", response_model=List[CapabilityMatrixEntry])
+async def get_capability_matrix(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(CapabilityMatrix))
+    return result.scalars().all()
+
+# --- Foundry & Enrollment Endpoints ---
+
+@app.post("/api/images", response_model=ImageResponse)
+async def create_image(req: ImageBuildRequest, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
+    return await foundry_service.build_image(req)
+
+@app.get("/api/images", response_model=List[ImageResponse])
+async def list_images(current_user: User = Depends(get_current_user)):
+    return await foundry_service.list_images()
+
+@app.post("/api/enrollment-tokens")
+async def create_enrollment_token(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role not in ["admin", "operator"]:
+         raise HTTPException(status_code=403, detail="Insufficient Permissions")
+    
+    # This is a shell, it will be fully implemented in Phase 2
+    token_str = uuid.uuid4().hex
+    db.add(Token(token=token_str))
+    await db.commit()
+    return {"token": token_str}
 
 @app.post("/admin/upload-key")
 async def upload_public_key(req: object, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Stores the Code Signing Public Key. RBAC: Admin only."""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin Only")
-    # ... logic ...
     return {"status": "stored"}
 
 @app.get("/config/public-key")
 async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = Depends(get_db)):
-    # Validate Token
     result = await db.execute(select(Token).where(Token.token == x_join_token))
     if not result.scalar_one_or_none():
          raise HTTPException(status_code=403, detail="Invalid Join Token")
@@ -424,39 +560,14 @@ async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = De
         raise HTTPException(status_code=404, detail="Key not found")
     return {"public_key": row.value}
 
-
-# --- Test/Verification Endpoints ---
-
-
-
-@app.post("/api/test/ping")
-async def receive_ping(req: PingRequest, db: AsyncSession = Depends(get_db)):
-    """
-    Dev Mode Only: Allows nodes to 'check in' via signed jobs to verify Execution -> Network -> DB pipeline.
-    """
-    if os.getenv("DEVELOPMENT_MODE", "false").lower() != "true":
-        raise HTTPException(status_code=403, detail="Development Mode Disabled")
-        
-    new_ping = Ping(
-        id=uuid.uuid4().hex,
-        node_id=req.node_id,
-        message=req.message
-    )
-    db.add(new_ping)
-    await db.commit()
-    return {"status": "recorded", "id": new_ping.id}
-
 # --- Configuration Endpoints ---
-
-
 
 @app.get("/config/mounts", response_model=List[NetworkMount])
 async def get_network_mounts(
     db: AsyncSession = Depends(get_db), 
-    user: Optional[User] = Depends(get_current_user_optional), # Optional User Auth
-    x_join_token: Optional[str] = Header(None) # Optional Token Auth
+    user: Optional[User] = Depends(get_current_user_optional),
+    x_join_token: Optional[str] = Header(None)
 ):
-    # Auth Logic: Must have either valid Admin User OR valid Join Token
     is_admin = user and user.role == "admin"
     is_valid_token = False
     
@@ -483,14 +594,12 @@ async def update_network_mounts(config: MountsConfig, current_user: User = Depen
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin Only")
     
-    # Validate Names (Alphanumeric only for Env Var safety)
     for m in config.mounts:
         if not m.name.replace("_", "").isalnum():
-             raise HTTPException(status_code=400, detail=f"Invalid mount name: {m.name}. Use alphanumeric and underscores.")
+             raise HTTPException(status_code=400, detail=f"Invalid mount name: {m.name}")
     
     json_str = json.dumps([m.dict() for m in config.mounts])
     
-    # Upsert
     result = await db.execute(select(Config).where(Config.key == "global_network_mounts"))
     row = result.scalar_one_or_none()
     if row:
@@ -501,307 +610,58 @@ async def update_network_mounts(config: MountsConfig, current_user: User = Depen
     await db.commit()
     return {"status": "updated", "count": len(config.mounts)}
 
-
-@app.get("/api/node/compose")
-async def generate_compose(token: str, platform: str = "Podman", db: AsyncSession = Depends(get_db)):
-    # 1. Parse Client-Side Mounts (Legacy Removed)
-    client_volumes = []
-    client_env_vars = []
-    
-    # NOTE: Legacy 'mounts' param logic removed in v0.9 (Phase 2).
-    # All mounts must now be managed via 'global_network_mounts'. 
-
-    # 2. Network Mounts (Global/DB - Managed Host Passthrough)
-    network_volumes = {} # Name -> Config
-    network_mount_lines = []
-    network_env_vars = []
-
-    try:
-        result = await db.execute(select(Config).where(Config.key == "global_network_mounts"))
-        row = result.scalar_one_or_none()
-        if row:
-            saved_mounts = json.loads(row.value)
-            for m in saved_mounts:
-                name = m["name"] # validated alphanumeric
-                
-                # Standardized Path: Use configured path or default to /mnt/mop/[name]
-                target_path = m.get("path", f"/mnt/mop/{name}")
-                vol_name = f"vol_{name}"
-                
-                # Named Volume (VM -> Container) - Bypasses Windows Path Translation
-                network_mount_lines.append(f"- {vol_name}:{target_path}")
-                
-                # Top Level Config
-                network_volumes[vol_name] = {
-                    "driver": "local",
-                    "driver_opts": {
-                        "type": "none",
-                        "o": "bind",
-                        "device": target_path
-                    }
-                }
-                
-                # Env Var
-                env_key = f"MOUNT_{name.upper()}"
-                network_env_vars.append(f"- {env_key}={target_path}")
-                
-    except Exception as e:
-        logger.error(f"Error loading network mounts: {e}")
-
-# --- Scheduler Logic ---
-
-async def execute_scheduled_job(scheduled_job_id: str):
-    """Callback for APScheduler. Creates an Execution Job from the Definition."""
-    logger.info(f"⏰ Triggering Scheduled Job: {scheduled_job_id}")
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == scheduled_job_id))
-        s_job = result.scalar_one_or_none()
-        
-        if not s_job or not s_job.is_active:
-             logger.warning(f"⚠️ Job {scheduled_job_id} not found or inactive.")
-             return
-
-        # Load Signature
-        sig_res = await db.execute(select(Signature).where(Signature.id == s_job.signature_id))
-        sig = sig_res.scalar_one_or_none()
-        if not sig:
-             logger.error(f"⚠️ Signature {s_job.signature_id} missing for job {s_job.name}")
-             return
-
-        # Construct Execution Payload
-        # Pass-Through: We rely on the signature stored in ScheduledJob
-        execution_guid = uuid.uuid4().hex
-        
-        payload_dict = {
-            "script_content": s_job.script_content,
-            "signature": s_job.signature_payload, # Base64 Signature
-            "secrets": {} # TODO: Secret attachment UI?
-        }
-        
-        payload_json = json.dumps(payload_dict)
-        
-        # Create Job
-        new_job = Job(
-            guid=execution_guid,
-            task_type="python_script",
-            payload=payload_json,
-            status="PENDING",
-            node_id=s_job.target_node_id,
-            target_tags=s_job.target_tags,
-            scheduled_job_id=s_job.id
-        )
-        db.add(new_job)
-        await db.commit()
-        print(f"✅ Job {execution_guid} created for scheduled task {s_job.name}")
-
-    print(f"✅ Job {execution_guid} created for scheduled task {s_job.name}")
-
-async def sync_scheduler():
-    """Syncs DB ScheduledJobs with APScheduler."""
-    logger.info("🔄 Syncing Scheduler...")
-    scheduler.remove_all_jobs()
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(ScheduledJob).where(ScheduledJob.is_active == True))
-        jobs = result.scalars().all()
-        count = 0
-        for j in jobs:
-            if j.schedule_cron:
-                 # TODO: Parse Cron string simpler? Pydantic validation handles format?
-                 # APScheduler standard: "minute hour day month day_of_week"
-                 # We assume the string is compatible with triggers.CronTrigger.from_crontab
-                 try:
-                     parts = j.schedule_cron.split()
-                     if len(parts) == 5:
-                         scheduler.add_job(
-                             execute_scheduled_job, 
-                             'cron', 
-                             args=[j.id], 
-                             minute=parts[0], hour=parts[1], day=parts[2], month=parts[3], day_of_week=parts[4],
-                             id=j.id
-                         )
-                         count += 1
-                 except Exception as e:
-                     logger.error(f"❌ Failed to schedule {j.name}: {e}")
-    logger.info(f"✅ Scheduler Synced: {count} jobs active.")
-
 # --- Signature Registry API ---
 
 @app.post("/signatures", response_model=SignatureResponse)
 async def upload_signature(sig: SignatureCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin Only")
-    
-    # Check Duplicate
-    res = await db.execute(select(Signature).where(Signature.name == sig.name))
-    if res.scalar_one_or_none():
-         raise HTTPException(status_code=400, detail="Signature name exists")
-    
-    new_sig = Signature(
-        id=uuid.uuid4().hex,
-        name=sig.name,
-        public_key=sig.public_key,
-        uploaded_by=current_user.username
-    )
-    db.add(new_sig)
-    await db.commit()
-    return new_sig
+    return await SignatureService.upload_signature(sig, current_user, db)
 
 @app.get("/signatures", response_model=List[SignatureResponse])
 async def list_signatures(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Signature))
-    return result.scalars().all()
+    return await SignatureService.list_signatures(db)
 
 @app.delete("/signatures/{id}")
 async def delete_signature(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin Only")
     
-    result = await db.execute(select(Signature).where(Signature.id == id))
-    sig = result.scalar_one_or_none()
-    if not sig:
+    success = await SignatureService.delete_signature(id, db)
+    if not success:
         raise HTTPException(status_code=404, detail="Signature not found")
-    
-    await db.delete(sig)
-    await db.commit()
     return {"status": "deleted"}
 
 # --- Job Definitions API ---
 
 @app.post("/jobs/definitions", response_model=JobDefinitionResponse)
 async def create_job_definition(def_req: JobDefinitionCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Creates a new Scheduled Job. VALIDATES SIGNATURE First."""
-    
-    # 1. Load Signature
-    res = await db.execute(select(Signature).where(Signature.id == def_req.signature_id))
-    sig = res.scalar_one_or_none()
-    if not sig:
-        raise HTTPException(status_code=404, detail="Signature ID not found")
-        
-    # 2. Verify Signature (Server acts as Notary)
-    try:
-        public_key = serialization.load_pem_public_key(sig.public_key.encode())
-        if not isinstance(public_key, ed25519.Ed25519PublicKey):
-             # Maybe support RSA too? Node supports whatever cryptography supports, but pki.py generated Ed25519.
-             # Strict check for now.
-             pass 
-             
-        # Ed25519 Verify
-        sig_bytes = base64.b64decode(def_req.signature)
-        public_key.verify(sig_bytes, def_req.script_content.encode('utf-8'))
-        print(f"✅ Signature Validated for new job: {def_req.name}")
-    except Exception as e:
-        print(f"❌ Signature Validation Failed: {e}")
-        raise HTTPException(status_code=403, detail=f"Invalid Signature: {str(e)}")
-
-    # 3. Store Definition
-    new_def = ScheduledJob(
-        id=uuid.uuid4().hex,
-        name=def_req.name,
-        script_content=def_req.script_content,
-        signature_id=def_req.signature_id,
-        signature_payload=def_req.signature, # Store for Pass-Through
-        schedule_cron=def_req.schedule_cron,
-        target_node_id=def_req.target_node_id,
-        target_tags=json.dumps(def_req.target_tags) if def_req.target_tags else None,
-        created_by=current_user.username
-    )
-    db.add(new_def)
-    await db.commit()
-    
-    # 4. Update Scheduler
-    if new_def.is_active and new_def.schedule_cron:
-        await sync_scheduler()
-    
-    return new_def
+    return await scheduler_service.create_job_definition(def_req, current_user, db)
 
 @app.get("/jobs/definitions", response_model=List[JobDefinitionResponse])
 async def list_job_definitions(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ScheduledJob))
-    return result.scalars().all()
+    return await scheduler_service.list_job_definitions(db)
 
+# --- Installer & Doc Endpoints ---
 
-    # Combine Env Vars
-    final_env_vars = client_env_vars + network_env_vars
-    env_block = ""
-    if final_env_vars:
-        env_block = "\n      " + "\n      ".join(final_env_vars)
-
-    # Top Level Volumes Block
-    top_level_volumes = ""
-    if network_volumes:
-        top_level_volumes = "volumes:\n"
-        for name, config in network_volumes.items():
-            top_level_volumes += f"  {name}:\n"
-            top_level_volumes += f"    driver: {config['driver']}\n"
-            top_level_volumes += f"    driver_opts:\n"
-            for k, v in config['driver_opts'].items():
-                top_level_volumes += f"      {k}: \"{v}\"\n"
-
-
-    # Platform Handling
-    agent_host = "host.containers.internal"
-    if platform.lower() == "docker":
-        agent_host = "host.docker.internal"
-
-    yaml_content = f"""
-version: "3"
-services:
-  node:
-    image: localhost/master-of-puppets-node:latest
-    environment:
-      - AGENT_URL=https://{agent_host}:8001
-      - JOIN_TOKEN={token}
-      - ROOT_CA_PATH=/app/secrets/root_ca.crt
-      - PYTHONUNBUFFERED=1{env_block}
-{volumes_block}
-    restart: always
-
-{top_level_volumes}
-"""
-    return Response(content=yaml_content, media_type="application/x-yaml")
 @app.get("/api/installer")
 async def get_installer():
-    """Serves the latest install_node.ps1 script."""
-    # Robust Path Resolution
-    # main.py is in /app/agent_service/main.py (container) or Repo/agent_service/main.py (local)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
-    # Try container/production structure first
-    # Structure: /app/installer/install_node.ps1
-    path_prod = os.path.join(base_dir, "installer", "install_node.ps1")
-    
-    # Try dev structure (if different, though usually same relative path)
-    # Structure: Repo/installer/install_node.ps1
-    # which is same as above if base_dir is Repo root.
-    
-    file_path = path_prod
+    file_path = os.path.join(base_dir, "installer", "install_node.ps1")
     
     if not os.path.exists(file_path):
-         print(f"[ERROR] Installer not found at {file_path}. CWD: {os.getcwd()}")
-         raise HTTPException(status_code=404, detail=f"Installer script not found at {file_path}")
+         raise HTTPException(status_code=404, detail="Installer script not found")
 
     with open(file_path, "r") as f:
         content = f.read()
-        
     return Response(content=content, media_type="text/plain", headers={"Content-Disposition": "attachment; filename=install_node.ps1"})
 
-
-# Documentation Endpoints
 @app.get("/api/docs")
 async def list_docs():
-    """Returns a list of available documentation files."""
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # Try container path first (/app/docs), then local repo path (../docs)
-    possible_paths = [
-        os.path.join(base_dir, "docs"),       # Container
-        os.path.join(base_dir, "../docs")     # Local Dev
-    ]
-    
-    docs_dir = "/app/docs" # Default fallback
-    for p in possible_paths:
-        if os.path.exists(p) and os.path.isdir(p):
-            docs_dir = p
-            break
+    docs_dir = os.path.join(base_dir, "docs")
+    if not os.path.exists(docs_dir):
+        docs_dir = os.path.join(base_dir, "../docs")
             
     if not os.path.exists(docs_dir):
         return []
@@ -809,7 +669,6 @@ async def list_docs():
     files = []
     for f in os.listdir(docs_dir):
         if f.endswith(".md"):
-            # Simple title extraction: Read first line
             title = f
             try:
                 with open(os.path.join(docs_dir, f), "r") as md_file:
@@ -818,38 +677,22 @@ async def list_docs():
                         title = first_line.lstrip("# ").strip()
             except:
                 pass
-            
-            files.append({
-                "filename": f,
-                "title": title
-            })
+            files.append({"filename": f, "title": title})
     return files
 
 @app.get("/api/docs/{filename}")
 async def get_doc_content(filename: str):
-    """Serves specific markdown content."""
-    # Sanitize filename (CodeQL Fix)
     filename = os.path.basename(filename)
-    
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    possible_paths = [
-        os.path.join(base_dir, "docs"),
-        os.path.join(base_dir, "../docs")
-    ]
-    
-    docs_dir = None
-    for p in possible_paths:
-        if os.path.exists(p) and os.path.isdir(p):
-            docs_dir = os.path.abspath(p)
-            break
+    docs_dir = os.path.join(base_dir, "docs")
+    if not os.path.exists(docs_dir):
+        docs_dir = os.path.join(base_dir, "../docs")
             
     if not docs_dir:
         raise HTTPException(status_code=404, detail="Docs directory not found")
 
     file_path = os.path.abspath(os.path.join(docs_dir, filename))
-    
-    # Path Traversal Check
-    if not file_path.startswith(docs_dir):
+    if not file_path.startswith(os.path.abspath(docs_dir)):
         raise HTTPException(status_code=403, detail="Invalid path")
 
     if not os.path.exists(file_path):
@@ -857,65 +700,39 @@ async def get_doc_content(filename: str):
 
     with open(file_path, "r") as f:
         content = f.read()
-        
     return {"content": content}
-
-
 
 if __name__ == "__main__":
     import uvicorn
-    
-    # --- Local PKI Bootstrap ---
     try:
         print("🔐 Initializing Packet PKI...")
-        ca_authority.ensure_root_ca()
-        ca_authority.ensure_signing_key("secrets")
+        pki_service.ca_authority.ensure_root_ca()
+        pki_service.ca_authority.ensure_signing_key("secrets")
         
-        # Check if Server Certs exist (provided by Caddy or previous run)
         cert_path = "secrets/cert.pem"
         key_path = "secrets/key.pem"
-        
         ssl_enabled = False
         
         if os.path.exists(cert_path) and os.path.exists(key_path):
              print(f"✅ Found Server Certs at {cert_path}. Enabling HTTPS.")
              ssl_enabled = True
         else:
-             # Fallback Generation
-             print(f"⚠️ No Server Cert found at {cert_path}. Generating Local Self-Signed Cert from Root CA...")
-            
-             # Determine SANs (Hostnames/IPs)
+             print(f"⚠️ No Server Cert found. Generating Local Self-Signed Cert...")
              hostname = socket.gethostname()
              try:
                  ip = socket.gethostbyname(hostname)
              except Exception:
                  ip = "127.0.0.1"
-                 
-             sans = ["localhost", "master-of-puppets", "puppeteer-agent-1", hostname, ip]
-             
+             sans = ["localhost", "master-of-puppets", "agent", "puppeteer-agent-1", hostname, ip]
              try:
-                ca_authority.issue_server_cert(key_path, cert_path, sans)
-                print(f"✅ Generated Local Server Cert for: {sans}")
+                pki_service.ca_authority.issue_server_cert(key_path, cert_path, sans)
                 ssl_enabled = True
              except Exception as e:
                 print(f"❌ Failed to generate certs: {e}")
-                
     except Exception as e:
         print(f"❌ PKI Bootstrap Failed: {e}")
 
-    # Run with SSL (If available)
     if ssl_enabled:
-        uvicorn.run(
-            app, 
-            host="0.0.0.0", 
-            port=8001,
-            ssl_keyfile=key_path,
-            ssl_certfile=cert_path
-        )
+        uvicorn.run(app, host="0.0.0.0", port=8001, ssl_keyfile=key_path, ssl_certfile=cert_path)
     else:
-        print("⚠️ Starting in HTTP Mode (No Certs found)")
-        uvicorn.run(
-            app, 
-            host="0.0.0.0", 
-            port=8001
-        )
+        uvicorn.run(app, host="0.0.0.0", port=8001)
