@@ -14,3 +14,4 @@ python-multipart
 psutil
 paramiko
 aiohttp
+urllib3

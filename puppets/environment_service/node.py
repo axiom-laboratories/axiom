@@ -29,9 +29,72 @@ NODE_ID = f"node-{uuid.uuid4().hex[:8]}"
 ROOT_CA_PATH = os.getenv("ROOT_CA_PATH", "c:/Development/Repos/master_of_puppets/ca/certs/root_ca.crt")
 CERT_FILE = f"secrets/{NODE_ID}.crt"
 KEY_FILE = f"secrets/{NODE_ID}.key"
+NODE_SECRET_PATH = os.getenv("NODE_SECRET_PATH", "/run/secrets/node_secret")
+HOST_ID_PATH = os.getenv("HOST_ID_PATH", "/run/secrets/host_id")
+
+import urllib3
+urllib3.disable_warnings()
 
 # Verify SSL?
-VERIFY_SSL = str(ROOT_CA_PATH) if ROOT_CA_PATH and os.path.exists(ROOT_CA_PATH) else False
+VERIFY_SSL = os.getenv("VERIFY_SSL", "true").lower() == "true"
+if VERIFY_SSL:
+    VERIFY_SSL = str(ROOT_CA_PATH) if ROOT_CA_PATH and os.path.exists(ROOT_CA_PATH) else False
+else:
+    VERIFY_SSL = False
+
+def get_machine_id() -> str:
+    """Reads the host's unique machine-id."""
+    paths = [HOST_ID_PATH, "/etc/machine-id", "/var/lib/dbus/machine-id"]
+    for p in paths:
+        if os.path.exists(p):
+            try:
+                with open(p, "r") as f:
+                    return f.read().strip()
+            except:
+                pass
+    return "unknown-host"
+
+def get_node_secret_hash() -> str:
+    """Reads the host-bound secret and returns its SHA256 hash."""
+    if os.path.exists(NODE_SECRET_PATH):
+        try:
+            with open(NODE_SECRET_PATH, "r") as f:
+                secret = f.read().strip()
+                return hashes.Hash(hashes.SHA256()).update(secret.encode()).finalize().hex()
+        except:
+            pass
+    return ""
+
+def get_capabilities() -> Dict[str, str]:
+    """Gather environment capabilities (tool versions)."""
+    caps = {}
+    try:
+        # Python
+        caps["python"] = f"{socket.sys.version_info.major}.{socket.sys.version_info.minor}.{socket.sys.version_info.micro}"
+        
+        # PowerShell
+        try:
+            res = subprocess.run(["pwsh", "-Version"], capture_output=True, text=True)
+            if res.returncode == 0:
+                caps["powershell"] = res.stdout.strip().split()[-1]
+        except:
+            pass
+
+        # Podman/Docker
+        try:
+            res = subprocess.run(["podman", "--version"], capture_output=True, text=True)
+            if res.returncode == 0:
+                caps["podman"] = res.stdout.strip().split()[-1]
+        except:
+            try:
+                res = subprocess.run(["docker", "--version"], capture_output=True, text=True)
+                if res.returncode == 0:
+                    caps["docker"] = res.stdout.strip().split()[-1]
+            except:
+                pass
+    except Exception as e:
+        print(f"[Capabilities] Error gathering: {e}")
+    return caps
 
 def heartbeat_loop():
     """
@@ -55,18 +118,31 @@ def heartbeat_loop():
                 }
                 tags_str = os.getenv("NODE_TAGS", "")
                 tags = [t.strip() for t in tags_str.split(",") if t.strip()]
+                
+                caps = get_capabilities()
+                secret_hash = get_node_secret_hash()
 
                 payload = {
+                    "node_id": NODE_ID,
+                    "hostname": socket.gethostname(),
                     "stats": stats,
-                    "tags": tags
+                    "tags": tags,
+                    "capabilities": caps
                 }
 
                 # Use X-Node-ID header if we have one, or just let server use IP
                 # We send NODE_ID to allow detailed tracking
+                headers = {
+                    "X-Node-ID": NODE_ID, 
+                    API_KEY_NAME: API_KEY,
+                    "X-Node-Secret-Hash": secret_hash,
+                    "X-Machine-ID": get_machine_id()
+                }
+                
                 client.post(
                     f"{AGENT_URL}/heartbeat", 
                     json=payload, 
-                    headers={"X-Node-ID": NODE_ID, API_KEY_NAME: API_KEY},
+                    headers=headers,
                     timeout=5.0
                 )
             except Exception as e:
@@ -127,9 +203,10 @@ class Node:
                 global ROOT_CA_PATH, VERIFY_SSL
                 ROOT_CA_PATH = os.path.abspath(root_ca_dest)
                 
-                # STRICT mTLS: Always verify against Bootstrap CA
-                VERIFY_SSL = ROOT_CA_PATH
-                print(f"[{self.node_id}] 🔒 Strict mTLS Active. CA: {ROOT_CA_PATH}")
+                # STRICT mTLS: Always verify against Bootstrap CA (unless explicitly disabled)
+                if str(os.getenv("VERIFY_SSL")).lower() != "false":
+                    VERIFY_SSL = ROOT_CA_PATH
+                print(f"[{self.node_id}] 🔒 Strict mTLS Active. CA: {ROOT_CA_PATH} (Verify={VERIFY_SSL})")
                 
                 # 2. Extract Real Token
                 self.join_token = payload["t"]
@@ -183,12 +260,15 @@ class Node:
         try:
              # Use a generic client for registration (Verification CA trusted)
              with httpx.Client(verify=VERIFY_SSL) as client:
+                 secret_hash = get_node_secret_hash()
                  payload = {
-                     "client_secret": self.join_token,
+                     "token": self.join_token,
                      "hostname": self.node_id,
-                     "csr_pem": csr_pem
+                     "csr_pem": csr_pem,
+                     "machine_id": get_machine_id(),
+                     "node_secret_hash": secret_hash
                  }
-                 resp = client.post(f"{self.agent_url}/auth/register", json=payload)
+                 resp = client.post(f"{self.agent_url}/api/enroll", json=payload)
                  resp.raise_for_status()
                  data = resp.json()
                  
@@ -217,7 +297,13 @@ class Node:
                 verify=VERIFY_SSL, 
                 cert=(self.cert_file, self.key_file)
             ) as client:
-                headers = {API_KEY_NAME: API_KEY, "X-Node-ID": self.node_id}
+                secret_hash = get_node_secret_hash()
+                headers = {
+                    API_KEY_NAME: API_KEY, 
+                    "X-Node-ID": self.node_id,
+                    "X-Node-Secret-Hash": secret_hash,
+                    "X-Machine-ID": get_machine_id()
+                }
                 resp = await client.post(f"{self.agent_url}/work/pull", headers=headers, timeout=10.0)
                 if resp.status_code == 200:
                     data = resp.json()
@@ -293,7 +379,7 @@ class Node:
                 public_key.verify(sig_bytes, script.encode('utf-8'))
                 print(f"[{self.node_id}] ✅ Signature Verified for Job {guid}")
             except Exception as e:
-                print(f"[{self.node_id}] ❌ Signature Verification FAILED: {e}")
+                print(f"[{self.node_id}] ❌ Signature Verification FAILED for Job {guid}: {e}")
                 await self.report_result(guid, False, {"error": "Signature Verification Failed"})
                 return
             
@@ -367,10 +453,16 @@ class Node:
                 verify=VERIFY_SSL,
                 cert=(self.cert_file, self.key_file)
             ) as client:
+                secret_hash = get_node_secret_hash()
                 await client.post(
                     f"{self.agent_url}/work/{guid}/result",
                     json={"success": success, "result": result},
-                    headers={API_KEY_NAME: API_KEY}
+                    headers={
+                        API_KEY_NAME: API_KEY,
+                        "X-Node-ID": self.node_id,
+                        "X-Node-Secret-Hash": secret_hash,
+                        "X-Machine-ID": get_machine_id()
+                    }
                 )
             print(f"[{self.node_id}] Reported result for {guid}")
         except Exception as e:
