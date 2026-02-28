@@ -29,19 +29,21 @@ interface Signature {
     uploaded_by: string;
 }
 
+interface JobDefinitionFormData {
+    name: string;
+    script_content: string;
+    signature: string;
+    signature_id: string;
+    schedule_cron: string;
+    target_node_id: string;
+}
+
 interface JobDefinitionModalProps {
     isOpen: boolean;
     onClose: (open: boolean) => void;
     onSubmit: (e: React.FormEvent) => void;
-    formData: {
-        name: string;
-        script_content: string;
-        signature: string;
-        signature_id: string;
-        schedule_cron: string;
-        target_node_id: string;
-    };
-    setFormData: (data: any) => void;
+    formData: JobDefinitionFormData;
+    setFormData: (data: JobDefinitionFormData) => void;
     signatures: Signature[];
 }
 
