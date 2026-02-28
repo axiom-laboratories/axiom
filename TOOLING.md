@@ -23,9 +23,6 @@
 - **Zero-Trust**: Every node must authenticate.
 - **Standard**: Easy to debug, widely supported, firewall-friendly.
 - **Pull-Model**: Nodes initiate connections, avoiding complexities of NAT traversal for the Agent.
-26: 
-27: ## Security: Zero-Trust & ACME (Internal CA)
-28: **Rationale**: 
 
 ## Security: Zero-Trust & ACME (Internal CA)
 **Rationale**: 

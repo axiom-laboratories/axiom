@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "toms_home",
+			"path": "../toms_home"
+		},
+		{
+			"name": "master_of_puppets",
+			"path": "."
+		},
+		{
+			"name": "mop_validation",
+			"path": "../mop_validation"
+		}
+	],
+	"settings": {}
+}
