@@ -18,7 +18,9 @@ const JobDefinitions = () => {
         signature: '',
         signature_id: '',
         schedule_cron: '* * * * *',
-        target_node_id: ''
+        target_node_id: '',
+        target_tags: '',
+        capability_requirements: '',
     });
 
     useEffect(() => {
@@ -64,10 +66,25 @@ const JobDefinitions = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const tags = formData.target_tags.trim()
+                ? formData.target_tags.split(',').map(t => t.trim()).filter(Boolean)
+                : undefined;
+            const caps = formData.capability_requirements.trim()
+                ? Object.fromEntries(
+                    formData.capability_requirements.split(',')
+                        .map(s => s.trim().split(':').map(p => p.trim()))
+                        .filter(parts => parts.length === 2 && parts[0])
+                  )
+                : undefined;
+            const body = {
+                ...formData,
+                target_tags: tags,
+                capability_requirements: caps,
+            };
             const res = await authenticatedFetch('/jobs/definitions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(body)
             });
             if (res.ok) {
                 setShowModal(false);

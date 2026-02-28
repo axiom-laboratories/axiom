@@ -1,7 +1,8 @@
 import {
-    Plus,
     Code2,
-    Info
+    Info,
+    Tag,
+    Cpu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +37,8 @@ interface JobDefinitionFormData {
     signature_id: string;
     schedule_cron: string;
     target_node_id: string;
+    target_tags: string;
+    capability_requirements: string;
 }
 
 interface JobDefinitionModalProps {
@@ -102,6 +105,28 @@ const JobDefinitionModal = ({
                                     onChange={e => setFormData({ ...formData, target_node_id: e.target.value })}
                                     aria-label="Target Node ID"
                                 />
+                                <div className="relative">
+                                    <Tag className="absolute left-3 top-3.5 h-4 w-4 text-zinc-600" />
+                                    <Input
+                                        id="job-tags"
+                                        placeholder="Tags: linux, gpu (Optional)"
+                                        className="bg-zinc-900 border-zinc-800 pl-10 h-11 font-mono"
+                                        value={formData.target_tags}
+                                        onChange={e => setFormData({ ...formData, target_tags: e.target.value })}
+                                        aria-label="Target tags (comma-separated)"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <Cpu className="absolute left-3 top-3.5 h-4 w-4 text-zinc-600" />
+                                    <Input
+                                        id="job-caps"
+                                        placeholder="Caps: python:3.11, docker:24 (Optional)"
+                                        className="bg-zinc-900 border-zinc-800 pl-10 h-11 font-mono"
+                                        value={formData.capability_requirements}
+                                        onChange={e => setFormData({ ...formData, capability_requirements: e.target.value })}
+                                        aria-label="Capability requirements (key:version, comma-separated)"
+                                    />
+                                </div>
                             </div>
                         </div>
 
