@@ -3,6 +3,7 @@ import uuid
 import json
 from datetime import datetime
 from typing import List, Optional
+from packaging.version import Version, InvalidVersion
 from sqlalchemy.future import select
 from sqlalchemy import desc, func
 from ..db import Job, Node, AsyncSession
@@ -145,15 +146,19 @@ class JobService:
                     req_caps = json.loads(candidate.capability_requirements)
                     if not isinstance(req_caps, dict):
                          continue
-                    # Match: Node must have ALL required capabilities, 
-                    # and versions must be >= required (simple string comparison for now)
+                    # Match: Node must have ALL required capabilities,
+                    # and versions must be >= required (proper semver comparison)
                     match = True
                     for cap_name, min_version in req_caps.items():
                         if cap_name not in node_caps_dict:
                             match = False
                             break
-                        # Very simple version comparison (lexicographical)
-                        if node_caps_dict[cap_name] < min_version:
+                        node_ver = node_caps_dict[cap_name]
+                        try:
+                            satisfies = Version(node_ver) >= Version(min_version)
+                        except InvalidVersion:
+                            satisfies = node_ver >= min_version
+                        if not satisfies:
                             match = False
                             break
                     if not match:

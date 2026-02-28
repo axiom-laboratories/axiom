@@ -313,7 +313,10 @@ async def list_nodes(db: AsyncSession = Depends(get_db)):
             "last_seen": n.last_seen,
             "status": status,
             "stats": stats,
-            "tags": tags
+            "tags": tags,
+            "capabilities": json.loads(n.capabilities) if n.capabilities else None,
+            "concurrency_limit": n.concurrency_limit,
+            "job_memory_limit": n.job_memory_limit,
         })
     return resp
 
@@ -458,9 +461,8 @@ async def foundry_definitions(db: AsyncSession = Depends(get_db)):
 
 @app.get("/job-definitions")
 async def dashboard_job_definitions(db: AsyncSession = Depends(get_db)):
-    """Dashboard expects /job-definitions instead of /api/jobs/definitions"""
-    return await list_blueprints(db) # Wait, should this be blueprints or jobs? 
-    # The log showed 404 for /job-definitions. I'll point it to list_blueprints for now if it's templates.
+    """Dashboard expects /job-definitions instead of /jobs/definitions"""
+    return await scheduler_service.list_job_definitions(db)
 
 @app.post("/api/templates", response_model=PuppetTemplateResponse)
 async def create_template(req: PuppetTemplateCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -498,7 +500,18 @@ async def create_template(req: PuppetTemplateCreate, current_user: User = Depend
 @app.get("/api/templates", response_model=List[PuppetTemplateResponse])
 async def list_templates(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PuppetTemplate))
-    return result.scalars().all()
+    templates = result.scalars().all()
+    return [{
+        "id": t.id,
+        "friendly_name": t.friendly_name,
+        "runtime_blueprint_id": t.runtime_blueprint_id,
+        "network_blueprint_id": t.network_blueprint_id,
+        "canonical_id": t.canonical_id,
+        "current_image_uri": t.current_image_uri,
+        "last_built_image": t.current_image_uri,
+        "last_built_at": t.last_built_at,
+        "created_at": t.created_at,
+    } for t in templates]
 
 @app.post("/api/templates/{id}/build", response_model=ImageResponse)
 async def build_template(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

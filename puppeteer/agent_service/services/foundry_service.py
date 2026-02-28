@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import subprocess
 import json
 import hashlib
@@ -33,7 +34,7 @@ class FoundryService:
         
         # 2. Build Dockerfile Content
         base_os = rt_def.get("base_os", "debian-12-slim")
-        os_family = "DEBIAN" # Simplified detection
+        os_family = "ALPINE" if "alpine" in base_os.lower() else "DEBIAN"
         
         dockerfile = [f"FROM {base_os}"]
         
@@ -61,21 +62,34 @@ class FoundryService:
         egress_rules = nw_def.get("egress_rules", [])
         dockerfile.append(f"ENV EGRESS_POLICY='{json.dumps(egress_rules)}'")
         
-        # Core Puppet Code (Assumed relative path)
-        context_path = "/app/puppets"
+        # Core Puppet Code
         dockerfile.append("WORKDIR /app")
-        dockerfile.append("COPY environment_service/node.py .")
-        dockerfile.append("CMD [\"python\", \"node.py\"]")
-        
+        dockerfile.append("COPY environment_service/ environment_service/")
+        dockerfile.append("CMD [\"python\", \"environment_service/node.py\"]")
+
         # 3. Perform Build
         image_tag = tmpl.friendly_name
         image_uri = f"localhost:5000/puppet:{image_tag}"
-        
-        build_dir = f"/app/temp_build_{tmpl.id}"
+
+        # Resolve the puppets source directory (relative to this service file)
+        puppets_src = os.path.realpath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "puppets")
+        )
+
+        build_dir = f"/tmp/puppet_build_{tmpl.id}"
         os.makedirs(build_dir, exist_ok=True)
+
+        # Copy puppet source files into the build context
+        env_src = os.path.join(puppets_src, "environment_service")
+        env_dst = os.path.join(build_dir, "environment_service")
+        if os.path.isdir(env_src):
+            shutil.copytree(env_src, env_dst, dirs_exist_ok=True)
+        else:
+            logger.warning(f"⚠️  environment_service not found at {env_src} — COPY may fail")
+
         with open(os.path.join(build_dir, "Dockerfile"), "w") as f:
             f.write("\n".join(dockerfile))
-            
+
         try:
             # Detect Engine
             engine = "docker"
@@ -86,7 +100,7 @@ class FoundryService:
                 pass
 
             logger.info(f"🏗️  Building {image_tag} using {engine}...")
-            build_cmd = [engine, "build", "-t", image_uri, "-f", os.path.join(build_dir, "Dockerfile"), context_path]
+            build_cmd = [engine, "build", "-t", image_uri, "-f", os.path.join(build_dir, "Dockerfile"), build_dir]
             res = subprocess.run(build_cmd, capture_output=True, text=True)
             
             if res.returncode != 0:
@@ -99,14 +113,14 @@ class FoundryService:
             
             # Update Template in DB
             tmpl.current_image_uri = image_uri
+            tmpl.last_built_at = datetime.utcnow()
             await db.commit()
             
             return ImageResponse(tag=image_tag, image_uri=image_uri, status="SUCCESS", created_at=datetime.utcnow())
             
         finally:
-             import shutil
-             if os.path.exists(build_dir):
-                 shutil.rmtree(build_dir)
+            if os.path.exists(build_dir):
+                shutil.rmtree(build_dir)
 
     @staticmethod
     async def build_image(req: ImageBuildRequest) -> ImageResponse:

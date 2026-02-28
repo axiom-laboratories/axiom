@@ -115,6 +115,7 @@ class PuppetTemplate(Base):
     network_blueprint_id: Mapped[str] = mapped_column(String) # FK to blueprints.id
     canonical_id: Mapped[str] = mapped_column(String) # Hash of ingredients
     current_image_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_built_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 class Ping(Base):

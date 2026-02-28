@@ -74,6 +74,9 @@ class NodeResponse(BaseModel):
     status: str
     stats: Optional[Dict] = None
     tags: Optional[List[str]] = None
+    capabilities: Optional[Dict] = None
+    concurrency_limit: Optional[int] = None
+    job_memory_limit: Optional[str] = None
 
 class SignatureCreate(BaseModel):
     name: str
@@ -165,7 +168,9 @@ class PuppetTemplateResponse(BaseModel):
     runtime_blueprint_id: str
     network_blueprint_id: str
     canonical_id: str
-    current_image_uri: Optional[str]
+    current_image_uri: Optional[str] = None
+    last_built_image: Optional[str] = None
+    last_built_at: Optional[datetime] = None
     created_at: datetime
 
     class Config:
