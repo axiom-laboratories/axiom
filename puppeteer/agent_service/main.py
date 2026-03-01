@@ -249,18 +249,58 @@ CA_PEM='{ca_pem.strip()}'
 echo "[MoP] Installing Root CA..."
 
 install_linux() {{
+    # 1. System trust store (used by curl, wget, etc.)
     if command -v update-ca-certificates &>/dev/null; then
         printf '%s\\n' "$CA_PEM" > "/usr/local/share/ca-certificates/${{CA_NAME}}.crt"
         update-ca-certificates
-        echo "[MoP] Installed via update-ca-certificates (Debian/Ubuntu)."
+        echo "[MoP] Installed to system trust store (Debian/Ubuntu)."
     elif command -v update-ca-trust &>/dev/null; then
         printf '%s\\n' "$CA_PEM" > "/etc/pki/ca-trust/source/anchors/${{CA_NAME}}.crt"
         update-ca-trust extract
-        echo "[MoP] Installed via update-ca-trust (RHEL/Fedora)."
+        echo "[MoP] Installed to system trust store (RHEL/Fedora)."
     else
         printf '%s\\n' "$CA_PEM" > "./${{CA_NAME}}.crt"
         echo "[MoP] Saved to ./${{CA_NAME}}.crt — install manually into your trust store."
     fi
+
+    # 2. Browser NSS databases (Chrome/Chromium/Firefox on Linux ignore the system store)
+    if ! command -v certutil &>/dev/null; then
+        echo "[MoP] certutil not found — skipping browser trust store."
+        echo "      Install libnss3-tools and re-run to trust in Chrome/Firefox:"
+        echo "      sudo apt install libnss3-tools && curl http://<host>:8080/system/root-ca-installer | sudo bash"
+        return
+    fi
+    # Write cert to a temp file readable by the real user
+    CERT_TMP=$(mktemp /tmp/mop-ca-XXXXXX.crt)
+    printf '%s\\n' "$CA_PEM" > "$CERT_TMP"
+    chmod 644 "$CERT_TMP"
+
+    # Determine the actual invoking user's home (script runs under sudo)
+    REAL_USER="${{SUDO_USER:-$USER}}"
+    REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
+
+    add_nss() {{
+        local db_dir="$1"
+        if [ -d "$db_dir" ]; then
+            su -c "certutil -d sql:\\"$db_dir\\" -A -t 'CT,,' -n '${{CA_NAME}}' -i '$CERT_TMP'" "$REAL_USER" 2>/dev/null \
+                && echo "[MoP] Added to NSS db: $db_dir" \
+                || true
+        fi
+    }}
+
+    # Chrome
+    add_nss "$REAL_HOME/.pki/nssdb"
+    # Chromium
+    add_nss "$REAL_HOME/.config/chromium/nssdb"
+    # Firefox — handle multiple profiles
+    for ffdir in "$REAL_HOME"/.mozilla/firefox/*.default \
+                 "$REAL_HOME"/.mozilla/firefox/*.default-release \
+                 "$REAL_HOME"/.mozilla/firefox/*.default-esr; do
+        add_nss "$ffdir"
+    done
+
+    rm -f "$CERT_TMP"
+    echo "[MoP] Browser NSS databases updated. Restart your browser."
 }}
 
 install_macos() {{
