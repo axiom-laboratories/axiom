@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 from sqlalchemy.future import select
-from sqlalchemy import update, desc, func
+from sqlalchemy import update, desc, func, delete
 from collections import defaultdict
 from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate, RolePermission
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -399,6 +399,20 @@ async def update_node_config(node_id: str, config: NodeConfig, current_user: Use
     node.job_memory_limit = config.job_memory_limit
     await db.commit()
     return {"status": "updated", "node_id": node_id, "concurrency_limit": config.concurrency_limit, "job_memory_limit": config.job_memory_limit}
+
+@app.delete("/nodes/{node_id}", status_code=204)
+async def delete_node(node_id: str, current_user: User = Depends(require_permission("nodes:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Node).where(Node.node_id == node_id))
+    node = result.scalar_one_or_none()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    if (datetime.utcnow() - node.last_seen).total_seconds() <= 60:
+        raise HTTPException(status_code=409, detail="Cannot delete an ONLINE node")
+    await db.execute(delete(NodeStats).where(NodeStats.node_id == node_id))
+    await db.execute(delete(Ping).where(Ping.node_id == node_id))
+    await db.delete(node)
+    await db.commit()
+    return Response(status_code=204)
 
 @app.post("/auth/register", response_model=RegisterResponse)
 async def register_node(req: RegisterRequest, db: AsyncSession = Depends(get_db)):

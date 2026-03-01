@@ -1,13 +1,14 @@
 import logging
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.future import select
+from sqlalchemy import delete
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .. import db as db_module
-from ..db import ScheduledJob, Job, Signature, AsyncSession, User
+from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User
 from ..models import JobDefinitionCreate, JobDefinitionResponse
 from .signature_service import SignatureService
 
@@ -22,8 +23,28 @@ class SchedulerService:
         try:
             self.scheduler.start()
             logger.info("🕒 Scheduler Started")
+            self.scheduler.add_job(
+                self.prune_stale_node_stats,
+                'interval',
+                hours=6,
+                id='__prune_node_stats__',
+                replace_existing=True,
+            )
         except Exception as e:
             logger.error(f"⚠️ Scheduler Failed to Start: {e}")
+
+    async def prune_stale_node_stats(self):
+        """Delete NodeStats rows for nodes that have been offline for >24h."""
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        async with db_module.AsyncSessionLocal() as session:
+            offline_result = await session.execute(
+                select(Node.node_id).where(Node.last_seen < cutoff)
+            )
+            stale_ids = [r[0] for r in offline_result.all()]
+            if stale_ids:
+                await session.execute(delete(NodeStats).where(NodeStats.node_id.in_(stale_ids)))
+                await session.commit()
+                logger.info(f"🧹 Pruned NodeStats for {len(stale_ids)} stale nodes")
 
     async def sync_scheduler(self):
         """Syncs DB ScheduledJobs with APScheduler."""

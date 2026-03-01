@@ -11,6 +11,7 @@ import {
     Settings2,
     Check,
     X,
+    Trash2,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -108,6 +109,18 @@ const NodeCard = ({ node }: { node: Node }) => {
     const [concurrency, setConcurrency] = useState(String(node.concurrency_limit ?? 5));
     const [memLimit, setMemLimit] = useState(node.job_memory_limit ?? '512m');
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const deleteNode = async () => {
+        if (!confirm(`Remove ${node.hostname} from the mesh?`)) return;
+        setDeleting(true);
+        try {
+            await authenticatedFetch(`/nodes/${node.node_id}`, { method: 'DELETE' });
+            queryClient.invalidateQueries({ queryKey: ['nodes'] });
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     const saveConfig = async () => {
         setSaving(true);
@@ -212,6 +225,11 @@ const NodeCard = ({ node }: { node: Node }) => {
                         </span>
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-zinc-600">{new Date(node.last_seen).toLocaleTimeString()}</span>
+                            {!isOnline && (
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-red-700 hover:text-red-400 hover:bg-red-500/10 rounded" onClick={deleteNode} disabled={deleting} title="Remove node">
+                                    <Trash2 className="h-3 w-3" />
+                                </Button>
+                            )}
                             <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-white hover:bg-zinc-800 rounded" onClick={() => setEditing(true)}>
                                 <Settings2 className="h-3 w-3" />
                             </Button>
