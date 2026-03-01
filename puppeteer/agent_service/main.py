@@ -453,13 +453,13 @@ async def update_node_config(node_id: str, config: NodeConfig, current_user: Use
     return {"status": "updated", "node_id": node_id, "concurrency_limit": config.concurrency_limit, "job_memory_limit": config.job_memory_limit}
 
 @app.delete("/nodes/{node_id}", status_code=204)
-async def delete_node(node_id: str, current_user: User = Depends(require_permission("nodes:write")), db: AsyncSession = Depends(get_db)):
+async def delete_node(node_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can remove nodes")
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    if node.status != "REVOKED" and (datetime.utcnow() - node.last_seen).total_seconds() <= 60:
-        raise HTTPException(status_code=409, detail="Cannot delete an ONLINE node — revoke first")
     await db.execute(delete(NodeStats).where(NodeStats.node_id == node_id))
     await db.execute(delete(Ping).where(Ping.node_id == node_id))
     audit(db, current_user, "node:delete", node_id)
@@ -750,7 +750,9 @@ async def list_images(current_user: User = Depends(get_current_user)):
     return await foundry_service.list_images()
 
 @app.post("/api/enrollment-tokens")
-async def create_enrollment_token(current_user: User = Depends(require_permission("tokens:write")), db: AsyncSession = Depends(get_db)):
+async def create_enrollment_token(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can create enrollment tokens")
     
     # This is a shell, it will be fully implemented in Phase 2
     token_str = uuid.uuid4().hex
