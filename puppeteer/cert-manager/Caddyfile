@@ -1,7 +1,72 @@
-:80 {
+# HTTPS — full dashboard (trusted after CA is installed)
+:443 {
+    tls /etc/certs/caddy.crt /etc/certs/caddy.key
+
     # API Proxy
     handle /api/* {
         uri strip_prefix /api
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+        }
+    }
+
+    # Pass-through routes served directly by agent (no /api prefix)
+    handle /auth/* {
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+        }
+    }
+    handle /ws {
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+        }
+    }
+
+    # Dashboard fallback
+    handle {
+        reverse_proxy dashboard:80
+    }
+}
+
+# HTTP — bootstrap access
+# /system/root-ca and /system/root-ca-installer are served over plain HTTP
+# so new devices can install the CA before they trust HTTPS.
+# All other routes are also served here (useful during initial setup).
+:80 {
+    # CA bootstrap endpoints — proxied to agent, no TLS required by caller
+    handle /system/root-ca* {
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+        }
+    }
+
+    # API Proxy
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+        }
+    }
+
+    # Auth + WS
+    handle /auth/* {
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+        }
+    }
+    handle /ws {
         reverse_proxy https://agent:8001 {
             transport http {
                 tls_insecure_skip_verify

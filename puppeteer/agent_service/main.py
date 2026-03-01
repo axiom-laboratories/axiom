@@ -208,6 +208,117 @@ async def get_root_ca():
         logger.error(f"Failed to serve Root CA: {e}")
         raise HTTPException(status_code=404, detail="Root CA not found")
 
+def _get_dashboard_ca_pem() -> str:
+    """Return the CA cert that signs the dashboard TLS certificate.
+
+    The cert-manager container generates a Root CA with step-cli and mounts it
+    at /app/global_certs/root_ca.crt.  That CA is what Caddy uses to sign its
+    TLS leaf cert, so it's the one clients must trust to reach the dashboard
+    over HTTPS.  Fall back to the agent's own mTLS CA if the volume isn't
+    present (e.g. running outside Docker).
+    """
+    dashboard_ca = "/app/global_certs/root_ca.crt"
+    if os.path.exists(dashboard_ca):
+        with open(dashboard_ca) as f:
+            return f.read()
+    return pki_service.get_root_cert_pem()
+
+@app.get("/system/root-ca-installer")
+async def get_ca_installer_bash():
+    """
+    Returns a self-contained bash script that installs the MoP Root CA into
+    the system trust store (Debian/Ubuntu, RHEL/Fedora, macOS).
+
+    Fetch and run over plain HTTP before trusting HTTPS:
+        curl http://<host>:8080/system/root-ca-installer | sudo bash
+    """
+    try:
+        ca_pem = _get_dashboard_ca_pem()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"CA not available: {e}")
+
+    script = f"""#!/usr/bin/env bash
+# Master of Puppets — Root CA Installer
+# Run this once on each device to trust the MoP dashboard over HTTPS.
+# Usage: curl http://<host>:8080/system/root-ca-installer | sudo bash
+set -e
+
+CA_NAME="MoP-Root-CA"
+CA_PEM='{ca_pem.strip()}'
+
+echo "[MoP] Installing Root CA..."
+
+install_linux() {{
+    if command -v update-ca-certificates &>/dev/null; then
+        printf '%s\\n' "$CA_PEM" > "/usr/local/share/ca-certificates/${{CA_NAME}}.crt"
+        update-ca-certificates
+        echo "[MoP] Installed via update-ca-certificates (Debian/Ubuntu)."
+    elif command -v update-ca-trust &>/dev/null; then
+        printf '%s\\n' "$CA_PEM" > "/etc/pki/ca-trust/source/anchors/${{CA_NAME}}.crt"
+        update-ca-trust extract
+        echo "[MoP] Installed via update-ca-trust (RHEL/Fedora)."
+    else
+        printf '%s\\n' "$CA_PEM" > "./${{CA_NAME}}.crt"
+        echo "[MoP] Saved to ./${{CA_NAME}}.crt — install manually into your trust store."
+    fi
+}}
+
+install_macos() {{
+    TMPF=$(mktemp /tmp/mop-ca-XXXXXX.crt)
+    printf '%s\\n' "$CA_PEM" > "$TMPF"
+    security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$TMPF"
+    rm -f "$TMPF"
+    echo "[MoP] Installed to macOS System Keychain. Restart your browser."
+}}
+
+case "$(uname -s)" in
+    Linux*)  install_linux ;;
+    Darwin*) install_macos ;;
+    *)
+        printf '%s\\n' "$CA_PEM" > "./${{CA_NAME}}.crt"
+        echo "[MoP] Unsupported OS — cert saved to ./${{CA_NAME}}.crt. Install manually."
+        ;;
+esac
+
+echo "[MoP] Done. You can now access the dashboard at https://<host>:8443"
+"""
+    return Response(content=script, media_type="text/plain",
+                    headers={"Content-Disposition": "inline; filename=mop-install-ca.sh"})
+
+@app.get("/system/root-ca-installer.ps1")
+async def get_ca_installer_ps1():
+    """
+    Returns a PowerShell script that installs the MoP Root CA on Windows.
+
+    Run in an elevated PowerShell prompt:
+        iwr http://<host>:8080/system/root-ca-installer.ps1 | iex
+    """
+    try:
+        ca_pem = _get_dashboard_ca_pem()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"CA not available: {e}")
+
+    script = f"""# Master of Puppets — Root CA Installer (Windows)
+# Run in an elevated PowerShell prompt:
+#   iwr http://<host>:8080/system/root-ca-installer.ps1 | iex
+
+$cert = @"
+{ca_pem.strip()}
+"@
+
+$tmp = [System.IO.Path]::GetTempFileName() + ".crt"
+[System.IO.File]::WriteAllText($tmp, $cert)
+try {{
+    Import-Certificate -FilePath $tmp -CertStoreLocation "Cert:\\LocalMachine\\Root" | Out-Null
+    Write-Host "[MoP] Root CA installed to Windows Root Store. Restart your browser."
+}} finally {{
+    Remove-Item $tmp -ErrorAction SilentlyContinue
+}}
+Write-Host "[MoP] Done. You can now access the dashboard at https://<host>:8443"
+"""
+    return Response(content=script, media_type="text/plain",
+                    headers={"Content-Disposition": "inline; filename=mop-install-ca.ps1"})
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     """JWT User Auth."""
     from jose import jwt, JWTError

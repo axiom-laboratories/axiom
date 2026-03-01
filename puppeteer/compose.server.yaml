@@ -34,6 +34,10 @@ services:
       - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
       - DUCKDNS_DOMAIN=${DUCKDNS_DOMAIN}
       - ACME_EMAIL=${ACME_EMAIL}
+      # Set SERVER_HOSTNAME to your host's IP or FQDN so it's included as a SAN
+      # in the Caddy TLS cert. Clients accessing via this address will trust HTTPS.
+      # Example: SERVER_HOSTNAME=192.168.1.50 or SERVER_HOSTNAME=puppetmaster.local
+      - SERVER_HOSTNAME=${SERVER_HOSTNAME:-}
     restart: always
 
   ddns-updater:
