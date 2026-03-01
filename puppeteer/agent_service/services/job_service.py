@@ -15,6 +15,19 @@ from ..security import mask_secrets, encrypt_secrets, decrypt_secrets
 
 logger = logging.getLogger(__name__)
 
+
+def parse_bytes(s: str) -> int:
+    """Convert memory string like '300m', '2g', '1024k' to bytes."""
+    s = s.strip().lower()
+    if s.endswith('g'):
+        return int(s[:-1]) * 1024 ** 3
+    elif s.endswith('m'):
+        return int(s[:-1]) * 1024 ** 2
+    elif s.endswith('k'):
+        return int(s[:-1]) * 1024
+    return int(s)
+
+
 class JobService:
     @staticmethod
     async def list_jobs(db: AsyncSession) -> List[dict]:
@@ -62,6 +75,8 @@ class JobService:
             payload=json.dumps(encrypted_payload),
             target_tags=json.dumps(job_req.target_tags) if job_req.target_tags else None,
             capability_requirements=json.dumps(job_req.capability_requirements) if job_req.capability_requirements else None,
+            memory_limit=job_req.memory_limit,
+            cpu_limit=job_req.cpu_limit,
             created_at=datetime.utcnow()
         )
         
@@ -140,6 +155,14 @@ class JobService:
                 except:
                     continue
             
+            # Check Memory Limit
+            if candidate.memory_limit and node.job_memory_limit:
+                try:
+                    if parse_bytes(candidate.memory_limit) > parse_bytes(node.job_memory_limit):
+                        continue
+                except Exception:
+                    pass
+
             # Check Capabilities
             if candidate.capability_requirements:
                 try:
@@ -181,7 +204,13 @@ class JobService:
         
         await db.commit()
         
-        work_resp = WorkResponse(guid=selected_job.guid, task_type=selected_job.task_type, payload=payload)
+        work_resp = WorkResponse(
+            guid=selected_job.guid,
+            task_type=selected_job.task_type,
+            payload=payload,
+            memory_limit=selected_job.memory_limit,
+            cpu_limit=selected_job.cpu_limit,
+        )
         return PollResponse(job=work_resp, config=node_config)
 
     @staticmethod

@@ -19,6 +19,18 @@ import runtime
 
 from dotenv import load_dotenv
 
+
+def parse_bytes(s: str) -> int:
+    """Convert memory string like '300m', '2g', '1024k' to bytes."""
+    s = s.strip().lower()
+    if s.endswith('g'):
+        return int(s[:-1]) * 1024 ** 3
+    elif s.endswith('m'):
+        return int(s[:-1]) * 1024 ** 2
+    elif s.endswith('k'):
+        return int(s[:-1]) * 1024
+    return int(s)
+
 load_dotenv()
 
 AGENT_URL = os.getenv("AGENT_URL", "https://localhost:8001")
@@ -159,7 +171,8 @@ class Node:
         self.key_file = KEY_FILE
         self.verify_key_path = "secrets/verification.key"
         self.concurrency_limit = 5
-        self.job_memory_limit = "512m"
+        self.job_memory_limit = os.getenv("JOB_MEMORY_LIMIT", "512m")
+        self.job_cpu_limit = os.getenv("JOB_CPU_LIMIT")
         self.active_tasks = set()
         self.runtime_engine = runtime.ContainerRuntime()
         os.makedirs("secrets", exist_ok=True)
@@ -352,8 +365,20 @@ class Node:
         guid = job["guid"]
         task_type = job.get("task_type", "web_task")
         payload = job.get("payload", {})
-        
+        memory_limit = job.get("memory_limit")
+        cpu_limit = job.get("cpu_limit")
+
         print(f"[{self.node_id}] Executing Job {guid} [{task_type}]")
+
+        # Secondary admission check
+        if memory_limit and self.job_memory_limit:
+            try:
+                if parse_bytes(memory_limit) > parse_bytes(self.job_memory_limit):
+                    print(f"[{self.node_id}] Job {guid} requests {memory_limit}, node limit is {self.job_memory_limit} — skipping")
+                    await self.report_result(guid, False, {"error": "Job memory limit exceeds node capacity"})
+                    return
+            except Exception:
+                pass
         
         if task_type == "python_script":
             script = payload.get("script_content")
@@ -415,12 +440,14 @@ class Node:
                 image = os.getenv("JOB_IMAGE", default_img)
                 
                 result = await self.runtime_engine.run(
-                   image=image, 
-                   command=["python", "-"], 
+                   image=image,
+                   command=["python", "-"],
                    env=env,
                    mounts=mounts,
                    network_ref=hostname,
-                   input_data=script
+                   input_data=script,
+                   memory_limit=memory_limit,
+                   cpu_limit=cpu_limit,
                 )
                 
                 success = (result["exit_code"] == 0)
@@ -510,7 +537,7 @@ class Node:
                     config = job_data.get("config", {})
                     if config:
                          self.concurrency_limit = config.get("concurrency_limit", 5)
-                         # self.job_memory_limit = config.get("job_memory_limit", "512m") # Used in execute_task
+                    self.job_memory_limit = config.get("job_memory_limit", self.job_memory_limit)
 
                     work = job_data.get("job")
                     if work:

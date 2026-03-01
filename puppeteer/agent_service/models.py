@@ -9,6 +9,8 @@ class JobCreate(BaseModel):
     priority: int = 0
     target_tags: Optional[List[str]] = None
     capability_requirements: Optional[Dict[str, str]] = None
+    memory_limit: Optional[str] = None
+    cpu_limit: Optional[str] = None
 
 class RegisterRequest(BaseModel):
     client_secret: str
@@ -40,6 +42,8 @@ class WorkResponse(BaseModel):
     guid: str
     task_type: str
     payload: Dict
+    memory_limit: Optional[str] = None
+    cpu_limit: Optional[str] = None
 
 class ResultReport(BaseModel):
     result: Optional[Dict] = None
@@ -62,6 +66,7 @@ class HeartbeatPayload(BaseModel):
 class NodeConfig(BaseModel):
     concurrency_limit: int
     job_memory_limit: str
+    job_cpu_limit: Optional[str] = None
 
 class PollResponse(BaseModel):
     job: Optional[WorkResponse] = None
@@ -138,6 +143,20 @@ class NetworkMount(BaseModel):
 
 class MountsConfig(BaseModel):
     mounts: List[NetworkMount]
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str = "viewer"
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    role: str
+    created_at: datetime
+
+class PermissionGrant(BaseModel):
+    permission: str
 
 class ImageBuildRequest(BaseModel):
     tag: str

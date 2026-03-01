@@ -1,10 +1,11 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, Text, Boolean, DateTime, LargeBinary
+from sqlalchemy import String, Integer, Text, Boolean, DateTime, LargeBinary, UniqueConstraint
 from datetime import datetime
 import json
 from typing import Optional
+from uuid import uuid4
 
 # Database URL (Default to Postgres, fallback to SQLite for local dev if needed)
 # In Docker, this will be: postgresql+asyncpg://user:pass@db/dbname
@@ -32,6 +33,16 @@ class Job(Base):
     target_tags: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON list of tags required
     capability_requirements: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON dict of required capabilities
     telemetry: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON string: per-job metrics
+    memory_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # e.g. "300m", "2g"
+    cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)     # e.g. "0.5", "2"
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    permission: Mapped[str] = mapped_column(String, nullable=False)
+    __table_args__ = (UniqueConstraint("role", "permission"),)
 
 
 class Signature(Base):

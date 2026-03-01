@@ -22,7 +22,7 @@ from .models import (
     JobDefinitionResponse, PingRequest, NetworkMount, MountsConfig,
     ImageBuildRequest, ImageResponse, EnrollmentRequest,
     BlueprintCreate, BlueprintResponse, PuppetTemplateCreate, PuppetTemplateResponse,
-    CapabilityMatrixEntry, UploadKeyRequest
+    CapabilityMatrixEntry, UploadKeyRequest, UserCreate, UserResponse, PermissionGrant
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 from sqlalchemy.future import select
 from sqlalchemy import update, desc, func
-from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate
+from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate, RolePermission
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from .services.job_service import JobService
 from .services.signature_service import SignatureService
@@ -93,6 +93,27 @@ async def lifespan(app: FastAPI):
             db.add_all(recipes)
             await db.commit()
             logger.info("✅ Capability Matrix Seeded")
+
+    # Seed Role Permissions
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(RolePermission).limit(1))
+        if not result.scalar_one_or_none():
+            logger.info("🌱 Seeding Role Permissions...")
+            OPERATOR_PERMS = [
+                "jobs:read", "jobs:write", "nodes:read", "nodes:write",
+                "definitions:read", "definitions:write", "foundry:read",
+                "signatures:read", "tokens:write",
+            ]
+            VIEWER_PERMS = [
+                "jobs:read", "nodes:read", "definitions:read", "foundry:read", "signatures:read",
+            ]
+            seeds = (
+                [RolePermission(role="operator", permission=p) for p in OPERATOR_PERMS] +
+                [RolePermission(role="viewer", permission=p) for p in VIEWER_PERMS]
+            )
+            db.add_all(seeds)
+            await db.commit()
+            logger.info("✅ Role Permissions Seeded")
 
     # Start Scheduler
     scheduler_service.start()
@@ -227,6 +248,22 @@ async def get_current_user_optional(token: Optional[str] = Depends(OAuth2Passwor
     result = await db.execute(select(User).where(User.username == username))
     return result.scalar_one_or_none()
 
+def require_permission(perm: str):
+    """Dependency factory that enforces a named permission via DB-backed RBAC."""
+    async def _check(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+        if current_user.role == "admin":
+            return current_user
+        result = await db.execute(
+            select(RolePermission).where(
+                RolePermission.role == current_user.role,
+                RolePermission.permission == perm
+            )
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
+        return current_user
+    return _check
+
 # --- Auth Endpoints ---
 
 @app.post("/auth/login", response_model=TokenResponse)
@@ -257,25 +294,23 @@ async def health_check():
     return {"status": "healthy", "service": "Agent Service v0.7"}
 
 @app.get("/jobs", response_model=List[JobResponse])
-async def list_jobs(db: AsyncSession = Depends(get_db)):
+async def list_jobs(current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     return await JobService.list_jobs(db)
 
 @app.get("/api/jobs/stats")
-async def get_job_stats(db: AsyncSession = Depends(get_db)):
+async def get_job_stats(current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     """Backend Stats for Dashboard charts."""
     return await JobService.get_job_stats(db)
 
 @app.post("/jobs", response_model=JobResponse)
-async def create_job(job_req: JobCreate, db: AsyncSession = Depends(get_db)):
+async def create_job(job_req: JobCreate, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     try:
         return await JobService.create_job(job_req, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.patch("/jobs/{guid}/cancel")
-async def cancel_job(guid: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role not in ["admin", "operator"]:
-        raise HTTPException(status_code=403, detail="Insufficient Permissions")
+async def cancel_job(guid: str, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Job).where(Job.guid == guid))
     job = result.scalar_one_or_none()
     if not job:
@@ -309,7 +344,7 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
     return updated
 
 @app.get("/nodes", response_model=List[NodeResponse])
-async def list_nodes(db: AsyncSession = Depends(get_db)):
+async def list_nodes(current_user: User = Depends(require_permission("nodes:read")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node))
     nodes = result.scalars().all()
     
@@ -336,9 +371,7 @@ async def list_nodes(db: AsyncSession = Depends(get_db)):
     return resp
 
 @app.patch("/nodes/{node_id}")
-async def update_node_config(node_id: str, config: NodeConfig, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role not in ["admin", "operator"]:
-        raise HTTPException(status_code=403, detail="Insufficient Permissions")
+async def update_node_config(node_id: str, config: NodeConfig, current_user: User = Depends(require_permission("nodes:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
     if not node:
@@ -423,9 +456,7 @@ import base64
 
 @app.post("/admin/generate-token")
 @limiter.limit("10/minute")
-async def generate_token(request: Request, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role not in ["admin", "operator"]:
-         raise HTTPException(status_code=403, detail="Insufficient Permissions")
+async def generate_token(request: Request, current_user: User = Depends(require_permission("tokens:write")), db: AsyncSession = Depends(get_db)):
          
     token_str = uuid.uuid4().hex
     token_entry = Token(token=token_str)
@@ -445,9 +476,7 @@ async def generate_token(request: Request, current_user: User = Depends(get_curr
 # --- Blueprint & Template Management ---
 
 @app.post("/api/blueprints", response_model=BlueprintResponse)
-async def create_blueprint(req: BlueprintCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def create_blueprint(req: BlueprintCreate, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
     
     new_bp = Blueprint(
         id=str(uuid.uuid4()),
@@ -469,7 +498,7 @@ async def create_blueprint(req: BlueprintCreate, current_user: User = Depends(ge
     }
 
 @app.get("/api/blueprints", response_model=List[BlueprintResponse])
-async def list_blueprints(db: AsyncSession = Depends(get_db)):
+async def list_blueprints(current_user: User = Depends(require_permission("foundry:read")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Blueprint))
     bps = result.scalars().all()
     return [{
@@ -483,19 +512,17 @@ async def list_blueprints(db: AsyncSession = Depends(get_db)):
 
 # Legacy/Frontend Aliases
 @app.get("/foundry/definitions")
-async def foundry_definitions(db: AsyncSession = Depends(get_db)):
+async def foundry_definitions(current_user: User = Depends(require_permission("foundry:read")), db: AsyncSession = Depends(get_db)):
     """Dashboard expects /foundry/definitions instead of /api/blueprints"""
-    return await list_blueprints(db)
+    return await list_blueprints(current_user, db)
 
 @app.get("/job-definitions")
-async def dashboard_job_definitions(db: AsyncSession = Depends(get_db)):
+async def dashboard_job_definitions(current_user: User = Depends(require_permission("definitions:read")), db: AsyncSession = Depends(get_db)):
     """Dashboard expects /job-definitions instead of /jobs/definitions"""
     return await scheduler_service.list_job_definitions(db)
 
 @app.post("/api/templates", response_model=PuppetTemplateResponse)
-async def create_template(req: PuppetTemplateCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def create_template(req: PuppetTemplateCreate, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
     
     # Verify Blueprints exist
     rt_res = await db.execute(select(Blueprint).where(Blueprint.id == req.runtime_blueprint_id, Blueprint.type == 'RUNTIME'))
@@ -526,7 +553,7 @@ async def create_template(req: PuppetTemplateCreate, current_user: User = Depend
     return new_tmpl
 
 @app.get("/api/templates", response_model=List[PuppetTemplateResponse])
-async def list_templates(db: AsyncSession = Depends(get_db)):
+async def list_templates(current_user: User = Depends(require_permission("foundry:read")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PuppetTemplate))
     templates = result.scalars().all()
     return [{
@@ -542,13 +569,11 @@ async def list_templates(db: AsyncSession = Depends(get_db)):
     } for t in templates]
 
 @app.post("/api/templates/{id}/build", response_model=ImageResponse)
-async def build_template(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def build_template(id: str, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
     return await foundry_service.build_template(id, db)
 
 @app.post("/foundry/build")
-async def dashboard_foundry_build(req: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def dashboard_foundry_build(req: dict, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
     """Dashboard expects /foundry/build with template_id in body"""
     template_id = req.get("template_id")
     if not template_id:
@@ -556,9 +581,7 @@ async def dashboard_foundry_build(req: dict, current_user: User = Depends(get_cu
     return await build_template(template_id, current_user, db)
 
 @app.delete("/api/blueprints/{id}")
-async def delete_blueprint(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def delete_blueprint(id: str, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(PuppetTemplate).where(
             (PuppetTemplate.runtime_blueprint_id == id) | (PuppetTemplate.network_blueprint_id == id)
@@ -575,9 +598,7 @@ async def delete_blueprint(id: str, current_user: User = Depends(get_current_use
     return {"status": "deleted"}
 
 @app.delete("/api/templates/{id}")
-async def delete_template(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def delete_template(id: str, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PuppetTemplate).where(PuppetTemplate.id == id))
     tmpl = result.scalar_one_or_none()
     if not tmpl:
@@ -587,7 +608,7 @@ async def delete_template(id: str, current_user: User = Depends(get_current_user
     return {"status": "deleted"}
 
 @app.get("/api/capability-matrix", response_model=List[CapabilityMatrixEntry])
-async def get_capability_matrix(db: AsyncSession = Depends(get_db)):
+async def get_capability_matrix(current_user: User = Depends(require_permission("foundry:read")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CapabilityMatrix))
     return result.scalars().all()
 
@@ -604,9 +625,7 @@ async def list_images(current_user: User = Depends(get_current_user)):
     return await foundry_service.list_images()
 
 @app.post("/api/enrollment-tokens")
-async def create_enrollment_token(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role not in ["admin", "operator"]:
-         raise HTTPException(status_code=403, detail="Insufficient Permissions")
+async def create_enrollment_token(current_user: User = Depends(require_permission("tokens:write")), db: AsyncSession = Depends(get_db)):
     
     # This is a shell, it will be fully implemented in Phase 2
     token_str = uuid.uuid4().hex
@@ -615,9 +634,7 @@ async def create_enrollment_token(current_user: User = Depends(get_current_user)
     return {"token": token_str}
 
 @app.post("/admin/upload-key")
-async def upload_public_key(req: UploadKeyRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def upload_public_key(req: UploadKeyRequest, current_user: User = Depends(require_permission("signatures:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Config).where(Config.key == "signing_public_key"))
     row = result.scalar_one_or_none()
     if row:
@@ -626,6 +643,74 @@ async def upload_public_key(req: UploadKeyRequest, current_user: User = Depends(
         db.add(Config(key="signing_public_key", value=req.key_content))
     await db.commit()
     return {"status": "stored"}
+
+# --- User Management Endpoints ---
+
+@app.get("/admin/users", response_model=List[UserResponse])
+async def list_users(current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User))
+    users = result.scalars().all()
+    return [{"id": u.username, "username": u.username, "role": u.role, "created_at": u.created_at} for u in users]
+
+@app.post("/admin/users", response_model=UserResponse, status_code=201)
+async def create_user(req: UserCreate, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == req.username))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Username already exists")
+    new_user = User(username=req.username, password_hash=get_password_hash(req.password), role=req.role)
+    db.add(new_user)
+    await db.commit()
+    return {"id": new_user.username, "username": new_user.username, "role": new_user.role, "created_at": new_user.created_at}
+
+@app.delete("/admin/users/{username}")
+async def delete_user(username: str, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    if username == current_user.username:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.delete(user)
+    await db.commit()
+    return {"status": "deleted", "username": username}
+
+@app.patch("/admin/users/{username}", response_model=UserResponse)
+async def update_user_role(username: str, req: dict, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if "role" in req:
+        user.role = req["role"]
+    await db.commit()
+    return {"id": user.username, "username": user.username, "role": user.role, "created_at": user.created_at}
+
+# --- Role Permission Management Endpoints ---
+
+@app.get("/admin/roles/{role}/permissions")
+async def list_role_permissions(role: str, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(RolePermission).where(RolePermission.role == role))
+    perms = result.scalars().all()
+    return [{"id": p.id, "role": p.role, "permission": p.permission} for p in perms]
+
+@app.post("/admin/roles/{role}/permissions", status_code=201)
+async def grant_role_permission(role: str, req: PermissionGrant, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(RolePermission).where(RolePermission.role == role, RolePermission.permission == req.permission))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Permission already granted")
+    db.add(RolePermission(role=role, permission=req.permission))
+    await db.commit()
+    return {"status": "granted", "role": role, "permission": req.permission}
+
+@app.delete("/admin/roles/{role}/permissions/{permission}")
+async def revoke_role_permission(role: str, permission: str, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(RolePermission).where(RolePermission.role == role, RolePermission.permission == permission))
+    perm = result.scalar_one_or_none()
+    if not perm:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    await db.delete(perm)
+    await db.commit()
+    return {"status": "revoked", "role": role, "permission": permission}
 
 @app.get("/config/public-key")
 async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = Depends(get_db)):
@@ -692,19 +777,15 @@ async def update_network_mounts(config: MountsConfig, current_user: User = Depen
 # --- Signature Registry API ---
 
 @app.post("/signatures", response_model=SignatureResponse)
-async def upload_signature(sig: SignatureCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def upload_signature(sig: SignatureCreate, current_user: User = Depends(require_permission("signatures:write")), db: AsyncSession = Depends(get_db)):
     return await SignatureService.upload_signature(sig, current_user, db)
 
 @app.get("/signatures", response_model=List[SignatureResponse])
-async def list_signatures(db: AsyncSession = Depends(get_db)):
+async def list_signatures(current_user: User = Depends(require_permission("signatures:read")), db: AsyncSession = Depends(get_db)):
     return await SignatureService.list_signatures(db)
 
 @app.delete("/signatures/{id}")
-async def delete_signature(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+async def delete_signature(id: str, current_user: User = Depends(require_permission("signatures:write")), db: AsyncSession = Depends(get_db)):
     
     success = await SignatureService.delete_signature(id, db)
     if not success:
@@ -714,17 +795,15 @@ async def delete_signature(id: str, current_user: User = Depends(get_current_use
 # --- Job Definitions API ---
 
 @app.post("/jobs/definitions", response_model=JobDefinitionResponse)
-async def create_job_definition(def_req: JobDefinitionCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_job_definition(def_req: JobDefinitionCreate, current_user: User = Depends(require_permission("definitions:write")), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.create_job_definition(def_req, current_user, db)
 
 @app.get("/jobs/definitions", response_model=List[JobDefinitionResponse])
-async def list_job_definitions(db: AsyncSession = Depends(get_db)):
+async def list_job_definitions(current_user: User = Depends(require_permission("definitions:read")), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.list_job_definitions(db)
 
 @app.delete("/jobs/definitions/{id}")
-async def delete_job_definition(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role not in ["admin", "operator"]:
-        raise HTTPException(status_code=403, detail="Insufficient Permissions")
+async def delete_job_definition(id: str, current_user: User = Depends(require_permission("definitions:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == id))
     job_def = result.scalar_one_or_none()
     if not job_def:
@@ -738,9 +817,7 @@ async def delete_job_definition(id: str, current_user: User = Depends(get_curren
     return {"status": "deleted"}
 
 @app.patch("/jobs/definitions/{id}/toggle")
-async def toggle_job_definition(id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role not in ["admin", "operator"]:
-        raise HTTPException(status_code=403, detail="Insufficient Permissions")
+async def toggle_job_definition(id: str, current_user: User = Depends(require_permission("definitions:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == id))
     job_def = result.scalar_one_or_none()
     if not job_def:
@@ -765,7 +842,7 @@ async def get_installer():
     return Response(content=content, media_type="text/plain", headers={"Content-Disposition": "attachment; filename=install_node.ps1"})
 
 @app.get("/api/docs")
-async def list_docs():
+async def list_docs(current_user: User = Depends(require_permission("jobs:read"))):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     docs_dir = os.path.join(base_dir, "docs")
     if not os.path.exists(docs_dir):
@@ -789,7 +866,7 @@ async def list_docs():
     return files
 
 @app.get("/api/docs/{filename}")
-async def get_doc_content(filename: str):
+async def get_doc_content(filename: str, current_user: User = Depends(require_permission("jobs:read"))):
     filename = os.path.basename(filename)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     docs_dir = os.path.join(base_dir, "docs")
