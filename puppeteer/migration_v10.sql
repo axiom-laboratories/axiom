@@ -10,8 +10,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAUL
 -- These were missing from the initial seed (WARN-5 fix).
 INSERT INTO role_permissions (id, role, permission)
     VALUES
-        (gen_random_uuid()::text, 'operator', 'foundry:write'),
-        (gen_random_uuid()::text, 'operator', 'signatures:write')
+        (md5(random()::text), 'operator', 'foundry:write'),
+        (md5(random()::text), 'operator', 'signatures:write')
     ON CONFLICT (role, permission) DO NOTHING;
 
 COMMIT;
