@@ -469,23 +469,25 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
     access_token = create_access_token(
         data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role,
+            "must_change_password": bool(user.must_change_password)}
 
 @app.get("/auth/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {"username": current_user.username, "role": current_user.role}
+    return {"username": current_user.username, "role": current_user.role,
+            "must_change_password": bool(current_user.must_change_password)}
 
 @app.patch("/auth/me")
 async def update_self(req: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Allow a logged-in user to change their own password."""
-    from .auth import get_password_hash
     new_password = req.get("password", "").strip()
     if not new_password or len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-    current_user.hashed_password = get_password_hash(new_password)
+    current_user.password_hash = get_password_hash(new_password)
+    current_user.must_change_password = False
     await db.commit()
     await audit(db, current_user.username, "user:password_changed", {"username": current_user.username})
-    return {"status": "ok"}
+    return {"status": "ok", "must_change_password": False}
 
 # --- Core Endpoints ---
 
@@ -1007,6 +1009,35 @@ async def revoke_role_permission(role: str, permission: str, current_user: User 
     await db.delete(perm)
     await db.commit()
     return {"status": "revoked", "role": role, "permission": permission}
+
+@app.patch("/admin/users/{username}/reset-password")
+async def admin_reset_password(username: str, req: dict, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    """Admin sets a new password for any user."""
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    new_password = req.get("password", "").strip()
+    if not new_password or len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    user.password_hash = get_password_hash(new_password)
+    await audit(db, current_user.username, "user:password_reset", {"target": username, "by": current_user.username})
+    await db.commit()
+    return {"status": "ok"}
+
+@app.patch("/admin/users/{username}/force-password-change")
+async def admin_force_password_change(username: str, req: dict, current_user: User = Depends(require_permission("users:write")), db: AsyncSession = Depends(get_db)):
+    """Set or clear the must_change_password flag for a user."""
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    enabled = bool(req.get("enabled", True))
+    user.must_change_password = enabled
+    action = "user:force_password_change_set" if enabled else "user:force_password_change_cleared"
+    await audit(db, current_user.username, action, {"target": username})
+    await db.commit()
+    return {"status": "ok", "must_change_password": enabled}
 
 @app.get("/config/public-key")
 async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = Depends(get_db)):

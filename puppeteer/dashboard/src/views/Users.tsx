@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Trash2, ChevronDown, ChevronRight, Plus, X, Shield, KeyRound, User } from 'lucide-react';
+import { UserPlus, Trash2, ChevronDown, ChevronRight, Plus, X, Shield, KeyRound, User, RotateCcw, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ interface UserRecord {
     username: string;
     role: string;
     created_at: string;
+    must_change_password?: boolean;
 }
 
 const fetchUsers = async (): Promise<UserRecord[]> => {
@@ -235,6 +236,172 @@ const MyAccount = () => {
     );
 };
 
+// ── User Row ─────────────────────────────────────────────────────────────────
+
+const UserRow = ({ user }: { user: UserRecord }) => {
+    const qc = useQueryClient();
+    const [editingRole, setEditingRole] = useState(false);
+    const [showReset, setShowReset] = useState(false);
+    const [resetPw, setResetPw] = useState('');
+    const [resetConfirm, setResetConfirm] = useState('');
+    const [resetMsg, setResetMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+    const updateRole = useMutation({
+        mutationFn: (role: string) =>
+            authenticatedFetch(`/admin/users/${user.username}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role }),
+            }),
+        onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setEditingRole(false); },
+    });
+
+    const deleteUser = useMutation({
+        mutationFn: () => authenticatedFetch(`/admin/users/${user.username}`, { method: 'DELETE' }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    });
+
+    const resetPassword = useMutation({
+        mutationFn: () =>
+            authenticatedFetch(`/admin/users/${user.username}/reset-password`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: resetPw }),
+            }),
+        onSuccess: () => {
+            setResetPw(''); setResetConfirm(''); setShowReset(false);
+            setResetMsg({ type: 'ok', text: 'Password reset.' });
+        },
+        onError: () => setResetMsg({ type: 'err', text: 'Reset failed.' }),
+    });
+
+    const forceChange = useMutation({
+        mutationFn: (enabled: boolean) =>
+            authenticatedFetch(`/admin/users/${user.username}/force-password-change`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled }),
+            }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    });
+
+    const canReset = resetPw.length >= 8 && resetPw === resetConfirm;
+
+    return (
+        <>
+            <tr className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
+                <td className="px-6 py-3 font-mono text-white">
+                    <span className="flex items-center gap-2">
+                        {user.username}
+                        {user.must_change_password && (
+                            <span title="Must change password on next login">
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                            </span>
+                        )}
+                    </span>
+                </td>
+                <td className="px-6 py-3">
+                    {editingRole ? (
+                        <div className="flex items-center gap-2">
+                            <select
+                                defaultValue={user.role}
+                                onChange={e => updateRole.mutate(e.target.value)}
+                                className="h-7 rounded bg-zinc-800 border border-zinc-700 text-white text-xs px-2"
+                            >
+                                <option value="viewer">viewer</option>
+                                <option value="operator">operator</option>
+                                <option value="admin">admin</option>
+                            </select>
+                            <button onClick={() => setEditingRole(false)} className="text-zinc-500 hover:text-zinc-300">
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    ) : (
+                        <Badge
+                            variant="outline"
+                            className={`text-xs font-mono cursor-pointer ${roleBadge(user.role)}`}
+                            onClick={() => user.role !== 'admin' && setEditingRole(true)}
+                            title={user.role !== 'admin' ? 'Click to change role' : ''}
+                        >
+                            {user.role}
+                        </Badge>
+                    )}
+                </td>
+                <td className="px-6 py-3 text-zinc-500 text-xs font-mono">
+                    {new Date(user.created_at).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                        {user.role !== 'admin' && (
+                            <>
+                                <Button
+                                    size="icon" variant="ghost"
+                                    className={`h-7 w-7 ${user.must_change_password ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10'}`}
+                                    onClick={() => forceChange.mutate(!user.must_change_password)}
+                                    title={user.must_change_password ? 'Clear forced password change' : 'Force password change on next login'}
+                                >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                    size="icon" variant="ghost"
+                                    className={`h-7 w-7 ${showReset ? 'text-primary bg-primary/10' : 'text-zinc-600 hover:text-primary hover:bg-primary/10'}`}
+                                    onClick={() => { setShowReset(s => !s); setResetMsg(null); }}
+                                    title="Reset password"
+                                >
+                                    <KeyRound className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                    size="icon" variant="ghost"
+                                    className="h-7 w-7 text-zinc-600 hover:text-red-400 hover:bg-red-500/10"
+                                    onClick={() => confirm(`Delete user "${user.username}"?`) && deleteUser.mutate()}
+                                    title="Delete user"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                </td>
+            </tr>
+            {showReset && (
+                <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
+                    <td colSpan={4} className="px-6 py-3">
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs text-zinc-500 font-mono">Reset password for <span className="text-white">{user.username}</span>:</span>
+                            <Input
+                                type="password"
+                                placeholder="New password"
+                                value={resetPw}
+                                onChange={e => { setResetPw(e.target.value); setResetMsg(null); }}
+                                className="h-7 w-40 bg-zinc-800 border-zinc-700 text-white text-xs px-2"
+                            />
+                            <Input
+                                type="password"
+                                placeholder="Confirm"
+                                value={resetConfirm}
+                                onChange={e => { setResetConfirm(e.target.value); setResetMsg(null); }}
+                                className={`h-7 w-32 bg-zinc-800 border-zinc-700 text-white text-xs px-2 ${resetConfirm && resetConfirm !== resetPw ? 'border-red-500/50' : ''}`}
+                            />
+                            <Button
+                                size="sm" className="h-7 bg-primary hover:bg-primary/90 text-white text-xs px-3"
+                                onClick={() => resetPassword.mutate()}
+                                disabled={!canReset || resetPassword.isPending}
+                            >
+                                Set Password
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-zinc-500 text-xs px-2"
+                                onClick={() => { setShowReset(false); setResetPw(''); setResetConfirm(''); }}>
+                                Cancel
+                            </Button>
+                            {resetMsg && <span className={`text-xs ${resetMsg.type === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>{resetMsg.text}</span>}
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+};
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 
 const Users = () => {
@@ -243,7 +410,6 @@ const Users = () => {
     const [newUsername, setNewUsername] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newRole, setNewRole] = useState('viewer');
-    const [editingRole, setEditingRole] = useState<string | null>(null);
 
     const { data: users = [], isLoading } = useQuery({
         queryKey: ['users'],
@@ -263,25 +429,6 @@ const Users = () => {
             setNewPassword('');
             setNewRole('viewer');
             setShowCreate(false);
-        },
-    });
-
-    const deleteUser = useMutation({
-        mutationFn: (username: string) =>
-            authenticatedFetch(`/admin/users/${username}`, { method: 'DELETE' }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
-    });
-
-    const updateRole = useMutation({
-        mutationFn: ({ username, role }: { username: string; role: string }) =>
-            authenticatedFetch(`/admin/users/${username}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role }),
-            }),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['users'] });
-            setEditingRole(null);
         },
     });
 
@@ -373,52 +520,7 @@ const Users = () => {
                                         <td colSpan={4} className="px-6 py-8 text-center text-zinc-600">Loading...</td>
                                     </tr>
                                 ) : users.map(user => (
-                                    <tr key={user.username} className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
-                                        <td className="px-6 py-3 font-mono text-white">{user.username}</td>
-                                        <td className="px-6 py-3">
-                                            {editingRole === user.username ? (
-                                                <div className="flex items-center gap-2">
-                                                    <select
-                                                        defaultValue={user.role}
-                                                        onChange={e => updateRole.mutate({ username: user.username, role: e.target.value })}
-                                                        className="h-7 rounded bg-zinc-800 border border-zinc-700 text-white text-xs px-2"
-                                                    >
-                                                        <option value="viewer">viewer</option>
-                                                        <option value="operator">operator</option>
-                                                        <option value="admin">admin</option>
-                                                    </select>
-                                                    <button onClick={() => setEditingRole(null)} className="text-zinc-500 hover:text-zinc-300">
-                                                        <X className="h-3.5 w-3.5" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`text-xs font-mono cursor-pointer ${roleBadge(user.role)}`}
-                                                    onClick={() => user.role !== 'admin' && setEditingRole(user.username)}
-                                                    title={user.role !== 'admin' ? 'Click to change role' : ''}
-                                                >
-                                                    {user.role}
-                                                </Badge>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-3 text-zinc-500 text-xs font-mono">
-                                            {new Date(user.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-3 text-right">
-                                            {user.role !== 'admin' && (
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7 text-zinc-600 hover:text-red-400 hover:bg-red-500/10"
-                                                    onClick={() => confirm(`Delete user "${user.username}"?`) && deleteUser.mutate(user.username)}
-                                                    title="Delete user"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            )}
-                                        </td>
-                                    </tr>
+                                    <UserRow key={user.username} user={user} />
                                 ))}
                             </tbody>
                         </table>

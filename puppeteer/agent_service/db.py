@@ -85,6 +85,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String)
     role: Mapped[str] = mapped_column(String) # viewer, operator, admin
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 class Node(Base):
     __tablename__ = "nodes"
