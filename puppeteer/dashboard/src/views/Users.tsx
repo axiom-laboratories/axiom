@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserPlus, Trash2, ChevronDown, ChevronRight, Plus, X, Shield, KeyRound, User, RotateCcw, AlertTriangle } from 'lucide-react';
+import { setToken } from '../auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -163,8 +164,10 @@ const MyAccount = () => {
                 const err = await res.json();
                 throw new Error(err.detail || 'Failed');
             }
+            return res.json() as Promise<{ access_token?: string }>;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
+            if (data?.access_token) setToken(data.access_token);
             setCurrentPw(''); setNewPw(''); setConfirmPw('');
             setMsg({ type: 'ok', text: 'Password updated successfully.' });
         },

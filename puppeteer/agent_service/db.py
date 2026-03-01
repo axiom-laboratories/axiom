@@ -86,6 +86,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String) # viewer, operator, admin
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 class Node(Base):
     __tablename__ = "nodes"

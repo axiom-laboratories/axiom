@@ -380,6 +380,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
+    # Reject tokens issued before a password change (token_version mismatch)
+    if payload.get("tv", 0) != user.token_version:
+        raise credentials_exception
     return user
 
 async def get_current_user_optional(token: Optional[str] = Depends(OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)), db: AsyncSession = Depends(get_db)) -> Optional[User]:
@@ -467,7 +470,8 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
+        data={"sub": user.username, "role": user.role, "tv": user.token_version},
+        expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer", "role": user.role,
             "must_change_password": bool(user.must_change_password)}
@@ -479,15 +483,22 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 
 @app.patch("/auth/me")
 async def update_self(req: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Allow a logged-in user to change their own password."""
+    """Allow a logged-in user to change their own password.
+    Returns a fresh access token so the current session continues uninterrupted."""
     new_password = req.get("password", "").strip()
     if not new_password or len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     current_user.password_hash = get_password_hash(new_password)
     current_user.must_change_password = False
+    current_user.token_version = (current_user.token_version or 0) + 1
     await db.commit()
     await audit(db, current_user.username, "user:password_changed", {"username": current_user.username})
-    return {"status": "ok", "must_change_password": False}
+    # Issue a new token for the current session (old tokens for other sessions are now invalid)
+    new_token = create_access_token(
+        data={"sub": current_user.username, "role": current_user.role, "tv": current_user.token_version},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return {"status": "ok", "must_change_password": False, "access_token": new_token}
 
 # --- Core Endpoints ---
 
@@ -1021,6 +1032,7 @@ async def admin_reset_password(username: str, req: dict, current_user: User = De
     if not new_password or len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     user.password_hash = get_password_hash(new_password)
+    user.token_version = (user.token_version or 0) + 1  # invalidate all existing sessions
     await audit(db, current_user.username, "user:password_reset", {"target": username, "by": current_user.username})
     await db.commit()
     return {"status": "ok"}

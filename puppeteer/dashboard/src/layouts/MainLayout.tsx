@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { authenticatedFetch } from '../auth';
+import { authenticatedFetch, setToken } from '../auth';
 
 const ForceChangeModal = () => {
     const [newPw, setNewPw] = useState('');
@@ -41,8 +41,12 @@ const ForceChangeModal = () => {
                 body: JSON.stringify({ password: newPw }),
             });
             if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
+            return res.json() as Promise<{ access_token?: string }>;
         },
-        onSuccess: () => refetch(),
+        onSuccess: (data) => {
+            if (data?.access_token) setToken(data.access_token);
+            refetch();
+        },
         onError: (e: Error) => setErr(e.message),
     });
 
