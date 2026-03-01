@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import List, Optional
 from packaging.version import Version, InvalidVersion
 from sqlalchemy.future import select
-from sqlalchemy import desc, func
-from ..db import Job, Node, AsyncSession
+from sqlalchemy import desc, func, delete
+from ..db import Job, Node, NodeStats, AsyncSession
 from ..models import (
     ResultReport, JobResponse, JobCreate, WorkResponse, PollResponse, 
     NodeConfig, HeartbeatPayload
@@ -248,6 +248,20 @@ class JobService:
             )
             db.add(node)
         
+        # Record stats history
+        if hb.stats:
+            db.add(NodeStats(node_id=node_id, cpu=hb.stats.get("cpu"), ram=hb.stats.get("ram")))
+            await db.flush()
+            # Prune: keep last 60 rows per node
+            subq = (
+                select(NodeStats.id)
+                .where(NodeStats.node_id == node_id)
+                .order_by(desc(NodeStats.recorded_at))
+                .offset(60)
+                .subquery()
+            )
+            await db.execute(delete(NodeStats).where(NodeStats.id.in_(select(subq.c.id))))
+
         # Process Job Telemetry
         if hb.job_telemetry:
             for guid, metrics in hb.job_telemetry.items():

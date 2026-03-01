@@ -37,7 +37,13 @@ AGENT_URL = os.getenv("AGENT_URL", "https://localhost:8001")
 API_KEY_NAME = "X-API-KEY"
 API_KEY = os.getenv("API_KEY", "master-secret-key")
 JOIN_TOKEN = os.getenv("JOIN_TOKEN") 
-NODE_ID = f"node-{uuid.uuid4().hex[:8]}"
+def _load_or_generate_node_id() -> str:
+    """Reuse an existing enrolled identity if present, otherwise generate a fresh one."""
+    os.makedirs("secrets", exist_ok=True)
+    existing = [f[:-4] for f in os.listdir("secrets") if f.endswith(".crt") and f.startswith("node-")]
+    return existing[0] if existing else f"node-{uuid.uuid4().hex[:8]}"
+
+NODE_ID = _load_or_generate_node_id()
 ROOT_CA_PATH = os.getenv("ROOT_CA_PATH", "c:/Development/Repos/master_of_puppets/ca/certs/root_ca.crt")
 CERT_FILE = f"secrets/{NODE_ID}.crt"
 KEY_FILE = f"secrets/{NODE_ID}.key"

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import {
     Server,
     ShieldCheck,
@@ -25,6 +26,12 @@ interface NodeStats {
     ram: number;
 }
 
+interface StatPoint {
+    t: string;
+    cpu: number | null;
+    ram: number | null;
+}
+
 interface Node {
     node_id: string;
     hostname: string;
@@ -37,6 +44,7 @@ interface Node {
     capabilities?: Record<string, string>;
     concurrency_limit?: number;
     job_memory_limit?: string;
+    stats_history?: StatPoint[];
 }
 
 const fetchNodes = async (): Promise<Node[]> => {
@@ -53,6 +61,38 @@ const GaugeBar = ({ value, color }: { value: number; color: string }) => (
         />
     </div>
 );
+
+const StatsSparkline = ({ history }: { history: StatPoint[] }) => {
+    if (history.length < 2) return null;
+    return (
+        <div className="h-10 w-full mt-2">
+            <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={history} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                    <Area
+                        type="monotone"
+                        dataKey="cpu"
+                        stroke="#8b5cf6"
+                        strokeWidth={1.5}
+                        fill="#8b5cf6"
+                        fillOpacity={0.1}
+                        dot={false}
+                        isAnimationActive={false}
+                    />
+                    <Area
+                        type="monotone"
+                        dataKey="ram"
+                        stroke="#10b981"
+                        strokeWidth={1.5}
+                        fill="#10b981"
+                        fillOpacity={0.1}
+                        dot={false}
+                        isAnimationActive={false}
+                    />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
+    );
+};
 
 const NodeCard = ({ node }: { node: Node }) => {
     const queryClient = useQueryClient();
@@ -135,6 +175,7 @@ const NodeCard = ({ node }: { node: Node }) => {
                         </div>
                         <GaugeBar value={ram} color={ramColor} />
                     </div>
+                    {node.stats_history && <StatsSparkline history={node.stats_history} />}
                 </div>
             </CardContent>
 

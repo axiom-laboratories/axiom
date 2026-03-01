@@ -39,7 +39,8 @@ logger = logging.getLogger(__name__)
 
 from sqlalchemy.future import select
 from sqlalchemy import update, desc, func
-from .db import init_db, get_db, Job, Token, Config, User, Node, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate, RolePermission
+from collections import defaultdict
+from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate, RolePermission
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from .services.job_service import JobService
 from .services.signature_service import SignatureService
@@ -347,15 +348,32 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
 async def list_nodes(current_user: User = Depends(require_permission("nodes:read")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node))
     nodes = result.scalars().all()
-    
+
+    # Fetch stats history for all nodes in one query
+    history_map: dict = defaultdict(list)
+    if nodes:
+        node_ids = [n.node_id for n in nodes]
+        hist_result = await db.execute(
+            select(NodeStats)
+            .where(NodeStats.node_id.in_(node_ids))
+            .order_by(desc(NodeStats.recorded_at))
+        )
+        for stat in hist_result.scalars().all():
+            bucket = history_map[stat.node_id]
+            if len(bucket) < 20:
+                bucket.append({"t": stat.recorded_at.isoformat(), "cpu": stat.cpu, "ram": stat.ram})
+        # Reverse each bucket so oldest→newest (chronological for charts)
+        for k in history_map:
+            history_map[k].reverse()
+
     resp = []
     for n in nodes:
         is_offline = (datetime.utcnow() - n.last_seen).total_seconds() > 60
         status = "OFFLINE" if is_offline else "ONLINE"
-        
+
         stats = json.loads(n.stats) if n.stats else None
         tags = json.loads(n.tags) if n.tags else None
-        
+
         resp.append({
             "node_id": n.node_id,
             "hostname": n.hostname,
@@ -367,6 +385,7 @@ async def list_nodes(current_user: User = Depends(require_permission("nodes:read
             "capabilities": json.loads(n.capabilities) if n.capabilities else None,
             "concurrency_limit": n.concurrency_limit,
             "job_memory_limit": n.job_memory_limit,
+            "stats_history": history_map.get(n.node_id, []),
         })
     return resp
 

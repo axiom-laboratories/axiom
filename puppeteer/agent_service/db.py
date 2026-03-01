@@ -1,7 +1,7 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, Text, Boolean, DateTime, LargeBinary, UniqueConstraint
+from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint
 from datetime import datetime
 import json
 from typing import Optional
@@ -100,6 +100,15 @@ class Node(Base):
     job_memory_limit: Mapped[String] = mapped_column(String, default="512m")
     machine_id: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Host-bound ID
     node_secret_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Binding secret
+
+class NodeStats(Base):
+    __tablename__ = "node_stats"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    node_id: Mapped[str] = mapped_column(String, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    cpu: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ram: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
 
 class Blueprint(Base):
     __tablename__ = "blueprints"

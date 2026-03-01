@@ -83,6 +83,7 @@ class NodeResponse(BaseModel):
     capabilities: Optional[Dict] = None
     concurrency_limit: Optional[int] = None
     job_memory_limit: Optional[str] = None
+    stats_history: Optional[List[Dict]] = None
 
 class SignatureCreate(BaseModel):
     name: str
