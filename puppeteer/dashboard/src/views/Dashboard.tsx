@@ -8,6 +8,7 @@ import {
     AlertCircle,
     ArrowUpRight
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { authenticatedFetch } from '../auth';
 
@@ -15,6 +16,7 @@ const Dashboard = () => {
     const [stats, setStats] = useState({ activeNodes: 0, runningJobs: 0, successRate: 100 });
     const [recentJobs, setRecentJobs] = useState([]);
     const [chartData, setChartData] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const loadData = async () => {
         try {
@@ -71,6 +73,9 @@ const Dashboard = () => {
             }
         } catch (e) {
             console.error(e);
+            toast.error('Failed to load dashboard data. Retrying...');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -83,19 +88,23 @@ const Dashboard = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Control Plane</h1>
-                <p className="text-zinc-500">Global mesh orchestration and telemetry overview.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-white">Dashboard</h1>
+                <p className="text-sm text-zinc-500 mt-1">Global mesh orchestration overview.</p>
             </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="bg-zinc-925 border-zinc-800/50 hover:border-primary/50 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-400">Active Puppets</CardTitle>
+                        <CardTitle className="text-sm font-medium text-zinc-400">Active Nodes</CardTitle>
                         <Network className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-white tracking-tight">{stats.activeNodes}</div>
+                        {loading ? (
+                            <div className="h-9 w-16 bg-zinc-800 animate-pulse rounded" />
+                        ) : (
+                            <div className="text-3xl font-bold text-white tracking-tight">{stats.activeNodes}</div>
+                        )}
                         <p className="text-xs text-zinc-600 mt-1 flex items-center gap-1">
                             <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                             Nodes currently responding to heartbeat
@@ -109,7 +118,11 @@ const Dashboard = () => {
                         <Activity className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-white tracking-tight">{stats.runningJobs}</div>
+                        {loading ? (
+                            <div className="h-9 w-16 bg-zinc-800 animate-pulse rounded" />
+                        ) : (
+                            <div className="text-3xl font-bold text-white tracking-tight">{stats.runningJobs}</div>
+                        )}
                         <p className="text-xs text-zinc-600 mt-1">Pending and currently assigned tasks</p>
                     </CardContent>
                 </Card>
@@ -120,7 +133,11 @@ const Dashboard = () => {
                         <CheckCircle2 className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-white tracking-tight">{stats.successRate}%</div>
+                        {loading ? (
+                            <div className="h-9 w-16 bg-zinc-800 animate-pulse rounded" />
+                        ) : (
+                            <div className="text-3xl font-bold text-white tracking-tight">{stats.successRate}%</div>
+                        )}
                         <p className="text-xs text-zinc-600 mt-1">Validation pass rate over last 100 jobs</p>
                     </CardContent>
                 </Card>
@@ -189,12 +206,12 @@ const Dashboard = () => {
                                                 <p className="text-sm font-medium text-white truncate">
                                                     {job.payload.task_type || 'System Task'}
                                                 </p>
-                                                <span className="text-2xs text-zinc-600 flex items-center gap-1">
+                                                <span className="text-xs text-zinc-600 flex items-center gap-1">
                                                     <Clock className="h-3 w-3" />
                                                     {new Date(job.started_at || Date.now()).toLocaleTimeString()}
                                                 </span>
                                             </div>
-                                            <p className="text-2xs text-zinc-500 font-mono mt-1 uppercase tracking-wider">
+                                            <p className="text-xs text-zinc-500 font-mono mt-1 uppercase tracking-wider">
                                                 ID: {job.guid.substring(0, 8)}
                                             </p>
                                         </div>

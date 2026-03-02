@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authenticatedFetch } from '../auth';
 import JobDefinitionList from '../components/job-definitions/JobDefinitionList';
@@ -87,15 +88,16 @@ const JobDefinitions = () => {
                 body: JSON.stringify(body)
             });
             if (res.ok) {
+                toast.success('Job definition created successfully');
                 setShowModal(false);
                 loadData();
             } else {
                 const err = await res.json();
-                alert(`Error: ${err.detail}`);
+                toast.error(err.detail || 'Failed to create job definition');
             }
         } catch (e) {
             console.error(e);
-            alert("Submission Error");
+            toast.error("Submission Error");
         }
     };
 
@@ -110,8 +112,8 @@ const JobDefinitions = () => {
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Immutable Schedules</h1>
-                    <p className="text-zinc-500">Centrally signed Python payloads with zero-trust execution verification.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Scheduled Jobs</h1>
+                    <p className="text-sm text-zinc-500 mt-1">Signed, zero-trust recurring payloads.</p>
                 </div>
                 <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-primary/10">
                     <Plus className="mr-2 h-4 w-4" />

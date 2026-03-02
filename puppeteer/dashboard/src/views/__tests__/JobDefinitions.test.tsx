@@ -34,8 +34,8 @@ describe('JobDefinitions View', () => {
             expect(screen.queryByClassName?.('animate-pulse')).not.toBeInTheDocument();
         }, { timeout: 3000 }).catch(() => { }); // Fallback if pulse check fails
 
-        expect(screen.getByText(/Immutable Schedules/i)).toBeInTheDocument();
-        expect(screen.getByText(/Centrally signed Python payloads/i)).toBeInTheDocument();
+        expect(screen.getByText(/Scheduled Jobs/i)).toBeInTheDocument();
+        expect(screen.getByText(/Signed, zero-trust recurring payloads/i)).toBeInTheDocument();
     });
 
     it('shows the "Archive New Payload" button', async () => {

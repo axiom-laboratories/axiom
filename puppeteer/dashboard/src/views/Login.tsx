@@ -64,7 +64,7 @@ const Login = () => {
                 </form>
 
                 <div className="text-center pt-4">
-                    <p className="text-zinc-600 text-2xs uppercase font-bold tracking-widest">v1.2.0 • Secured by mTLS</p>
+                    <p className="text-zinc-600 text-xs uppercase font-bold tracking-widest">v1.2.0 • Secured by mTLS</p>
                 </div>
             </div>
         </div>

@@ -30,3 +30,6 @@ dist-ssr
 admin_token.txt
 join_token.txt
 puppets/token.txt
+secrets.env
+.agent/docs/
+.claude/

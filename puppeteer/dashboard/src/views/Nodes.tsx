@@ -15,11 +15,22 @@ import {
     X,
     Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import AddNodeModal from '../components/AddNodeModal';
 import ManageMountsModal from '../components/ManageMountsModal';
 import { authenticatedFetch } from '../auth';
@@ -115,37 +126,57 @@ const NodeCard = ({ node }: { node: Node }) => {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [revoking, setRevoking] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
 
     const deleteNode = async () => {
-        const msg = isOnline
-            ? `Force-remove ${node.hostname}? It is currently ONLINE — this will not stop running jobs.`
-            : `Remove ${node.hostname} from the mesh?`;
-        if (!confirm(msg)) return;
         setDeleting(true);
         try {
-            await authenticatedFetch(`/nodes/${node.node_id}`, { method: 'DELETE' });
-            queryClient.invalidateQueries({ queryKey: ['nodes'] });
+            const res = await authenticatedFetch(`/nodes/${node.node_id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success(`Node ${node.hostname} removed from mesh`);
+                queryClient.invalidateQueries({ queryKey: ['nodes'] });
+            } else {
+                toast.error(`Failed to remove node ${node.hostname}`);
+            }
+        } catch (e) {
+            toast.error(`Error removing node: ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
     const revokeNode = async () => {
-        if (!confirm(`Revoke ${node.hostname}? It will be blocked from all orchestrator communication immediately.`)) return;
         setRevoking(true);
         try {
-            await authenticatedFetch(`/nodes/${node.node_id}/revoke`, { method: 'POST' });
-            queryClient.invalidateQueries({ queryKey: ['nodes'] });
+            const res = await authenticatedFetch(`/nodes/${node.node_id}/revoke`, { method: 'POST' });
+            if (res.ok) {
+                toast.success(`Node ${node.hostname} access revoked`);
+                queryClient.invalidateQueries({ queryKey: ['nodes'] });
+            } else {
+                toast.error(`Failed to revoke node ${node.hostname}`);
+            }
+        } catch (e) {
+            toast.error(`Error revoking node: ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setRevoking(false);
+            setShowRevokeConfirm(false);
         }
     };
 
     const reinstateNode = async () => {
         setRevoking(true);
         try {
-            await authenticatedFetch(`/nodes/${node.node_id}/reinstate`, { method: 'POST' });
-            queryClient.invalidateQueries({ queryKey: ['nodes'] });
+            const res = await authenticatedFetch(`/nodes/${node.node_id}/reinstate`, { method: 'POST' });
+            if (res.ok) {
+                toast.success(`Node ${node.hostname} access reinstated`);
+                queryClient.invalidateQueries({ queryKey: ['nodes'] });
+            } else {
+                toast.error(`Failed to reinstate node ${node.hostname}`);
+            }
+        } catch (e) {
+            toast.error(`Error reinstating node: ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setRevoking(false);
         }
@@ -160,9 +191,14 @@ const NodeCard = ({ node }: { node: Node }) => {
                 body: JSON.stringify({ concurrency_limit: parseInt(concurrency) || 5, job_memory_limit: memLimit }),
             });
             if (res.ok) {
+                toast.success(`Node ${node.hostname} configuration updated`);
                 queryClient.invalidateQueries({ queryKey: ['nodes'] });
                 setEditing(false);
+            } else {
+                toast.error(`Failed to update node ${node.hostname}`);
             }
+        } catch (e) {
+            toast.error(`Error updating node: ${e instanceof Error ? e.message : 'Unknown error'}`);
         } finally {
             setSaving(false);
         }
@@ -182,6 +218,42 @@ const NodeCard = ({ node }: { node: Node }) => {
 
     return (
         <Card className={`overflow-hidden bg-zinc-925 border-zinc-800/50 ${isRevoked ? 'opacity-70' : ''}`}>
+            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Node?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {isOnline
+                                ? `Are you sure you want to force-remove ${node.hostname}? It is currently ONLINE — this will not stop running jobs.`
+                                : `Are you sure you want to remove ${node.hostname} from the mesh?`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={deleteNode} disabled={deleting}>
+                            {deleting ? 'Removing...' : 'Remove Node'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={showRevokeConfirm} onOpenChange={setShowRevokeConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Revoke Node Access?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to revoke {node.hostname}? It will be blocked from all orchestrator communication immediately.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={revokeNode} disabled={revoking}>
+                            {revoking ? 'Revoking...' : 'Revoke Access'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="flex flex-col gap-1">
                     <CardTitle className="text-base font-medium flex items-center gap-2 text-white">
@@ -247,10 +319,10 @@ const NodeCard = ({ node }: { node: Node }) => {
                             placeholder="512m"
                             title="Memory limit per job"
                         />
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-green-400 hover:bg-green-500/10 ml-auto" onClick={saveConfig} disabled={saving}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-green-400 hover:bg-green-500/10 ml-auto" onClick={saveConfig} disabled={saving} aria-label="Save configuration">
                             <Check className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:bg-zinc-800" onClick={() => setEditing(false)}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:bg-zinc-800" onClick={() => setEditing(false)} aria-label="Cancel editing">
                             <X className="h-3.5 w-3.5" />
                         </Button>
                     </div>
@@ -263,24 +335,24 @@ const NodeCard = ({ node }: { node: Node }) => {
                             <span className="text-xs text-zinc-600">{new Date(node.last_seen).toLocaleTimeString()}</span>
                             {isRevoked ? (
                                 <>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-400 hover:bg-emerald-500/10 rounded" onClick={reinstateNode} disabled={revoking} title="Reinstate node">
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-400 hover:bg-emerald-500/10 rounded" onClick={reinstateNode} disabled={revoking} title="Reinstate node" aria-label="Reinstate node">
                                         <RotateCcw className="h-3 w-3" />
                                     </Button>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-red-700 hover:text-red-400 hover:bg-red-500/10 rounded" onClick={deleteNode} disabled={deleting} title="Remove node">
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-red-700 hover:text-red-400 hover:bg-red-500/10 rounded" onClick={() => setShowDeleteConfirm(true)} disabled={deleting} title="Remove node" aria-label="Remove node">
                                         <Trash2 className="h-3 w-3" />
                                     </Button>
                                 </>
                             ) : (
                                 <>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10 rounded" onClick={revokeNode} disabled={revoking} title="Revoke node access">
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10 rounded" onClick={() => setShowRevokeConfirm(true)} disabled={revoking} title="Revoke node access" aria-label="Revoke node access">
                                         <Ban className="h-3 w-3" />
                                     </Button>
-                                    <Button size="icon" variant="ghost" className={`h-6 w-6 rounded ${isOnline ? 'text-zinc-700 hover:text-red-400 hover:bg-red-500/10' : 'text-red-700 hover:text-red-400 hover:bg-red-500/10'}`} onClick={deleteNode} disabled={deleting} title={isOnline ? 'Force-remove (node is online)' : 'Remove node'}>
+                                    <Button size="icon" variant="ghost" className={`h-6 w-6 rounded ${isOnline ? 'text-zinc-700 hover:text-red-400 hover:bg-red-500/10' : 'text-red-700 hover:text-red-400 hover:bg-red-500/10'}`} onClick={() => setShowDeleteConfirm(true)} disabled={deleting} title={isOnline ? 'Force-remove (node is online)' : 'Remove node'} aria-label={isOnline ? 'Force-remove (node is online)' : 'Remove node'}>
                                         <Trash2 className="h-3 w-3" />
                                     </Button>
                                 </>
                             )}
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-white hover:bg-zinc-800 rounded" onClick={() => setEditing(true)}>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-white hover:bg-zinc-800 rounded" onClick={() => setEditing(true)} aria-label="Configure node">
                                 <Settings2 className="h-3 w-3" />
                             </Button>
                         </div>
@@ -310,9 +382,9 @@ const Nodes = () => {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-white">Puppet Mesh</h2>
-                    <p className="text-zinc-500">
-                        Real-time telemetry and control plane for {nodes?.length || 0} active puppets.
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Nodes</h1>
+                    <p className="text-sm text-zinc-500 mt-1">
+                        Real-time telemetry for {nodes?.length || 0} active nodes.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -322,7 +394,7 @@ const Nodes = () => {
                     </Button>
                     <Button className="bg-primary hover:bg-primary/90 text-white font-bold" onClick={() => setShowAddModal(true)}>
                         <Server className="mr-2 h-4 w-4" />
-                        Provision Puppet
+                        Provision Node
                     </Button>
                 </div>
             </div>

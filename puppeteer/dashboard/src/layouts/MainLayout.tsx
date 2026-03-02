@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
     LayoutDashboard,
@@ -13,12 +13,27 @@ import {
     ScrollText,
     Users,
     KeyRound,
+    CalendarClock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Separator } from '@/components/ui/separator';
-import { authenticatedFetch, setToken } from '../auth';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { authenticatedFetch, setToken, getUser, logout } from '../auth';
 
 const ForceChangeModal = () => {
     const [newPw, setNewPw] = useState('');
@@ -53,17 +68,23 @@ const ForceChangeModal = () => {
     if (!me?.must_change_password) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <div className="w-full max-w-sm bg-zinc-900 border border-zinc-700 rounded-2xl p-8 shadow-2xl space-y-5">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                        <KeyRound className="h-5 w-5 text-amber-400" />
-                    </div>
-                    <div>
-                        <h2 className="text-white font-bold text-lg">Password Change Required</h2>
-                        <p className="text-zinc-500 text-sm">You must set a new password before continuing.</p>
-                    </div>
-                </div>
+        <Dialog open={true} onOpenChange={() => { }}>
+            <DialogContent
+                className="bg-zinc-900 border-zinc-700 max-w-sm"
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+            >
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-3 text-white">
+                        <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                            <KeyRound className="h-5 w-5 text-amber-400" />
+                        </div>
+                        Password Change Required
+                    </DialogTitle>
+                    <DialogDescription className="text-zinc-500">
+                        You must set a new password before continuing.
+                    </DialogDescription>
+                </DialogHeader>
                 <div className="space-y-3">
                     <Input
                         type="password"
@@ -89,8 +110,8 @@ const ForceChangeModal = () => {
                         {changePw.isPending ? 'Updating…' : 'Set New Password'}
                     </Button>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 };
 
@@ -128,13 +149,14 @@ const MainLayout = () => {
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         Monitoring
                     </div>
-                    <NavItem to="/nodes" icon={Server} label="Puppets" />
-                    <NavItem to="/jobs" icon={Cpu} label="Orchestration" />
+                    <NavItem to="/nodes" icon={Server} label="Nodes" />
+                    <NavItem to="/jobs" icon={Cpu} label="Jobs" />
+                    <NavItem to="/scheduled-jobs" icon={CalendarClock} label="Scheduled Jobs" />
 
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         Security
                     </div>
-                    <NavItem to="/signatures" icon={ShieldCheck} label="Trust Assets" />
+                    <NavItem to="/signatures" icon={ShieldCheck} label="Signing Keys" />
 
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         Foundry
@@ -150,13 +172,21 @@ const MainLayout = () => {
                 </nav>
             </div>
             <div className="p-6 border-t border-zinc-900">
-                <div className="flex items-center gap-2 text-2xs font-medium text-zinc-500">
+                <div className="flex items-center gap-2 text-xs font-medium text-zinc-500">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                     v1.2.0 • Online
                 </div>
             </div>
         </div>
     );
+
+    const navigate = useNavigate();
+    const user = getUser();
+    const initial = user?.username?.[0]?.toUpperCase() ?? '?';
+
+    const handleLogout = () => {
+        logout();
+    };
 
     return (
         <div className="flex min-h-screen w-full bg-zinc-975 text-white">
@@ -184,11 +214,31 @@ const MainLayout = () => {
                     <div className="flex-1 flex items-center justify-between">
                         <h1 className="text-sm font-semibold text-zinc-400 md:hidden">Puppeteer</h1>
                         <div>{/* Spacer or search */}</div>
-                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800" aria-label="User Profile">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                                <span className="text-xs font-bold text-primary">A</span>
-                            </div>
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800" aria-label="User menu">
+                                    <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                        <span className="text-xs font-bold text-primary">{initial}</span>
+                                    </div>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel className="text-zinc-500 font-normal">
+                                    Signed in as <span className="text-white font-medium">{user?.username}</span>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => navigate('/users')}>
+                                    My Account
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                    onClick={handleLogout}
+                                >
+                                    Sign Out
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </header>
                 <main className="flex-1 p-4 lg:p-8 overflow-auto max-w-7xl mx-auto w-full">

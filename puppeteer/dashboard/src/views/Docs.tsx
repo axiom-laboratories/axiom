@@ -18,11 +18,12 @@ const Docs = () => {
     // Content is imported at build time, no need for effect or state
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Documentation & Wiki</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <div>
+                <h1 className="text-2xl font-bold tracking-tight text-white">Documentation</h1>
+                <p className="text-sm text-zinc-500 mt-1">System user guide and orchestration manuals.</p>
+            </div>
+            <Card className="bg-zinc-925 border-zinc-800/50">
+                <CardContent className="pt-6">
                     <div className="prose prose-slate dark:prose-invert max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {userGuideMd}

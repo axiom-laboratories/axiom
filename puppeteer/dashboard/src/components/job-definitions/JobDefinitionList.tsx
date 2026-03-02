@@ -75,12 +75,12 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle }: JobD
             <Table>
                 <TableHeader className="bg-zinc-900/50 border-zinc-800">
                     <TableRow className="border-zinc-800 hover:bg-transparent">
-                        <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pl-6">Job Definition</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Cron Schedule</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Integrity</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Observation Feed (30d)</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Last Sync</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pr-6 text-right">Actions</TableHead>
+                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest pl-6">Job Definition</TableHead>
+                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Cron Schedule</TableHead>
+                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Integrity</TableHead>
+                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Observation Feed (30d)</TableHead>
+                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Last Sync</TableHead>
+                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest pr-6 text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -93,7 +93,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle }: JobD
                                             <Terminal className="h-3 w-3 text-primary" />
                                             {def.name}
                                         </span>
-                                        <span className="text-2xs text-zinc-600 font-mono mt-0.5">ID: {def.id.substring(0, 8)}</span>
+                                        <span className="text-xs text-zinc-600 font-mono mt-0.5">ID: {def.id.substring(0, 8)}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell>

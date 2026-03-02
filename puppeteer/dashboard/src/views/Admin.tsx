@@ -12,6 +12,7 @@ import {
     Terminal,
     AlertCircle
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,11 +32,12 @@ const Admin = () => {
             if (res.ok) {
                 const data = await res.json();
                 setJoinToken(data.token);
+                toast.success('Join token generated successfully');
             } else {
-                console.error('Token generation failed');
+                toast.error('Token generation failed');
             }
         } catch (error) {
-            console.error(error);
+            toast.error('An error occurred during token generation');
         } finally {
             setIsGenerating(false);
         }
@@ -51,10 +53,12 @@ const Admin = () => {
             });
             if (res.ok) {
                 setPubKey('');
-                alert('Key stored successfully');
+                toast.success('Public key stored successfully');
+            } else {
+                toast.error('Failed to store public key');
             }
         } catch (e) {
-            console.error(e);
+            toast.error('An error occurred during key upload');
         } finally {
             setIsUploading(false);
         }
@@ -63,8 +67,8 @@ const Admin = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Admin Console</h1>
-                <p className="text-zinc-500">System-wide configuration, node onboarding, and master security policy.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-white">Admin</h1>
+                <p className="text-sm text-zinc-500 mt-1">System configuration and node onboarding.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -97,7 +101,7 @@ const Admin = () => {
                         ) : (
                             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                                 <div className="space-y-2">
-                                    <label className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Active Join Token</label>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Active Join Token</label>
                                     <div className="flex gap-2">
                                         <div className="flex-1 h-12 bg-zinc-900 border border-primary/30 rounded-xl flex items-center px-4 font-mono text-primary font-bold overflow-hidden truncate">
                                             {joinToken}
@@ -112,7 +116,7 @@ const Admin = () => {
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-2xs text-green-500 font-bold uppercase tracking-tighter">
+                                <div className="flex items-center gap-2 text-xs text-green-500 font-bold uppercase tracking-tighter">
                                     <CheckCircle2 className="h-3 w-3" />
                                     Token ready for deployment
                                 </div>
@@ -143,8 +147,8 @@ const Admin = () => {
                     <CardContent className="flex-1 space-y-4">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <label htmlFor="master-public-key" className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Master Public Key (PEM)</label>
-                                <Badge variant="outline" className="h-5 px-1.5 text-2xs border-zinc-800 text-zinc-600">Rotation Required</Badge>
+                                <label htmlFor="master-public-key" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Master Public Key (PEM)</label>
+                                <Badge variant="outline" className="h-5 px-1.5 text-xs border-zinc-800 text-zinc-600">Rotation Required</Badge>
                             </div>
                             <div className="relative group/pk">
                                 <Terminal className="absolute top-3 left-3 h-4 w-4 text-zinc-600" />
@@ -162,13 +166,13 @@ const Admin = () => {
                         <Button
                             onClick={uploadKey}
                             disabled={isUploading || !pubKey}
-                            className="w-full h-12 bg-zinc-100 hover:bg-white text-black font-bold rounded-xl transition-all disabled:opacity-50"
+                            className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-bold rounded-xl transition-all disabled:opacity-50"
                         >
                             <Lock className="mr-2 h-4 w-4" />
                             {isUploading ? 'Updating Root...' : 'Upload Root Key'}
                         </Button>
 
-                        <p className="text-2xs text-zinc-600 text-center flex items-center justify-center gap-1">
+                        <p className="text-xs text-zinc-600 text-center flex items-center justify-center gap-1">
                             <AlertCircle className="h-3 w-3" />
                             Changing this key will break validation for all existing nodes until they are updated.
                         </p>

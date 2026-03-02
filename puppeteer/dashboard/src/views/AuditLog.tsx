@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollText } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { authenticatedFetch } from '../auth';
 
 interface AuditEntry {
@@ -29,30 +32,40 @@ const ACTION_COLOR: Record<string, string> = {
     'base_image:marked_updated': 'text-emerald-400',
 };
 
+const PAGE_SIZE = 100;
+
 const AuditLog = () => {
-    const { data: entries = [], isLoading } = useQuery<AuditEntry[]>({
-        queryKey: ['audit-log'],
+    const [page, setPage] = useState(0);
+
+    const { data: entries = [], isLoading, isPlaceholderData } = useQuery<AuditEntry[]>({
+        queryKey: ['audit-log', page],
         queryFn: async () => {
-            const res = await authenticatedFetch('/admin/audit-log?limit=200');
-            if (!res.ok) throw new Error('Failed to fetch audit log');
-            return await res.json();
+            try {
+                const res = await authenticatedFetch(`/admin/audit-log?limit=${PAGE_SIZE}&skip=${page * PAGE_SIZE}`);
+                if (!res.ok) throw new Error('Failed to fetch audit log');
+                return await res.json();
+            } catch (e) {
+                toast.error('Failed to load audit log');
+                throw e;
+            }
         },
         refetchInterval: 15000,
+        placeholderData: (previousData) => previousData,
     });
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <ScrollText className="h-6 w-6 text-primary" />
+                    <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                        <ScrollText className="h-5 w-5 text-primary" />
                         Audit Log
-                    </h2>
+                    </h1>
                     <p className="text-zinc-500 text-sm mt-1">Security-relevant actions, most recent first.</p>
                 </div>
             </div>
 
-            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+            <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950/20">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-zinc-900 border-b border-zinc-800">
@@ -64,7 +77,7 @@ const AuditLog = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {isLoading ? (
+                        {isLoading && entries.length === 0 ? (
                             Array.from({ length: 8 }).map((_, i) => (
                                 <tr key={i} className="border-b border-zinc-800/50">
                                     {Array.from({ length: 5 }).map((_, j) => (
@@ -82,7 +95,7 @@ const AuditLog = () => {
                             </tr>
                         ) : (
                             entries.map(entry => (
-                                <tr key={entry.id} className="border-b border-zinc-800/40 hover:bg-zinc-900/40 transition-colors">
+                                <tr key={entry.id} className={`border-b border-zinc-800/40 hover:bg-zinc-900/40 transition-colors ${isPlaceholderData ? 'opacity-50' : ''}`}>
                                     <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-500">
                                         {new Date(entry.timestamp).toLocaleString()}
                                     </td>
@@ -105,6 +118,29 @@ const AuditLog = () => {
                         )}
                     </tbody>
                 </table>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800 bg-zinc-900/30">
+                    <span className="text-xs text-zinc-500">Page {page + 1}</span>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs text-zinc-400 hover:text-white"
+                            disabled={page === 0}
+                            onClick={() => setPage(p => p - 1)}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs text-zinc-400 hover:text-white"
+                            disabled={entries.length < PAGE_SIZE}
+                            onClick={() => setPage(p => p + 1)}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );

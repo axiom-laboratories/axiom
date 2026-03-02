@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Plus,
     Play,
@@ -16,6 +17,7 @@ import {
     Timer,
     Ban,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -185,12 +187,15 @@ const Jobs = () => {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
     const [filterText, setFilterText] = useState('');
+    const [filterStatus, setFilterStatus] = useState<string>('all');
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     // Dispatch form state
     const [newTaskType, setNewTaskType] = useState('web_task');
     const [newTaskPayload, setNewTaskPayload] = useState('{}');
+    const [payloadError, setPayloadError] = useState<string | null>(null);
     const [targetTags, setTargetTags] = useState('');
     const [capabilityReqs, setCapabilityReqs] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -205,6 +210,9 @@ const Jobs = () => {
             if (countRes.ok) { const d = await countRes.json(); setTotal(d.total); }
         } catch (e) {
             console.error(e);
+            toast.error('Failed to load jobs');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -221,6 +229,7 @@ const Jobs = () => {
     const createJob = async () => {
         try {
             setIsSubmitting(true);
+            setPayloadError(null);
             const payload = JSON.parse(newTaskPayload);
 
             // Parse tags: "linux, gpu" → ["linux", "gpu"]
@@ -248,13 +257,18 @@ const Jobs = () => {
                 }),
             });
             if (res.ok) {
+                toast.success('Job dispatched successfully');
                 fetchJobs();
                 setNewTaskPayload('{}');
                 setTargetTags('');
                 setCapabilityReqs('');
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || 'Failed to dispatch job');
             }
         } catch (e) {
             console.error('Invalid JSON Payload', e);
+            setPayloadError('Invalid JSON Payload');
         } finally {
             setIsSubmitting(false);
         }
@@ -268,27 +282,37 @@ const Jobs = () => {
     const cancelJob = async (guid: string) => {
         try {
             const res = await authenticatedFetch(`/jobs/${guid}/cancel`, { method: 'PATCH' });
-            if (res.ok) fetchJobs();
+            if (res.ok) {
+                toast.success('Job cancelled');
+                fetchJobs();
+            } else {
+                toast.error('Failed to cancel job');
+            }
         } catch (e) {
             console.error(e);
+            toast.error('Failed to cancel job');
         }
     };
 
-    const filteredJobs = filterText
-        ? jobs.filter(j => j.guid.toLowerCase().includes(filterText.toLowerCase()))
-        : jobs;
+    const filteredJobs = jobs.filter(j => {
+        const matchesText = !filterText || j.guid.toLowerCase().includes(filterText.toLowerCase());
+        const matchesStatus = filterStatus === 'all' || j.status.toLowerCase() === filterStatus.toLowerCase();
+        return matchesText && matchesStatus;
+    });
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Task Queue</h1>
-                    <p className="text-zinc-500">Dispatch and monitor orchestration payloads across the mesh.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Jobs</h1>
+                    <p className="text-sm text-zinc-500 mt-1">Dispatch and monitor task payloads.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900">
-                        <History className="mr-2 h-4 w-4" />
-                        Audit Log
+                    <Button variant="outline" className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900" asChild>
+                        <Link to="/audit">
+                            <History className="mr-2 h-4 w-4" />
+                            Audit Log
+                        </Link>
                     </Button>
                 </div>
             </div>
@@ -324,9 +348,10 @@ const Jobs = () => {
                                 <Terminal className="absolute top-3 left-3 h-4 w-4 text-zinc-600" />
                                 <textarea
                                     value={newTaskPayload}
-                                    onChange={e => setNewTaskPayload(e.target.value)}
-                                    className="w-full h-32 pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 text-green-500 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                    onChange={e => { setNewTaskPayload(e.target.value); setPayloadError(null); }}
+                                    className={`w-full h-32 pl-10 pr-4 py-3 bg-zinc-900 border ${payloadError ? 'border-red-500/50' : 'border-zinc-800'} text-green-500 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all`}
                                 />
+                                {payloadError && <p className="text-xs text-red-400 mt-1">{payloadError}</p>}
                             </div>
                         </div>
 
@@ -374,14 +399,29 @@ const Jobs = () => {
                             <CardTitle className="text-lg font-bold text-white">Queue Monitor</CardTitle>
                             <CardDescription className="text-zinc-500">Real-time status of dispatched tasks.</CardDescription>
                         </div>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600" />
-                            <Input
-                                placeholder="Filter GUID..."
-                                value={filterText}
-                                onChange={e => setFilterText(e.target.value)}
-                                className="pl-9 bg-zinc-900 border-zinc-800 h-9 w-44 text-sm text-white"
-                            />
+                        <div className="flex items-center gap-2">
+                            <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(0); }}>
+                                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-9 w-32 text-xs">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="assigned">Assigned</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="failed">Failed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600" />
+                                <Input
+                                    placeholder="Filter GUID..."
+                                    value={filterText}
+                                    onChange={e => setFilterText(e.target.value)}
+                                    className="pl-9 bg-zinc-900 border-zinc-800 h-9 w-44 text-sm text-white"
+                                />
+                            </div>
                         </div>
                     </CardHeader>
                     <Table>
@@ -396,7 +436,17 @@ const Jobs = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredJobs.length > 0 ? (
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <TableRow key={i} className="border-zinc-800">
+                                        {Array.from({ length: 6 }).map((_, j) => (
+                                            <TableCell key={j} className="py-3 pl-6">
+                                                <div className="h-3 bg-zinc-800 animate-pulse rounded w-3/4" />
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
+                            ) : filteredJobs.length > 0 ? (
                                 filteredJobs.map(job => (
                                     <TableRow key={job.guid} className="border-zinc-800 hover:bg-zinc-900/30 transition-colors cursor-pointer" onClick={() => openDetail(job)}>
                                         <TableCell className="font-mono text-zinc-400 pl-6">

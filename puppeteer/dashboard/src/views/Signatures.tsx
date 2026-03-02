@@ -10,6 +10,7 @@ import {
     ShieldCheck,
     AlertCircle
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,16 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +47,8 @@ interface Signature {
 
 const Signatures = () => {
     const [showModal, setShowModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ name: '', public_key: '' });
     const user = getUser();
     const queryClient = useQueryClient();
@@ -56,8 +69,12 @@ const Signatures = () => {
             return id;
         },
         onSuccess: () => {
+            toast.success("Signing key removed from registry");
             queryClient.invalidateQueries({ queryKey: ['signatures'] });
-        }
+            setShowDeleteConfirm(false);
+            setDeleteId(null);
+        },
+        onError: (e: Error) => toast.error(`Failed to delete key: ${e.message}`),
     });
 
     const uploadMutation = useMutation({
@@ -67,19 +84,28 @@ const Signatures = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            if (!res.ok) throw new Error("Upload failed");
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Upload failed");
+            }
             return await res.json();
         },
         onSuccess: () => {
+            toast.success("Public key stored successfully");
             setShowModal(false);
             setFormData({ name: '', public_key: '' });
             queryClient.invalidateQueries({ queryKey: ['signatures'] });
-        }
+        },
+        onError: (e: Error) => toast.error(`Registration failed: ${e.message}`),
     });
 
     const handleDelete = (id: string) => {
-        if (!confirm("Are you sure? Jobs using this key will fail validation.")) return;
-        deleteMutation.mutate(id);
+        setDeleteId(id);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deleteId) deleteMutation.mutate(deleteId);
     };
 
     const handleUpload = (e: React.FormEvent) => {
@@ -103,10 +129,26 @@ const Signatures = () => {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
+            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Signing Key?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure? Jobs using this key will fail validation. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmDelete} disabled={deleteMutation.isPending}>
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete Key'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Signature Registry</h1>
-                    <p className="text-zinc-500">Manage trusted public keys for zero-trust script verification.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Signing Keys</h1>
+                    <p className="text-sm text-zinc-500 mt-1">Ed25519 public keys for job verification.</p>
                 </div>
                 <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl">
                     <Plus className="mr-2 h-4 w-4" />
@@ -129,12 +171,12 @@ const Signatures = () => {
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                         <ShieldCheck className="h-5 w-5" />
                                     </div>
-                                    <Badge variant="outline" className="text-2xs font-mono border-zinc-800 text-zinc-500 uppercase">
+                                    <Badge variant="outline" className="text-xs font-mono border-zinc-800 text-zinc-500 uppercase">
                                         Active
                                     </Badge>
                                 </div>
                                 <CardTitle className="mt-4 text-white font-bold">{sig.name}</CardTitle>
-                                <CardDescription className="flex items-center gap-1 text-2xs text-zinc-500 font-mono">
+                                <CardDescription className="flex items-center gap-1 text-xs text-zinc-500 font-mono">
                                     UID: {sig.id.substring(0, 8)}
                                 </CardDescription>
                             </CardHeader>
@@ -143,10 +185,10 @@ const Signatures = () => {
                                     <Textarea
                                         readOnly
                                         value={sig.public_key}
-                                        className="h-24 bg-zinc-900 border-zinc-800 text-2xs font-mono text-zinc-400 resize-none focus-visible:ring-0"
+                                        className="h-24 bg-zinc-900 border-zinc-800 text-xs font-mono text-zinc-400 resize-none focus-visible:ring-0"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 to-transparent flex items-end justify-center pb-2 opacity-0 group-hover/key:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="sm" className="h-7 text-2xs text-white hover:bg-white/10 uppercase tracking-widest font-bold">
+                                        <Button variant="ghost" size="sm" className="h-7 text-xs text-white hover:bg-white/10 uppercase tracking-widest font-bold">
                                             <ExternalLink className="mr-1 h-3 w-3" />
                                             View Full PEM
                                         </Button>
@@ -189,7 +231,7 @@ const Signatures = () => {
                     </DialogHeader>
                     <form onSubmit={handleUpload} className="space-y-6 pt-4">
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 font-bold uppercase text-2xs tracking-widest">Key Identifier</Label>
+                            <Label className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Key Identifier</Label>
                             <Input
                                 placeholder="e.g. Master Build Pipeline"
                                 className="bg-zinc-900 border-zinc-800 h-11"
@@ -199,7 +241,7 @@ const Signatures = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 font-bold uppercase text-2xs tracking-widest">Public Key Content (PEM)</Label>
+                            <Label className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Public Key Content (PEM)</Label>
                             <div className="relative">
                                 <div className="absolute top-3 left-3 h-4 w-4 text-zinc-600">
                                     <Shield className="h-full w-full" />

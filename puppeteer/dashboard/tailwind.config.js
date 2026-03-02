@@ -1,9 +1,14 @@
 /** @type {import('tailwindcss').Config} */
+/* global require */
 export default {
     darkMode: ["class"],
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
     theme: {
         extend: {
+            fontFamily: {
+                sans: ['Fira Sans', 'system-ui', 'sans-serif'],
+                mono: ['Fira Code', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+            },
             fontSize: {
                 '2xs': '10px',
             },

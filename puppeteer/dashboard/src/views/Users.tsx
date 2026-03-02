@@ -1,12 +1,23 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserPlus, Trash2, ChevronDown, ChevronRight, Plus, X, Shield, KeyRound, User, RotateCcw, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { setToken } from '../auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { authenticatedFetch } from '../auth';
 
 const ALL_PERMISSIONS = [
@@ -245,6 +256,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
     const qc = useQueryClient();
     const [editingRole, setEditingRole] = useState(false);
     const [showReset, setShowReset] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [resetPw, setResetPw] = useState('');
     const [resetConfirm, setResetConfirm] = useState('');
     const [resetMsg, setResetMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -256,12 +268,22 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ role }),
             }),
-        onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setEditingRole(false); },
+        onSuccess: () => {
+            toast.success(`Role for ${user.username} updated to ${updateRole.variables}`);
+            qc.invalidateQueries({ queryKey: ['users'] });
+            setEditingRole(false);
+        },
+        onError: (e: Error) => toast.error(`Failed to update role: ${e.message}`),
     });
 
     const deleteUser = useMutation({
         mutationFn: () => authenticatedFetch(`/admin/users/${user.username}`, { method: 'DELETE' }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+        onSuccess: () => {
+            toast.success(`User ${user.username} deleted`);
+            qc.invalidateQueries({ queryKey: ['users'] });
+            setShowDeleteConfirm(false);
+        },
+        onError: (e: Error) => toast.error(`Failed to delete user: ${e.message}`),
     });
 
     const resetPassword = useMutation({
@@ -272,10 +294,14 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                 body: JSON.stringify({ password: resetPw }),
             }),
         onSuccess: () => {
+            toast.success(`Password reset for ${user.username}`);
             setResetPw(''); setResetConfirm(''); setShowReset(false);
             setResetMsg({ type: 'ok', text: 'Password reset.' });
         },
-        onError: () => setResetMsg({ type: 'err', text: 'Reset failed.' }),
+        onError: () => {
+            toast.error(`Failed to reset password for ${user.username}`);
+            setResetMsg({ type: 'err', text: 'Reset failed.' });
+        },
     });
 
     const forceChange = useMutation({
@@ -285,13 +311,33 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled }),
             }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+        onSuccess: () => {
+            toast.success(`Force password change ${forceChange.variables ? 'enabled' : 'disabled'} for ${user.username}`);
+            qc.invalidateQueries({ queryKey: ['users'] });
+        },
+        onError: (e: Error) => toast.error(`Failed to update force change status: ${e.message}`),
     });
 
     const canReset = resetPw.length >= 8 && resetPw === resetConfirm;
 
     return (
         <>
+            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete User?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete user "{user.username}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteUser.mutate()} disabled={deleteUser.isPending}>
+                            {deleteUser.isPending ? 'Deleting...' : 'Delete User'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <tr className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
                 <td className="px-6 py-3 font-mono text-white">
                     <span className="flex items-center gap-2">
@@ -356,7 +402,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                                 <Button
                                     size="icon" variant="ghost"
                                     className="h-7 w-7 text-zinc-600 hover:text-red-400 hover:bg-red-500/10"
-                                    onClick={() => confirm(`Delete user "${user.username}"?`) && deleteUser.mutate()}
+                                    onClick={() => setShowDeleteConfirm(true)}
                                     title="Delete user"
                                 >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -427,19 +473,21 @@ const Users = () => {
                 body: JSON.stringify({ username: newUsername, password: newPassword, role: newRole }),
             }),
         onSuccess: () => {
+            toast.success(`User ${newUsername} created`);
             qc.invalidateQueries({ queryKey: ['users'] });
             setNewUsername('');
             setNewPassword('');
             setNewRole('viewer');
             setShowCreate(false);
         },
+        onError: (e: Error) => toast.error(`Failed to create user: ${e.message}`),
     });
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Users & Roles</h1>
-                <p className="text-zinc-500">Manage operator accounts and configure role permissions.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-white">Users & Roles</h1>
+                <p className="text-sm text-zinc-500 mt-1">Manage operator accounts and configure role permissions.</p>
             </div>
 
             <MyAccount />

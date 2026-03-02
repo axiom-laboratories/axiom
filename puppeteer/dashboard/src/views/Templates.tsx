@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Boxes, CheckCircle2, Clock, AlertCircle, Loader2, Plus, Cpu, Globe, Zap, Trash2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,9 +49,13 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
         onMutate: () => setBuildStatus('building'),
         onSuccess: () => {
             setBuildStatus('success');
+            toast.success(`Build started for ${template.friendly_name}`);
             queryClient.invalidateQueries({ queryKey: ['templates'] });
         },
-        onError: () => setBuildStatus('failed'),
+        onError: (e: Error) => {
+            setBuildStatus('failed');
+            toast.error(`Build failed: ${e.message}`);
+        },
     });
 
     const deleteMutation = useMutation({
@@ -61,7 +66,11 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                 throw new Error(err.detail || 'Delete failed');
             }
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['templates'] }),
+        onSuccess: () => {
+            toast.success(`Template ${template.friendly_name} deleted`);
+            queryClient.invalidateQueries({ queryKey: ['templates'] });
+        },
+        onError: (e: Error) => toast.error(`Delete failed: ${e.message}`),
     });
 
     return (
@@ -145,7 +154,11 @@ const BlueprintItem = ({ blueprint }: { blueprint: Blueprint }) => {
                 throw new Error(err.detail || 'Delete failed');
             }
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['blueprints'] }),
+        onSuccess: () => {
+            toast.success(`Blueprint ${blueprint.name} deleted`);
+            queryClient.invalidateQueries({ queryKey: ['blueprints'] });
+        },
+        onError: (e: Error) => toast.error(`Delete failed: ${e.message}`),
     });
 
     return (
@@ -243,7 +256,11 @@ const Templates = () => {
             const res = await authenticatedFetch('/admin/mark-base-updated', { method: 'POST' });
             if (!res.ok) throw new Error('Failed');
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['base-image-updated'] }),
+        onSuccess: () => {
+            toast.success('Base image marked as updated');
+            queryClient.invalidateQueries({ queryKey: ['base-image-updated'] });
+        },
+        onError: () => toast.error('Failed to mark base image updated'),
     });
 
     const baseUpdatedAt = baseImageData?.base_node_image_updated_at ?? null;
@@ -253,8 +270,8 @@ const Templates = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Puppet Foundry</h1>
-                    <p className="text-zinc-500 text-sm">Compose and build immutable agent environments from standardized blueprints.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Templates</h1>
+                    <p className="text-sm text-zinc-500 mt-1">Compose and build immutable agent environments.</p>
                 </div>
                 <div className="flex gap-2">
                     <Button

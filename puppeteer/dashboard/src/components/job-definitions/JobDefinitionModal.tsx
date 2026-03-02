@@ -74,7 +74,7 @@ const JobDefinitionModal = ({
                 <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="job-name" className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Metadata</Label>
+                            <Label htmlFor="job-name" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Metadata</Label>
                             <div className="space-y-4">
                                 <div className="relative">
                                     <Input
@@ -131,7 +131,7 @@ const JobDefinitionModal = ({
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="job-signature-id" className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Root of Trust</Label>
+                            <Label htmlFor="job-signature-id" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Root of Trust</Label>
                             <Select
                                 value={formData.signature_id}
                                 onValueChange={(val) => setFormData({ ...formData, signature_id: val })}
@@ -150,11 +150,11 @@ const JobDefinitionModal = ({
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="job-signature" className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Signature Payload (B64)</Label>
+                            <Label htmlFor="job-signature" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Signature Payload (B64)</Label>
                             <Textarea
                                 id="job-signature"
                                 placeholder="Paste Ed25519/RSA signature..."
-                                className="bg-zinc-900 border-zinc-800 h-24 font-mono text-2xs text-zinc-400"
+                                className="bg-zinc-900 border-zinc-800 h-24 font-mono text-xs text-zinc-400"
                                 value={formData.signature}
                                 onChange={e => setFormData({ ...formData, signature: e.target.value })}
                                 required
@@ -162,7 +162,7 @@ const JobDefinitionModal = ({
                             />
                             <div className="flex items-start gap-2 p-3 rounded-lg bg-zinc-900 border border-zinc-800" id="signature-help">
                                 <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
-                                <p className="text-2xs text-zinc-500 leading-normal">
+                                <p className="text-xs text-zinc-500 leading-normal">
                                     Use the system CLI or <code>openssl</code> to sign the script. If the signature doesn't match the script bytes exactly, nodes will reject the payload with a <code>SIGNATURE_INVALID</code> alert.
                                 </p>
                             </div>
@@ -170,7 +170,7 @@ const JobDefinitionModal = ({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="job-script" className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Python Payload Source</Label>
+                        <Label htmlFor="job-script" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Python Payload Source</Label>
                         <div className="relative h-full flex flex-col">
                             <div className="absolute top-3 left-3 h-4 w-4 text-zinc-700 pointer-events-none">
                                 <Code2 className="h-full w-full" />
