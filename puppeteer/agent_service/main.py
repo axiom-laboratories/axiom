@@ -18,11 +18,16 @@ from contextlib import asynccontextmanager
 from .models import (
     JobCreate, RegisterRequest, RegisterResponse, JobResponse, WorkResponse,
     ResultReport, TokenResponse, HeartbeatPayload, NodeConfig, PollResponse,
-    NodeResponse, SignatureCreate, SignatureResponse, JobDefinitionCreate,
+    NodeResponse, SignatureCreate, SignatureResponse, JobDefinitionCreate, JobDefinitionUpdate,
     JobDefinitionResponse, PingRequest, NetworkMount, MountsConfig,
     ImageBuildRequest, ImageResponse, EnrollmentRequest,
     BlueprintCreate, BlueprintResponse, PuppetTemplateCreate, PuppetTemplateResponse,
-    CapabilityMatrixEntry, UploadKeyRequest, UserCreate, UserResponse, PermissionGrant
+    CapabilityMatrixEntry, UploadKeyRequest, UserCreate, UserResponse, PermissionGrant,
+    UserSigningKeyCreate, UserSigningKeyResponse, UserSigningKeyGeneratedResponse,
+    UserApiKeyCreate, UserApiKeyResponse, UserApiKeyCreatedResponse,
+    ServicePrincipalCreate, ServicePrincipalResponse, ServicePrincipalCreatedResponse,
+    ServicePrincipalUpdate, ServicePrincipalTokenRequest, ServicePrincipalRotateResponse,
+    ALLOWED_ROLES,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
@@ -41,7 +46,7 @@ from sqlalchemy.future import select
 from sqlalchemy import update, desc, func, delete
 from collections import defaultdict
 from cryptography import x509 as _x509
-from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate, RolePermission, AuditLog, RevokedCert
+from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, CapabilityMatrix, Blueprint, PuppetTemplate, RolePermission, AuditLog, RevokedCert, UserSigningKey, UserApiKey, ServicePrincipal
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from .services.job_service import JobService
 from .services.signature_service import SignatureService
@@ -90,11 +95,47 @@ async def lifespan(app: FastAPI):
                     tool_id="pwsh-7.4",
                     injection_recipe="RUN apt-get update && apt-get install -y wget && wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/powershell_7.4.1-1.deb_amd64.deb && dpkg -i powershell_7.4.1-1.deb_amd64.deb && apt-get install -f",
                     validation_cmd="pwsh -version"
-                )
+                ),
+                CapabilityMatrix(
+                    base_os_family="ALPINE",
+                    tool_id="python-3.11",
+                    injection_recipe="RUN apk add --no-cache python3 py3-pip python3-dev build-base libffi-dev openssl-dev && ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip",
+                    validation_cmd="python3 --version"
+                ),
+                CapabilityMatrix(
+                    base_os_family="ALPINE",
+                    tool_id="pwsh-7.4",
+                    injection_recipe="RUN apk add --no-cache ca-certificates less ncurses-terminfo-base krb5-libs libgcc libintl libssl3 libstdc++ tzdata userspace-rcu zlib icu-libs curl && curl -L https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/powershell-7.4.1-linux-musl-x64.tar.gz -o /tmp/powershell.tar.gz && mkdir -p /opt/microsoft/powershell/7 && tar zxf /tmp/powershell.tar.gz -C /opt/microsoft/powershell/7 && chmod +x /opt/microsoft/powershell/7/pwsh && ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh && rm /tmp/powershell.tar.gz",
+                    validation_cmd="pwsh -Version"
+                ),
             ]
             db.add_all(recipes)
             await db.commit()
             logger.info("✅ Capability Matrix Seeded")
+        else:
+            # Existing DB — check if ALPINE recipes are missing and seed them
+            alpine_check = await db.execute(
+                select(CapabilityMatrix).where(CapabilityMatrix.base_os_family == "ALPINE").limit(1)
+            )
+            if not alpine_check.scalar_one_or_none():
+                logger.info("🌱 Seeding ALPINE Capability Matrix recipes...")
+                alpine_recipes = [
+                    CapabilityMatrix(
+                        base_os_family="ALPINE",
+                        tool_id="python-3.11",
+                        injection_recipe="RUN apk add --no-cache python3 py3-pip python3-dev build-base libffi-dev openssl-dev && ln -sf /usr/bin/python3 /usr/bin/python && ln -sf /usr/bin/pip3 /usr/bin/pip",
+                        validation_cmd="python3 --version"
+                    ),
+                    CapabilityMatrix(
+                        base_os_family="ALPINE",
+                        tool_id="pwsh-7.4",
+                        injection_recipe="RUN apk add --no-cache ca-certificates less ncurses-terminfo-base krb5-libs libgcc libintl libssl3 libstdc++ tzdata userspace-rcu zlib icu-libs curl && curl -L https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/powershell-7.4.1-linux-musl-x64.tar.gz -o /tmp/powershell.tar.gz && mkdir -p /opt/microsoft/powershell/7 && tar zxf /tmp/powershell.tar.gz -C /opt/microsoft/powershell/7 && chmod +x /opt/microsoft/powershell/7/pwsh && ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh && rm /tmp/powershell.tar.gz",
+                        validation_cmd="pwsh -Version"
+                    ),
+                ]
+                db.add_all(alpine_recipes)
+                await db.commit()
+                logger.info("✅ ALPINE Capability Matrix Seeded")
 
     # Seed Role Permissions
     async with AsyncSessionLocal() as db:
@@ -359,8 +400,67 @@ Write-Host "[MoP] Done. You can now access the dashboard at https://<host>:8443"
     return Response(content=script, media_type="text/plain",
                     headers={"Content-Disposition": "inline; filename=mop-install-ca.ps1"})
 
+class _SPUserProxy:
+    """Makes a ServicePrincipal quack like a User for permission checks and auditing."""
+    def __init__(self, sp: ServicePrincipal):
+        self.username = f"sp:{sp.name}"
+        self.role = sp.role
+        self.token_version = 0
+        self.must_change_password = False
+        self._sp = sp
+
+
+async def _authenticate_api_key(raw_key: str, db: AsyncSession):
+    """Authenticate using a personal API key (mop_...). Returns the owning User."""
+    prefix = raw_key[:12]
+    result = await db.execute(
+        select(UserApiKey).where(UserApiKey.key_prefix == prefix)
+    )
+    candidates = result.scalars().all()
+
+    for candidate in candidates:
+        if verify_password(raw_key, candidate.key_hash):
+            if candidate.expires_at and candidate.expires_at < datetime.utcnow():
+                raise HTTPException(401, "API key has expired")
+            candidate.last_used_at = datetime.utcnow()
+            await db.commit()
+            user_result = await db.execute(
+                select(User).where(User.username == candidate.username)
+            )
+            user = user_result.scalar_one_or_none()
+            if not user:
+                raise HTTPException(401, "User account not found")
+            return user
+
+    raise HTTPException(401, "Invalid API key")
+
+
+async def _authenticate_sp_jwt(payload: dict, db: AsyncSession):
+    """Authenticate a service principal JWT. Returns an _SPUserProxy."""
+    sp_id = payload.get("sp_id")
+    if not sp_id:
+        raise HTTPException(401, "Invalid service principal token")
+
+    result = await db.execute(
+        select(ServicePrincipal).where(ServicePrincipal.id == sp_id)
+    )
+    sp = result.scalar_one_or_none()
+
+    if not sp or not sp.is_active:
+        raise HTTPException(401, "Service principal not found or disabled")
+
+    if sp.expires_at and sp.expires_at < datetime.utcnow():
+        raise HTTPException(401, "Service principal has expired")
+
+    return _SPUserProxy(sp)
+
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    """JWT User Auth."""
+    """JWT / API key / SP token auth."""
+    # API key authentication
+    if token.startswith("mop_"):
+        return await _authenticate_api_key(token, db)
+
     from jose import jwt, JWTError
     from .auth import SECRET_KEY, ALGORITHM
     credentials_exception = HTTPException(
@@ -370,12 +470,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
     except JWTError:
         raise credentials_exception
-        
+
+    # Service principal JWT
+    if payload.get("type") == "service_principal":
+        return await _authenticate_sp_jwt(payload, db)
+
+    # Regular user JWT
+    username: str = payload.get("sub")
+    if username is None:
+        raise credentials_exception
+
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
     if user is None:
@@ -404,18 +510,26 @@ async def get_current_user_optional(token: Optional[str] = Depends(OAuth2Passwor
     result = await db.execute(select(User).where(User.username == username))
     return result.scalar_one_or_none()
 
+_perm_cache: dict[str, set[str]] = {}
+
+def _invalidate_perm_cache(role: str | None = None) -> None:
+    """Clear cached permissions for a role (or all roles)."""
+    if role:
+        _perm_cache.pop(role, None)
+    else:
+        _perm_cache.clear()
+
 def require_permission(perm: str):
     """Dependency factory that enforces a named permission via DB-backed RBAC."""
     async def _check(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
         if current_user.role == "admin":
             return current_user
-        result = await db.execute(
-            select(RolePermission).where(
-                RolePermission.role == current_user.role,
-                RolePermission.permission == perm
+        if current_user.role not in _perm_cache:
+            result = await db.execute(
+                select(RolePermission.permission).where(RolePermission.role == current_user.role)
             )
-        )
-        if not result.scalar_one_or_none():
+            _perm_cache[current_user.role] = {row for row in result.scalars().all()}
+        if perm not in _perm_cache[current_user.role]:
             raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
         return current_user
     return _check
@@ -504,6 +618,350 @@ async def update_self(req: dict, current_user: User = Depends(get_current_user),
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     return {"status": "ok", "must_change_password": False, "access_token": new_token}
+
+# --- User Signing Keys ---
+
+@app.post("/auth/me/signing-keys")
+async def create_signing_key(
+    req: UserSigningKeyCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ed25519
+
+    key_id = str(uuid.uuid4())
+    private_key_pem_str = None
+
+    if req.public_key_pem:
+        try:
+            pub = serialization.load_pem_public_key(req.public_key_pem.encode())
+            if not isinstance(pub, ed25519.Ed25519PublicKey):
+                raise HTTPException(400, "Key must be Ed25519")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(400, "Invalid Ed25519 public key PEM")
+        public_pem = req.public_key_pem
+        encrypted_priv = None
+    else:
+        private_key = Ed25519PrivateKey.generate()
+        public_key = private_key.public_key()
+        public_pem = public_key.public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode()
+        private_key_pem_str = private_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption()
+        ).decode()
+        encrypted_priv = cipher_suite.encrypt(private_key_pem_str.encode()).decode()
+
+    signing_key = UserSigningKey(
+        id=key_id,
+        username=current_user.username,
+        name=req.name,
+        public_key_pem=public_pem,
+        encrypted_private_key=encrypted_priv,
+    )
+    db.add(signing_key)
+
+    sig = Signature(
+        id=str(uuid.uuid4()),
+        name=f"{current_user.username}/{req.name}",
+        public_key=public_pem,
+        uploaded_by=current_user.username,
+    )
+    db.add(sig)
+
+    audit(db, current_user, "user:signing_key_created", key_id, {"name": req.name})
+    await db.commit()
+
+    if private_key_pem_str:
+        return UserSigningKeyGeneratedResponse(
+            id=key_id, name=req.name, public_key_pem=public_pem,
+            private_key_pem=private_key_pem_str, created_at=signing_key.created_at,
+        )
+    return UserSigningKeyResponse(
+        id=key_id, name=req.name, public_key_pem=public_pem,
+        created_at=signing_key.created_at,
+    )
+
+
+@app.get("/auth/me/signing-keys", response_model=list[UserSigningKeyResponse])
+async def list_signing_keys(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserSigningKey).where(UserSigningKey.username == current_user.username)
+    )
+    return result.scalars().all()
+
+
+@app.delete("/auth/me/signing-keys/{key_id}")
+async def delete_signing_key(
+    key_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserSigningKey).where(
+            UserSigningKey.id == key_id,
+            UserSigningKey.username == current_user.username,
+        )
+    )
+    key = result.scalar_one_or_none()
+    if not key:
+        raise HTTPException(404, "Signing key not found")
+
+    sig_name = f"{current_user.username}/{key.name}"
+    sig_result = await db.execute(
+        select(Signature).where(Signature.name == sig_name)
+    )
+    sig = sig_result.scalar_one_or_none()
+    if sig:
+        await db.delete(sig)
+
+    await db.delete(key)
+    audit(db, current_user, "user:signing_key_deleted", key_id)
+    await db.commit()
+    return {"status": "deleted"}
+
+
+# --- User API Keys ---
+
+@app.post("/auth/me/api-keys")
+async def create_api_key(
+    req: UserApiKeyCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    import secrets as _secrets
+
+    raw_key = "mop_" + _secrets.token_hex(24)
+    key_hash = get_password_hash(raw_key)
+    key_prefix = raw_key[:12]
+
+    expires_at = None
+    if req.expires_in_days:
+        expires_at = datetime.utcnow() + timedelta(days=req.expires_in_days)
+
+    api_key = UserApiKey(
+        id=str(uuid.uuid4()),
+        username=current_user.username,
+        name=req.name,
+        key_hash=key_hash,
+        key_prefix=key_prefix,
+        expires_at=expires_at,
+    )
+    db.add(api_key)
+    audit(db, current_user, "user:api_key_created", api_key.id, {"name": req.name})
+    await db.commit()
+
+    return UserApiKeyCreatedResponse(
+        id=api_key.id, name=api_key.name, key_prefix=key_prefix,
+        raw_key=raw_key, expires_at=expires_at,
+        last_used_at=None, created_at=api_key.created_at,
+    )
+
+
+@app.get("/auth/me/api-keys", response_model=list[UserApiKeyResponse])
+async def list_api_keys(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserApiKey).where(UserApiKey.username == current_user.username)
+    )
+    return result.scalars().all()
+
+
+@app.delete("/auth/me/api-keys/{key_id}")
+async def revoke_api_key(
+    key_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserApiKey).where(
+            UserApiKey.id == key_id,
+            UserApiKey.username == current_user.username,
+        )
+    )
+    key = result.scalar_one_or_none()
+    if not key:
+        raise HTTPException(404, "API key not found")
+
+    await db.delete(key)
+    audit(db, current_user, "user:api_key_revoked", key_id)
+    await db.commit()
+    return {"status": "revoked"}
+
+
+# --- Service Principals ---
+
+@app.post("/auth/token")
+async def authenticate_service_principal(
+    req: ServicePrincipalTokenRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ServicePrincipal).where(ServicePrincipal.client_id == req.client_id)
+    )
+    sp = result.scalar_one_or_none()
+
+    if not sp or not verify_password(req.client_secret, sp.client_secret_hash):
+        raise HTTPException(401, "Invalid credentials")
+
+    if not sp.is_active:
+        raise HTTPException(403, "Service principal is disabled")
+
+    if sp.expires_at and sp.expires_at < datetime.utcnow():
+        raise HTTPException(403, "Service principal has expired")
+
+    token_data = {
+        "sub": f"sp:{sp.name}",
+        "role": sp.role,
+        "type": "service_principal",
+        "sp_id": sp.id,
+        "tv": 0,
+    }
+    access_token = create_access_token(data=token_data)
+
+    sp.last_used_at = datetime.utcnow()
+
+    db.add(AuditLog(
+        username=f"sp:{sp.name}",
+        action="sp:authenticated",
+        resource_id=sp.id,
+        detail=None,
+    ))
+    await db.commit()
+
+    return {"access_token": access_token, "token_type": "bearer", "role": sp.role}
+
+
+@app.post("/admin/service-principals")
+async def create_service_principal(
+    req: ServicePrincipalCreate,
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    import secrets as _secrets
+
+    client_id = "sp_" + uuid.uuid4().hex
+    client_secret = "mop_sp_" + _secrets.token_hex(24)
+    secret_hash = get_password_hash(client_secret)
+
+    expires_at = None
+    if req.expires_in_days:
+        expires_at = datetime.utcnow() + timedelta(days=req.expires_in_days)
+
+    sp = ServicePrincipal(
+        id=str(uuid.uuid4()),
+        name=req.name,
+        description=req.description,
+        role=req.role,
+        client_id=client_id,
+        client_secret_hash=secret_hash,
+        is_active=True,
+        created_by=current_user.username,
+        expires_at=expires_at,
+    )
+    db.add(sp)
+    audit(db, current_user, "sp:created", sp.id, {"name": sp.name, "role": sp.role})
+    await db.commit()
+
+    return ServicePrincipalCreatedResponse(
+        id=sp.id, name=sp.name, description=sp.description, role=sp.role,
+        client_id=client_id, client_secret=client_secret, is_active=True,
+        created_by=current_user.username, expires_at=expires_at,
+        created_at=sp.created_at,
+    )
+
+
+@app.get("/admin/service-principals", response_model=list[ServicePrincipalResponse])
+async def list_service_principals(
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(ServicePrincipal))
+    return result.scalars().all()
+
+
+@app.patch("/admin/service-principals/{sp_id}")
+async def update_service_principal(
+    sp_id: str,
+    req: ServicePrincipalUpdate,
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(ServicePrincipal).where(ServicePrincipal.id == sp_id))
+    sp = result.scalar_one_or_none()
+    if not sp:
+        raise HTTPException(404, "Service principal not found")
+
+    if req.name is not None:
+        sp.name = req.name
+    if req.description is not None:
+        sp.description = req.description
+    if req.role is not None:
+        if req.role not in ALLOWED_ROLES:
+            raise HTTPException(400, f"role must be one of {sorted(ALLOWED_ROLES)}")
+        sp.role = req.role
+    if req.is_active is not None:
+        sp.is_active = req.is_active
+
+    audit(db, current_user, "sp:updated", sp_id)
+    await db.commit()
+
+    return ServicePrincipalResponse.model_validate(sp)
+
+
+@app.delete("/admin/service-principals/{sp_id}")
+async def delete_service_principal(
+    sp_id: str,
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(ServicePrincipal).where(ServicePrincipal.id == sp_id))
+    sp = result.scalar_one_or_none()
+    if not sp:
+        raise HTTPException(404, "Service principal not found")
+
+    await db.delete(sp)
+    audit(db, current_user, "sp:deleted", sp_id, {"name": sp.name})
+    await db.commit()
+    return {"status": "deleted"}
+
+
+@app.post("/admin/service-principals/{sp_id}/rotate-secret")
+async def rotate_sp_secret(
+    sp_id: str,
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    import secrets as _secrets
+
+    result = await db.execute(select(ServicePrincipal).where(ServicePrincipal.id == sp_id))
+    sp = result.scalar_one_or_none()
+    if not sp:
+        raise HTTPException(404, "Service principal not found")
+
+    new_secret = "mop_sp_" + _secrets.token_hex(24)
+    sp.client_secret_hash = get_password_hash(new_secret)
+
+    audit(db, current_user, "sp:secret_rotated", sp_id, {"name": sp.name})
+    await db.commit()
+
+    return ServicePrincipalRotateResponse(
+        client_id=sp.client_id,
+        client_secret=new_secret,
+    )
+
 
 # --- Core Endpoints ---
 
@@ -1021,6 +1479,7 @@ async def grant_role_permission(role: str, req: PermissionGrant, current_user: U
     db.add(RolePermission(role=role, permission=req.permission))
     audit(db, current_user, "permission:grant", role, {"permission": req.permission})
     await db.commit()
+    _invalidate_perm_cache(role)
     return {"status": "granted", "role": role, "permission": req.permission}
 
 @app.delete("/admin/roles/{role}/permissions/{permission}")
@@ -1032,6 +1491,7 @@ async def revoke_role_permission(role: str, permission: str, current_user: User 
     audit(db, current_user, "permission:revoke", role, {"permission": permission})
     await db.delete(perm)
     await db.commit()
+    _invalidate_perm_cache(role)
     return {"status": "revoked", "role": role, "permission": permission}
 
 @app.patch("/admin/users/{username}/reset-password")
@@ -1179,6 +1639,14 @@ async def toggle_job_definition(id: str, current_user: User = Depends(require_pe
     await db.commit()
     await scheduler_service.sync_scheduler()
     return {"id": id, "is_active": job_def.is_active}
+
+@app.get("/jobs/definitions/{id}", response_model=JobDefinitionResponse)
+async def get_job_definition(id: str, current_user: User = Depends(require_permission("definitions:read")), db: AsyncSession = Depends(get_db)):
+    return await scheduler_service.get_job_definition(id, db)
+
+@app.patch("/jobs/definitions/{id}", response_model=JobDefinitionResponse)
+async def update_job_definition(id: str, update_req: JobDefinitionUpdate, current_user: User = Depends(require_permission("definitions:write")), db: AsyncSession = Depends(get_db)):
+    return await scheduler_service.update_job_definition(id, update_req, current_user, db)
 
 # --- Installer & Doc Endpoints ---
 
