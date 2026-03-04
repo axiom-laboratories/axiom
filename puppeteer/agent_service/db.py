@@ -1,7 +1,7 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint, ForeignKey
+from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint, ForeignKey, Index
 from datetime import datetime
 import json
 from typing import Optional
@@ -167,6 +167,20 @@ class NodeStats(Base):
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     cpu: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     ram: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+
+class ExecutionRecord(Base):
+    __tablename__ = "execution_records"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    job_guid: Mapped[str] = mapped_column(String, nullable=False)
+    node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    exit_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    output_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    truncated: Mapped[bool] = mapped_column(Boolean, default=False)
+    __table_args__ = (Index("ix_execution_records_job_guid", "job_guid"),)
 
 
 class Blueprint(Base):
