@@ -1,7 +1,7 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint
+from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint, ForeignKey
 from datetime import datetime
 import json
 from typing import Optional
@@ -67,6 +67,7 @@ class ScheduledJob(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 class Token(Base):
     __tablename__ = "tokens"
@@ -87,6 +88,44 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+class UserSigningKey(Base):
+    __tablename__ = "user_signing_keys"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    username: Mapped[str] = mapped_column(String, ForeignKey("users.username"), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    public_key_pem: Mapped[str] = mapped_column(Text, nullable=False)
+    encrypted_private_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UserApiKey(Base):
+    __tablename__ = "user_api_keys"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    username: Mapped[str] = mapped_column(String, ForeignKey("users.username"), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    key_hash: Mapped[str] = mapped_column(String, nullable=False)
+    key_prefix: Mapped[str] = mapped_column(String(12), nullable=False)
+    permissions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ServicePrincipal(Base):
+    __tablename__ = "service_principals"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    role: Mapped[str] = mapped_column(String, nullable=False, default="operator")
+    client_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    client_secret_hash: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[str] = mapped_column(String, nullable=False)
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 class Node(Base):
     __tablename__ = "nodes"
