@@ -10,7 +10,7 @@
 - [x] **OUT-01**: Node captures stdout and stderr for every job execution
 - [x] **OUT-02**: Exit code is recorded per execution
 - [x] **OUT-03**: Each run produces a separate execution record (not just latest result)
-- [ ] **OUT-04**: User can view execution output logs from the job detail page in the dashboard
+- [x] **OUT-04**: User can view execution output logs from the job detail page in the dashboard
 
 ### Execution History
 
@@ -80,7 +80,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OUT-01 | Phase 1 | Complete |
 | OUT-02 | Phase 1 | Complete |
 | OUT-03 | Phase 1 | Complete |
-| OUT-04 | Phase 1 | Pending |
+| OUT-04 | Phase 1 | Complete |
 | HIST-01 | Phase 3 | Pending |
 | HIST-02 | Phase 3 | Pending |
 | HIST-03 | Phase 3 | Pending |

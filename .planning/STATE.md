@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 ## Current Position
 
 Phase: 1 of 5 (Output Capture)
-Plan: 1 of 3 in current phase (01-01 complete)
-Status: In progress
-Last activity: 2026-03-04 — Plan 01-01 complete: ExecutionRecord ORM + Pydantic model contracts
+Plan: 3 of 3 in current phase (01-01, 01-02, 01-03 complete — Phase 1 DONE)
+Status: Phase 1 complete
+Last activity: 2026-03-04 — Plan 01-03 complete: GET /jobs/{guid}/executions route + ExecutionLogModal + SECURITY_REJECTED handling
 
-Progress: [█░░░░░░░░░] 7% (1 of 15 plans complete)
+Progress: [███░░░░░░░] 20% (3 of 15 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 3
 - Average duration: 3 min
-- Total execution time: 0.05 hours
+- Total execution time: 0.15 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-output-capture | 1/3 complete | 3 min | 3 min |
+| 01-output-capture | 3/3 complete | 9 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min)
-- Trend: -
+- Last 5 plans: 01-01 (3 min), 01-02 (3 min), 01-03 (3 min)
+- Trend: consistent
 
 *Updated after each plan completion*
 
@@ -49,6 +49,8 @@ Recent decisions affecting current work:
 - 01-01: output_log stored as TEXT in DB; deserialized to List[Dict[str,str]] in Pydantic layer (not ORM layer)
 - 01-01: truncated uses Python-level default=False only — no server_default (SQLite compat)
 - 01-01: ResultReport extended with Optional fields — existing nodes that omit them continue to work
+- 01-03: onViewOutput callback lifted to Jobs level — JobDetailPanel remains pure display component
+- 01-03: SECURITY_REJECTED maps to destructive variant (same as failed/cancelled); ShieldAlert icon differentiates it
 
 ### Pending Todos
 
@@ -64,6 +66,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 01-01-PLAN.md — data contracts (ExecutionRecord ORM + models)
+Stopped at: Completed 01-03-PLAN.md — Phase 1 (Output Capture) complete
 Resume file: None
-Next plan: .planning/phases/01-output-capture/01-02-PLAN.md
+Next plan: .planning/phases/02-retry/ (Phase 2)
