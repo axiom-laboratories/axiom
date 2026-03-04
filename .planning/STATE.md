@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 ## Current Position
 
 Phase: 1 of 5 (Output Capture)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-04 — Roadmap created; all 20 v1 requirements mapped to 5 phases
+Plan: 1 of 3 in current phase (01-01 complete)
+Status: In progress
+Last activity: 2026-03-04 — Plan 01-01 complete: ExecutionRecord ORM + Pydantic model contracts
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 7% (1 of 15 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 3 min
+- Total execution time: 0.05 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-output-capture | 1/3 complete | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: none yet
+- Last 5 plans: 01-01 (3 min)
 - Trend: -
 
 *Updated after each plan completion*
@@ -46,6 +46,9 @@ Recent decisions affecting current work:
 - Roadmap: Retry (Phase 2) and zombie reaper ship together — reaper is mandatory, not deferred
 - Roadmap: Output stored in separate `execution_records` table, never in `jobs.result` (prevents list-endpoint bloat)
 - Roadmap: Dependency evaluation runs inside `pull_work`, not a background poller (eliminates TOCTOU race)
+- 01-01: output_log stored as TEXT in DB; deserialized to List[Dict[str,str]] in Pydantic layer (not ORM layer)
+- 01-01: truncated uses Python-level default=False only — no server_default (SQLite compat)
+- 01-01: ResultReport extended with Optional fields — existing nodes that omit them continue to work
 
 ### Pending Todos
 
@@ -61,5 +64,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Roadmap creation complete — ROADMAP.md, STATE.md, REQUIREMENTS.md traceability written
+Stopped at: Completed 01-01-PLAN.md — data contracts (ExecutionRecord ORM + models)
 Resume file: None
+Next plan: .planning/phases/01-output-capture/01-02-PLAN.md
