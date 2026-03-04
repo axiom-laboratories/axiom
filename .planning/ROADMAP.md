@@ -29,7 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Each execution attempt has its own record — running the same job twice produces two separate, individually viewable output records
   3. The exit code is visible alongside the output log (0 = success, non-zero = failure)
   4. Output is truncated at 1 MB with a visible indicator; jobs producing more than 1 MB do not crash the system
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — DB contracts: ExecutionRecord ORM model, extended ResultReport/ExecutionRecordResponse models, migration_v14.sql
+- [ ] 01-02-PLAN.md — Execution pipeline: node output capture (build_output_log), server report_result extension with 1MB truncation and SECURITY_REJECTED classification
+- [ ] 01-03-PLAN.md — User-facing: GET /jobs/{guid}/executions API route, ExecutionLogModal full-screen log viewer, SECURITY_REJECTED status badge
 
 ### Phase 2: Retry Policy
 **Goal**: Failed jobs retry automatically with backoff, dead-letter after exhausting retries, and crashed-node zombie jobs are reaped and rescheduled — no failed job is silently lost
@@ -83,7 +88,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Output Capture | 0/TBD | Not started | - |
+| 1. Output Capture | 0/3 | Planned | - |
 | 2. Retry Policy | 0/TBD | Not started | - |
 | 3. Execution History | 0/TBD | Not started | - |
 | 4. Environment Tags | 0/TBD | Not started | - |
