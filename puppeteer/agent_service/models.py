@@ -113,11 +113,17 @@ class JobDefinitionCreate(BaseModel):
 class JobDefinitionResponse(BaseModel):
     id: str
     name: str
+    script_content: str
+    signature_id: str
+    signature_payload: str
     is_active: bool
     schedule_cron: Optional[str]
     target_node_id: Optional[str]
     target_tags: Optional[List[str]] = None
+    capability_requirements: Optional[Dict[str, str]] = None
+    created_by: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     @field_validator('target_tags', mode='before')
     @classmethod
@@ -129,8 +135,29 @@ class JobDefinitionResponse(BaseModel):
                 return v
         return v
 
+    @field_validator('capability_requirements', mode='before')
+    @classmethod
+    def deserialize_capability_requirements(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            try:
+                return _json.loads(v)
+            except Exception:
+                return v
+        return v
+
     class Config:
         from_attributes = True
+
+
+class JobDefinitionUpdate(BaseModel):
+    name: Optional[str] = None
+    script_content: Optional[str] = None
+    signature: Optional[str] = None
+    signature_id: Optional[str] = None
+    schedule_cron: Optional[str] = None
+    target_node_id: Optional[str] = None
+    target_tags: Optional[List[str]] = None
+    capability_requirements: Optional[Dict[str, str]] = None
 
 class UploadKeyRequest(BaseModel):
     key_content: str  # PEM public key
@@ -219,3 +246,90 @@ class PuppetTemplateResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- User Signing Keys ---
+
+class UserSigningKeyCreate(BaseModel):
+    name: str
+    public_key_pem: Optional[str] = None  # Omit to auto-generate keypair
+
+class UserSigningKeyResponse(BaseModel):
+    id: str
+    name: str
+    public_key_pem: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class UserSigningKeyGeneratedResponse(UserSigningKeyResponse):
+    """Only returned when server generates the keypair."""
+    private_key_pem: str  # Shown ONCE — user must save it
+
+
+# --- User API Keys ---
+
+class UserApiKeyCreate(BaseModel):
+    name: str
+    expires_in_days: Optional[int] = None
+
+class UserApiKeyResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class UserApiKeyCreatedResponse(UserApiKeyResponse):
+    """Only returned at creation time."""
+    raw_key: str  # Shown ONCE
+
+
+# --- Service Principals ---
+
+class ServicePrincipalCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    role: str = "operator"
+    expires_in_days: Optional[int] = None
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        if v not in ALLOWED_ROLES:
+            raise ValueError(f"role must be one of {sorted(ALLOWED_ROLES)}")
+        return v
+
+class ServicePrincipalResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    role: str
+    client_id: str
+    is_active: bool
+    created_by: str
+    last_used_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class ServicePrincipalCreatedResponse(ServicePrincipalResponse):
+    client_secret: str  # Raw secret — shown ONCE
+
+class ServicePrincipalUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class ServicePrincipalTokenRequest(BaseModel):
+    client_id: str
+    client_secret: str
+
+class ServicePrincipalRotateResponse(BaseModel):
+    client_id: str
+    client_secret: str  # New raw secret — shown ONCE

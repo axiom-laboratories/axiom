@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .. import db as db_module
 from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User
-from ..models import JobDefinitionCreate, JobDefinitionResponse
+from ..models import JobDefinitionCreate, JobDefinitionResponse, JobDefinitionUpdate
 from .signature_service import SignatureService
 
 logger = logging.getLogger(__name__)
@@ -150,6 +150,64 @@ class SchedulerService:
         """Lists all job definitions."""
         result = await db_session.execute(select(ScheduledJob))
         return result.scalars().all()
+
+    async def get_job_definition(self, job_id: str, db_session: AsyncSession) -> ScheduledJob:
+        """Fetches a single job definition by ID."""
+        from fastapi import HTTPException
+        result = await db_session.execute(select(ScheduledJob).where(ScheduledJob.id == job_id))
+        job = result.scalar_one_or_none()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job definition not found")
+        return job
+
+    async def update_job_definition(self, job_id: str, update_req: JobDefinitionUpdate, current_user: User, db_session: AsyncSession) -> ScheduledJob:
+        """Partially updates a scheduled job definition. Re-validates signature if script changes."""
+        from fastapi import HTTPException
+        result = await db_session.execute(select(ScheduledJob).where(ScheduledJob.id == job_id))
+        job = result.scalar_one_or_none()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job definition not found")
+
+        # If script content is changing, a new signature is required
+        if update_req.script_content is not None and update_req.script_content != job.script_content:
+            if not update_req.signature or not update_req.signature_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="A new signature and signature_id are required when changing script content"
+                )
+            sig_result = await db_session.execute(select(Signature).where(Signature.id == update_req.signature_id))
+            sig = sig_result.scalar_one_or_none()
+            if not sig:
+                raise HTTPException(status_code=404, detail="Signature ID not found")
+            try:
+                SignatureService.verify_payload_signature(sig.public_key, update_req.signature, update_req.script_content)
+                logger.info(f"✅ Signature re-validated for job update: {job_id}")
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid Signature: {str(e)}")
+            job.script_content = update_req.script_content
+            job.signature_id = update_req.signature_id
+            job.signature_payload = update_req.signature
+        elif update_req.script_content is not None:
+            # Same content — update without re-sign
+            job.script_content = update_req.script_content
+
+        # Apply remaining optional fields (skip None = not provided)
+        if update_req.name is not None:
+            job.name = update_req.name
+        if update_req.schedule_cron is not None:
+            job.schedule_cron = update_req.schedule_cron or None
+        if update_req.target_node_id is not None:
+            job.target_node_id = update_req.target_node_id or None
+        if update_req.target_tags is not None:
+            job.target_tags = json.dumps(update_req.target_tags) if update_req.target_tags else None
+        if update_req.capability_requirements is not None:
+            job.capability_requirements = json.dumps(update_req.capability_requirements) if update_req.capability_requirements else None
+
+        job.updated_at = datetime.utcnow()
+        await db_session.commit()
+        await db_session.refresh(job)
+        await self.sync_scheduler()
+        return job
 
 # Global Instance
 scheduler_service = SchedulerService()
