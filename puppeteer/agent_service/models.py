@@ -49,6 +49,9 @@ class ResultReport(BaseModel):
     result: Optional[Dict] = None
     error_details: Optional[Dict] = None
     success: bool
+    output_log: Optional[List[Dict[str, str]]] = None  # [{t, stream, line}, ...]
+    exit_code: Optional[int] = None
+    security_rejected: bool = False
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -333,3 +336,18 @@ class ServicePrincipalTokenRequest(BaseModel):
 class ServicePrincipalRotateResponse(BaseModel):
     client_id: str
     client_secret: str  # New raw secret — shown ONCE
+
+
+# --- Output Capture ---
+
+class ExecutionRecordResponse(BaseModel):
+    id: int
+    job_guid: str
+    node_id: Optional[str] = None
+    status: str
+    exit_code: Optional[int] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    output_log: List[Dict[str, str]] = []
+    truncated: bool = False
+    duration_seconds: Optional[float] = None
