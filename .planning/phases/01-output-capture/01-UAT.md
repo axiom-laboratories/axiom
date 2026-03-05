@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 01-output-capture
 source: 01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md
 started: 2026-03-04T21:35:00Z
@@ -57,9 +57,14 @@ skipped: 0
   reason: "User reported: pass, although the button overlaps the x to close the viewer"
   severity: cosmetic
   test: 5
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "shadcn DialogContent renders its own close button at absolute right-4 top-4; the modal uses p-0 so the header's action container shares the same pixel region"
+  artifacts:
+    - path: "puppeteer/dashboard/src/components/ui/dialog.tsx"
+      issue: "DialogPrimitive.Close rendered at absolute right-4 top-4 inside every DialogContent"
+    - path: "puppeteer/dashboard/src/views/Jobs.tsx"
+      issue: "ExecutionLogModal uses p-0 on DialogContent; header action row flush with dialog right edge overlaps built-in X button"
+  missing:
+    - "Add pr-8/pr-10 to the header action container div to push Copy button left of the X, or suppress the built-in DialogClose and use only the header's close button"
   debug_session: ""
 
 - truth: "Status filter in Jobs view works across all jobs regardless of which page is loaded"
@@ -67,7 +72,16 @@ skipped: 0
   reason: "User reported: Pass, but you have to jump through to the right page for the filter to work"
   severity: major
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "Status filter is client-side only — filteredJobs uses .filter() on the 50 in-memory jobs; neither GET /jobs nor list_jobs accepts a status param so the filter never re-fetches from the DB"
+  artifacts:
+    - path: "puppeteer/dashboard/src/views/Jobs.tsx"
+      issue: "filteredJobs filters in-memory array; fetchJobs URL never includes filterStatus; useEffect dependency array missing filterStatus"
+    - path: "puppeteer/agent_service/main.py"
+      issue: "GET /jobs only accepts skip and limit — no status query param"
+    - path: "puppeteer/agent_service/services/job_service.py"
+      issue: "list_jobs has no status parameter, no WHERE clause for status filtering"
+  missing:
+    - "Add optional status param to list_jobs() with WHERE clause"
+    - "Add status query param to GET /jobs route and GET /jobs/count route"
+    - "Frontend: append &status=X to fetch URL when filter active; add filterStatus to useEffect deps; reset to page 0 on filter change"
   debug_session: ""
