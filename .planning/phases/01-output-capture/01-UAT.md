@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 01-output-capture
 source: 01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md
 started: 2026-03-04T21:35:00Z
-updated: 2026-03-04T21:35:00Z
+updated: 2026-03-05T00:00:00Z
 ---
 
 ## Current Test
@@ -53,7 +53,7 @@ skipped: 0
 ## Gaps
 
 - truth: "Copy button in log viewer is accessible without overlapping the close button"
-  status: failed
+  status: resolved
   reason: "User reported: pass, although the button overlaps the x to close the viewer"
   severity: cosmetic
   test: 5
@@ -68,7 +68,7 @@ skipped: 0
   debug_session: ""
 
 - truth: "Status filter in Jobs view works across all jobs regardless of which page is loaded"
-  status: failed
+  status: resolved
   reason: "User reported: Pass, but you have to jump through to the right page for the filter to work"
   severity: major
   test: 6
