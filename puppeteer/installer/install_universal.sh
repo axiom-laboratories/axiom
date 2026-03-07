@@ -150,19 +150,23 @@ if [[ "$ROLE" == "node" ]]; then
 
     log "Parsing Token..."
     # Decode Base64 token and extract CA
+    # NOTE: Use printf '%s' (not echo) to preserve literal \n escape sequences in the CA PEM.
+    # The token JSON encodes the CA as a JSON string with \n characters. bash's echo interprets
+    # \n as actual newlines, which corrupts the JSON. printf '%s' passes the string verbatim.
     JSON_PAYLOAD=$(echo "$TOKEN" | base64 -d 2>/dev/null || echo "")
     if [[ -z "$JSON_PAYLOAD" ]]; then
         log_error "Invalid Token Format. Ensure you are using a v0.8+ Token."
     fi
 
     # Extract CA using jq if available, then python3, then grep/sed fallback
+    # All branches use printf '%s' to preserve literal \n in the JSON string value.
     if command -v jq &>/dev/null; then
-        CA_CONTENT=$(echo "$JSON_PAYLOAD" | jq -r '.ca // empty')
+        CA_CONTENT=$(printf '%s' "$JSON_PAYLOAD" | jq -r '.ca // empty')
     elif command -v python3 &>/dev/null; then
-        CA_CONTENT=$(echo "$JSON_PAYLOAD" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('ca',''))" 2>/dev/null || echo "")
+        CA_CONTENT=$(printf '%s' "$JSON_PAYLOAD" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('ca',''))" 2>/dev/null || echo "")
     else
-        # Fallback: grep with optional space after colon (fragile but handles common formats)
-        CA_CONTENT=$(echo "$JSON_PAYLOAD" | grep -o '"ca": *"[^"]*"' | sed 's/"ca": *"//; s/"$//' | sed 's/\\n/\n/g')
+        # Last-resort fallback: grep/sed (fragile — only works if JSON has no spaces around colon)
+        CA_CONTENT=$(printf '%s' "$JSON_PAYLOAD" | grep -o '"ca": *"[^"]*"' | sed 's/"ca": *"//; s/"$//' | sed 's/\\n/\n/g')
     fi
 
     if [[ -z "$CA_CONTENT" ]]; then
