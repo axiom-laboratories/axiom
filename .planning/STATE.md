@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 08-cross-network-validation/08-01-PLAN.md
-last_updated: "2026-03-08T06:28:38.237Z"
+stopped_at: Completed 08-cross-network-validation/08-02-PLAN.md
+last_updated: "2026-03-08T17:26:39.496Z"
 last_activity: "2026-03-07 — Plan 06-02c complete: edge cases validated (jq-absent fallback, no-runtime error, non-root behavior)."
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 20
 ---
 
@@ -45,6 +45,7 @@ Progress: [██░░░░░░░░] 20% (2 of 10 phases complete)
 | Phase 07-linux-installer P02b | 35 | 2 tasks | 3 files |
 | Phase 07-linux-installer P02c | 39 | 2 tasks | 2 files |
 | Phase 08-cross-network-validation P01 | 10 | 2 tasks | 1 files |
+| Phase 08-cross-network-validation P02 | 150 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,10 @@ Progress: [██░░░░░░░░] 20% (2 of 10 phases complete)
 - [Phase 08-cross-network-validation]: server_url as explicit first parameter on all API helpers (not a global) so Docker and Podman stacks can be tested against different server IPs in one script run
 - [Phase 08-cross-network-validation]: No default container in exec_in_container/push_file prevents accidental cross-container execution when provisioning two stacks simultaneously
 - [Phase 08-cross-network-validation]: run_stack_tests() returns skip() stubs so script runs cleanly before Plans 02/03 implement real assertions
+- [Phase 08-cross-network-validation]: NODE_EXECUTION_MODE=direct required for DinD cross-network nodes — no Docker socket mounted inside node containers running inside LXC-hosted Docker
+- [Phase 08-cross-network-validation]: Both signing.key and verification.key must be written to build context before compose --build to prevent pki.py ensure_signing_key() from regenerating keypair at server startup
+- [Phase 08-cross-network-validation]: Server returns naive UTC datetimes (no tz suffix) — must call ts.replace(tzinfo=utc) when comparing to timezone-aware datetimes
+- [Phase 08-cross-network-validation]: Server has no GET /jobs/{guid} endpoint; poll using GET /jobs list and filter by guid; job output in GET /jobs/{guid}/executions
 
 ### Pending Todos
 - Plan 02b: Fix node-compose.yaml image reference in main.py (localhost/ → 192.168.50.148:5000/).
@@ -72,7 +77,7 @@ Progress: [██░░░░░░░░] 20% (2 of 10 phases complete)
 
 ## Session Continuity
 
-Last session: 2026-03-08T06:28:38.235Z
-Stopped at: Completed 08-cross-network-validation/08-01-PLAN.md
+Last session: 2026-03-08T17:26:39.494Z
+Stopped at: Completed 08-cross-network-validation/08-02-PLAN.md
 Resume file: None
 Next plan: 08-cross-network (Cross-Network Validation) — create .planning/phases/08-cross-network/
