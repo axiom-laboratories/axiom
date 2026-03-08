@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-07T23:11:38.946Z"
+stopped_at: Completed 08-cross-network-validation/08-01-PLAN.md
+last_updated: "2026-03-08T06:28:38.237Z"
 last_activity: "2026-03-07 — Plan 06-02c complete: edge cases validated (jq-absent fallback, no-runtime error, non-root behavior)."
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 7
+  completed_plans: 5
   percent: 20
 ---
 
@@ -44,6 +44,7 @@ Progress: [██░░░░░░░░] 20% (2 of 10 phases complete)
 | 06-remote-server | 2 | 5 min | 2.5 min |
 | Phase 07-linux-installer P02b | 35 | 2 tasks | 3 files |
 | Phase 07-linux-installer P02c | 39 | 2 tasks | 2 files |
+| Phase 08-cross-network-validation P01 | 10 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -58,6 +59,9 @@ Progress: [██░░░░░░░░] 20% (2 of 10 phases complete)
 - [Phase 06-remote-validation]: install_universal.sh: python3 is the preferred CA extraction fallback over grep — available on all Ubuntu systems and handles any JSON spacing
 - [Phase 06-remote-validation]: printf '%s' over echo for JSON variables: bash echo interprets \n as newlines, corrupting JSON passed to jq/python3/grep — printf '%s' preserves literal backslash-n sequences
 - [Phase 06-remote-validation]: Non-root heartbeat not required as test pass criterion — rootless podman + LXC cgroupv2 is an infrastructure constraint, not an installer defect
+- [Phase 08-cross-network-validation]: server_url as explicit first parameter on all API helpers (not a global) so Docker and Podman stacks can be tested against different server IPs in one script run
+- [Phase 08-cross-network-validation]: No default container in exec_in_container/push_file prevents accidental cross-container execution when provisioning two stacks simultaneously
+- [Phase 08-cross-network-validation]: run_stack_tests() returns skip() stubs so script runs cleanly before Plans 02/03 implement real assertions
 
 ### Pending Todos
 - Plan 02b: Fix node-compose.yaml image reference in main.py (localhost/ → 192.168.50.148:5000/).
@@ -68,7 +72,7 @@ Progress: [██░░░░░░░░] 20% (2 of 10 phases complete)
 
 ## Session Continuity
 
-Last session: 2026-03-07T23:11:38.944Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-cross-network-validation/08-CONTEXT.md
+Last session: 2026-03-08T06:28:38.235Z
+Stopped at: Completed 08-cross-network-validation/08-01-PLAN.md
+Resume file: None
 Next plan: 08-cross-network (Cross-Network Validation) — create .planning/phases/08-cross-network/
