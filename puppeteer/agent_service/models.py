@@ -89,6 +89,10 @@ class TriggerResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class TriggerUpdate(BaseModel):
+    is_active: Optional[bool] = None
+    name: Optional[str] = None
+
 class SignalFire(BaseModel):
     payload: Optional[Dict] = None
 
