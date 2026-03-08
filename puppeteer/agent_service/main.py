@@ -26,7 +26,7 @@ from .models import (
     ArtifactResponse, ApprovedOSResponse,
     EnrollmentTokenCreate,
     SignalFire, SignalResponse,
-    TriggerCreate, TriggerResponse,
+    TriggerCreate, TriggerResponse, TriggerUpdate,
     UserSigningKeyCreate, UserSigningKeyResponse, UserSigningKeyGeneratedResponse,
     UserApiKeyCreate, UserApiKeyResponse, UserApiKeyCreatedResponse,
     ServicePrincipalCreate, ServicePrincipalResponse, ServicePrincipalCreatedResponse,
@@ -2358,6 +2358,25 @@ async def remove_automation_trigger(
     if not success:
         raise HTTPException(status_code=404, detail="Trigger not found")
     return {"status": "deleted"}
+
+@app.patch("/api/admin/triggers/{id}", response_model=TriggerResponse, tags=["Headless Automation"])
+async def update_automation_trigger(
+    id: str,
+    req: TriggerUpdate,
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Toggle is_active or update name on an automation trigger (Admin Only)."""
+    return await trigger_service.update_trigger(id, req.is_active, db)
+
+@app.post("/api/admin/triggers/{id}/regenerate-token", response_model=TriggerResponse, tags=["Headless Automation"])
+async def regenerate_trigger_token(
+    id: str,
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Rotate the secret token for an automation trigger (Admin Only)."""
+    return await trigger_service.regenerate_token(id, db)
 
 # --- Signal API (Reactive Orchestration) ---
 
