@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 08-cross-network-validation/08-02-PLAN.md
-last_updated: "2026-03-08T19:26:16.374Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-08T20:52:01.006Z"
 last_activity: "2026-03-07 — Plan 06-02c complete: edge cases validated (jq-absent fallback, no-runtime error, non-root behavior)."
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 10
+  completed_plans: 8
   percent: 40
 ---
 
@@ -46,6 +46,7 @@ Progress: [████░░░░░░] 40% (3 of 10 phases complete)
 | Phase 07-linux-installer P02c | 39 | 2 tasks | 2 files |
 | Phase 08-cross-network-validation P01 | 10 | 2 tasks | 1 files |
 | Phase 08-cross-network-validation P02 | 150 | 2 tasks | 3 files |
+| Phase 09-triggermanager-dashboard-ui P01 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,7 @@ Progress: [████░░░░░░] 40% (3 of 10 phases complete)
 - [Phase 08-cross-network-validation]: Both signing.key and verification.key must be written to build context before compose --build to prevent pki.py ensure_signing_key() from regenerating keypair at server startup
 - [Phase 08-cross-network-validation]: Server returns naive UTC datetimes (no tz suffix) — must call ts.replace(tzinfo=utc) when comparing to timezone-aware datetimes
 - [Phase 08-cross-network-validation]: Server has no GET /jobs/{guid} endpoint; poll using GET /jobs list and filter by guid; job output in GET /jobs/{guid}/executions
+- [Phase 09-triggermanager-dashboard-ui]: PATCH and regenerate-token both use foundry:write permission gate - consistent with existing trigger routes
 
 ### Pending Todos
 - Plan 02b: Fix node-compose.yaml image reference in main.py (localhost/ → 192.168.50.148:5000/).
@@ -77,7 +79,7 @@ Progress: [████░░░░░░] 40% (3 of 10 phases complete)
 
 ## Session Continuity
 
-Last session: 2026-03-08T17:26:39.494Z
-Stopped at: Completed 08-cross-network-validation/08-02-PLAN.md
+Last session: 2026-03-08T20:52:01.004Z
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
 Next plan: 09-trigger-manager-dashboard (Cross-Network Validation) — create .planning/phases/08-cross-network/
