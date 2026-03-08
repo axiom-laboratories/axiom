@@ -36,8 +36,14 @@ Plans:
 - [x] 08-03-PLAN.md — Podman stack validation: CN-09..16 + podman-compose gap report
 
 ### Phase 9: TriggerManager Dashboard UI
-**Goal:** Build the Admin.tsx Automation tab with TriggerManager component to expose the trigger CRUD API in the dashboard. This was claimed delivered in Milestone 4 but the component was never created.
+**Goal:** Fix compile errors in TriggerManager, add PATCH/regenerate-token backend endpoints, and deliver Active/Inactive toggle, Copy Token, Rotate Key, and empty state UI features.
 **Status:** Not Started
+**Plans:** 3 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Backend: TriggerUpdate model, update_trigger/regenerate_token service methods, PATCH + POST routes
+- [ ] 09-02-PLAN.md — Frontend: fix missing imports (compile unblock), add toggle/copy-token/rotate-key/empty-state to TriggerManager
+- [ ] 09-03-PLAN.md — Verify: deploy updated stack, human-verify full trigger lifecycle in browser
 
 ### Phase 10: Windows Installer Fix
 **Goal:** Fix Podman named-pipe socket mapping in `install_universal.ps1` so the Loader deployment method (Method 1) works correctly on Windows.
