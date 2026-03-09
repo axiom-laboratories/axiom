@@ -161,16 +161,17 @@ Describe "Invoke-Expression replacement (WIN-04)" {
 
 Describe "podman-compose check gating (WIN-05)" {
 
-    It "WIN-05: podman-compose validation block appears only in the Method-2 else branch" {
+    It "WIN-05: Get-Command podman-compose validation does not appear before Method selection" {
         $scriptPath = Join-Path $PSScriptRoot ".." "install_universal.ps1"
         if (-not (Test-Path $scriptPath)) {
             Set-ItResult -Pending -Because "install_universal.ps1 not found relative to tests/"
             return
         }
         $content = Get-Content $scriptPath -Raw
-        # After fix: podman-compose check must NOT appear before the Method selection block.
-        # Heuristic: the platform-check block (before '$Method = Read-Host') must not reference podman-compose.
+        # After fix: podman-compose *validation* (Get-Command podman-compose) must NOT appear
+        # before the Method selection block. Menu description text containing "Podman-Compose"
+        # as a string literal is acceptable (it is documentation, not a dependency check).
         $beforeMethodSelect = [regex]::Match($content, '(?s)^.*?(?=\$Method = Read-Host)').Value
-        $beforeMethodSelect | Should -Not -Match 'podman-compose'
+        $beforeMethodSelect | Should -Not -Match 'Get-Command podman-compose'
     }
 }
