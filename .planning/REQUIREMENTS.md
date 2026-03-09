@@ -1,7 +1,7 @@
 # Requirements: Master of Puppets
 
 **Defined:** 2026-03-04
-**Updated:** 2026-03-09 — Milestone 7: Advanced Foundry & Smelter
+**Updated:** 2026-03-09 — Milestone 8: mop-push CLI & Job Staging
 **Core Value:** Jobs run reliably — on the right node, when scheduled, with output captured — without weakening the security model.
 
 ## Milestone 1–6 Requirements (Complete)
@@ -245,27 +245,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GOV-02 | Phase 16 | Pending |
 | GOV-03 | Phase 16 | Pending |
 | GOV-04 | Phase 16 | Pending |
-
-| AUTH-CLI-01 | TBD | Pending |
-| AUTH-CLI-02 | TBD | Pending |
-| AUTH-CLI-03 | TBD | Pending |
-| AUTH-CLI-04 | TBD | Pending |
-| CLI-01 | TBD | Pending |
-| CLI-02 | TBD | Pending |
-| CLI-03 | TBD | Pending |
-| CLI-04 | TBD | Pending |
-| CLI-05 | TBD | Pending |
-| STAGE-01 | TBD | Pending |
-| STAGE-02 | TBD | Pending |
-| STAGE-03 | TBD | Pending |
-| STAGE-04 | TBD | Pending |
-| DASH-01 | TBD | Pending |
-| DASH-02 | TBD | Pending |
-| DASH-03 | TBD | Pending |
-| DASH-04 | TBD | Pending |
-| DASH-05 | TBD | Pending |
-| GOV-CLI-01 | TBD | Pending |
-| GOV-CLI-02 | TBD | Pending |
+| AUTH-CLI-01 | Phase 17 | Pending |
+| AUTH-CLI-02 | Phase 17 | Pending |
+| AUTH-CLI-03 | Phase 18 | Pending |
+| AUTH-CLI-04 | Phase 18 | Pending |
+| CLI-01 | Phase 18 | Pending |
+| CLI-02 | Phase 18 | Pending |
+| CLI-03 | Phase 18 | Pending |
+| CLI-04 | Phase 18 | Pending |
+| CLI-05 | Phase 18 | Pending |
+| STAGE-01 | Phase 17 | Pending |
+| STAGE-02 | Phase 17 | Pending |
+| STAGE-03 | Phase 17 | Pending |
+| STAGE-04 | Phase 17 | Pending |
+| DASH-01 | Phase 19 | Pending |
+| DASH-02 | Phase 19 | Pending |
+| DASH-03 | Phase 19 | Pending |
+| DASH-04 | Phase 19 | Pending |
+| DASH-05 | Phase 19 | Pending |
+| GOV-CLI-01 | Phase 17 | Pending |
+| GOV-CLI-02 | Phase 19 | Pending |
 
 **Coverage (Milestone 7):**
 - v1 requirements: 29 total
@@ -274,9 +273,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage (Milestone 8):**
 - v1 requirements: 20 total
-- Mapped to phases: TBD (roadmapper will assign)
-- Unmapped: 20 ⚠️ (pending roadmap creation)
+- Mapped to phases: 20/20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-09 — Milestone 8 requirements added (20 new requirements across 5 categories); pending roadmap phase assignment*
+*Last updated: 2026-03-09 — Milestone 8 phase assignments complete (Phase 17: 7 reqs, Phase 18: 7 reqs, Phase 19: 6 reqs)*

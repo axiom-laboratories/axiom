@@ -1,5 +1,64 @@
 # Roadmap: Master of Puppets
 
+## Milestone 8: mop-push CLI & Job Staging
+**Goal**: Zero-friction job signing and publishing from the operator's terminal. A dedicated `mop-push` CLI authenticates via OAuth device flow, signs scripts locally with Ed25519, and pushes jobs into a Staging area. Dashboard provides draft review, scheduling finalization, and one-click publish.
+
+### Phases
+- [ ] **Phase 17: Backend — OAuth Device Flow & Job Staging** - OAuth device authorization endpoint, ScheduledJob status field (DRAFT/ACTIVE/DEPRECATED/REVOKED), /api/jobs/push upsert with dual-token verification, REVOKED enforcement at dispatch
+- [ ] **Phase 18: mop-push CLI** - mop-push login (device flow), job push (create DRAFT/update), job create (active), Ed25519 signing locally, installable SDK package
+- [ ] **Phase 19: Dashboard Staging View & Governance Doc** - Drafts/Staging view, script inspect, finalize scheduling, one-click publish, status badges on all jobs, OIDC v2 path documented
+
+## Phase Details
+
+### Phase 17: Backend — OAuth Device Flow & Job Staging
+**Goal**: The control plane can issue and exchange device codes, job definitions carry a lifecycle status, and the push endpoint upserts jobs with dual JWT + Ed25519 verification — with REVOKED jobs blocked at dispatch
+**Depends on**: Nothing (first Milestone 8 phase)
+**Requirements**: AUTH-CLI-01, AUTH-CLI-02, STAGE-01, STAGE-02, STAGE-03, STAGE-04, GOV-CLI-01
+**Success Criteria** (what must be TRUE):
+  1. Calling `POST /auth/device` returns a device code, user code, verification URL, and expiry — the user code is displayed on the approval page in the browser
+  2. Once a user approves the device code in the browser, polling `POST /auth/device/token` returns a short-lived JWT for the authenticated operator
+  3. A new `ScheduledJob` created via `/api/jobs/push` defaults to DRAFT status; an existing job updated via the same endpoint stays in its current status and receives a new script and signature
+  4. The push endpoint rejects requests with an invalid JWT (401) and rejects requests whose Ed25519 signature does not match the script body (422) before writing anything to the database
+  5. Every successful push records `pushed_by` as the authenticated operator's identity on the job definition row
+  6. Scheduler skips REVOKED jobs entirely — they are never assigned to any node; admin can set a job to DEPRECATED or REVOKED via the existing job management API
+**Plans**: TBD
+
+### Phase 18: mop-push CLI
+**Goal**: Operators can install `mop-push` from the local SDK, authenticate via device flow without ever transmitting their private key, and push or create job definitions from the terminal
+**Depends on**: Phase 17
+**Requirements**: AUTH-CLI-03, AUTH-CLI-04, CLI-01, CLI-02, CLI-03, CLI-04, CLI-05
+**Success Criteria** (what must be TRUE):
+  1. Running `mop-push login` opens the browser to the MoP approval page, waits for the operator to approve, and stores the resulting JWT in a local credentials file
+  2. Subsequent CLI commands reuse the stored JWT without prompting for login again; commands fail with a clear "token expired — re-run mop-push login" message when the token is stale
+  3. Running `mop-push job push --name my-job --script job.py --key signing.key` signs the script locally with the Ed25519 private key and pushes a new DRAFT to the server — the private key is never sent over the network
+  4. Running `mop-push job push --id <uuid> --script job.py --key signing.key` updates an existing job definition with a fresh script and re-generated signature
+  5. Running `mop-push job create --name my-job --script job.py --key signing.key --cron "*/5 * * * *" --tags env:prod` creates a fully-scheduled ACTIVE job directly without going through the staging draft flow
+  6. `pip install ./mop_sdk` installs the `mop-push` command on the operator's machine from the local package directory
+**Plans**: TBD
+
+### Phase 19: Dashboard Staging View & Governance Doc
+**Goal**: Operators can see all DRAFT jobs in a dedicated Staging view, inspect script content, finalize scheduling, publish to ACTIVE in one click, and all jobs display their lifecycle status badge — with the OIDC v2 integration path documented
+**Depends on**: Phase 17
+**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, GOV-CLI-02
+**Success Criteria** (what must be TRUE):
+  1. The dashboard shows a Staging/Drafts view listing all DRAFT job definitions, distinct from the active job queue
+  2. Clicking a draft job opens a read-only view of the full script content so the operator can review what will be published
+  3. The operator can set or change the cron schedule and target tags on a draft job from the dashboard without needing the CLI
+  4. Clicking "Publish" on a draft job transitions it to ACTIVE status immediately; the job disappears from the Drafts view and appears in the active job list
+  5. Every job in the job list shows a status badge (DRAFT / ACTIVE / DEPRECATED / REVOKED) so operators can see lifecycle state at a glance
+  6. An architecture doc explains the OIDC / external IdP integration path as a documented v2 option — the OAuth device flow contract (endpoints, token format) is specified so a future OIDC provider can be substituted
+**Plans**: TBD
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 17. Backend — OAuth Device Flow & Job Staging | 0/TBD | Not started | - |
+| 18. mop-push CLI | 0/TBD | Not started | - |
+| 19. Dashboard Staging View & Governance Doc | 0/TBD | Not started | - |
+
+---
+
 ## Milestone 7: Advanced Foundry & Smelter
 **Goal**: Transition the Foundry from a manual blueprint CRUD system to an intelligent, compatibility-aware composition engine with a built-in package registry and governance layer.
 

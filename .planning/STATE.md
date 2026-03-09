@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
-milestone: milestone-7
-milestone_name: Advanced Foundry & Smelter
+milestone: milestone-8
+milestone_name: mop-push CLI & Job Staging
 status: roadmapped
-stopped_at: Roadmap created — 6 phases defined (11–16), ready for plan-phase 11
+stopped_at: Roadmap created — 3 phases defined (17–19), ready for plan-phase 17
 last_updated: "2026-03-09T00:00:00.000Z"
-last_activity: "2026-03-09 — Milestone 7 roadmap created: 6 phases, 29 requirements mapped"
+last_activity: "2026-03-09 — Milestone 8 roadmap created: 3 phases, 20 requirements mapped"
 progress:
-  total_phases: 6
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with output captured — without weakening the security model.
-**Current focus:** Milestone 7 — Advanced Foundry & Smelter (Phase 11 next)
+**Current focus:** Milestone 8 — mop-push CLI & Job Staging (Phase 17 next)
 
 ## Current Position
 
-Phase: Phase 11 (not started)
+Phase: Phase 17 (not started)
 Plan: —
-Status: Roadmap complete — ready to begin Phase 11: Compatibility Engine
-Last activity: 2026-03-09 — Roadmap created, 29 requirements mapped across 6 phases
+Status: Roadmap complete — ready to begin Phase 17: Backend — OAuth Device Flow & Job Staging
+Last activity: 2026-03-09 — Milestone 8 roadmap created, 20 requirements mapped across 3 phases
 
-Progress: [░░░░░░░░░░] 0% (0 of 6 phases complete)
+Progress: [░░░░░░░░░░] 0% (0 of 3 phases complete)
 
 ## Performance Metrics
 
@@ -86,6 +86,10 @@ Progress: [░░░░░░░░░░] 0% (0 of 6 phases complete)
 - [Milestone 7 Roadmap]: Phase 13 bundles PKG + REPO together — both feed the package picker UI that Phase 14 (Wizard) depends on; splitting them would require the wizard to be built twice
 - [Milestone 7 Roadmap]: Phase 15 bundles SMCK + BOM + LIFE — all three are post-build concerns that fire after the image is produced; natural delivery boundary
 - [Milestone 7 Roadmap]: pypiserver sidecar is infrastructure work inside Phase 13 — needs to exist before wizard can search it (Phase 14)
+- [Milestone 8 Roadmap]: Phase 17 is backend-first — OAuth device flow endpoints + ScheduledJob status field + push upsert + REVOKED enforcement must exist before CLI or dashboard can be built
+- [Milestone 8 Roadmap]: GOV-CLI-01 (REVOKE enforcement at dispatch) goes into Phase 17 because it is server-side logic adjacent to the status field and push endpoint, not a dashboard concern
+- [Milestone 8 Roadmap]: Phase 18 (CLI) and Phase 19 (Dashboard) both depend on Phase 17 but are independent of each other — they can be sequenced in either order; CLI first allows operator testing before dashboard polish
+- [Milestone 8 Roadmap]: GOV-CLI-02 (OIDC v2 doc) placed in Phase 19 — it is an architecture document describing the future integration path for the device flow contract, naturally co-located with the dashboard delivery that completes the end-to-end UX
 
 ### Pending Todos
 - Plan 02b: Fix node-compose.yaml image reference in main.py (localhost/ → 192.168.50.148:5000/).
@@ -97,6 +101,6 @@ Progress: [░░░░░░░░░░] 0% (0 of 6 phases complete)
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Milestone 7 roadmap created — 6 phases (11–16), 29/29 requirements mapped
+Stopped at: Milestone 8 roadmap created — 3 phases (17–19), 20/20 requirements mapped
 Resume file: None
-Next plan: /gsd:plan-phase 11
+Next plan: /gsd:plan-phase 17
