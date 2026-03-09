@@ -17,7 +17,11 @@ import {
     Timer,
     Ban,
     ShieldAlert,
-} from 'lucide-react';
+    RefreshCw,
+    Skull,
+    Lock,
+    Zap
+    } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +46,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { authenticatedFetch } from '../auth';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { ExecutionLogModal } from '../components/ExecutionLogModal';
 
 interface Job {
     guid: string;
@@ -53,25 +58,10 @@ interface Job {
     started_at?: string;
     duration_seconds?: number;
     target_tags?: string[];
-}
-
-interface OutputLine {
-    t: string;
-    stream: 'stdout' | 'stderr';
-    line: string;
-}
-
-interface ExecutionRecord {
-    id: number;
-    job_guid: string;
-    node_id?: string;
-    status: string;
-    exit_code?: number | null;
-    started_at?: string;
-    completed_at?: string;
-    output_log: OutputLine[];
-    truncated: boolean;
-    duration_seconds?: number | null;
+    retry_count?: number;
+    max_retries?: number;
+    retry_after?: string | null;
+    depends_on?: string[];
 }
 
 const getStatusVariant = (status: string) => {
@@ -81,7 +71,10 @@ const getStatusVariant = (status: string) => {
         case 'cancelled': return 'destructive';
         case 'security_rejected': return 'destructive';
         case 'assigned': return 'secondary';
+        case 'blocked': return 'outline';
         case 'pending': return 'outline';
+        case 'retrying': return 'warning';
+        case 'dead_letter': return 'deadletter';
         default: return 'outline';
     }
 };
@@ -92,126 +85,37 @@ const StatusIcon = ({ status }: { status: string }) => {
         case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
         case 'security_rejected': return <ShieldAlert className="h-4 w-4 text-orange-500" />;
         case 'assigned': return <Timer className="h-4 w-4 text-yellow-500 animate-pulse" />;
+        case 'retrying': return <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />;
+        case 'dead_letter': return <Skull className="h-4 w-4 text-rose-800" />;
+        case 'blocked': return <Lock className="h-4 w-4 text-zinc-500" />;
+        case 'cancelled': return <Ban className="h-4 w-4 text-zinc-600" />;
         default: return <Clock className="h-4 w-4 text-zinc-500" />;
     }
 };
 
-const ExecutionLogModal = ({ guid, open, onClose }: {
-    guid: string;
-    open: boolean;
-    onClose: () => void;
-}) => {
-    const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
-    const [selected, setSelected] = useState<ExecutionRecord | null>(null);
-    const logEndRef = useRef<HTMLDivElement>(null);
+const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput, onRetry }: { job: Job | null; open: boolean; onClose: () => void; onCancel: (guid: string) => void; onViewOutput: (guid: string) => void; onRetry: (guid: string) => void }) => {
+    const [retryCountdown, setRetryCountdown] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!open || !guid) return;
-        authenticatedFetch(`/jobs/${guid}/executions`)
-            .then(r => r.json())
-            .then((data: ExecutionRecord[]) => {
-                setExecutions(data);
-                setSelected(data[0] ?? null);
-            })
-            .catch(() => {});
-    }, [open, guid]);
-
-    useEffect(() => {
-        if (open && logEndRef.current) {
-            logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (!job?.retry_after || job.status !== 'RETRYING') {
+            setRetryCountdown(null);
+            return;
         }
-    }, [open, selected]);
+        const tick = () => {
+            const diff = Math.max(0, new Date(job.retry_after!).getTime() - Date.now());
+            if (diff === 0) { setRetryCountdown('Pending assignment...'); return; }
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            setRetryCountdown(`Next attempt in ${mins}m ${secs}s`);
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [job?.retry_after, job?.status]);
 
-    const lines = selected?.output_log ?? [];
-
-    const handleCopy = () => {
-        const text = lines.map(l => `[${l.stream === 'stderr' ? 'ERR' : 'OUT'}] ${l.line}`).join('\n');
-        navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard'));
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="bg-zinc-950 border-zinc-800 text-white w-[95vw] max-w-6xl h-[90vh] flex flex-col p-0">
-                <DialogHeader className="px-4 pt-4 pb-3 border-b border-zinc-800 shrink-0">
-                    <div className="flex items-center justify-between">
-                        <DialogTitle className="text-white text-sm font-medium flex items-center gap-3">
-                            <span className="font-mono text-zinc-400 text-xs truncate max-w-[200px]">{guid}</span>
-                            {selected && (
-                                <>
-                                    <span className={`font-bold text-sm ${selected.exit_code === 0 ? 'text-green-400' : selected.exit_code === null ? 'text-zinc-500' : 'text-red-400'}`}>
-                                        {selected.exit_code === null ? 'exit: —' : `exit: ${selected.exit_code}`}
-                                    </span>
-                                    {selected.node_id && <span className="text-zinc-500 text-xs">{selected.node_id}</span>}
-                                    {selected.duration_seconds != null && (
-                                        <span className="text-zinc-500 text-xs">{selected.duration_seconds.toFixed(2)}s</span>
-                                    )}
-                                    {selected.started_at && (
-                                        <span className="text-zinc-500 text-xs">{new Date(selected.started_at).toLocaleString()}</span>
-                                    )}
-                                </>
-                            )}
-                        </DialogTitle>
-                        <div className="flex items-center gap-2 pr-8">
-                            {executions.length > 1 && (
-                                <select
-                                    className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded px-2 py-1"
-                                    value={selected?.id ?? ''}
-                                    onChange={e => setSelected(executions.find(x => x.id === Number(e.target.value)) ?? null)}
-                                >
-                                    {executions.map((ex, i) => (
-                                        <option key={ex.id} value={ex.id}>
-                                            Attempt {executions.length - i} — {ex.status}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                            <button
-                                onClick={handleCopy}
-                                className="text-zinc-400 hover:text-zinc-200 text-xs px-2 py-1 rounded border border-zinc-700 hover:border-zinc-500"
-                            >
-                                Copy
-                            </button>
-                        </div>
-                    </div>
-                </DialogHeader>
-
-                <div className="flex-1 overflow-y-auto font-mono text-xs p-4 bg-black">
-                    {lines.length === 0 && !selected?.truncated && (
-                        <div className="text-zinc-600 italic">No output captured.</div>
-                    )}
-                    {lines.map((entry, i) => (
-                        <div key={i} className="flex gap-2 leading-5">
-                            <span className="text-zinc-600 shrink-0 select-none">
-                                {new Date(entry.t).toLocaleTimeString()}
-                            </span>
-                            <span className="text-zinc-600 shrink-0 select-none">
-                                {entry.stream === 'stderr' ? '[ERR]' : '[OUT]'}
-                            </span>
-                            <span className={entry.stream === 'stderr' ? 'text-amber-400' : 'text-zinc-300'}>
-                                {entry.line}
-                            </span>
-                        </div>
-                    ))}
-                    {selected?.truncated && (
-                        <div className="text-yellow-500 border-t border-zinc-800 mt-2 pt-2 italic">
-                            Output truncated at 1MB — remaining lines not stored.
-                        </div>
-                    )}
-                    {selected && selected.exit_code !== null && selected.exit_code !== undefined && (
-                        <div className={`mt-4 font-bold text-sm ${selected.exit_code === 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {selected.exit_code === 0 ? '✔' : '✘'} Exit {selected.exit_code}
-                        </div>
-                    )}
-                    <div ref={logEndRef} />
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
-const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput }: { job: Job | null; open: boolean; onClose: () => void; onCancel: (guid: string) => void; onViewOutput: (guid: string) => void }) => {
     if (!job) return null;
     const cancellable = job.status === 'PENDING' || job.status === 'ASSIGNED';
+    const retryable = job.status === 'FAILED' || job.status === 'DEAD_LETTER';
 
     const flightRecorder = job.result?.flight_recorder;
     const resultData = job.result
@@ -242,6 +146,16 @@ const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput }: { job: J
                         </Button>
                     )}
 
+                    {retryable && (
+                        <Button
+                            variant="outline"
+                            className="w-full border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                            onClick={() => { onRetry(job.guid); onClose(); }}
+                        >
+                            <RefreshCw className="mr-2 h-4 w-4" /> Re-queue Job
+                        </Button>
+                    )}
+
                     <Button
                         variant="outline"
                         className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
@@ -255,7 +169,27 @@ const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput }: { job: J
                         <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Metadata</h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm">
                             <span className="text-zinc-500">Status</span>
-                            <Badge variant={getStatusVariant(job.status) as any} className="w-fit capitalize">{job.status.toLowerCase()}</Badge>
+                            <div className="w-fit">
+                                {job.status.toLowerCase() === 'retrying' ? (
+                                    <Badge className="border border-amber-500/60 text-amber-400 bg-amber-500/10 capitalize">retrying</Badge>
+                                ) : job.status.toLowerCase() === 'dead_letter' ? (
+                                    <Badge className="border border-rose-900/60 text-rose-300 bg-rose-900/20 capitalize">dead letter</Badge>
+                                ) : (
+                                    <Badge variant={getStatusVariant(job.status) as any} className="w-fit capitalize">{job.status.toLowerCase()}</Badge>
+                                )}
+                            </div>
+                            {job.status === 'RETRYING' && retryCountdown && (
+                                <>
+                                    <span className="text-zinc-500">Next Attempt</span>
+                                    <span className="text-amber-400 text-sm font-mono">{retryCountdown}</span>
+                                </>
+                            )}
+                            {job.max_retries && job.max_retries > 0 && (
+                                <>
+                                    <span className="text-zinc-500">Attempt</span>
+                                    <span className="text-zinc-300">{(job.retry_count ?? 0) + 1} / {job.max_retries + 1}</span>
+                                </>
+                            )}
                             <span className="text-zinc-500">Type</span>
                             <span className="font-mono text-zinc-300">{job.task_type || job.payload?.task_type || '—'}</span>
                             <span className="text-zinc-500">Node</span>
@@ -271,6 +205,37 @@ const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput }: { job: J
                                         {job.target_tags.map(t => (
                                             <span key={t} className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] border border-zinc-700 text-zinc-400">{t}</span>
                                         ))}
+                                    </div>
+                                </>
+                            )}
+                            {job.depends_on && job.depends_on.length > 0 && (
+                                <>
+                                    <span className="text-zinc-500">Depends On</span>
+                                    <div className="flex flex-col gap-1.5">
+                                        {job.depends_on.map((dep: any, idx: number) => {
+                                            if (typeof dep === 'string') {
+                                                return (
+                                                    <span key={idx} className="px-1.5 py-0.5 rounded bg-zinc-900/50 text-[10px] border border-zinc-800 text-zinc-500 font-mono w-fit">
+                                                        Job: {dep.slice(0, 8)}... (COMPLETED)
+                                                    </span>
+                                                );
+                                            }
+                                            if (dep.type === 'job') {
+                                                return (
+                                                    <span key={idx} className="px-1.5 py-0.5 rounded bg-zinc-900/50 text-[10px] border border-zinc-800 text-zinc-500 font-mono w-fit">
+                                                        Job: {dep.ref.slice(0, 8)}... ({dep.condition || 'COMPLETED'})
+                                                    </span>
+                                                );
+                                            }
+                                            if (dep.type === 'signal') {
+                                                return (
+                                                    <span key={idx} className="px-1.5 py-0.5 rounded bg-amber-500/10 text-[10px] border border-amber-500/20 text-amber-500 font-bold w-fit flex items-center gap-1">
+                                                        <Zap className="h-2.5 w-2.5 fill-current" /> Signal: {dep.ref}
+                                                    </span>
+                                                );
+                                            }
+                                            return null;
+                                        })}
                                     </div>
                                 </>
                             )}
@@ -440,6 +405,21 @@ const Jobs = () => {
         }
     };
 
+    const handleRetry = async (guid: string) => {
+        try {
+            const res = await authenticatedFetch(`/jobs/${guid}/retry`, { method: 'POST' });
+            if (res.ok) {
+                toast.success('Job re-queued for retry');
+                fetchJobs();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                toast.error(data.detail || 'Failed to retry job');
+            }
+        } catch {
+            toast.error('Failed to retry job');
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -552,6 +532,8 @@ const Jobs = () => {
                                     <SelectItem value="failed">Failed</SelectItem>
                                     <SelectItem value="cancelled">Cancelled</SelectItem>
                                     <SelectItem value="security_rejected">Security Rejected</SelectItem>
+                                    <SelectItem value="retrying">Retrying</SelectItem>
+                                    <SelectItem value="dead_letter">Dead Letter</SelectItem>
                                 </SelectContent>
                             </Select>
                             <div className="relative">
@@ -571,6 +553,7 @@ const Jobs = () => {
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pl-6">GUID</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Type</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Status</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Attempt</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Target Node</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Timestamp</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pr-6 text-right">Detail</TableHead>
@@ -580,7 +563,7 @@ const Jobs = () => {
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <TableRow key={i} className="border-zinc-800">
-                                        {Array.from({ length: 6 }).map((_, j) => (
+                                        {Array.from({ length: 7 }).map((_, j) => (
                                             <TableCell key={j} className="py-3 pl-6">
                                                 <div className="h-3 bg-zinc-800 animate-pulse rounded w-3/4" />
                                             </TableCell>
@@ -600,9 +583,20 @@ const Jobs = () => {
                                             {job.task_type || job.payload?.task_type || 'Generic'}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant={getStatusVariant(job.status) as any} className="capitalize">
-                                                {job.status.toLowerCase()}
-                                            </Badge>
+                                            {job.status.toLowerCase() === 'retrying' ? (
+                                                <Badge className="border border-amber-500/60 text-amber-400 bg-amber-500/10 capitalize">retrying</Badge>
+                                            ) : job.status.toLowerCase() === 'dead_letter' ? (
+                                                <Badge className="border border-rose-900/60 text-rose-300 bg-rose-900/20 capitalize">dead letter</Badge>
+                                            ) : (
+                                                <Badge variant={getStatusVariant(job.status) as any} className="capitalize">
+                                                    {job.status.toLowerCase()}
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-xs text-zinc-500 tabular-nums">
+                                            {job.max_retries && job.max_retries > 0
+                                                ? `${(job.retry_count ?? 0) + 1}/${job.max_retries + 1}`
+                                                : ''}
                                         </TableCell>
                                         <TableCell className="font-mono text-xs text-zinc-500">
                                             {job.node_id ? job.node_id.substring(0, 12) : '-'}
@@ -622,7 +616,7 @@ const Jobs = () => {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-32 text-center text-zinc-600">
+                                    <TableCell colSpan={7} className="h-32 text-center text-zinc-600">
                                         {filterText ? 'No jobs match that GUID.' : 'Queue is currently empty.'}
                                     </TableCell>
                                 </TableRow>
@@ -659,8 +653,8 @@ const Jobs = () => {
                 </Card>
             </div>
 
-            <JobDetailPanel job={selectedJob} open={detailOpen} onClose={() => setDetailOpen(false)} onCancel={cancelJob} onViewOutput={setLogModalGuid} />
-            <ExecutionLogModal guid={logModalGuid ?? ''} open={!!logModalGuid} onClose={() => setLogModalGuid(null)} />
+            <JobDetailPanel job={selectedJob} open={detailOpen} onClose={() => setDetailOpen(false)} onCancel={cancelJob} onViewOutput={setLogModalGuid} onRetry={handleRetry} />
+            <ExecutionLogModal jobGuid={logModalGuid ?? ''} open={!!logModalGuid} onClose={() => setLogModalGuid(null)} />
         </div>
     );
 };

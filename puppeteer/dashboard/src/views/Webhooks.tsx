@@ -41,7 +41,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface WebhookData {
     id: number;
-    url: str;
+    url: string;
     events: string;
     active: boolean;
     created_at: string;

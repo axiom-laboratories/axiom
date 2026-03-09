@@ -15,6 +15,8 @@ import {
     KeyRound,
     CalendarClock,
     Bot,
+    Webhook,
+    History as HistoryIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +37,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { authenticatedFetch, setToken, getUser, logout } from '../auth';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const ForceChangeModal = () => {
     const [newPw, setNewPw] = useState('');
@@ -152,6 +155,7 @@ const MainLayout = () => {
                     </div>
                     <NavItem to="/nodes" icon={Server} label="Nodes" />
                     <NavItem to="/jobs" icon={Cpu} label="Jobs" />
+                    <NavItem to="/history" icon={HistoryIcon} label="History" />
                     <NavItem to="/scheduled-jobs" icon={CalendarClock} label="Scheduled Jobs" />
 
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
@@ -170,6 +174,7 @@ const MainLayout = () => {
                     <NavItem to="/admin" icon={Settings} label="Settings" />
                     <NavItem to="/users" icon={Users} label="Users & Roles" />
                     <NavItem to="/service-principals" icon={Bot} label="Service Principals" />
+                    <NavItem to="/webhooks" icon={Webhook} label="Webhooks" />
                     <NavItem to="/audit" icon={ScrollText} label="Audit Log" />
                 </nav>
             </div>
@@ -216,31 +221,34 @@ const MainLayout = () => {
                     <div className="flex-1 flex items-center justify-between">
                         <h1 className="text-sm font-semibold text-zinc-400 md:hidden">Puppeteer</h1>
                         <div>{/* Spacer or search */}</div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800" aria-label="User menu">
-                                    <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                                        <span className="text-xs font-bold text-primary">{initial}</span>
-                                    </div>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuLabel className="text-zinc-500 font-normal">
-                                    Signed in as <span className="text-white font-medium">{user?.username}</span>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => navigate('/account')}>
-                                    My Account
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                    onClick={handleLogout}
-                                >
-                                    Sign Out
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-2">
+                            <NotificationBell />
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800" aria-label="User menu">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                            <span className="text-xs font-bold text-primary">{initial}</span>
+                                        </div>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuLabel className="text-zinc-500 font-normal">
+                                        Signed in as <span className="text-white font-medium">{user?.username}</span>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => navigate('/account')}>
+                                        My Account
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                        onClick={handleLogout}
+                                    >
+                                        Sign Out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
                 </header>
                 <main className="flex-1 p-4 lg:p-8 overflow-auto max-w-7xl mx-auto w-full">

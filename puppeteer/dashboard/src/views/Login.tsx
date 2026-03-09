@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Network, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { login } from '../auth';
@@ -9,7 +8,6 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const navigate = useNavigate();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,7 +15,7 @@ const Login = () => {
         setIsLoading(true);
         try {
             await login(username, password);
-            navigate('/');
+            window.location.href = '/';
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         } finally {

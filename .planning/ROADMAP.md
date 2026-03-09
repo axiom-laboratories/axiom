@@ -7,7 +7,7 @@
 - [x] **Phase 6: Remote Server Deployment** - Validate the Docker Compose stack on a remote Linux host, including reverse proxy configuration and certificate handling. [2026-03-06]
 - [x] **Phase 7: Linux Universal Installer** - Ensure `install_universal.sh` correctly imports the MOP CA, installs dependencies, and enrolls nodes on fresh Linux environments. [2026-03-07]
 - [x] **Phase 8: Cross-Network Validation** - Verify mTLS heartbeat, job pulling, and artifact downloading across true network boundaries (non-loopback).
-- [ ] **Phase 9: TriggerManager Dashboard UI** - Build the Admin.tsx Automation tab with TriggerManager component to expose the trigger API in the dashboard (was claimed in M4 but not delivered).
+- [x] **Phase 9: TriggerManager Dashboard UI** - Build the Admin.tsx Automation tab with TriggerManager component to expose the trigger API in the dashboard (was claimed in M4 but not delivered). ✓ 2026-03-09
 - [ ] **Phase 10: Windows Installer Fix** - Fix Podman named-pipe socket mapping in `install_universal.ps1` so the Loader deployment method works on Windows.
 
 ### Phase 6: Remote Server Deployment
@@ -37,13 +37,14 @@ Plans:
 
 ### Phase 9: TriggerManager Dashboard UI
 **Goal:** Fix compile errors in TriggerManager, add PATCH/regenerate-token backend endpoints, and deliver Active/Inactive toggle, Copy Token, Rotate Key, and empty state UI features.
-**Status:** Not Started
-**Plans:** 2/3 plans executed
+**Status:** Complete
+**Completed:** 2026-03-09
+**Plans:** 3/3 plans executed
 
 Plans:
-- [ ] 09-01-PLAN.md — Backend: TriggerUpdate model, update_trigger/regenerate_token service methods, PATCH + POST routes
-- [ ] 09-02-PLAN.md — Frontend: fix missing imports (compile unblock), add toggle/copy-token/rotate-key/empty-state to TriggerManager
-- [ ] 09-03-PLAN.md — Verify: deploy updated stack, human-verify full trigger lifecycle in browser
+- [x] 09-01-PLAN.md — Backend: TriggerUpdate model, update_trigger/regenerate_token service methods, PATCH + POST routes
+- [x] 09-02-PLAN.md — Frontend: fix missing imports (compile unblock), add toggle/copy-token/rotate-key/empty-state to TriggerManager
+- [x] 09-03-PLAN.md — Verify: deploy updated stack, human-verify full trigger lifecycle in browser
 
 ### Phase 10: Windows Installer Fix
 **Goal:** Fix Podman named-pipe socket mapping in `install_universal.ps1` so the Loader deployment method (Method 1) works correctly on Windows.
