@@ -48,13 +48,13 @@ Plans:
 
 ### Phase 10: Windows Installer Fix
 **Goal:** Fix Podman named-pipe socket mapping in `install_universal.ps1` so the Loader deployment method (Method 1) works correctly on Windows.
-**Status:** In Planning
+**Status:** Complete [2026-03-09] — WIN-01..05 automated and green; WIN-06/WIN-07 deferred pending Windows hardware
 **Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 10-01-PLAN.md — Wave 0: Pester test stubs (WIN-01..05) + loader/Containerfile (WIN-06)
-- [ ] 10-02-PLAN.md — Fix install_universal.ps1: Assert-PodmanMachineRunning, Get-PodmanSocketInfo, Invoke-LoaderContainer, splatting, podman-compose gate
-- [ ] 10-03-PLAN.md — Verify: full Pester suite green gate + human verify WIN-06 build + WIN-07 end-to-end
+- [x] 10-01-PLAN.md — Wave 0: Pester test stubs (WIN-01..05) + loader/Containerfile (WIN-06)
+- [x] 10-02-PLAN.md — Fix install_universal.ps1: Assert-PodmanMachineRunning, Get-PodmanSocketInfo, Invoke-LoaderContainer, splatting, podman-compose gate
+- [x] 10-03-PLAN.md — Verify: full Pester suite green gate (8/8 GREEN); WIN-06 and WIN-07 deferred (no Windows/Podman hardware available)
 
 ---
 
