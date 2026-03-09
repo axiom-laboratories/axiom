@@ -128,6 +128,47 @@
 
 ---
 
+---
+
+## Milestone 8 Requirements — mop-push CLI & Job Staging
+
+### OAuth Device Flow (MoP-native)
+
+- [ ] **AUTH-CLI-01**: MoP Control Plane exposes a device authorization endpoint (`POST /auth/device`) that issues a device code and user code
+- [ ] **AUTH-CLI-02**: MoP polls and exchanges a device code for a short-lived JWT once the user approves in browser
+- [ ] **AUTH-CLI-03**: `mop-push login` opens the browser to the MoP approval page and stores the resulting JWT locally
+- [ ] **AUTH-CLI-04**: Stored credentials are reused across CLI invocations until expired
+
+### mop-push CLI
+
+- [ ] **CLI-01**: `mop-push job push --name --script --key` signs the script locally and pushes as DRAFT
+- [ ] **CLI-02**: `mop-push job push --id --script --key` updates an existing job definition (re-signs)
+- [ ] **CLI-03**: `mop-push job create --name --script --key --cron --tags` creates a fully-scheduled ACTIVE job directly
+- [ ] **CLI-04**: CLI is installable as a self-hosted Python package from the `mop_sdk/` directory
+- [ ] **CLI-05**: Private key never leaves the operator's machine — only the signature is transmitted
+
+### Job Staging Area (Backend)
+
+- [ ] **STAGE-01**: `ScheduledJob` has a `status` field: DRAFT / ACTIVE / DEPRECATED / REVOKED
+- [ ] **STAGE-02**: `POST /api/jobs/push` upsert endpoint — creates a new DRAFT or updates existing job by ID
+- [ ] **STAGE-03**: Server verifies the JWT identity before processing, then verifies the Ed25519 signature before saving
+- [ ] **STAGE-04**: `pushed_by` field records the authenticated operator identity on each push
+
+### Job Staging Area (Dashboard)
+
+- [ ] **DASH-01**: Dashboard shows a Staging/Drafts view listing all DRAFT jobs
+- [ ] **DASH-02**: Operator can inspect a draft job's script content (read-only)
+- [ ] **DASH-03**: Operator can finalize scheduling (cron, target tags) on a draft from the dashboard
+- [ ] **DASH-04**: One-click "Publish" promotes a DRAFT to ACTIVE
+- [ ] **DASH-05**: Job list shows status badge (DRAFT / ACTIVE / DEPRECATED / REVOKED) on all jobs
+
+### Governance
+
+- [ ] **GOV-CLI-01**: Admin can DEPRECATE or REVOKE a job definition; REVOKED jobs are never dispatched to nodes
+- [ ] **GOV-CLI-02**: External IdP (OIDC) is documented as a v2 integration path in the architecture
+
+---
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -141,6 +182,9 @@
 | Artifact staging area | Low priority relative to registry + wizard; deferred to v2 |
 | Multi-arch builds | Buildx complexity; single-arch sufficient for homelab/enterprise target |
 | Air-gapped export | Niche use case; deferred until core Smelter is proven |
+| External IdP (OIDC) for CLI auth | v2 — MoP-native device flow is sufficient for v1; OIDC integration documented as future path |
+| PyPI publishing of mop-push | Self-hosted install from mop_sdk/ is sufficient; public PyPI adds maintenance overhead |
+| Real-time job output streaming via CLI | Buffered retrieval sufficient; streaming is a separate feature |
 
 ---
 
@@ -202,11 +246,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GOV-03 | Phase 16 | Pending |
 | GOV-04 | Phase 16 | Pending |
 
+| AUTH-CLI-01 | TBD | Pending |
+| AUTH-CLI-02 | TBD | Pending |
+| AUTH-CLI-03 | TBD | Pending |
+| AUTH-CLI-04 | TBD | Pending |
+| CLI-01 | TBD | Pending |
+| CLI-02 | TBD | Pending |
+| CLI-03 | TBD | Pending |
+| CLI-04 | TBD | Pending |
+| CLI-05 | TBD | Pending |
+| STAGE-01 | TBD | Pending |
+| STAGE-02 | TBD | Pending |
+| STAGE-03 | TBD | Pending |
+| STAGE-04 | TBD | Pending |
+| DASH-01 | TBD | Pending |
+| DASH-02 | TBD | Pending |
+| DASH-03 | TBD | Pending |
+| DASH-04 | TBD | Pending |
+| DASH-05 | TBD | Pending |
+| GOV-CLI-01 | TBD | Pending |
+| GOV-CLI-02 | TBD | Pending |
+
 **Coverage (Milestone 7):**
 - v1 requirements: 29 total
 - Mapped to phases: 29/29
 - Unmapped: 0
 
+**Coverage (Milestone 8):**
+- v1 requirements: 20 total
+- Mapped to phases: TBD (roadmapper will assign)
+- Unmapped: 20 ⚠️ (pending roadmap creation)
+
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-09 — Milestone 7 requirements added (29 new requirements across 8 categories); all mapped to Phases 11–16*
+*Last updated: 2026-03-09 — Milestone 8 requirements added (20 new requirements across 5 categories); pending roadmap phase assignment*

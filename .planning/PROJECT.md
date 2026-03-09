@@ -71,6 +71,19 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Environment tags for CI/CD targeting | Enables DEV→TEST→PROD promotion patterns without separate orchestrator instances | — Pending |
 | Job output stored server-side | Nodes are stateless — results must flow back to orchestrator | — Pending |
 
+## Planned: Milestone 8 — mop-push CLI & Job Staging
+
+**Goal:** Zero-friction job signing and publishing from the operator's terminal. A dedicated `mop-push` CLI authenticates via OAuth device flow, signs scripts locally with Ed25519, and pushes jobs into a Staging area. Dashboard provides draft review, scheduling finalization, and one-click publish.
+
+**Target features:**
+- OAuth device flow built into MoP Control Plane (MoP is the IdP; external OIDC as v2)
+- `mop-push` CLI: login, job push (draft/upsert), job create (direct active)
+- Self-hosted Python package from `mop_sdk/` — private key never leaves operator machine
+- `ScheduledJob` status enum: DRAFT / ACTIVE / DEPRECATED / REVOKED
+- `POST /api/jobs/push` upsert endpoint with dual-token verification (JWT identity + Ed25519 integrity)
+- Dashboard Staging/Drafts view: inspect, finalize scheduling, one-click publish
+- Job status badges across job list; REVOKED jobs never dispatched to nodes
+
 ## Current Milestone: Milestone 7 — Advanced Foundry & Smelter
 
 **Goal:** Transition the Foundry from a manual blueprint CRUD system to an intelligent, compatibility-aware composition engine with a built-in package registry and governance layer.
