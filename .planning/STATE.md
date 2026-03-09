@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-03-09T15:14:16.409Z"
+stopped_at: "Checkpoint 10-03 Task 2: awaiting human verify WIN-06 WIN-07"
+last_updated: "2026-03-09T15:18:11.551Z"
 last_activity: "2026-03-07 — Plan 06-02c complete: edge cases validated (jq-absent fallback, no-runtime error, non-root behavior)."
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 40
 ---
 
@@ -80,6 +80,7 @@ Progress: [████░░░░░░] 40% (3 of 10 phases complete)
 - [Phase 10-windows-installer-fix]: Fedora 40 base for loader/Containerfile — ships podman in default repos without multi-step manual install
 - [Phase 10]: TCP relay cleanup uses finally block to ensure relay Start-Job is stopped even if podman loader throws
 - [Phase 10]: Get-PodmanSocketInfo defined but not called in Method-1 — placeholder for future named pipe mounting; current approach uses DOCKER_HOST TCP relay
+- [Phase 10-windows-installer-fix]: WIN-05 Pester assertion narrowed to 'Get-Command podman-compose' — functional check only, not raw string match which falsely triggered on menu description text
 
 ### Pending Todos
 - Plan 02b: Fix node-compose.yaml image reference in main.py (localhost/ → 192.168.50.148:5000/).
@@ -90,7 +91,7 @@ Progress: [████░░░░░░] 40% (3 of 10 phases complete)
 
 ## Session Continuity
 
-Last session: 2026-03-09T15:14:16.406Z
-Stopped at: Completed 10-02-PLAN.md
+Last session: 2026-03-09T15:18:07.083Z
+Stopped at: Checkpoint 10-03 Task 2: awaiting human verify WIN-06 WIN-07
 Resume file: None
 Next plan: 09-trigger-manager-dashboard (Cross-Network Validation) — create .planning/phases/08-cross-network/
