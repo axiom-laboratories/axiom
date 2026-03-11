@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json as _json
@@ -298,9 +298,22 @@ class ImageResponse(BaseModel):
     created_at: datetime
 
 class BlueprintCreate(BaseModel):
-    type: str # RUNTIME, NETWORK
+    type: str  # RUNTIME, NETWORK
     name: str
     definition: Dict
+    os_family: Optional[str] = None          # required for RUNTIME, ignored for NETWORK
+    confirmed_deps: Optional[List[str]] = None  # dep-confirmation resubmit
+
+    @field_validator('os_family', mode='before')
+    @classmethod
+    def normalize_os_family(cls, v):
+        return v.upper() if isinstance(v, str) else v
+
+    @model_validator(mode='after')
+    def runtime_requires_os_family(self):
+        if self.type == 'RUNTIME' and not self.os_family:
+            raise ValueError("os_family is required for RUNTIME blueprints")
+        return self
 
 class BlueprintResponse(BaseModel):
     id: str
@@ -309,7 +322,8 @@ class BlueprintResponse(BaseModel):
     definition: Dict
     version: int
     created_at: datetime
-    
+    os_family: Optional[str] = None  # nullable — network blueprints have no os_family
+
     class Config:
         from_attributes = True
 
