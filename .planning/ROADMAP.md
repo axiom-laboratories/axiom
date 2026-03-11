@@ -153,7 +153,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Compatibility Engine | 4/6 | In Progress|  |
+| 11. Compatibility Engine | 5/6 | In Progress|  |
 | 12. Smelter Registry | 0/TBD | Not started | - |
 | 13. Package Management & Custom Repos | 0/TBD | Not started | - |
 | 14. Foundry Wizard UI | 0/TBD | Not started | - |
@@ -179,7 +179,7 @@ Plans:
 ### Phase 7: Linux Universal Installer
 **Goal:** Ensure `install_universal.sh` correctly imports the MOP CA, installs dependencies, and enrolls nodes on fresh Linux environments. Use ephemeral Incus LXC containers (manage-test-nodes skill) to validate on a true fresh Linux environment.
 **Status:** Complete [2026-03-07]
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 - [x] 06-01-PLAN.md — Research and context [2026-03-06]

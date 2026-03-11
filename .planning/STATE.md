@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 11-04-PLAN.md
-last_updated: "2026-03-11T10:31:27.447Z"
+stopped_at: Completed 11-05-PLAN.md
+last_updated: "2026-03-11T10:32:33.533Z"
 last_activity: 2026-03-09 — Milestone 8 roadmap created, 20 requirements mapped across 3 phases
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0% (0 of 3 phases complete)
 | Phase 11-compatibility-engine P02 | 3 | 2 tasks | 4 files |
 | Phase 11-compatibility-engine P03 | 3 | 2 tasks | 3 files |
 | Phase 11-compatibility-engine P04 | 2 | 1 tasks | 1 files |
+| Phase 11-compatibility-engine P05 | 2 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,7 @@ Progress: [░░░░░░░░░░] 0% (0 of 3 phases complete)
 - [Phase 11-compatibility-engine]: foundry_service uses rt_bp.os_family as primary source with derived string fallback for backwards compat with pre-Phase-11 blueprints
 - [Phase 11-compatibility-engine]: mutate(undefined) used at call site to satisfy TypeScript when mutationFn accepts optional opts parameter
 - [Phase 11-compatibility-engine]: OS Family dropdown placed before Base OS select in CreateBlueprintDialog — drives tool filtering so logical ordering requires it first
+- [Phase 11-05]: patchToolMutation omitted: add+soft-delete only in plan scope; PATCH backend available when edit UI needed
 
 ### Pending Todos
 - Plan 02b: Fix node-compose.yaml image reference in main.py (localhost/ → 192.168.50.148:5000/).
@@ -114,7 +116,7 @@ Progress: [░░░░░░░░░░] 0% (0 of 3 phases complete)
 
 ## Session Continuity
 
-Last session: 2026-03-11T10:31:27.445Z
-Stopped at: Completed 11-04-PLAN.md
+Last session: 2026-03-11T10:32:33.531Z
+Stopped at: Completed 11-05-PLAN.md
 Resume file: None
 Next plan: /gsd:plan-phase 17
