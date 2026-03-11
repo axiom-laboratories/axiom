@@ -320,9 +320,41 @@ class CapabilityMatrixEntry(BaseModel):
     injection_recipe: str
     validation_cmd: str
     artifact_id: Optional[str] = None
+    runtime_dependencies: List[str] = []
+    is_active: bool = True
+
+    @field_validator('runtime_dependencies', mode='before')
+    @classmethod
+    def deserialize_runtime_deps(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            try:
+                return _json.loads(v)
+            except Exception:
+                return []
+        return v
+
+    @field_validator('base_os_family', mode='before')
+    @classmethod
+    def normalize_os_family(cls, v: Any) -> Any:
+        return v.upper() if isinstance(v, str) else v
 
     class Config:
         from_attributes = True
+
+
+class CapabilityMatrixUpdate(BaseModel):
+    base_os_family: Optional[str] = None
+    tool_id: Optional[str] = None
+    injection_recipe: Optional[str] = None
+    validation_cmd: Optional[str] = None
+    artifact_id: Optional[str] = None
+    runtime_dependencies: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+    @field_validator('base_os_family', mode='before')
+    @classmethod
+    def normalize_os(cls, v: Any) -> Any:
+        return v.upper() if isinstance(v, str) else v
 
 class ArtifactResponse(BaseModel):
     id: str

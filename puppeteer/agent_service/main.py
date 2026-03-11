@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, Header, status, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, Depends, Header, status, WebSocket, WebSocketDisconnect, UploadFile, File, Query
 from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -22,7 +22,7 @@ from .models import (
     JobDefinitionResponse, PingRequest, NetworkMount, MountsConfig,
     ImageBuildRequest, ImageResponse, EnrollmentRequest,
     BlueprintCreate, BlueprintResponse, PuppetTemplateCreate, PuppetTemplateResponse,
-    CapabilityMatrixEntry, UploadKeyRequest, UserCreate, UserResponse, PermissionGrant,
+    CapabilityMatrixEntry, CapabilityMatrixUpdate, UploadKeyRequest, UserCreate, UserResponse, PermissionGrant,
     ArtifactResponse, ApprovedOSResponse,
     EnrollmentTokenCreate,
     SignalFire, SignalResponse,
@@ -1741,8 +1741,18 @@ async def delete_template(id: str, current_user: User = Depends(require_permissi
     return {"status": "deleted"}
 
 @app.get("/api/capability-matrix", response_model=List[CapabilityMatrixEntry])
-async def get_capability_matrix(current_user: User = Depends(require_permission("foundry:read")), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(CapabilityMatrix))
+async def get_capability_matrix(
+    os_family: Optional[str] = Query(None),
+    include_inactive: bool = Query(False),
+    current_user: User = Depends(require_permission("foundry:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(CapabilityMatrix)
+    if not include_inactive:
+        stmt = stmt.where(CapabilityMatrix.is_active == True)
+    if os_family:
+        stmt = stmt.where(CapabilityMatrix.base_os_family == os_family.upper())
+    result = await db.execute(stmt)
     return result.scalars().all()
 
 # --- Foundry & Enrollment Endpoints ---
@@ -2121,32 +2131,43 @@ async def create_capability(
         tool_id=req.tool_id,
         injection_recipe=req.injection_recipe,
         validation_cmd=req.validation_cmd,
-        artifact_id=req.artifact_id
+        artifact_id=req.artifact_id,
+        runtime_dependencies=json.dumps(req.runtime_dependencies),
+        is_active=req.is_active if req.is_active is not None else True,
     )
     db.add(new_cap)
     await db.commit()
     await db.refresh(new_cap)
     return new_cap
 
-@app.put("/api/capability-matrix/{id}", response_model=CapabilityMatrixEntry)
+@app.patch("/api/capability-matrix/{id}", response_model=CapabilityMatrixEntry)
 async def update_capability(
     id: int,
-    req: CapabilityMatrixEntry,
+    req: CapabilityMatrixUpdate,
     current_user: User = Depends(require_permission("foundry:write")),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update an existing tool recipe."""
+    """Partially update an existing tool recipe."""
     result = await db.execute(select(CapabilityMatrix).where(CapabilityMatrix.id == id))
     cap = result.scalar_one_or_none()
     if not cap:
         raise HTTPException(status_code=404, detail="Capability not found")
-    
-    cap.base_os_family = req.base_os_family
-    cap.tool_id = req.tool_id
-    cap.injection_recipe = req.injection_recipe
-    cap.validation_cmd = req.validation_cmd
-    cap.artifact_id = req.artifact_id
-    
+
+    if req.base_os_family is not None:
+        cap.base_os_family = req.base_os_family
+    if req.tool_id is not None:
+        cap.tool_id = req.tool_id
+    if req.injection_recipe is not None:
+        cap.injection_recipe = req.injection_recipe
+    if req.validation_cmd is not None:
+        cap.validation_cmd = req.validation_cmd
+    if req.artifact_id is not None:
+        cap.artifact_id = req.artifact_id
+    if req.runtime_dependencies is not None:
+        cap.runtime_dependencies = json.dumps(req.runtime_dependencies)
+    if req.is_active is not None:
+        cap.is_active = req.is_active
+
     await db.commit()
     await db.refresh(cap)
     return cap
@@ -2157,14 +2178,24 @@ async def delete_capability(
     current_user: User = Depends(require_permission("foundry:write")),
     db: AsyncSession = Depends(get_db)
 ):
-    """Remove a tool recipe from the matrix."""
+    """Soft-delete a tool recipe (sets is_active=False). Returns referencing blueprints."""
     result = await db.execute(select(CapabilityMatrix).where(CapabilityMatrix.id == id))
     cap = result.scalar_one_or_none()
     if not cap:
         raise HTTPException(status_code=404, detail="Capability not found")
-    await db.delete(cap)
+    # Find referencing blueprints by scanning definition JSON for tool_id
+    all_bps = (await db.execute(select(Blueprint))).scalars().all()
+    referencing = []
+    for bp in all_bps:
+        try:
+            defn = json.loads(bp.definition)
+            if cap.tool_id in [t.get("id") for t in defn.get("tools", [])]:
+                referencing.append({"id": bp.id, "name": bp.name})
+        except Exception:
+            pass
+    cap.is_active = False
     await db.commit()
-    return {"status": "deleted"}
+    return {"status": "deactivated", "referencing_blueprints": referencing}
 
 # --- Installer & Doc Endpoints ---
 
