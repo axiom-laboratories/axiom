@@ -1601,26 +1601,82 @@ async def generate_token(request: Request, current_user: User = Depends(require_
 
 # --- Blueprint & Template Management ---
 
-@app.post("/api/blueprints", response_model=BlueprintResponse)
-async def create_blueprint(req: BlueprintCreate, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
-    
+@app.post("/api/blueprints", response_model=BlueprintResponse, status_code=201)
+async def create_blueprint(
+    req: BlueprintCreate,
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    definition = dict(req.definition)
+
+    # Only RUNTIME blueprints need OS + dep validation
+    if req.type == 'RUNTIME':
+        tool_ids = [t.get("id") for t in definition.get("tools", []) if t.get("id")]
+        declared_os = req.os_family  # already normalized to uppercase by Pydantic
+
+        if tool_ids:
+            # === PASS 1: OS mismatch check (hard reject) ===
+            stmt = select(CapabilityMatrix).where(
+                CapabilityMatrix.is_active == True,
+                CapabilityMatrix.base_os_family == declared_os,
+                CapabilityMatrix.tool_id.in_(tool_ids)
+            )
+            result = await db.execute(stmt)
+            valid_rows = result.scalars().all()
+            valid_tool_ids = {row.tool_id for row in valid_rows}
+            incompatible = [t for t in tool_ids if t not in valid_tool_ids]
+            if incompatible:
+                raise HTTPException(status_code=422, detail={
+                    "error": "os_mismatch",
+                    "message": f"Blueprint validation failed: tools {incompatible} have no CapabilityMatrix entry for {declared_os}. Add {declared_os} support for these tools or change the OS family.",
+                    "offending_tools": incompatible
+                })
+
+            # === PASS 2: Runtime dependency check (soft reject with confirmation) ===
+            tool_set = set(tool_ids)
+            confirmed = set(req.confirmed_deps or [])
+            missing_deps: list = []
+            for row in valid_rows:
+                try:
+                    deps = json.loads(row.runtime_dependencies or "[]")
+                except Exception:
+                    deps = []
+                for dep in deps:
+                    if dep not in tool_set and dep not in confirmed:
+                        missing_deps.append(dep)
+
+            if missing_deps:
+                raise HTTPException(status_code=422, detail={
+                    "error": "deps_required",
+                    "message": "Some tools have unsatisfied runtime dependencies. Resubmit with confirmed_deps to auto-add them.",
+                    "deps_to_confirm": list(set(missing_deps))
+                })
+
+            # Auto-add confirmed deps to the tool list before saving
+            if confirmed:
+                existing_ids = {t.get("id") for t in definition.get("tools", [])}
+                extra = [{"id": dep, "version": "latest"} for dep in confirmed if dep not in existing_ids]
+                definition.setdefault("tools", []).extend(extra)
+
     new_bp = Blueprint(
         id=str(uuid.uuid4()),
         type=req.type,
         name=req.name,
-        definition=json.dumps(req.definition)
+        definition=json.dumps(definition),
+        os_family=req.os_family,      # write os_family to DB column
     )
     db.add(new_bp)
     await db.commit()
     await db.refresh(new_bp)
-    
+
     return {
         "id": new_bp.id,
         "type": new_bp.type,
         "name": new_bp.name,
-        "definition": req.definition,
+        "definition": definition,
         "version": new_bp.version,
-        "created_at": new_bp.created_at
+        "created_at": new_bp.created_at,
+        "os_family": new_bp.os_family,
     }
 
 @app.get("/api/blueprints", response_model=List[BlueprintResponse])
@@ -1633,7 +1689,8 @@ async def list_blueprints(current_user: User = Depends(require_permission("found
         "name": bp.name,
         "definition": json.loads(bp.definition),
         "version": bp.version,
-        "created_at": bp.created_at
+        "created_at": bp.created_at,
+        "os_family": bp.os_family,  # NEW
     } for bp in bps]
 
 # Legacy/Frontend Aliases

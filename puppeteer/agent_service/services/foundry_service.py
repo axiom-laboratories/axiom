@@ -14,125 +14,151 @@ from ..models import ImageBuildRequest, ImageResponse
 logger = logging.getLogger(__name__)
 
 class FoundryService:
+    _build_semaphore = asyncio.Semaphore(2)
+
     @staticmethod
     async def build_template(template_id: str, db: AsyncSession) -> ImageResponse:
         """
         Stitches Blueprints into a single Puppet image via a generated Dockerfile.
         """
-        # 1. Fetch Template & Blueprints
-        tmpl_res = await db.execute(select(PuppetTemplate).where(PuppetTemplate.id == template_id))
-        tmpl = tmpl_res.scalar_one_or_none()
-        if not tmpl:
-            raise ValueError("Template not found")
-        
-        rt_res = await db.execute(select(Blueprint).where(Blueprint.id == tmpl.runtime_blueprint_id))
-        nw_res = await db.execute(select(Blueprint).where(Blueprint.id == tmpl.network_blueprint_id))
-        rt_bp = rt_res.scalar_one_or_none()
-        nw_bp = nw_res.scalar_one_or_none()
-        
-        rt_def = json.loads(rt_bp.definition)
-        nw_def = json.loads(nw_bp.definition)
-        
-        # 2. Build Dockerfile Content
-        base_os = rt_def.get("base_os", "debian-12-slim")
-        os_family = "ALPINE" if "alpine" in base_os.lower() else "DEBIAN"
-        
-        dockerfile = [f"FROM {base_os}"]
-        
-        # Injection Recipes
-        for tool in rt_def.get("tools", []):
-            tool_id = tool.get("id")
-            matrix_res = await db.execute(
-                select(CapabilityMatrix).where(
-                    CapabilityMatrix.base_os_family == os_family,
-                    CapabilityMatrix.tool_id == tool_id
+        async with FoundryService._build_semaphore:
+            # 1. Fetch Template & Blueprints
+            tmpl_res = await db.execute(select(PuppetTemplate).where(PuppetTemplate.id == template_id))
+            tmpl = tmpl_res.scalar_one_or_none()
+            if not tmpl:
+                raise ValueError("Template not found")
+            
+            rt_res = await db.execute(select(Blueprint).where(Blueprint.id == tmpl.runtime_blueprint_id))
+            nw_res = await db.execute(select(Blueprint).where(Blueprint.id == tmpl.network_blueprint_id))
+            rt_bp = rt_res.scalar_one_or_none()
+            nw_bp = nw_res.scalar_one_or_none()
+            
+            rt_def = json.loads(rt_bp.definition)
+            nw_def = json.loads(nw_bp.definition)
+            
+            # 2. Build Dockerfile Content
+            base_os = rt_def.get("base_os", "debian-12-slim")
+            # Use os_family from the blueprint DB column directly (set at creation time since Phase 11)
+            os_family = getattr(rt_bp, 'os_family', None) or ("ALPINE" if "alpine" in base_os.lower() else "DEBIAN")
+            
+            dockerfile = [f"FROM {base_os}"]
+            
+            # Injection Recipes
+            for tool in rt_def.get("tools", []):
+                tool_id = tool.get("id")
+                matrix_res = await db.execute(
+                    select(CapabilityMatrix).where(
+                        CapabilityMatrix.base_os_family == os_family,
+                        CapabilityMatrix.tool_id == tool_id
+                    )
                 )
-            )
-            recipe = matrix_res.scalar_one_or_none()
-            if recipe:
-                dockerfile.append(f"# Recipe for {tool_id}")
-                dockerfile.append(recipe.injection_recipe)
-        
-        # Baked-in Packages
-        packages = rt_def.get("packages", {})
-        if "python" in packages:
-            pkg_list = " ".join(packages["python"])
-            dockerfile.append(f"RUN pip install --no-cache-dir --break-system-packages {pkg_list}")
+                recipe = matrix_res.scalar_one_or_none()
+                if recipe:
+                    dockerfile.append(f"# Recipe for {tool_id}")
+                    
+                    # Security CAV-03: Expand {{ARTIFACT_URL}} macro if recipe is tied to an artifact
+                    final_recipe = recipe.injection_recipe
+                    if recipe.artifact_id:
+                        # Construct internal download URL.
+                        # Since this is for Dockerfile 'curl'/'wget' during build, 
+                        # it needs to be accessible from the build container.
+                        # We use the agent's internal URL or a configurable base.
+                        base_url = os.getenv("AGENT_URL", "https://localhost:8001")
+                        artifact_url = f"{base_url}/api/artifacts/{recipe.artifact_id}/download"
+                        final_recipe = final_recipe.replace("{{ARTIFACT_URL}}", artifact_url)
+                    
+                    dockerfile.append(final_recipe)
             
-        # Network Perimeter (Simplified Sidecar Config Injection)
-        egress_rules = nw_def.get("egress_rules", [])
-        dockerfile.append(f"ENV EGRESS_POLICY='{json.dumps(egress_rules)}'")
-        
-        # Core Puppet Code
-        dockerfile.append("WORKDIR /app")
-        dockerfile.append("COPY environment_service/ environment_service/")
-        dockerfile.append("CMD [\"python\", \"environment_service/node.py\"]")
+            # Baked-in Packages
+            packages = rt_def.get("packages", {})
+            if "python" in packages:
+                pkg_list = " ".join(packages["python"])
+                dockerfile.append(f"RUN pip install --no-cache-dir --break-system-packages {pkg_list}")
+                
+            # Network Perimeter (Simplified Sidecar Config Injection)
+            egress_rules = nw_def.get("egress_rules", [])
+            dockerfile.append(f"ENV EGRESS_POLICY='{json.dumps(egress_rules)}'")
+            
+            # Core Puppet Code
+            dockerfile.append("WORKDIR /app")
+            dockerfile.append("COPY requirements.txt .")
+            dockerfile.append("RUN pip install --no-cache-dir -r requirements.txt --break-system-packages")
+            dockerfile.append("COPY environment_service/ environment_service/")
+            dockerfile.append("CMD [\"python\", \"environment_service/node.py\"]")
 
-        # 3. Perform Build
-        image_tag = tmpl.friendly_name
-        image_uri = f"localhost:5000/puppet:{image_tag}"
+            # 3. Perform Build
+            image_tag = tmpl.friendly_name
+            image_uri = f"localhost:5000/puppet:{image_tag}"
 
-        # Resolve the puppets source directory (relative to this service file)
-        # Inside the agent container: __file__ is at /app/agent_service/services/foundry_service.py
-        # Two levels up from services/ → /app, then puppets → /app/puppets (the mount point)
-        puppets_src = os.path.realpath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "puppets")
-        )
+            # Resolve the puppets source directory (relative to this service file)
+            puppets_src = os.path.realpath(
+                os.path.join(os.path.dirname(__file__), "..", "..", "puppets")
+            )
 
-        build_dir = f"/tmp/puppet_build_{tmpl.id}"
-        os.makedirs(build_dir, exist_ok=True)
+            build_dir = f"/tmp/puppet_build_{tmpl.id}_{hashlib.md5(str(datetime.utcnow()).encode()).hexdigest()[:8]}"
+            await asyncio.to_thread(os.makedirs, build_dir, exist_ok=True)
 
-        # Copy puppet source files into the build context
-        env_src = os.path.join(puppets_src, "environment_service")
-        env_dst = os.path.join(build_dir, "environment_service")
-        if os.path.isdir(env_src):
-            shutil.copytree(env_src, env_dst, dirs_exist_ok=True)
-        else:
-            logger.warning(f"⚠️  environment_service not found at {env_src} — COPY may fail")
+            # Copy puppet source files into the build context
+            env_src = os.path.join(puppets_src, "environment_service")
+            env_dst = os.path.join(build_dir, "environment_service")
+            req_src = os.path.join(puppets_src, "requirements.txt")
+            req_dst = os.path.join(build_dir, "requirements.txt")
 
-        with open(os.path.join(build_dir, "Dockerfile"), "w") as f:
-            f.write("\n".join(dockerfile))
+            if os.path.isdir(env_src):
+                await asyncio.to_thread(shutil.copytree, env_src, env_dst, dirs_exist_ok=True)
+            else:
+                logger.warning(f"⚠️  environment_service not found at {env_src} — COPY may fail")
 
-        try:
-            # Detect Engine (fast sync check, not on hot path)
-            engine = "docker"
+            if os.path.isfile(req_src):
+                await asyncio.to_thread(shutil.copy2, req_src, req_dst)
+            else:
+                logger.warning(f"⚠️  requirements.txt not found at {req_src} — COPY may fail")
+
+            dockerfile_path = os.path.join(build_dir, "Dockerfile")
+            with open(dockerfile_path, "w") as f:
+                f.write("\n".join(dockerfile))
+
             try:
-                subprocess.run(["podman", "--version"], check=True, capture_output=True)
-                engine = "podman"
-            except:
-                pass
+                # Detect Engine
+                engine = "docker"
+                try:
+                    res = subprocess.run(["podman", "--version"], check=True, capture_output=True)
+                    engine = "podman"
+                except:
+                    pass
 
-            logger.info(f"🏗️  Building {image_tag} using {engine}...")
-            build_cmd = [engine, "build", "-t", image_uri, "-f", os.path.join(build_dir, "Dockerfile"), build_dir]
-            proc = await asyncio.create_subprocess_exec(
-                *build_cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await proc.communicate()
+                logger.info(f"🏗️  Building {image_tag} using {engine} in {build_dir}...")
+                build_cmd = [engine, "build", "-t", image_uri, "-f", dockerfile_path, build_dir]
+                proc = await asyncio.create_subprocess_exec(
+                    *build_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT
+                )
+                stdout, _ = await proc.communicate()
 
-            if proc.returncode != 0:
-                logger.error(f"❌ Build Failed:\n{stdout.decode()}\n{stderr.decode()}")
-                return ImageResponse(tag=image_tag, image_uri=image_uri, status="FAILED: See Logs", created_at=datetime.utcnow())
+                if proc.returncode != 0:
+                    output_tail = stdout.decode()[-250:].strip()
+                    logger.error(f"❌ Build Failed:\n{stdout.decode()}")
+                    return ImageResponse(tag=image_tag, image_uri=image_uri, status=f"FAILED: {output_tail}", created_at=datetime.utcnow())
 
-            # Push
-            push_proc = await asyncio.create_subprocess_exec(
-                engine, "push", image_uri,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            await push_proc.communicate()
-            
-            # Update Template in DB
-            tmpl.current_image_uri = image_uri
-            tmpl.last_built_at = datetime.utcnow()
-            await db.commit()
-            
-            return ImageResponse(tag=image_tag, image_uri=image_uri, status="SUCCESS", created_at=datetime.utcnow())
-            
-        finally:
-            if os.path.exists(build_dir):
-                shutil.rmtree(build_dir)
+                # Push
+                push_proc = await asyncio.create_subprocess_exec(
+                    engine, "push", image_uri,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT
+                )
+                await push_proc.communicate()
+                
+                # Update Template in DB
+                tmpl.current_image_uri = image_uri
+                tmpl.last_built_at = datetime.utcnow()
+                await db.commit()
+                
+                return ImageResponse(tag=image_tag, image_uri=image_uri, status="SUCCESS", created_at=datetime.utcnow())
+                
+            finally:
+                if os.path.exists(build_dir):
+                    await asyncio.to_thread(shutil.rmtree, build_dir)
 
     @staticmethod
     async def build_image(req: ImageBuildRequest) -> ImageResponse:
