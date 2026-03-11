@@ -21,7 +21,14 @@
   4. The push endpoint rejects requests with an invalid JWT (401) and rejects requests whose Ed25519 signature does not match the script body (422) before writing anything to the database
   5. Every successful push records `pushed_by` as the authenticated operator's identity on the job definition row
   6. Scheduler skips REVOKED jobs entirely — they are never assigned to any node; admin can set a job to DEPRECATED or REVOKED via the existing job management API
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Wave 1: test stubs for all 17 Phase 17 tests (Nyquist Wave 0)
+- [ ] 17-02-PLAN.md — Wave 2: migration_v27.sql + ScheduledJob status/pushed_by + model updates
+- [ ] 17-03-PLAN.md — Wave 3: device flow endpoints (POST /auth/device, token exchange, approval page)
+- [ ] 17-04-PLAN.md — Wave 3: POST /api/jobs/push + REVOKE admin gate + scheduler dispatch hardening
+- [ ] 17-05-PLAN.md — Wave 4: full verification gate + human approval page check
 
 ### Phase 18: mop-push CLI
 **Goal**: Operators can install `mop-push` from the local SDK, authenticate via device flow without ever transmitting their private key, and push or create job definitions from the terminal
@@ -53,7 +60,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 17. Backend — OAuth Device Flow & Job Staging | 0/TBD | Not started | - |
+| 17. Backend — OAuth Device Flow & Job Staging | 0/5 | Not started | - |
 | 18. mop-push CLI | 0/TBD | Not started | - |
 | 19. Dashboard Staging View & Governance Doc | 0/TBD | Not started | - |
 
