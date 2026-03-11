@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-11T10:15:44.758Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-11T10:21:37.527Z"
 last_activity: 2026-03-09 — Milestone 8 roadmap created, 20 requirements mapped across 3 phases
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 6
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0% (0 of 3 phases complete)
 | Phase 10-windows-installer-fix P01 | 2 | 2 tasks | 2 files |
 | Phase 10 P02 | 2 | 2 tasks | 2 files |
 | Phase 11-compatibility-engine P01 | 2 | 1 tasks | 1 files |
+| Phase 11-compatibility-engine P02 | 3 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,9 @@ Progress: [░░░░░░░░░░] 0% (0 of 3 phases complete)
 - [Milestone 8 Roadmap]: GOV-CLI-02 (OIDC v2 doc) placed in Phase 19 — it is an architecture document describing the future integration path for the device flow contract, naturally co-located with the dashboard delivery that completes the end-to-end UX
 - [Phase 11-01]: Used source-inspection pattern (inspect.getsource) for Wave 0 stubs — consistent with existing test patterns, no conftest or DB fixtures required
 - [Phase 11-01]: test_blueprint_dep_confirmation_flow uses pytest.skip until Plan 02 seeds runtime_dependencies data — test still collected (Nyquist-compliant)
+- [Phase 11-compatibility-engine]: Soft-delete over hard-delete for CapabilityMatrix: preserves history, reversible, admin can view inactive entries with ?include_inactive=true
+- [Phase 11-compatibility-engine]: JSON string storage for runtime_dependencies (TEXT column with DEFAULT '[]'): consistent with existing target_tags pattern in this codebase — avoids JSON column type that SQLite doesn't natively support
+- [Phase 11-compatibility-engine]: PUT replaced by PATCH with CapabilityMatrixUpdate for partial update semantics: breaking change acceptable since Plans 04/05 frontend not yet built
 
 ### Pending Todos
 - Plan 02b: Fix node-compose.yaml image reference in main.py (localhost/ → 192.168.50.148:5000/).
@@ -103,7 +107,7 @@ Progress: [░░░░░░░░░░] 0% (0 of 3 phases complete)
 
 ## Session Continuity
 
-Last session: 2026-03-11T10:15:44.756Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-11T10:21:37.524Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
 Next plan: /gsd:plan-phase 17
