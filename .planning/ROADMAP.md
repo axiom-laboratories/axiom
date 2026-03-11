@@ -63,7 +63,7 @@
 **Goal**: Transition the Foundry from a manual blueprint CRUD system to an intelligent, compatibility-aware composition engine with a built-in package registry and governance layer.
 
 ### Phases
-- [ ] **Phase 11: Compatibility Engine** - Tag every CapabilityMatrix tool with OS family, declare runtime deps, enforce OS matching at API and UI
+- [x] **Phase 11: Compatibility Engine** - Tag every CapabilityMatrix tool with OS family, declare runtime deps, enforce OS matching at API and UI (completed 2026-03-11)
 - [ ] **Phase 12: Smelter Registry** - Vetted ingredient catalog with CVE scanning, STRICT/WARNING enforcement, non-compliant badge
 - [ ] **Phase 13: Package Management & Custom Repos** - Native OS + PIP pre-baking, global core set, APT/APK + GPG repos, pypiserver sidecar, repo presets
 - [ ] **Phase 14: Foundry Wizard UI** - 5-step guided composition wizard replacing raw JSON blueprint editing, with real-time OS filtering and registry search
@@ -153,7 +153,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Compatibility Engine | 5/6 | In Progress|  |
+| 11. Compatibility Engine | 6/6 | Complete   | 2026-03-11 |
 | 12. Smelter Registry | 0/TBD | Not started | - |
 | 13. Package Management & Custom Repos | 0/TBD | Not started | - |
 | 14. Foundry Wizard UI | 0/TBD | Not started | - |
@@ -179,7 +179,7 @@ Plans:
 ### Phase 7: Linux Universal Installer
 **Goal:** Ensure `install_universal.sh` correctly imports the MOP CA, installs dependencies, and enrolls nodes on fresh Linux environments. Use ephemeral Incus LXC containers (manage-test-nodes skill) to validate on a true fresh Linux environment.
 **Status:** Complete [2026-03-07]
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 - [x] 06-01-PLAN.md — Research and context [2026-03-06]
