@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 19-01-PLAN.md — status badges, staging tab, and publish action implemented
-last_updated: "2026-03-15T15:29:18.089Z"
+stopped_at: Completed 19-02-PLAN.md — script inspection, publish logic, and pushed_by attribution
+last_updated: "2026-03-15T15:31:03.871Z"
 last_activity: 2026-03-15 — Phase review. Import blocker identified. Phase 19 UI/docs work found in working tree without summaries.
 progress:
   total_phases: 14
   completed_phases: 7
   total_plans: 34
-  completed_plans: 39
+  completed_plans: 40
   percent: 83
 ---
 
@@ -116,6 +116,8 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 - [Phase 11-compatibility-engine]: Automated Playwright test suite (12/12 checks) accepted as equivalent to manual browser verification for phase gate
 - [Phase 19-01]: Button-based tab toggle over Radix Tabs in JobDefinitions — avoids new dependency, consistent with existing button patterns
 - [Phase 19-01]: Publish action reuses PATCH /jobs/definitions/{id} with { status: 'ACTIVE' } — no new backend route needed
+- [Phase 19]: Expandable row as sibling TableRow with colSpan=7 gives full-width script panel without breaking table layout
+- [Phase 19]: Publish button guard checks both prop presence and def.status === DRAFT to prevent ghost buttons on non-draft jobs
 
 ### Pending Todos
 - [ ] **BLOCKER**: Fix `ImageBOMResponse` + `PackageIndexResponse` missing from `main.py` import block (line 21-42) — NameError at module load prevents backend from starting and all agent_service tests from collecting.
@@ -129,7 +131,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 
 ## Session Continuity
 
-Last session: 2026-03-15T15:29:18.085Z
-Stopped at: Completed 19-01-PLAN.md — status badges, staging tab, and publish action implemented
+Last session: 2026-03-15T15:30:59.585Z
+Stopped at: Completed 19-02-PLAN.md — script inspection, publish logic, and pushed_by attribution
 Resume file: None
 Next plan: Fix import blocker in main.py, then write Phase 19 summaries and run /gsd:execute-phase 19 for Plan 04.

@@ -76,7 +76,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 17. Backend — OAuth Device Flow & Job Staging | 5/5 | Complete | 2026-03-12 |
 | 18. mop-push CLI | 4/4 | Complete | 2026-03-12 |
-| 19. Dashboard Staging View & Governance Doc | 1/4 | In Progress|  |
+| 19. Dashboard Staging View & Governance Doc | 2/4 | In Progress|  |
 
 ---
 
@@ -200,7 +200,7 @@ Plans:
 ### Phase 7: Linux Universal Installer
 **Goal:** Ensure `install_universal.sh` correctly imports the MOP CA, installs dependencies, and enrolls nodes on fresh Linux environments. Use ephemeral Incus LXC containers (manage-test-nodes skill) to validate on a true fresh Linux environment.
 **Status:** Complete [2026-03-07]
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 Plans:
 - [x] 06-01-PLAN.md — Research and context [2026-03-06]
