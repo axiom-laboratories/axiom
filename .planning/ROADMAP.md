@@ -76,7 +76,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 17. Backend — OAuth Device Flow & Job Staging | 5/5 | Complete | 2026-03-12 |
 | 18. mop-push CLI | 4/4 | Complete | 2026-03-12 |
-| 19. Dashboard Staging View & Governance Doc | 5/5 | Complete   | 2026-03-15 |
+| 19. Dashboard Staging View & Governance Doc | 5/5 | Complete    | 2026-03-15 |
 
 ---
 
