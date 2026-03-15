@@ -12,6 +12,8 @@ interface EditingJob {
     script_content: string;
     signature_id: string;
     signature_payload: string;
+    status: string;
+    pushed_by: string | null;
     schedule_cron: string | null;
     target_node_id: string | null;
     target_tags: string[] | null;
@@ -36,6 +38,7 @@ const JobDefinitions = () => {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingJob, setEditingJob] = useState<EditingJob | null>(null);
+    const [activeTab, setActiveTab] = useState<'active' | 'staging'>('active');
 
     const [formData, setFormData] = useState(EMPTY_FORM);
 
@@ -157,6 +160,26 @@ const JobDefinitions = () => {
         }
     };
 
+    const handlePublish = async (id: string) => {
+        try {
+            const res = await authenticatedFetch(`/jobs/definitions/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'ACTIVE' })
+            });
+            if (res.ok) {
+                toast.success('Job published successfully');
+                loadData();
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || 'Failed to publish job');
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Publish Error');
+        }
+    };
+
     const openCreateModal = () => {
         setEditingJob(null);
         setFormData(EMPTY_FORM);
@@ -167,6 +190,14 @@ const JobDefinitions = () => {
         setShowModal(false);
         setEditingJob(null);
     };
+
+    const filteredDefinitions = definitions.filter(def => {
+        if (activeTab === 'active') {
+            return def.status !== 'DRAFT';
+        } else {
+            return def.status === 'DRAFT';
+        }
+    });
 
     if (loading) return (
         <div className="space-y-4">
@@ -182,13 +213,36 @@ const JobDefinitions = () => {
                     <h1 className="text-2xl font-bold tracking-tight text-white">Scheduled Jobs</h1>
                     <p className="text-sm text-zinc-500 mt-1">Signed, zero-trust recurring payloads.</p>
                 </div>
-                <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-primary/10">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Archive New Payload
-                </Button>
+                <div className="flex items-center gap-2">
+                    <div className="bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 flex mr-4">
+                        <button
+                            onClick={() => setActiveTab('active')}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'active' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                            ACTIVE
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('staging')}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'staging' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                            STAGING
+                        </button>
+                    </div>
+                    <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-primary/10">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Archive New Payload
+                    </Button>
+                </div>
             </div>
 
-            <JobDefinitionList definitions={definitions} executions={executions} onDelete={handleDelete} onToggle={handleToggle} onEdit={handleEdit} />
+            <JobDefinitionList 
+                definitions={filteredDefinitions} 
+                executions={executions} 
+                onDelete={handleDelete} 
+                onToggle={handleToggle} 
+                onEdit={handleEdit} 
+                onPublish={handlePublish}
+            />
 
             <JobDefinitionModal
                 isOpen={showModal}
