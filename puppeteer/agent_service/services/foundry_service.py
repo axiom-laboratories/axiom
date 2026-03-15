@@ -72,17 +72,15 @@ class FoundryService:
                 pkg_name = pkg.split(">")[0].split("<")[0].split("=")[0].strip().lower()
                 res = await db.execute(select(ApprovedIngredient).where(
                     ApprovedIngredient.name.ilike(pkg_name),
-                    ApprovedIngredient.os_family == os_family
+                    ApprovedIngredient.os_family == os_family,
+                    ApprovedIngredient.is_active == True,
                 ))
                 ing = res.scalar_one_or_none()
-                # If FORCE_LOCAL_MIRRORS is true (it is by policy in Phase 13), 
-                # we must have a MIRRORED status.
                 if ing and ing.mirror_status != "MIRRORED":
-                    if enforcement_mode == "STRICT":
-                        raise HTTPException(status_code=403, detail=f"Build rejected: Ingredient {pkg_name} is approved but not yet mirrored (Status: {ing.mirror_status})")
-                    else:
-                        logger.warning(f"Smelter WARNING: Ingredient {pkg_name} is approved but not yet mirrored (Status: {ing.mirror_status}) — build continues in WARNING mode")
-                        tmpl.is_compliant = False
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Build rejected: Ingredient '{pkg_name}' is approved but not yet mirrored (Status: {ing.mirror_status}). Wait for mirroring to complete or upload the package manually."
+                    )
 
             # Commit the compliance status
             await db.commit()

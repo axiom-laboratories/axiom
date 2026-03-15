@@ -496,6 +496,10 @@ class ApprovedIngredientUpdate(BaseModel):
     is_vulnerable: Optional[bool] = None
     vulnerability_report: Optional[str] = None
 
+class MirrorConfigUpdate(BaseModel):
+    pypi_mirror_url: Optional[str] = None
+    apt_mirror_url: Optional[str] = None
+
 # --- User Signing Keys ---
 
 class UserSigningKeyCreate(BaseModel):

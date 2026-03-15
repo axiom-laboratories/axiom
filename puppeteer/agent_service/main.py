@@ -25,7 +25,7 @@ from .models import (
     JobDefinitionResponse, JobPushRequest, PingRequest, NetworkMount, MountsConfig,
     ImageBuildRequest, ImageResponse, EnrollmentRequest,
     BlueprintCreate, BlueprintResponse, PuppetTemplateCreate, PuppetTemplateResponse,
-    ApprovedIngredientCreate, ApprovedIngredientUpdate, ApprovedIngredientResponse,
+    ApprovedIngredientCreate, ApprovedIngredientUpdate, ApprovedIngredientResponse, MirrorConfigUpdate,
     CapabilityMatrixEntry, CapabilityMatrixUpdate, UploadKeyRequest, UserCreate, UserResponse, PermissionGrant,
     ArtifactResponse, ApprovedOSResponse,
     EnrollmentTokenCreate,
@@ -2776,12 +2776,16 @@ async def remove_smelter_ingredient(
     current_user: User = Depends(require_permission("foundry:write")),
     db: AsyncSession = Depends(get_db)
 ):
-    """Remove an ingredient from the Smelter Catalog (Admin Only)."""
-    success = await SmelterService.delete_ingredient(db, id)
-    if not success:
+    """Soft-delete an ingredient from the Smelter Catalog (sets is_active=False, preserves mirror files)."""
+    res = await db.execute(select(ApprovedIngredient).where(ApprovedIngredient.id == id))
+    ing = res.scalar_one_or_none()
+    if not ing:
         raise HTTPException(status_code=404, detail="Ingredient not found")
-    audit(db, current_user, "smelter:ingredient_removed", id)
-    return {"status": "deleted"}
+    ing.is_active = False
+    await db.commit()
+    audit(db, current_user, "smelter:ingredient_deactivated", id)
+    await db.commit()
+    return {"status": "deactivated", "id": id}
 
 @app.get("/api/smelter/config", tags=["Smelter Registry"])
 async def get_smelter_config(
@@ -2839,8 +2843,50 @@ async def get_smelter_mirror_health(
 
     stats["pypi_online"] = check_port("pypi", 8080)
     stats["apt_online"] = check_port("mirror", 80)
-    
+
     return stats
+
+@app.get("/api/admin/mirror-config", tags=["Smelter Registry"])
+async def get_mirror_config(
+    current_user: User = Depends(require_permission("foundry:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Read mirror source URLs from Config DB (falls back to env vars if not set)."""
+    pypi_res = await db.execute(select(Config).where(Config.key == "PYPI_MIRROR_URL"))
+    pypi_cfg = pypi_res.scalar_one_or_none()
+    apt_res = await db.execute(select(Config).where(Config.key == "APT_MIRROR_URL"))
+    apt_cfg = apt_res.scalar_one_or_none()
+    return {
+        "pypi_mirror_url": pypi_cfg.value if pypi_cfg else os.getenv("PYPI_MIRROR_URL", "http://pypi:8080/simple"),
+        "apt_mirror_url": apt_cfg.value if apt_cfg else os.getenv("APT_MIRROR_URL", "http://mirror/apt"),
+    }
+
+
+@app.put("/api/admin/mirror-config", tags=["Smelter Registry"])
+async def update_mirror_config(
+    req: MirrorConfigUpdate,
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Upsert mirror source URLs to Config DB."""
+    if req.pypi_mirror_url is not None:
+        pypi_res = await db.execute(select(Config).where(Config.key == "PYPI_MIRROR_URL"))
+        pypi_cfg = pypi_res.scalar_one_or_none()
+        if pypi_cfg:
+            pypi_cfg.value = req.pypi_mirror_url
+        else:
+            db.add(Config(key="PYPI_MIRROR_URL", value=req.pypi_mirror_url))
+    if req.apt_mirror_url is not None:
+        apt_res = await db.execute(select(Config).where(Config.key == "APT_MIRROR_URL"))
+        apt_cfg = apt_res.scalar_one_or_none()
+        if apt_cfg:
+            apt_cfg.value = req.apt_mirror_url
+        else:
+            db.add(Config(key="APT_MIRROR_URL", value=req.apt_mirror_url))
+    await db.commit()
+    audit(db, current_user, "mirror:config_updated", f"pypi={req.pypi_mirror_url}, apt={req.apt_mirror_url}")
+    await db.commit()
+    return {"status": "updated"}
 
 @app.post("/api/smelter/ingredients/{id}/upload", tags=["Smelter Registry"])
 async def upload_smelter_package(
@@ -2855,7 +2901,7 @@ async def upload_smelter_package(
     if not ing:
         raise HTTPException(status_code=404, detail="Ingredient not found")
     
-    target_dir = os.path.join(os.getenv("MIRROR_DATA_PATH", "/app/mirror_data"), "pypi" if ing.os_family != "DEBIAN" else "apt")
+    target_dir = os.path.join(os.getenv("MIRROR_DATA_PATH", "/app/mirror_data"), "apt" if file.filename.endswith(".deb") else "pypi")
     os.makedirs(target_dir, exist_ok=True)
     
     file_path = os.path.join(target_dir, file.filename)
