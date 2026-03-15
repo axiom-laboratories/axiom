@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: — Advanced Foundry & Smelter
 status: executing
-stopped_at: Completed 13-07-PLAN.md — Admin.tsx UI gap closure (sync log panel, file browser link, Mirror Source Settings)
-last_updated: "2026-03-15T20:33:01.051Z"
+stopped_at: Completed 13-08-PLAN.md — Mirror test suite repair (test_mirror.py + test_foundry_mirror.py)
+last_updated: "2026-03-15T20:39:51.330Z"
 last_activity: "2026-03-15 — Completed 13-06: closed all 6 backend gaps (mirror_log, is_active, migration, MirrorService log capture, foundry fail-fast fix, soft-purge delete, upload routing, mirror-config GET/PUT)."
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 20
-  completed_plans: 27
+  completed_plans: 28
   percent: 83
 ---
 
@@ -70,6 +70,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 | Phase 12-smelter-registry P09 | 2 | 3 tasks | 3 files |
 | Phase 12-smelter-registry P10 | 6 | 2 tasks | 2 files |
 | Phase 13-package-repository-mirroring P07 | 8 | 1 tasks | 1 files |
+| Phase 13-package-repository-mirroring P08 | 6 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,9 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 - [Phase 13-06]: Upload routing by file extension (.deb -> apt, else -> pypi) replaces os_family-based routing
 - [Phase 13-package-repository-mirroring]: React.Fragment key pattern used to wrap sibling TableRow pairs in .map() for ingredient + log row layout
 - [Phase 13-package-repository-mirroring]: mirrorForm local state controls Mirror Source Settings inputs; useEffect pre-populates from query data; Save button always calls mutate(mirrorForm)
+- [Phase 13-08]: Sequential side_effect list in _make_mock_db instead of SQL-repr string-matching for robust multi-query service test mocking
+- [Phase 13-08]: pythonpath=['puppeteer'] in pyproject.toml [tool.pytest.ini_options] so agent_service resolves when running pytest from puppeteer/
+- [Phase 13-08]: shutil.rmtree must be patched in test_foundry_mirror_injection because finally block deletes build_dir before assertions run
 
 ### Pending Todos
 - [ ] Execute Phase 13 Plan 07 (mirror service UI gap closure)
@@ -150,7 +154,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 
 ## Session Continuity
 
-Last session: 2026-03-15T20:33:01.049Z
-Stopped at: Completed 13-07-PLAN.md — Admin.tsx UI gap closure (sync log panel, file browser link, Mirror Source Settings)
+Last session: 2026-03-15T20:39:51.328Z
+Stopped at: Completed 13-08-PLAN.md — Mirror test suite repair (test_mirror.py + test_foundry_mirror.py)
 Resume file: None
 Next plan: Execute Phase 13 Plan 07 (mirror service UI gaps).
