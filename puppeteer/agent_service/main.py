@@ -2411,7 +2411,7 @@ async def push_job_definition(
     await db.refresh(job)
     return JobDefinitionResponse.model_validate(job)
 
-@app.patch("/api/jobs/definitions/{id}", response_model=JobDefinitionResponse)
+@app.patch("/jobs/definitions/{id}", response_model=JobDefinitionResponse)
 async def update_job_definition(id: str, update_req: JobDefinitionUpdate, current_user: User = Depends(require_permission("definitions:write")), db: AsyncSession = Depends(get_db)):
     # Admin-only REVOKE gate (GOV-CLI-01)
     if update_req.status == "REVOKED" and current_user.role != "admin":
