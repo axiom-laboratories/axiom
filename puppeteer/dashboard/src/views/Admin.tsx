@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Cpu,
     ShieldAlert,
     Key,
     Zap,
-    Code2,
     Copy,
     CheckCircle2,
     RefreshCcw,
@@ -14,14 +13,15 @@ import {
     AlertCircle,
     AlertTriangle,
     Database,
-    FileText,
     Plus,
     Trash2,
     Upload,
     Download,
     Package,
     Check,
-    Loader2
+    Loader2,
+    ShieldCheck,
+    Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -393,12 +393,80 @@ const TriggerManager = () => {
     );
 };
 
+const BOMExplorer = () => {
+    const [search, setSearch] = useState('');
+    const { data: results = [], isLoading } = useQuery({
+        queryKey: ['package-search', search],
+        queryFn: async () => {
+            if (!search) return [];
+            const res = await authenticatedFetch(`/api/foundry/search-packages?q=${search}`);
+            return res.json();
+        },
+        enabled: search.length > 2
+    });
+
+    return (
+        <Card className="bg-zinc-925 border-zinc-800/50">
+            <CardHeader>
+                <CardTitle className="text-white font-bold flex items-center gap-2">
+                    <Search className="h-5 w-5 text-primary" />
+                    BOM Explorer
+                </CardTitle>
+                <CardDescription>Search for specific package versions across all baked images.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input 
+                        placeholder="Search package name (e.g. cryptography, requests)..." 
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="pl-10 bg-zinc-950 border-zinc-800"
+                    />
+                </div>
+
+                <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-zinc-950/50">
+                            <TableRow className="border-zinc-800">
+                                <TableHead className="text-zinc-400">Type</TableHead>
+                                <TableHead className="text-zinc-400">Package</TableHead>
+                                <TableHead className="text-zinc-400">Version</TableHead>
+                                <TableHead className="text-zinc-400">Template ID</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow><TableCell colSpan={4} className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary/50" /></TableCell></TableRow>
+                            ) : results.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="py-12 text-center text-zinc-500">
+                                        {search.length > 2 ? 'No results found.' : 'Enter at least 3 characters to search.'}
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                results.map((r: any) => (
+                                    <TableRow key={r.id} className="border-zinc-800 hover:bg-white/[0.02]">
+                                        <TableCell><Badge variant="outline" className="text-[10px]">{r.type.toUpperCase()}</Badge></TableCell>
+                                        <TableCell className="text-white font-medium">{r.name}</TableCell>
+                                        <TableCell className="font-mono text-zinc-400 text-xs">{r.version}</TableCell>
+                                        <TableCell className="text-zinc-500 font-mono text-[10px]">{r.template_id}</TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 const RolloutManager = () => {
     const queryClient = useQueryClient();
     const [selectedToolId, setSelectedToolId] = useState<string>('');
     const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
     const [rolloutStatus, setRolloutStatus] = useState<'idle' | 'running' | 'complete'>('idle');
-    const [results, setResults] = useState<{ success: number; failed: number }>({ success: 0, failed: 0 });
 
     const { data: matrix = [] } = useQuery({
         queryKey: ['capability-matrix'],
@@ -441,7 +509,6 @@ const RolloutManager = () => {
             }
         }
 
-        setResults({ success, failed });
         setRolloutStatus('complete');
         queryClient.invalidateQueries({ queryKey: ['nodes'] });
         toast.success(`Rollout complete: ${success} started, ${failed} failed`);
@@ -533,7 +600,7 @@ const RolloutManager = () => {
 
 const CapabilityMatrixManager = () => {
     const queryClient = useQueryClient();
-    const { data: matrix = [], isLoading } = useQuery({
+    const { data: matrix = [] } = useQuery({
         queryKey: ['capability-matrix'],
         queryFn: async () => {
             const res = await authenticatedFetch('/api/capability-matrix');
@@ -596,7 +663,7 @@ const CapabilityMatrixManager = () => {
 
 const ArtifactVault = () => {
     const queryClient = useQueryClient();
-    const { data: artifacts = [], isLoading } = useQuery({
+    const { data: artifacts = [] } = useQuery({
         queryKey: ['artifacts'],
         queryFn: async () => {
             const res = await authenticatedFetch('/api/artifacts');
@@ -683,6 +750,488 @@ const ArtifactVault = () => {
     );
 };
 
+const MirrorStatusBadge = ({ status }: { status: string }) => {
+    switch (status) {
+        case 'MIRRORED':
+            return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1"><Check className="h-3 w-3" /> Mirrored</Badge>;
+        case 'FAILED':
+            return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 gap-1"><AlertCircle className="h-3 w-3" /> Failed</Badge>;
+        default:
+            return <Badge variant="outline" className="text-zinc-500 gap-1 animate-pulse"><RefreshCcw className="h-3 w-3" /> Pending</Badge>;
+    }
+};
+
+const SmelterRegistryManager = () => {
+    const queryClient = useQueryClient();
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [newIngredient, setNewIngredient] = useState({ name: '', version_constraint: '', sha256: '', os_family: 'DEBIAN' });
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingId, setUploadingId] = useState<string | null>(null);
+    const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+    const [mirrorForm, setMirrorForm] = useState<{ pypi_mirror_url: string; apt_mirror_url: string }>({
+        pypi_mirror_url: '',
+        apt_mirror_url: '',
+    });
+
+    const { data: ingredients = [] } = useQuery({
+        queryKey: ['smelter-ingredients'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/smelter/ingredients');
+            return res.json();
+        }
+    });
+
+    const { data: health = { pypi_online: false, apt_online: false, disk_used_gb: 0, disk_total_gb: 0 } } = useQuery({
+        queryKey: ['smelter-health'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/smelter/mirror-health');
+            return res.json();
+        },
+        refetchInterval: 30000
+    });
+
+    const uploadMutation = useMutation({
+        mutationFn: async ({ id, file }: { id: string, file: File }) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await authenticatedFetch(`/api/smelter/ingredients/${id}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['smelter-ingredients'] });
+            toast.success('Package uploaded successfully');
+            setUploadingId(null);
+        },
+        onError: () => {
+            toast.error('Upload failed');
+            setUploadingId(null);
+        }
+    });
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setUploadingId(id);
+            uploadMutation.mutate({ id, file });
+        }
+    };
+
+    const { data: config = { smelter_enforcement_mode: 'WARNING' } } = useQuery({
+        queryKey: ['smelter-config'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/smelter/config');
+            return res.json();
+        }
+    });
+
+    const createMutation = useMutation({
+        mutationFn: async (payload: any) => {
+            const res = await authenticatedFetch('/api/smelter/ingredients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['smelter-ingredients'] });
+            toast.success('Ingredient approved');
+            setIsCreateOpen(false);
+            setNewIngredient({ name: '', version_constraint: '', sha256: '', os_family: 'DEBIAN' });
+        }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await authenticatedFetch(`/api/smelter/ingredients/${id}`, { method: 'DELETE' });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['smelter-ingredients'] });
+            toast.success('Ingredient removed');
+        }
+    });
+
+    const updateConfigMutation = useMutation({
+        mutationFn: async (mode: string) => {
+            const res = await authenticatedFetch('/api/smelter/config', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ smelter_enforcement_mode: mode })
+            });
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['smelter-config'] });
+            toast.success('Enforcement mode updated');
+        }
+    });
+
+    const scanMutation = useMutation({
+        mutationFn: async () => {
+            const res = await authenticatedFetch('/api/smelter/scan', { method: 'POST' });
+            if (!res.ok) throw new Error('Scan failed');
+            return res.json();
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['smelter-ingredients'] });
+            toast.success(`Scan complete: ${data.vulnerable} vulnerable packages found.`);
+        },
+        onError: () => toast.error('Vulnerability scan failed')
+    });
+
+    const { data: mirrorConfigData } = useQuery({
+        queryKey: ['mirror-config'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/admin/mirror-config');
+            return res.json() as Promise<{ pypi_mirror_url: string; apt_mirror_url: string }>;
+        },
+    });
+
+    useEffect(() => {
+        if (mirrorConfigData) {
+            setMirrorForm({
+                pypi_mirror_url: mirrorConfigData.pypi_mirror_url,
+                apt_mirror_url: mirrorConfigData.apt_mirror_url,
+            });
+        }
+    }, [mirrorConfigData]);
+
+    const updateMirrorConfigMutation = useMutation({
+        mutationFn: async (payload: { pypi_mirror_url?: string; apt_mirror_url?: string }) => {
+            const res = await authenticatedFetch('/api/admin/mirror-config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['mirror-config'] });
+            toast.success('Mirror source settings saved');
+        },
+        onError: () => toast.error('Failed to save mirror settings'),
+    });
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="bg-zinc-925 border-zinc-800/50 lg:col-span-2">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="text-white font-bold flex items-center gap-2">
+                                <Package className="h-5 w-5 text-primary" />
+                                Approved Ingredients
+                            </CardTitle>
+                            <CardDescription>Vetted packages allowed in Puppet images.</CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-zinc-800 text-zinc-400 hover:text-white"
+                                onClick={() => scanMutation.mutate()}
+                                disabled={scanMutation.isPending || ingredients.length === 0}
+                            >
+                                {scanMutation.isPending ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scanning...</>
+                                ) : (
+                                    <><ShieldCheck className="mr-2 h-4 w-4" /> Scan for Vulnerabilities</>
+                                )}
+                            </Button>
+                            <Button onClick={() => setIsCreateOpen(true)} size="sm" className="bg-primary hover:bg-primary/90 text-white font-bold">
+                                <Plus className="mr-2 h-4 w-4" /> Approve Package
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader className="bg-zinc-950/50">
+                                <TableRow className="border-zinc-800">
+                                    <TableHead className="text-zinc-400">OS</TableHead>
+                                    <TableHead className="text-zinc-400">Name</TableHead>
+                                    <TableHead className="text-zinc-400">Version</TableHead>
+                                    <TableHead className="text-zinc-400">Mirror</TableHead>
+                                    <TableHead className="text-zinc-400">Security</TableHead>
+                                    <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {ingredients.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="py-12 text-center text-zinc-500">
+                                            No approved ingredients yet.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    ingredients.map((i: any) => (
+                                        <React.Fragment key={i.id}>
+                                        <TableRow className="border-zinc-800 group hover:bg-white/[0.02]">
+                                            <TableCell><Badge variant="outline" className="text-[10px]">{i.os_family}</Badge></TableCell>
+                                            <TableCell className="text-white font-medium">{i.name}</TableCell>
+                                            <TableCell className="font-mono text-zinc-400 text-xs">{i.version_constraint}</TableCell>
+                                            <TableCell><MirrorStatusBadge status={i.mirror_status} /></TableCell>
+                                            <TableCell>
+                                                {i.is_vulnerable ? (
+                                                    <Badge className="bg-red-500/10 text-red-500 border-red-500/20 gap-1">
+                                                        <ShieldAlert className="h-3 w-3" /> Vulnerable
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1">
+                                                        <CheckCircle2 className="h-3 w-3" /> Secure
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right flex items-center justify-end gap-1">
+                                                <input
+                                                    type="file"
+                                                    ref={fileInputRef}
+                                                    style={{ display: 'none' }}
+                                                    onChange={(e) => handleFileChange(e, i.id)}
+                                                />
+                                                {i.mirror_log && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className={`h-8 w-8 ${expandedLogId === i.id ? 'text-primary' : 'text-zinc-600 hover:text-zinc-300'}`}
+                                                        title="Show sync log"
+                                                        onClick={() => setExpandedLogId(expandedLogId === i.id ? null : i.id)}
+                                                    >
+                                                        <Terminal className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-zinc-400 hover:text-primary"
+                                                    disabled={uploadingId === i.id}
+                                                    onClick={() => {
+                                                        const el = document.createElement('input');
+                                                        el.type = 'file';
+                                                        el.onchange = (e: any) => handleFileChange(e, i.id);
+                                                        el.click();
+                                                    }}
+                                                >
+                                                    {uploadingId === i.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400" onClick={() => deleteMutation.mutate(i.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        {i.mirror_log && expandedLogId === i.id && (
+                                            <TableRow className="border-zinc-800 bg-zinc-950/40">
+                                                <TableCell colSpan={6} className="py-2">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Terminal className="h-3.5 w-3.5 text-zinc-500" />
+                                                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Sync Log</span>
+                                                    </div>
+                                                    <pre className="text-[10px] text-zinc-400 font-mono whitespace-pre-wrap bg-zinc-900 rounded p-2 max-h-48 overflow-y-auto border border-zinc-800">{i.mirror_log}</pre>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                        </React.Fragment>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                <div className="space-y-6">
+                    <Card className="bg-zinc-925 border-zinc-800/50">
+                        <CardHeader>
+                            <CardTitle className="text-white font-bold flex items-center gap-2">
+                                <Database className="h-5 w-5 text-primary" />
+                                Repository Health
+                            </CardTitle>
+                            <CardDescription>Status of local package mirrors.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-zinc-400">PyPI Server</span>
+                                <Badge className={health.pypi_online ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}>
+                                    {health.pypi_online ? "ONLINE" : "OFFLINE"}
+                                </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-zinc-400">APT Mirror</span>
+                                <Badge className={health.apt_online ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}>
+                                    {health.apt_online ? "ONLINE" : "OFFLINE"}
+                                </Badge>
+                            </div>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-zinc-500 uppercase tracking-wider font-bold">Disk Usage</span>
+                                    <span className="text-zinc-400">{health.disk_used_gb} / {health.disk_total_gb} GB</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-white/5">
+                                    <div
+                                        className="h-full bg-primary transition-all duration-500"
+                                        style={{ width: `${(health.disk_used_gb / health.disk_total_gb) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="pt-2 border-t border-zinc-800/50">
+                                <a
+                                    href={`${window.location.protocol}//${window.location.hostname}:8081`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-xs text-zinc-400 hover:text-primary transition-colors"
+                                >
+                                    <Database className="h-3.5 w-3.5" />
+                                    Browse raw file repository
+                                </a>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-zinc-925 border-zinc-800/50 h-fit">
+                    <CardHeader>
+                        <CardTitle className="text-white font-bold flex items-center gap-2">
+                            <ShieldAlert className="h-5 w-5 text-primary" />
+                            Enforcement
+                        </CardTitle>
+                        <CardDescription>Configure how Smelter handles unapproved ingredients.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-zinc-400">Enforcement Mode</Label>
+                            <Select 
+                                value={config.smelter_enforcement_mode} 
+                                onValueChange={(v) => updateConfigMutation.mutate(v)}
+                            >
+                                <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectItem value="WARNING">WARNING (Log & Badge)</SelectItem>
+                                    <SelectItem value="STRICT">STRICT (Block Build)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 text-[11px] text-zinc-500 leading-relaxed">
+                            {config.smelter_enforcement_mode === 'STRICT' ? (
+                                <p><span className="text-red-400 font-bold">STRICT MODE:</span> Any blueprint containing ingredients not in the approved list will be rejected by the Foundry.</p>
+                            ) : (
+                                <p><span className="text-amber-400 font-bold">WARNING MODE:</span> Unapproved builds will proceed but will be marked as "Non-Compliant" in the dashboard.</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-925 border-zinc-800/50">
+                    <CardHeader>
+                        <CardTitle className="text-white font-bold flex items-center gap-2">
+                            <RefreshCcw className="h-5 w-5 text-primary" />
+                            Mirror Source Settings
+                        </CardTitle>
+                        <CardDescription>Configure upstream mirror source URLs.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-zinc-400 text-xs uppercase font-bold tracking-wider">PyPI Index URL</Label>
+                            <Input
+                                className="bg-zinc-950 border-zinc-800 font-mono text-xs"
+                                value={mirrorForm.pypi_mirror_url}
+                                onChange={(e) => setMirrorForm(prev => ({ ...prev, pypi_mirror_url: e.target.value }))}
+                                placeholder="http://pypi:8080/simple"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-zinc-400 text-xs uppercase font-bold tracking-wider">APT Mirror URL</Label>
+                            <Input
+                                className="bg-zinc-950 border-zinc-800 font-mono text-xs"
+                                value={mirrorForm.apt_mirror_url}
+                                onChange={(e) => setMirrorForm(prev => ({ ...prev, apt_mirror_url: e.target.value }))}
+                                placeholder="http://mirror/apt"
+                            />
+                        </div>
+                        <Button
+                            size="sm"
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold"
+                            disabled={updateMirrorConfigMutation.isPending}
+                            onClick={() => updateMirrorConfigMutation.mutate(mirrorForm)}
+                        >
+                            {updateMirrorConfigMutation.isPending ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                            ) : (
+                                'Save Mirror Settings'
+                            )}
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                    <DialogHeader>
+                        <DialogTitle>Approve Package</DialogTitle>
+                        <DialogDescription>Add a vetted package to the allowed catalog.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>OS Family</Label>
+                                <Select value={newIngredient.os_family} onValueChange={v => setNewIngredient({...newIngredient, os_family: v})}>
+                                    <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                        <SelectItem value="DEBIAN">DEBIAN</SelectItem>
+                                        <SelectItem value="ALPINE">ALPINE</SelectItem>
+                                        <SelectItem value="FEDORA">FEDORA</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Package Name</Label>
+                                <Input 
+                                    placeholder="cryptography" 
+                                    value={newIngredient.name}
+                                    onChange={e => setNewIngredient({...newIngredient, name: e.target.value})}
+                                    className="bg-zinc-950 border-zinc-800"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Version Constraint</Label>
+                            <Input 
+                                placeholder=">=42.0.0" 
+                                value={newIngredient.version_constraint}
+                                onChange={e => setNewIngredient({...newIngredient, version_constraint: e.target.value})}
+                                className="bg-zinc-950 border-zinc-800 font-mono"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>SHA256 (Optional)</Label>
+                            <Input 
+                                placeholder="64-char hex string" 
+                                value={newIngredient.sha256}
+                                onChange={e => setNewIngredient({...newIngredient, sha256: e.target.value})}
+                                className="bg-zinc-950 border-zinc-800 font-mono text-xs"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                        <Button 
+                            disabled={!newIngredient.name || !newIngredient.version_constraint}
+                            onClick={() => createMutation.mutate(newIngredient)}
+                            className="bg-primary hover:bg-primary/90 text-white font-bold"
+                        >
+                            Approve Package
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+};
+
 const Admin = () => {
     const [joinToken, setJoinToken] = useState<string | null>(null);
     const [pubKey, setPubKey] = useState('');
@@ -738,6 +1287,8 @@ const Admin = () => {
             <Tabs defaultValue="onboarding" className="space-y-6">
                 <TabsList className="bg-zinc-900 border border-zinc-800 p-1 h-11">
                     <TabsTrigger value="onboarding" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Onboarding</TabsTrigger>
+                    <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Smelter Registry</TabsTrigger>
+                    <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">BOM Explorer</TabsTrigger>
                     <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Capability Matrix</TabsTrigger>
                     <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Artifact Vault</TabsTrigger>
                     <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Rollouts</TabsTrigger>
@@ -853,6 +1404,14 @@ const Admin = () => {
                             </CardContent>
                         </Card>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="smelter">
+                    <SmelterRegistryManager />
+                </TabsContent>
+
+                <TabsContent value="bom">
+                    <BOMExplorer />
                 </TabsContent>
 
                 <TabsContent value="matrix">
