@@ -8,7 +8,7 @@ from sqlalchemy import delete
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .. import db as db_module
-from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User
+from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord
 from ..models import JobDefinitionCreate, JobDefinitionResponse, JobDefinitionUpdate
 from .signature_service import SignatureService
 
@@ -30,6 +30,13 @@ class SchedulerService:
                 id='__prune_node_stats__',
                 replace_existing=True,
             )
+            self.scheduler.add_job(
+                self.prune_execution_history,
+                'interval',
+                hours=24,
+                id='__prune_execution_history__',
+                replace_existing=True,
+            )
         except Exception as e:
             logger.error(f"⚠️ Scheduler Failed to Start: {e}")
 
@@ -45,6 +52,26 @@ class SchedulerService:
                 await session.execute(delete(NodeStats).where(NodeStats.node_id.in_(stale_ids)))
                 await session.commit()
                 logger.info(f"🧹 Pruned NodeStats for {len(stale_ids)} stale nodes")
+
+    async def prune_execution_history(self):
+        """Prune old execution history based on retention config."""
+        async with db_module.AsyncSessionLocal() as session:
+            # 1. Get retention period
+            res = await session.execute(select(Config.value).where(Config.key == 'history_retention_days'))
+            retention_str = res.scalar_one_or_none()
+            retention_days = int(retention_str) if retention_str else 30
+            
+            cutoff = datetime.utcnow() - timedelta(days=retention_days)
+            
+            # 2. Perform deletion
+            result = await session.execute(
+                delete(ExecutionRecord).where(ExecutionRecord.started_at < cutoff)
+            )
+            count = result.rowcount
+            await session.commit()
+            
+            if count > 0:
+                logger.info(f"🧹 Pruned {count} old execution records (cutoff: {cutoff.isoformat()})")
 
     async def sync_scheduler(self):
         """Syncs DB ScheduledJobs with APScheduler."""
@@ -64,7 +91,8 @@ class SchedulerService:
                                  'cron', 
                                  args=[j.id], 
                                  minute=parts[0], hour=parts[1], day=parts[2], month=parts[3], day_of_week=parts[4],
-                                 id=j.id
+                                 id=j.id,
+                                 misfire_grace_time=60
                              )
                              count += 1
                      except Exception as e:
@@ -81,6 +109,45 @@ class SchedulerService:
             if not s_job or not s_job.is_active:
                  logger.warning(f"⚠️ Job {scheduled_job_id} not found or inactive.")
                  return
+
+            # Status governance guard (Phase 17) — must come after is_active check
+            SKIP_STATUSES = {"DRAFT", "REVOKED", "DEPRECATED"}
+            if hasattr(s_job, 'status') and s_job.status in SKIP_STATUSES:
+                logger.warning(f"Skipping cron fire for '{s_job.name}' — status={s_job.status}")
+                from ..db import AuditLog as _AuditLog
+                session.add(_AuditLog(
+                    username="scheduler",
+                    action=f"job:{s_job.status.lower()}_skip",
+                    resource_id=s_job.id,
+                    detail=json.dumps({"status": s_job.status, "name": s_job.name}),
+                ))
+                await session.commit()
+                return
+
+            # Cron overlap guard: skip if a previous instance is still active
+            from sqlalchemy import desc as _sched_desc
+            overlap_result = await session.execute(
+                select(Job)
+                .where(Job.scheduled_job_id == s_job.id)
+                .where(Job.status.in_(["PENDING", "ASSIGNED", "RETRYING"]))
+                .order_by(_sched_desc(Job.created_at))
+                .limit(1)
+            )
+            active_job = overlap_result.scalar_one_or_none()
+            if active_job:
+                logger.warning(
+                    f"Skipping cron fire for '{s_job.name}' — previous job {active_job.guid} "
+                    f"still active (status: {active_job.status})"
+                )
+                from ..db import AuditLog as _AuditLog
+                session.add(_AuditLog(
+                    username="scheduler",
+                    action="job:cron_skip",
+                    resource_id=s_job.id,
+                    detail=f"Skipped fire; job {active_job.guid} still {active_job.status}",
+                ))
+                await session.commit()
+                return
 
             # Construct Execution Payload
             execution_guid = uuid.uuid4().hex
@@ -101,7 +168,10 @@ class SchedulerService:
                 status="PENDING",
                 node_id=s_job.target_node_id,
                 target_tags=s_job.target_tags,
-                scheduled_job_id=s_job.id
+                scheduled_job_id=s_job.id,
+                max_retries=s_job.max_retries,
+                backoff_multiplier=s_job.backoff_multiplier,
+                timeout_minutes=s_job.timeout_minutes,
             )
             session.add(new_job)
             await session.commit()
@@ -202,6 +272,14 @@ class SchedulerService:
             job.target_tags = json.dumps(update_req.target_tags) if update_req.target_tags else None
         if update_req.capability_requirements is not None:
             job.capability_requirements = json.dumps(update_req.capability_requirements) if update_req.capability_requirements else None
+        if update_req.max_retries is not None:
+            job.max_retries = update_req.max_retries
+        if update_req.backoff_multiplier is not None:
+            job.backoff_multiplier = update_req.backoff_multiplier
+        if update_req.timeout_minutes is not None:
+            job.timeout_minutes = update_req.timeout_minutes
+        if update_req.status is not None:
+            job.status = update_req.status
 
         job.updated_at = datetime.utcnow()
         await db_session.commit()
