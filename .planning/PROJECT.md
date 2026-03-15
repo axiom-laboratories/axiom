@@ -27,6 +27,11 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Node stats history + sparkline monitoring — existing
 - ✓ Full audit log for security-relevant events — existing
 - ✓ Service principals + API keys for machine-to-machine auth — existing
+- ✓ OAuth device flow (RFC 8628) — MoP-native IdP, browser approval, JWT issuance — v8.0
+- ✓ `mop-push` CLI — login/push/create, Ed25519 signing locally, private key never transmitted — v8.0
+- ✓ Job lifecycle status (DRAFT/ACTIVE/DEPRECATED/REVOKED) + REVOKED dispatch enforcement — v8.0
+- ✓ Dashboard Staging view — inspect drafts, finalize scheduling, one-click Publish — v8.0
+- ✓ Foundry Compatibility Engine — OS-family tagging, runtime deps, API/UI enforcement — v7.0 partial
 
 ### Active
 
@@ -37,6 +42,10 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - [ ] Environment node tags — DEV / TEST / PROD tags for CI/CD promotion targeting
 - [ ] CI/CD API integration — documented, machine-friendly endpoints for dispatching jobs from pipelines
 - [ ] Conditional triggers — run job based on outcome of previous job or external signal
+- [ ] Smelter Registry — vetted ingredient catalog with CVE scanning and enforcement modes
+- [ ] Advanced Package Management — native OS + PIP pre-baking, internal PyPI sidecar
+- [ ] Foundry Wizard UI — 5-step guided composition wizard
+- [ ] Smelt-Check + Image BOM — post-build validation, bill of materials, image lifecycle
 
 ### Out of Scope
 
@@ -70,33 +79,21 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | RBAC seeded from DB, not config files | Supports org-wide teams without redeployment | ✓ Good |
 | Environment tags for CI/CD targeting | Enables DEV→TEST→PROD promotion patterns without separate orchestrator instances | — Pending |
 | Job output stored server-side | Nodes are stateless — results must flow back to orchestrator | — Pending |
+| MoP-native OAuth device flow (not external OIDC) | Avoids external IdP dependency for v1; OIDC documented as v2 path | ✓ Good |
+| Job staging (DRAFT→ACTIVE via dashboard) | Operators review and finalize scheduling before jobs run in production | ✓ Good |
+| Private key stays on operator machine | Ed25519 signing in CLI; only signature transmitted to server | ✓ Good |
 
-## Planned: Milestone 8 — mop-push CLI & Job Staging
+## Current State — v8.0 Shipped (2026-03-15)
 
-**Goal:** Zero-friction job signing and publishing from the operator's terminal. A dedicated `mop-push` CLI authenticates via OAuth device flow, signs scripts locally with Ed25519, and pushes jobs into a Staging area. Dashboard provides draft review, scheduling finalization, and one-click publish.
+Operators can now sign and publish jobs from the terminal via `mop-push`. Jobs enter a Staging area as DRAFTs, are reviewed in the dashboard, and published to ACTIVE with one click. The full job lifecycle (DRAFT → ACTIVE → DEPRECATED → REVOKED) is enforced at dispatch.
 
-**Target features:**
-- OAuth device flow built into MoP Control Plane (MoP is the IdP; external OIDC as v2)
-- `mop-push` CLI: login, job push (draft/upsert), job create (direct active)
-- Self-hosted Python package from `mop_sdk/` — private key never leaves operator machine
-- `ScheduledJob` status enum: DRAFT / ACTIVE / DEPRECATED / REVOKED
-- `POST /api/jobs/push` upsert endpoint with dual-token verification (JWT identity + Ed25519 integrity)
-- Dashboard Staging/Drafts view: inspect, finalize scheduling, one-click publish
-- Job status badges across job list; REVOKED jobs never dispatched to nodes
+**Shipped in v8.0:** OAuth device flow, `mop-push` CLI, job lifecycle status, Dashboard Staging view, OIDC v2 architecture doc.
 
-## Current Milestone: Milestone 7 — Advanced Foundry & Smelter
+## Current Milestone: v7.0 — Advanced Foundry & Smelter (In Progress)
 
-**Goal:** Transition the Foundry from a manual blueprint CRUD system to an intelligent, compatibility-aware composition engine with a built-in package registry and governance layer.
+**Goal:** Transition the Foundry from manual blueprint CRUD to an intelligent, compatibility-aware composition engine with a built-in package registry and governance layer.
 
-**Target features:**
-- Smelter Registry: vetted ingredient catalog with CVE scanning and STRICT enforcement
-- Compatibility Engine: OS-family filtering, runtime dependency mapping, API validation
-- Advanced Package Management: native OS packages, PIP pre-baking, global core injection
-- Custom Repos: APT/APK + GPG, built-in PyPI store (pypiserver sidecar), repo presets
-- Foundry Wizard UI: 5-step guided composition replacing raw JSON blueprint editing
-- Smelt-Check: mandatory dry-run validator (ephemeral container, validation_cmd per tool)
-- Image BOM + Lifecycle: bill of materials in DB, ACTIVE/DEPRECATED/REVOKED enforcement
-- Security: SLSA provenance docs, build-time secrets (docker --secret), resource limits
+**Remaining phases:** 12 (Smelter Registry), 13 (Package Management), 14 (Foundry Wizard), 15 (Smelt-Check + BOM), 16 (Security & Governance).
 
 ---
-*Last updated: 2026-03-09 after Milestone 7 kickoff*
+*Last updated: 2026-03-15 after v8.0 milestone*
