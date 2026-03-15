@@ -78,7 +78,7 @@ Plans:
 | 18. mop-push CLI | v8.0 | 4/4 | Complete | 2026-03-12 |
 | 19. Dashboard Staging View & Governance Doc | v8.0 | 5/5 | Complete | 2026-03-15 |
 | 11. Compatibility Engine | v7.0 | 6/6 | Complete | 2026-03-11 |
-| 12. Smelter Registry | v7.0 | 9/9 | Complete | 2026-03-15 |
+| 12. Smelter Registry | 10/10 | Complete   | 2026-03-15 | 2026-03-15 |
 | 13. Package Management & Custom Repos | v7.0 | 0/TBD | Not started | - |
 | 14. Foundry Wizard UI | v7.0 | 0/TBD | Not started | - |
 | 15. Smelt-Check, BOM & Lifecycle | v7.0 | 0/TBD | Not started | - |
