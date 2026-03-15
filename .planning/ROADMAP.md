@@ -50,7 +50,13 @@ Plans:
 **Goal**: Operators can pre-bake native and PIP packages into images and consume packages from custom or internal repos
 **Depends on**: Phase 12
 **Requirements**: PKG-01, PKG-02, PKG-03, REPO-01, REPO-02, REPO-03, REPO-04
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 13-01-PLAN.md — Infrastructure + DB schema (sidecars, mirror-data volume, migration)
+- [ ] 13-02-PLAN.md — MirrorService + auto-sync hook in SmelterService
+- [ ] 13-03-PLAN.md — Foundry fail-fast enforcement + pip.conf/sources.list injection
+- [ ] 13-04-PLAN.md — Admin UI (MirrorStatusBadge, upload, health card) + API endpoints
+- [ ] 13-05-PLAN.md — Phase verification + human checkpoint
 
 ### Phase 14: Foundry Wizard UI
 **Goal**: A guided multi-step wizard replaces raw JSON blueprint editing for composing node images
@@ -79,7 +85,7 @@ Plans:
 | 19. Dashboard Staging View & Governance Doc | v8.0 | 5/5 | Complete | 2026-03-15 |
 | 11. Compatibility Engine | v7.0 | 6/6 | Complete | 2026-03-11 |
 | 12. Smelter Registry | 10/10 | Complete    | 2026-03-15 | 2026-03-15 |
-| 13. Package Management & Custom Repos | v7.0 | 0/TBD | Not started | - |
+| 13. Package Management & Custom Repos | v7.0 | 0/5 | Planned | - |
 | 14. Foundry Wizard UI | v7.0 | 0/TBD | Not started | - |
 | 15. Smelt-Check, BOM & Lifecycle | v7.0 | 0/TBD | Not started | - |
 | 16. Security & Governance | v7.0 | 0/TBD | Not started | - |
