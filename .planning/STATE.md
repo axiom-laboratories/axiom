@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
+milestone: v7.0
+milestone_name: — Advanced Foundry & Smelter
 status: completed
-stopped_at: Completed 19-05-PLAN.md — DASH-04 status assignment gap closure
-last_updated: "2026-03-15T17:06:08.170Z"
+stopped_at: Completed 12-09-PLAN.md — Phase 12 bookkeeping wrap-up
+last_updated: "2026-03-15T17:59:41.815Z"
 last_activity: 2026-03-15 — Phase review. Import blocker identified. Phase 19 UI/docs work found in working tree without summaries.
 progress:
-  total_phases: 14
-  completed_phases: 9
-  total_plans: 35
-  completed_plans: 43
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 16
+  completed_plans: 24
   percent: 83
 ---
 
@@ -67,6 +67,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 | Phase 19 P03 | 5 | 2 tasks | 2 files |
 | Phase 19 P05 | 4 | 1 tasks | 1 files |
 | Phase 12-smelter-registry | 9 plans | ~3 hours | ~20 min/plan |
+| Phase 12-smelter-registry P09 | 2 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,8 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 - [Phase 12-smelter-registry]: pip-audit runs with --no-deps --disable-pip flags to avoid venv creation inside the agent container
 - [Phase 12-smelter-registry]: STRICT mode returns HTTP 403 blocking the build; WARNING mode sets is_compliant=False on the template and continues
 - [Phase 12-smelter-registry]: smelter_enforcement_mode stored in Config table (key/value) — no new table needed
+- [Phase 12-smelter-registry]: pip-audit added without version pin — consistent with rest of requirements.txt; semver stable
+- [Phase 12-smelter-registry]: ROADMAP.md Phase 12 detail block expanded with all 9 plan entries for audit trail
 
 ### Pending Todos
 - [ ] **BLOCKER**: Fix `ImageBOMResponse` + `PackageIndexResponse` missing from `main.py` import block (line 21-42) — NameError at module load prevents backend from starting and all agent_service tests from collecting.
@@ -138,7 +141,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 
 ## Session Continuity
 
-Last session: 2026-03-15T15:53:21.531Z
-Stopped at: Completed 19-05-PLAN.md — DASH-04 status assignment gap closure
+Last session: 2026-03-15T17:59:41.813Z
+Stopped at: Completed 12-09-PLAN.md — Phase 12 bookkeeping wrap-up
 Resume file: None
 Next plan: Fix import blocker in main.py, then write Phase 19 summaries and run /gsd:execute-phase 19 for Plan 04.
