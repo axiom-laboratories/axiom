@@ -95,7 +95,7 @@ Plans:
 | 19. Dashboard Staging View & Governance Doc | v8.0 | 5/5 | Complete | 2026-03-15 |
 | 11. Compatibility Engine | v7.0 | 6/6 | Complete | 2026-03-11 |
 | 12. Smelter Registry | 10/10 | Complete    | 2026-03-15 | 2026-03-15 |
-| 13. Package Management & Custom Repos | v7.0 | 0/5 | Planned | - |
+| 13. Package Management & Custom Repos | 7/8 | In Progress|  | - |
 | 14. Foundry Wizard UI | v7.0 | 0/TBD | Not started | - |
 | 15. Smelt-Check, BOM & Lifecycle | v7.0 | 0/TBD | Not started | - |
 | 16. Security & Governance | v7.0 | 0/TBD | Not started | - |

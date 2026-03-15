@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: — Advanced Foundry & Smelter
-status: completed
-stopped_at: Completed 13-06-PLAN.md — backend gap closure (mirror_log, is_active, mirror-config endpoints, unconditional fail-fast)
-last_updated: "2026-03-15T19:30:00.000Z"
-last_activity: 2026-03-15 — Executed 13-06: closed 6 backend gaps in VERIFICATION.md.
+status: executing
+stopped_at: Completed 13-07-PLAN.md — Admin.tsx UI gap closure (sync log panel, file browser link, Mirror Source Settings)
+last_updated: "2026-03-15T20:33:01.051Z"
+last_activity: "2026-03-15 — Completed 13-06: closed all 6 backend gaps (mirror_log, is_active, migration, MirrorService log capture, foundry fail-fast fix, soft-purge delete, upload routing, mirror-config GET/PUT)."
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 17
-  completed_plans: 25
+  completed_phases: 3
+  total_plans: 20
+  completed_plans: 27
   percent: 83
 ---
 
@@ -69,6 +69,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 | Phase 12-smelter-registry | 9 plans | ~3 hours | ~20 min/plan |
 | Phase 12-smelter-registry P09 | 2 | 3 tasks | 3 files |
 | Phase 12-smelter-registry P10 | 6 | 2 tasks | 2 files |
+| Phase 13-package-repository-mirroring P07 | 8 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,8 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 - [Phase 13-06]: Mirror fail-fast raises 403 unconditionally — enforcement_mode only gates unapproved-ingredients check (separate concern)
 - [Phase 13-06]: Soft-purge (is_active=False) used for ingredient delete to preserve mirror files and history
 - [Phase 13-06]: Upload routing by file extension (.deb -> apt, else -> pypi) replaces os_family-based routing
+- [Phase 13-package-repository-mirroring]: React.Fragment key pattern used to wrap sibling TableRow pairs in .map() for ingredient + log row layout
+- [Phase 13-package-repository-mirroring]: mirrorForm local state controls Mirror Source Settings inputs; useEffect pre-populates from query data; Save button always calls mutate(mirrorForm)
 
 ### Pending Todos
 - [ ] Execute Phase 13 Plan 07 (mirror service UI gap closure)
@@ -147,7 +150,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 
 ## Session Continuity
 
-Last session: 2026-03-15T19:30:00.000Z
-Stopped at: Completed 13-06-PLAN.md — backend gap closure (mirror_log, is_active, mirror-config endpoints)
+Last session: 2026-03-15T20:33:01.049Z
+Stopped at: Completed 13-07-PLAN.md — Admin.tsx UI gap closure (sync log panel, file browser link, Mirror Source Settings)
 Resume file: None
 Next plan: Execute Phase 13 Plan 07 (mirror service UI gaps).
