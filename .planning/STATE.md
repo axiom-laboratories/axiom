@@ -8,7 +8,7 @@ last_updated: "2026-03-15T17:06:08.170Z"
 last_activity: 2026-03-15 — Phase review. Import blocker identified. Phase 19 UI/docs work found in working tree without summaries.
 progress:
   total_phases: 14
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 35
   completed_plans: 43
   percent: 83
@@ -66,6 +66,7 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 | Phase 19-dashboard-staging-view-and-governance-doc P01 | 1min | 3 tasks | 2 files |
 | Phase 19 P03 | 5 | 2 tasks | 2 files |
 | Phase 19 P05 | 4 | 1 tasks | 1 files |
+| Phase 12-smelter-registry | 9 plans | ~3 hours | ~20 min/plan |
 
 ## Accumulated Context
 
@@ -121,6 +122,9 @@ Progress: [▓▓▓▓▓▓▓▓░░] 83% (5 of 6 phases in Milestone 7 com
 - [Phase 19]: Expandable row as sibling TableRow with colSpan=7 gives full-width script panel without breaking table layout
 - [Phase 19]: Publish button guard checks both prop presence and def.status === DRAFT to prevent ghost buttons on non-draft jobs
 - [Phase 19]: No new validation needed in service layer: upstream REVOKED gate in main.py already blocks invalid transitions before reaching update_job_definition()
+- [Phase 12-smelter-registry]: pip-audit runs with --no-deps --disable-pip flags to avoid venv creation inside the agent container
+- [Phase 12-smelter-registry]: STRICT mode returns HTTP 403 blocking the build; WARNING mode sets is_compliant=False on the template and continues
+- [Phase 12-smelter-registry]: smelter_enforcement_mode stored in Config table (key/value) — no new table needed
 
 ### Pending Todos
 - [ ] **BLOCKER**: Fix `ImageBOMResponse` + `PackageIndexResponse` missing from `main.py` import block (line 21-42) — NameError at module load prevents backend from starting and all agent_service tests from collecting.
