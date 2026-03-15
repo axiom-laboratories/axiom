@@ -74,6 +74,8 @@ class ScheduledJob(Base):
     created_by: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="ACTIVE")
+    pushed_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     max_retries: Mapped[int] = mapped_column(Integer, default=0)
     backoff_multiplier: Mapped[float] = mapped_column(Float, default=2.0)
     timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -158,6 +160,7 @@ class Node(Base):
     machine_id: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Host-bound ID
     node_secret_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Binding secret
     client_cert_pem: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # Stored at enrollment for CRL
+    template_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("puppet_templates.id"), nullable=True)
 
 class Alert(Base):
     __tablename__ = "alerts"
@@ -293,6 +296,24 @@ class PuppetTemplate(Base):
     current_image_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     last_built_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_compliant: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    status: Mapped[str] = mapped_column(String(50), default="DRAFT", server_default="'DRAFT'")
+    bom_captured: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
+class ImageBOM(Base):
+    __tablename__ = "image_boms"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    template_id: Mapped[str] = mapped_column(String(36), ForeignKey("puppet_templates.id"))
+    raw_data_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class PackageIndex(Base):
+    __tablename__ = "package_index"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    template_id: Mapped[str] = mapped_column(String(36), ForeignKey("puppet_templates.id"))
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    version: Mapped[str] = mapped_column(String(50), index=True)
+    type: Mapped[str] = mapped_column(String(20)) # 'pip' or 'apt'
 
 class Ping(Base):
     __tablename__ = "pings"
@@ -300,6 +321,22 @@ class Ping(Base):
     node_id: Mapped[str] = mapped_column(String)
     message: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class ApprovedIngredient(Base):
+    __tablename__ = "approved_ingredients"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    version_constraint: Mapped[str] = mapped_column(String(255))
+    sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    os_family: Mapped[str] = mapped_column(String(50))
+    is_vulnerable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    vulnerability_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON
+    mirror_status: Mapped[str] = mapped_column(String(50), default="PENDING", server_default="'PENDING'")
+    mirror_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    mirror_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 async def init_db():
     async with engine.begin() as conn:

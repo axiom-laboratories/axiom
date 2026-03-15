@@ -209,6 +209,8 @@ class JobDefinitionResponse(BaseModel):
     created_by: str
     created_at: datetime
     updated_at: Optional[datetime] = None
+    status: str = "ACTIVE"
+    pushed_by: Optional[str] = None
     max_retries: int = 0
     backoff_multiplier: float = 2.0
     timeout_minutes: Optional[int] = None
@@ -249,6 +251,30 @@ class JobDefinitionUpdate(BaseModel):
     max_retries: Optional[int] = None
     backoff_multiplier: Optional[float] = None
     timeout_minutes: Optional[int] = None
+    status: Optional[str] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v):
+        if v is None:
+            return v
+        valid = {"DRAFT", "ACTIVE", "DEPRECATED", "REVOKED"}
+        if v not in valid:
+            raise ValueError(f"status must be one of {sorted(valid)}, got '{v}'")
+        return v
+
+class JobPushRequest(BaseModel):
+    name: Optional[str] = None   # for create (name-based upsert)
+    id: Optional[str] = None     # for update (id-based upsert)
+    script_content: str
+    signature: str               # Base64 Ed25519 signature
+    signature_id: str            # UUID of registered public key
+
+    @model_validator(mode='after')
+    def require_name_or_id(self):
+        if not self.name and not self.id:
+            raise ValueError("Either 'name' or 'id' is required")
+        return self
 
 class UploadKeyRequest(BaseModel):
     key_content: str  # PEM public key
@@ -405,10 +431,70 @@ class PuppetTemplateResponse(BaseModel):
     last_built_image: Optional[str] = None
     last_built_at: Optional[datetime] = None
     created_at: datetime
+    is_compliant: bool = True
+    status: str = "DRAFT"
+    bom_captured: bool = False
 
     class Config:
         from_attributes = True
 
+# --- Image BOM & Lifecycle ---
+
+class ImageBOMResponse(BaseModel):
+    id: str
+    template_id: str
+    raw_data_json: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class PackageIndexResponse(BaseModel):
+    id: str
+    template_id: str
+    name: str
+    version: str
+    type: str # 'pip', 'apt'
+
+    class Config:
+        from_attributes = True
+
+# --- Smelter Registry ---
+
+class ApprovedIngredientCreate(BaseModel):
+    name: str
+    version_constraint: str
+    sha256: Optional[str] = None
+    os_family: str
+
+    @field_validator('os_family', mode='before')
+    @classmethod
+    def normalize_os_family(cls, v: Any) -> Any:
+        return v.upper() if isinstance(v, str) else v
+
+class ApprovedIngredientResponse(BaseModel):
+    id: str
+    name: str
+    version_constraint: str
+    sha256: Optional[str] = None
+    os_family: str
+    is_vulnerable: bool
+    vulnerability_report: Optional[str] = None
+    mirror_status: str
+    mirror_path: Optional[str] = None
+    mirror_log: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ApprovedIngredientUpdate(BaseModel):
+    version_constraint: Optional[str] = None
+    sha256: Optional[str] = None
+    is_vulnerable: Optional[bool] = None
+    vulnerability_report: Optional[str] = None
 
 # --- User Signing Keys ---
 
