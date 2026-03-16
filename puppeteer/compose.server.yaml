@@ -126,6 +126,13 @@ services:
     # Ports removed: Caddy proxies 80/443
     restart: always
 
+  docs:
+    image: localhost/master-of-puppets-docs:v1
+    build:
+      context: ../docs
+      dockerfile: Dockerfile
+    restart: always
+
   registry:
     image: registry:2
     restart: always
