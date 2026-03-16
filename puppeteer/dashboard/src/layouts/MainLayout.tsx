@@ -17,6 +17,7 @@ import {
     Bot,
     Webhook,
     History as HistoryIcon,
+    BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -176,6 +177,20 @@ const MainLayout = () => {
                     <NavItem to="/service-principals" icon={Bot} label="Service Principals" />
                     <NavItem to="/webhooks" icon={Webhook} label="Webhooks" />
                     <NavItem to="/audit" icon={ScrollText} label="Audit Log" />
+
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
+                        Documentation
+                    </div>
+                    <a
+                        href="/docs/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-zinc-800 hover:text-white text-zinc-400"
+                        aria-label="Documentation"
+                    >
+                        <BookOpen className="h-4 w-4 shrink-0" />
+                        <span>Docs</span>
+                    </a>
                 </nav>
             </div>
             <div className="p-6 border-t border-zinc-900">
