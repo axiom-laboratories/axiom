@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: executing
-stopped_at: "Checkpoint: 20-02 Task 3 awaiting CF Access human verification"
-last_updated: "2026-03-16T21:45:38.045Z"
+stopped_at: Completed 20-02-PLAN.md (CF Access deferred by user)
+last_updated: "2026-03-16T21:53:34.507Z"
 last_activity: 2026-03-16 — Plan 20-01 complete (MkDocs container infrastructure)
 progress:
   total_phases: 6
@@ -47,6 +47,7 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 20]: nginx alias (not root) used for /docs/ location — root breaks subpath asset resolution
 - [Phase 20]: Privacy plugin downloads external assets at build time — zero outbound font/JS requests at runtime
 - [Phase 20-container-infrastructure-routing]: handle /docs/* used (not handle_path) in Caddy — preserves URI prefix for nginx alias subpath routing
+- [Phase 20-container-infrastructure-routing]: CF Access protection for /docs/* deferred by user — local routing confirmed working, CF Access to be configured in a future session
 
 ### Pending Todos
 
@@ -60,6 +61,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-16T21:45:38.043Z
-Stopped at: Checkpoint: 20-02 Task 3 awaiting CF Access human verification
+Last session: 2026-03-16T21:53:34.505Z
+Stopped at: Completed 20-02-PLAN.md (CF Access deferred by user)
 Resume file: None

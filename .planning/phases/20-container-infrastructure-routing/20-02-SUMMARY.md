@@ -30,7 +30,7 @@ key-files:
 
 key-decisions:
   - "handle /docs/* used in both :443 and :80 Caddy blocks — handle_path would strip prefix and break nginx alias"
-  - "CF Access policy covers both /docs and /docs/* paths to ensure bare path is also protected"
+  - "CF Access protection for /docs/* deferred by user decision — local routing confirmed working, CF Access to be configured in a future session"
 
 patterns-established:
   - "Caddy block ordering: specific handles (/api, /auth, /ws, /docs) before generic dashboard fallback handle"
@@ -46,20 +46,20 @@ completed: 2026-03-16
 
 # Phase 20 Plan 02: Caddy /docs Routing and Cloudflare Access Summary
 
-**Caddy handle /docs/* routing wired in both :443 and :80 blocks, smoke-tested locally; CF Access edge protection pending human configuration and verification**
+**Caddy handle /docs/* routing wired in both :443 and :80 blocks, smoke-tested locally; CF Access protection deferred by user decision to a future session**
 
 ## Performance
 
 - **Duration:** ~10 min
 - **Started:** 2026-03-16T21:42:00Z
-- **Completed:** 2026-03-16T21:52:00Z
-- **Tasks:** 2 of 3 complete (Task 3 is checkpoint:human-verify)
+- **Completed:** 2026-03-16
+- **Tasks:** 2 of 3 complete (Task 3 deferred — CF Access skipped per user decision)
 - **Files modified:** 1
 
 ## Accomplishments
 - Added `handle /docs/* { reverse_proxy docs:80 }` to both `:443` and `:80` Caddy virtual hosts, positioned before the dashboard fallback
 - Rebuilt cert-manager container and smoke-tested: `http://localhost/docs/` returns 200, `http://localhost/docs/assets/stylesheets/main.484c7ddc.min.css` returns 200 (nginx alias subpath routing confirmed working)
-- Task 3 (CF Access) awaiting human configuration and verification in Cloudflare Zero Trust dashboard
+- Task 3 (CF Access) deferred by user decision — CF Access will be configured in a separate future session
 
 ## Task Commits
 
@@ -68,7 +68,7 @@ Each task was committed atomically:
 1. **Task 1: Add handle /docs/* routing to Caddyfile** - `51adca7` (feat)
 2. **Task 2: Smoke test routing** - no code change (validation only, covered by Task 1 commit)
 
-**Plan metadata:** (final docs commit TBD after Task 3 completes)
+**Plan metadata:** (this commit — plan marked complete with CF Access deferred)
 
 ## Files Created/Modified
 - `puppeteer/cert-manager/Caddyfile` - Added handle /docs/* block in both :443 and :80 virtual hosts, before dashboard fallback
@@ -97,9 +97,9 @@ Each task was committed atomically:
 ## Issues Encountered
 - Plan verification URL `main.css` doesn't exist — MkDocs Material uses content-hashed CSS filenames. Confirmed routing works by testing actual filenames extracted from index.html.
 
-## User Setup Required
+## User Setup Required (Deferred)
 
-**External service requires manual configuration.** CF Access must be configured in Cloudflare Zero Trust dashboard:
+**CF Access configuration is deferred by user decision.** When ready to protect `/docs/*`, configure in Cloudflare Zero Trust dashboard:
 
 1. Go to Zero Trust Dashboard → Access → Applications → Add application → Self-hosted
 2. Application name: Master of Puppets Docs
@@ -109,10 +109,12 @@ Each task was committed atomically:
 6. Policy: reuse the same allow policy as the existing dashboard application
 7. Verify: private window to https://dev.master-of-puppets.work/docs/ shows CF Access challenge
 
+Note: Until this is configured, `/docs/*` is publicly reachable via the Cloudflare tunnel. No sensitive content is live yet, so risk is low.
+
 ## Next Phase Readiness
 - Caddy routing is ready — docs reachable at /docs/ on the server
-- CF Access protection must be verified before Phase 21 content work begins
-- Phase 21 (OpenAPI export) can proceed once Task 3 checkpoint is approved
+- CF Access protection should be configured before any sensitive documentation content goes live
+- Phase 21 (OpenAPI export) can proceed — routing is stable and does not need to change
 
 ---
 *Phase: 20-container-infrastructure-routing*
