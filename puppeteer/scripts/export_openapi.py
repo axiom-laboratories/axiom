@@ -5,6 +5,7 @@ Export FastAPI OpenAPI schema without running a server.
 Run from repo root:
   DATABASE_URL=sqlite+aiosqlite:///./dummy.db \
   ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
+  API_KEY=dummy-build-key \
   python puppeteer/scripts/export_openapi.py /tmp/out.json
 """
 import sys

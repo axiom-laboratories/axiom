@@ -20,6 +20,7 @@ DUMMY_ENV = {
     **os.environ,
     "DATABASE_URL": "sqlite+aiosqlite:///./dummy.db",
     "ENCRYPTION_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "API_KEY": "dummy-build-key",
 }
 
 

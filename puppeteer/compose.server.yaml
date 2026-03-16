@@ -129,8 +129,8 @@ services:
   docs:
     image: localhost/master-of-puppets-docs:v1
     build:
-      context: ../docs
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docs/Dockerfile
     restart: always
 
   registry:
