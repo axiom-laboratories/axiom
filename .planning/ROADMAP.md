@@ -5,6 +5,7 @@
 - ✅ **v1.0–v6.0** — Milestones 1–6 (Production Reliability → Remote Validation) — shipped 2026-03-06/09
 - ✅ **v7.0 — Advanced Foundry & Smelter** — Phases 11–15 (shipped 2026-03-16)
 - ✅ **v8.0 — mop-push CLI & Job Staging** — Phases 17–19 (shipped 2026-03-15)
+- 🚧 **v9.0 — Enterprise Documentation** — Phases 20–25 (in progress)
 
 ## Phases
 
@@ -32,6 +33,119 @@ Archive: `.planning/milestones/v8.0-ROADMAP.md`
 
 </details>
 
+### 🚧 v9.0 — Enterprise Documentation (In Progress)
+
+**Milestone Goal:** Bring all technical and user documentation to enterprise standard, hosted as a containerised MkDocs wiki within the stack and linked from the dashboard.
+
+- [ ] **Phase 20: Container Infrastructure & Routing** — MkDocs Material container, multi-stage Dockerfile, Caddy routing, nginx alias config, site_url alignment, CF Access policy, offline plugins
+- [ ] **Phase 21: API Reference + Dashboard Integration** — OpenAPI export pipeline, Swagger UI rendering, dashboard Docs.tsx replacement with external link
+- [ ] **Phase 22: Developer Documentation** — Architecture guide with Mermaid diagrams, setup & deployment guide, contributing guide
+- [ ] **Phase 23: Getting Started & Core Feature Guides** — End-to-end first-run walkthrough, Foundry guide, mop-push CLI guide — establishes nav architecture
+- [ ] **Phase 24: Extended Feature Guides & Security** — Job scheduling, RBAC, OAuth guides + full mTLS, audit log, air-gap security & compliance section
+- [ ] **Phase 25: Runbooks & Troubleshooting** — Symptom-first node, job, and Foundry troubleshooting guides + FAQ
+
+## Phase Details
+
+### Phase 20: Container Infrastructure & Routing
+**Goal**: The docs site is live at `/docs/` with correct asset routing, offline capability, and access control — ready to accept content
+**Depends on**: Nothing (first phase of this milestone)
+**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05, INFRA-06
+**Success Criteria** (what must be TRUE):
+  1. Running `docker compose up` starts the docs container and the site is reachable at `/docs/` in a browser
+  2. Deep asset URLs (e.g., `/docs/assets/stylesheets/main.css`) return 200 — no silent 404s from routing misconfiguration
+  3. `docker compose build docs` fails loudly if `mkdocs build --strict` encounters any warning or error
+  4. Browsing to `/docs/` from a private window without a Cloudflare Access session results in an authentication challenge, not a page load
+  5. The site loads completely with no requests to external CDN domains (verified via browser network tab in an air-gapped/network-restricted environment)
+**Plans**: TBD
+
+Plans:
+- [ ] 20-01: Multi-stage Dockerfile, docs-container service, mkdocs.yml skeleton with offline+privacy plugins
+- [ ] 20-02: Caddyfile routing (handle /docs/*), nginx alias config, site_url alignment, CF Access policy coverage
+
+### Phase 21: API Reference + Dashboard Integration
+**Goal**: The API reference is auto-generated from the live FastAPI schema at build time and the dashboard links to the docs site instead of rendering markdown inline
+**Depends on**: Phase 20
+**Requirements**: APIREF-01, APIREF-02, APIREF-03, DASH-01, DASH-02
+**Success Criteria** (what must be TRUE):
+  1. The `/docs/api-reference/` page renders all API endpoints grouped by tag with request and response schemas visible without any network call to an external Swagger CDN
+  2. Adding a new FastAPI route and rebuilding the docs image causes that route to appear in the API reference without any manual file edits
+  3. The dashboard sidebar "Docs" entry opens `/docs/` in a new tab rather than rendering an inline markdown view
+  4. The old in-app Docs route (`/docs` in React) no longer exists — navigating to it redirects or shows 404
+**Plans**: TBD
+
+Plans:
+- [ ] 21-01: scripts/export_openapi.py, Dockerfile builder stage integration, mkdocs-swagger-ui-tag config
+- [ ] 21-02: Remove Docs.tsx + /docs route, add external sidebar link in MainLayout.tsx
+
+### Phase 22: Developer Documentation
+**Goal**: Developers and operators can understand the system architecture, set up a local dev environment, and contribute code from the documentation alone
+**Depends on**: Phase 20
+**Requirements**: DEVDOC-01, DEVDOC-02, DEVDOC-03
+**Success Criteria** (what must be TRUE):
+  1. The architecture guide renders at least one Mermaid diagram showing the Puppeteer → mTLS → Puppet data flow, viewable in the browser without external rendering services
+  2. A developer following the setup & deployment guide on a clean machine can reach a running local stack (SQLite + backend + dashboard) without consulting the codebase
+  3. The contributing guide specifies how to run backend and frontend tests and what a passing PR requires
+**Plans**: TBD
+
+Plans:
+- [ ] 22-01: Architecture guide (components, security model, data flow, Mermaid diagrams)
+- [ ] 22-02: Setup & deployment guide (local dev, Docker Compose, production, env vars, TLS bootstrap)
+- [ ] 22-03: Contributing guide (code structure, testing conventions, PR workflow)
+
+### Phase 23: Getting Started & Core Feature Guides
+**Goal**: A new operator can follow documentation alone to install the stack, enroll a node, and run their first signed job — and the navigation architecture for all future content is locked in
+**Depends on**: Phase 20
+**Requirements**: GUIDE-01, GUIDE-02, FEAT-01, FEAT-02
+**Success Criteria** (what must be TRUE):
+  1. The getting started guide is a single linear walkthrough (no section-jumping required) that ends with a confirmed job result visible in the dashboard
+  2. Prerequisites are called out explicitly at the start of each guide section with verification steps — the reader knows what to check before proceeding
+  3. The Foundry guide covers blueprint creation through image lifecycle with the Wizard walkthrough and Smelter integration visually illustrated
+  4. The mop-push CLI guide covers the full operator workflow: install, OAuth login, Ed25519 key setup, push a signed job, and publish from Staging
+  5. The top-level navigation in mkdocs.yml is task/audience-oriented (Getting Started / Feature Guides / Security / Developer / API Reference) — established before any further content is written
+**Plans**: TBD
+
+Plans:
+- [ ] 23-01: mkdocs.yml navigation architecture, landing page (index.md), getting started walkthrough
+- [ ] 23-02: Prerequisites guide (CA installation, JOIN_TOKEN, required env vars)
+- [ ] 23-03: Foundry guide (blueprints, wizard, Smelter, image lifecycle)
+- [ ] 23-04: mop-push CLI guide (install, login, key setup, push, publish)
+
+### Phase 24: Extended Feature Guides & Security
+**Goal**: All remaining platform features are documented with usage guides, and the security & compliance section gives enterprise operators everything they need to deploy, harden, and audit the system
+**Depends on**: Phase 23
+**Requirements**: FEAT-03, FEAT-04, FEAT-05, SECU-01, SECU-02, SECU-03, SECU-04
+**Success Criteria** (what must be TRUE):
+  1. The job scheduling guide covers the full path from JobDefinition creation through cron syntax, capability targeting, and staging review
+  2. The RBAC guide enables an operator to configure least-privilege access for a team without reading source code
+  3. The mTLS guide contains the complete cert rotation procedure (existing node with expiring cert) with prerequisite checks, step-by-step commands, and a verification step
+  4. The air-gap guide covers package mirroring setup, offline build validation, and the network isolation checklist in full
+  5. The audit log guide describes every event type and includes example query patterns for compliance reporting
+**Plans**: TBD
+
+Plans:
+- [ ] 24-01: Job scheduling guide (JobDefinitions, cron, targeting, staging review)
+- [ ] 24-02: RBAC guide (roles, permissions, user management, service principals)
+- [ ] 24-03: OAuth / authentication guide (device flow, token lifecycle, API keys)
+- [ ] 24-04: mTLS guide (Root CA, JOIN_TOKEN, enrollment, revocation, rotation)
+- [ ] 24-05: RBAC configuration + audit log + air-gap operation guides
+
+### Phase 25: Runbooks & Troubleshooting
+**Goal**: Operators facing a broken system can find the root cause and recovery steps by searching for the symptom they observe — not by knowing which component owns the problem
+**Depends on**: Phase 24
+**Requirements**: RUN-01, RUN-02, RUN-03, RUN-04
+**Success Criteria** (what must be TRUE):
+  1. Every runbook page opens with a 2-sentence root cause explanation before any recovery steps
+  2. The node troubleshooting guide covers enrollment failures, heartbeat loss, and cert errors organised by symptom (e.g., "node shows offline but container is running")
+  3. The job execution troubleshooting guide covers dispatch failures, signing errors, and timeout patterns with concrete error messages as section headers where applicable
+  4. The FAQ addresses the top misconfigurations documented in the existing gap reports and validation test outputs
+**Plans**: TBD
+
+Plans:
+- [ ] 25-01: Node troubleshooting (enrollment failures, heartbeat loss, cert errors)
+- [ ] 25-02: Job execution troubleshooting (dispatch failures, signing errors, timeouts)
+- [ ] 25-03: Foundry troubleshooting (build failures, Smelt-Check failures, registry issues)
+- [ ] 25-04: FAQ (top misconfigurations, gotchas, common operator questions)
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -44,6 +158,12 @@ Archive: `.planning/milestones/v8.0-ROADMAP.md`
 | 17. Backend — OAuth Device Flow & Job Staging | v8.0 | 5/5 | Complete | 2026-03-12 |
 | 18. mop-push CLI | v8.0 | 4/4 | Complete | 2026-03-12 |
 | 19. Dashboard Staging View & Governance Doc | v8.0 | 5/5 | Complete | 2026-03-15 |
+| 20. Container Infrastructure & Routing | v9.0 | 0/2 | Not started | - |
+| 21. API Reference + Dashboard Integration | v9.0 | 0/2 | Not started | - |
+| 22. Developer Documentation | v9.0 | 0/3 | Not started | - |
+| 23. Getting Started & Core Feature Guides | v9.0 | 0/4 | Not started | - |
+| 24. Extended Feature Guides & Security | v9.0 | 0/5 | Not started | - |
+| 25. Runbooks & Troubleshooting | v9.0 | 0/4 | Not started | - |
 
 ---
 
