@@ -158,7 +158,7 @@ Plans:
 | 17. Backend — OAuth Device Flow & Job Staging | v8.0 | 5/5 | Complete | 2026-03-12 |
 | 18. mop-push CLI | v8.0 | 4/4 | Complete | 2026-03-12 |
 | 19. Dashboard Staging View & Governance Doc | v8.0 | 5/5 | Complete | 2026-03-15 |
-| 20. Container Infrastructure & Routing | v9.0 | 0/2 | Not started | - |
+| 20. Container Infrastructure & Routing | 1/2 | In Progress|  | - |
 | 21. API Reference + Dashboard Integration | v9.0 | 0/2 | Not started | - |
 | 22. Developer Documentation | v9.0 | 0/3 | Not started | - |
 | 23. Getting Started & Core Feature Guides | v9.0 | 0/4 | Not started | - |

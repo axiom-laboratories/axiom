@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: planning
-stopped_at: Phase 20 context gathered
-last_updated: "2026-03-16T21:25:35.966Z"
+stopped_at: Completed 20-01-PLAN.md
+last_updated: "2026-03-16T21:40:44.120Z"
 last_activity: 2026-03-16 — v9.0 roadmap created, phases 20–25 defined
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Phase: 20 of 25 (Container Infrastructure & Routing)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-03-16 — v9.0 roadmap created, phases 20–25 defined
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-03-16 — Plan 20-01 complete (MkDocs container infrastructure)
 
-Progress: [░░░░░░░░░░] 0% (v9.0 not started)
+Progress: [██████████] 100% (plans completed vs total discovered)
 
 ## Accumulated Context
 
@@ -43,6 +43,9 @@ Progress: [░░░░░░░░░░] 0% (v9.0 not started)
 - v9.0: /docs/* must be behind CF Access policy before any content goes live — security guide contains mTLS/token architecture details
 - v9.0: openapi.json generated via app.openapi() import in builder stage (no running server) — watch for SQLAlchemy env var side effects at import time
 - v9.0: Nav is task/audience-oriented from Phase 23 (Getting Started / Feature Guides / Security / Developer / API Reference) — must not be restructured after content is written
+- [Phase 20]: mkdocs build --strict enforced in builder stage — any MkDocs warning fails Docker build
+- [Phase 20]: nginx alias (not root) used for /docs/ location — root breaks subpath asset resolution
+- [Phase 20]: Privacy plugin downloads external assets at build time — zero outbound font/JS requests at runtime
 
 ### Pending Todos
 
@@ -56,6 +59,6 @@ Progress: [░░░░░░░░░░] 0% (v9.0 not started)
 
 ## Session Continuity
 
-Last session: 2026-03-16T21:25:35.964Z
-Stopped at: Phase 20 context gathered
-Resume file: .planning/phases/20-container-infrastructure-routing/20-CONTEXT.md
+Last session: 2026-03-16T21:40:44.118Z
+Stopped at: Completed 20-01-PLAN.md
+Resume file: None
