@@ -40,6 +40,7 @@ Last activity: 2026-03-16 — Milestone v9.0 started
 
 ### Pending Todos
 - [ ] Investigate `test_report_result` pre-existing failure (noted in Phase 17 summary as baseline, not a regression).
+- [ ] Cryptographically signed job execution
 
 ### Blockers/Concerns
 None.
