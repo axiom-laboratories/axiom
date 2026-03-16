@@ -1,0 +1,12 @@
+site_name: Master of Puppets
+site_url: https://dev.master-of-puppets.work/docs/
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: indigo
+    accent: indigo
+plugins:
+  - search
+  - privacy
+  - offline
