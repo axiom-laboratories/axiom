@@ -23,9 +23,9 @@ Requirements for the v9.0 milestone. Each maps to roadmap phases.
 
 ### API Reference
 
-- [ ] **APIREF-01**: API reference is rendered in MkDocs from a static `openapi.json` snapshot
-- [ ] **APIREF-02**: `openapi.json` is generated from FastAPI at container build time (no running server required)
-- [ ] **APIREF-03**: API reference displays all endpoints grouped by tag with request/response schemas
+- [x] **APIREF-01**: API reference is rendered in MkDocs from a static `openapi.json` snapshot
+- [x] **APIREF-02**: `openapi.json` is generated from FastAPI at container build time (no running server required)
+- [x] **APIREF-03**: API reference displays all endpoints grouped by tag with request/response schemas
 
 ### Developer Documentation
 
@@ -103,9 +103,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-06 | Phase 20 | Complete |
 | DASH-01 | Phase 21 | Complete |
 | DASH-02 | Phase 21 | Complete |
-| APIREF-01 | Phase 21 | Pending |
-| APIREF-02 | Phase 21 | Pending |
-| APIREF-03 | Phase 21 | Pending |
+| APIREF-01 | Phase 21 | Complete |
+| APIREF-02 | Phase 21 | Complete |
+| APIREF-03 | Phase 21 | Complete |
 | DEVDOC-01 | Phase 22 | Pending |
 | DEVDOC-02 | Phase 22 | Pending |
 | DEVDOC-03 | Phase 22 | Pending |

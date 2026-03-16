@@ -38,7 +38,7 @@ Archive: `.planning/milestones/v8.0-ROADMAP.md`
 **Milestone Goal:** Bring all technical and user documentation to enterprise standard, hosted as a containerised MkDocs wiki within the stack and linked from the dashboard.
 
 - [x] **Phase 20: Container Infrastructure & Routing** — MkDocs Material container, multi-stage Dockerfile, Caddy routing, nginx alias config, site_url alignment, CF Access policy, offline plugins (completed 2026-03-16)
-- [ ] **Phase 21: API Reference + Dashboard Integration** — OpenAPI export pipeline, Swagger UI rendering, dashboard Docs.tsx replacement with external link
+- [x] **Phase 21: API Reference + Dashboard Integration** — OpenAPI export pipeline, Swagger UI rendering, dashboard Docs.tsx replacement with external link (completed 2026-03-16)
 - [ ] **Phase 22: Developer Documentation** — Architecture guide with Mermaid diagrams, setup & deployment guide, contributing guide
 - [ ] **Phase 23: Getting Started & Core Feature Guides** — End-to-end first-run walkthrough, Foundry guide, mop-push CLI guide — establishes nav architecture
 - [ ] **Phase 24: Extended Feature Guides & Security** — Job scheduling, RBAC, OAuth guides + full mTLS, audit log, air-gap security & compliance section
@@ -159,7 +159,7 @@ Plans:
 | 18. mop-push CLI | v8.0 | 4/4 | Complete | 2026-03-12 |
 | 19. Dashboard Staging View & Governance Doc | v8.0 | 5/5 | Complete | 2026-03-15 |
 | 20. Container Infrastructure & Routing | 2/2 | Complete    | 2026-03-16 | - |
-| 21. API Reference + Dashboard Integration | 1/2 | In Progress|  | - |
+| 21. API Reference + Dashboard Integration | 2/2 | Complete   | 2026-03-16 | - |
 | 22. Developer Documentation | v9.0 | 0/3 | Not started | - |
 | 23. Getting Started & Core Feature Guides | v9.0 | 0/4 | Not started | - |
 | 24. Extended Feature Guides & Security | v9.0 | 0/5 | Not started | - |

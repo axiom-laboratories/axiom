@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: executing
-stopped_at: Completed 21-02-PLAN.md (dashboard cleanup; awaiting human verify checkpoint)
-last_updated: "2026-03-16T22:30:08Z"
+stopped_at: "Checkpoint: Completed 21-01 Tasks 1+2, awaiting human-verify for Task 3"
+last_updated: "2026-03-16T22:41:09.145Z"
 last_activity: 2026-03-16 — Plan 21-02 complete (removed Docs.tsx, added external Docs link)
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
   percent: 100
 ---
 
@@ -50,6 +50,9 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 20-container-infrastructure-routing]: CF Access protection for /docs/* deferred by user — local routing confirmed working, CF Access to be configured in a future session
 - [Phase 21-02]: External sidebar links use plain <a> (not NavLink) with matching inactive CSS — NavLink cannot open external URLs and would never have active state
 - [Phase 21-02]: Catch-all route placed inside PrivateRoute wrapper so unauthenticated users hitting unknown paths still see Login redirect
+- [Phase 21-api-reference-dashboard-integration]: postgresql+asyncpg dummy URL required in Dockerfile builder stage — aiosqlite not in requirements.txt
+- [Phase 21-api-reference-dashboard-integration]: API_KEY env var must be set as dummy in builder — security.py calls sys.exit(1) at import time if missing
+- [Phase 21-api-reference-dashboard-integration]: All new routes in main.py must include tags= parameter — 17 tag groups established for OpenAPI grouping
 
 ### Pending Todos
 
@@ -63,6 +66,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-16T22:30:08Z
-Stopped at: Completed 21-02-PLAN.md (dashboard cleanup; awaiting human verify checkpoint)
+Last session: 2026-03-16T22:41:09.143Z
+Stopped at: Checkpoint: Completed 21-01 Tasks 1+2, awaiting human-verify for Task 3
 Resume file: None
