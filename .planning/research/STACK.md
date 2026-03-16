@@ -1,247 +1,151 @@
 # Stack Research
 
-**Domain:** Distributed job scheduling / task orchestration — adding output capture, retry, DAG dependencies, and CI/CD integration to an existing FastAPI/SQLAlchemy/APScheduler system
-**Researched:** 2026-03-04
-**Confidence:** HIGH (core libraries verified via official sources and PyPI; architectural decisions follow well-established patterns in the existing codebase)
+**Domain:** Enterprise documentation container — MkDocs Material on FastAPI + Docker Compose stack
+**Researched:** 2026-03-16
+**Confidence:** HIGH (versions verified against PyPI + official changelog + GitHub releases)
 
 ---
 
-## Context: What Already Exists
+## Scope
 
-This is a milestone addition to an existing system. The stack below documents only what needs to be ADDED. Existing stack (do not change):
-
-| Component | Current | Status |
-|-----------|---------|--------|
-| Backend | FastAPI (Python) | Locked |
-| ORM | SQLAlchemy 2.x async (`asyncpg` / `aiosqlite`) | Locked |
-| Scheduler | APScheduler 3.11.2 (`AsyncIOScheduler`) | Locked — stay on 3.x |
-| DB | SQLite (dev) / PostgreSQL 15 (prod) | Locked |
-| Auth | JWT + mTLS + Ed25519 signing | Locked — zero-trust |
-| Schema mgmt | `create_all` + manual ALTER TABLE | Locked — no Alembic |
+This file covers ONLY the net-new additions for v9.0 Enterprise Documentation. The existing stack
+(FastAPI, React/Vite, Postgres, Caddy, Cloudflare tunnel, APScheduler, SQLAlchemy) is already
+validated and not repeated here.
 
 ---
 
-## Recommended Stack — New Additions
+## Recommended Stack
 
 ### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| SQLAlchemy (existing) | 2.x (existing) | `JobExecution` history table — per-run records with stdout/stderr/exit_code/retry state | Already in stack; zero new dependency. Add a new `job_executions` table alongside existing `jobs` table. Standard pattern for job history. |
-| APScheduler 3.x (existing) | 3.11.2 (existing) | Cron scheduling backbone | Stay on 3.x — 4.x is still alpha (4.0.0a6 as of April 2025, not production-ready). Do NOT upgrade. |
-| tenacity | 9.1.4 | Retry policy execution — exponential backoff with jitter, configurable max attempts, async-native | The de-facto standard Python retry library. Supports `AsyncRetrying`, asyncio/Trio/Tornado. Has `wait_exponential`, `wait_random_exponential`, stop conditions, per-exception routing. Actively maintained (9.1.4 released Feb 2026). No external dependencies. |
-| networkx | 3.x | DAG dependency resolution — topological sort for job dependency graphs | Pure Python graph library; `topological_sort()` and `is_directed_acyclic_graph()` built-in. Lightweight (no broker, no distributed infra). Ideal for in-process DAG validation at job creation time. The dependency graph lives in the DB; networkx resolves order at dispatch time. |
+| mkdocs-material | 9.7.5 | Docs site generator and theme | Industry standard for project docs; built-in search, dark mode, navigation tabs, admonitions, code highlighting. Python-based, Docker-native, no Node runtime required. Latest stable version verified on PyPI (released 2026-03-10). |
+| Python | 3.12 (build stage only) | Runtime for mkdocs-material in the builder stage | mkdocs-material requires >=3.8; Python 3.12 is the current stable. Used only in the multi-stage build — no Python in the final image. |
+| nginx:stable-alpine | current stable-alpine | Production static file server | MkDocs' built-in dev server is explicitly documented as not production-safe (per official GitHub issue #1825). nginx:stable-alpine is ~10 MB, zero-config static file serving, correct cache headers, range requests. |
+| mkdocs-swagger-ui-tag | 0.8.0 | Embed interactive Swagger UI from OpenAPI JSON | Bundles its own Swagger UI assets locally — no CDN dependency. Critical for air-gapped deployments (MoP targets hostile/isolated environments). Renders `<swagger-ui src="...">` tags in markdown. v0.8.0 released 2026-02-22. Most actively maintained of the three Swagger-in-MkDocs options. |
 
-### Supporting Libraries
+### Supporting Libraries (pip-installed in builder stage only)
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `asyncio.create_subprocess_exec` | stdlib (Python 3.11+) | Capture stdout/stderr from node-executed scripts for the result-reporting path | Use in `node.py` (puppet agent) — wrap subprocess calls to collect output before reporting back via `/work/result`. No new dependency needed. |
-| `aiosqlite` (existing) | existing | SQLite async for dev | Already present — new tables auto-created by `create_all`. |
-| `asyncpg` (existing) | existing | PostgreSQL async for prod | Already present. |
+| mkdocs-git-revision-date-localized-plugin | >=1.2,<2 | Shows "last updated" date on each page from git history | Install when the docs directory is a git checkout with history. Skip if docs are COPY'd in without `.git/`. |
+| mkdocs-minify-plugin | >=0.8,<1 | Minifies HTML/JS/CSS output | Reduces static site size by 20-30%. No configuration required; worthwhile in production at negligible build-time cost. |
+| pymdown-extensions | (transitive dep of mkdocs-material) | Admonitions, code tabs, tasklists, superfences | Already required by mkdocs-material; no separate pin needed. Listed for clarity. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| Migration SQL files | Manual schema evolution | Continue the `migration_vNN.sql` pattern. New tables: `job_executions`, columns on `jobs` (retry fields), columns on `nodes` (env_tag). |
-| pytest + pytest-asyncio (existing) | Test new service logic | All new service functions (`retry_service.py`, DAG resolution) are async — use existing test infra. |
+| `squidfunk/mkdocs-material:9` (local preview only) | Live-reload preview during docs authoring | `docker run --rm -p 8000:8000 -v $(pwd)/docs:/docs squidfunk/mkdocs-material serve` — for local use only. Never run `serve` in production. |
+| FastAPI `/openapi.json` | Source of truth for API reference | Fetch at build time via `curl http://agent:8001/openapi.json > docs/reference/openapi.json` in the builder stage. Commit a fallback copy for CI builds without a running stack. |
 
 ---
 
-## Installation
+## Docker Container Architecture
 
-```bash
-# New runtime dependencies only (add to puppeteer/requirements.txt)
-pip install tenacity==9.1.4
-pip install networkx==3.4.2
-```
-
-No new infrastructure components (no Redis, no Celery, no broker). Everything runs in-process.
-
----
-
-## Detailed Rationale Per Capability
-
-### 1. Job Output Capture (stdout/stderr, exit codes, per-execution records)
-
-**Pattern:** Introduce a `JobExecution` table (new SQLAlchemy model) as a child of `Job`. Each `Job` can have multiple `JobExecution` rows — one per attempt (including retries).
+### Recommended: Two-Stage Dockerfile
 
 ```
-Job (existing)
-  guid: PK
-  status: PENDING | ASSIGNED | COMPLETED | FAILED
-  retry_count: int (NEW column)
-  max_retries: int (NEW column)
-  retry_delay_seconds: int (NEW column)
-  ...
+Stage 1 — Builder  (FROM squidfunk/mkdocs-material:9)
+  - pip install mkdocs plugins
+  - Optionally curl openapi.json from agent (fallback to committed copy)
+  - mkdocs build --strict  →  outputs to /docs/site/
 
-JobExecution (NEW table)
-  id: PK (autoincrement)
-  job_guid: FK → jobs.guid
-  attempt_number: int (1-indexed)
-  node_id: str
-  started_at: datetime
-  completed_at: datetime
-  exit_code: int nullable
-  stdout: Text nullable
-  stderr: Text nullable
-  success: bool
-  error_detail: Text nullable
+Stage 2 — Serve  (FROM nginx:stable-alpine)
+  - COPY --from=builder /docs/site /usr/share/nginx/html
+  - Expose :80
+  - Final image: ~12 MB, no Python, no MkDocs runtime
 ```
 
-**Node side** (`node.py` / `runtime.py`): The existing `ResultReport` model already carries `result` and `error_details`. Extend `ResultReport` to include `stdout`, `stderr`, and `exit_code` fields. The puppet node uses `asyncio.create_subprocess_exec` (or the direct subprocess path) and captures `communicate()` output — both stdout and stderr — before POSTing to `/work/result`.
+**Why two stages:** The official mkdocs-material Docker image ships Python, pip, and all build tools. The built output is a self-contained directory of HTML/CSS/JS. Serving it with nginx:alpine is the established production pattern confirmed by multiple community projects. The final image is an order of magnitude smaller than keeping the build tools present.
 
-**Orchestrator side**: `job_service.report_result()` writes a new `JobExecution` row on every call (each call = one attempt). `Job.status` reflects the overall outcome; `JobExecution` rows are the per-attempt audit trail.
+**Why not run `mkdocs serve` in production:** MkDocs' own documentation and GitHub issue #1825 confirm the built-in HTTP server is intended for preview only, with no keepalive, range requests, or production-grade security.
 
-**Why this design over alternatives:**
-- Storing output in `Job.result` (current) is a single JSON blob — loses attempt-level detail on retries
-- A separate `JobExecution` table is the standard job queue pattern (used by Sidekiq, Celery, Faktory, etc.)
-- Keeps stdout/stderr out of the `jobs` table (prevents row bloat, allows pruning old execution records independently)
+### Compose Service Snippet
 
-**Confidence:** HIGH — this is the canonical SQL schema pattern for job execution history.
-
-### 2. Retry Policies (count + backoff)
-
-**Pattern:** Store retry configuration on the `Job` (and `ScheduledJob` for definitions). Add a `RetryService` that uses tenacity internally OR implement retry as pure orchestrator logic — the simpler approach given the pull model.
-
-**Recommended approach — orchestrator-side retry without tenacity decorator:**
-
-Because the execution happens on a remote node (not in the orchestrator's process), tenacity's decorator pattern does not apply directly. Instead:
-
-1. Node reports `success=False` to `/work/result`
-2. `job_service.report_result()` checks `job.retry_count < job.max_retries`
-3. If retries remain: create a new `PENDING` job (cloning payload + incrementing `attempt_number`), set a `scheduled_after` timestamp using backoff formula
-4. The pull loop in `pull_work()` skips jobs where `created_at < scheduled_after` (a new nullable column)
-
-**Backoff formula (implement inline, no library needed):**
-```python
-delay = min(base_delay * (2 ** attempt_number), max_delay)  # exponential cap
-delay += random.uniform(0, delay * 0.1)  # 10% jitter
+```yaml
+# In compose.server.yaml — add alongside existing services
+docs:
+  build:
+    context: ../docs
+    dockerfile: Containerfile
+  image: localhost/master-of-puppets-docs:v1
+  restart: always
+  # No direct port exposure — Caddy proxies /docs/* to this container
+  depends_on:
+    - agent
 ```
 
-**Tenacity still useful for:** Retrying the orchestrator's own DB calls or HTTP calls to internal services (e.g., if foundry build requests need resilience). Add as a decorator on those functions.
+The `docs` service is stateless. No volumes, no database, no secrets. Rebuild the image to update content.
 
-**Fields to add to `Job` table:**
-```
-retry_count: int DEFAULT 0        -- how many retries have been attempted
-max_retries: int DEFAULT 0        -- 0 = no retry
-retry_backoff: str DEFAULT 'exponential'  -- 'fixed' | 'exponential'
-retry_delay_base: int DEFAULT 30  -- seconds
-scheduled_after: datetime nullable  -- null = run immediately; set on retry delay
-```
+### Caddy Routing Addition
 
-**Fields to add to `ScheduledJob` table:**
-```
-max_retries: int DEFAULT 0
-retry_backoff: str DEFAULT 'exponential'
-retry_delay_base: int DEFAULT 30
-```
-
-**Confidence:** HIGH — this pattern (re-queue on failure with backoff column) is standard in job queue systems that use a DB as the queue.
-
-### 3. Job Dependencies (DAG-style)
-
-**Pattern:** Store dependency edges in a `JobDependency` table. Validate DAGs using networkx at definition time. Enforce at dispatch time in `pull_work()`.
+Add to both `:443` and `:80` blocks in `cert-manager/Caddyfile`, before the `handle` fallback:
 
 ```
-JobDependency (NEW table)
-  id: PK
-  job_guid: str FK → jobs.guid       -- the job that depends on upstream
-  depends_on_guid: str FK → jobs.guid -- must be COMPLETED before job_guid can run
-```
-
-**Dispatch enforcement in `pull_work()`:**
-- Before assigning a job, check `JobDependency` — if any `depends_on_guid` is not COMPLETED, skip (leave PENDING)
-- This is a simple `SELECT COUNT(*) WHERE job_guid=? AND depends_on_guid NOT IN (SELECT guid FROM jobs WHERE status='COMPLETED')` check
-
-**DAG validation at creation time:**
-```python
-import networkx as nx
-
-def validate_dag(existing_edges: list[tuple], new_edge: tuple) -> bool:
-    G = nx.DiGraph()
-    G.add_edges_from(existing_edges + [new_edge])
-    return nx.is_directed_acyclic_graph(G)
-```
-
-This prevents cycles at the API level (HTTP 400 if adding a dependency would create a cycle).
-
-**Scope note:** DAG dependencies apply to ad-hoc `Job` instances. For `ScheduledJob` definitions, support a `depends_on_definition_id` field — when the scheduler fires job B, it checks if the most recent execution of job A (for the same cron window) succeeded.
-
-**Why networkx over alternatives:**
-- networkx is a pure-Python graph library with zero external dependencies
-- `is_directed_acyclic_graph()` and `topological_sort()` are production-ready, well-tested stdlib-grade operations
-- No need for Airflow, Prefect, or Dagster — those are full orchestration platforms that would replace, not extend, this system
-- Celery has DAG support (chains/chords/groups) but requires a message broker (Redis/RabbitMQ) — incompatible with the pull model and adds significant operational complexity
-
-**Confidence:** HIGH for the DB schema pattern; HIGH for networkx for cycle detection; MEDIUM for the scheduled-job dependency logic (needs careful design of "most recent successful run" semantics).
-
-### 4. Environment Node Tags (DEV/TEST/PROD)
-
-**Pattern:** Extend the existing `tags` field on `Node` with a reserved namespace convention. No new DB columns needed immediately.
-
-**Current state:** `Node.tags` is a JSON list of strings (e.g., `["gpu", "linux"]`). Nodes report tags at heartbeat time.
-
-**Addition:** Standardize on reserved environment tag values: `env:dev`, `env:test`, `env:prod`. The existing tag-matching logic in `pull_work()` already handles arbitrary tag requirements — jobs that set `target_tags: ["env:prod"]` will only run on nodes that have `"env:prod"` in their tag set.
-
-**Node-side:** Add `ENV_TAG` env var to node compose files. Node reports `["env:dev"]` (or whatever) in heartbeat tags. Zero code change needed in the matching logic.
-
-**Optional UI enhancement:** Dashboard can render `env:*` tags with color coding (green=prod, amber=test, blue=dev) by detecting the `env:` prefix.
-
-**CI/CD promotion pattern:** A DEV → TEST → PROD pipeline is implemented as:
-1. CI system dispatches job with `target_tags: ["env:dev"]`
-2. On success (webhook from orchestrator or polling `/jobs/{guid}`), CI dispatches next job with `target_tags: ["env:test"]`
-3. On success, dispatch to `target_tags: ["env:prod"]`
-
-**Confidence:** HIGH — the existing tag infrastructure already supports this; this is purely a convention/documentation addition.
-
-### 5. CI/CD API Integration
-
-**Pattern:** Existing service principal + API key auth is already machine-friendly. The additions are:
-1. A synchronous job dispatch endpoint with a predictable polling URL
-2. A webhook callback option (POST to caller URL on job completion)
-3. OpenAPI-documented examples in the existing `/docs` route
-
-**Concrete additions needed:**
-
-**`POST /api/v1/jobs/dispatch`** (new alias, same as existing `POST /jobs` but with richer response):
-```json
-{
-  "guid": "...",
-  "status": "PENDING",
-  "poll_url": "https://host/jobs/{guid}",
-  "estimated_start": "...",
-  "target_tags": ["env:prod"]
+handle /docs* {
+    reverse_proxy docs:80
 }
 ```
 
-**`GET /api/v1/jobs/{guid}/output`** (new endpoint):
-Returns the latest `JobExecution` record for the job — stdout, stderr, exit_code, attempt_number.
+The `*` glob matches `/docs`, `/docs/`, and `/docs/anything`. Because nginx serves from its root `/usr/share/nginx/html`, `mkdocs.yml` must set `site_url` to include the `/docs` subpath so all internal links and assets resolve correctly:
 
-**`POST /jobs` with `callback_url` field** (extension to `JobCreate`):
-When job completes, orchestrator POSTs to `callback_url` with job status and output. Implement as a FastAPI background task using `httpx` (already available as a dependency of FastAPI/Starlette).
+```yaml
+# docs/mkdocs.yml
+site_url: https://your-host/docs/
+use_directory_urls: true
+```
 
-**Auth:** CI/CD systems authenticate with service principal client_id/client_secret (already implemented in Sprint 10). No new auth mechanism needed.
+The docs container itself does not need TLS — Caddy terminates TLS and proxies plain HTTP internally, consistent with how `dashboard:80` is already handled.
 
-**OpenAPI webhooks:** FastAPI 0.99+ supports `@app.webhooks.post()` for documenting outbound webhook events in the OpenAPI schema. Use this for documenting the callback payload shape.
+---
 
-**Confidence:** HIGH — the existing service principal system is exactly right for this. The implementation is additive to existing endpoints.
+## OpenAPI Integration
+
+### Recommended Approach: Static Fetch at Build Time
+
+1. In `docs/Containerfile` builder stage, after `mkdocs build`:
+   ```dockerfile
+   ARG AGENT_URL=""
+   RUN if [ -n "$AGENT_URL" ]; then \
+         curl -sf ${AGENT_URL}/openapi.json -o docs/reference/openapi.json 2>/dev/null || true; \
+       fi
+   RUN mkdocs build --strict
+   ```
+2. Commit a reference copy of `docs/reference/openapi.json` in the repo. This ensures CI builds succeed without a running agent. The live fetch overrides it if the agent is available.
+3. Reference in a markdown page (e.g., `docs/docs/reference/api.md`):
+   ```markdown
+   # API Reference
+
+   Interactive API documentation generated from the live OpenAPI schema.
+
+   <swagger-ui src="../openapi.json"/>
+   ```
+   `mkdocs-swagger-ui-tag` processes this tag and embeds a self-hosted Swagger UI iframe.
+
+### Why mkdocs-swagger-ui-tag over the alternatives
+
+| Plugin | Latest Release | Air-gap Safe | Interactive | Verdict |
+|--------|---------------|-------------|-------------|---------|
+| mkdocs-swagger-ui-tag | 0.8.0 (Feb 2026) | Yes — bundles assets | Yes — full Swagger UI | **Use this** |
+| mkdocs-render-swagger-plugin (bharel) | 0.1.2 (May 2024) | Requires CDN by default | Yes | Not recommended — low activity |
+| neoteroi-mkdocs (OpenAPI Docs) | unknown | Yes | No — styled Markdown only | Use if interactive testing not needed |
+
+The air-gap constraint is non-negotiable: MoP targets enterprise and hostile-network environments where CDN access cannot be assumed. mkdocs-swagger-ui-tag is the only option that bundles Swagger UI assets locally while also being actively maintained.
 
 ---
 
 ## Alternatives Considered
 
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| In-process DAG with networkx + DB edges | Celery chains/chords | Requires Redis/RabbitMQ broker; breaks the pull model; adds operational complexity out of proportion to the feature |
-| In-process DAG with networkx + DB edges | Prefect embedded | Prefect is a full orchestration platform — replaces rather than extends this system; adds 10+ new dependencies; not embeddable |
-| In-process DAG with networkx + DB edges | Airflow | Same problem as Prefect, plus Airflow requires its own DB and scheduler process |
-| APScheduler 3.11.2 (stay) | APScheduler 4.x upgrade | 4.x is still alpha (4.0.0a6) as of April 2025. API is incompatible with 3.x. Breaking change: `add_job()` semantics changed, concept of "job" split into Task/Schedule/Job. Not production-ready. |
-| Orchestrator-side retry re-queue | tenacity decorator on execution | Execution happens on remote node — decorator pattern can't retry remote subprocess. Orchestrator re-queue is the correct pattern for distributed job systems. |
-| `env:prod` tag convention | Separate `environment` column on Node | The existing tag matching already works; a new column would duplicate functionality. Convention is simpler and already supported by the dispatch logic. |
-| httpx for webhook callbacks | aiohttp | httpx is already a transitive dependency of FastAPI/Starlette. No new dependency needed. |
-| JobExecution child table | Extending Job.result JSON | Result JSON is a single blob — loses per-attempt granularity needed for retry audit trail. Separate table is the correct normalization. |
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| mkdocs-material 9.7.5 | Docusaurus (React/Node) | If the team prefers MDX and React components in docs. Heavier image (requires Node 18+ runtime), more configuration. Not worth the complexity for this project. |
+| mkdocs-swagger-ui-tag | neoteroi-mkdocs | If interactive API testing is not needed and a styled Markdown representation is preferred. Neoteroi renders cleaner prose output but no "Try it out" button. |
+| nginx:stable-alpine (serve stage) | Caddy in the docs container | Caddy is already handling TLS termination upstream. Using Caddy inside the docs container would be redundant. nginx:alpine is simpler and smaller for static file serving. |
+| Two-stage Dockerfile | Single image with mkdocs serve | No valid production use case. The final image is 15x smaller with two stages. |
+| Static openapi.json fetch at build | Runtime JS fetch from `/openapi.json` | Runtime fetch requires cross-origin configuration and fails under strict CSP. Static file is deterministic, cacheable, and works offline. |
+| Subpath `/docs` via existing Caddy | Separate subdomain for docs | Separate subdomain adds TLS cert complexity and would require Cloudflare tunnel reconfiguration. Subpath routing is free via the existing Caddy config. |
 
 ---
 
@@ -249,35 +153,34 @@ When job completes, orchestrator POSTs to `callback_url` with job status and out
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| APScheduler 4.x | Still alpha (4.0.0a6, April 2025). Breaking API changes from 3.x. No DAG support added. Not worth migration risk for an in-flight production system. | Stay on APScheduler 3.11.2 |
-| Celery | Requires broker (Redis/RabbitMQ). Fundamentally incompatible with pull model — Celery pushes work to workers, this system needs nodes to poll. Adding Celery would require a full architecture change. | APScheduler 3.x + custom orchestrator-side retry logic |
-| Prefect / Dagster / Airflow | Full platform replacements, not embeddable extensions. Each requires its own scheduler process, DB, and UI. 10x operational complexity for DAG features that can be implemented with 50 lines of networkx. | networkx for DAG validation + DB edge table for dependency tracking |
-| `retrying` library | Unmaintained since 2016. tenacity is its active fork. | tenacity 9.1.4 |
-| `backoff` library | Less capable than tenacity (no async support, fewer strategies). | tenacity 9.1.4 |
-| Storing stdout/stderr in `Job.result` JSON | Row bloat; loses per-attempt history on retries; no pruning path. | Separate `JobExecution` table with FK to jobs |
-| APScheduler `SQLAlchemyJobStore` for production schedules | The project manages `ScheduledJob` records in its own table (not APScheduler's internal job store). The existing `SchedulerService.sync_scheduler()` pattern of syncing DB → APScheduler in-memory is correct and must be preserved. | Continue using MemoryJobStore for APScheduler + custom `ScheduledJob` table for persistence |
+| `mkdocs serve` in production | Explicitly documented as insecure and unsuitable for production by the MkDocs project (GitHub issue #1825). No keepalive, no cache headers, no range requests. | nginx:stable-alpine as the serve stage |
+| CDN-dependent Swagger plugins | Breaks air-gapped deployments. MoP explicitly targets isolated environments. | mkdocs-swagger-ui-tag which bundles Swagger UI assets locally |
+| Database in the docs container | Docs are a static site. No state belongs here. Adding a DB would be an architectural error. | Keep the docs container stateless. All content is baked into the image at build time. |
+| mkdocs-material Insider (paid features) | Adds Stripe subscription + key management complexity. All features needed for this project (search, navigation, dark mode, code blocks, admonitions) are in the free tier. | mkdocs-material free tier 9.7.5 |
+| Pinning to `mkdocs-material:latest` in the build stage | `latest` is a moving target. A minor version bump in mkdocs-material could change plugin compatibility silently. | Pin to `squidfunk/mkdocs-material:9` (major-version pin is stable) and pin plugin versions in `requirements.txt`. |
+| Shallow git clone for git-revision-date plugin | The `mkdocs-git-revision-date-localized-plugin` requires full git history to compute last-modified dates. Shallow clones produce incorrect or missing dates. | Use full clone (`--depth 0` or no `--depth` flag) if this plugin is enabled. |
 
 ---
 
 ## Stack Patterns by Variant
 
-**If retry delay is less than the node poll interval (~5 seconds):**
-- Use `scheduled_after = NOW()` (immediate retry), not a delay — no point in a delay smaller than the poll interval
+**If docs are built into the image (standard production pattern):**
+- COPY the `docs/` directory in the builder stage
+- Rebuild the image whenever docs content changes
+- `docker compose up -d --build docs` to deploy updates
 
-**If job has no max_retries set (max_retries = 0):**
-- Behave exactly as today — one attempt, FAILED on failure. Zero code-path change for existing jobs.
+**If docs use live git-backed content with automatic rebuild:**
+- Not recommended for this stack. The compose pattern does not support live volume + live rebuild.
+- For a live-editing workflow, use `mkdocs serve` locally against a mounted volume during authoring, then commit and rebuild the image.
 
-**If a DAG dependency chain has a failing upstream:**
-- Downstream jobs remain PENDING indefinitely (they never get dispatched)
-- Add a `DAG_BLOCKED` status or timeout policy in a follow-up milestone — out of scope here
+**If the agent is not reachable during build (CI, cold start, air-gap):**
+- The committed `docs/reference/openapi.json` file is used as fallback
+- CI pipelines do not need a running stack to produce a valid docs image
+- The fallback file should be regenerated on each agent deployment: `curl https://host/openapi.json > docs/reference/openapi.json && git commit -m "chore: update openapi.json snapshot"`
 
-**If callback_url is set on a job:**
-- Orchestrator fires background task on `report_result()` using `httpx.AsyncClient().post(callback_url, json=payload)`
-- Failure to deliver callback should not fail the job — log and move on
-
-**If the node is SQLite (dev):**
-- All new tables (`job_executions`, `job_dependencies`) use `create_all` — no migration needed for fresh installs
-- Existing dev installs: run `migration_v14.sql` (manual ALTER TABLE pattern, same as all previous migrations)
+**If docs need to be published externally (beyond Cloudflare tunnel):**
+- The same nginx:alpine container can be published to any CDN or object storage by running `mkdocs build` and uploading the `site/` directory
+- No changes to the container architecture needed
 
 ---
 
@@ -285,25 +188,59 @@ When job completes, orchestrator POSTs to `callback_url` with job status and out
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| tenacity 9.1.4 | Python 3.10+ | Requires Python 3.10 minimum. Project is running 3.11+ (FastAPI + asyncpg both require 3.10+). Compatible. |
-| networkx 3.4.2 | Python 3.10+ | Pure Python. No C extensions. Works on SQLite and Postgres hosts equally. |
-| APScheduler 3.11.2 | asyncio, SQLAlchemy 2.x | Confirmed compatible with existing `AsyncIOScheduler` usage. |
+| mkdocs-material 9.7.5 | Python >=3.8; mkdocs <2 | Release notes explicitly cap mkdocs to <2 (confirmed in changelog). Target mkdocs 1.6.x. |
+| mkdocs-swagger-ui-tag 0.8.0 | mkdocs-material 9.x | Tested against 9.x series; no known incompatibility. |
+| mkdocs-git-revision-date-localized >=1.2 | mkdocs >=1.5 | Requires full git history in build context. |
+| nginx:stable-alpine | n/a | Static file serving only; no version coupling to MkDocs output format. |
+
+---
+
+## Installation (requirements for docs/Containerfile builder stage)
+
+```text
+# docs/requirements.txt
+mkdocs-material==9.7.5
+mkdocs-swagger-ui-tag==0.8.0
+mkdocs-git-revision-date-localized-plugin>=1.2,<2
+mkdocs-minify-plugin>=0.8,<1
+```
+
+```dockerfile
+# docs/Containerfile
+FROM squidfunk/mkdocs-material:9 AS builder
+WORKDIR /docs
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+# Attempt live openapi.json fetch; fall back to committed file silently
+ARG AGENT_URL=""
+RUN if [ -n "$AGENT_URL" ]; then \
+      curl -sf ${AGENT_URL}/openapi.json -o docs/reference/openapi.json 2>/dev/null || true; \
+    fi
+RUN mkdocs build --strict
+
+FROM nginx:stable-alpine AS serve
+COPY --from=builder /docs/site /usr/share/nginx/html
+EXPOSE 80
+```
+
+No new dependencies are added to the main `puppeteer/requirements.txt`. The docs container is entirely self-contained.
 
 ---
 
 ## Sources
 
-- APScheduler PyPI page (https://pypi.org/project/APScheduler/) — confirmed 3.11.2 is current stable; 4.0.0a6 is latest alpha (not production-ready). Confidence: HIGH.
-- APScheduler 3.x User Guide (https://apscheduler.readthedocs.io/en/3.x/userguide.html) — confirmed SQLAlchemyJobStore supports both SQLite and PostgreSQL. Confidence: HIGH.
-- APScheduler 4.x master docs (https://apscheduler.readthedocs.io/en/master/userguide.html) — confirmed no native DAG/dependency support in 4.x. Confidence: HIGH.
-- tenacity PyPI (https://pypi.org/project/tenacity/) — confirmed 9.1.4 stable (Feb 2026), Python 3.10+ requirement. Confidence: HIGH.
-- tenacity GitHub (https://github.com/jd/tenacity) — confirmed `AsyncRetrying`, full async support for asyncio/Trio/Tornado, `wait_exponential`, `wait_random_exponential`, `retry_if_exception_type`. Confidence: HIGH.
-- NetworkX DAG docs (https://networkx.org/nx-guides/content/algorithms/dag/index.html) — confirmed `is_directed_acyclic_graph()` and `topological_sort()` APIs. Confidence: HIGH.
-- FastAPI OpenAPI webhooks (https://fastapi.tiangolo.com/advanced/openapi-webhooks/) — confirmed `@app.webhooks.post()` available in FastAPI 0.99+. Confidence: HIGH.
-- WebSearch: APScheduler vs Celery comparison (multiple sources) — confirmed Celery requires broker, pull-model incompatible. Confidence: MEDIUM.
-- WebSearch: Python retry libraries 2025 — confirmed tenacity is de-facto standard, `retrying` and `backoff` are not recommended. Confidence: MEDIUM.
+- [mkdocs-material PyPI page](https://pypi.org/project/mkdocs-material/) — version 9.7.5 confirmed, Python >=3.8 requirement (HIGH confidence)
+- [mkdocs-material changelog](https://squidfunk.github.io/mkdocs-material/changelog/) — 9.7.5 released 2026-03-10, mkdocs <2 cap confirmed (HIGH confidence)
+- [mkdocs-material installation docs](https://squidfunk.github.io/mkdocs-material/getting-started/) — Docker image `squidfunk/mkdocs-material:9` confirmed (HIGH confidence)
+- [mkdocs-swagger-ui-tag GitHub](https://github.com/blueswen/mkdocs-swagger-ui-tag) — v0.8.0 released 2026-02-22, bundles Swagger UI assets locally, air-gap safe (HIGH confidence)
+- [mkdocs-render-swagger-plugin GitHub](https://github.com/bharel/mkdocs-render-swagger-plugin) — v0.1.2 last release May 2024, lower maintenance activity (HIGH confidence — used to rule out)
+- [neoteroi-mkdocs OpenAPI Docs](https://www.neoteroi.dev/mkdocs-plugins/web/oad/) — renders as styled Markdown, not interactive Swagger UI (MEDIUM confidence)
+- [MkDocs production Docker issue #1825](https://github.com/squidfunk/mkdocs-material/issues/1825) — official confirmation that `mkdocs serve` is not production-safe (HIGH confidence)
+- Existing `puppeteer/cert-manager/Caddyfile` — current routing structure reviewed directly, `/docs*` routing pattern derived from existing `handle /api/*` pattern (HIGH confidence)
+- Existing `puppeteer/compose.server.yaml` — service naming, network topology, port conventions reviewed directly (HIGH confidence)
 
 ---
 
-*Stack research for: Master of Puppets — job output capture, retry, DAG dependencies, CI/CD integration milestone*
-*Researched: 2026-03-04*
+*Stack research for: Master of Puppets v9.0 — Enterprise Documentation container*
+*Researched: 2026-03-16*

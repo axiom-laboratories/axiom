@@ -1,291 +1,236 @@
 # Project Research Summary
 
-**Project:** Master of Puppets — Job Output Capture, Retry, DAG Dependencies, CI/CD Integration
-**Domain:** Distributed pull-model job scheduler / task orchestration (FastAPI/SQLAlchemy)
-**Researched:** 2026-03-04
+**Project:** Master of Puppets v9.0 — Enterprise Documentation
+**Domain:** Containerised static documentation site (MkDocs Material) integrated into existing Caddy + Docker Compose stack
+**Researched:** 2026-03-16
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Master of Puppets already has a functioning, security-hardened orchestration platform. This milestone adds the production-readiness capabilities that prevent the system from feeling like a prototype: job output capture, retry policies, execution history, job dependency chaining, environment tag enforcement, and machine-friendly CI/CD integration. All four research streams agree on the same foundational sequence — output capture must come first because every other feature (retry audit trails, history timelines, dead letter queues, CI/CD result polling) is meaningless without knowing what a job printed and how it exited.
+Master of Puppets v9.0 adds a self-hosted, offline-capable MkDocs Material documentation site to an already mature orchestration platform. The recommended approach is a two-stage Docker build: a Python builder stage that imports the FastAPI app to generate `openapi.json` and runs `mkdocs build --strict`, followed by an `nginx:stable-alpine` serve stage that ships only the pre-built static HTML. The docs container slots into the existing Caddy routing layer at `/docs/*` as a new stateless service with no database, no secrets, and no runtime dependencies. This architecture is validated by official MkDocs documentation and community production patterns, and it integrates cleanly with the existing `compose.server.yaml`, Caddyfile, and Cloudflare Tunnel setup without touching any other service.
 
-The recommended technical approach makes no architectural breaks with the existing codebase. Two new libraries (tenacity 9.1.4, networkx 3.4.2) and two new DB tables (execution\_records, job\_dependencies) carry the entire feature set. The retry model belongs on the orchestrator server — nodes are stateless and must never hold retry state. DAG dependency evaluation belongs inside the existing `pull_work` path rather than a background polling loop, which preserves transactional consistency and eliminates race conditions. The existing Service Principal auth, tag-matching logic, and APScheduler infrastructure are already sufficient; the gap is documentation and a clean CI-facing endpoint contract.
+The recommended stack (mkdocs-material 9.7.5, mkdocs-swagger-ui-tag 0.8.0, nginx:stable-alpine) is straightforward and well-supported. The project benefits from Material 9.7.0's decision to open-source all previously Insider-only features, which means the privacy plugin (essential for air-gapped deployments), offline plugin, and social cards are all available in the free tier. The content work is the dominant effort — eight feature guide pages, a security and compliance guide, a getting-started walkthrough, runbooks, and an auto-generated API reference — all of which must be written to a standard that meets the enterprise expectations of MoP's target user base.
 
-The two highest-priority risks are security, not engineering. First: CI/CD service principals granted `operator` role can register signing keys, which is a full bypass of the zero-trust model (OWASP CICD-SEC-5). A dedicated `ci` role with only `jobs:read` + `jobs:write` must be created before the CI/CD integration is documented. Second: the verification key bootstrap has a TOCTOU gap — nodes fetch the Ed25519 public key from the orchestrator without pinning, so a compromised orchestrator at enrollment time can install a rogue trust anchor. Both issues must be addressed in the phase where they become relevant, not deferred.
-
----
+The primary risks are not technical but operational: Caddy path routing misconfiguration (the `handle_path` prefix-stripping trap that silently breaks all CSS/JS assets), OpenAPI snapshot drift if generation is not automated in the build pipeline, and docs served unauthenticated via the existing Cloudflare Tunnel. All three risks are preventable by addressing them in the infrastructure phase before writing a word of content. The security risk in particular must not be deferred — detailed mTLS architecture and token schema documentation should only be accessible behind the same Cloudflare Access policy that protects the dashboard.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack is locked and correct. The additions are minimal: `tenacity 9.1.4` for exponential backoff formulas (used for orchestrator-internal resilience, not node-side retry — nodes are stateless) and `networkx 3.4.2` for DAG cycle detection at job creation time. Both are pure Python with no new infrastructure requirements. APScheduler stays on 3.x — version 4.x is still alpha (4.0.0a6) with a breaking API and no production readiness signals.
+The net-new stack additions for v9.0 are minimal and self-contained. MkDocs Material 9.7.5 is the Python-based static site generator with a comprehensive feature set that requires no Node runtime — a significant advantage for a Docker-native stack. The two-stage Dockerfile uses `squidfunk/mkdocs-material:9` as the builder base and `nginx:stable-alpine` as the production serve stage, producing a ~12-25 MB final image with zero Python attack surface. The `mkdocs-swagger-ui-tag` plugin (0.8.0) is the only externally hosted Swagger plugin that bundles its own UI assets locally, making it the only viable choice for air-gapped deployments. All existing Puppeteer infrastructure (FastAPI, Caddy, Postgres, Docker Compose) is unchanged.
 
-The schema additions follow the existing `create_all` + `migration_vNN.sql` pattern established by Sprints 8–13. SQLite dev environments will need fresh `jobs.db` teardowns or careful migration scripting since SQLite does not support `ALTER TABLE ... IF NOT EXISTS`.
-
-**Core technologies (new additions only):**
-- `tenacity 9.1.4`: retry backoff formulas on orchestrator-internal calls — pip install, no infra dependency
-- `networkx 3.4.2`: DAG cycle detection at job creation time — pure Python, lightweight
-- `execution_records` table: per-attempt stdout/stderr/exit_code storage — SQLAlchemy ORM, zero new dependency
-- `job_dependencies` table: adjacency list for DAG edges — SQL, works identically on SQLite and Postgres
-- `httpx` (already transitive): webhook callback POSTs in background tasks — no new install needed
-
-**What not to use:**
-- APScheduler 4.x — alpha, breaking API change from 3.x
-- Celery — requires Redis/RabbitMQ broker, breaks pull model
-- Prefect/Airflow/Dagster — full platform replacements, not embeddable extensions
-- `retrying` / `backoff` libraries — unmaintained or less capable than tenacity
+**Core technologies:**
+- `mkdocs-material 9.7.5`: Static site generator + theme — industry standard, all Insider features now free, Python-native, Docker-friendly
+- `nginx:stable-alpine`: Production static file server — ~10 MB, zero-config, correct MIME types and cache headers; `mkdocs serve` is explicitly not production-safe per official docs (issue #1825)
+- `mkdocs-swagger-ui-tag 0.8.0`: Interactive API reference from `openapi.json` — the only actively maintained option that bundles Swagger UI assets locally (air-gap safe)
+- `mkdocs-git-revision-date-localized-plugin >=1.2`: "Last updated" dates from git history — requires full clone and `git` binary in builder stage
+- `mkdocs-minify-plugin >=0.8`: Build-time HTML/CSS/JS minification — 20-30% size reduction, no configuration
 
 ### Expected Features
 
-The feature research compares this system against Airflow, Rundeck, Prefect, and BullMQ. The pattern is consistent: every production scheduler stores execution output, surfaces history, and retries with backoff. Missing these three makes the system feel unfinished regardless of its security advantages.
+The feature set divides cleanly into infrastructure (container + routing + toolchain — all done once in Phase 1) and content (guides and reference material — the bulk of the work across subsequent phases). Navigation must be audience/task-oriented from the start, not component-oriented; this is the single most common structural failure mode in infrastructure tool documentation.
 
-**Must have (table stakes) — this milestone's core deliverable:**
-- Job output capture (stdout + stderr, buffered at completion) — debugging is impossible without it
-- Exit code capture — enables non-blind retry decisions and debugging
-- Execution history timeline — every scheduler ships this; absence signals prototype status
-- Filter/search on execution history — history without search is unusable in production
-- Retry policy (configurable count + exponential backoff + jitter) — table stakes for any infra tool
-- Dead letter queue (DEAD\_LETTER status for exhausted retries) — completes the retry story cleanly
-- Environment node tags (convention + UI badges) — operators running multiple environments expect this
+**Must have (table stakes for enterprise-credible docs):**
+- Full-text client-side search with offline support — built-in, critical for air-gapped deployments
+- Navigation tabs separating audiences (Getting Started / Feature Guides / Security and Compliance / Developer / API Reference)
+- Code blocks with syntax highlighting and copy-to-clipboard — built-in
+- Admonitions (warning/danger callouts) — critical for security documentation
+- Dark/light mode with OS preference detection — built-in
+- Getting started guide: Install → enroll node → sign job → dispatch job (single linear walkthrough, no section-jumping)
+- Feature guides for all v7/v8 features: Foundry, Smelter, mop-push CLI, job scheduling, RBAC, OAuth device flow, Staging view, node management
+- Security and compliance guide: mTLS setup, cert rotation, Ed25519 signing, RBAC config, audit log, air-gap deployment
+- Runbooks and troubleshooting organised by symptom, not by component
+- Auto-generated API reference from static `openapi.json` via Swagger UI
+- Privacy + offline plugins to ensure zero external CDN calls (non-negotiable for air-gap)
+- Dashboard integration: replace `Docs.tsx` inline renderer with external link to `/docs/`
 
-**Should have (competitive differentiators):**
-- Retry audit trail — per-attempt execution records with individual outputs (not just the last attempt)
-- Output retention policy — automated pruning prevents runaway disk growth for high-frequency jobs
-- CI/CD webhook endpoint + stable API contract documentation
-- Linear job dependency chaining ("depends on" field with scheduler enforcement)
+**Should have (differentiators vs. generic project README):**
+- Mermaid diagrams for architecture (version-controlled, rendered client-side — no PNG drift)
+- Annotated code blocks for Dockerfile and compose file examples
+- Page-level "last updated" dates (git revision plugin)
+- "Edit this page" links to source repo
+- Instant loading (SPA-like navigation, built-in)
+- Content tabs for multi-platform instructions (Docker vs bare-metal)
 
-**Defer to v2+:**
-- Real-time output streaming — HIGH complexity, conflicts with pull architecture's statelessness
-- Full visual DAG editor — an anti-feature; Airflow's own editor was not shipped at Airflow Summit 2026
-- Fan-out/fan-in patterns — only needed if linear chaining proves insufficient in practice
-- Environment promotion workflow documentation — requires the full milestone to be complete first
+**Defer to v10+:**
+- Versioned docs via `mike` — only meaningful once multiple released versions are in active use
+- SLSA provenance documentation — awaits the feature itself
+- CI/CD integration guide — awaits the CI/CD API endpoints milestone
+- PDF export — fragile with Material theme CSS, not worth the maintenance cost
 
 ### Architecture Approach
 
-The architecture adds two new services (`RetryService`, `DAGService`) alongside the existing `job_service.py`, and two new tables (`execution_records`, `job_dependencies`). Output capture flows from the node's subprocess capture through the extended `ResultReport` model into a dedicated `execution_records` row written inside the same transaction as the `jobs` status update. Retry state lives entirely on the orchestrator — nodes are stateless and report every outcome immediately. Dependency evaluation happens inside `pull_work`, not a background poller, which eliminates TOCTOU races and adds no latency.
+The docs container is inserted as a new stateless service into the existing Caddy routing layer. Caddy receives all requests, routes `/docs/*` to the docs container (nginx:80), and continues routing `/api/*`, `/auth/*`, `/ws`, and `/system/*` to the agent as before. The critical architectural detail is that `site_url` in `mkdocs.yml` must be set to `https://dev.master-of-puppets.work/docs/` so MkDocs bakes the `/docs/` subpath into every asset reference — and Caddy must use `handle /docs/*` without prefix stripping, matched by an nginx `alias` directive inside the container. Using Caddy's `handle_path` with prefix stripping silently breaks all CSS/JS assets (they reference `/docs/assets/...` in the HTML but would be requested without the prefix from the serve root).
 
 **Major components:**
-1. `ExecutionRecord` (new DB table) — one row per execution attempt; holds stdout, stderr, exit\_code, attempt\_number; parent `jobs` row holds aggregate status
-2. `RetryService` / `retry logic in job_service` (new) — server-side state machine; computes backoff, resets job to PENDING, manages `next_retry_at` column; reaper task handles zombie ASSIGNED jobs
-3. `JobDependency` (new DB table) — adjacency list; evaluated transactionally inside `pull_work`; cycle detection via DFS at creation/edit time
-4. `GET /jobs/{guid}/status` + `GET /jobs/{guid}/output` (new endpoints) — the CI/CD polling surface; returns `Retry-After` header on PENDING/ASSIGNED state
-5. `ci` role (new RBAC role) — `jobs:read` + `jobs:write` only; no `signatures:write` or `foundry:write`
-
-**Build order is strictly constrained by data dependencies:**
-Output capture → execution records table → retry state machine → DAG dependencies → CI/CD endpoints → environment tags (independent, can ship any phase)
+1. `puppeteer/docs-container/Dockerfile` — multi-stage: `python:3.12-slim` builder (installs MkDocs + agent deps, generates openapi.json via `app.openapi()`, runs `mkdocs build --strict`) + `nginx:alpine` serve stage
+2. `puppeteer/docs-container/nginx.conf` — `alias`-based static file serving mapping `/docs/` URL prefix to the static site root
+3. `docs/mkdocs.yml` — MkDocs configuration: Material theme, nav structure, privacy/offline/search plugins, `site_url` set to deployment path
+4. `scripts/export_openapi.py` — imports `agent_service.main.app` and calls `app.openapi()` without starting an HTTP server; writes `docs/api-reference/openapi.json`
+5. `puppeteer/cert-manager/Caddyfile` — add `handle /docs/*` block before the dashboard fallback in both `:443` and `:80` server blocks
+6. Dashboard modifications — remove `Docs.tsx`, remove `/docs` Route from `AppRoutes.tsx`, add `<a href="/docs/" target="_blank">` with `BookOpen` icon to `MainLayout.tsx` sidebar
 
 ### Critical Pitfalls
 
-1. **Zombie ASSIGNED jobs (Critical, Availability)** — A node crashes mid-execution; job stays ASSIGNED forever; retry never triggers because the job never transitions to FAILED. Prevention: implement a reaper APScheduler task that queries `status=ASSIGNED AND started_at < NOW() - timeout` and reclaims jobs back to PENDING. Must ship with retry in the same phase — retry is useless without the reaper.
+1. **`mkdocs serve` in production** — Use a two-stage Docker build with `nginx:alpine` as the serve stage. The MkDocs dev server is explicitly documented as unsuitable for production (no concurrency, no security hardening, no caching). Never use `CMD ["mkdocs", "serve"]` in the docs Containerfile.
 
-2. **CI/CD principal with `operator` role bypasses zero-trust (Critical, Security)** — An `operator` role includes `signatures:write`. A compromised CI pipeline can register its own Ed25519 key and sign arbitrary scripts for execution on all nodes. Prevention: create a dedicated `ci` role with only `jobs:read` + `jobs:write`. Make key registration admin-only. This must be done before the CI/CD integration is documented.
+2. **Caddy prefix routing breaking asset URLs** — Always set `site_url: https://dev.master-of-puppets.work/docs/` in `mkdocs.yml` and use `handle /docs/*` (not `handle_path`) in the Caddyfile. Configure nginx with an `alias` directive, not `root`. Failing to do this causes all CSS/JS to silently 404 while pages appear to load.
 
-3. **Output bloat kills the database (Critical, Infrastructure)** — Storing full stdout/stderr in `Job.result` JSON causes `list_jobs` to fetch multi-KB blobs for every row. A runaway job printing 50 MB fills SQLite WAL files. Prevention: hard cap output at the node side (1 MB default, configurable); store in a separate `execution_records` table (not `jobs.result`); never include full output in list endpoints.
+3. **OpenAPI snapshot drift** — Generate `openapi.json` in the Dockerfile builder stage by importing `app.openapi()` directly — never commit a static snapshot or rely on a running server. If the export fails (broken import), the Docker build fails loudly before stale docs can be deployed.
 
-4. **Verification key TOCTOU on bootstrap (Critical, Security)** — Nodes fetch the Ed25519 public key from the orchestrator over HTTPS without pinning. A compromised orchestrator at enrollment time serves a rogue key, installing a permanent backdoor into the node's trust chain. Prevention: include the verification key PEM or its fingerprint in the `JOIN_TOKEN` payload; node rejects if fetched key does not match.
+4. **Docs served unauthenticated via Cloudflare Tunnel** — The security and compliance guide contains mTLS architecture details, token schemas, and cert formats that constitute material intelligence for an attacker. Verify that `/docs*` is covered by the existing Cloudflare Access policy before the container goes live. Test from an unauthenticated private browser window.
 
-5. **Retry on non-retriable failures (High, Correctness + Security)** — A job with an invalid signature retried 3 times wastes resources, clutters the audit log, and masks a potential security event. Prevention: classify failures as retriable (node crash, resource timeout) vs. non-retriable (signature verification failure, permission denied, explicit exit codes). Security rejections must never be silently retried.
-
----
+5. **Navigation structured by component instead of task** — The top-level nav must be audience/task-oriented from day one (Getting Started / Feature Guides / Security / Developer / API Reference). Reorganising nav after content is written requires updating internal links across all pages. Establish the nav structure in Phase 1 before any content is written.
 
 ## Implications for Roadmap
 
-Based on the combined research, the build order is tightly constrained by data dependencies. The architecture research documents the exact sequence; the features research confirms the logical groupings; the pitfalls research identifies which phases carry the highest risk and need the most defensive design.
+Based on the research, the milestone has a clear natural phase order driven by hard dependencies: infrastructure must be working before API reference can be validated, API reference validation confirms the full build pipeline before dashboard integration makes sense, and content phases can only be accurate if the system they describe is fully operational.
 
-### Phase 1: Output Capture Foundation
+### Phase 1: Container Infrastructure and Routing
 
-**Rationale:** Every subsequent feature depends on knowing what a job printed and how it exited. This is the unblocking dependency for retry, history, CI/CD result polling, and the dead letter queue. It must come first.
+**Rationale:** Everything else depends on this. The docs container, Caddy routing, nginx config, multi-stage Dockerfile, and `site_url` / `alias` configuration must be correct before any content is written. Three of the five critical pitfalls are addressed here: `mkdocs serve` in production, Caddy prefix routing, and unauthenticated access. Getting the routing right now avoids the silent asset-404 failure mode that only manifests when content pages exist.
 
-**Delivers:**
-- Extended `ResultReport` model with `stdout`, `stderr`, `exit_code` fields
-- New `execution_records` SQLAlchemy table
-- Node-side output capture (subprocess `PIPE`, size cap at 1 MB before POST)
-- `GET /jobs/{guid}/output` endpoint (latest execution attempt)
-- `GET /jobs/{guid}/executions` endpoint (all attempts, sorted by attempt\_number desc)
-- Output preview in job detail pane in dashboard (no full blob rendering)
+**Delivers:** A working docs container at `/docs/` behind the existing Cloudflare Tunnel + Caddy stack, with correct asset routing, Cloudflare Access policy covering `/docs*`, and `mkdocs build --strict` running in the Docker builder stage. Placeholder `index.md` only — no content yet.
 
-**Addresses:** Job output capture, exit code capture, execution duration exposure (table stakes P1 from FEATURES.md)
+**Addresses:** Container setup (FEATURES P1), offline + privacy plugins (FEATURES P1), `--strict` build enforcement
 
-**Avoids:**
-- Output bloat pitfall — schema designed correctly before any output lands
-- Avoid including full `result` blob in `list_jobs` from day one
-- Apply 1 MB truncation at node, `truncated: bool` flag in result
+**Avoids:** Pitfall 1 (mkdocs serve), Pitfall 3 (Caddy routing), Pitfall 6 (unpinned dependencies), Pitfall 9 (unauthenticated docs)
 
-**Research flag:** Standard pattern, well-documented. Skip research-phase. Follow ARCHITECTURE.md schema exactly.
+### Phase 2: API Reference Pipeline
 
----
+**Rationale:** The `scripts/export_openapi.py` → `mkdocs-swagger-ui-tag` → Swagger UI pipeline is a non-trivial integration with its own failure modes (import-time side effects from SQLAlchemy models, `site_url` interaction with the swagger iframe). Validating it early confirms the full build pipeline end-to-end and produces a high-value deliverable (the API reference) with low content-writing effort.
 
-### Phase 2: Retry Policy and Zombie Reaper
+**Delivers:** Auto-generated, always-in-sync API reference page at `/docs/api-reference/` with interactive Swagger UI rendered from `app.openapi()`. The generated `openapi.json` is excluded from git and produced fresh on every image build.
 
-**Rationale:** Retry without output capture is meaningless (you can't see why it failed). Retry without the zombie reaper is dangerous (ASSIGNED jobs from crashed nodes never enter the retry loop). These two must ship together in one phase.
+**Addresses:** API reference (FEATURES P1), OpenAPI drift prevention
 
-**Delivers:**
-- New columns on `jobs`: `max_retries`, `retry_count`, `retry_delay_seconds`, `retry_backoff`, `next_retry_at`
-- New columns on `scheduled_jobs`: `max_retries`, `retry_delay_seconds`, `retry_backoff`
-- Retry state machine in `job_service.report_result()` — re-queues to PENDING with backoff, or transitions to FAILED (terminal)
-- Zombie reaper APScheduler task — reclaims ASSIGNED jobs older than `max_runtime_seconds` (default 10 min)
-- `next_retry_at` filter added to `pull_work` query
-- Dead letter view in dashboard: filter for `FAILED` jobs with `retry_count > 0` and `retry_count >= max_retries`
-- Failure classification: non-retriable codes (signature failure → never retry; resource limit → retriable)
-- Jitter on all non-immediate retry strategies (±20% of computed delay, prevents thundering herd)
-- `migration_v14.sql` for existing Postgres deployments
+**Avoids:** Pitfall 2 (OpenAPI snapshot drift)
 
-**Addresses:** Retry policy, dead letter queue, configurable retry count, exponential backoff + jitter (P1 from FEATURES.md)
+### Phase 3: Dashboard Integration
 
-**Avoids:**
-- Retry on non-retriable failures — implement failure classification in this phase
-- Zombie jobs — reaper is mandatory in this phase, not deferred
-- Thundering herd — jitter is mandatory, not optional
+**Rationale:** Once the docs container is stable enough to not show a blank page, the in-app `Docs.tsx` can be replaced. This is a small change (three files: delete `Docs.tsx`, update `AppRoutes.tsx`, update `MainLayout.tsx`) but it depends on Phase 1 existing so the link target resolves. The `VITE_DOCS_URL` env var defaulting to `/docs/` must be used — no hardcoded localhost URLs.
 
-**Research flag:** Retry state machine is a well-documented pattern. Zombie reaper is straightforward APScheduler task. Skip research-phase.
+**Delivers:** Dashboard sidebar "Documentation" link opens `/docs/` in a new tab. `Docs.tsx` deleted. Old in-app markdown rendering removed.
 
----
+**Addresses:** Dashboard integration (FEATURES P1)
 
-### Phase 3: Execution History and Retry Audit Trail
+**Avoids:** Pitfall 8 (hardcoded docs URL)
 
-**Rationale:** Once execution records exist (Phase 1) and retry produces multiple attempts (Phase 2), the dashboard needs to surface this data. The history timeline and per-attempt audit trail become meaningful together.
+### Phase 4: Getting Started Guide and Navigation Architecture
 
-**Delivers:**
-- `GET /jobs/history` endpoint with filter parameters: `node_id`, `since`, `until`, `status`, `job_definition_id`
-- Execution History view in dashboard (filterable list of past runs with node, duration, status, exit code)
-- Per-attempt drill-down panel: "attempt 1 → FAILED (exit 1, 2026-03-04 09:01)", "attempt 2 → COMPLETED"
-- Output retention pruning (background APScheduler task): max 50 execution records per job definition, 1 MB max per output; configurable via Config table
-- Output size display with truncation indicator ("output truncated at 1 MB — full output unavailable")
+**Rationale:** The getting-started guide is the highest-value content page and must establish the navigation architecture for all subsequent content. Nav must be task/audience-oriented (not component-oriented) before other guides are written, otherwise internal links will need mass-updating later. The getting-started guide is a single linear walkthrough that must be tested on a fresh machine (using the existing `manage-test-nodes` LXC skill) before it is considered complete.
 
-**Addresses:** Execution history timeline, filter/search history, retry audit trail, output retention policy (P1 and P2 from FEATURES.md)
+**Delivers:** Task-oriented navigation structure in `mkdocs.yml`, landing page (`index.md`), and a complete end-to-end getting-started walkthrough (Install → deploy stack → install Root CA → enroll first node → sign first job → dispatch first job).
 
-**Avoids:**
-- Full stdout rendering in list views — show preview only, paginate on demand
-- Unbounded output retention — pruning ships in this phase, not deferred until disk fills
+**Addresses:** Getting started (FEATURES P1), navigation architecture (FEATURES P1 — navigation tabs)
 
-**Research flag:** History endpoint is a standard REST pattern. Pruning task is straightforward APScheduler work. Skip research-phase.
+**Avoids:** Pitfall 7 (component-oriented nav), Pitfall 4 (stale docs — guide must be tested against live system)
 
----
+### Phase 5: Security and Compliance Guide
 
-### Phase 4: Environment Tags and CI/CD Integration
+**Rationale:** Security documentation is the primary enterprise differentiator and the highest-risk content to get wrong. It must cover mTLS prerequisites, CA installation (Linux/macOS/Windows/NSS), join token behaviour, Ed25519 key generation and why the private key must never be uploaded, cert rotation procedure, and failure diagnosis. Each procedure must follow the Prerequisites → Operation → Verify → Diagnose failure pattern. This phase also requires the most careful review for what must not appear in publicly accessible docs (CA fingerprint examples, full JOIN_TOKEN schema with example values, internal hostnames).
 
-**Rationale:** These two are paired because environment tags define the routing model that CI/CD pipelines use to target environments. The `ci` role must be defined before the integration is documented (to avoid the over-privilege pitfall). Environment tag enforcement at the node level (not just advisory) is a prerequisite for a trustworthy promotion model.
+**Delivers:** Dedicated security and compliance section: mTLS setup, cert rotation, Ed25519 signing, RBAC configuration, audit log, air-gap deployment guide. Each procedure tested on a fresh environment.
 
-**Delivers:**
-- Reserved tag convention documented: `env:dev`, `env:test`, `env:prod`
-- `PATCH /nodes/{node_id}/config` endpoint — accepts `tags: List[str]`, `require_tag_match: bool`
-- `require_tag_match` enforcement in node's secondary admission check (`node.py`) — PROD nodes reject untagged jobs
-- Environment badges in Nodes dashboard view (color-coded: green=prod, amber=test, blue=dev)
-- Tag selector dropdown on job dispatch form (populated from active nodes' current tags)
-- New `ci` RBAC role seeded: `jobs:read` + `jobs:write` only
-- `GET /jobs/{guid}/status` endpoint with `Retry-After` header (5s) for PENDING/ASSIGNED state
-- CI/CD integration documentation: cURL polling loop example, GitHub Actions step template
-- Service principal rotation guidance: `expires_at` requirement, rotation procedure
-- `migration_v15.sql` for existing deployments
+**Addresses:** Security and compliance guide (FEATURES P1), security differentiation vs. Rundeck/Prefect
 
-**Addresses:** Environment node tags, machine-friendly job dispatch API, CI/CD webhook endpoint + docs (P1 and P2 from FEATURES.md)
+**Avoids:** Pitfall 5 (missing security prerequisites), Pitfall 9 (security-sensitive content in public docs)
 
-**Avoids:**
-- CI principal over-privilege — `ci` role created and documented before integration is written up
-- Environment tags advisory-only — `require_tag_match` enforced at node level
-- Long-lived CI API keys — `expires_at` documented as required
+### Phase 6: Feature Guides
 
-**Research flag:** Needs careful review of the existing RBAC seeding code before implementing the `ci` role. The `require_tag_match` enforcement in `node.py` is new logic that needs a targeted test case. No research-phase needed for the endpoint patterns — standard REST contract.
+**Rationale:** Feature guides are high-effort content but follow a predictable pattern (what it does → prerequisites → step-by-step usage → common errors). With the nav structure already established in Phase 4, each guide slots into the existing structure. Guides must be reviewed against the live codebase on the same day they are merged — not when they were written.
 
----
+**Delivers:** One guide page per major system feature: Foundry image builder, Smelter Registry, mop-push CLI, job scheduling / job definitions, RBAC and user management, OAuth device flow, job staging and lifecycle, node management.
 
-### Phase 5: Job Dependency Chaining
+**Addresses:** Feature guides (FEATURES P1 — 8 pages)
 
-**Rationale:** Dependencies require a reliable execution history (Phase 3) to evaluate whether upstream jobs genuinely completed vs. will be retried. The DAG evaluation must happen inside `pull_work` for correctness, and cycle detection must run on every mutation (not just creation) to prevent scheduler deadlock.
+**Avoids:** Pitfall 4 (stale docs at launch — "review against live code" gate on every guide PR)
 
-**Delivers:**
-- New `job_dependencies` SQLAlchemy table (adjacency list with UniqueConstraint)
-- `depends_on: List[str]` field on `JobCreate` — validated on creation, cycle-checked
-- Cycle detection (DFS) runs on every dependency add or edit, returns HTTP 400 on cycle
-- Dependency readiness check inside `pull_work` — single atomic query, same transaction as assignment
-- No background DAG poller — check happens at pull time (eliminates fan-in race condition)
-- "depends on" selector in job dispatch form (dashboard)
-- Simple dependency chain visualization in job detail pane (ASCII or react-flow fallback)
-- Audit log entries for all dependency mutations
-- Fan-in correctness: atomic DB check rather than application-level read-then-write
+### Phase 7: Runbooks and Troubleshooting
 
-**Addresses:** Linear job dependency chaining (P2 from FEATURES.md)
+**Rationale:** Runbooks are the deliverable ops teams look for first when something breaks. They must be organised by symptom/error message (not by component), and each runbook must open with a 2-sentence root cause explanation before recovery steps. Common failures documented in the existing validation scripts and gap reports (`core-pipeline-gaps.md`) should be the primary source material.
 
-**Avoids:**
-- DAG cycle via edit — cycle detection on every mutation, not just creation
-- Fan-in race condition — atomic DB check, not concurrent application reads
-- Background poller — dependency evaluation inside `pull_work` only
-- Building a visual DAG editor — anti-feature, explicitly excluded
+**Delivers:** Runbooks and troubleshooting section organised by symptom: node stops enrolling, cert expiry, common job failures, mop-push auth errors, mTLS handshake failures, FAQ.
 
-**Research flag:** The fan-in correctness under concurrent load deserves a specific load test before this phase is considered done. The adjacency list pattern is well-documented. Cycle detection (DFS) is straightforward. No research-phase needed.
+**Addresses:** Runbooks (FEATURES P1)
 
----
+**Avoids:** UX pitfall of troubleshooting organised by feature rather than symptom
+
+### Phase 8: Developer Reference and Polish
+
+**Rationale:** Developer-facing content (architecture guide with Mermaid diagrams, setup and development guide, contributing guide, changelog) and P2 enhancements (Mermaid diagrams for additional flows, annotated code blocks, page last-updated dates, instant loading, "edit this page" links) round out the milestone. Mermaid architecture diagrams belong here rather than in earlier phases — the content must be stable before investing in diagrams.
+
+**Delivers:** Developer section (architecture diagram, setup guide, contributing guide, changelog). P2 feature enhancements (Mermaid, annotations, git revision dates). Changelog page with v7/v8/v9 entries.
+
+**Addresses:** Architecture guide (FEATURES P1), developer setup guide (FEATURES P2), Mermaid diagrams (FEATURES P2), annotated code blocks (FEATURES P2)
 
 ### Phase Ordering Rationale
 
-- Output capture first because every other feature references execution output or exit codes. Building retry without it means retry decisions are blind.
-- Retry and reaper together because a zombie reaper without retry is incomplete, and retry without a reaper leaves crashed-node jobs permanently ASSIGNED (unreachable by the retry system).
-- History third because it requires execution records (Phase 1) to be populated and multiple retry attempts (Phase 2) to be meaningful. Pruning ships here to prevent runaway growth.
-- CI/CD and environment tags together because they share the `ci` role prerequisite and the tag convention is the mechanism CI pipelines use to target environments. Documenting CI before defining the `ci` role guarantees the over-privilege pitfall.
-- Dependencies last because they require reliable history (to check upstream completion) and retry semantics (to distinguish "completed" from "will be retried") to work correctly.
+- Phases 1-3 are infrastructure-first: the routing, build pipeline, and dashboard integration must be correct before content is written, or content will be written against a broken system
+- Phase 2 (API reference) precedes content phases because it validates the full Dockerfile build pipeline end-to-end with a real deliverable
+- Phase 4 (getting started + nav architecture) must precede Phases 5-7 (content) because nav structure established late requires mass link updates
+- Phase 5 (security guide) is prioritised before feature guides because it is the primary enterprise differentiator and requires the most careful external review
+- Phases 6-7 (feature guides + runbooks) are parallelisable but runbooks benefit from feature guides existing to link to
+- Phase 8 (polish) is deliberately last — Mermaid diagrams added to stable content, not to content that may still change
 
 ### Research Flags
 
-Phases with standard, well-documented patterns — skip research-phase during planning:
-- **Phase 1 (Output Capture):** schema and data flow are clear from ARCHITECTURE.md; no novel decisions
-- **Phase 2 (Retry + Reaper):** state machine pattern is well-established; APScheduler task is routine
-- **Phase 3 (History + Pruning):** REST filter pattern and background pruning are standard work
+Phases likely needing additional investigation during planning:
 
-Phases that need targeted review before implementation begins:
-- **Phase 4 (CI/CD + Tags):** The `require_tag_match` enforcement in `node.py` is new admission logic on the node side. Test cases for "PROD node rejects untagged job" and "CI principal cannot call `POST /admin/signatures`" should be written before implementation starts, not after. The `ci` role seeding must be validated against the existing RBAC seeder to ensure ON CONFLICT handling is correct.
-- **Phase 5 (Dependencies):** Fan-in correctness under concurrent load is not exercised by unit tests — needs a specific concurrency test. The interaction between retry state and dependency evaluation ("upstream job is PENDING retry — is that COMPLETED?") needs explicit design before coding.
+- **Phase 1:** The `site_url` + nginx `alias` interaction should be verified with an actual `docker compose build docs && curl /docs/assets/stylesheets/main.css` test immediately after the first working build — don't assume the routing is correct without a deep-asset URL test
+- **Phase 2:** The `app.openapi()` import may trigger SQLAlchemy model imports that require environment variables (`DATABASE_URL`, `ENCRYPTION_KEY`). The export script will need to either mock these or set dummy values in the builder stage. This is a known FastAPI pattern (confirmed in GitHub Discussion #1490) but needs verification against this specific codebase's import chain.
+- **Phase 5:** Before writing the security guide, audit which content details must be restricted to authenticated users only vs. which can be public-facing. The Cloudflare Access policy decision (all of `/docs/*` restricted, or only `/docs/security/*`) affects both the Caddyfile routing and the nav structure.
 
----
+Phases with well-documented patterns (no additional research needed):
+
+- **Phase 3:** Dashboard integration is a three-file change with no novel patterns
+- **Phase 6:** Feature guide content follows a well-established template; no new infrastructure work
+- **Phase 7:** Runbook structure follows the Prerequisites → Operation → Verify → Diagnose pattern established in Phase 5
+- **Phase 8:** All P2 features are built-in Material capabilities with documented configuration
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All library choices verified via PyPI and official docs; no novel dependencies; all version compatibility confirmed |
-| Features | HIGH | Cross-referenced against Airflow, Rundeck, Prefect, BullMQ, Temporal; feature dependencies mapped; anti-features explicitly called out |
-| Architecture | HIGH | Based on direct codebase analysis of `db.py`, `job_service.py`, `models.py`; patterns from system design literature are secondary confirmation |
-| Pitfalls | HIGH | Critical pitfalls sourced from OWASP CI/CD top 10, Airflow/Dask GitHub issues, and direct codebase inspection; all are real, documented failure modes |
+| Stack | HIGH | Versions verified against PyPI and official changelogs; Docker image patterns confirmed by codebase inspection of existing Caddyfile and compose.server.yaml; MkDocs official docs reviewed |
+| Features | HIGH | MkDocs Material official docs verified; enterprise doc structures cross-checked against HashiCorp Terraform, Dapr, and Kubernetes documentation; plugin availability verified post-9.7.0 open-sourcing |
+| Architecture | HIGH | Based on direct codebase analysis of existing Caddyfile, compose.server.yaml, MainLayout.tsx, AppRoutes.tsx, and Docs.tsx; Caddy and nginx routing patterns confirmed against official docs |
+| Pitfalls | HIGH | Codebase directly inspected; MkDocs GitHub issues #1825 and #2168 confirmed; Caddy directive behaviour verified; pitfalls derived from both official documentation and community post-mortems |
 
-**Overall confidence: HIGH**
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Scheduled-job cross-run dependencies:** ARCHITECTURE.md defers "most recent successful run" semantics for scheduled job dependencies to V2. If the product requires that a cron job B only fires if the most recent run of cron job A succeeded, this needs explicit design before Phase 5 is scoped. Treat as a gap to validate with the product owner at roadmap time.
+- **OpenAPI import side effects:** The `scripts/export_openapi.py` approach (calling `app.openapi()` without starting the server) is well-documented in principle but this specific codebase's import chain should be tested early in Phase 2. SQLAlchemy async engine initialisation and environment variable requirements could cause the import to fail or require dummy env vars in the builder stage. Mitigation: run the export script locally against a clean Python env as the first task in Phase 2 before writing any other code.
 
-- **APScheduler misfire behavior under load:** `misfire_grace_time` defaults to 1 second. For high-frequency jobs or a system under load, jobs scheduled for a time in the recent past are silently skipped. The fix (set `misfire_grace_time` to 5 minutes) is a one-line change but must be validated in the existing `scheduler_service.py`. Check this during Phase 2 scope.
+- **Cloudflare Access policy scope:** Research confirms that `/docs*` must be behind Cloudflare Access, but whether to gate all docs or only the security section requires a product decision. If the getting-started guide is intended to be publicly accessible (to reduce friction for evaluators), a split policy is needed. This decision affects Phase 1 Caddyfile design and should be made before Phase 1 begins.
 
-- **SQLite ALTER TABLE compat for new retry columns:** SQLite does not support `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS`. For dev environments, the established pattern (delete `jobs.db` + `create_all`) handles new tables but not new columns on existing tables. Confirm the dev teardown procedure is documented in CLAUDE.md before Phase 2 ships.
-
-- **Verification key TOCTOU resolution approach:** PITFALLS.md identifies two options (pin hash in JOIN\_TOKEN or include PEM directly). The JOIN\_TOKEN format change is a breaking change for nodes already enrolled. Decide on the approach and document it before Phase 4 (when bootstrap security is revisited for CI/CD docs). This may require a forced re-enrollment cycle for existing nodes.
-
----
+- **`mike` versioning trigger:** Research recommends deferring `mike` versioning to v10+, but the trigger condition ("multiple released versions users are actively running") should be made explicit in the roadmap so it doesn't remain perpetually deferred. Suggest flagging it as a Phase 8 stretch goal if Phase 1-7 complete ahead of schedule.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase analysis: `puppeteer/agent_service/db.py`, `job_service.py`, `models.py`, `puppets/environment_service/node.py`
-- APScheduler 3.x User Guide (https://apscheduler.readthedocs.io/en/3.x/userguide.html)
-- tenacity PyPI + GitHub (https://pypi.org/project/tenacity/, https://github.com/jd/tenacity) — 9.1.4 stable
-- NetworkX DAG docs (https://networkx.org/nx-guides/content/algorithms/dag/index.html)
-- OWASP CI/CD Security Top 10 — CICD-SEC-5 (https://owasp.org/www-project-top-10-ci-cd-security-risks/CICD-SEC-05-Insufficient-PBAC)
-- PostgreSQL TOAST docs (https://www.enterprisedb.com/postgres-tutorials/postgresql-toast-and-working-blobsclobs-explained)
-- Kubernetes Labels and Selectors (https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
+- [mkdocs-material PyPI page](https://pypi.org/project/mkdocs-material/) — version 9.7.5 confirmed, Python >=3.8 requirement
+- [mkdocs-material changelog](https://squidfunk.github.io/mkdocs-material/changelog/) — 9.7.5 released 2026-03-10, mkdocs <2 cap
+- [mkdocs-material installation docs](https://squidfunk.github.io/mkdocs-material/getting-started/) — Docker image `squidfunk/mkdocs-material:9` confirmed
+- [MkDocs GitHub issue #1825](https://github.com/squidfunk/mkdocs-material/issues/1825) — official confirmation that `mkdocs serve` is not production-safe
+- [MkDocs GitHub issue #2168](https://github.com/squidfunk/mkdocs-material/issues/2168) — Docker serve limitations
+- [mkdocs-swagger-ui-tag GitHub](https://github.com/blueswen/mkdocs-swagger-ui-tag) — v0.8.0, bundles Swagger UI locally, air-gap safe
+- [FastAPI — Extending OpenAPI](https://fastapi.tiangolo.com/how-to/extending-openapi/) — official `app.openapi()` method documentation
+- [Caddy — handle_path directive](https://caddyserver.com/docs/caddyfile/directives/handle_path) — prefix stripping behaviour
+- [Material for MkDocs — Insiders now free (9.7.0)](https://squidfunk.github.io/mkdocs-material/blog/2025/11/11/insiders-now-free-for-everyone/) — privacy plugin, offline plugin now in free tier
+- Direct codebase inspection: `puppeteer/cert-manager/Caddyfile`, `puppeteer/compose.server.yaml`, `puppeteer/dashboard/src/layouts/MainLayout.tsx`, `puppeteer/dashboard/src/AppRoutes.tsx`, `puppeteer/dashboard/src/views/Docs.tsx`, `docs/` tree
 
 ### Secondary (MEDIUM confidence)
-- System design literature: AlgoMaster distributed job scheduler (https://blog.algomaster.io/p/design-a-distributed-job-scheduler)
-- BullMQ retrying failing jobs (https://docs.bullmq.io/guide/retrying-failing-jobs)
-- AWS Prescriptive Guidance: Retry with Backoff (https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/retry-backoff.html)
-- Apache Airflow issue #25765 — DAG deadlock from circular dependency (https://github.com/apache/airflow/issues/25765)
-- Dask distributed issue #8576 — fan-in race condition (https://github.com/dask/distributed/issues/8576)
-- Rundeck activity docs (https://docs.rundeck.com/docs/manual/08-activity.html)
-- Airflow 3.1.0 blog (https://airflow.apache.org/blog/airflow-3.1.0/)
+- [FastAPI Discussion #1490](https://github.com/fastapi/fastapi/issues/1490) — `app.openapi()` without running server, community-verified pattern
+- [mkdocs-render-swagger-plugin GitHub](https://github.com/bharel/mkdocs-render-swagger-plugin) — `!!swagger FILENAME!!` syntax; used to inform alternative plugin comparison
+- [docker-nginx-mkdocs-material (nwesterhausen)](https://github.com/nwesterhausen/docker-nginx-mkdocs-material) — multi-stage build pattern (Python builder + nginx)
+- [HashiCorp Terraform documentation structure](https://developer.hashicorp.com/terraform/docs) — enterprise docs nav structure reference
+- [Dapr documentation](https://docs.dapr.io/operations/security/mtls/) — security-focused docs structure reference
 
 ### Tertiary (LOW confidence)
-- Competitor feature comparisons (procycons.com, pracdata.io) — general landscape only, not relied upon for implementation decisions
-- WebSearch: APScheduler vs Celery — confirms broker requirement for Celery; broad community consensus
+- [neoteroi-mkdocs OpenAPI Docs](https://www.neoteroi.dev/mkdocs-plugins/web/oad/) — renders as styled Markdown without interactive Swagger UI; referenced to rule out as an option
 
 ---
-
-*Research completed: 2026-03-04*
+*Research completed: 2026-03-16*
 *Ready for roadmap: yes*

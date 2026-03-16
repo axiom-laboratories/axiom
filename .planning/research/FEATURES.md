@@ -1,17 +1,25 @@
 # Feature Research
 
-**Domain:** Distributed job scheduler / task orchestration (homelab + enterprise)
-**Researched:** 2026-03-04
-**Confidence:** HIGH (core patterns verified across Airflow, Rundeck, Prefect, Temporal, BullMQ, SQL Server Agent; MEDIUM for some CI/CD specifics)
+**Domain:** Enterprise documentation system — MkDocs Material for a security-focused infrastructure tool
+**Researched:** 2026-03-16
+**Confidence:** HIGH (MkDocs Material official docs verified; API reference plugin options verified via PyPI and GitHub; enterprise doc patterns cross-checked against HashiCorp/Dapr/Kubernetes documentation structures)
 
 ---
 
-## Context: What Already Exists
+## Context: What This Milestone Covers
 
-The system already has a functioning core. This research targets the *missing* capabilities
-listed in PROJECT.md. Features are evaluated from the perspective of users who already have:
-mTLS, signed jobs, container isolation, RBAC, cron scheduling, Foundry image builder,
-node stats history, audit log, and service principals.
+This research is scoped to **v9.0 Enterprise Documentation** — adding a containerised MkDocs Material
+docs site to an existing, functional orchestration platform. The platform already has:
+
+- mTLS node enrollment, Ed25519 job signing, container-isolated execution
+- RBAC (admin/operator/viewer), audit log, service principals, OAuth device flow
+- Foundry image builder, Smelter Registry, Package Mirroring
+- `mop-push` CLI, job lifecycle (DRAFT→ACTIVE→DEPRECATED→REVOKED), Staging dashboard
+- An in-app Docs view (`Docs.tsx`) that currently renders markdown inline — this will be replaced
+
+The audience is **two distinct user groups**:
+- **Operators / developers**: deploy and maintain the system (architecture, setup, security config)
+- **End users**: run jobs, use the CLI, manage nodes and templates via the dashboard
 
 ---
 
@@ -19,137 +27,162 @@ node stats history, audit log, and service principals.
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist in any production job scheduler. Missing these means the product
-feels like a prototype, not a production tool.
+Features that enterprise infrastructure documentation must have. Missing any of these means the
+docs feel like an afterthought or internal wiki, not a production product.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| **Job output capture (stdout + stderr)** | Every production scheduler stores execution output — PBS Pro, LSF, Jenkins, Rundeck, Airflow all do this. Without it, debugging failures is impossible. | MEDIUM | Output must flow from node back to orchestrator since nodes are stateless between polls. Store as Text column on Job or a separate `job_outputs` table. Apply a size cap (4–20 MB typical; GitLab default is 4 MB). Truncate from the top, preserve tail. |
-| **Exit code capture** | Operators need to know if a job exited 0 or non-zero. Status FAILED covers this coarsely, but raw exit code is necessary for debugging scripts that exit intentionally with non-zero. | LOW | Add `exit_code` (nullable Int) to Job model. Nodes already report `success: bool` via `ResultReport` — extend to include exit code. |
-| **Execution duration tracking** | Every scheduler shows "how long did this run?" Dashboard already computes this from `started_at`/`completed_at` but it is not surfaced in the Jobs view. | LOW | Already in DB; needs UI exposure. |
-| **Execution history timeline** | Users expect to see past runs — at minimum: timestamp, node, duration, exit status. Rundeck, Jenkins, Airflow all provide this. | MEDIUM | Currently only the live jobs queue exists. Needs a separate view (or tab) showing historical executions, filterable by job definition, node, status, time range. Requires keeping completed Job rows (they are kept, just not well-surfaced). |
-| **Filter/search execution history** | No production tool ships history without search. Minimum filters: date range, status (success/failure), job definition name, node. | MEDIUM | Backend: query parameters on `GET /jobs/history`. Frontend: filter bar with date picker, status multi-select, node selector. |
-| **Retry on failure** | Any scheduler users compare to (cron with supervisord, Celery, Airflow, Temporal, BullMQ) retries failed jobs. Absent = jobs silently die on transient failures. | MEDIUM | Needs `retry_count`, `retry_max`, `retry_backoff`, `retry_delay_seconds` on ScheduledJob. On job failure, scheduler_service re-enqueues with incremented attempt counter. Must respect backoff strategy. |
-| **Configurable retry count** | The number of retries must be operator-configurable per job definition, not system-wide. | LOW | Extend `JobDefinitionCreate`/`JobDefinitionUpdate` with `retry_max: int = 0`. Zero means no retries (safe default). |
-| **Environment node tags (DEV/TEST/PROD)** | Any team running more than one environment expects nodes to be tagged by environment and job targeting to respect those tags. Nodes already support `tags` (JSON list) but no UI convention enforces DEV/TEST/PROD semantics. | LOW | This is mostly a convention + UI concern. The tag system already supports this. Needs: (1) documented convention, (2) dashboard to show environment distribution, (3) CI/CD integration that sends the right environment tag as part of the dispatch payload. |
-| **Machine-friendly job dispatch API** | Service principals + API keys already exist. What is missing is documented, stable, CI/CD-optimized endpoints that return immediately with a job GUID and allow polling for result. | LOW | The POST /jobs endpoint already accepts API key auth. What is needed: (1) documented stable API contract, (2) a `GET /jobs/{guid}/result` that blocks briefly or returns 202 while pending, (3) clear error shapes. |
-| **Output retention policy (configurable)** | Operators need to prevent the output table from growing unbounded. SQL Server Agent defaults to 1000 rows total/100 per job. Harness caps at 5000 lines. GitLab caps at 4 MB. | MEDIUM | System-level config: max output size per job (bytes), max execution history rows (total and per job definition). Prune via background task (APScheduler already available). Flag similar to MIN-6 (SQLite compat needed). |
+| **Full-text client-side search** | Every modern docs site has search. Without it, users give up and ask in Slack instead. | LOW | Built into MkDocs Material — lunr.js, enabled by default, no external service. Configure search suggestions (`search.suggest`) and highlighting (`search.highlight`) in `mkdocs.yml` via theme features. No plugin install needed. |
+| **Navigation sidebar with hierarchy** | Deep technical docs require multi-level navigation. Flat structure fails at >20 pages. | LOW | Built-in. Configure via `nav:` in `mkdocs.yml`. Enable `navigation.sections` + `navigation.expand` for sidebar groups. Use `navigation.tabs` for top-level sections (Infrastructure / User Guide / API Reference / Developer Guide). |
+| **Light and dark mode** | Enterprise users often read docs in dark mode; missing it means eyes-on-screen complaints. | LOW | Built-in. Two palettes: `default` (light) and `slate` (dark). Add both with `media:` queries so OS preference is respected automatically. CSS variable theming for brand colors. |
+| **Mobile-responsive layout** | Operators often check docs from phones during incidents. | LOW | Built-in (Material design is responsive by default). No configuration needed. |
+| **Code blocks with syntax highlighting** | Security and infrastructure docs are code-heavy. Unformatted code is unreadable. | LOW | Built-in via Pygments. Supports copy-to-clipboard (`content.code.copy`), line numbers (`linenums`), line highlighting. Configure in `mkdocs.yml` theme features. |
+| **Admonitions (note/warning/danger callouts)** | Critical for security documentation — "WARNING: this disables mTLS" must be visually distinct. | LOW | Built-in via PyMdown Extensions (`admonition` + `pymdownx.superfences`). Types: note, tip, warning, danger, info, success. No extra install beyond PyMdown. |
+| **Per-page table of contents** | Long pages (architecture guides, security guides) need in-page navigation. | LOW | Built-in. TOC generated automatically from headings. Control depth with `toc_depth`. `toc.follow` scrolls the sidebar TOC to track active heading. |
+| **Getting started / quickstart guide** | The first thing any new user looks for. Missing = high abandonment rate. | MEDIUM | Content work, not a platform feature. Structure: Install → Enroll first node → Sign first job → Dispatch first job. Maps to existing system capabilities. |
+| **Feature guides (one per major feature)** | Users expect dedicated pages for Foundry, Smelter, mop-push, RBAC, etc. | MEDIUM | Content work. Each guide: what it does, prerequisites, step-by-step usage, common errors. One page per major system feature (8 planned). |
+| **API reference** | Any REST API product is expected to have a reference. Without it, users write support requests asking "what parameters does POST /jobs accept?" | MEDIUM | Use third-party plugin (`mkdocs-swagger-ui-tag` or `mkdocs-render-swagger-plugin`). FastAPI already serves `/openapi.json` — reference this from the docs container. See anti-features for why live embedding is risky. |
+| **Runbook / troubleshooting section** | Ops teams expect documented failure procedures. "What do I do if a node stops enrolling?" | MEDIUM | Content work. Minimum: node recovery, cert expiry, database issues, common job failures, mop-push auth errors. Structured as symptom → cause → fix. |
+| **Search that works offline / air-gapped** | MoP is explicitly designed for air-gapped deployments. Docs that phone home for search would be a security and usability failure. | LOW | Built-in offline plugin (`offline`). Bundles the search index into the static build. No external CDN calls. Combine with `privacy` plugin to download and self-host all external assets at build time. |
+| **Copy-to-clipboard for commands** | Infrastructure docs are useless if users have to manually type every shell command. | LOW | Built-in: `content.code.copy` in theme features. Works on all fenced code blocks. |
+| **"Edit this page" link** | Operators who find errors need a low-friction way to contribute fixes. | LOW | Built-in when `repo_url` + `repo_name` are set and `content.action.edit` feature is enabled. Links to the source file in the git repo. |
+| **Changelog / version notes** | Enterprise users track what changed between releases before upgrading. | LOW | One page, manually maintained. Structure: version → date → breaking changes → new features → bug fixes. Keep separate from the feature guides. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that distinguish this system from commodity cron replacements and position it
-competitively against Rundeck/Airflow for security-first deployments.
+Features that elevate MoP docs above generic project READMEs and into enterprise-grade
+reference documentation territory.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Exponential backoff retry with jitter** | Most homelab schedulers offer "retry N times" but not "retry with exponential backoff + jitter". BullMQ and Temporal do this; Airflow does it via task config. Jitter prevents thundering herd when many jobs fail simultaneously (e.g., shared database goes down). | MEDIUM | Strategies: immediate, linear, exponential (2^attempt * base_delay). Add jitter as ±20% of computed delay. Cap at configurable max delay. |
-| **Dead letter / permanent-failure queue** | After max retries, job moves to a "dead letter" state (separate from FAILED). Operators can inspect, re-queue manually, or discard. Temporal and BullMQ treat this as standard; Airflow calls it "zombie" detection. | MEDIUM | New status: `DEAD_LETTER`. Dashboard view for dead-letter jobs distinct from ordinary failures. Manual re-queue button. This closes the loop on the retry system. |
-| **Output streaming (WebSocket-backed)** | Buffered output shown after job completes is table stakes. Streaming output in near-real-time while a job is running is a differentiator. The system already has a WebSocket infrastructure (`/ws`). The pattern: nodes stream output lines back via heartbeat extensions or a dedicated output chunk endpoint, orchestrator forwards via WebSocket to dashboard. | HIGH | Implementation path: node POSTs output chunks to `/work/{guid}/output` during execution (small HTTP calls fit the pull model); orchestrator buffers and broadcasts via existing WebSocket. Alternatively, batch output at completion and use polling from UI during "RUNNING" state (simpler, lower value). The streaming path is a strong differentiator; the polling path is table stakes. |
-| **Job dependency (sequential chaining)** | Job B runs only after Job A succeeds. Not a full DAG — just a linear "run-after" dependency. Full DAG editors are complex and a known anti-feature trap (see below). Linear chaining covers 80% of real use cases: DB backup → verify → notify. | HIGH | Data model: `ScheduledJob.depends_on_job_id` (nullable FK). Scheduler evaluates dependencies before enqueuing. Failure of upstream blocks downstream (configurable: fail-fast vs. skip). UI: simple "depends on" selector in job definition editor. |
-| **Explicit retry audit trail** | Each retry attempt is recorded as a separate execution record with its own output, exit code, and attempt number. Users can see "attempt 1 failed with exit 1, attempt 2 failed with exit 137 (OOM), attempt 3 succeeded". This is not standard in simpler schedulers. | MEDIUM | `job_executions` table (separate from `jobs`): `job_guid`, `attempt`, `node_id`, `exit_code`, `output`, `started_at`, `completed_at`, `status`. The parent `jobs` row holds the aggregate status. |
-| **CI/CD webhook endpoint with async result polling** | GitHub Actions / GitLab CI can trigger a job dispatch and poll for completion. The pattern: POST /jobs returns 202 + GUID immediately. CI polls GET /jobs/{guid}/status until terminal state. This is what Rundeck's Jenkins plugin does. Since service principals already exist, the auth story is complete — only the endpoint contract and documentation are missing. | LOW | Primarily documentation + minor API additions. The difficult part (auth) is already done. Add: `GET /jobs/{guid}/status` with 200 (pending/running) vs 200 (complete) distinction, and `GET /jobs/{guid}/result` for output. Write an example GitHub Actions workflow step using `curl` + polling loop. |
-| **Environment promotion workflow documentation** | Targeting DEV nodes is easy (tag filter). Promoting a job definition from DEV to PROD is harder: it requires re-signing with the PROD signing key, updating target tags. Document this as a canonical workflow with a CI/CD example. The system already supports everything technically; no new code is needed — just documented patterns and a UI affordance that shows which environments a job definition targets. | LOW | Add environment badges to JobDefinitions view. Write a "promotion guide" in Docs.tsx. |
+| **Auto-generated API reference (always in sync)** | API reference that drifts from the actual implementation is worse than no reference. Generated from `/openapi.json` = zero drift. | MEDIUM | Use `mkdocs-swagger-ui-tag` plugin. Point at `/openapi.json` served by the running FastAPI container. Build-time: fetch the spec file and embed — or deploy as a static reference via `mkdocs-render-swagger-plugin`. Confidence: MEDIUM — plugin works well but iframe-based embedding can have display quirks with Material theme; test early. |
+| **Security & compliance guide (dedicated section)** | Security-first positioning requires documenting the security model explicitly. Competitors (Rundeck, Prefect) bury this; making it a first-class section signals enterprise intent. | MEDIUM | Covers: mTLS architecture, cert lifecycle + rotation intervals, Ed25519 signing model, RBAC config, audit log usage, air-gap deployment, `EXECUTION_MODE` trade-offs. No platform features needed — pure content, high value. |
+| **Navigation tabs (section-per-audience)** | Security tools have two distinct audiences: operators deploying the system and users running jobs. One navigation tree for both creates cognitive overload. | LOW | Built-in: `navigation.tabs`. Structure tabs as: Getting Started / Feature Guides / Security & Compliance / Developer Reference / API Reference. Tabs visible on desktop, collapsed to sidebar sections on mobile. |
+| **Instant loading (SPA-like navigation)** | Docs that reload the full page on every click feel slow in 2026. Instant loading makes large docs sets feel responsive. | LOW | Built-in: `navigation.instant` + `navigation.instant.prefetch` in theme features. Works by intercepting internal link clicks, dispatching via XHR, and injecting only the changed content. Zero extra plugins. |
+| **Versioned documentation (mike plugin)** | As MoP ships v9, v10, etc., operators on older versions need docs that match what they deployed. | MEDIUM | Requires `mike` third-party tool (separate install: `pip install mike`). Configure in `mkdocs.yml`: `extra.version.provider: mike`. Mike manages `versions.json` in the `gh-pages` branch. Version selector appears in the header. This is important for enterprise credibility — skip it and operators assume docs only cover head. |
+| **Page-level "last updated" date** | Shows docs are maintained, not stale. Enterprise buyers look for this. | LOW | Requires `mkdocs-git-revision-date-localized-plugin` (third-party, separate install). Adds "Last updated: date" at the bottom of each page derived from git history. Only works if the docs directory is in a git repo with history — which the planned `docs/` git-backed markdown structure satisfies. |
+| **Annotated code blocks** | For security and architecture documentation, the ability to add inline explanations to code without breaking the code block is uniquely useful. MoP's Dockerfile examples, mTLS config, and compose files all benefit from this. | LOW | Built-in via PyMdown `pymdownx.superfences` + Material annotations. The `(1)` syntax places numbered callouts on specific lines; explanations appear as popups. No extra plugins. |
+| **Mermaid diagram support** | Architecture diagrams in the docs that are version-controlled as text, not uploaded PNGs that drift. The three-component diagram (Puppeteer ↔ mTLS ↔ Puppet) belongs in the architecture guide as a living diagram. | LOW | Built-in via `pymdownx.superfences` custom_fences for `mermaid`. Material renders Mermaid diagrams client-side. No external plugin needed — just configure the superfence extension. |
+| **Content tabs for multi-platform instructions** | Setup and deployment instructions often differ by OS (Linux/macOS/Windows) or deployment method (Docker/bare metal). Content tabs let one page show all variants cleanly. | LOW | Built-in via `pymdownx.tabbed`. Example: Docker vs bare-metal install instructions on the same page as linked tabs. No extra install — PyMdown extensions are already required for admonitions anyway. |
+| **Privacy plugin (self-hosted assets)** | Air-gapped deployments cannot load Google Fonts or external CDN assets. The privacy plugin downloads all external assets at build time and rewrites links to use local copies. | LOW | Built-in privacy plugin (`privacy`). Previously Insiders-only, now free in 9.7.0. Just add `plugins: - privacy:` to `mkdocs.yml`. Critical for MoP's air-gap deployment story. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Full visual DAG editor** | Users see Airflow's graph view and want drag-and-drop dependency building | DAG editors are enormously complex to build correctly. Airflow's own community acknowledged the DAG editor was a years-long weak point (Airflow Summit 2026 had a talk titled "Demo: Reducing the lines, a visual DAG editor" — still not shipped in 3.1). Rendering large graphs in React/ReactFlow is a known scalability problem (Dagster blog: "novel challenges delivering excellent UX when the UI renders enormous graphs"). For this system's security model, DAGs also create a problem: each node in a DAG must be a signed job definition — the editor would need to know the signing story for each task. This is infeasible without a signing UX redesign. | Simple linear "depends on" selector for sequential chains. For fan-out/fan-in, expose a code-defined JSON format that operators can construct and version-control — same pattern Kestra uses with declarative YAML. |
-| **Real-time streaming output for all jobs** | Operators want to watch jobs run like a terminal | True streaming requires the node to maintain an open connection or frequently POST chunks back, which conflicts with the pull architecture's simplicity. The pull model was deliberately chosen to avoid inbound firewall rules on nodes. Forcing streaming requires nodes to either hold a connection open (breaking statelessness) or bombard the orchestrator with tiny HTTP POSTs (network overhead). | Buffered output delivered at job completion is sufficient for 95% of use cases. Offer a configurable "output chunk interval" (e.g., node POSTs output every 30 seconds for long-running jobs) as an opt-in, not default. |
-| **Per-job secrets injection at dispatch time** | Operators want to pass database passwords, API tokens, etc. when dispatching a job | The PROJECT.md explicitly scopes this out: "no built-in secrets management beyond Fernet-at-rest — use external vault for production secrets". Implementing secrets injection requires: secure transport (mTLS handles this), storage at rest (Fernet handles this already for node credentials), and audit of secret access. The risk is that operators start storing production credentials in job payloads, which were never designed to be secrets-safe. | Document the pattern of injecting secrets via environment variables on the node (set in the node's compose file), not via job dispatch payloads. For dynamic secrets, document integration with Vault via the node's environment. |
-| **Job script versioning / SCM built-in** | Users want Git-like history of script changes | Script versioning creates a false sense of security. The system's actual provenance model is Ed25519 signing: the signature IS the version + authorship attestation. A separate versioning system alongside signing creates confusion about which is authoritative. It also means building a diff viewer, branch model, etc. — a significant scope expansion. | Document that job definitions should be authored and version-controlled in Git, then uploaded + signed via the admin_signer tool. The audit log already records who changed what and when. |
-| **Unlimited output retention** | "Just keep everything forever" | Unbounded output storage will degrade query performance for SQLite users (homelab), and create runaway disk usage for high-frequency jobs. A job that runs every minute and produces 100 KB of output accumulates 144 MB/day. | Configurable retention policy: max output bytes per job, max history rows per job definition, TTL for completed job records. Default to sensible limits (e.g., 50 last runs per definition, 1 MB max per output). |
-| **Push-based node dispatch** | "Can the orchestrator push work directly to nodes for lower latency?" | The pull architecture is a security design decision, not a performance trade-off. Push would require the orchestrator to initiate TCP connections to nodes, requiring inbound firewall rules on every node. The nodes were deliberately designed to work across NAT and hostile networks. Reversing this would undermine the entire deployment model. | If lower latency is needed, reduce the node poll interval (currently configurable). Nodes can poll every 1–2 seconds for interactive workloads without significant load. |
+| **Live API reference (proxied from running stack)** | "The docs always show the current API" sounds ideal. | Requires the MkDocs container to proxy to a live FastAPI instance at render time. This creates an infrastructure dependency: docs break if the API is down, and the docs container must have network access to the agent container. In air-gapped or offline builds, this fails entirely. Also creates a security surface: docs container → API container with credentials. | Build-time static generation: run `curl https://localhost:8001/openapi.json > docs/api/openapi.json` as part of the build step, commit the spec file to the repo, and render from the static file. Update whenever the API changes via CI or a manual step. Zero runtime dependency. |
+| **Full-text search via Algolia DocSearch** | Algolia search is faster and supports analytics | Algolia requires an external network call for every search query — incompatible with air-gapped operation. It also requires a third-party service account and terms agreement. MkDocs Material's built-in lunr-based search is offline-capable and sufficient for docs of this scale. | Built-in search plugin with suggestions and highlighting enabled. No external service. |
+| **Wiki-style collaborative editing** | "Operators should be able to edit docs in-browser" | Turns a static documentation system into a web application (requires auth, edit backend, conflict resolution, versioning). This is not what MkDocs is. In-browser editing also bypasses the review workflow that keeps docs accurate. | Git-backed `docs/` directory + "Edit this page" links (built-in Material feature). Operators edit via pull requests. Git history provides change tracking. |
+| **Automatic doc generation from code docstrings (MkDocstrings)** | "Docs should auto-update when code changes" | Python docstrings in this codebase are minimal — there is no existing convention of documentation-quality docstrings. MkDocstrings would generate skeleton pages from sparse comments, creating the illusion of documentation without substance. The FastAPI route handlers in `main.py` are well-commented but not docstring-documented. | Manual developer reference pages written to explain architecture, not just function signatures. Auto-generate the API reference (OpenAPI/Swagger) which is already structured data. |
+| **Versioning for every minor release** | "We should version docs for every patch" | Mike versioning requires maintaining separate builds per version. Patch releases that don't change behaviour create noise without value. Enterprise tools typically version major releases only. | Version docs for major milestones (v8, v9, v10...). Maintain a single "latest" alias + a "stable" alias. Use the changelog page for patch-level change notes. |
+| **PDF export** | "We want to give customers a PDF manual" | MkDocs PDF export plugins (`mkdocs-with-pdf`) are fragile, poorly maintained, and produce inconsistent output with Material theme's complex CSS. The resulting PDFs require ongoing maintenance and rarely match the web experience. | The docs are already self-hostable and accessible offline via the offline plugin. For compliance document requests, export individual pages from the browser. |
+| **Internationalisation (i18n) / translation** | "We should support multiple languages" | MkDocs Material supports i18n but maintaining translated docs for a v1 enterprise product is a significant ongoing cost. No customer base has been established yet to justify the investment. Translation frameworks also increase the complexity of the docs build pipeline. | Ship English-only. Material's built-in language selector is available when/if translation contributors appear. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Exit code capture]
-    └──enables──> [Retry policy] (retry decisions require exit code, not just boolean success)
-                      └──enables──> [Dead letter queue] (requires knowing when max retries exhausted)
-                                        └──enhances──> [Retry audit trail] (DLQ is only useful with full retry history)
+[MkDocs Material container (compose.server.yaml)]
+    └──enables──> [All other docs features] (nothing works without this)
+                      └──requires──> [docs/ directory in git with mkdocs.yml]
 
-[Job output capture] (buffered)
-    └──enables──> [Execution history timeline] (history is useless without output)
-    └──enables──> [Output streaming] (streaming is an enhancement of buffered capture)
-    └──enables──> [Output retention policy] (policy only needed once output is stored)
+[Built-in search plugin]
+    └──enables──> [Offline search] (offline plugin wraps the search index)
+    └──enhances──> [Search suggestions + highlighting] (optional theme features)
 
-[Execution history timeline]
-    └──requires──> [Job output capture]
-    └──enables──> [Filter/search execution history]
+[Privacy plugin]
+    └──requires──> [MkDocs Material 9.7.0+] (previously Insiders-only, now free)
+    └──enables──> [Air-gapped deployment of docs] (no external CDN calls)
 
-[Environment node tags convention]
-    └──enables──> [CI/CD webhook endpoint] (CI must know which tag to target)
-    └──enables──> [Environment promotion workflow]
+[OpenAPI spec file (openapi.json)]
+    └──requires──> [FastAPI /openapi.json endpoint accessible at build time]
+    └──enables──> [Swagger UI API reference page]
 
-[Service principals (already built)]
-    └──enables──> [CI/CD webhook endpoint] (auth story complete)
-    └──enables──> [Machine-friendly job dispatch API]
+[mkdocs-swagger-ui-tag plugin]
+    └──requires──> [openapi.json present in docs/ directory]
+    └──conflicts──> [Live proxy to API] (choose static file vs live — static recommended)
 
-[Job dependency (linear chaining)]
-    └──requires──> [Execution history timeline] (dependency logic must check prior job outcome)
-    └──conflicts──> [Full visual DAG editor] (build one, not both — editor is anti-feature)
+[mike versioning plugin]
+    └──requires──> [git repository with history]
+    └──requires──> [docs container serves from versioned subdirectory structure]
+    └──conflicts──> [Simple single-version deployment] (adds deploy complexity — implement last)
 
-[Output streaming]
-    └──requires──> [Job output capture] (buffered capture must exist first)
-    └──conflicts──> [Pull architecture simplicity] (high-frequency POSTing adds overhead)
+[mkdocs-git-revision-date-localized-plugin]
+    └──requires──> [docs/ directory inside a git repo with full history]
+    └──requires──> [git binary available in the docs container image]
+
+[Navigation tabs]
+    └──requires──> [nav: structure in mkdocs.yml with section-level organisation]
+    └──requires──> [enough content to justify tab-level sections (>5 pages per section)]
+
+[Mermaid diagrams]
+    └──requires──> [pymdownx.superfences with mermaid custom_fence configured]
+    └──conflicts──> [nothing] (purely additive)
+
+[Dashboard integration (replace Docs.tsx)]
+    └──requires──> [MkDocs container running and accessible]
+    └──requires──> [Caddy routing: /docs/* → docs container]
 ```
 
 ### Dependency Notes
 
-- **Retry requires exit code capture:** The retry policy must distinguish transient failures
-  (exit 1 — script error, retriable) from infrastructure failures (node crashed, retriable)
-  from explicit non-retriable failures (exit 42 — "do not retry" signal). Without exit code,
-  all retries are blind.
+- **Privacy plugin is free since 9.7.0:** Previously required Insiders sponsor tier. As of November
+  2025, Material for MkDocs 9.7.0 made all 20 previously-Insiders features free. Install with
+  `pip install mkdocs-material==9.7.0` or later. The project is entering maintenance mode post-9.7.0
+  — no new features will be added, but critical bugs and security fixes continue for 12 months.
 
-- **Dead letter queue requires retry system:** A DLQ is meaningless without a retry system —
-  the DLQ is defined as "where jobs go after exhausting retries". Build retry first.
+- **OpenAPI spec must be static at build time:** The `mkdocs-swagger-ui-tag` plugin embeds a Swagger
+  UI rendering of a spec file. Fetch the spec from the running FastAPI at container build time and
+  commit it to `docs/api/openapi.json`. Update this file whenever API contracts change. Do not proxy
+  to a live API endpoint — this creates a runtime dependency.
 
-- **Execution history requires output storage:** A history view that shows "job ran" without
-  any output is unhelpful. Both features must ship together.
+- **Mike versioning adds deployment complexity:** Mike manages a `versions.json` file and deploys
+  each version into a subdirectory. This changes the docs container serve structure. Implement
+  navigation, content, and basic container setup first (phases 1–3), then add mike versioning last
+  to avoid restructuring an already-working setup.
 
-- **CI/CD integration requires no new auth infrastructure:** Service principals already
-  provide the machine auth story (client_id + client_secret → JWT). The CI/CD integration
-  work is documentation + endpoint contract, not new authentication code.
+- **git binary required in docs container for date plugin:** The
+  `mkdocs-git-revision-date-localized-plugin` reads git history to extract commit dates. The docs
+  Docker image must include git (`apt-get install git` in Dockerfile). The build must also mount or
+  clone the repo with full history (not a shallow clone — `git clone --depth 1` breaks the plugin).
 
-- **Linear job chaining conflicts with full DAG editor:** Building both creates confusion
-  about which is authoritative. The linear chain covers 80% of real dependency use cases
-  and is compatible with the signing model. The full DAG editor is an anti-feature for
-  this system's constraints.
+- **Dashboard integration depends on routing, not on docs content:** Replacing `Docs.tsx` with a
+  redirect to the docs container is a routing concern (Caddy config + React `<a>` link). It can
+  happen independently of how much content is in the docs, but should wait until the docs container
+  is stable enough to not show a blank page.
 
 ---
 
 ## MVP Definition
 
-This is a subsequent milestone on an existing system, not a greenfield MVP. "MVP" here means
-the minimum set of features that makes this milestone deliverable and useful.
+This is a subsequent milestone on a mature system, not a greenfield product. MVP here means
+"the minimum docs set that constitutes an enterprise-credible documentation site for MoP v9.0."
 
-### Launch With (Milestone v1)
+### Launch With (Milestone v9.0)
 
-These features form a cohesive, working set. Each depends on the previous.
+Must-have for the milestone to be declared complete:
 
-- [ ] **Exit code capture** — extend `ResultReport` and `Job` model; LOW complexity; unblocks everything else
-- [ ] **Job output capture (buffered)** — node reports stdout+stderr at completion; stored in DB with size cap; MEDIUM complexity
-- [ ] **Execution history timeline** — `GET /jobs/history` endpoint + Jobs History view in dashboard; MEDIUM complexity
-- [ ] **Filter/search execution history** — filter bar (status, date, node, job definition); MEDIUM complexity
-- [ ] **Retry policy (configurable count + exponential backoff)** — extends job definitions; MEDIUM complexity
-- [ ] **Dead letter queue** — new status + DLQ view; MEDIUM complexity; completes the retry story
-- [ ] **Environment tags (convention + UI badges)** — LOW complexity; mostly documentation + badge rendering
+- [ ] **MkDocs Material container** — `docs` service in `compose.server.yaml`, git-backed markdown in `docs/`, `mkdocs.yml` configured with nav tabs, privacy plugin, offline plugin, built-in search — essential infrastructure
+- [ ] **Dashboard integration** — replace `Docs.tsx` in-app view with link/redirect to docs container — removes the stale in-app docs
+- [ ] **Getting started guide** — Install → enroll first node → sign first job → dispatch first job — the most important user journey
+- [ ] **Architecture guide** — three-component diagram (Mermaid), pull model explanation, security model overview — required for developer onboarding
+- [ ] **Feature guides** — one page per major feature: Foundry, Smelter, mop-push CLI, job scheduling, RBAC, OAuth device flow, Staging view, node management — covers all v7/v8 features
+- [ ] **Security & compliance guide** — mTLS setup, cert rotation, Ed25519 signing, RBAC config, audit log, air-gap deployment — enterprise differentiation
+- [ ] **Runbooks & troubleshooting** — node recovery, cert expiry, common job failures, mop-push auth errors, FAQ — ops team expectation
+- [ ] **Auto-generated API reference** — Swagger UI from static `openapi.json` — removes API ambiguity
 
-### Add After Validation (v1.x)
+### Add After Core Content (v9.x)
 
-- [ ] **Retry audit trail** — per-attempt execution records in `job_executions` table — add after base retry is working
-- [ ] **Output retention policy** — background pruning job — add once output storage is in place and actual sizes are known
-- [ ] **CI/CD webhook endpoint + documentation** — endpoint contract + example GitHub Actions step — add when environment tags are stable
-- [ ] **Linear job dependency chaining** — "depends on" field + scheduler logic — deferred because it requires reliable execution history first
+- [ ] **Page-level "last updated" date** (`mkdocs-git-revision-date-localized-plugin`) — once docs have been through a few edit cycles and git history is meaningful
+- [ ] **Mermaid diagrams for additional flows** — node enrollment sequence, job lifecycle state machine, Foundry build pipeline — add as content matures
+- [ ] **Setup & deployment guide for ops** — production Postgres setup, Cloudflare tunnel config, secrets management — add after getting-started is stable
 
-### Future Consideration (v2+)
+### Future Consideration (v10+)
 
-- [ ] **Output streaming (real-time chunks)** — HIGH complexity, conflicts with pull simplicity; defer until base output capture is proven reliable
-- [ ] **Environment promotion workflow documentation** — documents a process that requires the full milestone to be complete
-- [ ] **Fan-out / fan-in patterns** — code-defined (JSON/YAML) parallel job groups — only needed if linear chaining proves insufficient
+- [ ] **Versioned docs (mike)** — meaningful only once there are multiple released versions users are actively running
+- [ ] **SLSA provenance documentation** — deferred until the feature itself ships
+- [ ] **CI/CD integration guide** — deferred until the CI/CD API endpoints milestone ships
 
 ---
 
@@ -157,130 +190,168 @@ These features form a cohesive, working set. Each depends on the previous.
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Exit code capture | HIGH | LOW | P1 |
-| Job output capture (buffered) | HIGH | MEDIUM | P1 |
-| Execution history timeline | HIGH | MEDIUM | P1 |
-| Filter/search history | HIGH | MEDIUM | P1 |
-| Retry policy (count + backoff) | HIGH | MEDIUM | P1 |
-| Dead letter queue | HIGH | MEDIUM | P1 |
-| Environment tags (convention + badges) | MEDIUM | LOW | P1 |
-| Retry audit trail (per-attempt records) | HIGH | MEDIUM | P2 |
-| Output retention policy | MEDIUM | MEDIUM | P2 |
-| CI/CD webhook endpoint + docs | HIGH | LOW | P2 |
-| Linear job dependency chaining | MEDIUM | HIGH | P2 |
-| Output streaming (real-time) | MEDIUM | HIGH | P3 |
-| Environment promotion documentation | LOW | LOW | P3 |
-| Fan-out / fan-in patterns | LOW | HIGH | P3 |
+| MkDocs container + compose integration | HIGH | LOW | P1 |
+| Built-in search (suggestions + highlighting) | HIGH | LOW | P1 |
+| Navigation tabs (audience separation) | HIGH | LOW | P1 |
+| Dark/light mode | MEDIUM | LOW | P1 |
+| Admonitions (warning/danger callouts) | HIGH | LOW | P1 |
+| Code blocks (copy + syntax highlight) | HIGH | LOW | P1 |
+| Offline + privacy plugins | HIGH | LOW | P1 |
+| Getting started guide (content) | HIGH | MEDIUM | P1 |
+| Feature guides — 8 pages (content) | HIGH | HIGH | P1 |
+| Security & compliance guide (content) | HIGH | MEDIUM | P1 |
+| Runbooks & troubleshooting (content) | HIGH | MEDIUM | P1 |
+| API reference (Swagger UI from openapi.json) | HIGH | MEDIUM | P1 |
+| Dashboard integration (replace Docs.tsx) | MEDIUM | LOW | P1 |
+| Mermaid architecture diagrams | MEDIUM | LOW | P2 |
+| Annotated code blocks | MEDIUM | LOW | P2 |
+| "Edit this page" links | LOW | LOW | P2 |
+| Page last-updated dates (git plugin) | MEDIUM | LOW | P2 |
+| Instant loading (navigation.instant) | LOW | LOW | P2 |
+| Developer setup guide (content) | MEDIUM | MEDIUM | P2 |
+| Versioned docs (mike) | MEDIUM | MEDIUM | P3 |
+| PDF export | LOW | HIGH | NEVER |
+| Algolia search | LOW | MEDIUM | NEVER |
+| Wiki-style in-browser editing | LOW | HIGH | NEVER |
 
 **Priority key:**
-- P1: Must have for this milestone to deliver value
-- P2: Should have, add when P1 set is proven working
-- P3: Nice to have, future milestone
+- P1: Must have for v9.0 milestone to deliver enterprise-grade docs
+- P2: Should have — add when P1 content is complete
+- P3: Deferred to future milestone when triggers are met
+- NEVER: Anti-features documented above
 
 ---
 
 ## Competitor Feature Analysis
 
-| Feature | Airflow | Rundeck | Prefect | This System |
-|---------|---------|---------|---------|-------------|
-| Job output capture | Yes (stored per task) | Yes (linked file + inline) | Yes (configurable result storage) | Planned: buffered at completion |
-| Execution history | Yes (grid + calendar views) | Yes (activity page, 13 statuses, bulk delete) | Yes (flow runs timeline) | Planned: history endpoint + view |
-| History filtering | Yes (DAG, date, state) | Yes (time range, job, user, node, status) | Yes (state, start/end, tags) | Planned: status, date, node, definition |
-| Retry policy | Yes (per-task, configurable) | Yes (max retries) | Yes (with exponential backoff) | Planned: count + exponential backoff + jitter |
-| Dead letter queue | Partial (zombie detection, manual re-run) | No native DLQ (manual inspection) | No native DLQ | Planned: explicit DEAD_LETTER status + view |
-| Job dependencies | Yes (full DAG, cross-DAG) | Partial (job chains via options) | Yes (dynamic DAG) | Planned: linear "depends on" only |
-| Visual DAG editor | Beta (Airflow Summit 2026 demo, not shipped) | No | No | Anti-feature: will NOT build |
-| CI/CD integration | Yes (Airflow REST API + triggers) | Yes (Rundeck-Jenkins plugin, webhooks) | Yes (REST API + webhooks) | Planned: stable endpoint contract + example |
-| Environment tags | Yes (pools, connections, DAG tags) | Yes (node filter tags) | Yes (work pools with env labels) | Exists (node tags); needs convention + promotion docs |
-| Output streaming | No (buffered per task) | No (buffered to file) | Partial (real-time UI polling) | Anti-feature for now: pull model conflict |
-| Machine auth (service accounts) | Yes (API with token) | Yes (API tokens) | Yes (service accounts) | Already built (service principals + API keys) |
-| Output size limits | Yes (configurable) | Yes (file-based, disk limit) | Yes (configurable per result block) | Planned: configurable byte cap, pruning |
+How comparable infrastructure tools structure their documentation:
+
+| Feature | HashiCorp Terraform | Dapr | Kubernetes | MoP v9.0 Approach |
+|---------|--------------------|----|------------|-------------------|
+| Nav structure | Tutorial / CLI / Language / API | Concepts / Getting started / Operations / Reference | Docs / Tasks / Reference / Concepts | Getting started / Feature guides / Security / Developer / API Reference |
+| API reference | Full REST API docs, versioned | Auto-gen from OpenAPI | Versioned REST API reference | Swagger UI from openapi.json, static |
+| Code examples | Inline, copy-to-clipboard | Inline, multi-language tabs | Inline, YAML-heavy | Inline, copy-to-clipboard, content tabs for Docker vs bare-metal |
+| Security docs | Dedicated "Security" section with compliance guidance | "Operations > Security" section | Multiple security hardening guides | Dedicated "Security & Compliance" section |
+| Versioning | Full versioned docs (each major/minor) | Versioned by release | Versioned per k8s release | v9.0: single latest; add mike versioning in future |
+| Runbooks / troubleshooting | Separate "Troubleshooting" section | "Troubleshooting" per component | "Troubleshooting" section in docs | Dedicated section: node recovery, cert expiry, FAQ |
+| Diagrams | Architecture diagrams (static PNG/SVG) | Mermaid + static diagrams | Static architecture diagrams | Mermaid (version-controlled, rendered client-side) |
+| Offline support | No (hosted only) | No (hosted only) | No (hosted only) | Yes (offline plugin, critical for air-gapped MoP deployments) |
+| Self-hostable | No | No | No | Yes (containerised, git-backed) |
+
+**Key differentiator vs peers:** MoP's docs are self-hostable, offline-capable, and containerised
+within the same stack the user is deploying. No other docs system in this category ships as a
+first-class component of the tool itself.
 
 ---
 
-## Implementation Notes for This System Specifically
+## MkDocs Material Plugin / Feature Classification
 
-### Output Capture Architecture
+Quick reference for implementors — what requires a plugin install vs what is built-in:
 
-The pull model means the node cannot push a stream to the orchestrator. Two practical approaches:
+### Built-in (theme features, zero extra installs)
+- Search with suggestions, highlighting, sharing, boosting, exclusion
+- Navigation: tabs, sections, instant loading, prefetch, breadcrumbs, back-to-top, TOC follow
+- Code blocks: copy button, line numbers, line highlighting
+- Dark/light mode with OS preference detection
+- Admonitions (requires PyMdown Extensions — standard install)
+- Content tabs (requires `pymdownx.tabbed`)
+- Annotations on code blocks (requires `pymdownx.superfences`)
+- Mermaid diagrams (requires `pymdownx.superfences` custom_fences config)
+- Social cards, offline plugin, privacy plugin, tags plugin, blog plugin, typeset plugin
+  (all were Insiders-only before 9.7.0, now free — included in `pip install mkdocs-material`)
 
-**Option A (Recommended for v1): Batch at completion.**
-Node finishes job, captures stdout+stderr in memory (up to size cap), includes in `ResultReport`
-alongside `exit_code`. Orchestrator stores in `job_outputs` table. Simple, fits existing model.
-Size cap: 2 MB default, configurable via `Config` table key `job_output_max_bytes`.
+### Third-party (separate `pip install`)
+- `mkdocs-swagger-ui-tag` — Swagger UI rendering from openapi.json
+- `mkdocs-git-revision-date-localized-plugin` — "last updated" from git history
+- `mike` — versioned documentation deployment
 
-**Option B (Streaming, v2+): Periodic chunk POSTs.**
-Node POSTs output chunks to `/work/{guid}/output` every N seconds while running. Orchestrator
-appends chunks to buffer, broadcasts via existing WebSocket. N should be operator-configurable
-(e.g., 10s–60s). This preserves the pull architecture's security properties while providing
-near-real-time visibility for long-running jobs.
+### Anti-pattern (do not install)
+- `mkdocs-with-pdf` — fragile, breaks with Material theme CSS
+- `mkdocs-mkdocstrings` — generates skeleton pages from sparse docstrings; not useful here
+- Any plugin requiring external API calls (Algolia) — breaks air-gapped deployments
 
-### Retry Architecture
+---
 
-Retry logic lives in `scheduler_service.py`. When a job completes with `success=False`:
-1. Check `retry_max` on the parent `ScheduledJob`.
-2. If `attempt < retry_max`: compute delay using selected strategy, schedule re-enqueue.
-3. If `attempt == retry_max`: mark job `DEAD_LETTER`, stop.
+## Implementation Notes for This Codebase
 
-Backoff strategies (configurable per job definition):
-- `immediate`: retry at once (no delay)
-- `linear`: delay = `retry_delay_seconds * attempt`
-- `exponential`: delay = `min(retry_delay_seconds * 2^(attempt-1), max_retry_delay_seconds)`
-- Apply ±20% jitter to all non-immediate strategies.
+### Container Architecture
 
-Job model additions: `retry_max` (int, default 0), `retry_count` (int, current attempt),
-`retry_strategy` (str: immediate/linear/exponential), `retry_delay_seconds` (int, default 60),
-`max_retry_delay_seconds` (int, default 3600).
-
-### Execution History Table
-
-The existing `jobs` table keeps all records. For history, a separate `job_executions` table
-is preferable to keep parent job rows lean:
+The docs container sits alongside the existing `agent`, `model`, `db`, and `caddy` containers
+in `compose.server.yaml`. Recommended setup:
 
 ```
-job_executions:
-  id (PK), job_guid (FK→jobs.guid), attempt (int),
-  node_id, exit_code, output_text, output_truncated (bool),
-  started_at, completed_at, status
+docs container (mkdocs-material + mike):
+  - Volume mount: ./docs:/docs (git-backed markdown)
+  - Volume mount: ./mkdocs.yml:/docs/mkdocs.yml
+  - Caddy routes /docs/* → docs:8000
+  - Build step: fetch openapi.json from agent container, commit to docs/api/
+  - Image: squidfunk/mkdocs-material:9.7.0 (pin the version — maintenance mode means no breaking changes expected)
 ```
 
-This cleanly separates "job intent" (jobs table) from "execution record" (job_executions).
-The `jobs` table status reflects the aggregate (SUCCEEDED, FAILED, DEAD_LETTER, PENDING).
+### OpenAPI Spec Workflow
 
-### CI/CD Integration Contract
+FastAPI already exposes `GET /openapi.json`. Fetch it once and commit:
 
-The recommended stable contract for CI/CD consumers (GitHub Actions, GitLab CI, scripts):
-
-```
-POST /jobs                          → 202 { guid, status: "PENDING" }
-GET  /jobs/{guid}/status            → 200 { guid, status, attempt, node_id }
-GET  /jobs/{guid}/result            → 200 { guid, status, exit_code, output, duration_seconds }
-                                      (returns 202 if still PENDING/RUNNING)
+```bash
+curl -k https://localhost:8001/openapi.json -o docs/api/openapi.json
 ```
 
-Auth: service principal client_credentials flow (already implemented).
-Documentation should include a cURL polling loop example and a GitHub Actions step template.
+Add `mkdocs-swagger-ui-tag` to the docs container's pip dependencies. Reference the spec from
+a docs page as a Swagger UI embed. Regenerate whenever API contracts change (gate on PR review).
+
+### Content Structure (Recommended nav:)
+
+```yaml
+nav:
+  - Getting Started:
+      - Overview: index.md
+      - Install & Deploy: getting-started/install.md
+      - Enroll First Node: getting-started/first-node.md
+      - Sign & Run First Job: getting-started/first-job.md
+  - Feature Guides:
+      - Node Management: features/nodes.md
+      - Job Scheduling: features/scheduling.md
+      - Foundry Image Builder: features/foundry.md
+      - Smelter Registry: features/smelter.md
+      - mop-push CLI: features/mop-push.md
+      - RBAC & Users: features/rbac.md
+      - OAuth Device Flow: features/oauth.md
+      - Job Staging & Lifecycle: features/staging.md
+  - Security & Compliance:
+      - Security Model: security/model.md
+      - mTLS Setup & Cert Rotation: security/mtls.md
+      - Ed25519 Job Signing: security/signing.md
+      - RBAC Configuration: security/rbac.md
+      - Audit Log: security/audit.md
+      - Air-Gap Deployment: security/air-gap.md
+  - Developer Reference:
+      - Architecture: developer/architecture.md
+      - Setup & Development: developer/setup.md
+      - Runbooks & Troubleshooting: developer/runbooks.md
+      - Changelog: developer/changelog.md
+  - API Reference:
+      - REST API: api/reference.md
+```
 
 ---
 
 ## Sources
 
-- [Rundeck Activity Page Docs](https://docs.rundeck.com/docs/manual/08-activity.html) — execution history features, 13 statuses, bulk delete, saved filters
-- [Airflow 3.1.0 Blog: Human-Centered Workflows](https://airflow.apache.org/blog/airflow-3.1.0/) — DAG grid, Gantt, calendar view, real-time updates
-- [Workflow Orchestration Platforms Comparison 2025](https://procycons.com/en/blogs/workflow-orchestration-platforms-comparison-2025/) — Kestra, Temporal, Prefect, Airflow feature comparison
-- [BullMQ Retrying Failing Jobs](https://docs.bullmq.io/guide/retrying-failing-jobs) — exponential backoff formula, jitter, DLQ patterns
-- [Queue-Based Exponential Backoff — DEV Community](https://dev.to/andreparis/queue-based-exponential-backoff-a-resilient-retry-pattern-for-distributed-systems-37f3) — thundering herd prevention
-- [Dead Letter Queues: Complete Guide — swenotes](https://swenotes.com/2025/09/25/dead-letter-queues-dlq-the-complete-developer-friendly-guide/) — DLQ patterns, retry conditions
-- [System Design: Distributed Job Scheduler — algomaster.io](https://blog.algomaster.io/p/design-a-distributed-job-scheduler) — job_executions schema, status states
-- [SSE vs WebSockets vs Long Polling 2025 — DEV Community](https://dev.to/haraf/server-sent-events-sse-vs-websockets-vs-long-polling-whats-best-in-2025-5ep8) — streaming architecture trade-offs
-- [Harness Deployment Logs and Limitations](https://developer.harness.io/docs/continuous-delivery/manage-deployments/deployment-logs-and-limitations/) — 5000 line cap, truncation behavior
-- [GitLab CI job log size limit fix](https://datawookie.dev/blog/2021/07/fixing-truncated-logs-on-gitlab-ci-cd/) — 4 MB default, configurable runner output_limit
-- [Airflow Summit 2026: Visual DAG Editor Demo](https://airflowsummit.org/sessions/demo-visual-dag-editor/) — visual DAG editor still not shipped
-- [Dagster: Scaling DAG Visualization to 10K+ Assets](https://dagster.io/blog/scaling-dag-visualization) — ReactFlow graph rendering complexity at scale
-- [GitHub Repository Dispatch for External Triggers](https://oneuptime.com/blog/post/2025-12-20-repository-dispatch-github-actions/view) — CI/CD integration patterns
-- [State of Open Source Workflow Orchestration 2025](https://www.pracdata.io/p/state-of-workflow-orchestration-ecosystem-2025) — ecosystem landscape
+- [Material for MkDocs — Plugins overview](https://squidfunk.github.io/mkdocs-material/plugins/)
+- [Material for MkDocs — Reference (admonitions, code blocks, tabs, etc.)](https://squidfunk.github.io/mkdocs-material/reference/)
+- [Material for MkDocs — Navigation setup](https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/)
+- [Material for MkDocs — Search setup](https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/)
+- [Material for MkDocs — Git repository integration](https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/)
+- [Material for MkDocs — Versioning (mike)](https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/)
+- [Material for MkDocs — Insiders now free for everyone (9.7.0 announcement)](https://squidfunk.github.io/mkdocs-material/blog/2025/11/11/insiders-now-free-for-everyone/)
+- [mkdocs-swagger-ui-tag — PyPI + GitHub](https://github.com/blueswen/mkdocs-swagger-ui-tag)
+- [mkdocs-render-swagger-plugin — GitHub](https://github.com/bharel/mkdocs-render-swagger-plugin)
+- [mike versioning tool — GitHub](https://github.com/jimporter/mike)
+- [mkdocs-git-revision-date-localized-plugin documentation](https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/)
+- [HashiCorp Terraform documentation structure](https://developer.hashicorp.com/terraform/docs) — enterprise docs structure reference
+- [Dapr documentation](https://docs.dapr.io/operations/security/mtls/) — security-focused docs structure reference
 
 ---
 
-*Feature research for: distributed job scheduler / task orchestration*
-*Researched: 2026-03-04*
+*Feature research for: enterprise documentation system (MkDocs Material) for security-focused infrastructure tool*
+*Researched: 2026-03-16*
