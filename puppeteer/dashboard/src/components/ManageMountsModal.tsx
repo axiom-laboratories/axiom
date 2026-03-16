@@ -1,14 +1,22 @@
-import { useState, useEffect } from 'react';
-import { authenticatedFetch } from '../auth';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { Network, Plus, Trash2, Save, X } from 'lucide-react';
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogHeader, 
+    DialogTitle, 
+    DialogFooter,
+    DialogDescription
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { authenticatedFetch } from '../auth';
 
 interface NetworkMount {
     name: string;
-    path: string;
+    remote_path: string;
 }
 
 interface ManageMountsModalProps {
@@ -18,53 +26,67 @@ interface ManageMountsModalProps {
 
 const ManageMountsModal = ({ open, onOpenChange }: ManageMountsModalProps) => {
     const [mounts, setMounts] = useState<NetworkMount[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
 
     useEffect(() => {
         if (open) {
-            setLoading(true);
-            setError('');
-            authenticatedFetch('/config/mounts')
-                .then(res => res.json())
-                .then((data: NetworkMount[]) => setMounts(data))
-                .catch(() => setError('Failed to load mounts.'))
-                .finally(() => setLoading(false));
+            fetchMounts();
         }
     }, [open]);
 
-    const addRow = () => setMounts(prev => [...prev, { name: '', path: '' }]);
+    const fetchMounts = async () => {
+        setLoading(true);
+        try {
+            const res = await authenticatedFetch('/config/mounts');
+            if (res.ok) {
+                const data = await res.json();
+                setMounts(data);
+            }
+        } catch (e) {
+            toast.error('Failed to fetch network mounts');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const removeRow = (i: number) => setMounts(prev => prev.filter((_, idx) => idx !== i));
+    const handleAdd = () => {
+        setMounts([...mounts, { name: '', remote_path: '' }]);
+    };
 
-    const updateRow = (i: number, field: keyof NetworkMount, value: string) => {
-        setMounts(prev => prev.map((m, idx) => idx === i ? { ...m, [field]: value } : m));
+    const handleRemove = (index: number) => {
+        setMounts(mounts.filter((_, i) => i !== index));
+    };
+
+    const handleChange = (index: number, field: keyof NetworkMount, value: string) => {
+        const nextMounts = [...mounts];
+        nextMounts[index] = { ...nextMounts[index], [field]: value };
+        setMounts(nextMounts);
     };
 
     const handleSave = async () => {
-        setError('');
-        for (const m of mounts) {
-            if (!m.name.trim() || !m.path.trim()) {
-                setError('All rows must have a name and path.');
-                return;
-            }
+        // Simple validation
+        if (mounts.some(m => !m.name || !m.remote_path)) {
+            toast.error('All mounts must have a name and path');
+            return;
         }
+
         setSaving(true);
         try {
             const res = await authenticatedFetch('/config/mounts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mounts }),
+                body: JSON.stringify({ mounts })
             });
-            if (!res.ok) {
-                const err = await res.json();
-                setError(err.detail || 'Save failed.');
-            } else {
+            if (res.ok) {
+                toast.success('Network mounts updated successfully');
                 onOpenChange(false);
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || 'Failed to update mounts');
             }
-        } catch {
-            setError('Network error.');
+        } catch (e) {
+            toast.error('An error occurred while saving');
         } finally {
             setSaving(false);
         }
@@ -72,78 +94,84 @@ const ManageMountsModal = ({ open, onOpenChange }: ManageMountsModalProps) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[560px] bg-zinc-900 border-zinc-800">
+            <DialogContent className="bg-zinc-925 border-zinc-800 text-white max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle className="text-white">Network Mounts</DialogTitle>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                            <Network className="h-5 w-5" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold">Network Mounts</DialogTitle>
+                    </div>
                     <DialogDescription className="text-zinc-500">
-                        Configure UNC paths distributed to all enrolled nodes at next heartbeat.
+                        Configure global SMB or NFS shares that will be automatically mounted by all Puppets in the mesh.
                     </DialogDescription>
                 </DialogHeader>
 
-                {loading ? (
-                    <div className="py-8 flex items-center justify-center text-zinc-500 gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading mounts...
-                    </div>
-                ) : (
-                    <div className="space-y-3 py-2">
-                        {mounts.length > 0 && (
-                            <div className="grid grid-cols-[1fr_2fr_auto] gap-2 px-1">
-                                <Label className="text-zinc-500 text-xs uppercase tracking-widest">Name</Label>
-                                <Label className="text-zinc-500 text-xs uppercase tracking-widest">UNC Path</Label>
-                                <span />
-                            </div>
-                        )}
-                        {mounts.map((m, i) => (
-                            <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-center">
-                                <Input
-                                    placeholder="finance_data"
-                                    value={m.name}
-                                    onChange={e => updateRow(i, 'name', e.target.value)}
-                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600 h-9"
-                                />
-                                <Input
-                                    placeholder="//server/share"
-                                    value={m.path}
-                                    onChange={e => updateRow(i, 'path', e.target.value)}
-                                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600 h-9 font-mono text-sm"
-                                />
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-9 w-9 text-zinc-600 hover:text-red-400 hover:bg-red-500/10"
-                                    onClick={() => removeRow(i)}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
+                <div className="py-4 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                    {loading ? (
+                        <div className="py-10 text-center text-zinc-500 animate-pulse">Loading configurations...</div>
+                    ) : mounts.length === 0 ? (
+                        <div className="py-10 text-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20">
+                            <p className="text-zinc-500 italic text-sm">No mounts configured.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {mounts.map((mount, index) => (
+                                <div key={index} className="flex items-end gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 group transition-all hover:border-zinc-700">
+                                    <div className="flex-1 space-y-1.5">
+                                        <Label className="text-[10px] uppercase font-bold text-zinc-500 px-1">Internal Name</Label>
+                                        <Input 
+                                            placeholder="e.g. data-share"
+                                            value={mount.name}
+                                            onChange={(e) => handleChange(index, 'name', e.target.value)}
+                                            className="bg-zinc-950 border-zinc-800 h-9 text-sm"
+                                        />
+                                    </div>
+                                    <div className="flex-[2] space-y-1.5">
+                                        <Label className="text-[10px] uppercase font-bold text-zinc-500 px-1">Remote Path</Label>
+                                        <Input 
+                                            placeholder="e.g. //192.168.1.50/storage"
+                                            value={mount.remote_path}
+                                            onChange={(e) => handleChange(index, 'remote_path', e.target.value)}
+                                            className="bg-zinc-950 border-zinc-800 h-9 text-sm font-mono"
+                                        />
+                                    </div>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => handleRemove(index)}
+                                        className="h-9 w-9 text-zinc-600 hover:text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                        {mounts.length === 0 && (
-                            <p className="text-center text-zinc-600 text-sm py-4">No mounts configured.</p>
-                        )}
-
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full border-dashed border-zinc-700 text-zinc-500 hover:text-white hover:border-zinc-500 bg-transparent"
-                            onClick={addRow}
-                        >
-                            <Plus className="mr-2 h-3.5 w-3.5" /> Add Mount
-                        </Button>
-
-                        {error && <p className="text-red-400 text-xs">{error}</p>}
-                    </div>
-                )}
-
-                <DialogFooter>
-                    <Button variant="ghost" className="text-zinc-400" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button
-                        onClick={handleSave}
-                        disabled={saving || loading}
-                        className="bg-primary hover:bg-primary/90 text-white font-bold"
+                <DialogFooter className="flex items-center justify-between border-t border-zinc-800 pt-4 mt-2">
+                    <Button 
+                        variant="outline" 
+                        onClick={handleAdd}
+                        disabled={loading || saving}
+                        className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
                     >
-                        {saving ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Saving...</> : 'Save Mounts'}
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Mount
                     </Button>
+                    <div className="flex gap-2">
+                        <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-zinc-500">
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleSave}
+                            disabled={loading || saving}
+                            className="bg-primary hover:bg-primary/90 text-white font-bold px-6"
+                        >
+                            {saving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

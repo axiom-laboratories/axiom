@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Boxes, CheckCircle2, Clock, AlertCircle, Loader2, Plus, Cpu, Globe, Zap, Trash2, RefreshCw, Wrench, X } from 'lucide-react';
+import { Boxes, CheckCircle2, Clock, AlertCircle, ShieldAlert, Loader2, Plus, Cpu, Globe, Zap, Trash2, RefreshCw, Wrench, X, Package, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -20,8 +28,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch } from '../auth';
-import { CreateBlueprintDialog } from '../components/CreateBlueprintDialog';
 import { CreateTemplateDialog } from '../components/CreateTemplateDialog';
+import BlueprintWizard from '../components/foundry/BlueprintWizard';
 
 interface Template {
     id: string;
@@ -31,6 +39,8 @@ interface Template {
     last_built_at?: string;
     runtime_blueprint_id: string;
     network_blueprint_id: string;
+    is_compliant: boolean;
+    status?: string;
 }
 
 interface Blueprint {
@@ -54,11 +64,53 @@ interface ToolMatrix {
     is_active: boolean;
 }
 
+const StatusBadge = ({ status }: { status?: string }) => {
+    switch (status) {
+        case 'ACTIVE':
+            return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase text-[10px] font-bold">Active</Badge>;
+        case 'STAGING':
+            return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 uppercase text-[10px] font-bold animate-pulse">Staging</Badge>;
+        case 'FAILED':
+            return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 uppercase text-[10px] font-bold">Failed</Badge>;
+        case 'DEPRECATED':
+            return <Badge className="bg-zinc-500/10 text-zinc-500 border-zinc-500/20 uppercase text-[10px] font-bold">Deprecated</Badge>;
+        case 'REVOKED':
+            return <Badge className="bg-red-600/10 text-red-600 border-red-600/20 uppercase text-[10px] font-bold">Revoked</Badge>;
+        default:
+            return <Badge variant="outline" className="uppercase text-[10px] font-bold">{status || 'DRAFT'}</Badge>;
+    }
+};
+
 const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpdatedAt: string | null }) => {
     const queryClient = useQueryClient();
     const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'failed'>('idle');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showBuildDetails, setShowBuildDetails] = useState(false);
+    const [isBOMOpen, setIsBOMOpen] = useState(false);
+
+    const { data: bom } = useQuery({
+        queryKey: ['bom', template.id],
+        queryFn: async () => {
+            const res = await authenticatedFetch(`/api/templates/${template.id}/bom`);
+            if (!res.ok) return null;
+            return res.json();
+        },
+        enabled: isBOMOpen
+    });
+
+    const updateStatusMutation = useMutation({
+        mutationFn: async (newStatus: string) => {
+            await authenticatedFetch(`/api/templates/${template.id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+        },
+        onSuccess: (_, newStatus) => {
+            queryClient.invalidateQueries({ queryKey: ['templates'] });
+            toast.success(`Image marked as ${newStatus}`);
+        }
+    });
 
     const isStale = baseUpdatedAt && template.last_built_at
         ? new Date(template.last_built_at) < new Date(baseUpdatedAt)
@@ -122,51 +174,104 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                 </AlertDialogContent>
             </AlertDialog>
 
-            <Dialog open={showBuildDetails} onOpenChange={setShowBuildDetails}>
-                <DialogContent className="bg-zinc-950 border-zinc-800 text-white max-w-3xl">
+            <Dialog open={isBOMOpen} onOpenChange={setIsBOMOpen}>
+                <DialogContent className="bg-zinc-950 border-zinc-800 text-white max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <AlertCircle className="h-5 w-5 text-red-500" />
-                            Build Failure Details
+                            <Package className="h-5 w-5 text-primary" />
+                            Bill of Materials: {template.friendly_name}
                         </DialogTitle>
                         <DialogDescription className="text-zinc-500">
-                            Last 250 characters of the build process output.
+                            Full snapshot of installed packages at build time.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="mt-4 p-4 rounded-lg bg-black border border-zinc-800 font-mono text-xs text-red-400/90 whitespace-pre-wrap break-all overflow-auto max-h-[40vh]">
-                        {template.status || 'No output captured.'}
-                    </div>
+                    
+                    {bom ? (
+                        <div className="grid grid-cols-2 gap-4 mt-4 h-[400px] overflow-auto pr-2 custom-scrollbar">
+                            <div className="space-y-2">
+                                <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest sticky top-0 bg-zinc-950 py-1">Python (PIP)</h4>
+                                {bom.pip.map((p: any) => (
+                                    <div key={p.name} className="flex items-center justify-between p-2 rounded bg-zinc-900 border border-zinc-800 text-xs">
+                                        <span className="text-white font-medium">{p.name}</span>
+                                        <span className="text-zinc-500 font-mono">{p.version}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest sticky top-0 bg-zinc-950 py-1">System (APT)</h4>
+                                {bom.apt.map((p: any) => (
+                                    <div key={p.name} className="flex items-center justify-between p-2 rounded bg-zinc-900 border border-zinc-800 text-xs">
+                                        <span className="text-white font-medium truncate max-w-[120px]">{p.name}</span>
+                                        <span className="text-zinc-500 font-mono">{p.version}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="py-12 text-center text-zinc-500 italic">BOM not yet captured for this image.</div>
+                    )}
+                    
                     <DialogFooter>
-                        <Button onClick={() => setShowBuildDetails(false)}>Close</Button>
+                        <Button onClick={() => setIsBOMOpen(false)}>Close</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            <Card className="bg-zinc-925 border-zinc-800/50 hover:border-primary/30 transition-all flex flex-col shadow-none">
+            <Card className="bg-zinc-925 border-zinc-800/50 hover:border-primary/30 transition-all flex flex-col shadow-none group">
                 <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
                         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                             <Boxes className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex items-center gap-1.5">
+                            <StatusBadge status={template.status} />
+                            {!template.is_compliant && (
+                                <Badge variant="outline" className="text-[10px] border-amber-600/50 text-amber-500 py-0 px-1.5 h-5 bg-amber-500/5">
+                                    <ShieldAlert className="h-2.5 w-2.5 mr-1" />Non-Compliant
+                                </Badge>
+                            )}
                             {isStale && (
                                 <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 py-0 px-1.5 h-5">
                                     <RefreshCw className="h-2.5 w-2.5 mr-1" />Rebuild recommended
                                 </Badge>
                             )}
-                            <Badge variant="outline" className="font-mono text-[10px] border-zinc-800 text-zinc-500 py-0 px-1.5 h-5">
-                                {template.canonical_id}
-                            </Badge>
                         </div>
                     </div>
-                    <CardTitle className="mt-4 text-white font-bold">{template.friendly_name}</CardTitle>
-                    <CardDescription className="text-zinc-500 text-xs truncate">
-                        {template.last_built_image
-                            ? `Image: ${template.last_built_image}`
-                            : 'Never built'}
+                    <div className="flex items-center justify-between mt-4">
+                        <CardTitle className="text-white font-bold">{template.friendly_name}</CardTitle>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Layers className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-white">
+                                <DropdownMenuLabel>Image Lifecycle</DropdownMenuLabel>
+                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuItem onClick={() => setIsBOMOpen(true)} className="gap-2">
+                                    <Package className="h-4 w-4" /> View BOM
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuItem onClick={() => updateStatusMutation.mutate('ACTIVE')} className="text-emerald-500 gap-2">
+                                    <CheckCircle2 className="h-4 w-4" /> Mark Active
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateStatusMutation.mutate('DEPRECATED')} className="text-amber-500 gap-2">
+                                    <Clock className="h-4 w-4" /> Deprecate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateStatusMutation.mutate('REVOKED')} className="text-red-500 gap-2">
+                                    <ShieldAlert className="h-4 w-4" /> REVOKE
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <CardDescription className="text-zinc-500 text-[10px] font-mono mt-1">
+                        {template.canonical_id}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pb-4">
+                    <div className="text-[11px] text-zinc-400 truncate mb-3">
+                        {template.last_built_image || 'Never built'}
+                    </div>
                     {buildStatus === 'success' && (
                         <div className="flex items-center gap-2 text-[10px] text-green-500 font-bold uppercase tracking-wider animate-in fade-in">
                             <CheckCircle2 className="h-3 w-3" /> Build succeeded
@@ -183,10 +288,11 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                                 className="h-auto p-0 text-[10px] text-zinc-500 hover:text-zinc-300 justify-start"
                                 onClick={() => setShowBuildDetails(true)}
                             >
-                                View Details
+                                View Logs
                             </Button>
                         </div>
-                    )}                    {buildStatus === 'idle' && template.last_built_at && (
+                    )}
+                    {buildStatus === 'idle' && template.last_built_at && (
                         <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-medium">
                             <Clock className="h-3 w-3" />
                             {new Date(template.last_built_at).toLocaleString()}
@@ -340,8 +446,7 @@ const BlueprintEmptyState = ({ type }: { type: 'RUNTIME' | 'NETWORK' }) => (
 const Templates = () => {
     const queryClient = useQueryClient();
     const [isTemplateOpen, setIsTemplateOpen] = useState(false);
-    const [blueprintDialogType, setBlueprintDialogType] = useState<'RUNTIME' | 'NETWORK' | undefined>();
-    const [blueprintDialogOpen, setBlueprintDialogOpen] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [showAddTool, setShowAddTool] = useState(false);
     const [newTool, setNewTool] = useState({
         tool_id: '', base_os_family: 'DEBIAN' as 'DEBIAN' | 'ALPINE',
@@ -499,7 +604,7 @@ const Templates = () => {
                             <Button
                                 variant="outline"
                                 className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
-                                onClick={() => { setBlueprintDialogType('RUNTIME'); setBlueprintDialogOpen(true); }}
+                                onClick={() => setIsWizardOpen(true)}
                             >
                                 <Plus className="mr-2 h-4 w-4" /> New Runtime Blueprint
                             </Button>
@@ -518,7 +623,7 @@ const Templates = () => {
                             <Button
                                 variant="outline"
                                 className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
-                                onClick={() => { setBlueprintDialogType('NETWORK'); setBlueprintDialogOpen(true); }}
+                                onClick={() => setIsWizardOpen(true)}
                             >
                                 <Plus className="mr-2 h-4 w-4" /> New Network Blueprint
                             </Button>
@@ -687,12 +792,12 @@ const Templates = () => {
                 </Tabs>
             )}
 
-            <CreateBlueprintDialog
-                open={blueprintDialogOpen}
-                onOpenChange={setBlueprintDialogOpen}
-                presetType={blueprintDialogType}
+            <BlueprintWizard 
+                open={isWizardOpen} 
+                onOpenChange={setIsWizardOpen} 
             />
             <CreateTemplateDialog open={isTemplateOpen} onOpenChange={setIsTemplateOpen} />
+
         </div>
     );
 };

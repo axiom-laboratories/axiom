@@ -1,4 +1,4 @@
-from puppeteer.agent_service.security import mask_pii
+from agent_service.security import mask_pii
 import pytest
 
 def test_mask_pii_email():

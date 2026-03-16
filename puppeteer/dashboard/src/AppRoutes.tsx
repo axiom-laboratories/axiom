@@ -13,9 +13,11 @@ const Admin = lazy(() => import('./views/Admin'));
 const Docs = lazy(() => import('./views/Docs'));
 const Templates = lazy(() => import('./views/Templates'));
 const AuditLog = lazy(() => import('./views/AuditLog'));
+const History = lazy(() => import('./views/History'));
 const Users = lazy(() => import('./views/Users'));
 const Account = lazy(() => import('./views/Account'));
 const ServicePrincipals = lazy(() => import('./views/ServicePrincipals'));
+const Webhooks = lazy(() => import('./views/Webhooks'));
 
 // Temporary explicit imports for JS files (if allowed) or placeholder
 // Because we haven't migrated everything, we might need to suppress TS errors
@@ -40,6 +42,7 @@ const AppRoutes = () => {
                     <Route path="nodes" element={<Nodes />} />
                     <Route path="jobs" element={<Jobs />} />
                     <Route path="scheduled-jobs" element={<JobDefinitions />} />
+                    <Route path="history" element={<History />} />
                     <Route path="signatures" element={<Signatures />} />
                     <Route path="templates" element={<Templates />} />
                     <Route path="admin" element={<Admin />} />
@@ -48,6 +51,7 @@ const AppRoutes = () => {
                     <Route path="users" element={<Users />} />
                     <Route path="account" element={<Account />} />
                     <Route path="service-principals" element={<ServicePrincipals />} />
+                    <Route path="webhooks" element={<Webhooks />} />
                 </Route>
             </Routes>
         </Suspense>

@@ -1,15 +1,18 @@
 {
   "mode": "yolo",
-  "depth": "comprehensive",
   "parallelization": true,
   "commit_docs": true,
   "model_profile": "quality",
+  "branching": "feature",
   "workflow": {
     "research": true,
     "plan_check": true,
-    "verifier": true
+    "verifier": true,
+    "_auto_chain_active": false,
+    "nyquist_validation": true
   },
   "notes": {
     "delegation": "Delegate simpler sub-tasks to lower-tier models or Gemini CLI where available. Gemini CLI can run research in parallel alongside Claude agents."
-  }
+  },
+  "granularity": "fine"
 }

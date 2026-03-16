@@ -1,9 +1,9 @@
 import pytest
 import uuid
 import json
-from puppeteer.agent_service.services.scheduler_service import SchedulerService
-from puppeteer.agent_service.models import JobDefinitionCreate
-from puppeteer.agent_service.db import User, Signature, ScheduledJob, Job
+from agent_service.services.scheduler_service import SchedulerService
+from agent_service.models import JobDefinitionCreate
+from agent_service.db import User, Signature, ScheduledJob, Job
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 import base64

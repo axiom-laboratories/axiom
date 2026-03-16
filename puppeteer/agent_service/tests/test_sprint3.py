@@ -1,8 +1,8 @@
 import pytest
 import os
 from httpx import ASGITransport, AsyncClient
-from puppeteer.agent_service.main import app
-from puppeteer.agent_service.db import Job
+from agent_service.main import app
+from agent_service.db import Job
 from sqlalchemy.future import select
 import json
 

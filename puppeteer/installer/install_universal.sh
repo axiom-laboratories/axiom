@@ -201,7 +201,7 @@ if [[ "$ROLE" == "node" ]]; then
     log_green "✅ node-compose.yaml downloaded."
 
     log "Fetching Validation Key..."
-    KEY_URL="${SERVER_URL}/api/verification-key"
+    KEY_URL="${SERVER_URL}/verification-key"
     curl -sSfL --cacert bootstrap_ca.crt "$KEY_URL" -o verification.key || \
         curl -sSfLk "$KEY_URL" -o verification.key || echo "Warning: Could not fetch verification key."
     
@@ -217,13 +217,13 @@ fi
 log "Starting Containers (x$COUNT) using $PLATFORM..."
 
 if [[ "$PLATFORM" == "podman" ]]; then
-    podman-compose -f node-compose.yaml up -d --scale node="$COUNT"
+    podman-compose -f node-compose.yaml up -d --scale puppet="$COUNT"
 elif [[ "$PLATFORM" == "docker" ]]; then
     # Prefer 'docker compose' (plugin)
     if docker compose version &>/dev/null; then
-        docker compose -f node-compose.yaml up -d --scale node="$COUNT"
+        docker compose -f node-compose.yaml up -d --scale puppet="$COUNT"
     else
-        docker-compose -f node-compose.yaml up -d --scale node="$COUNT"
+        docker-compose -f node-compose.yaml up -d --scale puppet="$COUNT"
     fi
 fi
 

@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
-from puppeteer.agent_service.main import app, get_db
-from puppeteer.agent_service.db import User
+from agent_service.main import app, get_db
+from agent_service.db import User
 
 @pytest.fixture
 async def client(db_session):

@@ -36,3 +36,9 @@ puppets/token.txt
 secrets.env
 .agent/docs/
 .claude/
+
+# Dev database
+jobs.db
+
+# Python build artifacts
+*.egg-info/

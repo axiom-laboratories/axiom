@@ -65,7 +65,10 @@ const Signatures = () => {
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
             const res = await authenticatedFetch(`/signatures/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error("Delete failed");
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Delete failed");
+            }
             return id;
         },
         onSuccess: () => {

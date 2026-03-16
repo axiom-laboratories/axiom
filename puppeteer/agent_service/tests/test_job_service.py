@@ -1,7 +1,7 @@
 import pytest
-from puppeteer.agent_service.services.job_service import JobService
-from puppeteer.agent_service.db import Job, Node
-from puppeteer.agent_service.models import JobCreate, ResultReport
+from agent_service.services.job_service import JobService
+from agent_service.db import Job, Node
+from agent_service.models import JobCreate, ResultReport
 import json
 
 @pytest.mark.anyio
@@ -80,7 +80,7 @@ async def test_report_result(db_session):
 
 @pytest.mark.anyio
 async def test_receive_heartbeat(db_session):
-    from puppeteer.agent_service.models import HeartbeatPayload
+    from agent_service.models import HeartbeatPayload
     
     # 1. New node heartbeat
     payload = HeartbeatPayload(
@@ -93,7 +93,7 @@ async def test_receive_heartbeat(db_session):
     
     # Verify node created
     from sqlalchemy.future import select
-    from puppeteer.agent_service.db import Node
+    from agent_service.db import Node
     res = await db_session.execute(select(Node).where(Node.node_id == "heartbeat_node"))
     node = res.scalar_one()
     assert node.hostname == "heartbeat_host"

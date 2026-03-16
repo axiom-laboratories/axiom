@@ -6,7 +6,16 @@ logger = logging.getLogger(__name__)
 
 class PKIService:
     def __init__(self, ca_dir: str = "secrets/ca"):
-        self.ca_authority = pki.CertificateAuthority(ca_dir=ca_dir)
+        # Check if we have a mounted global CA from cert-manager (Caddy)
+        global_ca_dir = "/app/global_certs"
+        if os.path.exists(os.path.join(global_ca_dir, "root_ca.crt")):
+            logger.info("🛡️ Using global cert-manager CA for PKI operations")
+            self.ca_authority = pki.CertificateAuthority(ca_dir=global_ca_dir)
+            # Re-map standard filenames used by agent_service to match cert-manager output
+            self.ca_authority.cert_path = os.path.join(global_ca_dir, "root_ca.crt")
+            self.ca_authority.key_path = os.path.join(global_ca_dir, "root_ca.key")
+        else:
+            self.ca_authority = pki.CertificateAuthority(ca_dir=ca_dir)
 
     def get_root_cert_pem(self) -> str:
         """Returns the Root CA certificate in PEM format."""

@@ -1,4 +1,4 @@
-from puppeteer.agent_service.pki import CertificateAuthority
+from agent_service.pki import CertificateAuthority
 import os
 import shutil
 import pytest

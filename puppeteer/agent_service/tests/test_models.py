@@ -1,4 +1,4 @@
-from puppeteer.agent_service.models import JobCreate, NodeResponse
+from agent_service.models import JobCreate, NodeResponse
 import pytest
 from datetime import datetime
 

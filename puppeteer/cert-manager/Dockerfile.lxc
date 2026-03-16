@@ -1,0 +1,10 @@
+FROM docker.io/library/caddy:alpine
+
+# Install step-cli for certificate generation
+RUN apk add --no-cache curl step-cli
+
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY entrypoint.sh /bin/entrypoint.sh
+RUN sed -i 's/$//' /bin/entrypoint.sh && chmod +x /bin/entrypoint.sh
+
+ENTRYPOINT ["/bin/entrypoint.sh"]

@@ -2,9 +2,9 @@ import pytest
 import base64
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
-from puppeteer.agent_service.services.signature_service import SignatureService
-from puppeteer.agent_service.models import SignatureCreate
-from puppeteer.agent_service.db import User
+from agent_service.services.signature_service import SignatureService
+from agent_service.models import SignatureCreate
+from agent_service.db import User
 
 @pytest.fixture
 def test_user():

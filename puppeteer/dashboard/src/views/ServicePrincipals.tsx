@@ -185,12 +185,18 @@ const ServicePrincipals: React.FC = () => {
             const res = await authenticatedFetch(`/admin/service-principals/${id}`, {
                 method: 'DELETE'
             });
-            if (!res.ok) throw new Error('Failed to delete service principal');
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to delete service principal');
+            }
             return true;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['service-principals'] });
             toast.success('Service principal deleted');
+        },
+        onError: (error: Error) => {
+            toast.error(error.message);
         }
     });
 

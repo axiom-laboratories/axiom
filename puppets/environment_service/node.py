@@ -130,9 +130,88 @@ def get_capabilities() -> Dict[str, str]:
         print(f"[Capabilities] Error gathering: {e}")
     return caps
 
+class UpgradeManager:
+    """Handles secure, in-place runtime mutations."""
+    def __init__(self, verify_key_path: str, cert_file: str, key_file: str):
+        self.verify_key_path = verify_key_path
+        self.cert_file = cert_file
+        self.key_file = key_file
+
+    def execute_upgrade(self, task: Dict) -> Dict:
+        print(f"[Upgrade] 🛠️ Initiating hot-upgrade for tool: {task.get('tool_id')}")
+        recipe = task.get("recipe", "")
+        signature = task.get("signature")
+        artifact_url = task.get("artifact_url")
+        validation_cmd = task.get("validation_cmd")
+
+        # 1. Verify Signature
+        try:
+            if not os.path.exists(self.verify_key_path):
+                return {"status": "FAILED", "error": "Verification Key missing"}
+            
+            with open(self.verify_key_path, "rb") as f:
+                public_key = serialization.load_pem_public_key(f.read())
+            
+            sig_bytes = base64.b64decode(signature)
+            public_key.verify(sig_bytes, recipe.encode('utf-8'))
+            print("[Upgrade] ✅ Recipe signature verified")
+        except Exception as e:
+            print(f"[Upgrade] ❌ Signature Verification FAILED: {e}")
+            return {"status": "FAILED", "error": f"Signature verification failed: {e}"}
+
+        # 2. Download Artifact (if needed)
+        artifact_path = None
+        if artifact_url:
+            try:
+                filename = artifact_url.split("/")[-2] # Uses the UUID
+                artifact_path = f"/tmp/{filename}"
+                print(f"[Upgrade] 📥 Downloading artifact from {artifact_url}...")
+                with httpx.Client(verify=VERIFY_SSL, cert=(self.cert_file, self.key_file)) as client:
+                    resp = client.get(artifact_url)
+                    resp.raise_for_status()
+                    with open(artifact_path, "wb") as f:
+                        f.write(resp.content)
+            except Exception as e:
+                return {"status": "FAILED", "error": f"Artifact download failed: {e}"}
+
+        # 3. Execute Recipe
+        temp_script = f"/tmp/_upgrade_{uuid.uuid4().hex}.sh"
+        try:
+            with open(temp_script, "w") as f:
+                # Inject artifact path as env var if available
+                if artifact_path:
+                    f.write(f"export ARTIFACT_PATH={artifact_path}\n")
+                f.write(recipe)
+            
+            print("[Upgrade] 🚀 Running injection recipe...")
+            res = subprocess.run(["bash", temp_script], capture_output=True, text=True, timeout=300)
+            output = f"RECIPE STDOUT:\n{res.stdout}\nRECIPE STDERR:\n{res.stderr}"
+            
+            if res.returncode != 0:
+                return {"status": "FAILED", "output": output, "error": f"Recipe failed with exit {res.returncode}"}
+            
+            # 4. Validate
+            if validation_cmd:
+                print(f"[Upgrade] 🔍 Running validation: {validation_cmd}")
+                v_res = subprocess.run(validation_cmd, shell=True, capture_output=True, text=True)
+                output += f"\nVALIDATION STDOUT:\n{v_res.stdout}\nVALIDATION STDERR:\n{v_res.stderr}"
+                if v_res.returncode != 0:
+                    return {"status": "FAILED", "output": output, "error": "Validation command failed"}
+            
+            print("[Upgrade] 🎉 Hot-upgrade successful")
+            return {"status": "SUCCESS", "output": output}
+
+        except Exception as e:
+            return {"status": "FAILED", "error": f"Execution error: {e}"}
+        finally:
+            for p in [temp_script, artifact_path]:
+                if p and os.path.exists(p):
+                    try: os.remove(p)
+                    except: pass
+
 def heartbeat_loop():
     """
-    Background thread to send telemetry to Agent.
+    Background thread to send telemetry to Agent and process C2 tasks.
     """
     print(f"[{NODE_ID}] 💓 Heartbeat Thread Started")
     # Separate client for thread safety
@@ -140,6 +219,9 @@ def heartbeat_loop():
     while not os.path.exists(CERT_FILE):
         time.sleep(1)
         
+    upgrade_mgr = UpgradeManager("secrets/verification.key", CERT_FILE, KEY_FILE)
+    pending_upgrade_result = None
+
     with httpx.Client(
         verify=VERIFY_SSL, 
         cert=(CERT_FILE, KEY_FILE)
@@ -163,6 +245,10 @@ def heartbeat_loop():
                     "tags": tags,
                     "capabilities": caps
                 }
+                
+                if pending_upgrade_result:
+                    payload["upgrade_result"] = pending_upgrade_result
+                    pending_upgrade_result = None
 
                 # Use X-Node-ID header if we have one, or just let server use IP
                 # We send NODE_ID to allow detailed tracking
@@ -173,12 +259,21 @@ def heartbeat_loop():
                     "X-Machine-ID": get_machine_id()
                 }
                 
-                client.post(
+                resp = client.post(
                     f"{AGENT_URL}/heartbeat", 
                     json=payload, 
                     headers=headers,
                     timeout=5.0
                 )
+                
+                # C2 Processing
+                if resp.status_code == 200:
+                    data = resp.json()
+                    task = data.get("upgrade_task")
+                    if task:
+                        # Synchronous upgrade block for this thread
+                        pending_upgrade_result = upgrade_mgr.execute_upgrade(task)
+
             except Exception as e:
                 print(f"[Heartbeat] Failed: {e}")
             

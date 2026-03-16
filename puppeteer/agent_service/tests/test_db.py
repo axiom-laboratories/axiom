@@ -1,5 +1,5 @@
 import pytest
-from puppeteer.agent_service.db import User, Node, Job
+from agent_service.db import User, Node, Job
 from sqlalchemy.future import select
 
 @pytest.mark.anyio

@@ -1,4 +1,4 @@
-from puppeteer.agent_service.auth import verify_password, get_password_hash, create_access_token, SECRET_KEY, ALGORITHM
+from agent_service.auth import verify_password, get_password_hash, create_access_token, SECRET_KEY, ALGORITHM
 from jose import jwt
 from datetime import timedelta
 import pytest

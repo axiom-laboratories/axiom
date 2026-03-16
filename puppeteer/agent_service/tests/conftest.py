@@ -3,7 +3,7 @@ import asyncio
 import uuid
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from puppeteer.agent_service.db import Base
+from agent_service.db import Base
 
 @pytest.fixture(scope="session")
 def anyio_backend():
@@ -11,7 +11,7 @@ def anyio_backend():
 
 @pytest.fixture
 async def engine():
-    from puppeteer.agent_service import db
+    from agent_service import db
     # Use a unique database file for each test to avoid pollution
     db_file = f"test_{uuid.uuid4().hex}.db"
     test_url = f"sqlite+aiosqlite:///{db_file}"
@@ -38,6 +38,6 @@ async def engine():
 
 @pytest.fixture
 async def db_session(engine):
-    from puppeteer.agent_service.db import AsyncSessionLocal
+    from agent_service.db import AsyncSessionLocal
     async with AsyncSessionLocal() as session:
         yield session
