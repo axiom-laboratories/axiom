@@ -18,8 +18,8 @@ Requirements for the v9.0 milestone. Each maps to roadmap phases.
 
 ### Dashboard Integration
 
-- [ ] **DASH-01**: Sidebar navigation entry "Docs" opens the docs site in a new tab (replaces existing in-app renderer)
-- [ ] **DASH-02**: The existing `Docs.tsx` route and in-app markdown renderer are removed
+- [x] **DASH-01**: Sidebar navigation entry "Docs" opens the docs site in a new tab (replaces existing in-app renderer)
+- [x] **DASH-02**: The existing `Docs.tsx` route and in-app markdown renderer are removed
 
 ### API Reference
 
@@ -101,8 +101,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-04 | Phase 20 | Complete |
 | INFRA-05 | Phase 20 | Complete |
 | INFRA-06 | Phase 20 | Complete |
-| DASH-01 | Phase 21 | Pending |
-| DASH-02 | Phase 21 | Pending |
+| DASH-01 | Phase 21 | Complete |
+| DASH-02 | Phase 21 | Complete |
 | APIREF-01 | Phase 21 | Pending |
 | APIREF-02 | Phase 21 | Pending |
 | APIREF-03 | Phase 21 | Pending |

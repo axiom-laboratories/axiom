@@ -159,7 +159,7 @@ Plans:
 | 18. mop-push CLI | v8.0 | 4/4 | Complete | 2026-03-12 |
 | 19. Dashboard Staging View & Governance Doc | v8.0 | 5/5 | Complete | 2026-03-15 |
 | 20. Container Infrastructure & Routing | 2/2 | Complete    | 2026-03-16 | - |
-| 21. API Reference + Dashboard Integration | v9.0 | 0/2 | Not started | - |
+| 21. API Reference + Dashboard Integration | 1/2 | In Progress|  | - |
 | 22. Developer Documentation | v9.0 | 0/3 | Not started | - |
 | 23. Getting Started & Core Feature Guides | v9.0 | 0/4 | Not started | - |
 | 24. Extended Feature Guides & Security | v9.0 | 0/5 | Not started | - |

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: executing
-stopped_at: Completed 20-02-PLAN.md (CF Access deferred by user)
-last_updated: "2026-03-16T22:02:19.911Z"
-last_activity: 2026-03-16 — Plan 20-01 complete (MkDocs container infrastructure)
+stopped_at: Completed 21-02-PLAN.md (dashboard cleanup; awaiting human verify checkpoint)
+last_updated: "2026-03-16T22:30:08Z"
+last_activity: 2026-03-16 — Plan 21-02 complete (removed Docs.tsx, added external Docs link)
 progress:
   total_phases: 6
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with output captured — without weakening the security model.
-**Current focus:** Phase 20 — Container Infrastructure & Routing
+**Current focus:** Phase 21 — API Reference & Dashboard Integration
 
 ## Current Position
 
-Phase: 20 of 25 (Container Infrastructure & Routing)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-03-16 — Plan 20-01 complete (MkDocs container infrastructure)
+Phase: 21 of 25 (API Reference & Dashboard Integration)
+Plan: 2 of N in current phase
+Status: In progress (checkpoint awaiting human verify for 21-02)
+Last activity: 2026-03-16 — Plan 21-02 complete (removed Docs.tsx, added external Docs link)
 
 Progress: [██████████] 100% (plans completed vs total discovered)
 
@@ -48,6 +48,8 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 20]: Privacy plugin downloads external assets at build time — zero outbound font/JS requests at runtime
 - [Phase 20-container-infrastructure-routing]: handle /docs/* used (not handle_path) in Caddy — preserves URI prefix for nginx alias subpath routing
 - [Phase 20-container-infrastructure-routing]: CF Access protection for /docs/* deferred by user — local routing confirmed working, CF Access to be configured in a future session
+- [Phase 21-02]: External sidebar links use plain <a> (not NavLink) with matching inactive CSS — NavLink cannot open external URLs and would never have active state
+- [Phase 21-02]: Catch-all route placed inside PrivateRoute wrapper so unauthenticated users hitting unknown paths still see Login redirect
 
 ### Pending Todos
 
@@ -61,6 +63,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-16T21:53:34.505Z
-Stopped at: Completed 20-02-PLAN.md (CF Access deferred by user)
+Last session: 2026-03-16T22:30:08Z
+Stopped at: Completed 21-02-PLAN.md (dashboard cleanup; awaiting human verify checkpoint)
 Resume file: None
