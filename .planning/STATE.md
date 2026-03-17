@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Phase 23 context gathered
-last_updated: "2026-03-17T11:37:30.923Z"
+stopped_at: Completed 23-01-PLAN.md
+last_updated: "2026-03-17T12:04:19.183Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
   percent: 100
 ---
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 22]: aiosqlite and API_KEY sys.exit gotchas prominently documented with warning admonitions in setup guide
 - [Phase 22-03]: pyproject.toml added as config file only — Black/Ruff not run on existing code this phase (deferred to separate PR to keep diffs reviewable)
 - [Phase 22-03]: Contributing guide uses warning admonition for no-Alembic migration gotcha — establishes pattern for documenting critical contributor traps
+- [Phase 23-01]: mkdocs build --strict requires Docker build (openapi.json generated in builder stage) — local CLI cannot pass strict mode without it; stub-first nav pattern established for all phase 23+ content files
 
 ### Pending Todos
 
@@ -72,6 +73,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T11:37:30.921Z
-Stopped at: Phase 23 context gathered
-Resume file: .planning/phases/23-getting-started-core-feature-guides/23-CONTEXT.md
+Last session: 2026-03-17T12:04:19.181Z
+Stopped at: Completed 23-01-PLAN.md
+Resume file: None

@@ -161,7 +161,7 @@ Plans:
 | 20. Container Infrastructure & Routing | 2/2 | Complete    | 2026-03-16 | - |
 | 21. API Reference + Dashboard Integration | 2/2 | Complete    | 2026-03-16 | - |
 | 22. Developer Documentation | 3/3 | Complete    | 2026-03-17 | - |
-| 23. Getting Started & Core Feature Guides | v9.0 | 0/4 | Not started | - |
+| 23. Getting Started & Core Feature Guides | 1/4 | In Progress|  | - |
 | 24. Extended Feature Guides & Security | v9.0 | 0/5 | Not started | - |
 | 25. Runbooks & Troubleshooting | v9.0 | 0/4 | Not started | - |
 
