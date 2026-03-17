@@ -103,7 +103,7 @@ Job <guid> exhausted all <N> retries and failed terminally.
 1. Open the job's execution record in the **Jobs** view and read the output or error message from the final attempt.
 2. Identify the root cause: script error, missing dependency, resource constraint, or signing problem.
 3. Fix the underlying issue in your script or job configuration.
-4. Submit a new job with the corrected script (re-signed via `mop-push` if the script was changed).
+4. Submit a new job with the corrected script (re-signed via `axiom-push` if the script was changed).
 
 **Verify it worked:**
 
@@ -144,10 +144,10 @@ The node verified the job's signature against the registered Ed25519 public key 
 
 **Recovery steps:**
 
-1. Check which Ed25519 key was used to sign the script. The `mop-push` tool shows the key fingerprint at signing time.
+1. Check which Ed25519 key was used to sign the script. The `axiom-push` tool shows the key fingerprint at signing time.
 2. Open **Signatures** in the dashboard and confirm the matching public key is registered.
-3. If the key is missing, register it: see [Ed25519 Key Setup](../feature-guides/mop-push.md#ed25519-key-setup).
-4. If the script was modified after signing, re-sign it with `mop-push` and resubmit.
+3. If the key is missing, register it: see [Ed25519 Key Setup](../feature-guides/axiom-push.md#ed25519-key-setup).
+4. If the script was modified after signing, re-sign it with `axiom-push` and resubmit.
 
 !!! warning "Do not manually edit signed scripts"
     Any modification to a script after signing — including whitespace changes — invalidates the signature. Always re-sign after any edit.
@@ -186,7 +186,7 @@ If the verification key line is missing and the CRITICAL error persists, the orc
 
 ### SECURITY_REJECTED — Missing script or signature
 
-The job payload reached the node without a `signature` field. This happens when a job is submitted directly via the API without using `mop-push`, or when the signing step was skipped. The node returns the following string in the execution result:
+The job payload reached the node without a `signature` field. This happens when a job is submitted directly via the API without using `axiom-push`, or when the signing step was skipped. The node returns the following string in the execution result:
 
 ```
 Missing script or signature
@@ -197,14 +197,14 @@ Missing script or signature
 
 **Recovery steps:**
 
-1. Resubmit the job using `mop-push`, which handles signing automatically. See [Ed25519 Key Setup](../feature-guides/mop-push.md#ed25519-key-setup) for setup instructions.
+1. Resubmit the job using `axiom-push`, which handles signing automatically. See [Ed25519 Key Setup](../feature-guides/axiom-push.md#ed25519-key-setup) for setup instructions.
 2. If submitting via the API directly, ensure the job payload includes a valid `signature` field. The signature must cover the exact script content and be produced by a key registered in **Signatures**.
 
 **Verify it worked:**
 
-Resubmit via `mop-push` and confirm the job reaches `ASSIGNED` (or `COMPLETED`) without `SECURITY_REJECTED` status.
+Resubmit via `axiom-push` and confirm the job reaches `ASSIGNED` (or `COMPLETED`) without `SECURITY_REJECTED` status.
 
-If the issue persists, confirm that `mop-push` is configured with a key whose public half is registered in the dashboard **Signatures** view.
+If the issue persists, confirm that `axiom-push` is configured with a key whose public half is registered in the dashboard **Signatures** view.
 
 ---
 
@@ -253,6 +253,6 @@ If the job is repeatedly stuck in `ASSIGNED` across multiple nodes, the script i
 
 ## See Also
 
-- [mop-push: Signing and publishing jobs](../feature-guides/mop-push.md)
-- [Ed25519 Key Setup](../feature-guides/mop-push.md#ed25519-key-setup)
+- [axiom-push: Signing and publishing jobs](../feature-guides/axiom-push.md)
+- [Ed25519 Key Setup](../feature-guides/axiom-push.md#ed25519-key-setup)
 - [FAQ](faq.md)

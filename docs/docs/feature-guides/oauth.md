@@ -1,6 +1,6 @@
 # OAuth & Authentication
 
-Master of Puppets uses JWT-based authentication with RFC 8628 device flow for CLI tools and API keys for automation.
+Axiom uses JWT-based authentication with RFC 8628 device flow for CLI tools and API keys for automation.
 
 ---
 
@@ -11,7 +11,7 @@ Three authentication methods are supported:
 | Method | Best for | Obtained via |
 |--------|----------|--------------|
 | Password login | Dashboard users | Login page (`/login`) |
-| Device flow (OAuth 2.0) | CLI tools, `mop-push` | `POST /auth/device` + browser approval |
+| Device flow (OAuth 2.0) | CLI tools, `axiom-push` | `POST /auth/device` + browser approval |
 | API key | Automation, scripts, CI pipelines | **My Account** → **API Keys** → **Create** |
 
 All three methods return or carry a JWT that must be supplied as a `Bearer` token in the `Authorization` header.
@@ -20,9 +20,9 @@ All three methods return or carry a JWT that must be supplied as a `Bearer` toke
 
 ## Device Flow (OAuth 2.0)
 
-The OAuth 2.0 Device Authorization Grant (RFC 8628) allows tools without a browser — like `mop-push` — to authenticate without a redirect URI. The flow works by having the user approve the request in a browser session while the tool polls for the result.
+The OAuth 2.0 Device Authorization Grant (RFC 8628) allows tools without a browser — like `axiom-push` — to authenticate without a redirect URI. The flow works by having the user approve the request in a browser session while the tool polls for the result.
 
-**Why MoP uses device flow:** CLI tools cannot host a redirect URI. The device flow separates the user approval step (done in a browser) from the tool waiting for the token (done by polling). No callback server is needed on the client machine.
+**Why Axiom uses device flow:** CLI tools cannot host a redirect URI. The device flow separates the user approval step (done in a browser) from the tool waiting for the token (done by polling). No callback server is needed on the client machine.
 
 ### Flow overview
 
@@ -42,13 +42,13 @@ The OAuth 2.0 Device Authorization Grant (RFC 8628) allows tools without a brows
 !!! warning "Device codes are not persisted"
     Device authorization codes are stored in memory and are not persisted across server restarts. If the server restarts during the 5-minute authorization window, the login flow must be restarted from step 1.
 
-For step-by-step `mop-push` login instructions, see the [mop-push CLI guide](mop-push.md).
+For step-by-step `axiom-push` login instructions, see the [axiom-push CLI guide](axiom-push.md).
 
 ---
 
 ## Token Lifecycle
 
-All JWTs issued by MoP share the same structure and expiry rules.
+All JWTs issued by Axiom share the same structure and expiry rules.
 
 **Token fields:**
 
@@ -85,14 +85,14 @@ This increments the user's `token_version` and immediately invalidates all prior
 
 ## API Keys
 
-API keys are long-lived bearer tokens prefixed with `mop_`. They are created in the **My Account** section of the dashboard.
+API keys are long-lived bearer tokens. They are created in the **My Account** section of the dashboard.
 
 **Creating an API key:** Navigate to **My Account** → **API Keys** → **Create**. Give the key a descriptive name. The full key value is shown once at creation time — copy it immediately.
 
 **Using an API key:**
 
 ```bash
-curl -H "Authorization: Bearer mop_<YOUR_API_KEY>" \
+curl -H "Authorization: Bearer <YOUR_API_KEY>" \
   https://<YOUR_HOST>/api/nodes
 ```
 
@@ -137,20 +137,20 @@ Two approaches are available for pipeline automation. Both use `<PLACEHOLDER>` v
 Suitable for single-team pipelines where a single operator-level identity is sufficient.
 
 1. Create an API key in the dashboard: **My Account** → **API Keys** → **Create**.
-2. Store the key as a CI secret (e.g. `MOP_API_KEY` in GitHub Actions secrets).
+2. Store the key as a CI secret (e.g. `AXIOM_API_KEY` in GitHub Actions secrets).
 3. Use the key directly in pipeline steps:
 
 ```bash
-curl -H "Authorization: Bearer mop_<MOP_API_KEY>" \
+curl -H "Authorization: Bearer <AXIOM_API_KEY>" \
   https://<YOUR_HOST>/api/jobs/push \
   -H "Content-Type: application/json" \
   -d @job_payload.json
 ```
 
-Or with `mop-push`:
+Or with `axiom-push`:
 
 ```bash
-MOP_API_KEY=mop_<MOP_API_KEY> mop-push push --script my_job.py
+AXIOM_API_KEY=<AXIOM_API_KEY> axiom-push push --script my_job.py
 ```
 
 ### Approach B: Service principal (recommended for teams)

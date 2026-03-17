@@ -1,8 +1,8 @@
 # Architecture
 
-Master of Puppets is a distributed job orchestration platform built around a central control plane (the **Puppeteer**) and any number of stateless worker agents (the **Puppet Nodes**). This guide is a full technical deep-dive: it covers every service, the database schema, the security model, and the data flows that make jobs run reliably across a fleet of nodes — without weakening the trust model.
+Axiom is a distributed job orchestration platform built around a central control plane (the **Axiom Orchestrator**) and any number of stateless worker agents (the **Axiom Nodes**). This guide is a full technical deep-dive: it covers every service, the database schema, the security model, and the data flows that make jobs run reliably across a fleet of nodes — without weakening the trust model.
 
-The platform is designed for environments where nodes cannot accept inbound connections. A **pull model** means every node initiates all communication outward to the Puppeteer; no inbound firewall rules are ever required on a puppet node.
+The platform is designed for environments where nodes cannot accept inbound connections. A **pull model** means every node initiates all communication outward to the orchestrator; no inbound firewall rules are ever required on a node.
 
 ---
 
@@ -10,7 +10,7 @@ The platform is designed for environments where nodes cannot accept inbound conn
 
 ```mermaid
 graph TB
-    subgraph Puppeteer ["Puppeteer (Control Plane)"]
+    subgraph Puppeteer ["Axiom Orchestrator (Control Plane)"]
         A[agent_service :8001]
         M[model_service :8000]
         DB[(PostgreSQL / SQLite)]
@@ -20,7 +20,7 @@ graph TB
         M <--> DB
         DASH --> A
     end
-    subgraph Puppet ["Puppet Node (Worker)"]
+    subgraph Puppet ["Axiom Node (Worker)"]
         N[environment_service/node.py]
         R[runtime.py]
         N --> R
@@ -37,15 +37,15 @@ Three components run in every deployment:
 
 | Component | Location | Responsibility |
 |-----------|----------|---------------|
-| **Puppeteer** | `puppeteer/` | All state, API, scheduling, PKI, security enforcement |
-| **Puppet Node** | `puppets/environment_service/` | Stateless job executor; polls for work, runs scripts, reports results |
+| **Axiom Orchestrator** | `puppeteer/` | All state, API, scheduling, PKI, security enforcement |
+| **Axiom Node** | `puppets/environment_service/` | Stateless job executor; polls for work, runs scripts, reports results |
 | **React Dashboard** | `puppeteer/dashboard/` | Web UI for operators and admins |
 
 ---
 
 ## Service Inventory
 
-The Puppeteer is composed of two FastAPI applications and a set of service modules that handle distinct concerns.
+The Axiom Orchestrator is composed of two FastAPI applications and a set of service modules that handle distinct concerns.
 
 ### Top-Level Applications
 
@@ -69,7 +69,7 @@ The core of the job dispatch pipeline. Responsibilities:
 
 #### foundry_service
 
-Builds custom Docker images for puppet nodes. The build pipeline:
+Builds custom Docker images for Axiom Nodes. The build pipeline:
 
 1. Reads a `PuppetTemplate` (which references a RUNTIME blueprint and a NETWORK blueprint).
 2. Copies `puppets/environment_service/` into a temporary directory.
@@ -294,18 +294,18 @@ erDiagram
 
 ## Security Model
 
-Master of Puppets has five layered security mechanisms. Each addresses a different threat vector.
+Axiom has five layered security mechanisms. Each addresses a different threat vector.
 
 ### mTLS — Mutual TLS Node Authentication
 
-Every node-to-Puppeteer connection is mutually authenticated with TLS client certificates. The Puppeteer operates an internal Root CA (`pki.py`). Nodes never connect over plain HTTP.
+Every node-to-orchestrator connection is mutually authenticated with TLS client certificates. The orchestrator operates an internal Root CA (`pki.py`). Nodes never connect over plain HTTP.
 
 **Enrollment flow:**
 
 ```mermaid
 sequenceDiagram
-    participant N as Puppet Node
-    participant P as Puppeteer (agent_service)
+    participant N as Axiom Node
+    participant P as Axiom Orchestrator (agent_service)
     participant CA as Internal Root CA
 
     N->>N: Decode JOIN_TOKEN (base64 JSON → root CA PEM)
@@ -329,7 +329,7 @@ sequenceDiagram
 
 ### Ed25519 Script Signing Chain
 
-All job scripts must be signed with an Ed25519 private key whose corresponding public key is registered in the `signatures` table. This prevents an attacker who compromises the Puppeteer database from pushing arbitrary scripts to nodes.
+All job scripts must be signed with an Ed25519 private key whose corresponding public key is registered in the `signatures` table. This prevents an attacker who compromises the orchestrator database from pushing arbitrary scripts to nodes.
 
 **The signing chain:**
 
@@ -341,7 +341,7 @@ flowchart LR
     OP -->|POST /jobs: script + signature| A[agent_service]
     A -->|verify signature| A
     A -->|store Job + signature_payload| DB[(DB)]
-    DB -->|WorkResponse: script + signature| N[Puppet Node]
+    DB -->|WorkResponse: script + signature| N[Axiom Node]
     N -->|verify signature locally| N
     N -->|refuse if invalid| X[Execution blocked]
     N -->|execute if valid| R[runtime.py]
@@ -410,7 +410,7 @@ sequenceDiagram
     participant OP as Operator
     participant D as Dashboard
     participant A as agent_service
-    participant N as Puppet Node
+    participant N as Axiom Node
     participant R as runtime.py
 
     OP->>D: Dispatch job (script content + signature)
@@ -445,7 +445,7 @@ sequenceDiagram
 
 ## Foundry & Smelter
 
-Foundry builds custom Docker images for puppet nodes. Smelter is the security gatekeeper that validates every ingredient before a build proceeds.
+Foundry builds custom Docker images for Axiom Nodes. Smelter is the security gatekeeper that validates every ingredient before a build proceeds.
 
 ### Build Pipeline
 
@@ -459,7 +459,7 @@ flowchart TD
     SMELTER -->|PASS or WARNING| BUILD[docker build\ntemp dir context]
     BUILD --> PUSH[Push to registry:5000]
     PUSH --> ACTIVE[Image ACTIVE\nTemplate last_built_at updated]
-    ACTIVE --> NODE[Puppet Node\npulls image from registry]
+    ACTIVE --> NODE[Axiom Node\npulls image from registry]
 ```
 
 ### Blueprint Model
@@ -475,7 +475,7 @@ Each blueprint has an `os_family` field (`DEBIAN` or `ALPINE`) that selects the 
 
 ### Template → Image Build
 
-A `PuppetTemplate` combines one RUNTIME blueprint and one NETWORK blueprint. When built:
+A `PuppetTemplate` combines one RUNTIME blueprint and one NETWORK blueprint. When built, the orchestrator:
 
 1. `foundry_service` copies `puppets/environment_service/` to a temporary directory.
 2. For each capability in the RUNTIME blueprint, the matching `capability_matrix` row provides a Dockerfile snippet (`injection_recipe`) that installs the capability.
@@ -505,17 +505,17 @@ The dashboard shows a staleness warning when the base OS image has been updated 
 
 ## Pull Model Architecture
 
-All node-to-Puppeteer communication is initiated by the node. This is a deliberate architectural decision.
+All node-to-orchestrator communication is initiated by the node. This is a deliberate architectural decision.
 
 **Why pull, not push?**
 
-In a push model, the Puppeteer would need to open a connection to each node to deliver work. This requires:
+In a push model, the orchestrator would need to open a connection to each node to deliver work. This requires:
 
-- The Puppeteer to know the node's current IP address.
-- Inbound firewall rules on every node to accept connections from the Puppeteer.
-- Network infrastructure that routes the Puppeteer's traffic to every node (VLANs, VPNs, etc.).
+- The orchestrator to know the node's current IP address.
+- Inbound firewall rules on every node to accept connections from the orchestrator.
+- Network infrastructure that routes the orchestrator's traffic to every node (VLANs, VPNs, etc.).
 
-In the pull model, nodes only need outbound HTTPS connectivity to the Puppeteer's address. This works:
+In the pull model, nodes only need outbound HTTPS connectivity to the orchestrator's address. This works:
 
 - Behind NAT, without port forwarding.
 - In cloud environments where nodes have no stable public IP.
@@ -526,7 +526,7 @@ In the pull model, nodes only need outbound HTTPS connectivity to the Puppeteer'
 
 ```mermaid
 sequenceDiagram
-    participant N as Puppet Node
+    participant N as Axiom Node
     participant A as agent_service
 
     loop Every POLL_INTERVAL seconds (default 5)
@@ -572,11 +572,11 @@ The node receives the script content and the signature in a single response. It 
 | `ADMIN_PASSWORD` | agent_service | Recommended | Initial admin password (random if unset, logged) |
 | `API_KEY` | agent_service | **Required** | Shared API key — `sys.exit(1)` at import if missing |
 | `DATABASE_URL` | agent_service, model_service | Optional | Defaults to SQLite (`jobs.db`). Use `postgresql+asyncpg://...` for production |
-| `AGENT_URL` | model_service, puppet nodes | Required for nodes | URL nodes use to reach agent_service (e.g., `https://192.168.1.10:8001`) |
-| `JOIN_TOKEN` | puppet nodes | Required | Base64 JSON containing Root CA PEM; generated by the dashboard |
-| `EXECUTION_MODE` | puppet nodes | Optional | `auto` (default), `direct`, `docker`, or `podman`. Use `direct` inside Docker-in-Docker |
-| `JOB_MEMORY_LIMIT` | puppet nodes | Optional | Default memory limit for all jobs on this node (e.g., `512m`) |
-| `JOB_CPU_LIMIT` | puppet nodes | Optional | Default CPU limit for all jobs on this node (e.g., `1.0`) |
+| `AGENT_URL` | model_service, nodes | Required for nodes | URL nodes use to reach agent_service (e.g., `https://192.168.1.10:8001`) |
+| `JOIN_TOKEN` | nodes | Required | Base64 JSON containing Root CA PEM; generated by the dashboard |
+| `EXECUTION_MODE` | nodes | Optional | `auto` (default), `direct`, `docker`, or `podman`. Use `direct` inside Docker-in-Docker |
+| `JOB_MEMORY_LIMIT` | nodes | Optional | Default memory limit for all jobs on this node (e.g., `512m`) |
+| `JOB_CPU_LIMIT` | nodes | Optional | Default CPU limit for all jobs on this node (e.g., `1.0`) |
 
 !!! warning "API_KEY is mandatory"
     `security.py` calls `sys.exit(1)` at module import time if `API_KEY` is not set. This will prevent `agent_service` from starting at all. Always set it — even for local development (`export API_KEY=dev-key` is sufficient).

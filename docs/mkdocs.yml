@@ -1,4 +1,4 @@
-site_name: Master of Puppets
+site_name: Axiom
 site_url: https://dev.master-of-puppets.work/docs/
 theme:
   name: material
@@ -32,7 +32,7 @@ nav:
     - First Job: getting-started/first-job.md
   - Feature Guides:
     - Operator Tools:
-      - mop-push CLI: feature-guides/mop-push.md
+      - axiom-push CLI: feature-guides/axiom-push.md
     - Platform Config:
       - Foundry: feature-guides/foundry.md
       - Job Scheduling: feature-guides/job-scheduling.md

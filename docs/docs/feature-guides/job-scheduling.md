@@ -1,6 +1,6 @@
 # Job Scheduling
 
-Master of Puppets runs scripts on a schedule using APScheduler cron triggers.
+Axiom runs scripts on a schedule using APScheduler cron triggers.
 
 ---
 
@@ -40,7 +40,7 @@ Fill in the following fields:
 
 ## Cron Syntax
 
-Master of Puppets uses **5-field standard cron** with the field order:
+Axiom uses **5-field standard cron** with the field order:
 
 ```
 minute  hour  day  month  day_of_week
@@ -62,7 +62,7 @@ Common patterns:
     Use [crontab.guru](https://crontab.guru) to compose and verify complex cron expressions before saving a job definition.
 
 !!! warning "Do not use 6-field cron"
-    Do not use a 6-field cron expression (with a leading seconds field). MoP uses 5-field standard cron; a 6-field string will fail to schedule and the job definition will not be activated.
+    Do not use a 6-field cron expression (with a leading seconds field). Axiom uses 5-field standard cron; a 6-field string will fail to schedule and the job definition will not be activated.
 
 ---
 
@@ -114,7 +114,7 @@ A job definition moves through the following statuses:
 
 Typical promotion path: `DRAFT` → `ACTIVE`. Retirement path: `ACTIVE` → `DEPRECATED` or `REVOKED`.
 
-**Overlap guard:** If a previous instance of the job is still `PENDING`, `ASSIGNED`, or `RETRYING` when the next cron fire is due, MoP skips the new instance and logs `job:cron_skip`. This prevents queue buildup for slow or hung jobs.
+**Overlap guard:** If a previous instance of the job is still `PENDING`, `ASSIGNED`, or `RETRYING` when the next cron fire is due, Axiom skips the new instance and logs `job:cron_skip`. This prevents queue buildup for slow or hung jobs.
 
 !!! danger "REVOKED is not reversible via the UI"
     Revoking a job definition is intended for security events (e.g. a compromised signing key). Treat it as permanent.
@@ -123,7 +123,7 @@ Typical promotion path: `DRAFT` → `ACTIVE`. Retirement path: `ACTIVE` → `DEP
 
 ## Retry Configuration
 
-When a job fails, MoP can retry it automatically based on the job definition's retry settings:
+When a job fails, Axiom can retry it automatically based on the job definition's retry settings:
 
 | Field | Default | Description |
 |-------|---------|-------------|
@@ -144,4 +144,4 @@ Scheduled jobs use the same `DRAFT` → `ACTIVE` promotion workflow as manually 
 
 The Staging view lets you inspect the script content, verify the signature, and promote or reject a job definition before it goes live.
 
-See the [mop-push guide](mop-push.md) for the full Staging view walkthrough, including how to push a script, review it, and promote it to `ACTIVE`.
+See the [axiom-push guide](axiom-push.md) for the full Staging view walkthrough, including how to push a script, review it, and promote it to `ACTIVE`.
