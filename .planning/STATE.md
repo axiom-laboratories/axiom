@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Completed 28-01-PLAN.md — INFRA-06 and SECU-04 closed
-last_updated: "2026-03-17T20:15:08.620Z"
+stopped_at: Completed 26-03-PLAN.md — Axiom naming pass on docs
+last_updated: "2026-03-17T20:21:04.762Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 24
-  completed_plans: 22
+  completed_plans: 23
   percent: 100
 ---
 
@@ -89,6 +89,8 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 26-02]: CHANGELOG retroactive entries for v0.7.0-v0.9.0 with note that they predate Axiom rename
 - [Phase 28-infrastructure-gap-closure]: CDN verification uses https:// prefix match — privacy plugin stores assets under assets/external/fonts.googleapis.com/ so plain domain grep matches local asset paths (false positive)
 - [Phase 28-infrastructure-gap-closure]: Plugin ordering locked for docs: search -> privacy -> offline -> swagger-ui-tag; privacy downloads CDN assets at build time for air-gap compliance
+- [Phase 26-axiom-branding-community-foundation]: Mermaid subgraph node IDs preserved as internal identifiers — only display labels updated to Axiom Orchestrator/Axiom Node branding
+- [Phase 26-axiom-branding-community-foundation]: [Phase 26-03]: mop-push CLI renamed to axiom-push throughout all 21 docs files; mkdocs.yml site_name updated to Axiom
 
 ### Roadmap Evolution
 
@@ -107,6 +109,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T20:13:00.476Z
-Stopped at: Completed 28-01-PLAN.md — INFRA-06 and SECU-04 closed
+Last session: 2026-03-17T20:21:04.760Z
+Stopped at: Completed 26-03-PLAN.md — Axiom naming pass on docs
 Resume file: None

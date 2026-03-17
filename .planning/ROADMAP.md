@@ -176,14 +176,14 @@ Plans:
 | 24. Extended Feature Guides & Security | 5/5 | Complete    | 2026-03-17 | - |
 | 25. Runbooks & Troubleshooting | 4/4 | Complete    | 2026-03-17 | - |
 | 28. Infrastructure Gap Closure | 1/1 | Complete    | 2026-03-17 | - |
-| 26. Axiom Branding & Community Foundation | 1/3 | In Progress|  | - |
+| 26. Axiom Branding & Community Foundation | 2/3 | In Progress|  | - |
 | 27. CI/CD, Packaging & Distribution | v10.0 | 0/TBD | Not started | - |
 
 ### Phase 26: Axiom Branding & Community Foundation
 
 **Goal:** The project presents a professional, unified "Axiom" identity to the open-source community — root README rebranded, CONTRIBUTING.md with CLA in place, GitHub issue/PR templates standardised, CHANGELOG.md established, and all user-facing "MoP/Puppeteer/Puppet" naming migrated to Axiom equivalents
 **Depends on:** Phase 25
-**Plans:** 1/1 plans complete
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 26-01-PLAN.md — pyproject.toml CLI rename (mop-push → axiom-push) + GitHub community health files (issue templates, PR template, CODE_OF_CONDUCT)
