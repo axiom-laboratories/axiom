@@ -138,13 +138,13 @@ Plans:
   2. The node troubleshooting guide covers enrollment failures, heartbeat loss, and cert errors organised by symptom (e.g., "node shows offline but container is running")
   3. The job execution troubleshooting guide covers dispatch failures, signing errors, and timeout patterns with concrete error messages as section headers where applicable
   4. The FAQ addresses the top misconfigurations documented in the existing gap reports and validation test outputs
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 25-01: Node troubleshooting (enrollment failures, heartbeat loss, cert errors)
-- [ ] 25-02: Job execution troubleshooting (dispatch failures, signing errors, timeouts)
-- [ ] 25-03: Foundry troubleshooting (build failures, Smelt-Check failures, registry issues)
-- [ ] 25-04: FAQ (top misconfigurations, gotchas, common operator questions)
+- [ ] 25-01-PLAN.md — Nav update + stub files for all 4 runbook pages + index.md overview (Wave 1)
+- [ ] 25-02-PLAN.md — Node troubleshooting: enrollment failures, heartbeat loss, cert errors (Wave 2)
+- [ ] 25-03-PLAN.md — Job execution troubleshooting: dispatch failures, signing errors, timeout patterns (Wave 2)
+- [ ] 25-04-PLAN.md — Foundry troubleshooting + unified FAQ (Wave 2)
 
 ## Progress
 
