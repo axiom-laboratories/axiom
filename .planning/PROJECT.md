@@ -52,20 +52,20 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ### Active — v10.0 Axiom Commercial Release
 
-- [ ] PyPI Trusted Publisher activation — create `axiom-laboratories` org, `axiom-sdk` project, configure OIDC
-- [ ] Public documentation — evaluate making `/docs/` publicly accessible (or subset) for open-source adoption
-- [ ] Job output capture — stdout/stderr, exit codes, per-execution records (EXEC-01)
-- [ ] Execution history — queryable timeline of past runs per job and per node (EXEC-02)
+- [ ] PyPI Trusted Publisher activation — create `axiom-laboratories` org, `axiom-sdk` project, configure OIDC (RELEASE-01)
+- [ ] GHCR multi-arch image publishing on version tag — activate existing release workflow (RELEASE-02)
+- [ ] Public documentation access — evaluate `/docs/` public exposure for open-source adoption (RELEASE-03)
+- [ ] Job output capture — stdout/stderr, exit codes stored per execution (OUTPUT-01, OUTPUT-02)
+- [ ] Execution history — queryable timeline of past runs per job and per node (OUTPUT-03, OUTPUT-04)
+- [ ] Runtime attestation — node signs execution result bundle with mTLS client key; orchestrator verifies (OUTPUT-05, OUTPUT-06, OUTPUT-07)
+- [ ] Retry policy — configurable retry count + backoff on failure; each attempt a separate execution record (RETRY-01, RETRY-02, RETRY-03)
+- [ ] Environment tags (DEV/TEST/PROD) — nodes declare at enrollment, jobs target by env, CI/CD dispatch API (ENVTAG-01, ENVTAG-02, ENVTAG-03, ENVTAG-04)
+- [ ] Licence compliance — LEGAL.md certifi decision, mop-sdk licence field, NOTICE file, paramiko assessment (LICENCE-01..04)
 
 ### Planned — Future Milestones
 
-- [ ] Job output capture — stdout/stderr, exit codes, per-execution records
-- [ ] Execution history — queryable timeline of past runs per job and per node
-- [ ] Retry policy — configurable retries on failure (count, backoff strategy)
-- [ ] Job dependencies — job B runs only after job A succeeds
-- [ ] Environment node tags — DEV / TEST / PROD tags for CI/CD promotion targeting
-- [ ] CI/CD API integration — documented, machine-friendly endpoints for dispatching jobs from pipelines
-- [ ] Conditional triggers — run job based on outcome of previous job or external signal
+- [ ] Job dependencies (v11.0) — job B runs only after job A succeeds (linear then DAG)
+- [ ] Conditional triggers (v11.0) — run job based on outcome of previous job or external signal
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
 
 ### Out of Scope
@@ -123,7 +123,15 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 
 ## Current Milestone: v10.0 Axiom Commercial Release
 
-**Goal:** Activate the release infrastructure (PyPI + GHCR), determine public docs strategy, and begin job execution improvements for production-grade observability.
+**Goal:** Activate release infrastructure (PyPI + GHCR), add production-grade job observability with cryptographic runtime attestation, environment-based CI/CD targeting, retry policy, and licence compliance for the dual-licence model.
+
+**Target features:**
+- Release infrastructure — PyPI Trusted Publisher + GHCR activation + public docs strategy
+- Job output capture + execution history — per-run stdout/stderr, queryable timeline
+- Runtime attestation — node signs execution bundle with mTLS client key; orchestrator verifies
+- Retry policy — configurable retries + backoff on failure
+- Environment tags — DEV/TEST/PROD node tags + job targeting + CI/CD dispatch API
+- Licence compliance — LEGAL.md, NOTICE file, mop-sdk licence field, paramiko assessment
 
 ## Current State — v9.0 Complete (2026-03-17)
 
@@ -134,4 +142,4 @@ The CLI is now `axiom-push` (installable as `axiom-sdk`). GitHub Actions CI/CD p
 **Shipped in v9.0:** Docs container infrastructure (CDN-free, CF Access protected), API reference pipeline, developer docs (architecture + setup + contributing), full operator docs (getting started, Foundry, axiom-push, job scheduling, RBAC, OAuth, mTLS, audit, air-gap), runbooks + FAQ, Axiom rebranding, CI/CD pipelines.
 
 ---
-*Last updated: 2026-03-17 after v9.0 milestone — Enterprise Documentation complete*
+*Last updated: 2026-03-17 after v10.0 milestone start — Axiom Commercial Release requirements defined*

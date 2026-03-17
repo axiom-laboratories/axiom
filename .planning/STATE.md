@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v10.0
-milestone_name: — Axiom Commercial Release
-status: between_milestones
-stopped_at: v9.0 milestone archived
-last_updated: "2026-03-17T22:30:15.802Z"
-last_activity: 2026-03-17 — v9.0 milestone complete, archived
+milestone_name: Axiom Commercial Release
+status: defining_requirements
+stopped_at: requirements definition
+last_updated: "2026-03-17T00:00:00.000Z"
+last_activity: 2026-03-17 — Milestone v10.0 started
 progress:
   total_phases: 0
   completed_phases: 0
@@ -21,15 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with output captured — without weakening the security model.
-**Current focus:** Planning v10.0 — Axiom Commercial Release
+**Current focus:** Defining requirements for v10.0 — Axiom Commercial Release
 
 ## Current Position
 
-Phase: None (between milestones)
-Status: v9.0 Enterprise Documentation complete — 9 phases, 27 plans shipped
-Last activity: 2026-03-17 — v9.0 archived, all 29 requirements satisfied
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-17 — Milestone v10.0 started
 
-Progress: [██████████] 100% v9.0 complete
+Progress: [░░░░░░░░░░] 0% v10.0 not started
 
 ## Accumulated Context
 
