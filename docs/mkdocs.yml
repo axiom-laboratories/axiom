@@ -8,6 +8,9 @@ theme:
     accent: indigo
 plugins:
   - search
+  # privacy + offline: required for air-gap / offline operation (INFRA-06) — do not remove
+  - privacy
+  - offline
   - swagger-ui-tag
 
 markdown_extensions:
