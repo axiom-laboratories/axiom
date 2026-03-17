@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r puppeteer/requirements.txt
+
+      - name: Run backend tests
+        working-directory: puppeteer
+        env:
+          API_KEY: ci-dummy-key
+          ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+        run: pytest -v
+
+  frontend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: puppeteer/dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: puppeteer/dashboard
+        run: npm ci
+
+      - name: Lint
+        working-directory: puppeteer/dashboard
+        run: npm run lint
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: puppeteer/dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: puppeteer/dashboard
+        run: npm ci
+
+      - name: Run tests
+        working-directory: puppeteer/dashboard
+        run: npx vitest run
+
+  docker-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: puppeteer
+          file: puppeteer/Containerfile.server
+          push: false
+          platforms: linux/amd64
