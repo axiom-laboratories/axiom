@@ -1,7 +1,3 @@
-# Security
+# Security Overview
 
-Security and compliance documentation is coming in the next release.
-
-This section will cover mTLS certificate management, RBAC configuration, OAuth authentication, and air-gap operation guides.
-
-In the meantime, see the [Architecture](../developer/architecture.md) guide for the security model overview.
+This section covers the defence-in-depth security model of Master of Puppets, including mTLS certificate management, role-based access control hardening, audit logging, and air-gap operation.
