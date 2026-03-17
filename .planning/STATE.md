@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Phase 25 context gathered
-last_updated: "2026-03-17T14:59:34.103Z"
+stopped_at: Completed 25-01-PLAN.md
+last_updated: "2026-03-17T16:28:17.984Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 20
+  completed_plans: 17
   percent: 100
 ---
 
@@ -74,6 +74,8 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 24-extended-feature-guides-security]: Prerequisites checklist uses Markdown task list syntax so operators can mentally check off before executing
 - [Phase 24-extended-feature-guides-security]: Audit attribution section distinguishes human/sp/scheduler actors in audit log for compliance reviewers
 - [Phase 24-extended-feature-guides-security]: Air-gap checklist embedded as fenced markdown block for copy-paste offline use
+- [Phase 25-01]: Stub-first nav pattern reused from Phase 24 — four runbook nav entries added in plan 01 so Wave 2 content plans can write into existing files without breaking strict mode
+- [Phase 25-01]: Runbooks overview uses symptom-first framing to orient operators toward observable state rather than internal component names
 
 ### Pending Todos
 
@@ -87,6 +89,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T14:59:34.102Z
-Stopped at: Phase 25 context gathered
-Resume file: .planning/phases/25-runbooks-troubleshooting/25-CONTEXT.md
+Last session: 2026-03-17T16:28:17.982Z
+Stopped at: Completed 25-01-PLAN.md
+Resume file: None
