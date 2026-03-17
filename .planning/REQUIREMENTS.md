@@ -35,7 +35,7 @@ Requirements for the v9.0 milestone. Each maps to roadmap phases.
 
 ### User Getting Started
 
-- [ ] **GUIDE-01**: Getting started guide walks a new operator end-to-end: install → enroll first node → dispatch and verify first job
+- [x] **GUIDE-01**: Getting started guide walks a new operator end-to-end: install → enroll first node → dispatch and verify first job
 - [x] **GUIDE-02**: Prerequisites are explicit — CA installation, JOIN_TOKEN behaviour, required env vars — with verification steps
 
 ### Feature Guides
@@ -109,7 +109,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEVDOC-01 | Phase 22 | Complete |
 | DEVDOC-02 | Phase 22 | Complete |
 | DEVDOC-03 | Phase 22 | Complete |
-| GUIDE-01 | Phase 23 | Pending |
+| GUIDE-01 | Phase 23 | Complete |
 | GUIDE-02 | Phase 23 | Complete |
 | FEAT-01 | Phase 23 | Complete |
 | FEAT-02 | Phase 23 | Complete |
