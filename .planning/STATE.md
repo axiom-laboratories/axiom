@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Completed 25-03-PLAN.md
-last_updated: "2026-03-17T16:32:26.714Z"
+stopped_at: Completed 25-02-PLAN.md
+last_updated: "2026-03-17T16:32:36.323Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 6
@@ -78,6 +78,8 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 25-01]: Runbooks overview uses symptom-first framing to orient operators toward observable state rather than internal component names
 - [Phase 25-runbooks-troubleshooting]: Zombie reaper (zombie_timeout_minutes, default 30 min, configurable) documented as the effective operator-visible job timeout — 30-second direct-subprocess fallback intentionally omitted
 - [Phase 25-runbooks-troubleshooting]: DEAD_LETTER job status carries danger admonition (cannot be retried in-place — must resubmit new job) to prevent operator confusion
+- [Phase 25-02]: nodes.md H3 headers use plain-text symptom descriptions (not backtick-wrapped log lines) to ensure reliable MkDocs anchor slug generation for jump table links
+- [Phase 25-02]: faq.md anchor cross-link included in nodes.md despite faq.md being a stub — link resolves when plan 25-04 fills FAQ content
 
 ### Pending Todos
 
@@ -91,6 +93,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T16:32:15.232Z
-Stopped at: Completed 25-03-PLAN.md
+Last session: 2026-03-17T16:32:36.321Z
+Stopped at: Completed 25-02-PLAN.md
 Resume file: None
