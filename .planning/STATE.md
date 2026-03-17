@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Completed 23-04-PLAN.md
-last_updated: "2026-03-17T12:07:57.327Z"
+stopped_at: Completed 23-03-PLAN.md
+last_updated: "2026-03-17T12:08:31.425Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 100
 ---
 
@@ -61,6 +61,8 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 22-03]: Contributing guide uses warning admonition for no-Alembic migration gotcha — establishes pattern for documenting critical contributor traps
 - [Phase 23-01]: mkdocs build --strict requires Docker build (openapi.json generated in builder stage) — local CLI cannot pass strict mode without it; stub-first nav pattern established for all phase 23+ content files
 - [Phase 23-04]: Pre-existing openapi.json strict-mode warning is a known infrastructure issue (Docker build only) — does not block mop-push guide
+- [Phase 23]: mkdocs build --strict passes only via Docker builder stage — pre-existing limitation for local CLI (openapi.json missing locally)
+- [Phase 23]: [Phase 23-03]: danger admonition used for packages dict-format gotcha (plain list silently fails); lifecycle tables include how-to-change column
 
 ### Pending Todos
 
@@ -74,6 +76,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:07:57.326Z
-Stopped at: Completed 23-04-PLAN.md
+Last session: 2026-03-17T12:08:31.423Z
+Stopped at: Completed 23-03-PLAN.md
 Resume file: None

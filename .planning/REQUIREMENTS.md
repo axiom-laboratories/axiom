@@ -40,7 +40,7 @@ Requirements for the v9.0 milestone. Each maps to roadmap phases.
 
 ### Feature Guides
 
-- [ ] **FEAT-01**: Foundry guide covers blueprint creation, wizard walkthrough, Smelter integration, and image lifecycle
+- [x] **FEAT-01**: Foundry guide covers blueprint creation, wizard walkthrough, Smelter integration, and image lifecycle
 - [x] **FEAT-02**: mop-push CLI guide covers install, OAuth login, Ed25519 key setup, push, and publish workflow
 - [ ] **FEAT-03**: Job scheduling guide covers JobDefinitions, cron syntax, capability targeting, and staging review
 - [ ] **FEAT-04**: RBAC guide covers roles, permissions, user management, and service principals
@@ -111,7 +111,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEVDOC-03 | Phase 22 | Complete |
 | GUIDE-01 | Phase 23 | Pending |
 | GUIDE-02 | Phase 23 | Complete |
-| FEAT-01 | Phase 23 | Pending |
+| FEAT-01 | Phase 23 | Complete |
 | FEAT-02 | Phase 23 | Complete |
 | FEAT-03 | Phase 24 | Pending |
 | FEAT-04 | Phase 24 | Pending |
