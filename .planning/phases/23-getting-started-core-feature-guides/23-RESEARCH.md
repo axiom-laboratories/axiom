@@ -1,0 +1,450 @@
+# Phase 23: Getting Started & Core Feature Guides - Research
+
+**Researched:** 2026-03-17
+**Domain:** MkDocs technical writing — operator documentation (getting started, feature guides, nav architecture)
+**Confidence:** HIGH
+
+## Summary
+
+Phase 23 is a documentation-only phase. No backend or frontend code changes are required. All four plans write Markdown files and update `docs/mkdocs.yml`. The technical content (commands, env vars, API endpoints, wizard steps, CLI syntax) is fully deterministic — it comes from the existing codebase and is verified by source inspection in this research pass.
+
+The MkDocs infrastructure (Material theme, admonitions, pymdownx.superfences, privacy plugin, `--strict` build) is already in place from Phases 20-22. The planner can assume zero infrastructure setup required. Every new `.md` file added to `docs/docs/` must have a corresponding `nav:` entry in `mkdocs.yml` before committing — the `--strict` flag treats missing nav entries as build errors.
+
+The most critical planning constraint is nav architecture lock-in: the 7-section top-level nav (Home, Getting Started, Feature Guides, Security, Runbooks, Developer, API Reference) must be established in plan 23-01 with stub files for Security and Runbooks. All future phases (24, 25) depend on this nav being frozen after 23-01 merges.
+
+**Primary recommendation:** Write nav-first (plan 23-01 establishes the full `mkdocs.yml` structure), then fill each guide in subsequent plans. Each plan must verify `mkdocs build --strict` passes before the plan is considered complete.
+
+---
+
+<user_constraints>
+## User Constraints (from CONTEXT.md)
+
+### Locked Decisions
+
+**Navigation architecture (top-level, locked for all future phases):**
+```
+nav:
+  - Home: index.md
+  - Getting Started: ...
+  - Feature Guides: ...
+  - Security: ...
+  - Runbooks: ...
+  - Developer: ...
+  - API Reference: ...
+```
+- Runbooks is its own top-level section — not nested under Security.
+- Developer and API Reference sections already exist (Phase 22/21) — do not restructure them.
+
+**Getting Started sub-pages:**
+```
+Getting Started:
+  - Prerequisites: getting-started/prerequisites.md
+  - Install: getting-started/install.md
+  - Enroll a Node: getting-started/enroll-node.md
+  - First Job: getting-started/first-job.md
+```
+
+**Feature Guides sub-sections:**
+```
+Feature Guides:
+  - Operator Tools:
+    - mop-push CLI: feature-guides/mop-push.md
+  - Platform Config:
+    - Foundry: feature-guides/foundry.md
+```
+
+**Getting started target audience:** Both homelab operators and enterprise admins — shared linear narrative with admonition callouts at branch points.
+
+**Install path:** Docker Compose only, opinionated single path. Include Podman Compose callout — not a footnote.
+
+**First job:** Dispatched entirely through the dashboard UI — no CLI required for the first-run experience.
+
+**Prerequisites page format:** Checklist with a `verify with:` command for each prerequisite.
+
+**Foundry wizard:** Numbered steps referencing actual UI labels — no screenshots.
+
+**Foundry Smelter:** Feature overview only (what it does, STRICT vs WARNING in practical terms). Deep CVE scanning config lives in Phase 24 Security section.
+
+**Image lifecycle:** Practical operator actions only (ACTIVE/DEPRECATED/REVOKED meanings, how to change from dashboard). Enforcement mechanics stay in Architecture guide.
+
+**mop-push starting assumption:** Stack is running and at least one node is enrolled. Opens with "Prerequisites: see Getting Started" link.
+
+**mop-push OAuth:** Step-by-step with example CLI output showing command, device code prompt, browser URL, and success state.
+
+**mop-push Ed25519:** Covers keypair generation (openssl genpkey or admin_signer.py), registering public key in dashboard, private key security note (don't commit, use secrets manager).
+
+**mop-push end state:** Full operator loop — CLI push creates DRAFT, guide directs to dashboard Staging view for review, walks through Publish step. Reader ends with an ACTIVE job.
+
+### Claude's Discretion
+
+- Exact admonition box labels and styling for homelab/enterprise callouts
+- Mermaid diagrams or visual aids within guides (where helpful)
+- Internal cross-linking strategy between guide pages
+- Whether the index.md "Getting started" table is updated to point to the new granular pages
+
+### Deferred Ideas (OUT OF SCOPE)
+
+None — discussion stayed within phase scope.
+</user_constraints>
+
+---
+
+<phase_requirements>
+## Phase Requirements
+
+| ID | Description | Research Support |
+|----|-------------|-----------------|
+| GUIDE-01 | Getting started guide walks a new operator end-to-end: install → enroll first node → dispatch and verify first job | Verified: exact commands, env vars, JOIN_TOKEN format, enrollment token API endpoint, job dispatch via POST /jobs all confirmed from source |
+| GUIDE-02 | Prerequisites are explicit — CA installation, JOIN_TOKEN behaviour, required env vars — with verification steps | Verified: CA is auto-generated by agent on first start; JOIN_TOKEN is base64-encoded JSON containing `t` (token) + `ca` (PEM); required env vars are SECRET_KEY, ENCRYPTION_KEY, API_KEY, ADMIN_PASSWORD |
+| FEAT-01 | Foundry guide covers blueprint creation, wizard walkthrough, Smelter integration, and image lifecycle | Verified: wizard is 5 steps (Identity, Base Image, Ingredients, Tools, Review); STRICT/WARNING enforcement confirmed; image statuses are ACTIVE/DEPRECATED/REVOKED |
+| FEAT-02 | mop-push CLI guide covers install, OAuth login, Ed25519 key setup, push, and publish workflow | Verified: install via `pip install -e .` from repo root; login via `mop-push login`; push via `mop-push job push --script --key --key-id`; DRAFT status created; publish via dashboard PATCH /jobs/definitions/{id} |
+</phase_requirements>
+
+---
+
+## Standard Stack
+
+### Core (already installed, no new dependencies)
+| Library/Tool | Version | Purpose | Status |
+|---|---|---|---|
+| MkDocs Material | Latest (from Phase 20) | Documentation site renderer | Already in docs container |
+| pymdownx.superfences | Phase 22 | Mermaid + fenced code blocks | Already configured |
+| admonition + pymdownx.details | Phase 22 | Callout boxes (note, tip, warning, danger) | Already configured |
+| tables | Phase 22 | Markdown tables | Already configured |
+
+**No new dependencies.** All tooling is in place from Phases 20-22.
+
+### MkDocs Build Command (verified)
+```bash
+# From repo root — tests strict build
+docker compose -f puppeteer/compose.server.yaml build docs
+
+# Or locally (if mkdocs installed)
+cd docs && mkdocs build --strict
+```
+
+## Architecture Patterns
+
+### Recommended Directory Structure After Phase 23
+```
+docs/docs/
+├── index.md                        # Updated: table points to new getting-started pages
+├── getting-started/
+│   ├── prerequisites.md            # Checklist format with verify commands
+│   ├── install.md                  # Docker Compose, Podman callout, env var setup
+│   ├── enroll-node.md              # Token generation, node compose, JOIN_TOKEN explained
+│   └── first-job.md                # Dashboard UI walkthrough, verify COMPLETED status
+├── feature-guides/
+│   ├── foundry.md                  # Blueprint creation, wizard 5-step, Smelter, lifecycle
+│   └── mop-push.md                 # Install, login, key setup, push, publish
+├── security/
+│   └── index.md                    # STUB only — "Coming in next release"
+├── runbooks/
+│   └── index.md                    # STUB only — "Coming in next release"
+├── developer/                      # Existing — DO NOT restructure
+│   ├── architecture.md
+│   ├── setup-deployment.md
+│   └── contributing.md
+└── api-reference/                  # Existing — DO NOT restructure
+    └── index.md
+```
+
+### Pattern 1: Nav-First Commits
+**What:** Plan 23-01 establishes the complete mkdocs.yml nav AND creates stub files for Security and Runbooks before writing any guide content.
+**Why:** mkdocs build --strict fails if a nav entry references a non-existent file. Establishing the full nav structure first prevents later plans from breaking the build.
+**Verification:** `mkdocs build --strict` must pass after every plan.
+
+### Pattern 2: Admonition Callouts for Audience Splits
+```markdown
+!!! note "Homelab"
+    If you're running on a single machine with a self-signed certificate,
+    browsers will warn about the cert. Trust it or install the Root CA using
+    the bootstrap installer at `https://your-host/system/root-ca-installer`.
+
+!!! tip "Enterprise"
+    If you have an existing CA, the enrollment token embeds the MoP Root CA —
+    your nodes will trust it automatically. You do not need to distribute the
+    CA separately.
+```
+Available admonition types (from Material): `note`, `tip`, `warning`, `danger`, `info`, `success`.
+
+### Pattern 3: Prerequisites Checklist Format
+```markdown
+## Prerequisites
+
+- [ ] **Docker 24+** with Docker Compose v2
+      ```bash
+      docker --version && docker compose version
+      ```
+- [ ] **4 GB RAM** available for the stack
+- [ ] **Ports 80 and 443** not occupied on the host
+      ```bash
+      ss -tlnp | grep -E ':80|:443'
+      ```
+```
+
+### Anti-Patterns to Avoid
+- **Screenshots as step illustrations:** Stale within weeks as UI evolves. Use numbered prose referencing actual UI labels (from `BlueprintWizard.tsx` source).
+- **Section-jumping:** Getting Started must be completable in linear order without the reader needing to visit another page mid-flow.
+- **Referencing setup-deployment.md for operator steps:** The Getting Started guide is the primary operator entry point. Reference setup-deployment.md only for developer/advanced details.
+- **Adding nav entries without the file:** `mkdocs build --strict` will fail. Always create the stub file first.
+
+## Don't Hand-Roll
+
+| Problem | Don't Build | Use Instead |
+|---------|-------------|-------------|
+| Syntax highlighting | Custom CSS | MkDocs Material built-in (already active) |
+| Collapsible sections | Custom JS | `pymdownx.details` (already configured) |
+| Callout boxes | HTML divs | `admonition` extension (already configured) |
+| Mermaid diagrams | Static images | `pymdownx.superfences` mermaid fence (already configured) |
+| Tab panels | Custom HTML | MkDocs Material `tabbed` (available if enabled — check if needed) |
+
+## Common Pitfalls
+
+### Pitfall 1: mkdocs --strict Nav Entry Without File
+**What goes wrong:** Adding a nav entry referencing a file that doesn't exist yet causes `mkdocs build --strict` to fail with a "Documentation file not found" error.
+**Why it happens:** Phase 23-01 adds the Security and Runbooks stubs to nav. If the stub .md files are created but forgotten, or if plan 23-02/03/04 add content files without updating nav, the build breaks.
+**How to avoid:** Create the stub file immediately when adding the nav entry. Verify `mkdocs build --strict` at the end of every plan.
+
+### Pitfall 2: JOIN_TOKEN Format Confusion
+**What goes wrong:** Documentation describes JOIN_TOKEN as a simple UUID string, but the actual enhanced token format is base64-encoded JSON: `{"t": "<uuid>", "ca": "<PEM>"}`. Operators who paste a simple token string will find their node cannot bootstrap mTLS.
+**Why it happens:** The API `POST /api/enrollment-tokens` returns `{"token": "<uuid-hex>"}` — this is the raw inner token. The dashboard's "Copy JOIN_TOKEN" button wraps it in the enhanced format with the CA embedded.
+**How to avoid:** Document that operators should copy the JOIN_TOKEN from the dashboard "Nodes" page (which provides the full enhanced base64 token), not manually construct one from the API response.
+**Verification:** The node logs `Detected Enhanced Token. Bootstrapping Trust...` on success.
+
+### Pitfall 3: API_KEY sys.exit at Import
+**What goes wrong:** If `API_KEY` env var is not set, `security.py` calls `sys.exit(1)` at import time, crashing the agent service before it can log a useful error.
+**Already documented in:** `setup-deployment.md` with a warning admonition — getting-started/install.md should link to that admonition or repeat the warning.
+
+### Pitfall 4: mop-push Credential Store Location
+**What goes wrong:** After `mop-push login`, credentials are stored at `~/.mop/credentials.json` (0600 permissions). If the reader runs the CLI as root or in a container, the credentials path is unexpected.
+**How to avoid:** Document the credential store path explicitly in the mop-push guide's login section.
+
+### Pitfall 5: First Job Requires a Registered Signing Key
+**What goes wrong:** The first-job walkthrough must include registering an Ed25519 public key in the Signatures page before dispatching a job. Without a registered key, job creation fails with a 422 signature validation error.
+**How to avoid:** The first-job page must include the signing key registration step (upload public key in Signatures view) before the "dispatch your first job" step.
+
+### Pitfall 6: DRAFT vs ACTIVE Job Status in mop-push Guide
+**What goes wrong:** `mop-push job push` creates a job in DRAFT status. It will not be dispatched to nodes until promoted to ACTIVE via the dashboard. If the guide ends at the push step without explaining the Publish step, operators will think the workflow is broken.
+**How to avoid:** The mop-push guide must explicitly walk through the Staging → Publish flow after the push command.
+
+## Code Examples
+
+### Verified CLI Commands (from mop_sdk/cli.py and pyproject.toml)
+
+```bash
+# Install mop-push from repo root
+pip install -e .
+
+# Authenticate (OAuth device flow)
+mop-push --url https://your-host login
+
+# Push a signed job (creates DRAFT)
+mop-push --url https://your-host job push \
+  --script my_script.py \
+  --key secrets/signing.key \
+  --key-id <signature-id-from-dashboard>
+
+# Update existing job by ID
+mop-push --url https://your-host job push \
+  --id <existing-job-id> \
+  --script my_script.py \
+  --key secrets/signing.key \
+  --key-id <signature-id>
+
+# Alternative: MOP_URL env var avoids repeating --url
+export MOP_URL=https://your-host
+mop-push login
+mop-push job push --script my_script.py --key secrets/signing.key --key-id <id>
+```
+
+### Verified: OAuth Device Flow CLI Output Pattern
+```
+Initiating login to https://your-host...
+
+========================================
+USER CODE: ABCD-1234
+========================================
+
+Please approve this request in your browser:
+https://your-host/auth/device?user_code=ABCD-1234
+
+Attempting to open browser automatically...
+
+Waiting for approval...
+
+Successfully authenticated and saved credentials.
+```
+Credentials stored at: `~/.mop/credentials.json`
+
+### Verified: Ed25519 Key Generation
+
+Using openssl (no dependencies):
+```bash
+# Generate private key
+openssl genpkey -algorithm ed25519 -out signing.key
+
+# Extract public key
+openssl pkey -in signing.key -pubout -out verification.key
+```
+
+Using admin_signer.py (if toms_home is available):
+```bash
+python ~/Development/toms_home/.agents/tools/admin_signer.py --generate
+# Output: secrets/signing.key + secrets/verification.key
+```
+
+### Verified: Enrollment Token API
+```bash
+# Create enrollment token (admin only)
+curl -X POST https://your-host/api/enrollment-tokens \
+  -H "Authorization: Bearer <admin-jwt>"
+# Returns: {"token": "<hex-string>"}
+# NOTE: The dashboard wraps this in the enhanced base64 format with CA embedded.
+# Copy JOIN_TOKEN from the dashboard Nodes page, not from this raw API response.
+```
+
+### Verified: Foundry Wizard 5 Steps (from BlueprintWizard.tsx)
+```
+Step 1: Identity     — Blueprint Name, Type (RUNTIME/NETWORK), OS Family (DEBIAN/ALPINE/FEDORA)
+                       Or Clone Existing blueprint
+Step 2: Base Image   — Select base container image
+Step 3: Ingredients  — Python packages ({"python": [...]}) — Smelter validates here
+Step 4: Tools        — Capability tools to inject
+Step 5: Review       — JSON preview, submit
+```
+Advanced mode (JSON) is accessible via "Advanced (JSON)" toggle — bypasses wizard guardrails.
+
+### Verified: Image Lifecycle Status Values
+States: `ACTIVE` | `DEPRECATED` | `REVOKED`
+API endpoint to change status: `PATCH /api/templates/{id}/status` with `{"status": "DEPRECATED"}`
+- REVOKED templates block node enrollment with that template (403 at `/api/enroll`)
+- DEPRECATED: nodes can use existing certs but new enrollments are blocked (depends on enforcement config)
+- ACTIVE: normal operation
+
+### Verified: First Job Dispatch (dashboard UI)
+POST `/jobs` endpoint — dispatched via the Jobs view in the dashboard.
+Required fields: task_type, script_content, signature, signature_id (or equivalent UI fields).
+Success: job appears in Jobs view with status PENDING → ASSIGNED → COMPLETED.
+
+### Verified: Node Compose Env Vars (from puppets/node-compose.yaml)
+```yaml
+environment:
+  - NODE_TAGS=general,linux            # Capability tags for job targeting
+  - JOB_IMAGE=docker.io/library/python:3.12-alpine
+  - AGENT_URL=https://puppeteer-agent-1:8001
+  - JOIN_TOKEN=<enhanced-base64-token>  # From dashboard Nodes page
+  - ROOT_CA_PATH=/app/secrets/root_ca.crt
+  - EXECUTION_MODE=direct              # Use 'direct' inside Docker to avoid cgroup v2 issues
+```
+
+### Verified: Required Puppeteer Env Vars
+```bash
+SECRET_KEY=<random-64-char-hex>       # JWT signing key
+ENCRYPTION_KEY=<fernet-key>           # Fernet AES-128 key for secrets at rest
+API_KEY=<arbitrary-string>            # Shared API key (legacy auth)
+ADMIN_PASSWORD=<initial-admin-pass>   # Seeds admin user on first start
+DATABASE_URL=postgresql+asyncpg://... # Postgres (omit for SQLite in dev)
+```
+Generate ENCRYPTION_KEY: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+
+## State of the Art
+
+| Old Approach | Current Approach | Notes |
+|---|---|---|
+| `docker-compose` (v1) | `docker compose` (v2, hyphen-less) | setup-deployment.md already uses v2 syntax |
+| Podman-in-Docker with cgroup v2 | `EXECUTION_MODE=direct` | Documented in CLAUDE.md; getting-started must call this out |
+| Blueprint packages as plain list | `{"python": [...]}` dict format | Gotcha documented in MEMORY.md; getting-started must surface this |
+
+**Known gotcha (from MEMORY.md):** Blueprint packages must use `{"python": [...]}` dict format, NOT a plain list. The Foundry guide must call this out explicitly.
+
+## Open Questions
+
+1. **Does the getting-started/first-job.md need to walk through signing key generation, or can it reference a pre-existing key?**
+   - What we know: The first job dispatch requires an Ed25519 signature. The mop-push CLI guide covers key generation. The getting-started guide dispatches via dashboard UI.
+   - What's unclear: Does the dashboard UI provide a "generate signing key" flow, or does the operator need the CLI first?
+   - Recommendation: The first-job page should cover the minimal path (upload a pre-generated public key via Signatures view, then dispatch a pre-signed job or a dashboard-submitted job). The key generation detail links to the mop-push guide. Needs confirmation from the planner about whether the dashboard offers a "test job" with a pre-bundled key.
+
+2. **What is the node compose network name assumption for getting-started/enroll-node.md?**
+   - What we know: `node-compose.yaml` uses `puppeteer_default` as an external network. The AGENT_URL points to `puppeteer-agent-1:8001`.
+   - What's unclear: For a first-time operator the container name depends on their directory/project name. The getting-started guide should use `host.docker.internal` or the actual host IP pattern.
+   - Recommendation: Document both options — host.docker.internal for Docker Desktop users, and 172.17.0.1 (or `ip route` result) for Linux Docker users.
+
+## Validation Architecture
+
+### Test Framework
+| Property | Value |
+|----------|-------|
+| Framework (backend) | pytest (cd puppeteer && pytest) |
+| Framework (frontend) | vitest 3.0.5 (cd puppeteer/dashboard && npm run test) |
+| Config file (backend) | pyproject.toml [tool.pytest.ini_options] |
+| Config file (frontend) | vitest (implicit — npm run test) |
+| Quick run command | `cd puppeteer && pytest tests/test_tools.py -x` |
+| Full suite command | `cd puppeteer && pytest && cd dashboard && npm run test` |
+
+### Phase Requirements → Test Map
+
+Phase 23 produces only Markdown and YAML files. There is no runtime code to unit-test. Validation is build-time (`mkdocs build --strict`) rather than unit-test-based.
+
+| Req ID | Behavior | Test Type | Automated Command | File Exists? |
+|--------|----------|-----------|-------------------|--------------|
+| GUIDE-01 | Getting started guide exists and builds without error | smoke | `cd docs && mkdocs build --strict 2>&1 | grep -c ERROR; test $? -eq 0` | ❌ Wave 0 (files created by plans) |
+| GUIDE-02 | Prerequisites page exists with verify commands | smoke | `cd docs && mkdocs build --strict` | ❌ Wave 0 |
+| FEAT-01 | Foundry guide exists and builds without error | smoke | `cd docs && mkdocs build --strict` | ❌ Wave 0 |
+| FEAT-02 | mop-push guide exists and builds without error | smoke | `cd docs && mkdocs build --strict` | ❌ Wave 0 |
+
+### Sampling Rate
+- **Per plan commit:** `cd docs && mkdocs build --strict` (< 10 seconds)
+- **Per wave merge:** Full `mkdocs build --strict` pass
+- **Phase gate:** `mkdocs build --strict` green with all new pages in nav before `/gsd:verify-work`
+
+### Wave 0 Gaps
+- [ ] `docs/docs/getting-started/prerequisites.md` — covers GUIDE-02
+- [ ] `docs/docs/getting-started/install.md` — covers GUIDE-01 (partial)
+- [ ] `docs/docs/getting-started/enroll-node.md` — covers GUIDE-01 (partial)
+- [ ] `docs/docs/getting-started/first-job.md` — covers GUIDE-01 (partial)
+- [ ] `docs/docs/feature-guides/foundry.md` — covers FEAT-01
+- [ ] `docs/docs/feature-guides/mop-push.md` — covers FEAT-02
+- [ ] `docs/docs/security/index.md` — stub (required for nav entry)
+- [ ] `docs/docs/runbooks/index.md` — stub (required for nav entry)
+
+All gap files are the deliverables of this phase — created by plans 23-01 through 23-04.
+
+---
+
+## Sources
+
+### Primary (HIGH confidence)
+- `docs/mkdocs.yml` — verified existing nav, extensions, theme config
+- `docs/docs/index.md` — verified existing Getting Started table content
+- `mop_sdk/cli.py` — verified all mop-push subcommands and flags
+- `mop_sdk/auth.py` — verified OAuth device flow implementation and credential store path
+- `mop_sdk/signer.py` — verified Ed25519 signing implementation
+- `pyproject.toml` — verified `mop-push` entrypoint (`mop_sdk.cli:main`), dependencies
+- `puppeteer/dashboard/src/components/foundry/BlueprintWizard.tsx` — verified wizard 5-step labels
+- `puppeteer/agent_service/main.py` — verified enrollment token endpoint, job push endpoint, template status endpoint
+- `puppeteer/agent_service/services/foundry_service.py` — verified Smelter enforcement (STRICT/WARNING)
+- `puppets/node-compose.yaml` — verified required node env vars
+- `puppeteer/agent_service/security.py` — verified API_KEY sys.exit behavior
+- `puppets/environment_service/node.py` — verified JOIN_TOKEN enhanced format parsing
+- `.planning/phases/23-getting-started-core-feature-guides/23-CONTEXT.md` — locked decisions
+
+### Secondary (MEDIUM confidence)
+- CLAUDE.md project instructions — execution mode, blueprint package format, signing approach
+- MEMORY.md — sprint history confirming key gotchas (blueprint packages dict format, EXECUTION_MODE=direct)
+
+### Tertiary (LOW confidence)
+- None
+
+---
+
+## Metadata
+
+**Confidence breakdown:**
+- Standard stack: HIGH — verified from source files; no new dependencies
+- Architecture: HIGH — nav structure locked in CONTEXT.md, file structure derived from nav decisions
+- Pitfalls: HIGH — all pitfalls sourced from code inspection, MEMORY.md sprint history, and CLAUDE.md known issues
+- CLI commands: HIGH — verified from pyproject.toml entrypoint and cli.py argument parser
+
+**Research date:** 2026-03-17
+**Valid until:** 2026-04-17 (docs content is stable; only mkdocs.yml or CLI changes would invalidate)
