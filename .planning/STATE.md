@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Completed 23-01-PLAN.md
-last_updated: "2026-03-17T12:04:19.183Z"
+stopped_at: Completed 23-04-PLAN.md
+last_updated: "2026-03-17T12:07:57.327Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
   percent: 100
 ---
 
@@ -60,6 +60,7 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 22-03]: pyproject.toml added as config file only — Black/Ruff not run on existing code this phase (deferred to separate PR to keep diffs reviewable)
 - [Phase 22-03]: Contributing guide uses warning admonition for no-Alembic migration gotcha — establishes pattern for documenting critical contributor traps
 - [Phase 23-01]: mkdocs build --strict requires Docker build (openapi.json generated in builder stage) — local CLI cannot pass strict mode without it; stub-first nav pattern established for all phase 23+ content files
+- [Phase 23-04]: Pre-existing openapi.json strict-mode warning is a known infrastructure issue (Docker build only) — does not block mop-push guide
 
 ### Pending Todos
 
@@ -73,6 +74,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:04:19.181Z
-Stopped at: Completed 23-01-PLAN.md
+Last session: 2026-03-17T12:07:57.326Z
+Stopped at: Completed 23-04-PLAN.md
 Resume file: None
