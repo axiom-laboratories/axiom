@@ -102,13 +102,13 @@ Plans:
   3. The Foundry guide covers blueprint creation through image lifecycle with the Wizard walkthrough and Smelter integration visually illustrated
   4. The mop-push CLI guide covers the full operator workflow: install, OAuth login, Ed25519 key setup, push a signed job, and publish from Staging
   5. The top-level navigation in mkdocs.yml is task/audience-oriented (Getting Started / Feature Guides / Security / Developer / API Reference) — established before any further content is written
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 23-01: mkdocs.yml navigation architecture, landing page (index.md), getting started walkthrough
-- [ ] 23-02: Prerequisites guide (CA installation, JOIN_TOKEN, required env vars)
-- [ ] 23-03: Foundry guide (blueprints, wizard, Smelter, image lifecycle)
-- [ ] 23-04: mop-push CLI guide (install, login, key setup, push, publish)
+- [ ] 23-01-PLAN.md — mkdocs.yml nav architecture (7 sections), landing page update, Security/Runbooks stubs
+- [ ] 23-02-PLAN.md — Getting Started walkthrough: prerequisites.md, install.md, enroll-node.md, first-job.md
+- [ ] 23-03-PLAN.md — Foundry feature guide: blueprints, wizard walkthrough, Smelter, image lifecycle
+- [ ] 23-04-PLAN.md — mop-push CLI guide: install, OAuth login, Ed25519 key setup, push, Staging → Publish
 
 ### Phase 24: Extended Feature Guides & Security
 **Goal**: All remaining platform features are documented with usage guides, and the security & compliance section gives enterprise operators everything they need to deploy, harden, and audit the system
