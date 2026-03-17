@@ -27,7 +27,10 @@ Nodes initiate all connections to the control plane — the **pull model** means
 
 | Goal | Where to go |
 |------|-------------|
-| Run the stack locally or in production | [Setup & Deployment](developer/setup-deployment.md) |
-| Understand the system internals | [Architecture](developer/architecture.md) |
-| Contribute code or run tests | [Contributing](developer/contributing.md) |
+| Check your environment before installing | [Prerequisites](getting-started/prerequisites.md) |
+| Install and run the stack | [Install](getting-started/install.md) |
+| Connect your first node | [Enroll a Node](getting-started/enroll-node.md) |
+| Dispatch your first job | [First Job](getting-started/first-job.md) |
+| Build custom node images | [Foundry Guide](feature-guides/foundry.md) |
+| Push jobs from the CLI | [mop-push CLI](feature-guides/mop-push.md) |
 | Explore the REST API | [API Reference](api-reference/index.md) |
