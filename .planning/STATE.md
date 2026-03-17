@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Completed 24-01-PLAN.md
-last_updated: "2026-03-17T13:44:17.549Z"
+stopped_at: Completed 24-02-PLAN.md
+last_updated: "2026-03-17T13:47:58.905Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 16
-  completed_plans: 12
+  completed_plans: 13
   percent: 100
 ---
 
@@ -66,6 +66,8 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 23-getting-started-core-feature-guides]: Local mkdocs build --strict cannot pass without openapi.json (pre-existing Phase 21 constraint) — non-strict build passes cleanly with no new warnings from the four Getting Started pages
 - [Phase 23-getting-started-core-feature-guides]: Getting Started pages use admonition-as-gotcha pattern: warning/danger admonitions highlight known failure modes inline with each step (API_KEY crash, ADMIN_PASSWORD first-start, JOIN_TOKEN raw vs enhanced, EXECUTION_MODE=direct)
 - [Phase 24]: Stub-first nav pattern: all Phase 24 files created as stubs before content plans run, ensuring Docker mkdocs build --strict passes throughout
+- [Phase 24]: 5-field cron documented explicitly; 6-field (seconds) documented as unsupported to prevent operator silent failures
+- [Phase 24]: API key scoped permissions documented as reserved for future use — matching actual _authenticate_api_key() behaviour
 
 ### Pending Todos
 
@@ -79,6 +81,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T13:44:17.547Z
-Stopped at: Completed 24-01-PLAN.md
+Last session: 2026-03-17T13:47:58.903Z
+Stopped at: Completed 24-02-PLAN.md
 Resume file: None

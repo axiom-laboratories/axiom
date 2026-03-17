@@ -162,7 +162,7 @@ Plans:
 | 21. API Reference + Dashboard Integration | 2/2 | Complete    | 2026-03-16 | - |
 | 22. Developer Documentation | 3/3 | Complete    | 2026-03-17 | - |
 | 23. Getting Started & Core Feature Guides | 4/4 | Complete    | 2026-03-17 | - |
-| 24. Extended Feature Guides & Security | 1/5 | In Progress|  | - |
+| 24. Extended Feature Guides & Security | 2/5 | In Progress|  | - |
 | 25. Runbooks & Troubleshooting | v9.0 | 0/4 | Not started | - |
 
 ---
