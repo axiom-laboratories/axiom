@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Completed 27-01-PLAN.md
-last_updated: "2026-03-17T22:16:29.673Z"
+stopped_at: Completed 27-03-PLAN.md
+last_updated: "2026-03-17T22:26:54.305Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 9
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 27
-  completed_plans: 26
+  completed_plans: 27
   percent: 100
 ---
 
@@ -95,6 +95,8 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 27-02]: All installer files in puppeteer/installer/ rebranded including deploy_server.sh, loader/Containerfile, and tests banner — required to satisfy must_have truth of zero MoP strings across installer directory
 - [Phase 27-01]: frontend-test uses npx vitest run not npm run test to avoid watch mode hang in CI
 - [Phase 27-01]: id-token:write scoped per-job to PyPI publish jobs only — not at workflow level
+- [Phase 27-03]: Task 2 (PyPI Trusted Publisher + GitHub Environments setup) deferred — GitHub org axiom-laboratories and PyPI project axiom-sdk do not exist yet; intentional, to be completed when org is created
+- [Phase 27-03]: GHCR image path ghcr.io/axiom-laboratories/axiom retained as-is in release.yml — intended target org; no change needed until org is created and repo transferred
 
 ### Roadmap Evolution
 
@@ -113,6 +115,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T22:16:29.671Z
-Stopped at: Completed 27-01-PLAN.md
+Last session: 2026-03-17T22:26:44.441Z
+Stopped at: Completed 27-03-PLAN.md
 Resume file: None
