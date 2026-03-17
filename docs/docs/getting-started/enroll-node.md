@@ -40,7 +40,38 @@ ip route | awk '/default/ {print $3}'
 
 ---
 
-## Step 3: Create the node compose file
+## Step 3: Install the node
+
+Choose your installation method:
+
+### Option A: curl installer (recommended)
+
+The one-liner downloads and runs the universal installer script hosted on the orchestrator:
+
+```bash
+curl -sSL https://<your-orchestrator>/installer.sh | bash -s -- --token "<JOIN_TOKEN>"
+```
+
+Replace `<your-orchestrator>` with your orchestrator's hostname or IP (e.g., `10.0.0.5:8001` or `my-orchestrator.example.com`).
+
+The installer script:
+
+- Detects Docker or Podman on your system
+- Downloads a ready-to-run `node-compose.yaml` from the orchestrator
+- Starts the node container automatically
+
+!!! tip "Getting the compose file without running it"
+    The orchestrator also serves the generated compose file directly if you want to inspect or customise it before running:
+    ```bash
+    curl -sSL "https://<your-orchestrator>/api/installer/compose?token=<JOIN_TOKEN>" > node-compose.yaml
+    docker compose -f node-compose.yaml up -d
+    ```
+
+---
+
+### Option B: Docker Compose (power user)
+
+For full control over the configuration, create the compose file manually.
 
 Create `node-compose.yaml` with the following content, substituting your JOIN_TOKEN and AGENT_URL:
 
@@ -67,9 +98,7 @@ volumes:
 
     Without this, the node attempts to use Docker or Podman inside Docker, which runs into cgroup v2 permission issues and fails silently. Use `direct` mode for all standard deployments.
 
----
-
-## Step 4: Start the node
+Then start the node:
 
 ```bash
 docker compose -f node-compose.yaml up -d
@@ -77,7 +106,7 @@ docker compose -f node-compose.yaml up -d
 
 ---
 
-## Step 5: Verify enrollment
+## Step 4: Verify enrollment
 
 Check the node logs:
 
