@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: — Enterprise Documentation
 status: completed
-stopped_at: Phase 28 context gathered
-last_updated: "2026-03-17T19:57:05.049Z"
+stopped_at: Completed 28-01-PLAN.md — INFRA-06 and SECU-04 closed
+last_updated: "2026-03-17T20:13:00.479Z"
 last_activity: 2026-03-16 — Plan 21-02 checkpoint approved, all verification passed
 progress:
   total_phases: 9
-  completed_phases: 6
-  total_plans: 20
-  completed_plans: 20
+  completed_phases: 7
+  total_plans: 24
+  completed_plans: 22
   percent: 100
 ---
 
@@ -83,6 +83,12 @@ Progress: [██████████] 100% (plans completed vs total discov
 - [Phase 25-04]: Foundry runbook clusters mirror failure surface: Build Failures / Smelt-Check Failures / Registry Issues — matching how operators observe failures in dashboard
 - [Phase 25-04]: FAQ Ed25519 signing entry uses danger admonition with explicit wording that no flag/env/API option exists to disable verification
 - [Phase 25-04]: ADMIN_PASSWORD FAQ entry directs to dashboard Reset Password flow with warning admonition against dropping the DB
+- [Phase 26-02]: README under 80 lines — links to MkDocs docs site for all depth; no architecture diagrams or env var tables
+- [Phase 26-02]: CE/EE split presented as a feature table (transparent, factual) not marketing prose
+- [Phase 26-02]: CONTRIBUTING.md implicit CLA (no bot, no sign-off requirement) matching Apache 2.0 model
+- [Phase 26-02]: CHANGELOG retroactive entries for v0.7.0-v0.9.0 with note that they predate Axiom rename
+- [Phase 28-infrastructure-gap-closure]: CDN verification uses https:// prefix match — privacy plugin stores assets under assets/external/fonts.googleapis.com/ so plain domain grep matches local asset paths (false positive)
+- [Phase 28-infrastructure-gap-closure]: Plugin ordering locked for docs: search -> privacy -> offline -> swagger-ui-tag; privacy downloads CDN assets at build time for air-gap compliance
 
 ### Roadmap Evolution
 
@@ -101,6 +107,6 @@ Progress: [██████████] 100% (plans completed vs total discov
 
 ## Session Continuity
 
-Last session: 2026-03-17T19:57:05.047Z
-Stopped at: Phase 28 context gathered
-Resume file: .planning/phases/28-infrastructure-gap-closure/28-CONTEXT.md
+Last session: 2026-03-17T20:13:00.476Z
+Stopped at: Completed 28-01-PLAN.md — INFRA-06 and SECU-04 closed
+Resume file: None
