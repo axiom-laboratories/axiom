@@ -42,16 +42,16 @@ Requirements for the v9.0 milestone. Each maps to roadmap phases.
 
 - [x] **FEAT-01**: Foundry guide covers blueprint creation, wizard walkthrough, Smelter integration, and image lifecycle
 - [x] **FEAT-02**: mop-push CLI guide covers install, OAuth login, Ed25519 key setup, push, and publish workflow
-- [ ] **FEAT-03**: Job scheduling guide covers JobDefinitions, cron syntax, capability targeting, and staging review
-- [ ] **FEAT-04**: RBAC guide covers roles, permissions, user management, and service principals
-- [ ] **FEAT-05**: OAuth / authentication guide covers device flow, token lifecycle, and API key usage
+- [x] **FEAT-03**: Job scheduling guide covers JobDefinitions, cron syntax, capability targeting, and staging review
+- [x] **FEAT-04**: RBAC guide covers roles, permissions, user management, and service principals
+- [x] **FEAT-05**: OAuth / authentication guide covers device flow, token lifecycle, and API key usage
 
 ### Security & Compliance
 
-- [ ] **SECU-01**: mTLS guide covers Root CA setup, JOIN_TOKEN, cert enrollment, revocation, and rotation
-- [ ] **SECU-02**: RBAC configuration guide covers role assignment, permission grants, and least-privilege setup
-- [ ] **SECU-03**: Audit log guide covers event types, query patterns, and compliance use cases
-- [ ] **SECU-04**: Air-gap operation guide covers package mirroring, offline builds, and network isolation
+- [x] **SECU-01**: mTLS guide covers Root CA setup, JOIN_TOKEN, cert enrollment, revocation, and rotation
+- [x] **SECU-02**: RBAC configuration guide covers role assignment, permission grants, and least-privilege setup
+- [x] **SECU-03**: Audit log guide covers event types, query patterns, and compliance use cases
+- [x] **SECU-04**: Air-gap operation guide covers package mirroring, offline builds, and network isolation
 
 ### Runbooks & Troubleshooting
 
@@ -113,13 +113,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GUIDE-02 | Phase 23 | Complete |
 | FEAT-01 | Phase 23 | Complete |
 | FEAT-02 | Phase 23 | Complete |
-| FEAT-03 | Phase 24 | Pending |
-| FEAT-04 | Phase 24 | Pending |
-| FEAT-05 | Phase 24 | Pending |
-| SECU-01 | Phase 24 | Pending |
-| SECU-02 | Phase 24 | Pending |
-| SECU-03 | Phase 24 | Pending |
-| SECU-04 | Phase 24 | Pending |
+| FEAT-03 | Phase 24 | Complete |
+| FEAT-04 | Phase 24 | Complete |
+| FEAT-05 | Phase 24 | Complete |
+| SECU-01 | Phase 24 | Complete |
+| SECU-02 | Phase 24 | Complete |
+| SECU-03 | Phase 24 | Complete |
+| SECU-04 | Phase 24 | Complete |
 | RUN-01 | Phase 25 | Pending |
 | RUN-02 | Phase 25 | Pending |
 | RUN-03 | Phase 25 | Pending |
