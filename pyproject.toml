@@ -3,9 +3,10 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mop-sdk"
-version = "0.1.0"
-description = "Master of Puppets (MoP) SDK and CLI"
+name = "axiom-sdk"
+version = "1.0.0-alpha"
+description = "Axiom: Secure Enterprise Automation & Orchestration"
+license = {text = "Apache-2.0"}
 authors = [
     { name = "Thomas", email = "thomas@example.com" }
 ]
@@ -18,7 +19,7 @@ dependencies = [
 requires-python = ">=3.10"
 
 [project.scripts]
-mop-push = "mop_sdk.cli:main"
+axiom-push = "mop_sdk.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
