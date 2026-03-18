@@ -707,12 +707,35 @@ class JobService:
         except Exception as e:
             logger.error(f"Failed to scrub logs for job {guid}: {e}")
 
+        # OUTPUT-01: Extract stdout/stderr streams from scrubbed log BEFORE truncation
+        stdout_text = "\n".join(e["line"] for e in output_log if e.get("stream") == "stdout")
+        stderr_text = "\n".join(e["line"] for e in output_log if e.get("stream") == "stderr")
+
         truncated = False
         output_json = json.dumps(output_log)
         if len(output_json.encode("utf-8")) > MAX_OUTPUT_BYTES:
             while output_log and len(json.dumps(output_log).encode("utf-8")) > MAX_OUTPUT_BYTES:
                 output_log.pop()
             truncated = True
+
+        # OUTPUT-02: Compute orchestrator-side script_hash and detect mismatch
+        try:
+            _job_payload = decrypt_secrets(json.loads(job.payload))
+            _script_bytes = _job_payload.get("script_content", "").encode("utf-8")
+            orchestrator_hash = hashlib.sha256(_script_bytes).hexdigest()
+        except Exception as e:
+            logger.error("Failed to compute script_hash for job %s: %s", guid, e)
+            orchestrator_hash = None
+        _node_hash = report.script_hash  # Optional[str] from ResultReport
+        hash_mismatch = (
+            _node_hash is not None and orchestrator_hash is not None
+            and _node_hash != orchestrator_hash
+        )
+        if hash_mismatch:
+            logger.warning(
+                "script_hash mismatch for job %s: node=%s orchestrator=%s",
+                guid, _node_hash, orchestrator_hash,
+            )
 
         # Write ExecutionRecord (same transaction as job update)
         record = ExecutionRecord(
@@ -724,6 +747,16 @@ class JobService:
             completed_at=datetime.utcnow(),
             output_log=json.dumps(output_log),
             truncated=truncated,
+            # OUTPUT-01: separate stdout/stderr columns
+            stdout=stdout_text,
+            stderr=stderr_text,
+            # OUTPUT-02: script integrity
+            script_hash=orchestrator_hash,
+            hash_mismatch=hash_mismatch,
+            # RETRY-01: attempt number (retry_count not yet incremented at this point)
+            attempt_number=job.retry_count + 1,
+            # RETRY-02: link all attempts to the same logical run
+            job_run_id=job.job_run_id,
         )
         db.add(record)
 
