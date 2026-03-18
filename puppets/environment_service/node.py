@@ -12,7 +12,7 @@ import psutil
 import time
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
-from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
+from cryptography.hazmat.primitives.asymmetric import ed25519, rsa, padding as asym_padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography import x509
 from cryptography.x509.oid import NameOID
@@ -143,6 +143,56 @@ def get_capabilities() -> Dict[str, str]:
     except Exception as e:
         print(f"[Capabilities] Error gathering: {e}")
     return caps
+
+def _build_and_sign_attestation(
+    script_hash: str,
+    stdout_hash: str,
+    stderr_hash: str,
+    exit_code: int,
+    started_at_iso: str,
+    cert_file: str,
+    key_file: str,
+) -> tuple:
+    """Build and sign an attestation bundle using the node's mTLS private key.
+
+    Returns (bundle_b64, signature_b64) on success, or (None, None) on any error
+    (missing key/cert file, signing failure, etc.).  Never raises.
+
+    Bundle fields (sorted alphabetically by sort_keys=True):
+        cert_serial, exit_code, script_hash, start_timestamp, stderr_hash, stdout_hash
+    """
+    try:
+        with open(cert_file, "rb") as f:
+            cert = x509.load_pem_x509_certificate(f.read())
+        cert_serial = str(cert.serial_number)
+
+        bundle = {
+            "cert_serial": cert_serial,
+            "exit_code": exit_code,
+            "script_hash": script_hash,
+            "start_timestamp": started_at_iso,
+            "stderr_hash": stderr_hash,
+            "stdout_hash": stdout_hash,
+        }
+        bundle_bytes = json.dumps(
+            bundle, sort_keys=True, separators=(',', ':')
+        ).encode('utf-8')
+
+        with open(key_file, "rb") as f:
+            private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+        signature = private_key.sign(
+            bundle_bytes, asym_padding.PKCS1v15(), hashes.SHA256()
+        )
+
+        return (
+            base64.b64encode(bundle_bytes).decode('ascii'),
+            base64.b64encode(signature).decode('ascii'),
+        )
+    except Exception as e:
+        print(f"[Attestation] Failed to sign bundle: {e}")
+        return None, None
+
 
 class UpgradeManager:
     """Handles secure, in-place runtime mutations."""
@@ -595,6 +645,11 @@ class Node:
                     "stderr": result["stderr"]
                 }
 
+                # Attestation: hash raw bytes BEFORE any processing (hash order invariant)
+                stdout_hash = hashlib.sha256((result.get("stdout") or "").encode('utf-8')).hexdigest()
+                stderr_hash = hashlib.sha256((result.get("stderr") or "").encode('utf-8')).hexdigest()
+                started_at_iso = str(job.get("started_at", ""))
+
                 output_log = build_output_log(result.get("stdout", ""), result.get("stderr", ""))
                 exit_code = result["exit_code"]
 
@@ -605,7 +660,10 @@ class Node:
 
                 await self.report_result(guid, success, runtime_report,
                                          output_log=output_log, exit_code=exit_code,
-                                         script_hash=script_hash)
+                                         script_hash=script_hash,
+                                         stdout_hash=stdout_hash,
+                                         stderr_hash=stderr_hash,
+                                         started_at=started_at_iso)
                 
             except Exception as e:
                  print(f"[{self.node_id}] Runtime Execution Failed: {e}")
@@ -618,8 +676,22 @@ class Node:
 
     async def report_result(self, guid: str, success: bool, result: Dict,
                             output_log=None, exit_code=None, security_rejected=False,
-                            script_hash=None):
+                            script_hash=None, stdout_hash=None, stderr_hash=None,
+                            started_at=None):
         try:
+            # Build attestation bundle if all required fields are available
+            attestation_bundle, attestation_signature = None, None
+            if script_hash and stdout_hash is not None and stderr_hash is not None and exit_code is not None:
+                attestation_bundle, attestation_signature = _build_and_sign_attestation(
+                    script_hash=script_hash,
+                    stdout_hash=stdout_hash,
+                    stderr_hash=stderr_hash,
+                    exit_code=exit_code,
+                    started_at_iso=started_at or "",
+                    cert_file=self.cert_file,
+                    key_file=self.key_file,
+                )
+
             async with httpx.AsyncClient(
                 verify=VERIFY_SSL,
                 cert=(self.cert_file, self.key_file)
@@ -634,6 +706,8 @@ class Node:
                         "exit_code": exit_code,
                         "security_rejected": security_rejected,
                         "script_hash": script_hash,
+                        "attestation_bundle": attestation_bundle,
+                        "attestation_signature": attestation_signature,
                     },
                     headers={
                         API_KEY_NAME: API_KEY,
