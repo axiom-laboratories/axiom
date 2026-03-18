@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: — Axiom Commercial Release
 status: planning
-stopped_at: Completed 30-02-PLAN.md — node-side attestation bundle signing implemented in node.py
-last_updated: "2026-03-18T16:58:05.274Z"
+stopped_at: Completed 30-03-PLAN.md — attestation service, job_service wiring, export endpoint, all tests passing
+last_updated: "2026-03-18T16:59:30.382Z"
 last_activity: 2026-03-17 — v10.0 roadmap created
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -127,6 +127,9 @@ Progress: [░░░░░░░░░░] 0% (0/5 phases complete)
 - [Phase 30-runtime-attestation]: attestation_verified states: 'verified', 'failed', 'missing', None — String(16) sufficient
 - [Phase 30-runtime-attestation]: _build_and_sign_attestation() is a module-level function (not a method) — no self dependency, pure function for testability and reuse
 - [Phase 30-runtime-attestation]: Hash-order invariant enforced in execute_task(): stdout_hash + stderr_hash computed from raw bytes BEFORE build_output_log() — scrubbing must not precede hashing
+- [Phase 30-runtime-attestation]: attestation_service.py imported as module (from . import attestation_service) — preserves namespacing for call site clarity
+- [Phase 30-runtime-attestation]: cert_serial extracted from bundle JSON in GET /attestation endpoint — avoids double cert parse, serial already in signed bundle
+- [Phase 30-runtime-attestation]: test_revoked_cert_stores_failed uses AsyncMock.side_effect for multi-call DB sequence — faster than in-memory SQLite, consistent with phase 29/30 source-inspection pattern
 
 ### v10.0 Research Flags (carry into planning)
 
@@ -158,7 +161,7 @@ None — v9.0 complete. Key open items for v10.0:
 
 ## Session Continuity
 
-Last session: 2026-03-18T16:58:05.272Z
-Stopped at: Completed 30-02-PLAN.md — node-side attestation bundle signing implemented in node.py
+Last session: 2026-03-18T16:59:30.380Z
+Stopped at: Completed 30-03-PLAN.md — attestation service, job_service wiring, export endpoint, all tests passing
 Resume file: None
 Next action: `/gsd:plan-phase 29`
