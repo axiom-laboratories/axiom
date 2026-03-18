@@ -40,6 +40,7 @@ from .models import (
     AlertResponse,
     WebhookCreate, WebhookResponse,
     ImageBOMResponse, PackageIndexResponse,
+    DispatchRequest, DispatchResponse, DispatchStatusResponse,
     ALLOWED_ROLES,
 )
 from .security import (
@@ -1454,6 +1455,117 @@ async def count_jobs(status: Optional[str] = None, current_user: User = Depends(
 async def get_job_stats(current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     """Backend Stats for Dashboard charts."""
     return await JobService.get_job_stats(db)
+
+
+# ---------------------------------------------------------------------------
+# CI/CD Dispatch API  (ENVTAG-04)
+# ---------------------------------------------------------------------------
+
+_TERMINAL_STATUSES = {"COMPLETED", "FAILED", "DEAD_LETTER", "SECURITY_REJECTED"}
+
+
+@app.post("/api/dispatch", response_model=DispatchResponse, tags=["CI/CD Dispatch"])
+async def dispatch_job(
+    req: DispatchRequest,
+    request: Request,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """CI/CD dispatch endpoint. Creates a job from a job definition and returns a poll URL.
+    Intended caller: service principals with jobs:write permission.
+    No-node condition: job is created as PENDING; pipelines detect timeout by polling poll_url."""
+
+    # 1. Fetch the job definition
+    result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == req.job_definition_id))
+    s_job = result.scalar_one_or_none()
+    if not s_job:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "job_definition_not_found", "job_definition_id": req.job_definition_id},
+        )
+
+    # 2. Resolve env_tag: dispatch request overrides definition's env_tag; fall back to definition
+    effective_env_tag = req.env_tag if req.env_tag is not None else s_job.env_tag
+
+    # 3. Build JobCreate
+    payload_dict = {
+        "script_content": s_job.script_content,
+        "signature": s_job.signature_payload,
+        "secrets": {},
+    }
+    job_create = JobCreate(
+        task_type="python_script",
+        payload=json.dumps(payload_dict),
+        target_tags=json.loads(s_job.target_tags) if s_job.target_tags else None,
+        capability_requirements=json.loads(s_job.capability_requirements) if s_job.capability_requirements else None,
+        scheduled_job_id=s_job.id,
+        max_retries=req.max_retries if req.max_retries is not None else s_job.max_retries,
+        backoff_multiplier=s_job.backoff_multiplier,
+        timeout_minutes=req.timeout_minutes if req.timeout_minutes is not None else s_job.timeout_minutes,
+        env_tag=effective_env_tag,
+    )
+
+    # 4. Create the job
+    job_result = await JobService.create_job(job_create, db)
+    job_guid = job_result["guid"]
+
+    # 5. Build poll_url — use PUBLIC_URL env var to avoid localhost in Docker
+    public_url = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    poll_url = f"{public_url}/api/dispatch/{job_guid}/status"
+
+    # 6. Audit (sync — do not await, must be before db.commit)
+    audit(db, current_user, "dispatch_job", job_guid,
+          {"job_definition_id": req.job_definition_id, "env_tag": effective_env_tag})
+    await db.commit()
+
+    return DispatchResponse(
+        job_guid=job_guid,
+        status=job_result.get("status", "PENDING"),
+        job_definition_id=s_job.id,
+        job_definition_name=s_job.name,
+        env_tag=effective_env_tag,
+        poll_url=poll_url,
+    )
+
+
+@app.get("/api/dispatch/{job_guid}/status", response_model=DispatchStatusResponse, tags=["CI/CD Dispatch"])
+async def get_dispatch_status(
+    job_guid: str,
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """CI/CD poll endpoint. Returns structured status for a dispatched job.
+    Poll this URL until is_terminal=True to detect pass/fail in pipelines."""
+
+    # 1. Fetch job
+    result = await db.execute(select(Job).where(Job.guid == job_guid))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "job_not_found", "job_guid": job_guid},
+        )
+
+    # 2. Fetch most recent execution record for exit_code
+    er_result = await db.execute(
+        select(ExecutionRecord)
+        .where(ExecutionRecord.job_guid == job_guid)
+        .order_by(ExecutionRecord.completed_at.desc())
+        .limit(1)
+    )
+    latest_record = er_result.scalar_one_or_none()
+
+    return DispatchStatusResponse(
+        job_guid=job.guid,
+        status=job.status,
+        exit_code=latest_record.exit_code if latest_record else None,
+        node_id=job.node_id,
+        attempt=job.retry_count + 1,
+        started_at=job.started_at,
+        completed_at=job.completed_at,
+        is_terminal=job.status in _TERMINAL_STATUSES,
+    )
+
 
 @app.post("/jobs", response_model=JobResponse, tags=["Jobs"])
 async def create_job(job_req: JobCreate, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
