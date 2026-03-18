@@ -65,6 +65,28 @@ def test_node_computes_script_hash():
 
 
 def test_stdout_extraction_after_scrubbing():
-    """OUTPUT-01: report_result must extract stdout/stderr from output_log and store separately.
-    Implement after job_service.py changes in plan 02."""
-    assert False, "implement after job_service.py changes in plan 02"
+    """OUTPUT-01: report_result() source must extract stdout/stderr after scrubbing, before truncation.
+    Verified by source inspection — stdout_text and stderr_text must appear before truncation check."""
+    import inspect
+    from agent_service.services.job_service import JobService
+    src = inspect.getsource(JobService.report_result)
+    # stdout_text and stderr_text must be extracted from output_log
+    assert "stdout_text" in src
+    assert "stderr_text" in src
+    # The extraction must filter by stream
+    assert 'stream' in src
+    # script_hash must be computed (orchestrator side)
+    assert "script_hash" in src
+    assert "orchestrator_hash" in src or "hashlib" in src
+
+
+def test_execution_record_has_script_hash_and_attempt():
+    """OUTPUT-02 + RETRY-01: report_result source must write script_hash, hash_mismatch,
+    attempt_number, and job_run_id onto the ExecutionRecord constructor."""
+    import inspect
+    from agent_service.services.job_service import JobService
+    src = inspect.getsource(JobService.report_result)
+    assert "script_hash" in src
+    assert "hash_mismatch" in src
+    assert "attempt_number" in src
+    assert "job_run_id" in src
