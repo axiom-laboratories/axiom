@@ -1,5 +1,7 @@
+import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import JobDefinitions from '../JobDefinitions';
 import { BrowserRouter } from 'react-router-dom';
 
@@ -9,25 +11,41 @@ vi.mock('../../auth', () => ({
     authenticatedFetch: (...args: any[]) => mockAuthFetch(...args),
 }));
 
+// Mock ExecutionLogModal to avoid nested fetch complexity
+vi.mock('../../components/ExecutionLogModal', () => ({
+    ExecutionLogModal: () => null,
+}));
+
+const createQueryClient = () =>
+    new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+const renderWithProviders = (ui: React.ReactElement) =>
+    render(
+        <BrowserRouter>
+            <QueryClientProvider client={createQueryClient()}>
+                {ui}
+            </QueryClientProvider>
+        </BrowserRouter>
+    );
+
 describe('JobDefinitions View', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
         // Default mocks for loadData
-        mockAuthFetch.mockImplementation((endpoint) => {
+        mockAuthFetch.mockImplementation((endpoint: string) => {
             if (endpoint === '/jobs/definitions') return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
             if (endpoint === '/jobs') return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
             if (endpoint === '/signatures') return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+            if (typeof endpoint === 'string' && endpoint.includes('/api/executions')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+            }
             return Promise.resolve({ ok: false });
         });
     });
 
     it('renders the page title and description', async () => {
-        render(
-            <BrowserRouter>
-                <JobDefinitions />
-            </BrowserRouter>
-        );
+        renderWithProviders(<JobDefinitions />);
 
         // Wait for loading to finish
         await waitFor(() => {
@@ -39,18 +57,14 @@ describe('JobDefinitions View', () => {
     });
 
     it('shows the "Archive New Payload" button', async () => {
-        render(
-            <BrowserRouter>
-                <JobDefinitions />
-            </BrowserRouter>
-        );
+        renderWithProviders(<JobDefinitions />);
 
         await waitFor(() => {
             expect(screen.getByText(/Archive New Payload/i)).toBeInTheDocument();
         });
     });
 
-    // ── OUTPUT-04 / RETRY-03: History panel on definition click (RED) ──────
+    // ── OUTPUT-04 / RETRY-03: History panel on definition click ──────
 
     it('OUTPUT-04: clicking a job definition name renders a history panel below the list', async () => {
         mockAuthFetch.mockImplementation((endpoint: string) => {
@@ -62,14 +76,13 @@ describe('JobDefinitions View', () => {
             }
             if (endpoint === '/jobs') return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
             if (endpoint === '/signatures') return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+            if (typeof endpoint === 'string' && endpoint.includes('/api/executions')) {
+                return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+            }
             return Promise.resolve({ ok: false, json: () => Promise.resolve([]) });
         });
 
-        render(
-            <BrowserRouter>
-                <JobDefinitions />
-            </BrowserRouter>
-        );
+        renderWithProviders(<JobDefinitions />);
 
         // Wait for the definition to appear in the list
         await waitFor(() => {
@@ -80,7 +93,6 @@ describe('JobDefinitions View', () => {
         fireEvent.click(screen.getByText('Daily Sync'));
 
         // A history panel must appear below the list.
-        // RED until the feature is implemented.
         await waitFor(() => {
             const historyPanel =
                 screen.queryByText(/Execution History/i) ||
@@ -106,11 +118,7 @@ describe('JobDefinitions View', () => {
             return Promise.resolve({ ok: false, json: () => Promise.resolve([]) });
         });
 
-        render(
-            <BrowserRouter>
-                <JobDefinitions />
-            </BrowserRouter>
-        );
+        renderWithProviders(<JobDefinitions />);
 
         await waitFor(() => {
             expect(screen.getByText('Nightly Cleanup')).toBeInTheDocument();
@@ -119,7 +127,6 @@ describe('JobDefinitions View', () => {
         fireEvent.click(screen.getByText('Nightly Cleanup'));
 
         // After clicking, the component should call GET /api/executions?scheduled_job_id=def-xyz.
-        // RED until the history panel fetch is wired up.
         await waitFor(() => {
             const executionCalls = mockAuthFetch.mock.calls.filter(([url]: [string]) =>
                 typeof url === 'string' &&

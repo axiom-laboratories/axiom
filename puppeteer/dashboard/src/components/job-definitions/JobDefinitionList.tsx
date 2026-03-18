@@ -1,3 +1,4 @@
+import React from 'react';
 import {
     Terminal,
     Clock,
@@ -48,9 +49,11 @@ interface JobDefinitionListProps {
     onToggle: (id: string) => void;
     onEdit: (id: string) => void;
     onPublish?: (id: string) => void;
+    selectedDefId?: string | null;
+    onSelect?: (id: string) => void;
 }
 
-const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit, onPublish }: JobDefinitionListProps) => {
+const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit, onPublish, selectedDefId, onSelect }: JobDefinitionListProps) => {
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
     const toggleRow = (id: string) => {
@@ -65,8 +68,8 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
             .reverse();
     };
 
-    const renderStatusBadge = (status: string) => {
-        const s = status.toUpperCase();
+    const renderStatusBadge = (status: string | undefined) => {
+        const s = (status ?? '').toUpperCase();
         switch (s) {
             case 'ACTIVE':
                 return <Badge className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 uppercase text-[10px] font-bold tracking-wider">Active</Badge>;
@@ -119,18 +122,21 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                 <TableBody>
                     {definitions.length > 0 ? (
                         definitions.map(def => (
-                            <>
-                            <TableRow key={def.id} className="border-zinc-800 hover:bg-zinc-900/30 transition-colors group">
+                            <React.Fragment key={def.id}>
+                            <TableRow className={`border-zinc-800 hover:bg-zinc-900/30 transition-colors group${def.id === selectedDefId ? ' bg-primary/5 border-l-2 border-l-primary' : ''}`}>
                                 <TableCell className="pl-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <button 
+                                        <button
                                             onClick={() => toggleRow(def.id)}
                                             className="text-zinc-600 hover:text-zinc-400 transition-colors"
                                         >
                                             {expandedRows[def.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                         </button>
                                         <div className="flex flex-col">
-                                            <span className="text-white font-medium flex items-center gap-2">
+                                            <span
+                                                className="text-white font-medium flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                                                onClick={() => onSelect?.(def.id)}
+                                            >
                                                 <Terminal className="h-3 w-3 text-primary" />
                                                 {def.name}
                                             </span>
@@ -236,7 +242,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                     </TableCell>
                                 </TableRow>
                             )}
-                            </>
+                            </React.Fragment>
                         ))
                     ) : (
                         <TableRow>

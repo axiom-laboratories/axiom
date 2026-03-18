@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Plus, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { authenticatedFetch } from '../auth';
 import JobDefinitionList from '../components/job-definitions/JobDefinitionList';
 import JobDefinitionModal from '../components/job-definitions/JobDefinitionModal';
+import { ExecutionLogModal } from '../components/ExecutionLogModal';
 
 interface EditingJob {
     id: string;
@@ -31,6 +34,120 @@ const EMPTY_FORM = {
     capability_requirements: '',
 };
 
+const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
+    definitionId: string;
+    onOpenRun: (jobRunId: string | null, executionId: number) => void;
+}) => {
+    const { data: executions, isLoading } = useQuery({
+        queryKey: ['definition-history', definitionId],
+        queryFn: async () => {
+            const res = await authenticatedFetch(
+                `/api/executions?scheduled_job_id=${definitionId}&limit=25`
+            );
+            return res.json() as Promise<any[]>;
+        },
+        enabled: !!definitionId,
+    });
+
+    const grouped = React.useMemo(() => {
+        if (!executions) return [];
+        const byRunId: Record<string, any[]> = {};
+        const ungrouped: any[] = [];
+        executions.forEach((ex: any) => {
+            if (!ex.job_run_id) {
+                ungrouped.push(ex);
+            } else {
+                if (!byRunId[ex.job_run_id]) byRunId[ex.job_run_id] = [];
+                byRunId[ex.job_run_id].push(ex);
+            }
+        });
+        const rows: any[] = [
+            ...Object.values(byRunId).map(group => {
+                const latest = [...group].sort((a, b) => (b.attempt_number ?? 0) - (a.attempt_number ?? 0))[0];
+                return { ...latest, _attemptCount: group.length };
+            }),
+            ...ungrouped.map((ex: any) => ({ ...ex, _attemptCount: 1 })),
+        ];
+        return rows.sort((a, b) =>
+            new Date(b.started_at ?? 0).getTime() - new Date(a.started_at ?? 0).getTime()
+        );
+    }, [executions]);
+
+    if (isLoading) return <div className="py-8 text-center text-zinc-500 text-sm animate-pulse">Loading history...</div>;
+
+    return (
+        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2">
+                <Terminal className="h-4 w-4 text-zinc-500" />
+                <span className="text-sm font-bold text-zinc-300">Execution History</span>
+            </div>
+            {grouped.length === 0 ? (
+                <p className="py-8 text-center text-zinc-500 text-sm italic">No runs yet for this definition</p>
+            ) : (
+                <table className="w-full text-sm">
+                    <thead className="bg-zinc-900/50">
+                        <tr className="text-left text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                            <th className="px-4 py-2">When</th>
+                            <th className="px-4 py-2">Node</th>
+                            <th className="px-4 py-2">Status</th>
+                            <th className="px-4 py-2">Duration</th>
+                            <th className="px-4 py-2">Retry</th>
+                            <th className="px-4 py-2 text-right">Logs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {grouped.map((row: any) => {
+                            const showRetryBadge = (row.max_retries ?? 0) > 1 && (row._attemptCount ?? 1) > 1;
+                            const isRetrying = row.status === 'RETRYING';
+                            const isFailedExhausted = row.status === 'FAILED' && row.attempt_number === (row.max_retries ?? 0) + 1;
+                            return (
+                                <tr key={row.id} className="border-t border-zinc-900 hover:bg-zinc-900/30 transition-colors">
+                                    <td className="px-4 py-2 text-zinc-400 whitespace-nowrap tabular-nums text-xs">
+                                        {row.started_at ? formatDistanceToNow(new Date(row.started_at), { addSuffix: true }) : '—'}
+                                    </td>
+                                    <td className="px-4 py-2 text-zinc-400 text-xs font-mono">{row.node_id || 'N/A'}</td>
+                                    <td className="px-4 py-2">
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                            row.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                            row.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                            row.status === 'RETRYING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                            'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                        }`}>{row.status}</span>
+                                    </td>
+                                    <td className="px-4 py-2 text-zinc-400 tabular-nums text-xs">
+                                        {row.duration_seconds != null ? `${row.duration_seconds.toFixed(1)}s` : '—'}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        {showRetryBadge && (
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                                isRetrying ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                : isFailedExhausted ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                                : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                            }`}>
+                                                {isRetrying
+                                                    ? `Attempt ${row.attempt_number} of ${(row.max_retries ?? 0) + 1}`
+                                                    : `Failed ${row.attempt_number}/${(row.max_retries ?? 0) + 1}`}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-2 text-right">
+                                        <button
+                                            onClick={() => onOpenRun(row.job_run_id, row.id)}
+                                            className="text-xs text-primary hover:text-primary/80 font-bold flex items-center gap-1 ml-auto"
+                                        >
+                                            <Terminal className="h-3 w-3" /> Logs
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            )}
+        </div>
+    );
+};
+
 const JobDefinitions = () => {
     const [definitions, setDefinitions] = useState([]);
     const [executions, setExecutions] = useState([]);
@@ -39,6 +156,10 @@ const JobDefinitions = () => {
     const [showModal, setShowModal] = useState(false);
     const [editingJob, setEditingJob] = useState<EditingJob | null>(null);
     const [activeTab, setActiveTab] = useState<'active' | 'staging'>('active');
+    const [selectedDefId, setSelectedDefId] = useState<string | null>(null);
+    const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+    const [selectedExId, setSelectedExId] = useState<number | null>(null);
+    const [showLogModal, setShowLogModal] = useState(false);
 
     const [formData, setFormData] = useState(EMPTY_FORM);
 
@@ -180,6 +301,8 @@ const JobDefinitions = () => {
         }
     };
 
+    const handleSelectDef = (id: string) => setSelectedDefId(prev => prev === id ? null : id);
+
     const openCreateModal = () => {
         setEditingJob(null);
         setFormData(EMPTY_FORM);
@@ -235,13 +358,32 @@ const JobDefinitions = () => {
                 </div>
             </div>
 
-            <JobDefinitionList 
-                definitions={filteredDefinitions} 
-                executions={executions} 
-                onDelete={handleDelete} 
-                onToggle={handleToggle} 
-                onEdit={handleEdit} 
+            <JobDefinitionList
+                definitions={filteredDefinitions}
+                executions={executions}
+                onDelete={handleDelete}
+                onToggle={handleToggle}
+                onEdit={handleEdit}
                 onPublish={handlePublish}
+                selectedDefId={selectedDefId}
+                onSelect={handleSelectDef}
+            />
+
+            {selectedDefId && (
+                <DefinitionHistoryPanel
+                    definitionId={selectedDefId}
+                    onOpenRun={(jobRunId, executionId) => {
+                        setSelectedRunId(jobRunId);
+                        setSelectedExId(executionId);
+                        setShowLogModal(true);
+                    }}
+                />
+            )}
+            <ExecutionLogModal
+                jobRunId={selectedRunId ?? undefined}
+                executionId={!selectedRunId ? (selectedExId ?? undefined) : undefined}
+                open={showLogModal}
+                onClose={() => { setShowLogModal(false); setSelectedRunId(null); setSelectedExId(null); }}
             />
 
             <JobDefinitionModal
