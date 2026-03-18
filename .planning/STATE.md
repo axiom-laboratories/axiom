@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: — Axiom Commercial Release
 status: planning
-stopped_at: Completed 30-03-PLAN.md — attestation service, job_service wiring, export endpoint, all tests passing
-last_updated: "2026-03-18T17:04:02.820Z"
+stopped_at: Completed 31-01-PLAN.md — env_tag schema, model contracts, dispatch models, migration_v34.sql
+last_updated: "2026-03-18T17:26:26.443Z"
 last_activity: 2026-03-17 — v10.0 roadmap created
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 10
-  completed_plans: 9
+  total_plans: 13
+  completed_plans: 10
   percent: 0
 ---
 
@@ -130,6 +130,10 @@ Progress: [░░░░░░░░░░] 0% (0/5 phases complete)
 - [Phase 30-runtime-attestation]: attestation_service.py imported as module (from . import attestation_service) — preserves namespacing for call site clarity
 - [Phase 30-runtime-attestation]: cert_serial extracted from bundle JSON in GET /attestation endpoint — avoids double cert parse, serial already in signed bundle
 - [Phase 30-runtime-attestation]: test_revoked_cert_stores_failed uses AsyncMock.side_effect for multi-call DB sequence — faster than in-memory SQLite, consistent with phase 29/30 source-inspection pattern
+- [Phase 31-environment-tags-cicd-dispatch]: env_tag normalisation: strip().upper() with None fallback for empty/whitespace — consistent with existing os_family pattern
+- [Phase 31-environment-tags-cicd-dispatch]: DispatchStatusResponse.is_terminal is a plain bool field (caller provides it) — no automatic derivation in model
+- [Phase 31-environment-tags-cicd-dispatch]: pull_work source-inspection tests intentionally RED in Plan 31-01 — ENVTAG-02 implementation deferred to Plan 31-02 per wave design
+- [Phase 31-environment-tags-cicd-dispatch]: migration_v34.sql uses IF NOT EXISTS — safe for existing Postgres deployments; fresh deployments handled by create_all
 
 ### v10.0 Research Flags (carry into planning)
 
@@ -161,7 +165,7 @@ None — v9.0 complete. Key open items for v10.0:
 
 ## Session Continuity
 
-Last session: 2026-03-18T16:59:30.380Z
-Stopped at: Completed 30-03-PLAN.md — attestation service, job_service wiring, export endpoint, all tests passing
+Last session: 2026-03-18T17:26:26.440Z
+Stopped at: Completed 31-01-PLAN.md — env_tag schema, model contracts, dispatch models, migration_v34.sql
 Resume file: None
 Next action: `/gsd:plan-phase 29`
