@@ -182,7 +182,7 @@ Plans:
 | 26. Axiom Branding & Community Foundation | v9.0 | 3/3 | Complete | 2026-03-17 |
 | 27. CI/CD, Packaging & Distribution | v9.0 | 3/3 | Complete | 2026-03-17 |
 | 28. Infrastructure Gap Closure | v9.0 | 1/1 | Complete | 2026-03-17 |
-| 29. Backend Completeness — Output Capture + Retry Wiring | 1/3 | In Progress|  | — |
+| 29. Backend Completeness — Output Capture + Retry Wiring | 2/3 | In Progress|  | — |
 | 30. Runtime Attestation | v10.0 | 0/? | Not started | — |
 | 31. Environment Tags + CI/CD Dispatch | v10.0 | 0/? | Not started | — |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 0/? | Not started | — |
