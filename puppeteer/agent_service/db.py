@@ -41,6 +41,7 @@ class Job(Base):
     backoff_multiplier: Mapped[float] = mapped_column(Float, default=2.0)
     timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     depends_on: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON list of GUIDs
+    job_run_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
 
 
 class RolePermission(Base):
@@ -224,7 +225,13 @@ class ExecutionRecord(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     output_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     truncated: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+    stdout: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    stderr: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    script_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    hash_mismatch: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
+    attempt_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    job_run_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+
     __table_args__ = (
         Index("ix_execution_records_job_guid", "job_guid"),
         Index("ix_execution_records_started_at", started_at.desc()),

@@ -52,6 +52,7 @@ class WorkResponse(BaseModel):
     max_retries: int = 0
     backoff_multiplier: float = 2.0
     timeout_minutes: Optional[int] = None
+    started_at: Optional[datetime] = None
 
 class ResultReport(BaseModel):
     result: Optional[Dict] = None
@@ -61,6 +62,7 @@ class ResultReport(BaseModel):
     exit_code: Optional[int] = None
     security_rejected: bool = False
     retriable: Optional[bool] = None  # None = non-retriable (default); True = retry eligible
+    script_hash: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
