@@ -15,8 +15,8 @@
 
 ### Job Output & Execution History
 
-- [ ] **OUTPUT-01**: Node captures stdout, stderr, and exit code for every job execution and reports them to the orchestrator on completion
-- [ ] **OUTPUT-02**: Orchestrator stores per-execution records (job id, node id, script hash, start time, end time, exit code, stdout, stderr)
+- [x] **OUTPUT-01**: Node captures stdout, stderr, and exit code for every job execution and reports them to the orchestrator on completion
+- [x] **OUTPUT-02**: Orchestrator stores per-execution records (job id, node id, script hash, start time, end time, exit code, stdout, stderr)
 - [ ] **OUTPUT-03**: User can view stdout/stderr output for any past execution from the dashboard (Jobs view or Staging view)
 - [ ] **OUTPUT-04**: User can query execution history — list of all past runs for a given job definition or node, with status and timestamps
 
@@ -28,8 +28,8 @@
 
 ### Retry Policy
 
-- [ ] **RETRY-01**: User can configure a retry policy on a job definition — maximum retry count and backoff strategy (fixed interval or exponential)
-- [ ] **RETRY-02**: When a job execution fails (non-zero exit code or node timeout), the orchestrator automatically re-dispatches according to the retry policy; each attempt is a separate execution record linked to the same job run
+- [x] **RETRY-01**: User can configure a retry policy on a job definition — maximum retry count and backoff strategy (fixed interval or exponential)
+- [x] **RETRY-02**: When a job execution fails (non-zero exit code or node timeout), the orchestrator automatically re-dispatches according to the retry policy; each attempt is a separate execution record linked to the same job run
 - [ ] **RETRY-03**: Dashboard displays retry state (attempt N of M) on in-progress and failed runs, and shows all attempt records in execution history
 
 ### Environment Tags & CI/CD Targeting
@@ -82,15 +82,15 @@
 | RELEASE-01 | Phase 33 | Pending |
 | RELEASE-02 | Phase 33 | Pending |
 | RELEASE-03 | Phase 33 | Pending |
-| OUTPUT-01 | Phase 29 | Pending |
-| OUTPUT-02 | Phase 29 | Pending |
+| OUTPUT-01 | Phase 29 | Complete |
+| OUTPUT-02 | Phase 29 | Complete |
 | OUTPUT-03 | Phase 32 | Pending |
 | OUTPUT-04 | Phase 32 | Pending |
 | OUTPUT-05 | Phase 30 | Pending |
 | OUTPUT-06 | Phase 30 | Pending |
 | OUTPUT-07 | Phase 30 | Pending |
-| RETRY-01 | Phase 29 | Pending |
-| RETRY-02 | Phase 29 | Pending |
+| RETRY-01 | Phase 29 | Complete |
+| RETRY-02 | Phase 29 | Complete |
 | RETRY-03 | Phase 32 | Pending |
 | ENVTAG-01 | Phase 31 | Pending |
 | ENVTAG-02 | Phase 31 | Pending |

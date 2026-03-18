@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: — Axiom Commercial Release
 status: planning
-stopped_at: Phase 29 context gathered
-last_updated: "2026-03-18T11:56:12.116Z"
+stopped_at: Completed 29-01-PLAN.md
+last_updated: "2026-03-18T12:16:24.490Z"
 last_activity: 2026-03-17 — v10.0 roadmap created
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -107,6 +107,9 @@ Progress: [░░░░░░░░░░] 0% (0/5 phases complete)
 - [Phase 27-01]: id-token:write scoped per-job to PyPI publish jobs only — not at workflow level
 - [Phase 27-03]: Task 2 (PyPI Trusted Publisher + GitHub Environments setup) deferred — GitHub org axiom-laboratories and PyPI project axiom-sdk do not exist yet; intentional, to be completed when org is created
 - [Phase 27-03]: GHCR image path ghcr.io/axiom-laboratories/axiom retained as-is in release.yml — intended target org; no change needed until org is created and repo transferred
+- [Phase 29-01]: All new DB columns nullable-only — safe migration for existing deployments, no NOT NULL constraints
+- [Phase 29-01]: job_run_id on both Job and ExecutionRecord tables — Job groups the logical run, ExecutionRecord links each attempt directly without join
+- [Phase 29-01]: Wave 0 stub pattern: model-field stubs use real assertions, implementation stubs use assert False with explicit plan reference
 
 ### v10.0 Research Flags (carry into planning)
 
@@ -138,7 +141,7 @@ None — v9.0 complete. Key open items for v10.0:
 
 ## Session Continuity
 
-Last session: 2026-03-18T11:56:12.113Z
-Stopped at: Phase 29 context gathered
-Resume file: .planning/phases/29-backend-completeness-output-capture-retry-wiring/29-CONTEXT.md
+Last session: 2026-03-18T12:16:24.488Z
+Stopped at: Completed 29-01-PLAN.md
+Resume file: None
 Next action: `/gsd:plan-phase 29`
