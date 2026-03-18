@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
@@ -32,6 +32,9 @@ global.ResizeObserver = class ResizeObserver {
     unobserve() {}
     disconnect() {}
 };
+
+// Mock scrollIntoView — not implemented in jsdom, crashes Radix Select
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
 const createQueryClient = () =>
     new QueryClient({
@@ -159,20 +162,25 @@ describe('Nodes View — ENVTAG-03', () => {
             expect(screen.getByText('dev-host')).toBeInTheDocument();
         });
 
-        // The env filter is not yet implemented — this assertion intentionally fails RED.
-        // After implementation: triggering PROD filter should hide dev-host.
-        // For now, verify the filter dropdown exists so the implementation plan has something to wire.
+        // Filter is now implemented — verify dropdown renders
         const filterEl =
-            screen.queryByText(/All Environments/i) ||
+            screen.queryByText(/Filter by environment/i) ||
             screen.queryByText(/Environment/i);
         expect(filterEl).toBeInTheDocument();
 
-        // After selecting PROD, dev-host should disappear.
-        // This assertion is RED until the filter logic is built.
-        // Placeholder: we check that there is exactly one env filter interaction point.
-        // When implemented, userEvent.selectOptions / userEvent.click will be added here.
-        //
-        // Assert failure to keep the test RED:
-        expect(screen.queryByText('dev-host')).not.toBeInTheDocument();
+        // Trigger the Radix Select to open and pick PROD
+        const trigger = screen.getByRole('combobox');
+        fireEvent.click(trigger);
+
+        // Wait for PROD option to appear in the dropdown portal
+        await waitFor(() => {
+            expect(screen.getByRole('option', { name: 'PROD' })).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByRole('option', { name: 'PROD' }));
+
+        // After selecting PROD, dev-host should disappear
+        await waitFor(() => {
+            expect(screen.queryByText('dev-host')).not.toBeInTheDocument();
+        });
     });
 });

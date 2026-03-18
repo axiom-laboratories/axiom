@@ -530,6 +530,19 @@ const Nodes = () => {
         if (event === 'node:heartbeat') queryClient.invalidateQueries({ queryKey: ['nodes'] });
     });
 
+    const [envFilter, setEnvFilter] = useState<string>('ALL');
+
+    const uniqueEnvTags = useMemo(() => {
+        const tags = (nodes ?? [])
+            .map(n => n.env_tag)
+            .filter((t): t is string => !!t);
+        return Array.from(new Set(tags)).sort();
+    }, [nodes]);
+
+    const displayNodes = (nodes ?? []).filter(n =>
+        envFilter === 'ALL' || n.env_tag === envFilter
+    );
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -551,24 +564,47 @@ const Nodes = () => {
                 </div>
             </div>
 
+            {(uniqueEnvTags.length > 0) && (
+                <div className="flex items-center gap-3">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
+                        Filter by environment:
+                    </label>
+                    <Select value={envFilter} onValueChange={setEnvFilter}>
+                        <SelectTrigger className="w-44 bg-zinc-900 border-zinc-800 text-white h-9">
+                            <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                            <SelectItem value="ALL">All</SelectItem>
+                            {uniqueEnvTags.map(tag => (
+                                <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="h-[220px] rounded-xl border border-zinc-800 bg-zinc-900 animate-pulse" />
                     ))
-                ) : nodes?.length ? (
-                    nodes.map(node => (
-                        <NodeCard 
-                            key={node.node_id} 
-                            node={node} 
-                            onUpgrade={(n) => { setSelectedNode(n); setShowUpgradeModal(true); }} 
+                ) : displayNodes.length ? (
+                    displayNodes.map(node => (
+                        <NodeCard
+                            key={node.node_id}
+                            node={node}
+                            onUpgrade={(n) => { setSelectedNode(n); setShowUpgradeModal(true); }}
                         />
                     ))
                 ) : (
                     <div className="col-span-full py-20 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
                         <Server className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
-                        <h3 className="text-zinc-400 font-medium">No nodes enrolled</h3>
-                        <p className="text-zinc-600 text-sm mt-1">Click "Provision Puppet" to enroll your first node.</p>
+                        <h3 className="text-zinc-400 font-medium">
+                            {envFilter !== 'ALL' ? 'No nodes match this environment filter' : 'No nodes enrolled'}
+                        </h3>
+                        <p className="text-zinc-600 text-sm mt-1">
+                            {envFilter !== 'ALL' ? `Showing nodes tagged "${envFilter}" only.` : 'Click "Provision Puppet" to enroll your first node.'}
+                        </p>
                     </div>
                 )}
             </div>
