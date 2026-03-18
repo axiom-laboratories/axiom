@@ -193,7 +193,7 @@ Plans:
 | 27. CI/CD, Packaging & Distribution | v9.0 | 3/3 | Complete | 2026-03-17 |
 | 28. Infrastructure Gap Closure | v9.0 | 1/1 | Complete | 2026-03-17 |
 | 29. Backend Completeness — Output Capture + Retry Wiring | 3/3 | Complete    | 2026-03-18 | — |
-| 30. Runtime Attestation | 3/3 | Complete   | 2026-03-18 | — |
+| 30. Runtime Attestation | 3/3 | Complete    | 2026-03-18 | — |
 | 31. Environment Tags + CI/CD Dispatch | v10.0 | 0/? | Not started | — |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 0/? | Not started | — |
 | 33. Licence Compliance + Release Infrastructure | 3/4 | Complete    | 2026-03-18 | — |
