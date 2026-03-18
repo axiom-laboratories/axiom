@@ -1,23 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 32-dashboard-ui-execution-history-retry-state-env-tags
 source: [32-01-SUMMARY.md, 32-03-SUMMARY.md, 32-04-SUMMARY.md, 32-05-SUMMARY.md]
 started: 2026-03-18T21:45:00Z
-updated: 2026-03-18T22:55:00Z
+updated: 2026-03-18T23:10:00Z
 ---
 
 ## Current Test
 
-<!-- OVERWRITE each test - shows where we are -->
-
-number: 7
-name: Definition Filter in History View
-expected: |
-  Navigate to the History view. There should be a 4th filter column in the filter
-  bar labelled "Scheduled Job" (or similar). The dropdown lists all available job
-  definitions. Selecting one filters the execution list to show only runs for that
-  definition. Selecting "All" or clearing the filter returns all executions.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -51,22 +42,22 @@ reason: No retry runs present in test environment to verify against
 
 ### 7. Definition Filter in History View
 expected: Navigate to the History view. There should be a 4th filter column in the filter bar labelled "Scheduled Job" (or similar). The dropdown lists all available job definitions. Selecting one filters the execution list to show only runs for that definition. Selecting "All" or clearing the filter returns all executions.
-result: [pending]
+result: pass
 
 ### 8. Node Env Tag Badge
 expected: Navigate to the Nodes view. Any node that was started with an ENV_TAG environment variable set should display a small colour-coded badge on its node card next to the node name. PROD nodes show a rose/red badge, TEST nodes show amber/yellow, DEV nodes show blue, and any custom tag shows zinc/grey. Nodes with no env_tag set show no badge.
-result: [pending]
+result: pass
 
 ### 9. Node Env Tag Filter
 expected: On the Nodes view, if any nodes have an env_tag set, a filter dropdown should appear above the node grid. It lists each unique env tag present in the fleet. Selecting a tag filters the node grid to show only nodes with that tag. Selecting "All Environments" returns all nodes. If no nodes have env_tag set, no filter dropdown appears.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 9
-passed: 3
+passed: 6
 issues: 1
-pending: 3
+pending: 0
 skipped: 2
 
 ## Gaps
