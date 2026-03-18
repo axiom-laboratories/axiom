@@ -28,11 +28,7 @@ RUN pip install --no-cache-dir -r requirements.txt asyncpg sqlalchemy
 # Copy Source
 COPY agent_service/ agent_service/
 COPY model_service/ model_service/
-COPY secrets/ secrets/
-COPY ca/ ca/
-
 # Copy Installer Scripts for static serving
 COPY installer/ installer/
-COPY docs/ docs/
 
 # Entrypoints done via command in compose
