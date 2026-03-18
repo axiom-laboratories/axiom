@@ -15,6 +15,7 @@ from ..models import (
 from ..security import mask_secrets, encrypt_secrets, decrypt_secrets
 from .alert_service import AlertService
 from .webhook_service import WebhookService
+from . import attestation_service
 
 logger = logging.getLogger(__name__)
 
@@ -757,7 +758,19 @@ class JobService:
             attempt_number=job.retry_count + 1,
             # RETRY-02: link all attempts to the same logical run
             job_run_id=job.job_run_id,
+            # OUTPUT-06: attestation fields (verified after record is constructed)
+            attestation_bundle=report.attestation_bundle,
+            attestation_signature=report.attestation_signature,
+            attestation_verified=None,  # Set below after verification
         )
+        # OUTPUT-06: verify attestation bundle before persisting
+        attestation_status = await attestation_service.verify_bundle(
+            node_id=job.node_id,
+            bundle_b64=report.attestation_bundle,
+            signature_b64=report.attestation_signature,
+            db=db,
+        )
+        record.attestation_verified = attestation_status
         db.add(record)
 
         # Update job — keep result as minimal summary only (no stdout/stderr)
