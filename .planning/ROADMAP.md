@@ -209,7 +209,7 @@ Plans:
 | 29. Backend Completeness — Output Capture + Retry Wiring | 3/3 | Complete    | 2026-03-18 | — |
 | 30. Runtime Attestation | 3/3 | Complete    | 2026-03-18 | — |
 | 31. Environment Tags + CI/CD Dispatch | 4/4 | Complete    | 2026-03-18 | — |
-| 32. Dashboard UI — Execution History, Retry State, Env Tags | 3/6 | In Progress|  | — |
+| 32. Dashboard UI — Execution History, Retry State, Env Tags | 4/6 | In Progress|  | — |
 | 33. Licence Compliance + Release Infrastructure | 4/4 | Complete    | 2026-03-18 | — |
 
 ---
