@@ -172,6 +172,7 @@ class SchedulerService:
                 max_retries=s_job.max_retries,
                 backoff_multiplier=s_job.backoff_multiplier,
                 timeout_minutes=s_job.timeout_minutes,
+                env_tag=s_job.env_tag,
             )
             session.add(new_job)
             await session.commit()

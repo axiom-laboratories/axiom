@@ -301,13 +301,15 @@ def heartbeat_loop():
                 
                 caps = get_capabilities()
                 secret_hash = get_node_secret_hash()
+                env_tag = os.getenv("ENV_TAG")
 
                 payload = {
                     "node_id": NODE_ID,
                     "hostname": socket.gethostname(),
                     "stats": stats,
                     "tags": tags,
-                    "capabilities": caps
+                    "capabilities": caps,
+                    "env_tag": env_tag,
                 }
                 
                 if pending_upgrade_result:
