@@ -75,10 +75,15 @@ Archive: `.planning/milestones/v9.0-ROADMAP.md`
   1. A node that executes a job and reports stdout, stderr, and exit code results in a complete `ExecutionRecord` row in the database with all fields populated (job id, node id, script hash, start time, end time, exit code, stdout, stderr)
   2. A job definition with `max_retries=3` and exponential backoff dispatched via the scheduler creates retry attempts automatically when each attempt fails — each attempt is a distinct `ExecutionRecord` row linked to the same job run
   3. The orchestrator runs a scheduled APScheduler pruning task that deletes `ExecutionRecord` rows older than 30 days using a SQLite-compatible delete pattern (no subquery `LIMIT` clause)
-  4. `migration_v14.sql` exists and applies cleanly to an existing database — all new columns are nullable and additive
+  4. `migration_v32.sql` exists and applies cleanly to an existing database — all new columns are nullable and additive
   5. `WorkResponse` includes `max_retries`, `backoff_multiplier`, `timeout_minutes`, and `started_at` fields when a node polls for work
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 29-01-PLAN.md — DB schema extension, Pydantic model updates, migration_v32.sql, failing test stubs
+- [ ] 29-02-PLAN.md — Orchestrator service wiring: pull_work() retry fields + job_run_id, report_result() output capture
+- [ ] 29-03-PLAN.md — Node-side: direct mode removal, startup guard, script_hash computation, mop_validation compose updates
 
 ---
 
@@ -177,7 +182,7 @@ Archive: `.planning/milestones/v9.0-ROADMAP.md`
 | 26. Axiom Branding & Community Foundation | v9.0 | 3/3 | Complete | 2026-03-17 |
 | 27. CI/CD, Packaging & Distribution | v9.0 | 3/3 | Complete | 2026-03-17 |
 | 28. Infrastructure Gap Closure | v9.0 | 1/1 | Complete | 2026-03-17 |
-| 29. Backend Completeness — Output Capture + Retry Wiring | v10.0 | 0/? | Not started | — |
+| 29. Backend Completeness — Output Capture + Retry Wiring | v10.0 | 0/3 | Not started | — |
 | 30. Runtime Attestation | v10.0 | 0/? | Not started | — |
 | 31. Environment Tags + CI/CD Dispatch | v10.0 | 0/? | Not started | — |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 0/? | Not started | — |
