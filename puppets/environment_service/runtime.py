@@ -39,10 +39,12 @@ class ContainerRuntime:
         input_data: str = None,
         memory_limit: Optional[str] = None,
         cpu_limit: Optional[str] = None,
+        timeout: Optional[int] = 30,
     ) -> Dict:
         """
         Executes a containerized job.
         network_ref: ID/Hostname of the container to share network with (for Sidecar access).
+        timeout: Maximum seconds to wait for execution (default 30s).
         """
 
         cmd = [self.runtime, "run", "--rm"]
@@ -91,7 +93,19 @@ class ContainerRuntime:
             stderr=asyncio.subprocess.PIPE
         )
 
-        stdout, stderr = await proc.communicate(input=input_data.encode() if input_data else None)
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=input_data.encode() if input_data else None),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.communicate()
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Execution timed out after {timeout}s",
+            }
 
         return {
             "exit_code": proc.returncode,

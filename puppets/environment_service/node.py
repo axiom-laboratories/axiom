@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import httpx
 import uuid
 import os
@@ -497,6 +498,8 @@ class Node:
         payload = job.get("payload", {})
         memory_limit = job.get("memory_limit")
         cpu_limit = job.get("cpu_limit")
+        timeout_minutes = job.get("timeout_minutes")
+        timeout_secs = (timeout_minutes * 60) if timeout_minutes else 30
 
         print(f"[{self.node_id}] Executing Job {guid} [{task_type}]")
 
@@ -537,7 +540,10 @@ class Node:
                 print(f"[{self.node_id}] ❌ Signature Verification FAILED for Job {guid}: {e}")
                 await self.report_result(guid, False, {"error": "Signature Verification Failed"}, security_rejected=True)
                 return
-            
+
+            # Compute SHA-256 of script before execution for attestation
+            script_hash = hashlib.sha256(script.encode('utf-8')).hexdigest()
+
             # Prepare Environment
             krb_ccname = os.environ.get("KRB5CCNAME")
             env = {
@@ -578,6 +584,7 @@ class Node:
                    input_data=script,
                    memory_limit=memory_limit,
                    cpu_limit=cpu_limit,
+                   timeout=timeout_secs,
                 )
                 
                 success = (result["exit_code"] == 0)
@@ -597,7 +604,8 @@ class Node:
                 # We report the container output.
 
                 await self.report_result(guid, success, runtime_report,
-                                         output_log=output_log, exit_code=exit_code)
+                                         output_log=output_log, exit_code=exit_code,
+                                         script_hash=script_hash)
                 
             except Exception as e:
                  print(f"[{self.node_id}] Runtime Execution Failed: {e}")
@@ -609,7 +617,8 @@ class Node:
              await self.report_result(guid, True, {"processed": True})
 
     async def report_result(self, guid: str, success: bool, result: Dict,
-                            output_log=None, exit_code=None, security_rejected=False):
+                            output_log=None, exit_code=None, security_rejected=False,
+                            script_hash=None):
         try:
             async with httpx.AsyncClient(
                 verify=VERIFY_SSL,
@@ -624,6 +633,7 @@ class Node:
                         "output_log": output_log,
                         "exit_code": exit_code,
                         "security_rejected": security_rejected,
+                        "script_hash": script_hash,
                     },
                     headers={
                         API_KEY_NAME: API_KEY,

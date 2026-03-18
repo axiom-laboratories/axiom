@@ -60,8 +60,35 @@ def test_execution_record_has_script_hash():
 
 def test_node_computes_script_hash():
     """OUTPUT-02: node.py execute_task must compute SHA-256 of script before execution.
-    Implement after node.py changes in plan 03."""
-    assert False, "implement after node.py changes in plan 03"
+    Verifies via source inspection that hashlib.sha256 is called with script.encode
+    before the runtime_engine.run() call, and that script_hash is passed to report_result."""
+    import os
+
+    node_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "puppets", "environment_service", "node.py")
+    )
+    with open(node_path) as f:
+        source = f.read()
+
+    # Confirm hashlib is imported
+    assert "import hashlib" in source, "hashlib not imported in node.py"
+
+    # Confirm SHA-256 computation of the script content
+    assert "hashlib.sha256(script.encode" in source, (
+        "hashlib.sha256(script.encode(...)) not found in node.py execute_task"
+    )
+
+    # Confirm script_hash is forwarded to report_result
+    assert "script_hash=script_hash" in source, (
+        "script_hash not passed to report_result() in node.py"
+    )
+
+    # Confirm ordering: hash computed before runtime call
+    sha256_pos = source.index("hashlib.sha256(script.encode")
+    run_pos = source.index("runtime_engine.run(")
+    assert sha256_pos < run_pos, (
+        "script_hash computation must appear before runtime_engine.run() call in source"
+    )
 
 
 def test_stdout_extraction_after_scrubbing():
