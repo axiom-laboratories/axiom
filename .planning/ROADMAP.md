@@ -125,7 +125,12 @@ Plans:
   3. `POST /api/dispatch` accepts `{job_definition_id, env_tag, ...}`, requires service principal auth, and returns `{job_guid, status, job_definition, env_tag, poll_url}` — the `poll_url` field points to a stable endpoint that CI/CD pipelines can poll until the job reaches a terminal state
   4. `GET /api/dispatch/{job_guid}/status` returns structured JSON with `{status, exit_code, node_id, attempt, started_at, completed_at}` — suitable for pipeline pass/fail decisions without HTML scraping
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 31-01-PLAN.md — Test scaffold (Wave 0 stubs), DB schema extension (env_tag on Node/Job/ScheduledJob), Pydantic model updates, migration_v34.sql
+- [ ] 31-02-PLAN.md — env_tag filter in pull_work(), receive_heartbeat() storage, scheduler_service propagation, node.py ENV_TAG
+- [ ] 31-03-PLAN.md — POST /api/dispatch and GET /api/dispatch/{job_guid}/status routes in main.py
 
 ---
 
@@ -194,7 +199,7 @@ Plans:
 | 28. Infrastructure Gap Closure | v9.0 | 1/1 | Complete | 2026-03-17 |
 | 29. Backend Completeness — Output Capture + Retry Wiring | 3/3 | Complete    | 2026-03-18 | — |
 | 30. Runtime Attestation | 3/3 | Complete    | 2026-03-18 | — |
-| 31. Environment Tags + CI/CD Dispatch | v10.0 | 0/? | Not started | — |
+| 31. Environment Tags + CI/CD Dispatch | v10.0 | 0/3 | Not started | — |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 0/? | Not started | — |
 | 33. Licence Compliance + Release Infrastructure | 3/4 | Complete    | 2026-03-18 | — |
 
