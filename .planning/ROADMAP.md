@@ -157,7 +157,12 @@ Plans:
   4. The `axiom-laboratories` GitHub organisation exists, the `axiom-sdk` PyPI project has a configured Trusted Publisher (pending publisher via OIDC — not a standard API token), and pushing a version tag triggers the release workflow with a dry-run against test.pypi.org passing first
   5. A documented decision on public `/docs/` access exists — either a confirmed public-facing path for open-source adoption, or an explicit deferral with written rationale referencing the CF Access policy
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 33-01-PLAN.md — paramiko removal + PEP 639 pyproject.toml updates
+- [ ] 33-02-PLAN.md — LEGAL-COMPLIANCE.md, NOTICE, DECISIONS.md
+- [ ] 33-03-PLAN.md — Release infrastructure setup + testpypi dry-run checkpoint
 
 ---
 
