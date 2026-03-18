@@ -437,6 +437,8 @@ async def list_executions(
     node_id: Optional[str] = None,
     status: Optional[str] = None,
     job_guid: Optional[str] = None,
+    scheduled_job_id: Optional[str] = None,
+    job_run_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permission("history:read"))
 ):
@@ -448,6 +450,11 @@ async def list_executions(
         query = query.where(ExecutionRecord.status == status)
     if job_guid:
         query = query.where(ExecutionRecord.job_guid == job_guid)
+    if scheduled_job_id:
+        subq = select(Job.guid).where(Job.scheduled_job_id == scheduled_job_id)
+        query = query.where(ExecutionRecord.job_guid.in_(subq))
+    if job_run_id:
+        query = query.where(ExecutionRecord.job_run_id == job_run_id)
     
     query = query.order_by(desc(ExecutionRecord.started_at)).offset(skip).limit(limit)
     result = await db.execute(query)
@@ -483,6 +490,7 @@ async def list_executions(
             hash_mismatch=r.hash_mismatch,
             attempt_number=r.attempt_number,
             job_run_id=r.job_run_id,
+            attestation_verified=r.attestation_verified,
         ))
     return responses
 
@@ -526,6 +534,7 @@ async def get_execution(
         hash_mismatch=r.hash_mismatch,
         attempt_number=r.attempt_number,
         job_run_id=r.job_run_id,
+        attestation_verified=r.attestation_verified,
     )
 
 @app.get("/api/executions/{id}/attestation", response_model=AttestationExportResponse,
