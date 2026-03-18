@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: — Axiom Commercial Release
 status: planning
-stopped_at: Completed 32-01-PLAN.md
-last_updated: "2026-03-18T20:07:52.203Z"
+stopped_at: Completed 32-02-PLAN.md
+last_updated: "2026-03-18T20:13:10.159Z"
 last_activity: 2026-03-17 — v10.0 roadmap created
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 16
   percent: 0
 ---
 
@@ -143,6 +143,8 @@ Progress: [░░░░░░░░░░] 0% (0/5 phases complete)
 - [Phase 33]: Plan 33-03 deferred to gap-closure plan 33-04 — GitHub org axiom-laboratories and PyPI project axiom-agent-sdk did not exist when 33-03 was scheduled; 33-04 completed all objectives on 2026-03-18
 - [Phase 32-01]: attestation_verified exposed as Optional[str] = None on ExecutionRecordResponse — matches DB String(16) column; accepts 'verified', 'failed', 'missing', or None
 - [Phase 32-01]: scheduled_job_id filter uses subquery through jobs table (not join) — ExecutionRecord has no direct FK to ScheduledJob; chain is ScheduledJob.id -> Job.scheduled_job_id -> Job.guid -> ExecutionRecord.job_guid
+- [Phase Phase 32-02]: getAllByText used instead of getByText for History regression guards — filter labels appear in multiple DOM nodes
+- [Phase Phase 32-02]: fireEvent used instead of userEvent.click — @testing-library/user-event not installed; avoids adding dependency for JobDefinitions tests
 
 ### v10.0 Research Flags (carry into planning)
 
@@ -174,7 +176,7 @@ None — v9.0 complete. Key open items for v10.0:
 
 ## Session Continuity
 
-Last session: 2026-03-18T20:07:52.201Z
-Stopped at: Completed 32-01-PLAN.md
+Last session: 2026-03-18T20:13:05.099Z
+Stopped at: Completed 32-02-PLAN.md
 Resume file: None
 Next action: `/gsd:plan-phase 29`
