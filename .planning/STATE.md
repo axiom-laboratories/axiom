@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: — Axiom Commercial Release
 status: planning
-stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-03-18T12:20:40.673Z"
+stopped_at: Completed 29-03-PLAN.md
+last_updated: "2026-03-18T12:22:22.335Z"
 last_activity: 2026-03-17 — v10.0 roadmap created
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -112,6 +112,8 @@ Progress: [░░░░░░░░░░] 0% (0/5 phases complete)
 - [Phase 29-01]: Wave 0 stub pattern: model-field stubs use real assertions, implementation stubs use assert False with explicit plan reference
 - [Phase 29]: Source-inspection test pattern used for pull_work() and report_result() — inspect.getsource() assertions confirm structural invariants without requiring full async mock setup
 - [Phase 29]: orchestrator_hash always stored on ExecutionRecord (not node_hash) — independent verifiers can reproduce it from the job payload alone; hash_mismatch logs at WARNING only — enforcement deferred to Phase 30 attestation layer
+- [Phase 29]: AST-based source extraction used to test _check_execution_mode() without triggering full module import side effects
+- [Phase 29]: script_hash computed after signature verification passes, before runtime.run() — attestation hash order invariant preserved
 
 ### v10.0 Research Flags (carry into planning)
 
@@ -143,7 +145,7 @@ None — v9.0 complete. Key open items for v10.0:
 
 ## Session Continuity
 
-Last session: 2026-03-18T12:20:34.879Z
-Stopped at: Completed 29-02-PLAN.md
+Last session: 2026-03-18T12:22:22.333Z
+Stopped at: Completed 29-03-PLAN.md
 Resume file: None
 Next action: `/gsd:plan-phase 29`

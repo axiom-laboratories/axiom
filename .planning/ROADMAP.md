@@ -53,7 +53,7 @@ Archive: `.planning/milestones/v9.0-ROADMAP.md`
 
 ### v10.0 — Axiom Commercial Release (Phases 29–33)
 
-- [ ] **Phase 29: Backend Completeness — Output Capture + Retry Wiring** — Close node.py output gaps, wire scheduler retry propagation, add output retention pruning
+- [x] **Phase 29: Backend Completeness — Output Capture + Retry Wiring** — Close node.py output gaps, wire scheduler retry propagation, add output retention pruning (completed 2026-03-18)
 - [ ] **Phase 30: Runtime Attestation** — Node RSA signing of execution bundles, orchestrator verification, attestation storage and export
 - [ ] **Phase 31: Environment Tags + CI/CD Dispatch** — First-class env_tag column, ENV_TAG heartbeat support, structured POST /api/dispatch endpoint
 - [ ] **Phase 32: Dashboard UI — Execution History, Retry State, Env Tags** — Execution history panel, retry state badges, attestation verification badges, env tag badges and filters
@@ -182,7 +182,7 @@ Plans:
 | 26. Axiom Branding & Community Foundation | v9.0 | 3/3 | Complete | 2026-03-17 |
 | 27. CI/CD, Packaging & Distribution | v9.0 | 3/3 | Complete | 2026-03-17 |
 | 28. Infrastructure Gap Closure | v9.0 | 1/1 | Complete | 2026-03-17 |
-| 29. Backend Completeness — Output Capture + Retry Wiring | 2/3 | In Progress|  | — |
+| 29. Backend Completeness — Output Capture + Retry Wiring | 3/3 | Complete   | 2026-03-18 | — |
 | 30. Runtime Attestation | v10.0 | 0/? | Not started | — |
 | 31. Environment Tags + CI/CD Dispatch | v10.0 | 0/? | Not started | — |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 0/? | Not started | — |
