@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import {
@@ -37,6 +37,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import AddNodeModal from '../components/AddNodeModal';
 import ManageMountsModal from '../components/ManageMountsModal';
 import HotUpgradeModal from '../components/HotUpgradeModal';
@@ -70,6 +77,7 @@ interface Node {
     concurrency_limit?: number;
     job_memory_limit?: string;
     stats_history?: StatPoint[];
+    env_tag?: string;
 }
 
 const fetchNodes = async (): Promise<Node[]> => {
@@ -95,6 +103,19 @@ const getEnvBadgeColor = (tag: string) => {
         case 'staging': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
         case 'test': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
         default: return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+    }
+};
+
+const getEnvTagBadgeClass = (tag: string): string => {
+    switch (tag.toUpperCase()) {
+        case 'PROD':
+            return 'bg-rose-500/10 text-rose-500 border-rose-500/20 font-bold';
+        case 'TEST':
+            return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+        case 'DEV':
+            return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+        default:
+            return 'bg-zinc-800 text-zinc-300 border-zinc-700';
     }
 };
 
@@ -328,6 +349,11 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                         {node.hostname}
                         {statusDot}
                         {isRevoked && <span className="text-[10px] font-mono text-amber-500 border border-amber-500/30 rounded px-1">REVOKED</span>}
+                        {node.env_tag && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getEnvTagBadgeClass(node.env_tag)}`}>
+                                {node.env_tag.toUpperCase()}
+                            </span>
+                        )}
                     </CardTitle>
                     <CardDescription className="text-xs font-mono text-zinc-500">{node.ip}</CardDescription>
                 </div>
