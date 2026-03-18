@@ -14,9 +14,6 @@ class ContainerRuntime:
 
     def detect_runtime(self) -> str:
         mode = os.environ.get("EXECUTION_MODE", "auto").lower()
-        if mode == "direct":
-            logger.warning("EXECUTION_MODE=direct: scripts run in node process — no container isolation")
-            return "direct"
         if mode in ("docker", "podman"):
             logger.info(f"EXECUTION_MODE={mode} (explicit)")
             return mode
@@ -29,7 +26,7 @@ class ContainerRuntime:
             return "docker"
         raise RuntimeError(
             "No container runtime found and EXECUTION_MODE=auto. "
-            "Install docker/podman, or set EXECUTION_MODE=direct to opt into running without isolation."
+            "Install docker/podman or set EXECUTION_MODE=docker or EXECUTION_MODE=podman."
         )
 
     async def run(
@@ -47,20 +44,6 @@ class ContainerRuntime:
         Executes a containerized job.
         network_ref: ID/Hostname of the container to share network with (for Sidecar access).
         """
-
-        if self.runtime == "direct":
-            # Execute script directly in node process environment
-            import sys
-            merged_env = {**os.environ, **env}
-            proc = await asyncio.create_subprocess_exec(
-                sys.executable, "-",
-                stdin=asyncio.subprocess.PIPE if input_data else None,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=merged_env
-            )
-            stdout, stderr = await proc.communicate(input=input_data.encode() if input_data else None)
-            return {"exit_code": proc.returncode, "stdout": stdout.decode(), "stderr": stderr.decode()}
 
         cmd = [self.runtime, "run", "--rm"]
         if input_data:

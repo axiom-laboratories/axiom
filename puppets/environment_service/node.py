@@ -47,6 +47,19 @@ def build_output_log(stdout: str, stderr: str) -> list:
 
 load_dotenv()
 
+
+def _check_execution_mode():
+    """Raise RuntimeError at startup if EXECUTION_MODE=direct (no longer supported)."""
+    _exec_mode = os.environ.get("EXECUTION_MODE", "auto").lower()
+    if _exec_mode == "direct":
+        raise RuntimeError(
+            "EXECUTION_MODE=direct is no longer supported. "
+            "Use EXECUTION_MODE=docker, podman, or auto."
+        )
+
+
+_check_execution_mode()
+
 AGENT_URL = os.getenv("AGENT_URL", "https://localhost:8001")
 API_KEY_NAME = "X-API-KEY"
 API_KEY = os.getenv("API_KEY", "master-secret-key")
