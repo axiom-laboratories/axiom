@@ -102,16 +102,13 @@ class HeartbeatPayload(BaseModel):
     def normalize_env_tag(cls, v):
         return v.strip().upper() if isinstance(v, str) and v.strip() else None
 
-class NodeConfig(BaseModel):
-    concurrency_limit: int
-    job_memory_limit: str
-    job_cpu_limit: Optional[str] = None
-    tags: Optional[List[str]] = None
-    env_tag: Optional[str] = None
-
 class PollResponse(BaseModel):
     job: Optional[WorkResponse] = None
-    config: NodeConfig
+    env_tag: Optional[str] = None
+
+class NodeUpdateRequest(BaseModel):
+    tags: Optional[List[str]] = None
+    env_tag: Optional[str] = None
 
 class AlertResponse(BaseModel):
     id: int

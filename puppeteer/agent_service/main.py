@@ -20,7 +20,7 @@ from contextlib import asynccontextmanager
 
 from .models import (
     JobCreate, RegisterRequest, RegisterResponse, JobResponse, WorkResponse,
-    ResultReport, TokenResponse, HeartbeatPayload, NodeConfig, PollResponse,
+    ResultReport, TokenResponse, HeartbeatPayload, PollResponse, NodeUpdateRequest,
     NodeResponse, SignatureCreate, SignatureResponse, JobDefinitionCreate, JobDefinitionUpdate,
     JobDefinitionResponse, JobPushRequest, PingRequest, NetworkMount, MountsConfig,
     UploadKeyRequest,
@@ -1132,7 +1132,7 @@ async def list_nodes(current_user: User = Depends(require_auth), db: AsyncSessio
     return resp
 
 @app.patch("/nodes/{node_id}", tags=["Nodes"])
-async def update_node_config(node_id: str, config: NodeConfig, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def update_node_config(node_id: str, config: NodeUpdateRequest, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
     if not node:
