@@ -1,5 +1,6 @@
 import pytest
 import asyncio
+import importlib.metadata
 import uuid
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -41,3 +42,17 @@ async def db_session(engine):
     from agent_service.db import AsyncSessionLocal
     async with AsyncSessionLocal() as session:
         yield session
+
+
+def pytest_collection_modifyitems(config, items):
+    try:
+        importlib.metadata.version("axiom-ee")
+        ee_installed = True
+    except importlib.metadata.PackageNotFoundError:
+        ee_installed = False
+
+    if not ee_installed:
+        skip_ee = pytest.mark.skip(reason="EE package not installed")
+        for item in items:
+            if item.get_closest_marker("ee_only"):
+                item.add_marker(skip_ee)
