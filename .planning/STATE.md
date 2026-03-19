@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Phase 34 context gathered
-last_updated: "2026-03-19T18:57:06.440Z"
+stopped_at: Completed 34-02-PLAN.md
+last_updated: "2026-03-19T20:06:00.667Z"
 last_activity: 2026-03-19 — v11.0 roadmap created
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -51,6 +51,8 @@ Progress: [░░░░░░░░░░] 0%
 - v11.0: `__init__.py` must never be compiled to .so — CPython bug #59828; leave as plain Python importing compiled submodules
 - v11.0: Stub routers guarded with `if not ctx.{feature}:` after `register()` completes — prevents silent FastAPI duplicate route shadowing
 - v11.0: Ed25519 offline licence validation only — no online call-home; air-gapped deployments are a core use case
+- [Phase 34-ce-baseline-fixes]: Active pytest config is root pyproject.toml — markers added there, not puppeteer/pyproject.toml
+- [Phase 34-ce-baseline-fixes]: test_bootstrap_admin.py import paths fixed from puppeteer.* to agent_service.* (Rule 1 auto-fix during GAP-04 work)
 
 ### Pending Todos
 
@@ -67,7 +69,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-19T18:57:06.438Z
-Stopped at: Phase 34 context gathered
-Resume file: .planning/phases/34-ce-baseline-fixes/34-CONTEXT.md
+Last session: 2026-03-19T20:06:00.664Z
+Stopped at: Completed 34-02-PLAN.md
+Resume file: None
 Next action: `/gsd:plan-phase 34`

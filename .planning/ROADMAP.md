@@ -152,7 +152,7 @@ Plans:
 | 31. Environment Tags + CI/CD Dispatch | v10.0 | 4/4 | Complete | 2026-03-18 |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 7/7 | Complete | 2026-03-19 |
 | 33. Licence Compliance + Release Infrastructure | v10.0 | 4/4 | Complete | 2026-03-18 |
-| 34. CE Baseline Fixes | v11.0 | 0/3 | Not started | - |
+| 34. CE Baseline Fixes | 1/3 | In Progress|  | - |
 | 35. Private EE Repo + Plugin Wiring | v11.0 | 0/TBD | Not started | - |
 | 36. Cython .so Build Pipeline | v11.0 | 0/TBD | Not started | - |
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 0/TBD | Not started | - |
