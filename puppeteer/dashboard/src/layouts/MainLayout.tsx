@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
 import {
     LayoutDashboard,
     Network,
@@ -12,15 +11,14 @@ import {
     Boxes,
     ScrollText,
     Users,
-    KeyRound,
     CalendarClock,
     Bot,
     Webhook,
     History as HistoryIcon,
     BookOpen,
+    Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
     DropdownMenu,
@@ -30,98 +28,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { authenticatedFetch, setToken, getUser, logout } from '../auth';
+import { getUser, logout } from '../auth';
+import { useFeatures } from '../hooks/useFeatures';
 import { NotificationBell } from '@/components/NotificationBell';
-
-const ForceChangeModal = () => {
-    const [newPw, setNewPw] = useState('');
-    const [confirmPw, setConfirmPw] = useState('');
-    const [err, setErr] = useState('');
-
-    const { data: me, refetch } = useQuery({
-        queryKey: ['me'],
-        queryFn: async () => {
-            const res = await authenticatedFetch('/auth/me');
-            return res.json() as Promise<{ username: string; role: string; must_change_password: boolean }>;
-        },
-    });
-
-    const changePw = useMutation({
-        mutationFn: async () => {
-            const res = await authenticatedFetch('/auth/me', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: newPw }),
-            });
-            if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
-            return res.json() as Promise<{ access_token?: string }>;
-        },
-        onSuccess: (data) => {
-            if (data?.access_token) setToken(data.access_token);
-            refetch();
-        },
-        onError: (e: Error) => setErr(e.message),
-    });
-
-    if (!me?.must_change_password) return null;
-
-    return (
-        <Dialog open={true} onOpenChange={() => { }}>
-            <DialogContent
-                className="bg-zinc-900 border-zinc-700 max-w-sm"
-                onInteractOutside={(e) => e.preventDefault()}
-                onEscapeKeyDown={(e) => e.preventDefault()}
-            >
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-3 text-white">
-                        <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                            <KeyRound className="h-5 w-5 text-amber-400" />
-                        </div>
-                        Password Change Required
-                    </DialogTitle>
-                    <DialogDescription className="text-zinc-500">
-                        You must set a new password before continuing.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3">
-                    <Input
-                        type="password"
-                        placeholder="New password (min 8 chars)"
-                        value={newPw}
-                        onChange={e => { setNewPw(e.target.value); setErr(''); }}
-                        className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
-                    />
-                    <Input
-                        type="password"
-                        placeholder="Confirm new password"
-                        value={confirmPw}
-                        onChange={e => { setConfirmPw(e.target.value); setErr(''); }}
-                        className={`bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600 ${confirmPw && confirmPw !== newPw ? 'border-red-500/50' : ''}`}
-                    />
-                    {confirmPw && confirmPw !== newPw && <p className="text-xs text-red-400">Passwords don't match</p>}
-                    {err && <p className="text-xs text-red-400">{err}</p>}
-                    <Button
-                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold"
-                        onClick={() => changePw.mutate()}
-                        disabled={newPw.length < 8 || newPw !== confirmPw || changePw.isPending}
-                    >
-                        {changePw.isPending ? 'Updating…' : 'Set New Password'}
-                    </Button>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-};
 
 const MainLayout = () => {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const features = useFeatures();
 
     const NavItem = ({ to, icon: Icon, label }: { to: string, icon: React.ComponentType<{ className?: string }>, label: string }) => (
         <NavLink
@@ -135,6 +48,21 @@ const MainLayout = () => {
         >
             <Icon className="h-4 w-4 shrink-0" />
             <span>{label}</span>
+        </NavLink>
+    );
+
+    const NavItemEE = ({ to, icon: Icon, label, enabled }: { to: string, icon: React.ComponentType<{ className?: string }>, label: string, enabled: boolean }) => (
+        <NavLink
+            to={to}
+            className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-zinc-800 hover:text-white ${isActive ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400"}`
+            }
+            onClick={() => setIsMobileOpen(false)}
+            aria-label={label}
+        >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{label}</span>
+            {!enabled && <Lock className="h-3 w-3 text-zinc-600 shrink-0" />}
         </NavLink>
     );
 
@@ -167,16 +95,16 @@ const MainLayout = () => {
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         Foundry
                     </div>
-                    <NavItem to="/templates" icon={Boxes} label="Templates" />
+                    <NavItemEE to="/templates" icon={Boxes} label="Templates" enabled={features.foundry} />
 
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         System
                     </div>
                     <NavItem to="/admin" icon={Settings} label="Settings" />
-                    <NavItem to="/users" icon={Users} label="Users & Roles" />
-                    <NavItem to="/service-principals" icon={Bot} label="Service Principals" />
-                    <NavItem to="/webhooks" icon={Webhook} label="Webhooks" />
-                    <NavItem to="/audit" icon={ScrollText} label="Audit Log" />
+                    <NavItemEE to="/users" icon={Users} label="Users & Roles" enabled={features.rbac} />
+                    <NavItemEE to="/service-principals" icon={Bot} label="Service Principals" enabled={features.service_principals} />
+                    <NavItemEE to="/webhooks" icon={Webhook} label="Webhooks" enabled={features.webhooks} />
+                    <NavItemEE to="/audit" icon={ScrollText} label="Audit Log" enabled={features.audit} />
 
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
                         Documentation
@@ -212,7 +140,6 @@ const MainLayout = () => {
 
     return (
         <div className="flex min-h-screen w-full bg-zinc-975 text-white">
-            <ForceChangeModal />
             {/* Desktop Sidebar */}
             <aside className="hidden border-r border-zinc-900 w-64 shrink-0 md:block bg-zinc-975" role="navigation" aria-label="Main Sidebar">
                 <SidebarContent />

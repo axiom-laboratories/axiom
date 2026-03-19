@@ -4,6 +4,8 @@ import { ScrollText, Bot } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authenticatedFetch } from '../auth';
+import { useFeatures } from '../hooks/useFeatures';
+import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 
 interface AuditEntry {
     id: number;
@@ -151,4 +153,12 @@ const AuditLog = () => {
     );
 };
 
-export default AuditLog;
+const AuditLogWithFeatureCheck = () => {
+    const features = useFeatures();
+    if (!features.audit) {
+        return <UpgradePlaceholder feature="Audit Log" description="Full security audit trail with retention policies, filtering, and export for compliance requirements." />;
+    }
+    return <AuditLog />;
+};
+
+export default AuditLogWithFeatureCheck;

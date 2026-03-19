@@ -28,6 +28,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch } from '../auth';
+import { useFeatures } from '../hooks/useFeatures';
+import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 import { CreateTemplateDialog } from '../components/CreateTemplateDialog';
 import BlueprintWizard from '../components/foundry/BlueprintWizard';
 
@@ -802,4 +804,12 @@ const Templates = () => {
     );
 };
 
-export default Templates;
+const TemplatesWithFeatureCheck = () => {
+    const features = useFeatures();
+    if (!features.foundry) {
+        return <UpgradePlaceholder feature="Foundry" description="Build and manage custom node images with Blueprint templates, capability matrix injection, and BOM tracking." />;
+    }
+    return <Templates />;
+};
+
+export default TemplatesWithFeatureCheck;

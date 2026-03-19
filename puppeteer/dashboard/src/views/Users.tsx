@@ -18,6 +18,8 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { authenticatedFetch } from '../auth';
+import { useFeatures } from '../hooks/useFeatures';
+import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 
 const ALL_PERMISSIONS = [
     'jobs:read', 'jobs:write',
@@ -490,4 +492,12 @@ const Users = () => {
     );
 };
 
-export default Users;
+const UsersWithFeatureCheck = () => {
+    const features = useFeatures();
+    if (!features.rbac) {
+        return <UpgradePlaceholder feature="Users & RBAC" description="Multi-user management with role-based access control (admin, operator, viewer) and per-role permission assignment." />;
+    }
+    return <Users />;
+};
+
+export default UsersWithFeatureCheck;

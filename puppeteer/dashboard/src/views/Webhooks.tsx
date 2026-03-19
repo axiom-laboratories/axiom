@@ -37,6 +37,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch, getUser } from '../auth';
+import { useFeatures } from '../hooks/useFeatures';
+import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface WebhookData {
@@ -284,4 +286,12 @@ const Webhooks = () => {
     );
 };
 
-export default Webhooks;
+const WebhooksWithFeatureCheck = () => {
+    const features = useFeatures();
+    if (!features.webhooks) {
+        return <UpgradePlaceholder feature="Webhooks" description="Outbound event delivery with HMAC signing, retry logic, and per-event filtering for integration with external systems." />;
+    }
+    return <Webhooks />;
+};
+
+export default WebhooksWithFeatureCheck;

@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 
 import { authenticatedFetch, getUser } from '../auth';
+import { useFeatures } from '../hooks/useFeatures';
+import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 
 import {
     Card,
@@ -667,4 +669,12 @@ const ServicePrincipals: React.FC = () => {
     );
 };
 
-export default ServicePrincipals;
+const ServicePrincipalsWithFeatureCheck = () => {
+    const features = useFeatures();
+    if (!features.service_principals) {
+        return <UpgradePlaceholder feature="Service Principals" description="Machine-to-machine authentication with client credentials for CI/CD pipeline integration." />;
+    }
+    return <ServicePrincipals />;
+};
+
+export default ServicePrincipalsWithFeatureCheck;
