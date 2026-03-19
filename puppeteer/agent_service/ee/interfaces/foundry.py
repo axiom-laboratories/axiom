@@ -39,6 +39,9 @@ async def template_put(template_id: str): return _EE_RESPONSE
 @foundry_stub_router.delete("/api/templates/{template_id}")
 async def template_delete(template_id: str): return _EE_RESPONSE
 
+@foundry_stub_router.patch("/api/templates/{template_id}/status")
+async def templates_status_patch(template_id: str): return _EE_RESPONSE
+
 @foundry_stub_router.post("/api/templates/{template_id}/build")
 async def template_build(template_id: str): return _EE_RESPONSE
 

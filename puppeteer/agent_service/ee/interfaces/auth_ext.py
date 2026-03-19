@@ -18,8 +18,8 @@ async def service_principals_post(): return _EE_RESPONSE
 @auth_ext_stub_router.get("/admin/service-principals/{sp_id}")
 async def service_principal_get(sp_id: str): return _EE_RESPONSE
 
-@auth_ext_stub_router.put("/admin/service-principals/{sp_id}")
-async def service_principal_put(sp_id: str): return _EE_RESPONSE
+@auth_ext_stub_router.patch("/admin/service-principals/{sp_id}")
+async def service_principal_patch(sp_id: str): return _EE_RESPONSE
 
 @auth_ext_stub_router.delete("/admin/service-principals/{sp_id}")
 async def service_principal_delete(sp_id: str): return _EE_RESPONSE
