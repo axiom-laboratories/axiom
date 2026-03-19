@@ -42,3 +42,4 @@ jobs.db
 
 # Python build artifacts
 *.egg-info/
+.worktrees/
