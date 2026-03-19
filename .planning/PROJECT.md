@@ -62,12 +62,21 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Environment tags (DEV/TEST/PROD) — nodes declare in heartbeat, jobs target by env_tag, CI/CD dispatch API (POST /api/dispatch) — v10.0
 - ✓ Licence compliance — LEGAL.md certifi decision, axiom-sdk licence field, NOTICE file, paramiko assessment complete — v10.0
 
-### Active — v11.0 (Next Milestone)
+### Active — v11.0 CE/EE Split Completion
+
+**Goal:** Complete the Axiom open-core split — fix the 4 blocking gaps on `feature/axiom-oss-ee-split`, wire EE router registration, validate CE-alone and CE+EE installs, set up the private `axiom-ee` repo with entry_points, compile EE to `.so`, update docs/licensing, and publish `axiom-ce` to Docker Hub.
+
+- [ ] Fix router registration — mount 7 EE routers in plugin `register()` method
+- [ ] Fix CE test suite — isolate EE-only tests, fix `test_bootstrap_admin.py` User.role refs
+- [ ] Strip `NodeConfig` model — remove `concurrency_limit`/`job_memory_limit`/`job_cpu_limit` from CE Pydantic model + clean job service
+- [ ] Private `axiom-ee` repo — entry_points wiring, validate CE-alone + CE+EE installs
+- [ ] `.so` build pipeline — Cython/Nuitka CI in private repo, no `.py` in distribution
+- [ ] Docs + licensing — CE/EE distinction in docs, licence key validation in EE plugin, publish `axiom-ce` to Docker Hub
 
 ### Planned — Future Milestones
 
-- [ ] Job dependencies (v11.0) — job B runs only after job A succeeds (linear then DAG)
-- [ ] Conditional triggers (v11.0) — run job based on outcome of previous job or external signal
+- [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
+- [ ] Conditional triggers — run job based on outcome of previous job or external signal
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
 
 ### Out of Scope
@@ -126,6 +135,16 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
+## Current Milestone: v11.0 CE/EE Split Completion
+
+**Goal:** Complete the Axiom open-core split — gap fixes on the OSS/EE branch, EE plugin wiring, `.so` compilation pipeline, and Docker Hub CE publish.
+
+**Target features:**
+- 4 blocking gap fixes (router registration, test isolation, NodeConfig model cleanup)
+- Private `axiom-ee` repo + entry_points validation
+- Cython/Nuitka `.so` build pipeline
+- CE/EE documentation update + `axiom-ce` Docker Hub publish
+
 ## Current State — v10.0 Complete (2026-03-19)
 
 Axiom is commercially released. The `axiom-laboratories/axiom` GitHub org and repo are live. v10.0.0-alpha.1 is published to PyPI (`axiom-sdk`) and GHCR via GitHub Actions OIDC — no long-lived tokens. Job execution is now fully observable: stdout/stderr captured per attempt, execution history queryable by job/node/run/status, runtime attestation signed by node mTLS key and verified server-side.
@@ -137,4 +156,4 @@ Licence compliance is complete: LEGAL.md documents certifi dual-licence decision
 **Shipped in v10.0:** Output capture + history (Phase 29), runtime attestation (Phase 30), env tags + CI/CD dispatch (Phase 31), dashboard execution UI (Phase 32), licence compliance + release infra (Phase 33).
 
 ---
-*Last updated: 2026-03-19 after v10.0 milestone — Axiom Commercial Release*
+*Last updated: 2026-03-19 after v11.0 milestone started — CE/EE Split Completion*
