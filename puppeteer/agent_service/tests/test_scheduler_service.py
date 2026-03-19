@@ -10,7 +10,7 @@ import base64
 
 @pytest.fixture
 def test_user():
-    return User(username="admin", role="admin")
+    return User(username="admin")
 
 @pytest.fixture
 async def valid_signature(db_session):

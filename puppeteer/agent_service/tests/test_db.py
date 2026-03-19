@@ -4,13 +4,13 @@ from sqlalchemy.future import select
 
 @pytest.mark.anyio
 async def test_user_model(db_session):
-    user = User(username="testuser", password_hash="hash", role="admin")
+    user = User(username="testuser", password_hash="hash")
     db_session.add(user)
     await db_session.commit()
-    
+
     result = await db_session.execute(select(User).where(User.username == "testuser"))
     fetched_user = result.scalar_one()
-    assert fetched_user.role == "admin"
+    assert fetched_user.username == "testuser"
 
 @pytest.mark.anyio
 async def test_node_model(db_session):

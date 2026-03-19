@@ -2,9 +2,9 @@ import pytest
 import os
 from unittest.mock import patch, MagicMock
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from puppeteer.agent_service.db import Base, User
-from puppeteer.agent_service.auth import verify_password
-from puppeteer.bootstrap_admin import bootstrap
+from agent_service.db import Base, User
+from agent_service.auth import verify_password
+from bootstrap_admin import bootstrap
 from sqlalchemy import select
 
 @pytest.fixture
@@ -21,8 +21,8 @@ async def test_bootstrap_creates_admin():
     AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     
     # Patch the sessionmaker used in bootstrap
-    with patch("puppeteer.bootstrap_admin.sessionmaker", return_value=AsyncSessionLocal), \
-         patch("puppeteer.bootstrap_admin.create_async_engine", return_value=engine), \
+    with patch("bootstrap_admin.sessionmaker", return_value=AsyncSessionLocal), \
+         patch("bootstrap_admin.create_async_engine", return_value=engine), \
          patch.dict(os.environ, {"ADMIN_PASSWORD": "testpassword"}):
         
         await bootstrap()
@@ -31,7 +31,7 @@ async def test_bootstrap_creates_admin():
             result = await session.execute(select(User).where(User.username == "admin"))
             admin = result.scalar_one_or_none()
             assert admin is not None
-            assert admin.role == "admin"
+            # role column is EE-only; not asserted in CE
             assert verify_password("testpassword", admin.password_hash)
 
 @pytest.mark.anyio
@@ -44,11 +44,11 @@ async def test_bootstrap_idempotent():
     
     # Pre-create admin
     async with AsyncSessionLocal() as session:
-        session.add(User(username="admin", password_hash="existing", role="admin"))
+        session.add(User(username="admin", password_hash="existing"))
         await session.commit()
 
-    with patch("puppeteer.bootstrap_admin.sessionmaker", return_value=AsyncSessionLocal), \
-         patch("puppeteer.bootstrap_admin.create_async_engine", return_value=engine):
+    with patch("bootstrap_admin.sessionmaker", return_value=AsyncSessionLocal), \
+         patch("bootstrap_admin.create_async_engine", return_value=engine):
         
         await bootstrap()
         

@@ -8,7 +8,7 @@ from agent_service.db import User
 
 @pytest.fixture
 def test_user():
-    return User(username="testadmin", role="admin")
+    return User(username="testadmin")
 
 @pytest.mark.anyio
 async def test_upload_and_list_signatures(db_session, test_user):

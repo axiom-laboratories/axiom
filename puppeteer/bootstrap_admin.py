@@ -20,7 +20,6 @@ async def bootstrap():
             admin_user = User(
                 username="admin",
                 password_hash=get_password_hash(admin_pwd),
-                role="admin"
             )
             session.add(admin_user)
             await session.commit()
