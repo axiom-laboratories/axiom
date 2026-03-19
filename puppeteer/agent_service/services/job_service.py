@@ -9,8 +9,8 @@ from packaging.version import Version, InvalidVersion
 from sqlalchemy import select, desc, func, delete, or_, and_
 from ..db import Job, Node, NodeStats, ExecutionRecord, AsyncSession, Config, Signal
 from ..models import (
-    ResultReport, JobResponse, JobCreate, WorkResponse, PollResponse, 
-    NodeConfig, HeartbeatPayload
+    ResultReport, JobResponse, JobCreate, WorkResponse, PollResponse,
+    HeartbeatPayload
 )
 from ..security import mask_secrets, encrypt_secrets, decrypt_secrets
 from .alert_service import AlertService
@@ -162,20 +162,14 @@ class JobService:
         result = await db.execute(select(Node).where(Node.node_id == node_id))
         node = result.scalar_one_or_none()
         
-        # Default Config
+        # Default concurrency limit
         concurrency = 5
-        memory = "512m"
 
         if node:
             # Security TDA-04: Quarantine check
             if node.status == "TAMPERED":
                 logger.error(f"Rejecting work request from TAMPERED node {node_id}")
-                node_config = NodeConfig(
-                    concurrency_limit=0, # Disable execution
-                    job_memory_limit=memory,
-                    tags=JobService._get_effective_tags(node)
-                )
-                return PollResponse(job=None, config=node_config)
+                return PollResponse(job=None)
 
             node.last_seen = datetime.utcnow()
             if node.ip != node_ip:
@@ -193,11 +187,7 @@ class JobService:
         
         # Push operator env_tag to node so it adopts and reports it in heartbeats.
         # None = never managed (node uses own env var). "" = explicitly cleared. "X" = set to X.
-        node_config = NodeConfig(
-            concurrency_limit=concurrency,
-            job_memory_limit=memory,
-            env_tag=node.env_tag if node.operator_env_tag and node.env_tag else ("" if node.operator_env_tag else None),
-        )
+        current_env_tag = node.env_tag if node.operator_env_tag and node.env_tag else ("" if node.operator_env_tag else None)
 
         # ZOMBIE REAPER: reclaim ASSIGNED jobs on this node that exceeded their timeout
         zombie_timeout_minutes = await JobService._get_zombie_timeout(db)
@@ -259,7 +249,7 @@ class JobService:
         active_count = result.scalar()
         
         if active_count >= concurrency:
-            return PollResponse(job=None, config=node_config)
+            return PollResponse(job=None, env_tag=current_env_tag)
         
         # 3. Find highest priority PENDING or eligible RETRYING job matching criteria
         result = await db.execute(
@@ -340,7 +330,7 @@ class JobService:
             break
         
         if not selected_job:
-            return PollResponse(job=None, config=node_config)
+            return PollResponse(job=None, env_tag=current_env_tag)
             
         selected_job.status = 'ASSIGNED'
         selected_job.node_id = node_id
@@ -364,7 +354,7 @@ class JobService:
             timeout_minutes=selected_job.timeout_minutes,
             started_at=selected_job.started_at,
         )
-        return PollResponse(job=work_resp, config=node_config)
+        return PollResponse(job=work_resp, env_tag=current_env_tag)
 
     @staticmethod
     async def receive_heartbeat(node_id: str, node_ip: str, hb: HeartbeatPayload, db: AsyncSession) -> dict:

@@ -76,7 +76,8 @@ async def test_report_result(db_session):
     jobs = await JobService.list_jobs(db_session)
     job = next(j for j in jobs if j["guid"] == guid)
     assert job["status"] == "COMPLETED"
-    assert job["result"] == {"output": "success"}
+    # Job.result stores a minimal summary; full output goes to ExecutionRecord
+    assert job["result"] == {"exit_code": None}
 
 @pytest.mark.anyio
 async def test_receive_heartbeat(db_session):

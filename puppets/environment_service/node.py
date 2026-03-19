@@ -767,14 +767,10 @@ class Node:
                 job_data = await self.poll_for_work()
                 
                 if job_data:
-                    config = job_data.get("config", {})
-                    if config:
+                    pushed_tag = job_data.get("env_tag")  # None=unmanaged, ""=cleared, "X"=set
+                    if pushed_tag is not None and pushed_tag != _current_env_tag:
                         global _current_env_tag
-                        self.concurrency_limit = config.get("concurrency_limit", 5)
-                        self.job_memory_limit = config.get("job_memory_limit", self.job_memory_limit)
-                        pushed_tag = config.get("env_tag")  # None=unmanaged, ""=cleared, "X"=set
-                        if pushed_tag is not None and pushed_tag != _current_env_tag:
-                            _current_env_tag = pushed_tag  # "" stored as sentinel for "cleared"
+                        _current_env_tag = pushed_tag  # "" stored as sentinel for "cleared"
 
                     work = job_data.get("job")
                     if work:
