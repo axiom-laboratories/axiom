@@ -160,7 +160,7 @@ Plans:
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 7/7 | Complete | 2026-03-19 |
 | 33. Licence Compliance + Release Infrastructure | v10.0 | 4/4 | Complete | 2026-03-18 |
 | 34. CE Baseline Fixes | 4/4 | Complete    | 2026-03-19 | - |
-| 35. Private EE Repo + Plugin Wiring | 3/5 | In Progress|  | - |
+| 35. Private EE Repo + Plugin Wiring | 4/5 | In Progress|  | - |
 | 36. Cython .so Build Pipeline | v11.0 | 0/TBD | Not started | - |
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 0/TBD | Not started | - |
 
