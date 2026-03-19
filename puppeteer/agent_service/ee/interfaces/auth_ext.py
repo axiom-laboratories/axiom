@@ -69,6 +69,12 @@ async def user_delete(username: str): return _EE_RESPONSE
 @auth_ext_stub_router.patch("/admin/users/{username}")
 async def user_patch(username: str): return _EE_RESPONSE
 
+@auth_ext_stub_router.patch("/admin/users/{username}/reset-password")
+async def user_reset_password(username: str): return _EE_RESPONSE
+
+@auth_ext_stub_router.patch("/admin/users/{username}/force-password-change")
+async def user_force_password_change(username: str): return _EE_RESPONSE
+
 @auth_ext_stub_router.get("/admin/roles/{role}/permissions")
 async def role_permissions_get(role: str): return _EE_RESPONSE
 
