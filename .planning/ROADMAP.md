@@ -86,7 +86,11 @@ Archive: `.planning/milestones/v10.0-ROADMAP.md`
   3. EE-only test files are skipped automatically when the `ee_only` marker is present — no manual exclusion needed
   4. Job dispatch completes a full cycle (assign → pull → execute → report) without `AttributeError` from stripped `NodeConfig` fields in `job_service.py`
   5. `GET /api/features` returns all feature flags as `false` on a CE-only install
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 34-01-PLAN.md — Fix load_ee_plugins(): stub router mounting + importlib.metadata (GAP-01, GAP-02)
+- [ ] 34-02-PLAN.md — EE test isolation + User.role scrub (GAP-03, GAP-04)
+- [ ] 34-03-PLAN.md — Strip NodeConfig from models, job_service, node.py (GAP-05, GAP-06)
 
 ### Phase 35: Private EE Repo + Plugin Wiring
 **Goal**: The private `axiom-ee` repo exists with a working `EEPlugin` class that installs into CE via entry_points — CE+EE combined install in Python source form produces a fully functional EE instance
@@ -148,7 +152,7 @@ Archive: `.planning/milestones/v10.0-ROADMAP.md`
 | 31. Environment Tags + CI/CD Dispatch | v10.0 | 4/4 | Complete | 2026-03-18 |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 7/7 | Complete | 2026-03-19 |
 | 33. Licence Compliance + Release Infrastructure | v10.0 | 4/4 | Complete | 2026-03-18 |
-| 34. CE Baseline Fixes | v11.0 | 0/TBD | Not started | - |
+| 34. CE Baseline Fixes | v11.0 | 0/3 | Not started | - |
 | 35. Private EE Repo + Plugin Wiring | v11.0 | 0/TBD | Not started | - |
 | 36. Cython .so Build Pipeline | v11.0 | 0/TBD | Not started | - |
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 0/TBD | Not started | - |
