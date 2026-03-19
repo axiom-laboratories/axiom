@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
     # Load EE plugins (or CE stubs)
     from .ee import load_ee_plugins
     from .db import engine
-    app.state.ee = load_ee_plugins(app, engine)
+    app.state.ee = await load_ee_plugins(app, engine)
     # Bootstrap Admin
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))

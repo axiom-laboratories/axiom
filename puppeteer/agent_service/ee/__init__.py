@@ -39,7 +39,7 @@ def _mount_ce_stubs(app: Any) -> None:
     logger.info("CE mode: mounted 6 stub routers (402 for all EE routes)")
 
 
-def load_ee_plugins(app: Any, engine: Any) -> EEContext:
+async def load_ee_plugins(app: Any, engine: Any) -> EEContext:
     """
     Discover and load EE plugins via importlib.metadata entry_points.
     Entry point group: 'axiom.ee'
@@ -55,7 +55,7 @@ def load_ee_plugins(app: Any, engine: Any) -> EEContext:
             for ep in plugins:
                 plugin_cls = ep.load()
                 plugin = plugin_cls(app, engine)
-                plugin.register(ctx)
+                await plugin.register(ctx)
                 logger.info(f"Loaded EE plugin: {ep.name}")
         else:
             logger.info("No EE plugins found — running in CE mode")
