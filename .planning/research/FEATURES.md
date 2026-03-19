@@ -1,282 +1,282 @@
 # Feature Research
 
-**Domain:** Production job scheduler / orchestration platform — v10.0 commercial release features
-**Researched:** 2026-03-17
-**Confidence:** HIGH (Temporal, Rundeck, Google Cloud Scheduler, AWS docs verified via official sources; patterns cross-referenced across three schedulers)
+**Domain:** Open-core Python product — CE/EE split completion (v11.0)
+**Researched:** 2026-03-19
+**Confidence:** HIGH (entry_points pattern verified via Python packaging docs + existing codebase; licence key via Keygen official docs; test isolation via pytest docs; upgrade UX inspected directly in worktree code)
 
 ---
 
 ## Context: What This Milestone Covers
 
-This research is scoped to **v10.0 Axiom Commercial Release** — adding production-grade observability,
-cryptographic attestation, retry policy, environment targeting, licence compliance, and release
-infrastructure to a mature, deployed orchestration platform.
+This research replaces the v10.0 FEATURES.md with a v11.0-scoped analysis. All v10.0 features
+are complete and shipped. v11.0 is strictly about **completing the CE/EE open-core split** —
+fixing four blocking gaps on `feature/axiom-oss-ee-split`, wiring EE plugin mechanics, setting
+up the private `axiom-ee` repo, compiling EE to `.so`, and publishing `axiom-ce` to Docker Hub.
 
-The platform already has:
-- mTLS node enrollment, Ed25519 job signing, container-isolated execution
-- RBAC (admin/operator/viewer), OAuth device flow, JWT auth, service principals
-- Cron-scheduled job definitions (APScheduler), Foundry image builder, Smelter Registry
-- Pull-model nodes, capability matching, node targeting, AuditLog, Staging view
-- `axiom-push` CLI, job lifecycle (DRAFT/ACTIVE/DEPRECATED/REVOKED), full documentation site
+The split infrastructure (Phase 1-4) is **already done** in the worktree:
+- Plugin scaffold with ABCs + 402 stubs (`puppeteer/agent_service/ee/`)
+- `GET /api/features` endpoint returning 8 feature flags
+- 7 EE routers extracted to `ee/routers/`
+- CE DB stripped to 13 tables (EE tables removed)
+- Frontend `useFeatures` hook + `UpgradePlaceholder` component
 
-The six v10.0 feature areas are researched below. Each area maps to a set of requirements
-from REQUIREMENTS.md (OUTPUT-01..07, RETRY-01..03, ENVTAG-01..04, LICENCE-01..04, RELEASE-01..03).
+**What is NOT done (the 6 blocking items this milestone closes):**
+1. Router registration gap — stub routers are defined but not mounted by `register()`
+2. CE test suite isolation — EE-only tests mixed in; `test_bootstrap_admin.py` refs `User.role`
+3. `NodeConfig` model still carries EE fields (`concurrency_limit`, `job_memory_limit`, `job_cpu_limit`)
+4. Private `axiom-ee` repo + entry_points wiring not created
+5. `.so` build pipeline (Cython/Nuitka) not configured
+6. CE/EE docs distinction + licence key validation + Docker Hub CE publish
 
 ---
 
-## Feature Area 1: Job Output Capture + Execution History (OUTPUT-01..04)
+## Feature Area 1: EE Plugin Mechanics (entry_points + router registration)
 
-### Table Stakes (operators expect these from any production scheduler)
+### Table Stakes
 
-| Feature | Why Expected | Complexity | Axiom Notes |
-|---------|--------------|------------|-------------|
-| **Stdout + stderr capture per execution** | Without this, operators cannot diagnose failures. Every serious scheduler (Rundeck, Temporal, Jenkins, Airflow) captures output. No capture = product feels like a demo. | MEDIUM | Node must capture subprocess stdout/stderr at `runtime.py` level and POST them to orchestrator on completion alongside exit code. New `ExecutionRecord` DB table. |
-| **Exit code stored and surfaced** | Non-zero exit code is the primary signal that a job failed. Operators need this to distinguish "ran but errored" from "never ran". | LOW | Already tracked implicitly for job status; needs explicit per-execution storage alongside stdout/stderr. |
-| **Per-execution timestamps (start + end)** | Duration is a first-class monitoring signal. Operators set SLA alerts on execution time. "Finished at" is table stakes. | LOW | Store `started_at` and `completed_at` on each `ExecutionRecord`. Duration is derived, not stored. |
-| **Execution history per job definition** | "Show me all runs of this cron job in the last 7 days" is the most common operator query. Without it, you cannot tell if intermittent failures are trending worse. | MEDIUM | Query `ExecutionRecord` by `job_definition_id`, paginated, sorted descending by `started_at`. |
-| **Execution history per node** | "What jobs ran on this node?" identifies noisy nodes and helps diagnose node-specific failures. | LOW | Query `ExecutionRecord` by `node_id`. Re-uses the same table. |
-| **Inline output viewer in dashboard** | Clicking into a run and seeing stdout/stderr inline is the minimum UX. Having to call an API to get logs is not acceptable for a product with a dashboard. | MEDIUM | Modal or expandable panel in Jobs view and JobDefinitions view. Requires a `GET /executions/{id}/output` endpoint or inline in execution response. |
-| **Output size limit + truncation** | Runaway jobs can produce gigabytes of output. Unlimited storage for logs will fill the DB. Rundeck defaults to 5MB per execution with configurable `truncate` or `halt` action. | LOW | Set a soft limit (configurable, default 64KB or 1MB). Truncate from the tail (preserve first lines where the failure usually appears). Store a `output_truncated: bool` flag on the record. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Stub routers mounted at CE startup** | CE must respond 402 to all EE endpoints. Currently the stub router objects exist but `load_ee_plugins()` in `__init__.py` never calls `app.include_router()` for them — EE endpoints return 404 in CE mode instead of 402. This is the single most visible gap. | LOW | In `ee/__init__.py`, when no EE plugin found, iterate the 7 stub routers and call `app.include_router()` for each. The stubs already have all correct route paths defined. |
+| **`pkg_resources` replaced with `importlib.metadata`** | `pkg_resources` is deprecated as of setuptools 67+ and the Python packaging docs explicitly recommend migrating to `importlib.metadata`. The existing `load_ee_plugins()` uses `pkg_resources.iter_entry_points()`. This will generate deprecation warnings on Python 3.12+ and break in future. | LOW | Replace `pkg_resources.iter_entry_points("axiom.ee")` with `importlib.metadata.entry_points(group="axiom.ee")`. The API is identical in effect; `entry_points(group=...)` returns an iterable of `EntryPoint` objects with the same `.load()` method. Available in stdlib Python 3.12+; use `importlib_metadata` backport for 3.9-3.11. |
+| **EE `register()` method mounts real routers + sets feature flags** | The EE plugin's `register(ctx)` method must (a) set feature flags to `True` on the `EEContext` and (b) call `app.include_router()` for the 7 real EE routers (replacing or overriding the stubs). This is the entire runtime EE activation path. | LOW | Convention from real open-core products: `register()` receives `(app, engine, ctx)` or `(ctx)` plus module-level refs. The existing ABC signature is `plugin.register(ctx)` — `app` and `engine` are passed at construction time (`plugin_cls(app, engine)`). Mount routers in `register()`. |
+| **CE-alone cold start validates to exactly 13 tables** | After stripping EE tables, a fresh CE cold-start must not create any EE tables. The verification checklist item is currently unchecked for `pip install axiom-ee` = all true; this validates the inverse. | LOW | Already passes per checklist. Verify with `inspect(engine).get_table_names()` in a CE integration test. |
+| **`axiom.ee` entry_points group name is authoritative** | Entry point group name `axiom.ee` (already hardcoded in `__init__.py`) must exactly match what the private `axiom-ee` package declares in its `setup.cfg`/`pyproject.toml`. Mismatch = silent CE mode even with EE installed. | LOW | Document the group name contract in both repos. |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Script hash stored per execution** | Operators can verify that the script executed was exactly the version they signed — even months later. No other open-source scheduler does this by default. | LOW | `script_hash` (SHA-256 of the script bytes) already exists on job definitions. Copy to `ExecutionRecord` at dispatch time. Requires zero extra work if stored at dispatch. |
-| **Linked attempt records (retries)** | When retry policy is active, all attempts for a single "logical run" are grouped under a parent `JobRun` record. Operators see "attempt 1 of 3" rather than three disconnected executions. | HIGH | See retry policy feature area. Requires parent `JobRun` → child `ExecutionRecord` relationship. |
-| **Execution timeline view** | A sparkline or bar chart showing execution durations over time for a job definition. Regression detection at a glance. | HIGH | Deferred — nice-to-have; v11.0 candidate. Existing node sparklines (recharts) are a precedent. |
+| **Multiple EE plugins supported in theory** | The loop over `entry_points(group="axiom.ee")` already supports multiple plugins. This future-proofs for a scenario where EE is modular (e.g., `axiom-ee-foundry` + `axiom-ee-rbac` separately). | LOW | No extra work — the loop is already there. Document the intent. |
+| **Feature flags update `GET /api/features` atomically** | The `EEContext` dataclass drives the `/api/features` response. Setting flags in `register()` means the REST response is correct immediately — no cache invalidation needed. Frontend `useFeatures` caches for 5 minutes, which is acceptable. | LOW | Already architected correctly. |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Live log streaming (WebSocket)** | "I want to watch a job run in real-time" sounds essential. | Requires persistent WebSocket from orchestrator → node or node → orchestrator during execution, which breaks the pull model. Nodes are stateless between polls; mid-execution streaming would require the node to push, opening an inbound connection or a long-lived out-poll, both of which undermine the security and NAT-traversal design. | Post-execution output capture covers 95% of operator needs. The REQUIREMENTS.md explicitly defers live streaming to a future milestone. A polling endpoint (`GET /executions/{id}/status`) every 5 seconds is sufficient while waiting. |
-| **Structured log parsing (JSON log fields)** | "Extract specific fields from JSON output" | This requires knowing the output format of every job, which Axiom deliberately does not — jobs are arbitrary scripts. Parsing would require per-job schema configuration, which is a different product. | Store raw stdout/stderr as text. Let operators grep or process downstream. The attestation bundle provides structured integrity data. |
-| **Log shipping to external systems (Elasticsearch, Loki)** | "Push logs to our SIEM" | Log shipping integrations are maintenance-heavy, version-sensitive, and require credentials in the orchestrator. The scope creeps indefinitely. | Store output in the DB per execution. Export via the API. Operators can ETL to their SIEM using `GET /executions`. This is v2+ territory. |
+| **Router override/deregistration pattern** | "EE should replace CE stubs, not coexist" | FastAPI does not support deregistering already-mounted routes. The stub routes are registered first; EE routes registered later produce duplicate path registrations. FastAPI resolves route conflicts by first-match — stubs would win. | Register EE routers INSTEAD of stubs. When EE is present, do not register stubs at all. The conditional in `load_ee_plugins()` already handles this: stubs are registered only in the `else` branch (no plugins found). |
+| **Hot-reload EE without restart** | "Install EE while CE is running" | Python's import system does not support hot-swap of installed packages. Entry points are resolved at import time. Attempting runtime plugin reload requires clearing sys.modules, which is fragile and untestable. | Require restart after `pip install axiom-ee`. This is standard for plugin-based Python applications (Pytest, Django, Flask extensions all require restart). Document clearly. |
 
 ---
 
-## Feature Area 2: Runtime Attestation (OUTPUT-05..07)
+## Feature Area 2: Private `axiom-ee` Repo + Entry_points Wiring
 
 ### Table Stakes
 
-| Feature | Why Expected | Complexity | Axiom Notes |
-|---------|--------------|------------|-------------|
-| **Attestation stored per execution** | If you ship attestation, every execution must produce one. Partial attestation (some executions signed, others not) is worse than none — it creates false confidence. | MEDIUM | Store attestation bundle bytes and `verification_status` (`verified` / `failed` / `missing`) on `ExecutionRecord`. |
-| **Verification result in execution record** | Operators need to see "attestation verified" in the dashboard without having to export and manually verify. The verification status must be computed server-side on receipt. | MEDIUM | On receipt of each execution report, verify the attestation signature against the stored node certificate. Store `attestation_verified: bool`. |
-| **Exportable attestation bundles** | Compliance use cases require offline proof that a specific script ran on a specific node at a specific time with a specific output. This is the core value of attestation. | LOW | Serve raw signed bundle bytes via `GET /executions/{id}/attestation`. No special storage needed beyond the existing execution record. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Private GitHub repo `axiom-laboratories/axiom-ee`** | EE source code cannot live in the public `axiom` repo. GitHub private repos support GHCR private packages natively. | LOW | Create via GitHub UI or `gh repo create --private`. No special tooling needed. |
+| **`pyproject.toml` entry_points declaration** | The EE package must declare `[project.entry-points."axiom.ee"]` with `core = ee.plugin:EEPlugin`. Modern `pyproject.toml` is preferred over `setup.cfg` for new projects. | LOW | `[project.entry-points."axiom.ee"]` section in `pyproject.toml`. Exact syntax: `core = "ee.plugin:EEPlugin"`. The class `EEPlugin` must implement the ABC defined in the CE `ee/interfaces/` directory. |
+| **CE `ee/interfaces/` ABCs imported as a dependency** | The EE plugin must import and subclass the CE ABCs to satisfy the interface contract. This means `axiom-ee` takes a dev-dependency on `axiom` (or extracts the ABCs to a shared `axiom-interfaces` package). | MEDIUM | Simplest approach: `axiom-ee` installs `axiom` as a dependency (it runs inside the same Python environment). The ABCs are importable from `agent_service.ee.interfaces`. No shared package needed. |
+| **`pip install axiom-ee` validation test** | The verification checklist has an unchecked item: "EE install restores features: `pip install axiom-ee` → features all `true`". This must be tested end-to-end. | MEDIUM | Create a fresh virtualenv, install `axiom` (CE), verify `GET /api/features` = all false; then `pip install axiom-ee`, restart, verify all true. Document as a manual smoke test and automate in EE repo CI. |
+| **`pip install` from private GitHub via token** | EE customers install via `pip install git+https://...` with a token, or from a private PyPI/GH Packages index. Both require documented install instructions. | LOW | Use `pip install "axiom-ee @ git+https://<TOKEN>@github.com/axiom-laboratories/axiom-ee.git"`. Or publish to a private PyPI index (GitHub Packages supports this). |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Node cert serial in attestation bundle** | Ties the attestation cryptographically to the enrolled node identity, not just a key pair. An attacker who steals a signing key but does not have a valid cert cannot produce a trusted attestation. | LOW | The cert serial is available from `node.client_cert_pem` at attestation verification time. Include it in the bundle at node side; verify against the stored cert at orchestrator side. |
-| **Attestation covers stdout hash, not just exit code** | Exit code alone can be spoofed or misreported. Hashing stdout + stderr output and including those hashes in the signed bundle means the operator can verify not just that the job "ran" but that the output is authentic. | LOW | SHA-256 of stdout bytes and stderr bytes, included in the signed JSON bundle alongside the script hash, exit code, and timestamps. |
-| **Tamper-evident chain: signing key → cert → attestation** | The Ed25519 signing requirement (for script authorship) plus the mTLS client cert (for node identity) plus the attestation signature (for execution proof) creates a three-link chain of cryptographic evidence. No other open-source scheduler offers this. | HIGH | The implementation is LOW complexity per link; the HIGH complexity is testing the full chain end-to-end and documenting the verification workflow for operators. |
+| **EE installed as a standard Python package (not a file drop)** | Customers use `pip install` — familiar, versionable, updateable with standard tools. No manual file copying or Docker layer manipulation required. | LOW | The entry_points mechanism makes this entirely standard. No custom installer. |
+| **Version pinning between CE and EE** | EE packages can declare `axiom>=11.0,<12.0` as a dependency constraint. This prevents EE from loading against an incompatible CE version and producing cryptic errors. | LOW | Add version constraint to `axiom-ee`'s `pyproject.toml` dependencies. |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Attestation blocking execution** | "Don't execute if attestation will fail" | Attestation is a post-execution verification mechanism, not a pre-execution gate. A pre-execution gate would require the orchestrator to predict the attestation before the job runs, which is circular. | Attestation failure should be a dashboard alert and audit log event. Policy enforcement (fail the job if attestation fails verification) is an operator-configured option, not a default. |
-| **Hardware-based TEE attestation (SGX, TrustZone)** | "Use hardware root of trust" | TEE attestation requires specialised hardware on every node, which is incompatible with Axiom's design goal of running on commodity servers, homelab hardware, and Docker containers. | The mTLS client certificate issued by Axiom's Root CA provides a software-based chain of trust that is sufficient for Axiom's stated use cases. Hardware attestation is v3+ territory. |
-| **SLSA provenance format** | "Produce SLSA L2/L3 attestations" | Full SLSA compliance requires build provenance infrastructure beyond the execution attestation bundle. REQUIREMENTS.md explicitly defers SLSA to a future milestone. | Axiom's custom attestation bundle provides the functionally equivalent evidence. SLSA-format export can be added later as a bundle transformer. |
+| **Separate CE and EE Docker images with different codebases** | "Simpler to distribute" | Two separate image builds double the maintenance surface. The CE image already runs in EE mode when `axiom-ee` is pip-installed inside it. | Use one base image (`axiom-ce`). EE customers layer `pip install axiom-ee` on top, either in a custom Dockerfile FROM axiom-ce or via a Docker entrypoint script. |
+| **Namespace packages to share code between CE and EE** | "Avoid dependency on the full axiom package" | Namespace packages require careful `__init__.py` handling and are fragile in editable installs. The entry_points approach is cleaner and more maintainable. | Keep the simple dependency: `axiom-ee` depends on `axiom`. No namespace packages. |
 
 ---
 
-## Feature Area 3: Retry Policy (RETRY-01..03)
+## Feature Area 3: CE Test Suite Isolation
 
 ### Table Stakes
 
-Production schedulers (Temporal, Google Cloud Scheduler, AWS EventBridge, APScheduler) all provide
-configurable retry policies. Operators expect this from any scheduler that runs critical workloads.
-
-| Feature | Why Expected | Complexity | Axiom Notes |
-|---------|--------------|------------|-------------|
-| **Maximum retry count** | "Try 3 times, then give up" is the minimum operators need. No retry count = every job is either run-once or runs forever. | MEDIUM | `max_retries: int` on `ScheduledJob`/`JobDefinition`. Default: 0 (no retries, backward-compatible). |
-| **Fixed-interval backoff** | Simple constant wait between retries. Required for jobs that fail due to transient resource contention (e.g., "DB is briefly locked"). | LOW | `backoff_strategy: "fixed"`, `backoff_seconds: int`. Implemented in `job_service.py` retry dispatch logic. |
-| **Exponential backoff** | Standard in every production scheduler. Google Cloud Scheduler, Temporal, AWS all default to exponential with a cap. Avoids thundering-herd on retry storms. | LOW | `backoff_strategy: "exponential"`, `backoff_base_seconds`, `backoff_max_seconds`. Formula: `min(base * 2^attempt, max)`. Verified pattern from Temporal (base=1s, coefficient=2.0, cap=100s) and Google Cloud Scheduler (min=5s, max=3600s). |
-| **Each attempt = separate execution record** | Operators need to see individual attempt outputs to diagnose why retry 1 failed differently from retry 2. A single merged record obscures this. | MEDIUM | Introduce `JobRun` parent record (logical run) → `ExecutionRecord` children (individual attempts). `attempt_number` on each child. Aligns with how Temporal separates activity attempts. |
-| **Retry state visible in dashboard** | "Attempt 2 of 3, waiting 30s before retry" must be surfaced in the Jobs view. Without this, operators have no way to know whether a stuck job is retrying or dead. | MEDIUM | `JobRun.status` values: `pending`, `running`, `retrying`, `succeeded`, `failed_exhausted`. Display in Jobs view with attempt counter. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **`@pytest.mark.ee_only` custom marker** | Tests for EE features must not run against a CE-only install. Without a marker, EE tests fail with import errors or assertion failures when EE tables/routes are absent. The pytest docs pattern: register marker in `conftest.py` via `config.addinivalue_line("markers", "ee_only: ...")` and implement `pytest_collection_modifyitems` to auto-skip marked tests if `axiom-ee` is not installed. | LOW | Add to `conftest.py`: check `importlib.metadata.entry_points(group="axiom.ee")` — if empty list, skip all `@pytest.mark.ee_only` tests. This is the standard pytest marker + `importlib.metadata` pattern. |
+| **`test_bootstrap_admin.py` User.role reference fix** | `test_bootstrap_admin.py` line 34 asserts `admin.role == "admin"` and line 47 creates `User(..., role="admin")`. The CE `User` model no longer has a `role` column (stripped in Phase 3). This causes an `AttributeError` on CE cold-start test. | LOW | Remove `role=` kwarg from `User(...)` constructor call. Remove `assert admin.role == "admin"` assertion. CE admin bootstrap has no role concept — all CE users are implicitly admin. Alternatively, assert that the user exists with the correct username only. |
+| **EE-only test files identified and marked** | `test_foundry_mirror.py`, `test_smelter.py`, `test_compatibility_engine.py`, `test_trigger_service.py` test features that only exist in EE. They import EE DB models that do not exist in CE. | MEDIUM | Each of these test files needs `@pytest.mark.ee_only` on the class/function level, OR a module-level `pytestmark = pytest.mark.ee_only`. This is a mechanical but non-trivial scan across 20 test files. |
+| **CE test suite runs cleanly with `pytest -m "not ee_only"`** | The CI pipeline for the public `axiom` repo must run only CE tests. EE tests belong in the `axiom-ee` private repo CI. The CE suite must pass with zero failures on a fresh install with no `axiom-ee` present. | LOW | Add `addopts = -m "not ee_only"` to `pytest.ini` or `pyproject.toml` `[tool.pytest.ini_options]` for the CE repo. EE repo can run with `pytest -m "ee_only or not ee_only"` (all tests). |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Retry only on non-zero exit code (not timeout)** | Some jobs are timeout-sensitive (e.g., release deploys) and should not retry after a timeout. Others should always retry. Separating the two triggers gives operators fine-grained control. | MEDIUM | `retry_on_failure: bool` (non-zero exit), `retry_on_timeout: bool` (node heartbeat timeout). Both default true. |
-| **Non-retryable exit code list** | Temporal's `non_retryable_errors` list is a well-understood pattern. For scripts, the equivalent is "if exit code is 2 (usage error), do not retry." | LOW | `non_retryable_exit_codes: list[int]` on job definition. If the exit code matches, exhaust retries immediately rather than waiting out the full policy. |
-| **Per-definition retry policy override** | Global default retry policy is a convenience; per-job override is required for mixed criticality workloads (critical backups retry 5x; health checks retry 0x). | LOW | Retry policy fields live on `ScheduledJob` table. Ad-hoc job dispatch can also specify a retry policy in the request body. |
+| **Integration test fixture for CE+EE combined mode** | In the EE private repo, a `conftest.py` fixture that installs both `axiom` (CE) and `axiom-ee` (EE) in a test virtualenv enables end-to-end integration testing of the combined stack. | MEDIUM | `subprocess.run(["pip", "install", "-e", ce_path, "-e", ee_path])` in a session-scoped fixture. Slower but authoritative. |
+| **`pytest --ce-only` flag as an escape hatch** | Developers working on EE who want to run only the CE subset of tests can pass `--ce-only` rather than remembering the marker syntax. | LOW | Implement `pytest_addoption` in `conftest.py` with `--ce-only` flag; if set, add `ee_only` to the deselect list. Convenience wrapper over the marker mechanism. |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Infinite retries by default** | "We want jobs to eventually succeed" | Temporal defaults to unlimited retries, but Temporal is a durable workflow engine where retries are the primary execution model. In Axiom, a job that has failed 50 times is a broken job, not a pending one. Infinite retries fill the execution history table, generate noise, and mask real failures. | Default to 0 retries (no retry). Operators opt in per job definition. Maximum configurable value should be bounded (e.g., 10) with a clear admin escape hatch. |
-| **Retry across different nodes** | "If node A fails, retry on node B" | Node failover retry requires the job to be idempotent on any node and for the orchestrator to guarantee the first attempt has stopped before the retry starts. In the pull model, a timed-out node may still be executing when the retry dispatches — creating two concurrent executions of the same job. | Retry on the same node (or any available matching node via normal capability matching). The existing node heartbeat timeout already gates this: once a node is considered timed out, its cert is revocable. The retry uses normal dispatch, not node-specific targeting. |
-| **Dead-letter queue** | "Failed retries should go to a DLQ for manual review" | DLQ is a message-queue pattern, not a scheduler pattern. Building a DLQ in a relational DB requires a separate table, a consumer process, and an operator workflow. | The `JobRun.status = 'failed_exhausted'` state in the dashboard IS the dead-letter view. Operators review failed exhausted runs from the existing Jobs/JobDefinitions views. A filtered query endpoint achieves the same UX with zero new infrastructure. |
+| **Separate `tests/ce/` and `tests/ee/` directory split** | "Clean separation by directory" | Directory-based separation requires duplicating shared test utilities and makes it harder to run CE tests as part of the EE CI (which needs to validate CE compatibility). | Marker-based approach: all tests live in `tests/`, EE tests are marked `@pytest.mark.ee_only`. CE CI filters with `-m "not ee_only"`. EE CI runs all. |
+| **Mocking the EE plugin in CE tests** | "Test CE code paths that would be EE-dependent" | Mocking the EE plugin to test CE behaviour is redundant — the stub interfaces already return CE defaults (RBAC stub returns `True` for all permissions; resource_limits stub returns null limits). The stubs ARE the test doubles. | Use the actual stub implementations. If a CE test needs to verify stub behaviour, import the stub class directly and call its methods. No mocking needed. |
 
 ---
 
-## Feature Area 4: Environment Tags + CI/CD Targeting (ENVTAG-01..04)
+## Feature Area 4: `.so` Compilation Pipeline (Cython/Nuitka)
 
 ### Table Stakes
 
-| Feature | Why Expected | Complexity | Axiom Notes |
-|---------|--------------|------------|-------------|
-| **Environment tag on nodes (DEV/TEST/PROD)** | Every infrastructure tool with environment awareness uses this model. Kubernetes uses namespace-per-environment. GitLab CI uses environment names. Without this, operators must maintain separate Axiom instances per environment — an antipattern. | LOW | `environment_tag: str` on `Node` table. Configurable via `ENV_TAG` environment variable in node compose file. Enrolls and stores the tag at the node level. No new DB table. |
-| **Environment filter in job targeting** | Being able to say "run this job only on PROD nodes" is the primary use case. Combined with existing capability matching, this enables full environment-segregated job dispatch. | LOW | `target_environment: str` (optional) on `ScheduledJob` and ad-hoc dispatch. `job_service.py` filters candidate nodes by `environment_tag` after capability matching. |
-| **Environment tag visible in Nodes dashboard** | Operators must be able to identify which environment each node belongs to at a glance. Missing from the UI = operators have no situational awareness during incidents. | LOW | Add `env` badge column to `Nodes.tsx` node table. Filter control in the header bar. Already have `capabilities` display as precedent. |
-| **CI/CD dispatch API endpoint** | The entire point of environment tags is enabling automated pipeline promotion (DEV → TEST → PROD). Without a documented API endpoint that pipeline runners can call, the feature has no CI/CD integration story. | MEDIUM | `POST /jobs/dispatch` with `environment_tag` parameter, returning `{"job_run_id": ..., "node_id": ..., "status": ...}` structured JSON. Document as the CI/CD integration point. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **EE source code not shipped in distribution** | The entire value of compiling to `.so` is that customers cannot read the EE source. If `.py` files ship alongside `.so`, the protection is void. Setuptools' `build_py` must be overridden to exclude `.py` files for modules that have compiled `.so` equivalents. | MEDIUM | Standard Cython pattern: override `build_py` in `setup.py` to call `super().build_py()` then delete any `.py` file whose module has a corresponding `.so`. Alternatively, use `setuptools-cythonize` or `cythonpackage` libraries that automate this. |
+| **Cython preferred over Nuitka for `.so` modules** | Cython compiles `.py` → `.c` → `.so` (CPython extension module) and is the established, widely-tested approach for PyPI wheel distribution without source. Nuitka's `--module` mode also works but has a harder dependency: the compiled `.so` loads only in the exact CPython version it was compiled for, AND Nuitka is a heavier build toolchain. For per-module compilation (not standalone executables), Cython is better-understood and has more community examples. | HIGH | Cython is the industry-standard choice for this use case. Nuitka is a valid fallback if Cython has compatibility issues with specific Python patterns used in EE. **Use Cython first.** |
+| **Multi-arch wheel build via `cibuildwheel`** | A `.so` compiled for `linux/amd64` does not run on `linux/arm64`. PyPI requires separate wheels per platform. `cibuildwheel` automates building for multiple Python versions and architectures in GitHub Actions. | HIGH | Add `cibuildwheel` to the private repo CI. Build matrix: `python: ["3.11", "3.12", "3.13"]` x `arch: ["x86_64", "aarch64"]`. Use QEMU emulation for arm64 in CI or use GitHub's arm64 runner. |
+| **Compiled `.so` passes existing EE test suite** | The compiled module must be functionally identical to the source. Run the EE test suite against the compiled artifact before publishing to verify no Cython incompatibilities. | MEDIUM | Add a CI step that (a) builds the wheel, (b) installs it into a clean venv, (c) runs `pytest -m ee_only`. |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Custom environment tag strings (not enum-locked)** | DEV/TEST/PROD is the common case. But enterprise teams use `staging`, `canary`, `dr-recovery`, `customer-demo`. Locking to an enum forces workarounds and reduces adoption. | LOW | Store as `VARCHAR` with no DB enum constraint. Validate non-empty at enrollment. Provide DEV/TEST/PROD as suggested defaults in the docs. |
-| **Environment-scoped operator permissions (future)** | Operators in DEV should not be able to dispatch to PROD. This is a natural extension of the existing RBAC model. | HIGH | DEFER to v11.0 — requires extending the permission model with environment scope. Note in docs as a roadmap item. |
-| **Structured CI/CD response for pipeline gates** | CI/CD runners (GitHub Actions, GitLab CI, Jenkins) need to know if the dispatched job succeeded before proceeding to the next pipeline stage. A synchronous poll or a webhook callback makes Axiom a first-class pipeline citizen. | MEDIUM | `POST /jobs/dispatch` returns immediately with job_run_id. CI/CD caller polls `GET /job-runs/{id}/status` until terminal state. Document the polling pattern explicitly in docs. Webhook callbacks deferred to v11.0. |
+| **Wheel published to GitHub Packages (private PyPI)** | GitHub Packages supports private PyPI indexes. EE customers authenticate with a GitHub token to `pip install`. This avoids running a separate Artifactory or Gemfury instance. | MEDIUM | Configure `pip install --extra-index-url https://<TOKEN>@pip.pkg.github.com/axiom-laboratories/ axiom-ee`. Publish via `gh release upload` or directly to GitHub Packages. |
+| **Version-tagged releases with signatures** | Each EE wheel release should be tagged and ideally signed with `sigstore` for supply chain integrity — consistent with Axiom's security brand. | LOW | Add `sigstore` signing to the EE release workflow, mirroring the CE release workflow pattern. |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Separate Axiom instance per environment** | "DEV and PROD should be completely isolated" | Separate instances multiply operational overhead (separate DBs, separate CAs, separate dashboards, separate config management). The security case for total separation is addressed by environment tags + RBAC — a PROD-only operator role cannot dispatch to DEV nodes by policy. | Environment tags on a single instance with RBAC scope is the correct pattern. Document the security rationale explicitly. Separate instances remain a valid operator choice but should not be the only path. |
-| **Environment promotion pipelines built into Axiom** | "Axiom should manage DEV→TEST→PROD promotion workflows" | Promotion logic is business-specific. Building it into the scheduler means Axiom takes on DAG dependencies, conditional triggers, and approval gates — all deferred features. This is scope creep for v10.0. | Axiom provides the environment-targeted dispatch API. The CI/CD pipeline (GitHub Actions, etc.) owns the promotion logic. Axiom is a tool called by the pipeline, not the pipeline itself. |
+| **Compile entire EE to a single `.so`** | "Simpler artifact" | A single monolithic `.so` produced by Nuitka or `cythonpackage` has hard Python version pinning and is very large. A single artifact cannot be selectively loaded. Module-level compilation is more maintainable. | Compile each EE module separately to `.so`. The entry point (`ee/plugin.py`) imports the compiled sub-modules. Python's import system handles the rest. |
+| **Ship source `.py` "just in case"** | "For debugging" | If `.py` files are in the wheel, pip will use them preferentially over `.so` on some platforms, defeating the protection. | Include a `.pyi` stub file (type hints only, no implementation) for IDE support. Strip all `.py` from the wheel. |
+| **`.pyc` bytecode as an alternative to `.so`** | "Easier to generate" | `.pyc` files are trivially decompilable with `uncompyle6` or `decompile3`. They provide no meaningful IP protection. | Cython `.so` is the minimum acceptable protection level. `.pyc` distribution is not a valid EE strategy. |
 
 ---
 
-## Feature Area 5: Licence Compliance (LICENCE-01..04)
+## Feature Area 5: Licence Key Validation
 
 ### Table Stakes
 
-For any open-source or dual-licence commercial product, these are not optional.
-
-| Feature | Why Expected | Complexity | Axiom Notes |
-|---------|--------------|------------|-------------|
-| **`License-Expression` in pyproject.toml** | PEP 639 (accepted, Python 3.12+) mandates `License-Expression` using SPDX identifiers as the canonical licence field. PyPI displays this. Package managers consume it. | LOW | `License-Expression = "Apache-2.0"` for CE; `"LicenseRef-Proprietary"` for EE wheel. One-line addition to `pyproject.toml`. |
-| **NOTICE file for attribution requirements** | Apache-2.0 itself requires a NOTICE file listing attributions. CC-BY-4.0 packages (caniuse-lite) require attribution. Missing this is an IP compliance failure. | LOW | Enumerate all direct dependencies with attribution requirements. caniuse-lite (CC-BY-4.0) is confirmed in REQUIREMENTS.md. `pip-licenses` can automate the enumeration. |
-| **certifi MPL-2.0 assessment in LEGAL.md** | MPL-2.0 has a file-level copyleft: any modifications to MPL-licensed files must be released. Since certifi is used read-only (CA bundle), no source modification occurs — the assessment is the compliance act. | LOW | One documented paragraph in LEGAL.md. REQUIREMENTS.md has the analysis: "read-only CA bundle, no source modification, obligations satisfied." |
-| **paramiko LGPL-2.1 assessment** | LGPL-2.1 is compatible with Apache-2.0 for dynamic linking. If EE bundles paramiko statically, the bundled copy falls under LGPL's copyleft. Assessment documents which case applies. | MEDIUM | Confirm dynamic-only import (inspect import path, check wheel packaging). If dynamic: document and close. If static or bundled: replace with `asyncssh` (MIT) to avoid LGPL obligation. |
-
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| **GPL dependencies anywhere in the stack** | "GPL libraries are sometimes the best option" | Any GPL dependency in the CE codebase contaminates the dual-licence model. GPL is copyleft-viral: it requires all combined works to be GPL. This would void the EE proprietary licence. | Mandate GPL-clean dependency tree as a contribution requirement. Use `pip-licenses --fail-on="GPL"` in CI. Document in CONTRIBUTING.md. |
-| **LGPL in EE statically bundled wheel** | Bundling ships one artifact to customers | If paramiko or any LGPL library is compiled/bundled statically into the EE wheel, the wheel contains LGPL code that must be releasable under LGPL terms — which contradicts the proprietary EE licence. | Ensure all LGPL dependencies remain dynamically linked (installed separately, not bundled). If bundling is required, replace with MIT alternatives first. |
-
----
-
-## Feature Area 6: Release Infrastructure (RELEASE-01..03)
-
-### Table Stakes
-
-For a product declaring itself ready for commercial/open-source adoption, these are the minimum
-release hygiene requirements.
-
-| Feature | Why Expected | Complexity | Axiom Notes |
-|---------|--------------|------------|-------------|
-| **PyPI Trusted Publisher (OIDC)** | Long-lived PyPI API tokens are a credential management burden and a leak risk. OIDC Trusted Publishers eliminate long-lived secrets by exchanging short-lived GitHub Actions tokens. This is PyPI's recommended approach since 2023. | LOW | Requires: (1) `axiom-laboratories` GitHub org, (2) PyPI project `axiom-sdk`, (3) trust configuration linking the repo + workflow file + environment. The workflow already uses `pypa/gh-action-pypi-publish` — only the org/project creation is blocking. |
-| **GHCR multi-arch image publishing** | `linux/amd64` and `linux/arm64` are both required for modern infrastructure. arm64 (Raspberry Pi, Apple Silicon, AWS Graviton) is standard in homelabs and enterprise cloud. An amd64-only image will generate issues from day one. | LOW | The existing release workflow already targets multi-arch. The only blocker is activating it with the correct org and registry path. |
-| **Documented public docs decision** | Open-source adoption requires discoverable documentation. The current docs site is CF Access protected. A documented decision (expose publicly or provide an explicit rationale for deferral) is required for v10.0 completeness. | LOW | Three options: (1) Remove CF Access from the docs subdomain, (2) Publish docs to GitHub Pages as a separate deployment, (3) Defer with explicit rationale (e.g., "docs contain internal deployment instructions"). Pick one and document it. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Licence key validated at EE plugin startup** | Without licence validation, any user who obtains the EE wheel can use it indefinitely without payment. Validation is the commercial enforcement mechanism. | MEDIUM | The validation runs inside EE's `register()` method before mounting any routers. If validation fails, raise an exception that causes `load_ee_plugins()` to catch and log a warning, leaving CE in stub mode. |
+| **Ed25519 signed licence key (offline-capable)** | The licence key must be verifiable without a network call — Axiom targets air-gapped deployments. Ed25519-signed payloads are the recommended scheme per Keygen's official docs ("our overall recommended scheme when available"). The public key is hardcoded in the EE compiled binary; the private key is held by Axiom. | MEDIUM | Key structure: `BASE64URL_PAYLOAD.BASE64URL_SIGNATURE`. Payload is a JSON object with: `customer_id`, `exp` (Unix timestamp), `features` (list), `issued_at`. Verify with `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey.verify()`. |
+| **Licence key loaded from environment variable or file** | EE operators configure the key via `AXIOM_LICENCE_KEY` env var or a file path in `AXIOM_LICENCE_KEY_FILE`. The EE plugin reads one of these at startup. | LOW | Check env var first; fall back to file. This is the standard pattern for secrets in containerised applications. |
+| **Graceful degradation on licence failure** | If the licence is missing, expired, or invalid, Axiom must not crash. It must log a clear error and fall back to CE mode (stubs serve 402). A corrupted licence key should never take the server down. | LOW | `try/except` around validation in `register()`. Log `logger.error("EE licence validation failed: {reason}")`. Return without setting feature flags or mounting EE routers. |
+| **Expiry enforced with clear error message** | `exp` claim in the licence payload must be checked against `time.time()`. An expired licence should produce `logger.error("EE licence expired at {date}")` — not a cryptic validation failure. | LOW | Check `payload["exp"] < time.time()` after signature verification. Format the error with a human-readable ISO date. |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **GitHub community health files (CONTRIBUTING, CODE_OF_CONDUCT, SECURITY.md)** | Open-source projects without these have lower contribution rates and lower perceived maturity. GitHub surfaces a "Community Standards" checklist; missing items are visible to potential contributors. | LOW | CONTRIBUTING.md and CHANGELOG already exist (v9.0). Add SECURITY.md (responsible disclosure process) and CODE_OF_CONDUCT.md (Contributor Covenant is the standard). |
-| **Signed releases (sigstore/cosign)** | Cryptographically signed PyPI packages and OCI images are increasingly expected. The Axiom brand is built on cryptographic security — unsigned releases are a reputational inconsistency. | MEDIUM | Use `sigstore` for PyPI (built into `pypa/gh-action-pypi-publish` as opt-in). Use `cosign` for GHCR. Add to release workflow. Low implementation cost relative to brand alignment value. |
+| **Feature entitlements in licence payload** | The `features` claim in the licence payload allows Axiom to issue licences that enable only a subset of EE features (e.g., RBAC-only licence). The `register()` method only sets flags for features that are both: (a) implemented and (b) present in the licence's feature list. | MEDIUM | `features: ["rbac", "audit", "webhooks", ...]` claim in payload. In `register()`: `ctx.rbac = "rbac" in features`. Enables tiered EE pricing without separate builds. |
+| **Licence check only at startup (not per-request)** | Checking the licence on every API request adds latency and creates a per-request failure mode. Checking only at startup means a licence expiry mid-operation does not interrupt running jobs. | LOW | Validate once in `register()`. Store result in `EEContext`. No per-request checking. |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Docker Hub publishing (in addition to GHCR)** | "Wider reach" | Docker Hub rate limits on pulls are a support burden. Hub requires a separate login, separate credentials, separate namespace management. GHCR is free for public packages, integrated with GitHub Actions OIDC, and has no pull rate limits for public images. | Publish to GHCR only. Document the pull path clearly. Docker Hub publishing can be added later if community demand warrants it. |
-| **Manual release process** | "We'll tag and push manually for now" | Manual releases introduce human error, inconsistent artifact naming, and unsigned packages. Any v10.0 release process that is not automated is a regression from the CI/CD pipelines already built in v9.0. | The existing release workflow handles everything automatically on version tag push. Only the org/project prerequisites are missing. Do not bypass it. |
+| **Online licence validation (call home)** | "More secure — check revocation in real time" | Axiom's target deployment (air-gapped, hostile networks) makes outbound call-home unreliable. A failed call-home could take down production. Online validation also requires Axiom to operate a licence server with 99.9% uptime SLA, which is significant operational overhead. | Use Ed25519 offline validation. Issue new licence keys on renewal (short-lived keys = natural revocation). A 1-year expiry is standard; customers renew for a new key. |
+| **Licence key baked into the compiled `.so`** | "Customer can't extract and share the key" | Baking the key into the binary means issuing a new build for each customer. This scales to exactly one customer. | Each customer gets their own licence key file/env var. The EE binary is the same for all customers. The key is the per-customer artifact. |
+| **Licence server inside Axiom itself** | "Self-hosted licence management" | A licence server in CE would need to issue EE licences — circular dependency. A licence server in EE would need to be running to licence itself — also circular. | Issue licence keys out-of-band (email, dashboard on axiom.run, or manual process for v11.0). Automate with a separate licensing service only when customer volume warrants it. |
+
+---
+
+## Feature Area 6: Docs + Licensing + Docker Hub CE Publish
+
+### Table Stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **CE/EE feature distinction in docs** | Any user reading the docs must know which features require EE. Without clear labelling, CE users open support issues for 402 errors. | LOW | Add an EE badge/callout in MkDocs to any feature that is EE-only. Standard pattern: `!!! enterprise "Enterprise Edition" \n This feature requires Axiom EE.` in MkDocs Material admonition syntax. |
+| **`axiom-ce` published to Docker Hub** | Docker Hub has dramatically higher discoverability than GHCR for community users. CE users searching "axiom scheduler" on Docker Hub should find the image. GHCR remains the primary registry; Docker Hub is a discoverability mirror. | LOW | Add a Docker Hub push step to the release workflow. Requires `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN` secrets. Tag as `axiom-laboratories/axiom-ce:latest` and `axiom-laboratories/axiom-ce:11.0.0`. |
+| **`axiom-ce` Docker Hub description with EE upgrade path** | The Docker Hub README for `axiom-ce` must explain CE limitations and link to `axiom.run/enterprise` for EE. Without this, users hit 402s on Foundry and RBAC endpoints with no context. | LOW | Set Hub description via Docker Hub API or UI. Point to the MkDocs site for full docs. |
+| **`LICENCE` file update in public repo** | The public repo `LICENSE` file should state Apache-2.0. Any reference to EE (the `/ee` directory) needs a note that the directory is a reserved placeholder under proprietary licence for EE builds. | LOW | Update root `LICENSE` (Apache-2.0 for CE). Add a `ee/LICENSE` stub file: "This directory is reserved for Axiom Enterprise Edition. Contents are proprietary." This is the GitLab pattern. |
+
+### Differentiators
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **`axiom-ce` Docker Hub README links to upgrade** | Users who outgrow CE can self-service discover EE from the Hub README. Passive upgrade path with zero sales friction. | LOW | Two-paragraph Hub description: CE capabilities + "Ready to upgrade? Visit axiom.run/enterprise." |
+| **EE distribution as a pip-installable layer** | `pip install axiom-ee` works inside any `axiom-ce` container via a custom Dockerfile `FROM axiom-ce`. This is the cleanest EE distribution story — no separate image builds, no filesystem drops. | LOW | Already the natural outcome of the entry_points architecture. Document this pattern explicitly in the EE onboarding docs. |
+
+### Anti-Features
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| **Separate `axiom-ee` Docker image** | "All-in-one EE image for customers" | Maintaining a separate EE image means rebuilding and publishing two images on every CE change. It also complicates licence enforcement (anyone with the image has EE without a licence key check). | Document `FROM axiom-ce` + `RUN pip install axiom-ee` as the EE deployment pattern. Licence key enforced at runtime. EE image responsibility stays with the customer. |
+| **Removing the `/ee` directory from the public repo** | "Less confusing" | The `/ee` directory with stub interfaces is the public API contract for the plugin system. Removing it breaks the CE plugin scaffold. | Keep the `/ee` directory as-is. Add clear comments and a `ee/README.md` explaining it is the EE plugin interface definition. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[ExecutionRecord (DB table)]
-    └──required-by──> [Job output capture (OUTPUT-01, OUTPUT-02)]
-    └──required-by──> [Execution history queries (OUTPUT-03, OUTPUT-04)]
-    └──required-by──> [Attestation storage (OUTPUT-05, OUTPUT-06)]
-    └──required-by──> [Retry attempt records (RETRY-02)]
+[Router registration fix (gap 1)]
+    └──required-by──> [CE cold-start passes 402 for all EE endpoints]
+    └──required-by──> [EE install validation (gap 4)]
 
-[JobRun (parent record)]
-    └──required-by──> [Retry policy (RETRY-01, RETRY-02)]
-    └──enhances──>    [Execution history (groups attempts)]
-    └──requires──>    [ExecutionRecord]
+[User.role fix + ee_only markers (gap 2)]
+    └──required-by──> [CE test suite runs cleanly in CI]
+    └──blocks──>      [public repo CI green]
 
-[Attestation signature verification]
-    └──requires──>  [ExecutionRecord (to store verification_status)]
-    └──requires──>  [node.client_cert_pem (stored at enrollment — existing, Sprint 8)]
-    └──requires──>  [Node signs bundle with mTLS client private key (node-side change)]
-    └──enables──>   [Exportable attestation bundles (OUTPUT-07)]
+[NodeConfig strip (gap 3)]
+    └──required-by──> [CE Pydantic model correct]
+    └──required-by──> [job_service.py uses CE-appropriate resource handling]
 
-[environment_tag on Node]
-    └──required-by──> [Job targeting by environment (ENVTAG-02)]
-    └──required-by──> [CI/CD dispatch API (ENVTAG-04)]
-    └──required-by──> [Nodes view env filter (ENVTAG-03)]
+[Private axiom-ee repo + entry_points (gap 4)]
+    └──requires──>    [Router registration fix (gap 1)] — EE register() needs to mount real routers
+    └──requires──>    [NodeConfig strip (gap 3)] — EE adds back resource limits; CE must not have them
+    └──required-by──> [.so build pipeline (gap 5)]
+    └──required-by──> [pip install axiom-ee validation]
 
-[axiom-laboratories GitHub org + PyPI project]
-    └──required-by──> [PyPI Trusted Publisher (RELEASE-01)]
-    └──required-by──> [GHCR activation (RELEASE-02)]
+[Cython .so pipeline (gap 5)]
+    └──requires──>    [axiom-ee source compiles cleanly]
+    └──requires──>    [cibuildwheel CI matrix configured]
+    └──required-by──> [EE wheel published to GitHub Packages]
 
-[LEGAL.md + NOTICE file]
-    └──required-by──> [Licence compliance (LICENCE-01..04)]
-    └──independent-of──> [all feature code changes]
+[Licence key validation]
+    └──requires──>    [EE register() method wired (gap 4)]
+    └──required-by──> [Commercial EE distribution]
+    └──independent-of──> [.so compilation (can ship source EE first, compile later)]
+
+[Docs CE/EE distinction + Docker Hub CE publish]
+    └──requires──>    [gaps 1-4 complete] — docs should reflect the final state
+    └──independent-of──> [.so compilation]
 ```
 
 ### Dependency Notes
 
-- **ExecutionRecord must come first:** All observability and attestation features build on this
-  table. Phase ordering must put the DB schema + node-side reporting before the dashboard views.
+- **Gaps 1-3 are parallel and independent:** Router registration, test isolation, and NodeConfig
+  strip do not depend on each other. All three can be fixed in a single phase or in parallel.
 
-- **JobRun introduces a schema change:** The current model has `Job` records (ad-hoc dispatches)
-  and `ScheduledJob` definitions. Retry policy requires a new `JobRun` concept (a logical
-  execution instance, potentially spanning multiple `ExecutionRecord` attempts). This is a
-  non-trivial data model change and should be in its own phase.
+- **Gap 4 (private repo) depends on gaps 1 and 3:** The EE `register()` method mounts the real
+  routers (needs gap 1 fixed to understand the full routing contract) and the EE DB models add
+  back resource limit columns (needs gap 3 fixed to establish the clean CE baseline).
 
-- **Attestation depends on node-side code change:** The node (`puppets/environment_service/node.py`)
-  must load its mTLS client private key and sign the execution bundle before reporting results.
-  This is the only feature that requires changes to the node agent code. Node agent changes
-  require rebuilding any Foundry-built images that bundle the agent.
+- **Licence validation can precede `.so` compilation:** Licence key logic can be written and
+  tested in source form in the private repo before Cython compilation is configured. The
+  compiled binary just contains the same logic, obfuscated.
 
-- **Licence compliance is independent of all code changes:** LEGAL.md, NOTICE, and pyproject.toml
-  updates can be done in parallel with any code feature phase. They have no implementation
-  dependencies. They do have a release-order dependency: must be complete before PyPI publish.
-
-- **Release infrastructure is a prerequisite for PyPI/GHCR, not for feature work:** The org
-  and project creation unblocks publishing but does not block feature development. Can be
-  done in parallel.
+- **Docker Hub publish is a release-time step:** Does not block any code work. Can be done
+  alongside docs update as the final phase.
 
 ---
 
-## v10.0 Scope Definition
+## v11.0 Scope Definition
 
-### Deliver in v10.0
+### Phase A — Gap Fixes (blocking, must be first)
 
-- [ ] **Job output capture (ExecutionRecord)** — stdout/stderr/exit code/timestamps stored per execution — OUTPUT-01, OUTPUT-02
-- [ ] **Execution history queries** — per job definition, per node; paginated — OUTPUT-03, OUTPUT-04
-- [ ] **Dashboard output viewer** — inline stdout/stderr in Jobs view — OUTPUT-03
-- [ ] **Runtime attestation** — node signs bundle; orchestrator verifies; bundles exportable — OUTPUT-05, OUTPUT-06, OUTPUT-07
-- [ ] **Retry policy** — max retries + fixed/exponential backoff; JobRun parent + ExecutionRecord children; dashboard retry state — RETRY-01, RETRY-02, RETRY-03
-- [ ] **Environment tags** — `ENV_TAG` on nodes; job targeting; Nodes view filter; CI/CD dispatch API — ENVTAG-01, ENVTAG-02, ENVTAG-03, ENVTAG-04
-- [ ] **Licence compliance** — LEGAL.md, NOTICE, pyproject.toml `License-Expression`, paramiko assessment — LICENCE-01, LICENCE-02, LICENCE-03, LICENCE-04
-- [ ] **Release infrastructure** — axiom-laboratories org + PyPI Trusted Publisher + GHCR activation + docs access decision — RELEASE-01, RELEASE-02, RELEASE-03
+- [ ] **Gap 1: Router registration** — mount 7 CE stub routers in the `else` branch of `load_ee_plugins()`; replace `pkg_resources` with `importlib.metadata`
+- [ ] **Gap 2: Test isolation** — `@pytest.mark.ee_only` marker + conftest auto-skip; fix `test_bootstrap_admin.py` `User.role` refs; mark all EE-feature test files
+- [ ] **Gap 3: NodeConfig strip** — remove `concurrency_limit`/`job_memory_limit`/`job_cpu_limit` from CE `NodeConfig` Pydantic model; clean up `job_service.py` usages
 
-### Explicitly Deferred (not v10.0)
+### Phase B — Private Repo + Plugin Wiring
 
-- [ ] **Live log streaming (WebSocket)** — breaks pull model; post-execution output is sufficient (REQUIREMENTS.md explicit deferral)
-- [ ] **Log shipping (Elasticsearch, Loki)** — v2+ integration feature; API export is sufficient
-- [ ] **Environment-scoped RBAC** — requires permission model extension; v11.0
-- [ ] **SLSA provenance format** — custom attestation bundle covers the need; REQUIREMENTS.md explicit deferral
-- [ ] **DAG job dependencies + conditional triggers** — v11.0 in REQUIREMENTS.md
-- [ ] **Docker Hub publishing** — GHCR only for v10.0
-- [ ] **Signed releases (sigstore/cosign)** — valuable but not blocking commercial release; v10.x
+- [ ] **Private `axiom-ee` repo** — create with `pyproject.toml` entry_points `axiom.ee = core = ee.plugin:EEPlugin`
+- [ ] **EE `register()` implementation** — mounts 7 real EE routers, sets all 8 feature flags true, validates licence key
+- [ ] **Validate CE-alone + CE+EE installs** — end-to-end smoke test of both modes
+
+### Phase C — Compilation Pipeline
+
+- [ ] **Cython `.so` build** — `setup.py` with Cython extension list; override `build_py` to strip `.py`
+- [ ] **`cibuildwheel` CI matrix** — Python 3.11/3.12/3.13 x amd64/arm64
+- [ ] **Verify no `.py` in built wheel** — `zipfile.ZipFile(wheel).namelist()` check in CI
+
+### Phase D — Docs, Licensing, Docker Hub
+
+- [ ] **EE feature badges in MkDocs** — `!!! enterprise` admonitions on all EE feature pages
+- [ ] **Licence key validation in EE plugin** — Ed25519 offline validation; `AXIOM_LICENCE_KEY` env var
+- [ ] **`axiom-ce` Docker Hub publish** — add to release workflow; Hub description with upgrade link
+- [ ] **`ee/LICENSE` stub** — clarify Apache-2.0 applies to CE only; `/ee/` is proprietary boundary
 
 ---
 
@@ -284,67 +284,58 @@ release hygiene requirements.
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| ExecutionRecord DB + node reporting | HIGH | MEDIUM | P1 — everything else blocks on this |
-| Execution history API + dashboard viewer | HIGH | MEDIUM | P1 |
-| Environment tags + job targeting | HIGH | LOW | P1 |
-| CI/CD dispatch API | HIGH | LOW | P1 |
-| Retry policy (max_retries + backoff) | HIGH | MEDIUM | P1 |
-| JobRun parent record | HIGH | MEDIUM | P1 — required for retry |
-| Runtime attestation (node + orchestrator) | HIGH | HIGH | P1 — Axiom's security differentiator |
-| Licence compliance (LEGAL.md + NOTICE) | HIGH | LOW | P1 — required before PyPI |
-| PyPI Trusted Publisher activation | HIGH | LOW | P1 — requires org creation |
-| GHCR multi-arch activation | HIGH | LOW | P1 — requires org creation |
-| Output viewer in dashboard | HIGH | MEDIUM | P1 |
-| Nodes view env tag display + filter | MEDIUM | LOW | P2 |
-| Non-retryable exit code list | MEDIUM | LOW | P2 |
-| Public docs access decision | MEDIUM | LOW | P2 |
-| Attestation export API | MEDIUM | LOW | P2 |
-| Signed releases (cosign/sigstore) | MEDIUM | MEDIUM | P3 |
-| Live log streaming | HIGH | HIGH | DEFER — breaks pull model |
-| Log shipping integrations | LOW | HIGH | DEFER |
+| Gap 1: Router registration (404 → 402) | HIGH | LOW | P1 — visible bug in CE |
+| Gap 2: Test suite isolation | HIGH | LOW | P1 — blocks CI green |
+| Gap 3: NodeConfig CE strip | HIGH | LOW | P1 — CE model correctness |
+| Private axiom-ee repo + entry_points | HIGH | LOW | P1 — enables all EE work |
+| CE-alone + CE+EE validation test | HIGH | MEDIUM | P1 — verification checklist |
+| Licence key Ed25519 validation | HIGH | MEDIUM | P1 — commercial requirement |
+| Cython .so build + cibuildwheel | HIGH | HIGH | P1 — IP protection requirement |
+| EE feature badges in docs | MEDIUM | LOW | P2 |
+| axiom-ce Docker Hub publish | MEDIUM | LOW | P2 |
+| ee/LICENSE stub | LOW | LOW | P2 |
+| Wheel published to GitHub Packages | MEDIUM | MEDIUM | P2 |
+| Feature entitlements in licence payload | MEDIUM | MEDIUM | P3 — tiered pricing; future |
+| Signed wheel releases (sigstore) | LOW | LOW | P3 |
 
 **Priority key:**
-- P1: Must ship in v10.0 to deliver the milestone
-- P2: Should ship in v10.0; adds depth but not blocking
-- P3: Nice to have; add if time permits or in v10.x
+- P1: Must ship in v11.0 to complete the split
+- P2: Should ship in v11.0; adds completeness but not blocking
+- P3: Future consideration or v11.x
 
 ---
 
-## Competitor Feature Analysis
+## Competitor Patterns Analysis
 
-How production job schedulers handle these feature areas:
+How established open-core Python products handle the CE/EE split:
 
-| Feature Area | Temporal | Rundeck | Google Cloud Scheduler | Axiom v10.0 Approach |
-|---|---|---|---|---|
-| **Output capture** | Full output per activity attempt, stored in event history | Stdout/stderr per execution, 5MB default cap, configurable truncate/halt | HTTP response body captured (not stdout) | DB-stored stdout/stderr per ExecutionRecord, 64KB default cap, truncation flag |
-| **Execution history** | Full event history per workflow, exportable to S3 | Execution list per job, filterable by date/status, API-accessible | Cloud Logging integration | Queryable per job definition and per node, paginated API endpoint |
-| **Retry policy** | Initial interval, backoff coefficient, max interval, max attempts, non-retryable errors — per activity | Max retries configurable, fixed or exponential — per job step | retryCount (max 5), minBackoff, maxBackoff, maxDoublings, maxRetryDuration | max_retries, backoff_strategy (fixed/exponential), backoff_base_seconds, backoff_max_seconds, non_retryable_exit_codes |
-| **Attempt records** | ActivityTaskStarted events suppressed until completion to reduce noise; final history shows all attempts | Each attempt is a separate execution record with own logs | No sub-attempt visibility (HTTP level only) | JobRun parent + ExecutionRecord children with attempt_number |
-| **Attestation** | Not provided (workflow identity via mTLS/auth, not execution-level signing) | Not provided | Not provided | Ed25519 + mTLS client cert signed bundle; SHA-256 of script + stdout + stderr + exit code + timestamp |
-| **Environment tags** | Namespace-based worker routing (task queues by environment) | Node tags/attributes for targeting | No native concept (use Cloud Run environments) | `environment_tag` on nodes, `target_environment` on job definitions, CI/CD dispatch API |
-| **CI/CD API** | SDK-based dispatch, HTTP polling for completion | Rundeck API `POST /api/1/job/{id}/run`, returns `execution.id` for polling | `POST /v1/projects/-/jobs/{id}:run` | `POST /jobs/dispatch` with environment_tag, returns job_run_id for polling |
-| **Licence compliance** | Temporal CE: MIT; Cloud: proprietary | Rundeck CE: Apache-2.0; PD: proprietary | Google proprietary | Apache-2.0 CE + proprietary EE; PEP 639 License-Expression; NOTICE file |
+| Aspect | Metabase (Java) | PostHog (Python/Django) | Sentry (Python/Django) | Axiom v11.0 Approach |
+|--------|----------------|------------------------|----------------------|---------------------|
+| **EE discovery** | Separate EE jar on classpath | Feature flags in DB seeded by EE install | `sentry/features/` directory + configuration | Python entry_points group `axiom.ee` — standard packaging |
+| **402 vs 404 for CE** | 403 (access denied) | Feature flag gate returns error in UI | Redirects to upgrade page | 402 (payment required) — semantically correct for "feature requires purchase" |
+| **EE routes** | Separate servlet context | Included in main app, gated by feature flag | Included in main app, gated in view | Separate router files registered only when EE present |
+| **Compiled EE** | Jar (bytecode, low protection) | No compilation — source available | No compilation | Cython `.so` — industry standard for Python IP protection |
+| **Licence validation** | Licence file checked at startup | No per-install licence (SaaS model) | No per-install licence | Ed25519 signed key offline validation; `AXIOM_LICENCE_KEY` env var |
+| **Test isolation** | Maven profiles | `@pytest.mark.ee` convention | `requires_snuba` etc. conftest fixtures | `@pytest.mark.ee_only` + conftest auto-skip |
 
-**Key differentiator vs peers:** Axiom's runtime attestation (execution-level cryptographic proof
-combining the mTLS node identity cert, Ed25519 script signing, and SHA-256 output hashes) has no
-equivalent in Rundeck, Temporal, or any cloud scheduler. It is uniquely positioned for regulated
-industries, audit-heavy environments, and air-gapped security-first deployments.
+**Key insight:** The PostHog/Sentry pattern (feature flags in DB, EE code always present but gated) is simpler to implement but ships EE source code to all users. Axiom's entry_points pattern keeps EE source out of the public repo entirely, which is the correct choice given the compiled `.so` requirement.
 
 ---
 
 ## Sources
 
-- [Rundeck Executions documentation](https://docs.rundeck.com/docs/manual/07-executions.html) — output capture UX patterns, log size limits (5MB default), truncate/halt behaviour — HIGH confidence
-- [Google Cloud Scheduler — Retry jobs](https://docs.cloud.google.com/scheduler/docs/configuring/retry-jobs) — retry policy fields: retryCount (max 5), minBackoffDuration, maxBackoffDuration, maxDoublings — HIGH confidence
-- [Temporal Retry Policies](https://docs.temporal.io/encyclopedia/retry-policies) — initial interval, backoff coefficient, max interval, max attempts, non-retryable errors; activity attempt event history suppression pattern — HIGH confidence
-- [AWS — Timeouts, retries and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/) — full jitter vs equal jitter; idempotency requirement for retry with backoff — HIGH confidence
-- [PyPI Trusted Publishers documentation](https://docs.pypi.org/trusted-publishers/) — OIDC setup, GitHub Actions integration, no long-lived tokens — HIGH confidence
-- [GitLab CI — Environments](https://docs.gitlab.com/ci/environments/) — DEV/TEST/PROD environment pattern; same-artifact promotion; environment name conventions — HIGH confidence
-- [Kubernetes Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) — env label patterns, selector-based targeting — HIGH confidence
-- [Rundeck config reference — execution log limits](https://docs.rundeck.com/docs/administration/configuration/config-file-reference.html) — `rundeck.execution.logs.output.limit = 5MB`, `limitAction: truncate` — HIGH confidence
-- [Temporal — Idempotency and durable execution](https://temporal.io/blog/idempotency-and-durable-execution) — idempotency key patterns for retry with separate attempt records — MEDIUM confidence
+- [Python Packaging — Creating and Discovering Plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/) — entry_points group pattern, `importlib.metadata.entry_points()` API — HIGH confidence
+- [Python importlib.metadata docs](https://docs.python.org/3/library/importlib.metadata.html) — `entry_points(group=...)` API, `PackageNotFoundError` for installed-package checks — HIGH confidence
+- [Keygen — Offline Licensing](https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/) — Ed25519 signed key structure, offline validation pattern, `exp` claim — HIGH confidence
+- [Keygen — Cryptographic Verification](https://keygen.sh/docs/api/cryptography/) — `ED25519_SIGN` recommended scheme, payload + signature structure — HIGH confidence
+- [pytest — Working with Custom Markers](https://docs.pytest.org/en/stable/example/markers.html) — `pytest_collection_modifyitems`, `config.addinivalue_line`, skip on condition — HIGH confidence
+- [pytest — Skip and xfail](https://docs.pytest.org/en/stable/how-to/skipping.html) — `pytest.skip()`, `skipif`, marker-based skip hooks — HIGH confidence
+- [Nuitka User Manual](https://nuitka.net/user-documentation/user-manual.html) — `--module` flag, `bdist_nuitka`, Python version pinning limitation — MEDIUM confidence
+- [Cython — Distributing packages protected with Cython](https://art-vasilyev.github.io/posts/protecting-source-code/) — build_py override, platform-specific wheel pattern — MEDIUM confidence
+- [pypa/cibuildwheel — Excluding Python source from wheels](https://github.com/pypa/cibuildwheel/discussions/2065) — post-build `.py` exclusion pattern — MEDIUM confidence
+- Existing codebase in `.worktrees/axiom-split/` — direct inspection of `ee/__init__.py`, `ee/interfaces/`, `ee/routers/`, `UpgradePlaceholder.tsx`, `useFeatures.ts`, `test_bootstrap_admin.py`, `models.py` — HIGH confidence (primary source)
 
 ---
 
-*Feature research for: Axiom v10.0 — production job scheduler commercial release features*
-*Researched: 2026-03-17*
+*Feature research for: Axiom v11.0 — CE/EE open-core split completion*
+*Researched: 2026-03-19*

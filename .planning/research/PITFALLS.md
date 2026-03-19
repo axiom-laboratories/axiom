@@ -1,269 +1,319 @@
 # Pitfalls Research
 
-**Domain:** Pull-architecture job scheduler — adding job output capture, runtime attestation, retry policy, environment tags, CI/CD dispatch, and release infrastructure to an existing production system
-**Researched:** 2026-03-17
-**Confidence:** HIGH (codebase directly inspected — db.py, job_service.py, node.py, pki.py, models.py all read; patterns are verified from the live code, not assumed)
+**Domain:** Open-core CE/EE split — Cython/Nuitka `.so` compilation, entry_points plugin discovery, FastAPI plugin router registration, SQLAlchemy CE/EE model separation, open-core licence key enforcement in a self-hosted Python product
+**Researched:** 2026-03-19
+**Confidence:** HIGH (codebase directly inspected — `ee/__init__.py`, `ee/interfaces/foundry.py`, `ee/routers/foundry_router.py`, `main.py`, `db.py` all read in the `feature/axiom-oss-ee-split` worktree; confirmed against codebase reality, not assumed)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Attestation Uses the Wrong Key — mTLS Client Key vs. Job Signing Key
+### Pitfall 1: Stub Routers Never Mounted — CE Falls Through to 404, Not 402
 
 **What goes wrong:**
-The attestation design (OUTPUT-05..07) requires the node to sign the execution result bundle with its "mTLS client private key." In Axiom, the mTLS client key (`secrets/node-*.key`) is an RSA key (generated via `rsa.generate_private_key` in `pki.py`). The existing job signature verification uses Ed25519. The cryptography library's signing APIs differ by key type: `rsa_key.sign(data, padding, hash_algo)` vs `ed25519_key.sign(data)`. Using the wrong signing call, or failing to specify PKCS1v15/PSS padding for RSA, raises `TypeError` at runtime on the node and results in no attestation bundle being produced — silently, if the exception is swallowed.
-
-The orchestrator also stores the node's cert (`client_cert_pem` column in the `nodes` table) but extracts the public key from the certificate to verify. RSA public key extraction from an X.509 cert requires `cert.public_key()` (returns `RSAPublicKey`), and verification requires `public_key.verify(signature, data, padding, hash_algo)`. If the implementation pattern is copied from the Ed25519 job-signing code (which uses `public_key.verify(sig_bytes, script_bytes)` — two args only, no padding), the RSA verify call will raise `TypeError` on every verification attempt.
+The CE stub routers (`foundry_stub_router`, `audit_stub_router`, etc.) are defined in `ee/interfaces/*.py` but are never registered on the FastAPI `app`. `load_ee_plugins()` in `ee/__init__.py` calls `plugin.register(ctx)` on the EE plugin when EE is installed, but has no fallback to mount the CE stub routers when no EE plugin is found. In CE-only mode, requests to EE routes (e.g., `GET /api/blueprints`) return `404 Not Found` (no route registered) instead of `402 Payment Required` (upgrade prompt). The `"Looks Done But Isn't"` trap: the stubs exist in the codebase, so it looks like CE graceful degradation is implemented — but without `app.include_router(foundry_stub_router)`, none of the stubs are active.
 
 **Why it happens:**
-The node already has an Ed25519 key for upgrade recipe verification (`secrets/verification.key`). When implementing attestation, it is tempting to reuse this key or to assume the signing pattern is the same. The mTLS client key is RSA; the signing key is Ed25519. These are different objects with different APIs.
+The Phase 1 scaffold created the stub router objects. Phase 2 extracted the EE router files. Neither phase wired the stubs into `app`. The gap is invisible unless you actually start CE and call an EE endpoint — `GET /api/features` returns correctly, but any attempt to actually use a feature returns 404 instead of the expected 402.
 
 **How to avoid:**
-- Confirm the key type before implementing: read `secrets/node-*.key` with `serialization.load_pem_private_key`, check `isinstance(key, rsa.RSAPrivateKey)` vs `isinstance(key, ed25519.Ed25519PrivateKey)`.
-- For RSA signing, use `key.sign(data, padding.PKCS1v15(), hashes.SHA256())`.
-- For RSA verification on the orchestrator, use `public_key.verify(signature, data, padding.PKCS1v15(), hashes.SHA256())` and wrap in try/except `InvalidSignature`.
-- Include a unit test on the orchestrator side that loads a known RSA cert PEM (from a test fixture), extracts the public key, and round-trips sign/verify — before the node code is written.
+`load_ee_plugins()` must register CE stub routers unconditionally as a first step, then either override them with EE real routers (if EE is installed) or leave the stubs in place. The correct pattern:
+```python
+# In load_ee_plugins(), before entry_points discovery:
+from .interfaces.foundry import foundry_stub_router
+from .interfaces.audit import audit_stub_router
+# ... all stub routers
+app.include_router(foundry_stub_router)
+app.include_router(audit_stub_router)
+# ...
 
-**Warning signs:**
-- Attestation code copy-pastes from `signature_service.py` (which uses Ed25519) without adjusting for RSA.
-- `public_key.verify(sig_bytes, data_bytes)` with exactly two positional args — this works for Ed25519, raises `TypeError` for RSA.
-- Node logs show `TypeError: sign() missing 2 required positional arguments` during result report.
-
-**Phase to address:** Job output capture + attestation phase (OUTPUT-05..07)
-
----
-
-### Pitfall 2: Output Storage Grows Without Bound — No Retention Policy
-
-**What goes wrong:**
-`ExecutionRecord` rows accumulate indefinitely. The `output_log` column is a TEXT field containing JSON — at the 1 MB cap (`MAX_OUTPUT_BYTES = 1_048_576`), each row can consume up to ~1 MB of DB storage. With frequent cron jobs (e.g., every minute × 10 nodes = 14,400 records/day), the `execution_records` table reaches 14 GB in one day at the cap, or ~140 MB/day at an average 10 KB per record. SQLite's WAL journal compounds this. In production Postgres, the table becomes a scan bottleneck even with the existing indexes — the `ix_execution_records_started_at` index spans all nodes and all jobs, so any paginated history query requires filtering the full index range.
-
-**Why it happens:**
-The `NodeStats` pruning pattern exists (prune to 60 rows per node in `receive_heartbeat`). No equivalent pruning was added for `execution_records` when the table was designed, because at time of design the output column did not exist. The table was added with four indexes for performance, but no TTL or row cap.
-
-**How to avoid:**
-- Add a configurable retention policy: prune `execution_records` older than N days (default: 30 days) via a background task (use the existing APScheduler integration in `scheduler_service.py`).
-- Add a per-job-definition cap: keep at most M execution records per `job_guid` (matching the `NodeStats` pruning pattern).
-- The pruning SQL for SQLite must not use `DELETE ... WHERE id IN (SELECT ... LIMIT N)` — SQLite requires the `DELETE ... WHERE rowid IN (...)` pattern for subquery deletes (MIN-6 deferred issue applies here too).
-- Add a dashboard indicator: show record count and estimated table size in the Admin view so operators know when to tune retention.
-
-**Warning signs:**
-- `execution_records` has no scheduled cleanup task at all.
-- `output_log` TEXT column with no size cap enforced at the DB level.
-- Postgres `pg_table_size('execution_records')` grows unboundedly in load testing.
-
-**Phase to address:** Job output capture phase (OUTPUT-01..04) — address retention before writing the history query UI, not after.
-
----
-
-### Pitfall 3: Retry Thundering-Herd — All Retrying Jobs Become Eligible Simultaneously
-
-**What goes wrong:**
-When a large batch of jobs fails at the same time (e.g., a node disconnects, triggering zombie reaping on 50 jobs), all 50 jobs enter `RETRYING` status with `retry_after` computed as `now + base_delay`. With a 30-second base delay and all jobs reaped in the same zombie-reaper sweep, all 50 jobs become eligible for dispatch at the same instant. The next `pull_work` call from any node finds all 50 at once. All 50 get dispatched, immediately saturating every node's `concurrency_limit`. If the root cause of the original failures was a transient resource pressure, the simultaneous retry batch reproduces the same pressure and fails again — causing cascading retry waves.
-
-The current zombie-reaper code applies `jitter = base_delay * 0.2` (±20% random jitter, see `job_service.py` lines 253-254). This mitigates but does not eliminate thundering herd: with 50 jobs and ±20% of a 30-second window, the effective spread is ±6 seconds — not enough to prevent a surge.
-
-**Why it happens:**
-Jitter is applied correctly per-job but the jitter range is proportional to the delay, not to the number of retrying jobs. For small delays (first retry at 30 seconds), 20% jitter is only ±6 seconds. With 50 jobs, the distribution still piles up in a 12-second window.
-
-**How to avoid:**
-- For the first retry attempt specifically, add a small random initial offset before the base delay: `initial_offset = random.uniform(0, 30)` added to `retry_after` before the exponential component. This spreads the first retry across a 30-second window regardless of the backoff multiplier.
-- Cap the total number of RETRYING jobs that can become eligible in a single `pull_work` scan. The existing query already uses `LIMIT 50` — combine this with the eligibility filter (`retry_after <= now`) so that on a thundering-herd scenario, at most 50 jobs enter the candidate pool per poll cycle. Since nodes poll independently and concurrently, the self-limiting happens naturally.
-- Document the jitter recommendation in `JobDefinitionCreate`: "For high-concurrency scheduled jobs, set `backoff_multiplier >= 2.0` and set `timeout_minutes` to prevent indefinite ASSIGNED states."
-
-**Warning signs:**
-- Dozens of jobs all have identical `retry_after` timestamps (within a 1-second window).
-- Node CPU spikes at regular intervals matching the base retry delay.
-- `pull_work` query returns 50 candidates every time a retry wave fires.
-
-**Phase to address:** Retry policy phase (RETRY-01..03)
-
----
-
-### Pitfall 4: Environment Tag Enforcement Bypassed by Node Self-Reporting
-
-**What goes wrong:**
-The current tag system strips `env:` prefixed tags from node-reported heartbeats (see `job_service.py` lines 388-390: `sanitized_tags = [t for t in hb.tags if not t.startswith("env:")]`). This correctly prevents node self-escalation on reported tags. However, if `ENVTAG-01` is implemented by storing the env tag on the `Node` record at enrollment time (from the JOIN_TOKEN or the enrollment request) but the heartbeat sanitization is not reviewed, a developer might add env-tag reporting back to the heartbeat payload as a convenience during development and forget to strip it. The sanitization is not tested explicitly.
-
-Additionally: if environment tags are stored in the existing `operator_tags` column (separate from `tags`), the `_get_effective_tags()` method returns `operator_tags` when set and ignores `tags` entirely. This means an env tag set at enrollment via `operator_tags` will be correctly enforced, but an env tag set via the API on the `tags` column would be silently ignored — confusing operators who set the env tag via the "wrong" column.
-
-**Why it happens:**
-The env tag feature adds a new semantic to an existing multi-purpose column. The distinction between `tags` (node-reported, sanitized) and `operator_tags` (admin-set, authoritative) is correct architecturally but is not enforced by the data model — both are `TEXT` columns storing JSON lists. There is no DB-level constraint or API-level validation preventing an env tag from appearing in the wrong column.
-
-**How to avoid:**
-- Add a dedicated `env_tag` column to the `Node` table (nullable `String`, `ALTER TABLE` migration required for existing DBs). This separates the semantics entirely from the general tag columns.
-- At enrollment (`/api/enroll`), accept `env_tag` as a JOIN_TOKEN field or enrollment request field (operator-configurable per deployment, not node-self-reported).
-- In `pull_work`, enforce env tag matching using the `env_tag` column, not the tags columns. Do not mix env tag logic with capability or general tag logic.
-- Keep the existing `env:` prefix strip in heartbeat sanitization as a defense-in-depth measure.
-
-**Warning signs:**
-- Env tag is stored in the same `tags` or `operator_tags` column as general tags, parsed by `startswith("env:")`.
-- No dedicated `env_tag` column in the Node schema.
-- No test that verifies a node with `env_tag=PROD` does not receive a job targeted at `env_tag=DEV`.
-
-**Phase to address:** Environment tags phase (ENVTAG-01..04)
-
----
-
-### Pitfall 5: Retry Dispatch Assigns to the Same Node That Just Failed
-
-**What goes wrong:**
-When a job fails and enters `RETRYING` status, `node_id` is set to `None` (see `job_service.py` line 745). This correctly clears the assignment so any eligible node can pick it up on the next poll. However, the `pull_work` job selection query does not exclude the node that previously failed the job. If the failure was node-specific (OOM kill, missing capability, transient file system error), retrying on the same node reproduces the failure. This is especially problematic for zombie-reaped jobs: the zombie reaper clears `node_id` to `None`, but if only one node is eligible (based on tags and capabilities), that node picks up the retry and zombies again.
-
-**Why it happens:**
-The retry mechanism correctly implements the general case (retry on any eligible node) but there is no concept of "node affinity exclusion" — a per-attempt record of which nodes have already failed this job. The `ExecutionRecord` table stores `node_id` per attempt, so the data to implement exclusion exists but is not used in `pull_work`.
-
-**How to avoid:**
-- For jobs with `max_retries > 0`, add a `failed_node_ids` JSON column to `Job` (or derive it from `ExecutionRecord` at dispatch time). During `pull_work` node selection, exclude nodes whose ID appears in this list.
-- Fallback: if all eligible nodes are in the exclusion list, allow reassignment to the least-recently-failed node (preventing permanent deadlock when there is only one eligible node).
-- If adding a new column is not acceptable in the initial retry phase, at minimum exclude the most-recently-failed node: store the last-failed node ID in `job.node_id` during the retry state transition, and skip the job if the polling node matches. Clear it after a successful assignment to a different node.
-
-**Warning signs:**
-- Retry telemetry shows the same node_id in every `ExecutionRecord` attempt for a failing job.
-- Jobs with `max_retries=3` reach `DEAD_LETTER` without ever being attempted on a second node.
-- No node exclusion logic in `pull_work` for RETRYING jobs.
-
-**Phase to address:** Retry policy phase (RETRY-01..03)
-
----
-
-### Pitfall 6: `create_all` Does Not Add New Columns to Existing Tables
-
-**What goes wrong:**
-Every v10.0 feature requires new DB columns:
-- Output capture: attestation fields on `ExecutionRecord` (`attestation_bundle`, `attestation_verified`, `script_hash`, `stdout_hash`, `stderr_hash`) — the current `ExecutionRecord` has none of these.
-- Environment tags: `env_tag` on `Node`.
-- Retry: `failed_node_ids` on `Job` (if implementing node exclusion).
-- Release: no schema changes, but CI/CD dispatch API response fields need confirmation.
-
-`Base.metadata.create_all` only creates tables that do not exist. It never adds columns to existing tables. Any new column added to an ORM model will be silently ignored on an existing deployment — no error, no warning, the column simply does not exist. Queries using that column then fail at runtime with a DB error ("no such column"), not at startup.
-
-**Why it happens:**
-This is the documented constraint of the no-Alembic pattern (noted in CLAUDE.md: "Adding new columns to existing deployed DBs requires manual ALTER TABLE"). The pattern is known but requires discipline to apply consistently for every new column across every feature.
-
-**How to avoid:**
-- Create a single `migration_v14.sql` file alongside the v10.0 work (following the existing `migration_v10.sql`..`migration_v13.sql` pattern).
-- List every new column, new table, and new index in this file using `ADD COLUMN IF NOT EXISTS` (Postgres) / `ALTER TABLE IF NOT EXISTS` (SQLite-compatible pattern requires conditional approach via `PRAGMA table_info`).
-- Run the migration file against both SQLite (dev) and Postgres (prod) in CI before merging any v10.0 changes.
-- The startup `create_all` handles fresh deployments; the migration SQL handles upgrades.
-
-**Warning signs:**
-- New ORM columns added in `db.py` with no corresponding `migration_v14.sql` entry.
-- Local dev works (fresh SQLite from `create_all`) but Docker Compose with persistent volume fails at runtime.
-- CI only tests against fresh DB (no migration path test).
-
-**Phase to address:** First v10.0 phase that touches the schema — define `migration_v14.sql` upfront and add to it incrementally.
-
----
-
-### Pitfall 7: Attestation Bundle Is Not Truly Tamper-Evident Without All Fields
-
-**What goes wrong:**
-OUTPUT-05 defines the attestation bundle as: `script_hash + stdout_hash + stderr_hash + exit_code + start_timestamp + node_cert_serial`. If any of these fields is omitted from the signed payload, the attestation bundle loses tamper-evidence for that field. The most common omission is `exit_code`: it is a small integer and feels like it "doesn't need" hashing. But an attacker who intercepts a result report (a compromised network segment, or a compromised orchestrator DB) can change `exit_code` from 1 to 0 (turning a failure into a success) without invalidating the signature — if `exit_code` is not in the signed bundle.
-
-Similarly, if the bundle does not include the `node_cert_serial`, an orchestrator with multiple enrolled nodes cannot distinguish whether the signature came from the correct node or from another enrolled node whose private key was compromised.
-
-**Why it happens:**
-Bundle fields get chosen pragmatically ("what do we hash?") rather than threat-modelling-first. The script hash and output hashes are obvious; the exit code and cert serial are less obvious but equally necessary.
-
-**How to avoid:**
-The canonical bundle format must be deterministically serialized before signing. Recommended approach:
+# Then, if EE plugin found, it calls app.include_router(real_foundry_router)
+# which adds real routes FIRST — FastAPI resolves first-registered route for a path.
 ```
-bundle_bytes = json.dumps({
-    "script_sha256": ...,     # hex
-    "stdout_sha256": ...,     # hex (SHA256 of raw stdout bytes)
-    "stderr_sha256": ...,     # hex
-    "exit_code": int,
-    "start_ts": ISO8601,       # from job.started_at as assigned by orchestrator, not node clock
-    "cert_serial": hex(int),   # node's cert serial number
-}, sort_keys=True, separators=(',', ':')).encode('utf-8')
-signature = key.sign(bundle_bytes, ...)
+Wait: FastAPI matches routes in registration order and adds routes to a list — the first registered route for a path wins. If stubs are added first and EE adds the real router second, the stubs shadow the real routes. **The correct pattern is: EE plugin registers real routers first (EE `register()` runs before stub fallback).** Only mount stubs for routes that EE did NOT register. Track this via the `EEContext` flags:
+```python
+if not ctx.foundry:
+    app.include_router(foundry_stub_router)
 ```
 
-`sort_keys=True` is mandatory: JSON key ordering is not guaranteed across Python versions, and a reordered bundle would produce a different hash and fail verification.
-
 **Warning signs:**
-- Bundle construction uses f-string concatenation rather than deterministic JSON serialization.
-- `exit_code` is not in the signed bundle.
-- `cert_serial` is not in the signed bundle.
-- No test that verifies modifying `exit_code` in the stored bundle causes verification to fail.
+- `GET /api/blueprints` in CE returns 404 (not 402).
+- `load_ee_plugins()` has no `app.include_router(...)` calls for the stub routers.
+- The `EEContext` flags are set but never used to decide which routers to mount.
 
-**Phase to address:** Runtime attestation phase (OUTPUT-05..07)
+**Phase to address:** Phase 5 (private repo + router migration) — this is the known blocking gap. Fix in the very first step of Phase 5 before testing CE-alone install.
 
 ---
 
-### Pitfall 8: CI/CD Dispatch API Returns 202 Before the Job Is Verified as Dispatched
+### Pitfall 2: FastAPI Duplicate Route Registration When EE Routers and Stub Routers Both Mount the Same Paths
 
 **What goes wrong:**
-The CI/CD dispatch endpoint (ENVTAG-04) creates a job and returns `{"job_id": ..., "status": "PENDING", "node_assigned": null}` immediately. A CI pipeline polling this endpoint expects `node_assigned` to populate within some timeout. If no eligible node exists (wrong env tag, no matching capabilities, all nodes at concurrency limit), the job stays PENDING indefinitely. The pipeline either times out and marks the build as failed, or loops forever.
+If both the CE stub router and the EE real router for the same feature are mounted on the app (e.g., due to a conditional logic bug), FastAPI silently registers both sets of routes. FastAPI matches routes in first-registration order. The second registration does not raise an error — it emits `UserWarning: Duplicate Operation ID` in the OpenAPI schema generation only. In CE+EE mode this means the stub route (402) shadows the real route (200) if stubs are mounted first. In CE-only mode it means duplicate 402 handlers (harmless but confusing in logs).
 
-The current `create_job` function returns immediately after DB commit without checking node availability. This is correct for async dispatch but makes the CI/CD endpoint unsuitable as-is for synchronous pipeline integration without explicit status polling guidance.
+The specific failure: `load_ee_plugins()` correctly calls `plugin.register(ctx)` which mounts EE routers, but if someone also calls `app.include_router(foundry_stub_router)` unconditionally elsewhere (e.g., during startup debug), both route sets exist. Requests get the stub 402 despite EE being installed.
 
 **Why it happens:**
-The pull architecture means the orchestrator never knows when (or if) a node will pick up a job at creation time. This is a fundamental property of the architecture — not a bug. But it means a "dispatch and wait" CI/CD pattern requires explicit polling and timeout handling that must be documented and ideally supported by the API response structure.
+The silent-addition behavior of FastAPI's `include_router` is not obvious. Developers test the CE stub manually (by calling `app.include_router(foundry_stub_router)` directly to see if 402 works), leave the call in, then find EE always returns 402 when installed.
 
 **How to avoid:**
-- The dispatch endpoint response must include: `job_id`, `status`, `node_assigned` (null until assigned), and a `poll_url` field pointing to `GET /jobs/{job_id}` so pipelines know where to poll.
-- Add a `max_wait_seconds` optional query parameter: the endpoint does a short-poll (e.g., waits up to 30 seconds for PENDING → ASSIGNED transition) before returning. This trades a slightly longer initial request for a simpler pipeline integration.
-- Alternatively: document clearly that pipelines must poll `GET /jobs/{job_id}` until `status == "ASSIGNED"` or timeout. Include the polling pattern in the API reference and the CI/CD guide.
-- Return 409 (not 202) if no eligible node exists at dispatch time (check node availability before creating the job).
+- Guard every stub registration with `if not ctx.{feature}:` — only mount stubs for features EE did not claim.
+- Add a startup assertion: after `load_ee_plugins()`, verify that the routes registered on `app.routes` for each EE path match the expected handler (stub vs real) based on the `EEContext` flags. A 5-line debug log at startup is enough.
+- Never call `app.include_router(stub_router)` without the guard — the guard is the invariant, not an afterthought.
 
 **Warning signs:**
-- Dispatch endpoint returns immediately with `status: PENDING` and no polling guidance in the response.
-- No timeout handling documented for CI pipelines.
-- No test that verifies the dispatch endpoint returns a non-null `poll_url`.
+- Application startup logs show `UserWarning: Duplicate Operation ID` for any Foundry, Audit, or Webhook route.
+- EE is installed but `/api/blueprints` returns 402.
+- `GET /api/features` shows `"foundry": true` but GET `/api/blueprints` returns 402.
 
-**Phase to address:** Environment tags + CI/CD dispatch phase (ENVTAG-03..04)
+**Phase to address:** Phase 5 (router migration) — define the registration guard pattern before the EE plugin `register()` method is written, so the protocol is clear.
 
 ---
 
-### Pitfall 9: Output Log Truncation Happens After Secret Scrubbing — Allows Secret Leakage
+### Pitfall 3: `pkg_resources.iter_entry_points` Is Deprecated and Slow — Use `importlib.metadata`
 
 **What goes wrong:**
-The current `report_result` logic (job_service.py lines 690-706) scrubs secrets first, then truncates the output_log. This is correct. However, when output capture is extended (OUTPUT-01..03), if a developer reverses the order — truncating first, then scrubbing — secrets that appear near the end of a long output may survive in the stored log: the truncation removed the scrubbing candidate from the list but the secrets were already written to an intermediate buffer or transmitted to the frontend. The risk is specifically in streaming or incremental output capture implementations where lines are buffered and flushed piecemeal.
+The current `ee/__init__.py` uses `pkg_resources.iter_entry_points("axiom.ee")`. `pkg_resources` scans all installed packages on import — in environments with many packages (a typical Python environment has 100+ packages), importing `pkg_resources` alone can take several seconds. More critically, `pkg_resources` is deprecated in favour of `importlib.metadata` as of setuptools 67+ (2023). It will not be removed immediately but is a maintenance liability. When `axiom-ee` is compiled to `.so` (Phase 6), `pkg_resources` has known issues discovering entry_points from compiled extensions in some configurations.
 
-For attestation specifically: the `stdout_hash` in the attestation bundle must hash the raw (pre-scrub) bytes, not the post-scrub bytes. If the hash is computed post-scrub, the verification on an independent verifier (using the raw stdout bytes from the job container) will always fail — because the verifier computes the hash of the original output, not the redacted version.
+The other problem: the current code wraps the entire discovery in a bare `except Exception`, silently swallowing any import error from the EE `.so`. If the `.so` fails to load (ABI mismatch, missing dependency, wrong Python version), the system continues in CE mode with no log entry beyond a generic warning. Operators cannot distinguish "EE not installed" from "EE installed but broken."
 
 **Why it happens:**
-The scrub-then-truncate order is not documented as a security invariant. When output capture code is refactored or extended, the ordering is not preserved. The attestation hash-on-raw vs hash-on-scrubbed distinction is subtle and easy to get wrong.
+`pkg_resources` was the standard tool for entry_points discovery for a decade. Many tutorials still reference it. The deprecation is recent enough that existing code predates it.
 
 **How to avoid:**
-- Compute the attestation hashes (`stdout_sha256`, `stderr_sha256`) on the raw output bytes from the node, before any scrubbing or truncation. The hashes go into the bundle for attestation purposes.
-- Store only the scrubbed, truncated output in `execution_records.output_log`.
-- Add a comment in `report_result` explicitly marking the ordering constraint: `# ORDER: hash raw → scrub → truncate → store`.
-- Test: verify that a job with `[REDACTED]` in its stored output still produces a valid attestation bundle when the verifier uses the raw (pre-scrub) output hash.
+Replace `pkg_resources.iter_entry_points` with `importlib.metadata.entry_points`:
+```python
+from importlib.metadata import entry_points
+eps = entry_points(group="axiom.ee")
+```
+This API is stable from Python 3.9+ (Python 3.12 standardised the `group=` keyword form). For Python 3.8 compatibility, use the `importlib_metadata` backport or the `select()` workaround.
+
+Tighten the exception handling:
+```python
+try:
+    plugin_cls = ep.load()
+    plugin = plugin_cls(app, engine)
+    plugin.register(ctx)
+    logger.info(f"Loaded EE plugin: {ep.name} from {ep.value}")
+except ImportError as e:
+    logger.error(f"EE plugin {ep.name} failed to import: {e} — running in CE mode")
+except Exception as e:
+    logger.error(f"EE plugin {ep.name} register() raised: {e} — running in CE mode")
+```
+Log the `ep.value` (the dotted module path) so operators can see which `.so` file was being loaded when it failed.
 
 **Warning signs:**
-- Attestation hash computed after `entry["line"].replace(secret, "[REDACTED]")`.
-- No comment marking the scrub order as a security invariant.
-- Truncation code appears before the scrubbing loop.
+- `from importlib import pkg_resources` or `import pkg_resources` in `ee/__init__.py`.
+- Exception handling catches `Exception` without logging the `ep.name` and error detail.
+- No log difference between "EE not installed" and "EE installed but failed to load."
 
-**Phase to address:** Runtime attestation phase (OUTPUT-05..07), cross-check during output capture phase (OUTPUT-01..04)
+**Phase to address:** Phase 5 (private repo setup) — fix before validating CE-alone and CE+EE installs, so test output is interpretable.
 
 ---
 
-### Pitfall 10: PyPI Trusted Publisher Fails if GitHub Org/Project Names Don't Match Exactly
+### Pitfall 4: Cython Compilation Breaks `@dataclass` — `__annotations__` Stripped
 
 **What goes wrong:**
-PyPI Trusted Publisher OIDC configuration requires the GitHub org name, repository name, workflow filename, and environment name to match exactly — case-sensitive. If the `axiom-laboratories` org is created with any variation in capitalization, or the workflow file is renamed, the OIDC trust relationship silently rejects the publishing attempt with a generic authentication failure, not an informative "trust mismatch" error.
+Cython strips `__annotations__` from class bodies when compiling to `.so`. The `@dataclass` decorator in Python relies entirely on `cls.__annotations__` to discover fields. When a `@dataclass`-decorated class is compiled by Cython, `__annotations__` is empty or absent, and `dataclass()` generates an `__init__` that takes only `self` — regardless of what fields are declared. The symptom is: `TypeError: __init__() takes 1 positional argument but N were given` when constructing any dataclass instance at runtime, even though the Python source looks correct.
 
-Additionally: the PyPI project name (`axiom-sdk`) must be registered before the Trusted Publisher relationship can be configured. If the project does not yet exist on PyPI when the relationship is configured, PyPI's "pending publisher" feature must be used (added in 2023). If the workflow runs before the pending publisher is set up, it will fail at the upload step, not at the OIDC step, producing a misleading error.
+The Axiom EE plugin code will likely use `@dataclass` for configuration objects, response models, or plugin state containers. The `EEContext` dataclass in CE's `ee/__init__.py` uses `@dataclass` — any EE code that imports and extends this, or defines its own `@dataclass` types, will fail after compilation. This is a confirmed Cython bug (GitHub issue #3336, reported against Cython 0.x and partially fixed in Cython 3 but not fully resolved for all decorator patterns).
 
 **Why it happens:**
-The distinction between "pending publisher" (project doesn't exist yet) and "standard publisher" (project already exists) is not obvious from the PyPI UI. Most guides describe the standard flow. The GHCR workflow uses `ghcr.io/axiom-laboratories/axiom` as the image name — this requires the org to exist on GitHub and for the workflow to push with the right permissions (`packages: write`) before the image name is accepted.
+Cython's extension type system and Python's annotation system are distinct. Cython 3 improved support but `@dataclass` with certain decorator combinations (e.g., `@dataclass` applied after another decorator, or `@dataclass` on a class with `cdef` attributes) still strips `__annotations__`. The fix in Cython 3 covers the simple `@dataclass class Foo:` case but not all patterns.
 
 **How to avoid:**
-- Use PyPI's pending publisher feature (configure the trust relationship before the first publish, even before the `axiom-sdk` project exists).
-- Exact matching checklist: GitHub org = `axiom-laboratories`, repo = `master_of_puppets` (or whatever it will be named), workflow file = exact filename in `.github/workflows/`, environment name = exact string used in the workflow `environment:` field.
-- Test the OIDC flow with a dry-run `--repository testpypi` against test.pypi.org before targeting the real PyPI index.
-- For GHCR: verify `packages: write` permission is in the workflow's `permissions:` block; the Actions workflow must explicitly request this permission (it is not inherited from `contents: write`).
+Three safe strategies (pick one per module):
+1. **Avoid `@dataclass` in compiled modules.** Use plain classes with explicit `__init__`. This is the simplest and most reliable approach for EE code.
+2. **Use Cython's native dataclass support.** In `.pyx` mode: `@cython.dataclasses.dataclass` with `cimport cython` — this generates Cython-native struct-backed fields. Only viable if the module is written as `.pyx`, not pure Python.
+3. **Compile with `--directive annotation_typing=False`** (Cython directive) to prevent Cython from interpreting annotations as type declarations — this preserves `__annotations__` for `@dataclass` introspection. Add to `setup.cfg`: `[cython-compile] compiler_directives = annotation_typing=False`.
+
+For the Axiom EE split specifically: Pydantic models (used throughout for FastAPI request/response) are NOT standard `@dataclass` — Pydantic has its own metaclass that does not rely on `__annotations__` in the same way. Pydantic v2 models compile through Cython without this issue. Only standard-library `@dataclass` and `typing.TypedDict` patterns are affected.
 
 **Warning signs:**
-- Workflow uses `environment: production` but PyPI publisher is configured with `environment: release`.
-- `axiom-sdk` PyPI project name not pre-registered (even as a placeholder release).
-- No `permissions: packages: write` in the GHCR workflow job.
+- EE module uses `@dataclass` on configuration or state holder classes.
+- `from dataclasses import dataclass` import in any EE module that will be compiled.
+- `TypeError: __init__() takes 1 positional argument` in EE plugin test after compiling to `.so`.
+- `dir(MyCompiledClass)` shows no `__annotations__` attribute.
 
-**Phase to address:** Release infrastructure phase (RELEASE-01..02)
+**Phase to address:** Phase 6 (`.so` build pipeline) — audit all EE modules for `@dataclass` usage before setting up the Cython build. Replace with explicit `__init__` in all compiled modules.
+
+---
+
+### Pitfall 5: Cython Compiled `.so` Breaks `__file__`-Relative Resource Loading and Relative Imports
+
+**What goes wrong:**
+Two distinct failures:
+
+**A) `__file__` path changes.** When compiled to `.so`, `module.__file__` is set to the absolute path of the `.so` file (e.g., `/site-packages/ee/plugin.cpython-312-x86_64-linux-gnu.so`), not a `.py` file. Any code that uses `os.path.dirname(__file__)` to locate data files or template resources will get the correct directory — this part works. However, `importlib.resources.files(__name__)` may fail if the package is not structured as a proper package (has no `__init__` module in the same directory). The failure mode is `ModuleNotFoundError` or returning an empty traversable at runtime.
+
+**B) Relative imports in compiled `__init__` modules.** If the EE plugin package has a compiled `__init__.so` (i.e., `__init__.py` is also compiled), relative imports from within that module (e.g., `from .plugin import EEPlugin`) may fail with `ImportError: attempted relative import with no known parent package`. This is a CPython issue (bug #59828) that manifests specifically when `__init__` is a `.so` file rather than `.py`. Relative imports in non-`__init__` modules are not affected.
+
+**Why it happens:**
+Python's import system sets `__package__` based on `__spec__` when importing. For `.so` extension modules, `__spec__` is correctly populated as long as the package is properly installed. The failure occurs when the package is imported in a non-standard way (e.g., added to `sys.path` directly rather than installed via pip). During development or CI testing of the `.so` before formal install, this is a common path.
+
+**How to avoid:**
+- **Do not compile `__init__.py`** of the EE plugin package. Leave `__init__.py` as a plain `.py` file that imports from compiled submodules. This sidesteps the `__init__.so` relative import bug entirely.
+- Structure the EE package so `__init__.py` contains only the entry point class definition and imports:
+  ```python
+  # ee_plugin/__init__.py  — NOT compiled
+  from .core import EEPlugin  # core.so can be compiled
+  ```
+- Avoid `importlib.resources.files()` for locating files within the compiled package. Use `importlib.resources.files(__name__).joinpath("data_file.json")` only if there is a non-compiled `__init__.py` in the package directory. Alternatively, bundle data files as string constants compiled into the `.so`.
+- Always test `.so` loading via `pip install dist/axiom_ee-*.whl` in a clean virtualenv before running CI against it — this matches the real install path and surfaces relative import failures.
+
+**Warning signs:**
+- The EE plugin entry point in `setup.cfg` points to `ee.plugin:EEPlugin` where `ee/__init__.py` is compiled to `__init__.so`.
+- `importlib.resources.files("ee")` raises `ModuleNotFoundError` in the compiled version.
+- CI tests the `.so` by adding the build directory to `sys.path` rather than installing the wheel.
+- Relative imports in any compiled `__init__.so` module.
+
+**Phase to address:** Phase 6 (`.so` build pipeline) — define the package structure constraint (never compile `__init__.py`) before writing any compilation CI.
+
+---
+
+### Pitfall 6: EE DB Models Must Share the CE `Base` — Two `DeclarativeBase` Instances = Missing Tables
+
+**What goes wrong:**
+SQLAlchemy's `Base.metadata.create_all(engine)` creates only tables registered in that `Base`'s metadata. If the EE plugin defines its models using a separate `Base = DeclarativeBase()` (its own `DeclarativeBase` instance), those models are registered in a different `MetaData` object. The CE startup calls `Base.metadata.create_all(engine)` using the CE `Base` — the EE tables are never created. The failure mode is: EE plugin loads successfully, routes are registered, but the first DB query on an EE table raises `OperationalError: no such table: audit_log`.
+
+The inverse problem also exists: if the EE `Base` creates tables that reference CE tables via `ForeignKey` (e.g., `audit_log.user_id → users.id`), and the FK uses the string form `"users.id"`, the FK resolution fails silently if the `users` table is not in the EE `Base`'s metadata — the FK is unresolvable at `create_all` time and either raises an error or is silently dropped depending on the DB dialect.
+
+**Why it happens:**
+The EE plugin is a separate Python package. It is natural to define a `Base = DeclarativeBase()` inside the EE package without importing it from CE. The symptom does not appear in development if the EE package is always installed alongside CE and the developer always does a fresh DB (where `create_all` runs against a clean database and the EE-installed state is present at startup).
+
+**How to avoid:**
+The EE plugin must import `Base` from the CE package, not define its own:
+```python
+# In axiom-ee: ee/models/audit.py
+from agent_service.db import Base  # CE's Base — the only Base
+
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+    ...
+```
+This means the EE package has a runtime dependency on the CE package (which is correct — EE extends CE, not the reverse). The `plugin.register(app, engine)` call receives the CE `engine` and can call `Base.metadata.create_all(engine)` — but since CE already called it at startup, EE only needs to call it if new tables were added by the EE models (i.e., EE tables not yet in the DB).
+
+For the EE `register()` method: call `Base.metadata.create_all(engine)` explicitly in `register()` to create any EE tables that did not exist before EE was installed on a running CE deployment:
+```python
+def register(self, ctx):
+    from agent_service.db import Base
+    Base.metadata.create_all(self.engine)  # idempotent — skips existing tables
+    # then mount routers...
+```
+
+**Warning signs:**
+- EE plugin package contains `Base = DeclarativeBase()` in any `db.py` or `models.py` file.
+- `OperationalError: no such table: audit_log` on first EE request after install.
+- EE `ForeignKey` strings reference CE tables but FK resolution fails at metadata creation.
+- `create_all` is never called in the EE `register()` method.
+
+**Phase to address:** Phase 5 (private repo setup) — define the `Base` sharing contract as the first architectural decision before writing any EE model code.
+
+---
+
+### Pitfall 7: Licence Key Validation at Startup Only — EE Features Work After Key Expiry
+
+**What goes wrong:**
+A common pattern in open-core plugins is to validate the licence key once at startup (in `register()`), set a flag, and never check again. This means:
+1. A valid key at startup → EE features enabled for the lifetime of the process.
+2. If the process runs for weeks (Docker container restart policy: `unless-stopped`), the licence can expire without EE features being disabled. Customers get months of free EE after their licence expires simply by not restarting their container.
+3. Conversely: clock skew on the host (NTP drift, container time not synced) causes valid licences to fail validation if expiry is checked against wall clock time with no tolerance.
+
+For self-hosted deployments specifically: any online licence validation call (to `api.axiom.run/v1/licence/validate`) will be blocked in air-gapped deployments. If the EE plugin does not support offline licence files, air-gapped customers cannot use EE.
+
+**Why it happens:**
+Startup validation is the simplest pattern. Clock-based expiry without tolerance is the first implementation that comes to mind. Online-only validation is what most SaaS-focused licence libraries default to.
+
+**How to avoid:**
+- **Periodic re-validation**: re-check the licence every N hours (e.g., every 12 hours) via a background task. If re-validation fails (key expired, network unreachable), log a warning but do not disable EE features immediately — give a grace period (e.g., 7 days of offline tolerance) to avoid disrupting air-gapped deployments.
+- **Cryptographic offline licence files**: Sign licence files with an Ed25519 key whose private key never leaves `api.axiom.run`. The EE plugin bundles only the Ed25519 public key (compiled into the `.so`). Validation is entirely offline — parse the licence file, verify the signature against the embedded public key, check expiry with a `±5 minute` clock tolerance. Axiom already has Ed25519 infrastructure (job signing) — reuse the same `cryptography` library pattern.
+- **Licence file format**: `{customer_id, features[], expiry_utc, issued_utc, signature}` as a signed JSON blob. The `features` array allows per-customer entitlement (e.g., `["rbac", "foundry"]` but not `["smelter"]`).
+- **Never hardcode the public key as a plain string** — compiled `.so` files can be reversed with `strings(1)` or `objdump`. Use a constant array of bytes, split across multiple variables, reassembled at validation time. This is obfuscation only (not real security), but it raises the cost of casual key extraction.
+- **Bypass pattern to protect against**: the most common self-hosted bypass is clock manipulation — set system time to before expiry. Mitigation: compare licence `issued_utc` against system time (system time must be >= issued_utc); if system time is before the issue date, treat as clock manipulation and reject.
+
+**Warning signs:**
+- `register()` calls `validate_licence()` once and stores a boolean flag — no periodic re-check.
+- Licence validation makes an outbound HTTP call with no offline fallback.
+- Licence expiry check uses `datetime.utcnow() > expiry` with no clock tolerance.
+- Ed25519 public key stored as a plain ASCII string constant in the compiled module.
+
+**Phase to address:** Phase 7 (documentation and licensing) — define the offline cryptographic licence file format before Phase 6 (compilation), so the licence validation code is designed with compilation constraints in mind from the start.
+
+---
+
+### Pitfall 8: EE-Only Tests Fail in CE CI — Test Suite Not Isolated
+
+**What goes wrong:**
+The CE test suite currently contains tests that import EE models, EE router handlers, or EE DB columns directly. After Phase 3 stripped EE models from `db.py`, these tests fail with `ImportError` or `AttributeError: User has no attribute 'role'`. The plan notes `Fix CE test suite — isolate EE-only tests, fix test_bootstrap_admin.py User.role refs` as a blocking gap.
+
+The less obvious problem: if EE-only tests are simply deleted from the CE test suite (not moved to the EE private repo), the EE router code has no tests at all in any repo. EE code coverage goes to zero. The correct fix is to move EE tests to the `axiom-ee` private repo where they run against a CE+EE install.
+
+A second failure mode: tests that use CE's `Base` fixtures (e.g., a conftest.py that creates tables with `create_all`) will not create EE tables even if EE is installed at test time — because the test fixture runs `create_all` at the start of the test session, before `load_ee_plugins()` is called. EE table queries in integration tests fail with `OperationalError`.
+
+**Why it happens:**
+Tests were written against the pre-split codebase where all models existed in `db.py`. The split happened in phases; tests were not updated in lockstep. Test fixtures that mirror the startup sequence may not replicate the `load_ee_plugins()` → `create_all()` ordering.
+
+**How to avoid:**
+- CE test suite must import only from `agent_service.db` (CE models only) and `agent_service.models` (CE Pydantic models only). Any test importing from `agent_service.ee` must be tagged `@pytest.mark.ee` and skipped in CE CI: `pytest -m "not ee"`.
+- For integration tests that need a full CE+EE stack: maintain a separate test configuration in the `axiom-ee` repo with a `conftest.py` that installs EE, calls `load_ee_plugins()`, then runs `create_all()`.
+- `test_bootstrap_admin.py` specifically: the `User.role` attribute was removed from CE. Fix: either remove the role assertion entirely (CE has no roles), or add a `pytest.importorskip("ee")` guard.
+
+**Warning signs:**
+- `pytest` fails in CE CI with `AttributeError: type object 'User' has no attribute 'role'`.
+- Any test file imports `from agent_service.ee.routers import ...` without an EE skip guard.
+- CE test suite passes locally (developer has EE installed) but fails in CI (clean CE-only environment).
+- `conftest.py` uses `Base.metadata.create_all(engine)` without calling `load_ee_plugins()` first — EE tables never created in test DB.
+
+**Phase to address:** Phase 5 (private repo setup) — fix CE test isolation as step 0, before validating CE-alone install. Otherwise "CE tests pass" is misleading.
+
+---
+
+### Pitfall 9: Circular Import Between CE `main.py` → `ee/__init__.py` → CE `db.py`
+
+**What goes wrong:**
+The current import chain is: `main.py` imports `from .db import ...` (CE models) and also imports `from .ee import load_ee_plugins`. Inside `load_ee_plugins`, the EE plugin's `register()` calls `from agent_service.db import Base` to extend CE's Base. This is safe as long as `db.py` is fully initialized before `ee/__init__.py` is imported.
+
+The risk: if any code path within the EE plugin module (not inside `register()`, but at module level) imports from `agent_service.main` (e.g., to access `app` directly, or to access a utility defined in `main.py` rather than a service), a circular import occurs: `main.py` → `ee/__init__.py` → `ee.plugin` → `agent_service.main` → already being loaded. Python's import system partially initializes `main` and returns the incomplete module, causing `ImportError: cannot import name 'X' from partially initialized module 'agent_service.main'`.
+
+The specific trigger in Axiom: `deps.py` contains `require_permission` and `get_current_user`. The EE router files import from `...deps`. `deps.py` imports from `...auth` and `...db`. This chain is safe. But if any EE router imports from `...main` (even accidentally via a wildcard or re-export), the circular import activates.
+
+**Why it happens:**
+Large FastAPI applications tend to accumulate utilities in `main.py` that should be in service files. EE router authors reaching for a utility may grab it from `main` rather than tracing it back to its proper module.
+
+**How to avoid:**
+- Enforce the rule: EE plugin code must never import from `agent_service.main`. All shared utilities must live in `agent_service.deps`, `agent_service.auth`, `agent_service.security`, or `agent_service.services.*`.
+- Add a test: `import agent_service.ee.plugin` in isolation (without importing `main`) — must succeed without error.
+- In `load_ee_plugins()`, after `ep.load()`, catch `ImportError` specifically and log the full traceback (not just the message), so circular import failures are diagnosable.
+
+**Warning signs:**
+- `from ...main import ...` in any EE router file.
+- `ImportError: cannot import name 'X' from partially initialized module 'agent_service.main'` in startup logs.
+- EE plugin loads correctly in isolation but fails when imported as part of the full application.
+
+**Phase to address:** Phase 5 (private repo setup) — define the import boundary rule before writing EE router code; enforce with a CI import isolation test.
+
+---
+
+### Pitfall 10: `NodeConfig` CE Strip Leaves Dead References in `job_service.py`
+
+**What goes wrong:**
+Phase 3 stripped `concurrency_limit`, `job_memory_limit`, and `job_cpu_limit` from the CE `NodeConfig` Pydantic model. But `job_service.py` references these fields in the node selection and admission control logic (memory limit checking, concurrency limit enforcement). After the strip, the fields are absent from the model — accessing `node.concurrency_limit` raises `AttributeError` if the field was removed from both the Pydantic model and the DB schema, or returns `None` silently if only the Pydantic model was changed but the DB column still exists.
+
+The silent `None` case is the dangerous one: `if job.memory_limit and node.job_memory_limit:` evaluates to `False` for both conditions (both `None`), so the admission check is silently bypassed — jobs are dispatched without any resource checking in CE.
+
+**Why it happens:**
+The CE strip was a model-level change. `job_service.py` was not audited for every reference to the stripped fields. Python does not catch attribute access on `None` as an error at parse time.
+
+**How to avoid:**
+- After stripping EE fields from CE models, run a search for all references to the stripped field names across the codebase: `concurrency_limit`, `job_memory_limit`, `job_cpu_limit`, `memory_limit`, `cpu_limit`. Every reference must either be removed or guarded with `if hasattr(node, 'concurrency_limit')`.
+- The CE behaviour should be: fixed sensible defaults (e.g., concurrency = unlimited, memory = unchecked) enforced via constants, not via the node model. Replace `node.concurrency_limit or DEFAULT_CONCURRENCY` with just `DEFAULT_CONCURRENCY` in CE `job_service.py`.
+- Add a CE-specific integration test: dispatch a job to a CE node; verify it is assigned without AttributeError in the server logs.
+
+**Warning signs:**
+- `grep -r "concurrency_limit\|job_memory_limit\|job_cpu_limit" puppeteer/agent_service/services/job_service.py` returns any results after the CE strip.
+- `AttributeError: 'Node' object has no attribute 'concurrency_limit'` in CE server logs during job dispatch.
+- CE job dispatch silently never assigns jobs (because a `None` admission check causes a false rejection).
+
+**Phase to address:** Phase 5 gap fix step — this is listed as a blocking gap ("Strip `NodeConfig` model"). Resolve before validating CE core job dispatch.
 
 ---
 
@@ -271,12 +321,12 @@ The distinction between "pending publisher" (project doesn't exist yet) and "sta
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Store env_tag in existing `tags` column with `env:` prefix | No schema change required | Confused with general tags; operator_tags override semantics apply; harder to enforce isolation | Only if migration is impossible (it isn't here) |
-| Skip `failed_node_ids` exclusion in first retry implementation | Simpler initial implementation | Jobs retry on the same failing node; persistent failures hit DEAD_LETTER without trying other nodes | Acceptable if cluster has only 1 eligible node per job type; otherwise harmful |
-| Hash post-scrub stdout for attestation | Simpler code path (single pass) | Attestation always fails independent verification; attestation bundle is meaningless | Never — defeats the purpose of attestation |
-| Attestation bundle uses string concatenation instead of deterministic JSON | Faster to implement | Fails on Python version differences in dict ordering, float repr, or unicode normalization | Never — deterministic serialization costs 2 lines |
-| No output retention policy at launch | Deferred complexity | DB storage grows unboundedly; history queries degrade; SQLite dev DBs become unusable | Only for initial testing deployments with < 100 job runs |
-| CI/CD dispatch returns immediately without polling guidance | Simpler endpoint | Pipeline integrations timeout or loop forever waiting for job assignment | Never — document the polling pattern at minimum |
+| Validate licence key only at startup | Simple one-time check | Expired licences run forever without restart; no offline grace period | Never for a commercial product — add periodic re-check |
+| EE defines its own `Base = DeclarativeBase()` | No import of CE internals from EE | EE tables never created; CE `create_all` ignores them | Never — EE must share CE's `Base` |
+| Keep `pkg_resources` for entry_points discovery | Already works, no code change | Deprecated, slow on large environments, known `.so` discovery issues | Acceptable short-term (fix before v12.0) |
+| Compile `__init__.py` of EE package to `.so` | Maximum source code protection | Relative imports fail; harder debugging | Never — always leave `__init__.py` as `.py` |
+| Delete EE tests from CE suite rather than moving them | Quick fix for CE CI | EE code has zero test coverage | Never — move tests to `axiom-ee` repo |
+| Store licence public key as plain ASCII string constant | Simplest implementation | `strings(1)` on the `.so` exposes the key | Acceptable if key rotation is possible; not acceptable if key is permanent |
 
 ---
 
@@ -284,14 +334,13 @@ The distinction between "pending publisher" (project doesn't exist yet) and "sta
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| mTLS client key signing (attestation) | Copy Ed25519 `key.sign(data)` call for RSA key | RSA: `key.sign(data, padding.PKCS1v15(), hashes.SHA256())` — three arguments |
-| mTLS cert public key extraction (attestation verify) | `cert.public_key().verify(sig, data)` two-arg form | RSA: `public_key.verify(sig, data, padding.PKCS1v15(), hashes.SHA256())` — four arguments |
-| PyPI Trusted Publisher OIDC | Configure standard publisher (project must exist) | Use "pending publisher" for new project; exact case-sensitive name matching required |
-| GHCR image publish | Workflow runs without `permissions: packages: write` | Explicitly declare `permissions` block in the workflow job; `contents: read` alone is not enough |
-| Environment tag enforcement | Store `env_tag` via node heartbeat (self-reported) | Set env_tag at enrollment only (operator-controlled), strip `env:` prefix from heartbeat sanitization |
-| Attestation bundle for independent verification | Hash post-scrub/post-truncation output | Hash raw output bytes before any processing; store raw hashes in attestation bundle |
-| Retry backoff on first attempt | Use `retry_count - 1` in exponent | At retry_count=1 (first retry): `30 * 2.0 ** 0 = 30s` — correct; but add random initial offset to prevent synchronized retry waves |
-| SQLite subquery delete (output retention) | `DELETE WHERE id IN (SELECT ... LIMIT N)` | SQLite requires `DELETE WHERE rowid IN (SELECT rowid ...)` — test on SQLite, not just Postgres |
+| FastAPI route registration order | Mount both stub and real router → stub shadows real (first wins) | Guard: `if not ctx.foundry: app.include_router(stub)`; EE registers real router in `register()` before guard runs |
+| SQLAlchemy EE models | `Base = DeclarativeBase()` in EE package | `from agent_service.db import Base` — share the one CE Base |
+| Cython `@dataclass` | Decorate class with `@dataclass`, compile → `__init__` ignores all fields | Use plain classes with explicit `__init__` in all compiled modules |
+| Cython `__init__.py` compilation | Compile `__init__.py` to `__init__.so` | Never compile `__init__.py` — keep as `.py`, compile submodules only |
+| entry_points discovery for `.so` | `pkg_resources.iter_entry_points()` | `importlib.metadata.entry_points(group="axiom.ee")` — Python 3.9+ built-in |
+| Licence expiry in air-gapped deployments | Online validation call (blocks in air-gapped env) | Ed25519-signed offline licence file; embed public key in compiled `.so` |
+| EE import of CE utilities | Import from `agent_service.main` | Import only from `agent_service.deps`, `auth`, `security`, `services.*` — never from `main` |
 
 ---
 
@@ -299,11 +348,9 @@ The distinction between "pending publisher" (project doesn't exist yet) and "sta
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `execution_records` unbounded growth | History queries slow; full-table scans in SQLite; Postgres autovacuum struggling | Scheduled retention pruning via APScheduler; keep 30 days or 1000 records per job | At ~10K records in SQLite dev; at ~10M rows in Postgres without partitioning |
-| Attestation verification on every history page load | `/jobs/{id}/history` triggers N cert-public-key extractions for N records | Compute and store `attestation_verified` at write time (in `report_result`); never re-verify on read | Immediately if verification is synchronous in the read path |
-| `RETRYING` job scan includes all jobs regardless of `retry_after` | `pull_work` query returns 50 candidates but 48 are RETRYING too early, wasting selection loop iterations | Index on `(status, retry_after)` — already partially handled by the existing query filter; add a composite index | At >100 concurrent RETRYING jobs |
-| Output log JSON parse on every list_jobs call | `list_jobs` parses `output_log` TEXT for every row in the result set | `list_jobs` should NOT include output_log; only include it in `GET /jobs/{id}/executions/{exec_id}` | At >50 jobs in a single page |
-| Attestation bundle stored as raw bytes in TEXT column | UTF-8 encoding of binary signature bytes corrupts base64-encoded data | Store attestation bundle as base64 encoded string, not raw bytes | On first non-ASCII byte in the signature (which happens regularly with RSA/SHA256 output) |
+| `pkg_resources` import scans all packages | 2–5s delay on first `load_ee_plugins()` call | Switch to `importlib.metadata` (lazy, O(1) lookup) | On any environment with 50+ installed packages |
+| Licence re-validation on every EE API request | Each request makes an outbound HTTP call; 50–200ms added to every EE route | Validate once at startup + periodic re-check (every 12h) via APScheduler | Immediately if online validation is per-request |
+| EE `register()` calls `create_all` on every startup for large EE schema (15 tables) | `create_all` with 28 total tables takes 200–500ms on SQLite; blocks startup | `create_all` is idempotent — this is acceptable; SQLite startup cost is a known tradeoff | Never critical; just note the startup time increase |
 
 ---
 
@@ -311,12 +358,11 @@ The distinction between "pending publisher" (project doesn't exist yet) and "sta
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Attestation private key (node mTLS key) accessible to job scripts | A malicious job script reads `../secrets/node-*.key` and exfiltrates the attestation key | Ensure job containers run with `--read-only` filesystem and no volume mount to the secrets directory; test with a job that tries to read the key |
-| CI/CD dispatch API endpoint has no rate limiting | Automated pipelines submit thousands of jobs per minute; DB and nodes overwhelmed | Add per-API-key rate limiting (e.g., 60 dispatch calls/minute) at the CI/CD endpoint; return 429 with `Retry-After` header |
-| Environment tag enforcement via general tags column | A node self-reports `env:PROD` in its heartbeat tags, bypassing the sanitization if sanitization is removed or missed | Use a dedicated `env_tag` column; never mix env semantics with general tag matching |
-| Attestation `missing` (not verified) treated same as `verified` in audit log | Orchestrator silently accepts unattested results; attestation adds no security value | `attestation_verified = "missing"` must be flagged in the audit log; operators must be able to query for unattested results |
-| CI/CD dispatch API accepts unauthenticated requests | Any caller can submit jobs to PROD environment | CI/CD endpoint must require service principal auth (`mop_` API key prefix); no anonymous dispatch |
-| Release workflow publishes on every push to main | Accidental version bump publishes an unreviewed release to PyPI | Publish workflow triggers only on `push: tags: ['v*']`; never on branch push or PR merge |
+| Licence public key as plain string in `.so` | `strings(1)` or `objdump` extracts key; anyone can forge licences | Split key across multiple byte arrays; reassemble at validation time (obfuscation only, raises bypass cost) |
+| Clock manipulation bypasses expiry | Set system time back → licence never expires | Check `issued_utc <= now <= expiry_utc`; if `now < issued_utc`, reject as clock manipulation |
+| EE plugin silently runs in CE mode on import failure | Compiled `.so` with ABI mismatch fails silently; all EE access continues to return 402 | Log error level (not warning) with full exception on EE load failure; include `.so` path |
+| CE `require_auth` (not `require_permission`) on EE routes | EE routes accessible to any authenticated user including viewers | EE `register()` must wire EE routes with `require_permission` from `deps.py`; CE `deps.py` exposes both `require_auth` (CE) and `require_permission` (EE) |
+| Licence file loaded from user-writable path | Attacker replaces licence file with self-signed one using their own key | Licence file path must be in a non-writable location; validate signature against the public key compiled into the `.so` |
 
 ---
 
@@ -324,25 +370,25 @@ The distinction between "pending publisher" (project doesn't exist yet) and "sta
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Retry state "attempt N of M" not shown on in-progress jobs | Operator sees job as ASSIGNED with no indication it is a retry attempt | Dashboard Jobs view shows `retry N/M` badge when `retry_count > 0`; link to all attempt records |
-| Execution history shows raw JSON output_log | Operators see `[{"t": "...", "stream": "stdout", "line": "..."}]` — unreadable | Render output_log as a terminal-style view with stream colour coding (stdout = normal, stderr = yellow); use a monospace font |
-| Attestation `verified/failed/missing` shown as a status string only | Operators don't know what to do with a failed attestation | Show attestation failure with a direct link to the runbook: "Attestation failed — see Security Runbook: Tampered Result" |
-| Environment tag field not shown in node enrollment flow | Operators enroll nodes without setting env_tag; all nodes end up in the default environment | Nodes view enrollment form must include env_tag dropdown (DEV/TEST/PROD/custom); default shown as "none (untagged)" |
-| CI/CD dispatch response contains `status: PENDING` permanently | Pipeline waits forever; no indication that no eligible node exists | Add `eligible_nodes_available: true/false` to dispatch response; if false, include `reason: "No nodes with env_tag=PROD and capability X"` |
+| 404 (not 402) on EE routes in CE | Operator sees "Not Found" — assumes the feature doesn't exist or the URL is wrong | Ensure all EE routes return 402 with `{"detail": "Requires Axiom EE", "upgrade_url": "https://axiom.run/enterprise"}` |
+| `GET /api/features` returns all `false` but no explanation | Operators don't know if EE is not installed or if it failed to load | Add `ee_status: "not_installed" | "loaded" | "load_failed"` to the features response; include error message when `load_failed` |
+| Licence expiry not visible in dashboard | Operators don't know their licence expires until EE stops working | Add licence expiry date to `GET /api/features` response; dashboard shows amber warning 30 days before expiry |
+| EE install instructions assume online pip install | Air-gapped operators can't install `axiom-ee` from PyPI | Document wheel download + offline `pip install axiom_ee-*.whl` pattern in EE docs |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Attestation round-trip:** Sign a known bundle with an RSA key, extract the cert's public key, and verify in the orchestrator — all in a unit test that runs in CI. Not tested = not working.
-- [ ] **Attestation with all fields:** Modify `exit_code` in the stored bundle and verify that re-verification fails. Modify `cert_serial` and verify it fails. If either mutation passes verification, the bundle format is missing those fields.
-- [ ] **Retry node exclusion:** Submit a job to a single eligible node; make it fail; verify the second attempt targets a different node (if one exists). If the same node is retried, node exclusion is not implemented.
-- [ ] **Output retention pruning:** Insert 1000 execution records for a single job, trigger the retention job manually, verify the count drops to the configured cap. Test on both SQLite and Postgres.
-- [ ] **Environment tag isolation:** Create a job targeting `env_tag=PROD`; enroll a DEV node; verify the job is never dispatched to the DEV node. The test must wait through at least 3 poll cycles.
-- [ ] **Env tag self-escalation blocked:** Send a heartbeat from a DEV node with `env:PROD` in the tags; verify the node's stored tags do not include `env:PROD` after the heartbeat.
-- [ ] **CI/CD dispatch with no eligible node:** Call the dispatch endpoint with `env_tag=PROD` when no PROD node is enrolled; verify the response is 409 (not 202) or includes `eligible_nodes_available: false`.
-- [ ] **PyPI Trusted Publisher dry run:** Run the release workflow against test.pypi.org before touching the real index. Verify OIDC token exchange succeeds in the log. A successful dry run is the only proof the configuration is correct.
-- [ ] **Output scrubbing order invariant:** Submit a job with a secret in its payload; verify the stored `output_log` contains `[REDACTED]`; verify the attestation hash matches the pre-scrub output. Both must pass in the same test.
+- [ ] **Stub routers active in CE:** `curl https://localhost:8001/api/blueprints` on a CE-only install must return `402`, not `404`. If it returns 404, stub routers are not mounted.
+- [ ] **EE routers take effect after install:** `pip install axiom-ee` in a running CE environment (followed by restart) must cause `GET /api/features` to return `"foundry": true` AND `GET /api/blueprints` to return `200` (not `402`).
+- [ ] **EE tables created on first EE install:** On a CE deployment with existing data, `pip install axiom-ee` + restart must create the 15 EE tables. `\dt` (Postgres) or `.tables` (SQLite) must include `audit_log`, `role_permissions`, etc.
+- [ ] **No `.py` source in EE wheel:** `unzip -l dist/axiom_ee-*.whl | grep ".py$"` must return empty (only `__init__.py` may be present, as it is intentionally not compiled).
+- [ ] **Dataclasses work in compiled `.so`:** Construct every `@dataclass` (if any remain) from the compiled EE module — must not raise `TypeError: __init__() takes 1 positional argument`.
+- [ ] **Relative imports work after `pip install` wheel:** `python -c "import ee; print(ee.EEPlugin)"` must succeed in a clean virtualenv where EE was installed from the wheel, not added to sys.path.
+- [ ] **CE test suite passes without EE installed:** Run `pytest` in a virtualenv with `axiom-ce` only (no `axiom-ee`). Zero failures from missing EE attributes or imports.
+- [ ] **Offline licence validation:** Validate a licence file with no network access (`iptables -I OUTPUT -j DROP` in a container). Must succeed if the file is within expiry and signature is valid.
+- [ ] **Expired licence detection:** Set the licence file `expiry_utc` to yesterday; restart; `GET /api/features` must not show EE features as active.
+- [ ] **EE load failure is visible:** Install a `.so` compiled for the wrong Python version; restart; `GET /api/features` must return `"ee_status": "load_failed"` (not silently degrade to CE with no indication).
 
 ---
 
@@ -350,12 +396,13 @@ The distinction between "pending publisher" (project doesn't exist yet) and "sta
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Wrong key type in attestation (RSA vs Ed25519) | MEDIUM | Fix signing/verification code; all existing attestation bundles in DB are invalid — mark them as `attestation_verified = "failed"` retroactively; future executions produce correct bundles |
-| Output table grew unbounded before retention added | HIGH (if Postgres; MEDIUM for SQLite) | Run manual `DELETE FROM execution_records WHERE started_at < NOW() - INTERVAL '30 days'`; add index-guided pagination to avoid lock; then deploy the scheduled retention job |
-| Attestation hashes computed post-scrub | HIGH | All existing attestation bundles are non-independently-verifiable; fix the hash computation; existing bundles must be marked `attestation_verified = "legacy_unverifiable"`; no retroactive fix possible |
-| Thundering herd retry wave detected in production | LOW | Set `retry_after` on all RETRYING jobs to `NOW() + random(0, 300)` via one-time SQL update; deploy the per-attempt initial offset fix |
-| PyPI publish failed due to OIDC name mismatch | LOW | Correct the publisher configuration on PyPI (takes 5 minutes); re-run the workflow |
-| Env tag not enforced (wrong column) | MEDIUM | Add `env_tag` column via migration; backfill from existing operator_tags using string parsing; update dispatch enforcement to use new column; test isolation |
+| Stub routers not mounted (404 in CE) | LOW | Add `if not ctx.{feature}: app.include_router(stub_router)` in `load_ee_plugins()`; redeploy |
+| Duplicate route registration (stubs shadow EE) | LOW | Remove unconditional stub `include_router` calls; ensure guard uses `EEContext` flags after `register()` runs |
+| EE tables not created (wrong Base) | MEDIUM | Fix EE to import CE `Base`; manually create missing tables via `ALTER TABLE` / `CREATE TABLE IF NOT EXISTS` for existing deployments |
+| `@dataclass` breaks after Cython compile | MEDIUM | Convert all affected dataclasses to plain classes with explicit `__init__`; rebuild `.so`; redeploy wheel |
+| Circular import between EE and main.py | LOW | Move the imported symbol from `main.py` to a service/deps module; EE imports from there instead |
+| Licence key expired, container not restarted | LOW | Issue a new licence file with updated expiry; copy to licence file path; periodic re-validation picks it up within 12h |
+| CE test suite failures from EE attribute refs | LOW | Add `pytest.mark.ee` skip guards or remove EE attribute assertions from CE tests; move EE tests to private repo |
 
 ---
 
@@ -363,31 +410,31 @@ The distinction between "pending publisher" (project doesn't exist yet) and "sta
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| RSA vs Ed25519 attestation key type | Runtime attestation phase (OUTPUT-05..07) | Unit test: RSA sign/verify round-trip with a test cert fixture |
-| Output table unbounded growth | Job output capture phase (OUTPUT-01..04) — add retention before history UI | `SELECT COUNT(*) FROM execution_records` after load test; must not grow without bound |
-| Retry thundering herd | Retry policy phase (RETRY-01..03) | Check `retry_after` timestamps on a batch of failed jobs — spread > 30 seconds required |
-| Env tag self-escalation bypass | Environment tags phase (ENVTAG-01..04) | Heartbeat test: send `env:PROD` in tags, verify not stored |
-| Retry to same failing node | Retry policy phase (RETRY-01..03) | Submit job to a failing single-eligible node; verify DEAD_LETTER without retrying same node when another eligible node exists |
-| `create_all` missing new columns | First schema-change phase (whichever comes first) | Run migration SQL against a copy of the production DB snapshot; verify no "no such column" errors on startup |
-| Attestation bundle incomplete fields | Runtime attestation phase (OUTPUT-05..07) | Bundle mutation test: modify exit_code, verify verification fails |
-| CI/CD dispatch without polling guidance | CI/CD dispatch phase (ENVTAG-04) | Poll integration test: dispatch job, poll until ASSIGNED or timeout; no infinite loop |
-| PyPI Trusted Publisher OIDC mismatch | Release infrastructure phase (RELEASE-01) | Dry run against test.pypi.org before touching real index |
-| Output scrubbing order inversion | Output capture phase (OUTPUT-01..04) — reinforce in attestation phase | Unit test: job with secret → stored log shows REDACTED → attestation hash matches raw bytes |
-| Attestation private key accessible to job scripts | Runtime attestation phase (OUTPUT-05..07) | Job container must have no volume mount to secrets/ directory; test with a job attempting key file read |
-| CI/CD endpoint unauthenticated | CI/CD dispatch phase (ENVTAG-04) | Anonymous HTTP call to dispatch endpoint must return 401 |
+| Stub routers not mounted (404 in CE) | Phase 5 first step (router wiring) | `curl /api/blueprints` on CE returns 402 |
+| Duplicate route registration | Phase 5 (registration guard pattern defined) | `GET /api/features` = foundry:true + `GET /api/blueprints` = 200 when EE installed |
+| `pkg_resources` deprecated / slow | Phase 5 (private repo setup) | Startup time < 500ms in environment with 100 packages |
+| Cython `@dataclass` broken | Phase 6 (`.so` build) — pre-audit before CI setup | Construct all compiled dataclass instances in EE unit tests |
+| Cython `__init__.so` relative imports | Phase 6 (`.so` build) — package structure constraint | `pip install wheel` + `python -c "import ee"` succeeds in clean venv |
+| EE models use wrong Base | Phase 5 (private repo setup) — first model written | `\dt` on CE DB after EE install shows all 15 EE tables |
+| Licence validation startup-only | Phase 7 (licensing) | Licence expiry test: expired file → features disabled within 12h |
+| CE tests fail without EE | Phase 5 gap fixes (test isolation) | `pytest -m "not ee"` in CE-only venv: zero failures |
+| Circular import EE → main.py | Phase 5 (private repo setup) — import boundary rule | `python -c "import axiom_ee"` without importing `main` succeeds |
+| `NodeConfig` CE dead references | Phase 5 gap fixes (NodeConfig strip) | CE job dispatch with no AttributeError in server logs |
 
 ---
 
 ## Sources
 
-- Direct codebase inspection: `puppeteer/agent_service/db.py` (ExecutionRecord, Node, Job schemas), `puppeteer/agent_service/services/job_service.py` (zombie reaper, retry logic, output scrubbing, `MAX_OUTPUT_BYTES = 1_048_576`), `puppeteer/agent_service/pki.py` (RSA key generation — `rsa.generate_private_key`), `puppets/environment_service/node.py` (heartbeat sanitization, key file locations), `puppeteer/agent_service/models.py` (ResultReport, ExecutionRecordResponse)
-- Python `cryptography` library — RSA signing API: `cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15`, three-argument `verify()` vs Ed25519 two-argument `verify()` — verified from library source
-- PyPI Trusted Publisher documentation — pending publisher flow for new projects: https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/
-- Thundering herd in retry systems — jitter strategies: AWS Architecture Blog "Exponential Backoff and Jitter" (2015, timeless pattern)
-- Known deferred issue MIN-6 (SQLite NodeStats pruning compat with subquery delete) — documented in `.agent/reports/core-pipeline-gaps.md`, directly applicable to output retention
-- Job status machine in `job_service.py` lines 736-784 — retry state transitions inspected for node-exclusion gap
-- Heartbeat sanitization pattern (`env:` prefix strip) — `job_service.py` lines 388-390
+- Direct codebase inspection: `.worktrees/axiom-split/puppeteer/agent_service/ee/__init__.py` (confirmed `pkg_resources` usage, no stub mounting), `ee/interfaces/foundry.py` (confirmed stub routers defined but not registered in `app`), `ee/routers/foundry_router.py` (confirmed real router extracted, imports from `...db` including EE models), `main.py` (confirmed `load_ee_plugins()` called in lifespan, no `include_router` calls for stubs), `db.py` (confirmed single `Base = DeclarativeBase()`, 13 CE tables only in worktree)
+- Cython GitHub issue #3336: "Dataclasses do not work with Cython due to annotations being stripped out" — confirmed active issue, partial fix in Cython 3 but not all decorator patterns: https://github.com/cython/cython/issues/3336
+- CPython bug #59828 (GitHub): "Init time relative imports no longer work from `__init__.so` modules" — confirmed `.so` compiled `__init__` breaks relative imports: https://bugs.python.org/issue15623
+- Nuitka GitHub issue #1955: "Nuitka needs support for importlib.metadata.entry_points() hard imports" — `.so` entry_points discovery requires explicit `--include-module` flags: https://github.com/Nuitka/Nuitka/issues/1955
+- setuptools deprecation of `pkg_resources`: setuptools 67.0+ changelog (2023); `importlib.metadata` is the stdlib replacement since Python 3.9
+- FastAPI discussion #9014: "Behavior of `include_router` method" — confirmed silent addition of duplicate routes (no exception, `UserWarning: Duplicate Operation ID` only): https://github.com/fastapi/fastapi/discussions/9014
+- Keygen offline licence pattern: Ed25519-signed licence files for air-gapped self-hosted deployments: https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/
+- SQLAlchemy documentation: shared `MetaData` required for FK resolution; `create_all` scope limited to the calling `Base`'s metadata: https://docs.sqlalchemy.org/en/20/core/metadata.html
+- `.planning/axiom-oss-ee-split.md`: Phase 5/6/7 TODO list confirming blocking gaps (router registration, CE test isolation, NodeConfig strip, private repo, `.so` pipeline, licensing)
 
 ---
-*Pitfalls research for: Axiom v10.0 — adding output capture, attestation, retry policy, environment tags, CI/CD dispatch to existing pull-architecture job scheduler*
-*Researched: 2026-03-17*
+*Pitfalls research for: Axiom v11.0 CE/EE Split Completion — Cython/Nuitka .so compilation, entry_points discovery, FastAPI plugin router registration, SQLAlchemy CE/EE model separation, open-core licence enforcement*
+*Researched: 2026-03-19*

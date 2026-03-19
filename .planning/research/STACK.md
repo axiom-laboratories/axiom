@@ -290,3 +290,298 @@ license-expression = "Apache-2.0"
 
 *Stack research for: Axiom v10.0 — Commercial Release new features*
 *Researched: 2026-03-17*
+
+---
+---
+
+# Stack Research — v11.0 CE/EE Split Completion (ADDENDUM)
+
+**Domain:** CE/EE Split Completion — Python source protection, plugin wiring, Docker Hub publishing
+**Researched:** 2026-03-19
+**Confidence:** HIGH (versions verified from PyPI live pages; Action versions verified from GitHub Marketplace and existing release.yml; entry_points pattern verified from official Python packaging docs)
+
+---
+
+## Scope
+
+This addendum covers ONLY the net-new stack requirements for v11.0 CE/EE Split Completion. The existing validated stack (including all v10.0 additions above) is not re-researched.
+
+Three new capability areas:
+1. **Compiling EE Python code to `.so`** — Cython vs Nuitka, build pipeline for private repo CI
+2. **Entry points plugin wiring** — CE discovers EE at startup via `importlib.metadata`
+3. **Docker Hub CE image publishing** — adding `axiom-ce` to Docker Hub alongside existing GHCR
+
+---
+
+## Pre-Assessment: What Already Exists in the Split Branch
+
+The `feature/axiom-oss-ee-split` worktree (at `.worktrees/axiom-split/`) already has:
+
+| Component | State |
+|-----------|-------|
+| `agent_service/ee/__init__.py` — `load_ee_plugins(app, engine)` | Implemented using **`pkg_resources`** (deprecated) — needs migration to `importlib.metadata` |
+| `agent_service/ee/interfaces/` — 8 ABC stub files | Complete |
+| `agent_service/ee/routers/` — 7 extracted router files | Complete (to be moved to private `axiom-ee` repo) |
+| EE entry point group name | `"axiom.ee"` — confirmed in `load_ee_plugins()` |
+| `pyproject.toml` (CE side) | Uses `setuptools>=77.0` — sufficient for `[project.entry-points]` table |
+| `release.yml` — GHCR multi-arch publish | Complete using `docker/login-action@v3`, `docker/build-push-action@v6`, `docker/metadata-action@v6` |
+
+---
+
+## Recommended Stack — NEW Additions for v11.0
+
+### Core Technologies
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| Cython | 3.2.4 | Compile EE `.py` router/plugin files to `.so` extension modules | Pure-Python mode compiles unmodified `.py` files — no `.pyx` rewrite needed; standard `ext_modules` in `pyproject.toml`; produces importable `.so` with no readable source; well-established in open-core products (msgpack, lxml, etc.) |
+| cibuildwheel | 3.4.0 | Build Cython `.so` wheels for linux/amd64 and linux/arm64 in CI | pypa-endorsed standard for C extension wheel CI; handles manylinux containers automatically; QEMU handles aarch64 emulation; used by scipy, pandas, numpy — proven at scale |
+| importlib.metadata | stdlib Python 3.10+ | Discover `axiom.ee` entry point at CE startup | Replacement for deprecated `pkg_resources`; `entry_points(group='axiom.ee')` is the canonical modern API; no extra dependency; project already requires Python 3.10+ |
+| docker/login-action | v3 | Authenticate to Docker Hub in GitHub Actions | Official Docker-maintained action; already used for GHCR login in release.yml; PAT-based (password auth deprecated by Docker Hub) |
+
+### Supporting Libraries
+
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| setuptools | >=77.0 (already in CE pyproject.toml) | Build backend for `ext_modules` Cython compilation in EE repo | Required in `[build-system].requires` of EE private repo's `pyproject.toml` |
+| Cython | >=3.2.4,<4 | Build-time only (NOT in runtime requirements) | Declared in `[build-system].requires` in EE repo; never in `requirements.txt` or runtime image |
+| build (`python -m build`) | latest | Invoke the Cython wheel build in EE CI | Already in CE's `release.yml` — same pattern applies to EE |
+
+### Development Tools
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| `cython --annotate` | Generate HTML showing Python/C interaction per line | Use during EE development to verify compilation coverage; never ship annotate HTML in distribution |
+| `cibuildwheel --platform linux` (local) | Test wheel builds locally before CI push | Requires Docker; `pip install cibuildwheel && cibuildwheel --platform linux` in EE repo root |
+
+---
+
+## Installation
+
+```bash
+# EE private repo — pyproject.toml additions only (not runtime requirements)
+# [build-system]
+# requires = ["setuptools>=77.0", "Cython>=3.2.4,<4"]
+
+# CE side — no new pip installs
+# importlib.metadata is stdlib on Python 3.10+
+# The one change is in ee/__init__.py: replace pkg_resources with importlib.metadata (see below)
+
+# CI tooling (not in any requirements.txt)
+pip install cibuildwheel build
+```
+
+---
+
+## Decision Details
+
+### 1. Cython over Nuitka for `.so` compilation
+
+**Use Cython. This is a firm recommendation.**
+
+**Why Cython wins for this use case:**
+
+- **Pure-Python mode**: Cython 3.x compiles plain `.py` files with no `.pyx` dialect. The EE router and plugin files are regular Python — zero rewrite required.
+- **setuptools `ext_modules` integration**: Declare all EE `.py` files as extension modules in `pyproject.toml`. `python -m build` produces a wheel containing only `.so` files — no `.py` source shipped.
+- **cibuildwheel compatibility**: cibuildwheel was designed for exactly this pattern (C extension wheels). It handles manylinux containers, QEMU for aarch64, and Python 3.9–3.13 automatically.
+- **Wheel portability**: The output is a standard Python wheel installable via `pip install axiom-ee`. No special runtime shim or wrapper needed.
+- **Maturity**: Cython 3.2.4 (Jan 2026). Widely deployed in production open-core Python products for over a decade.
+
+**Why Nuitka is not the right tool:**
+
+- Nuitka 4.0.6 targets standalone executables or single-module compilation (`--mode=module`). Packaging a multi-module package (7 routers + plugin class + interfaces) into a distributable wheel requires `nuitka-setuptools`, a third-party bridge with no official maintenance.
+- Nuitka embeds a C runtime shim that inflates `.so` file size. Cython's output is lean.
+- Nuitka-Action (v1.3) is documented for executable builds. Module-mode multi-file wheel CI with aarch64 is not covered by official Nuitka tooling.
+- The commercial features (encrypted tracebacks) are relevant for standalone executables distributed to end users — not for a wheel-based plugin loaded by a server process.
+
+**Verdict**: Cython for `.so` wheel builds. Nuitka is the right tool for standalone CLI executables (not this use case).
+
+---
+
+### 2. Entry points: migrate from `pkg_resources` to `importlib.metadata`
+
+The existing `load_ee_plugins()` in `agent_service/ee/__init__.py` uses `pkg_resources.iter_entry_points("axiom.ee")`. This must be updated before v11.0 ships.
+
+`pkg_resources` was deprecated in setuptools 67.0 (January 2023) and emits `DeprecationWarning` in current environments. `importlib.metadata` is the stdlib replacement, available since Python 3.8 and fully stabilised in 3.10 — the project's minimum Python version.
+
+**Updated discovery code (drop-in replacement for the `try` block in `load_ee_plugins()`):**
+
+```python
+from importlib.metadata import entry_points
+
+plugins = entry_points(group="axiom.ee")
+```
+
+The `entry_points(group=...)` keyword-argument form requires Python 3.9+. Project requires 3.10+, so this is safe. On a CE-only install, `plugins` is an empty `SelectableGroups` object — no exception, no log noise.
+
+**EE private repo `pyproject.toml` entry point declaration (correct modern syntax):**
+
+```toml
+[project.entry-points."axiom.ee"]
+core = "ee.plugin:EEPlugin"
+```
+
+The existing plan's `setup.cfg` example uses legacy INI format. Use `pyproject.toml` instead — it is the current standard and consistent with both the CE repo and the EE repo's build system.
+
+**How the wiring works end-to-end:**
+1. `pip install axiom-ee` registers the entry point metadata alongside the installed `.so` files
+2. CE starts, `lifespan()` calls `load_ee_plugins(app, engine)`
+3. `entry_points(group="axiom.ee")` finds `EEPlugin` (loaded from the compiled `.so`)
+4. `plugin_cls(app, engine)` instantiates with the FastAPI app and SQLAlchemy engine
+5. `plugin.register(ctx)` mounts the 7 EE routers on `app` and sets feature flags `True` in `ctx`
+
+---
+
+### 3. Docker Hub CE publishing — exact workflow change
+
+**The delta from the existing `release.yml` is minimal:**
+
+1. Add a Docker Hub login step (before the existing GHCR login step)
+2. Add `axiom-laboratories/axiom-ce` to the `metadata-action` images list alongside the existing GHCR image
+
+Single build, single `build-push-action` call, two registry pushes.
+
+**Docker Hub authentication**: Create a Docker Hub Personal Access Token (PAT) with Read/Write/Delete scope at Docker Hub → Account Settings → Security → New Access Token. Store as:
+- Repository secret: `DOCKERHUB_TOKEN` (the PAT value)
+- Repository variable: `DOCKERHUB_USERNAME` (Docker Hub username)
+
+**Do not use Docker Hub password** — Docker Hub deprecated password-based API authentication. PAT is required and has been the only supported method since 2021.
+
+**Additions to the `docker-release` job in `release.yml`:**
+
+```yaml
+# Add this step BEFORE the existing GHCR login step:
+- name: Log in to Docker Hub
+  uses: docker/login-action@v3
+  with:
+    username: ${{ vars.DOCKERHUB_USERNAME }}
+    password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+# Update the metadata-action images list:
+- name: Extract Docker metadata
+  id: meta
+  uses: docker/metadata-action@v6
+  with:
+    images: |
+      axiom-laboratories/axiom-ce
+      ghcr.io/axiom-laboratories/axiom
+    # ... rest of tags/flavor config unchanged
+```
+
+The `build-push-action` step requires no changes — it reads from `${{ steps.meta.outputs.tags }}` which now includes both registries.
+
+**Naming**: `axiom-ce` on Docker Hub (not `axiom`) makes the CE/EE distinction explicit to users evaluating the product.
+
+---
+
+## Alternatives Considered
+
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| Cython 3.2.4 for `.so` | Nuitka 4.0.6 `--mode=module` | Nuitka targets executables; multi-module wheel packaging requires unsupported `nuitka-setuptools` bridge; larger output; no cibuildwheel integration |
+| cibuildwheel for wheel CI | Manual `docker run manylinux + Cython` | cibuildwheel IS the standard abstraction over manylinux; reinventing it adds maintenance burden with no benefit |
+| `importlib.metadata` (stdlib) | `pkg_resources` (setuptools) | `pkg_resources` deprecated since setuptools 67 (Jan 2023); emits DeprecationWarning; removal is planned |
+| `importlib.metadata` (stdlib) | `importlib_metadata` backport package | Backport only needed for Python < 3.9; CE requires Python 3.10+; no extra dependency needed |
+| `pyproject.toml` `[project.entry-points]` | `setup.cfg` `[options.entry_points]` | `setup.cfg` is legacy; `pyproject.toml` is the current standard; CE repo already uses `pyproject.toml` |
+| Docker Hub PAT (`DOCKERHUB_TOKEN`) | Docker Hub password | Password auth deprecated for Docker Hub API access since 2021; PAT is the only supported method |
+| Wheels-only distribution for EE | EE sdist (source distribution) | sdist would ship `.py` source, defeating the source protection entirely; EE must publish binary wheels only |
+
+---
+
+## What NOT to Use
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `pkg_resources.iter_entry_points()` | Deprecated since setuptools 67 (Jan 2023); emits DeprecationWarning; scheduled for removal | `importlib.metadata.entry_points(group="axiom.ee")` |
+| Nuitka `--mode=module` for EE wheel distribution | No standard cibuildwheel integration; multi-module package compilation is underdocumented and fragile; larger `.so` output | Cython with `ext_modules` in `pyproject.toml` |
+| `.pyx` Cython dialect for EE files | Requires rewriting all EE Python files; pure Python mode works on unmodified `.py` | Cython pure Python mode — compile `.py` files directly |
+| Shipping `.py` files alongside `.so` in EE wheel | Python prefers `.py` over `.so` when both exist in the same location — the source would be imported, not the compiled module | Exclude all `.py` source from the EE wheel; use `MANIFEST.in` exclusions or set `package-data` to exclude `*.py` |
+| EE sdist publishing | An sdist contains the original `.py` source files — defeats source protection | Configure EE CI to build and publish only binary wheels (`--no-sdist` flag in `python -m build`) |
+| Cython in `requirements.txt` or runtime Docker image | Cython is a build-time dependency only; adding it to the runtime image adds ~50MB for zero benefit | Declare in `[build-system].requires` only; never in `requirements.txt` |
+| Docker Hub password as a GitHub secret | Deprecated auth; will break when Docker Hub enforces token-only auth more broadly | Docker Hub PAT stored as `DOCKERHUB_TOKEN` secret |
+
+---
+
+## Stack Patterns by Variant
+
+**EE private repo `pyproject.toml` — Cython build configuration:**
+```toml
+[build-system]
+requires = ["setuptools>=77.0", "Cython>=3.2.4,<4"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "axiom-ee"
+# ...
+
+[tool.setuptools]
+# Explicitly list all .py files to compile as extension modules
+# so no source ships in the wheel
+ext-modules = [
+  {name = "ee.plugin", sources = ["ee/plugin.py"]},
+  {name = "ee.routers.foundry_router", sources = ["ee/routers/foundry_router.py"]},
+  # ... one entry per file
+]
+```
+
+**EE CI wheel build (cibuildwheel in GitHub Actions):**
+```yaml
+- name: Build wheels
+  uses: pypa/cibuildwheel@v3.4.0
+  env:
+    CIBW_BUILD: "cp312-manylinux_x86_64 cp312-manylinux_aarch64"
+    CIBW_ARCHS_LINUX: "x86_64 aarch64"
+    CIBW_BEFORE_BUILD: "pip install Cython>=3.2.4"
+```
+
+**CE startup entry_points discovery (updated `ee/__init__.py`):**
+```python
+from importlib.metadata import entry_points  # replaces: import pkg_resources
+
+def load_ee_plugins(app, engine) -> EEContext:
+    ctx = EEContext()
+    try:
+        plugins = entry_points(group="axiom.ee")  # replaces: pkg_resources.iter_entry_points(...)
+        for ep in plugins:
+            plugin_cls = ep.load()
+            plugin = plugin_cls(app, engine)
+            plugin.register(ctx)
+            logger.info(f"Loaded EE plugin: {ep.name}")
+        if not plugins:
+            logger.info("No EE plugins found — running in CE mode")
+    except Exception as e:
+        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
+    return ctx
+```
+
+---
+
+## Version Compatibility
+
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| Cython 3.2.4 | Python 3.9–3.13 | Pure Python mode (`.py` compilation) stable in Cython 3.x; tested against CPython 3.12 (project target) |
+| cibuildwheel 3.4.0 | Cython 3.x, setuptools >=77 | Runs builds inside manylinux2014 containers (x86_64 native, aarch64 via QEMU) |
+| importlib.metadata | Python 3.10+ (stdlib) | `entry_points(group=...)` keyword form requires Python 3.9+; project minimum is 3.10 |
+| docker/login-action v3 | docker/build-push-action v6 | Both current major versions; already used in release.yml for GHCR |
+| docker/metadata-action v6 | docker/build-push-action v6 | Same action generation; already in release.yml |
+
+---
+
+## Sources
+
+- [Cython PyPI — version 3.2.4 confirmed](https://pypi.org/project/Cython/) — HIGH confidence (live PyPI, released 2026-01-04)
+- [Nuitka PyPI — version 4.0.6 confirmed](https://pypi.org/project/Nuitka/) — HIGH confidence (live PyPI, released 2026-03-18)
+- [Cython source files and compilation — official docs](https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html) — HIGH confidence
+- [Nuitka-Action v1.3 — module mode](https://github.com/Nuitka/Nuitka-Action) — HIGH confidence (official Nuitka GitHub)
+- [cibuildwheel v3.4.0 — platform support](https://cibuildwheel.pypa.io/en/stable/platforms/) — HIGH confidence (pypa official docs)
+- [Python Packaging — Creating and discovering plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/) — HIGH confidence (packaging.python.org)
+- [setuptools — Entry Points](https://setuptools.pypa.io/en/latest/userguide/entry_point.html) — HIGH confidence (official setuptools docs)
+- [GitHub Docs — Publishing Docker images](https://docs.github.com/en/actions/publishing-packages/publishing-docker-images) — HIGH confidence (official GitHub docs)
+- `.github/workflows/release.yml` in repo — existing Action versions (v3/v6) and GHCR pattern confirmed by direct review — HIGH confidence
+- `.worktrees/axiom-split/puppeteer/agent_service/ee/__init__.py` — existing `pkg_resources` usage confirmed by direct review — HIGH confidence
+
+---
+
+*Stack research for: Axiom v11.0 — CE/EE Split Completion (Cython .so pipeline, entry_points EE wiring, Docker Hub CE publish)*
+*Researched: 2026-03-19*

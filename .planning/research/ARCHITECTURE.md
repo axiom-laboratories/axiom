@@ -1,562 +1,653 @@
-# Architecture Research
+# Architecture Research: CE/EE Split — Plugin Wiring
 
-**Domain:** Pull-architecture job orchestrator — v10.0 feature integration (output capture, runtime attestation, retry policy, environment tags, CI/CD dispatch)
-**Researched:** 2026-03-17
-**Confidence:** HIGH — based on direct codebase analysis (db.py, job_service.py, main.py, node.py, models.py)
+**Domain:** Open-core FastAPI plugin system (CE/EE split)
+**Researched:** 2026-03-19
+**Confidence:** HIGH — derived entirely from reading the actual codebase on `feature/axiom-oss-ee-split`
 
 ---
 
-## Existing Architecture Baseline
+## Standard Architecture
 
 ### System Overview
 
 ```
-                         ORCHESTRATOR (puppeteer/)
-  ┌──────────────────────────────────────────────────────────────┐
-  │  React Dashboard (Vite)          Caddy (TLS termination)     │
-  │  puppeteer/dashboard/src/views/  ← /docs/* → nginx (MkDocs) │
-  ├──────────────────────────────────────────────────────────────┤
-  │  FastAPI (agent_service/main.py)                             │
-  │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐    │
-  │  │ job_service │  │ scheduler_   │  │ foundry_service  │    │
-  │  │    .py      │  │ service.py   │  │ alert_service    │    │
-  │  └──────┬──────┘  └──────────────┘  └──────────────────┘    │
-  │         │  SQLAlchemy ORM (create_all, no Alembic)           │
-  │  ┌──────▼──────────────────────────────────────────────┐     │
-  │  │  PostgreSQL (prod) / SQLite (dev)                   │     │
-  │  │  jobs, nodes, execution_records, scheduled_jobs...  │     │
-  │  └─────────────────────────────────────────────────────┘     │
-  └──────────────────────────────────────────────────────────────┘
-               ▲ mTLS (client cert)     ▲ mTLS (client cert)
-               │                        │
-  ┌────────────┴──────┐        ┌────────┴────────────┐
-  │  Puppet Node A    │        │  Puppet Node B       │
-  │  node.py          │        │  node.py             │
-  │  polls /work/pull │        │  polls /work/pull    │
-  │  reports to       │        │  reports to          │
-  │  /work/{guid}/    │        │  /work/{guid}/result │
-  │  result           │        └─────────────────────┘
-  └───────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  CE Public Repo (Apache 2.0)                                        │
+│                                                                     │
+│  puppeteer/agent_service/                                           │
+│  ├── main.py             ← FastAPI app, lifespan, CE routes         │
+│  ├── db.py               ← Base + 13 CE tables only                │
+│  ├── deps.py             ← get_current_user, require_auth,         │
+│  │                          require_permission, audit (EE-safe)     │
+│  └── ee/                 ← plugin boundary                         │
+│      ├── __init__.py     ← load_ee_plugins(app, engine) → EECtx    │
+│      ├── interfaces/     ← stub routers (6 × APIRouter → 402)      │
+│      └── routers/        ← real EE routers (move to axiom-ee)      │
+│                                                                     │
+│  Startup sequence:                                                  │
+│  init_db() → load_ee_plugins(app, engine) → bootstrap admin        │
+│                                                                     │
+│  load_ee_plugins():                                                 │
+│  1. pkg_resources.iter_entry_points("axiom.ee")                    │
+│  2. If plugins found: plugin_cls(app, engine) → plugin.register()  │
+│  3. If none: register stub routers → ctx stays all-False           │
+└─────────────────────────────────────────────────────────────────────┘
+                              │ pkg_resources entry_point
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  EE Private Repo (axiom-ee, proprietary)                            │
+│                                                                     │
+│  ee/                                                                │
+│  ├── plugin.py           ← EEPlugin class (compiled to .so)        │
+│  ├── db_models.py        ← EEBase + 15 EE SQLAlchemy models        │
+│  └── routers/            ← 7 real router files (moved from CE)     │
+│      ├── foundry_router.py                                          │
+│      ├── audit_router.py                                            │
+│      ├── webhook_router.py                                          │
+│      ├── trigger_router.py                                          │
+│      ├── auth_ext_router.py                                         │
+│      ├── users_router.py                                            │
+│      └── smelter_router.py                                          │
+│                                                                     │
+│  setup.cfg:                                                         │
+│  [options.entry_points]                                             │
+│  axiom.ee =                                                         │
+│      core = ee.plugin:EEPlugin                                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Current Data Flow: Job Execution
+### Component Responsibilities
 
-```
-1. Operator dispatches job (POST /jobs) or APScheduler fires (scheduler_service.py)
-2. Job inserted into `jobs` table with status=PENDING
-3. Node polls POST /work/pull → job_service.pull_work()
-   - Filters PENDING/RETRYING jobs by tag matching, env: isolation, capability matching, memory limit
-   - Assigns job: status=ASSIGNED, node_id set, started_at set
-   - Returns WorkResponse (guid, task_type, payload, limits)
-4. Node executes: runtime.py → Docker/Podman/direct subprocess
-5. Node reports: POST /work/{guid}/result with ResultReport
-   - job_service.report_result() writes ExecutionRecord + updates Job.status
-   - Retry logic: RETRYING state with retry_after backoff if retriable=True
-   - Dependency unblocking: _unblock_dependents() on COMPLETED
-   - Webhook dispatch on terminal status
-```
-
-### What Already Exists (Critical — do not re-implement)
-
-| Feature | Where It Lives | State |
-|---------|----------------|-------|
-| `ExecutionRecord` table | `db.py` lines 216-233 | Complete — job_guid, node_id, status, exit_code, started_at, completed_at, output_log (JSON), truncated |
-| `output_log` written by node | `node.py` `build_output_log()` + `report_result()` | Complete — JSON list of {t, stream, line} entries |
-| Output written to `execution_records` | `job_service.report_result()` lines 708-719 | Complete — with 1 MB truncation and secret scrubbing |
-| `GET /api/executions` + `GET /api/executions/{id}` | `main.py` lines 430-515 | Complete — pagination, node_id/status/job_guid filter |
-| `GET /jobs/{guid}/executions` | `main.py` lines 1461-1486 | Complete — per-job execution history |
-| Retry policy on `Job` | `db.py` Job columns: max_retries, retry_count, retry_after, backoff_multiplier | Complete — exponential backoff with jitter in `job_service.py` |
-| `RETRYING` / `DEAD_LETTER` job states | `job_service.report_result()` lines 736-766 | Complete |
-| Zombie reaper (timeout-triggered retry) | `job_service.pull_work()` lines 221-273 | Complete |
-| `env:` tag isolation in node selection | `job_service.pull_work()` lines 312-322 | Complete — env: prefix treated as strict isolation |
-| `retriable` flag on `ResultReport` | `models.py` line 63 | Complete — node opts in via `retriable=True` |
-| `WorkResponse.max_retries / backoff_multiplier / timeout_minutes` | `models.py` line 52-54 | Complete — passed to node but node.py doesn't use them yet |
-
-### What Is Missing for v10.0
-
-| Requirement | Gap Description |
-|-------------|-----------------|
-| OUTPUT-01/02 | Node captures output — DONE. Server stores it — DONE. But `WorkResponse` doesn't tell node the retry config (backoff/max_retries) and node.py doesn't set `retriable=True` on failure yet |
-| OUTPUT-03/04 | Dashboard UI for execution history — missing in frontend views |
-| OUTPUT-05/06/07 | Runtime attestation — entirely absent. No signing in node.py, no verification in job_service.py, no attestation fields on ExecutionRecord |
-| RETRY-01 | `ScheduledJob` has `max_retries`/`backoff_multiplier` columns but scheduler_service.py doesn't propagate them to created `Job` records |
-| RETRY-03 | Dashboard UI showing attempt N of M — missing |
-| ENVTAG-01 | `Node.tags` exists but no dedicated `env_tag` column — currently env tags are stored as `env:DEV` strings in the generic tags JSON list; no first-class field |
-| ENVTAG-02 | Job dispatch accepts `target_tags` with env: prefix — the enforcement is already there, but no explicit `env_tag` field in the dispatch API |
-| ENVTAG-03 | Dashboard Nodes view doesn't surface env tag visually or as a filter |
-| ENVTAG-04 | CI/CD dispatch endpoint — absent. No structured `POST /api/dispatch` with JSON response format |
-| All | `ExecutionRecordResponse` missing attestation fields (attestation_bundle, attestation_verified) |
+| Component | Responsibility | Status |
+|-----------|----------------|--------|
+| `ee/__init__.py` | Entry-point discovery, plugin lifecycle, EEContext creation | EXISTS — needs stub registration added |
+| `ee/interfaces/*.py` | 6 stub routers serving 402 for each EE path group | EXISTS — defined but never mounted on app |
+| `ee/routers/*.py` | 7 real EE router files with full handler logic | EXISTS in CE worktree — move to axiom-ee |
+| `deps.py` | Shared auth deps, `require_permission`, `audit` (EE-safe stubs) | EXISTS — complete |
+| `EEPlugin` (private) | `register(ctx)` mounts real routers, creates EE tables, seeds data | DOES NOT EXIST YET |
+| `EEContext` dataclass | 8 feature flags stored on `app.state.ee` | EXISTS — returned by `load_ee_plugins` |
 
 ---
 
-## Feature Integration Architecture
+## The Core Wiring Problem
 
-### Feature 1: Job Output Capture (OUTPUT-01 through OUTPUT-04)
+### Current state of `load_ee_plugins`
 
-**Status: ~80% complete in backend. Frontend work is the main gap.**
+```python
+# ee/__init__.py — current implementation
+def load_ee_plugins(app: Any, engine: Any) -> EEContext:
+    ctx = EEContext()
+    try:
+        plugins = list(pkg_resources.iter_entry_points("axiom.ee"))
+        if plugins:
+            for ep in plugins:
+                plugin_cls = ep.load()
+                plugin = plugin_cls(app, engine)
+                plugin.register(ctx)           # calls register but ctx not used
+        else:
+            logger.info("No EE plugins found — running in CE mode")
+            # BUG: stub routers are NEVER mounted here
+    except Exception as e:
+        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
+    return ctx
+```
 
-The node already calls `build_output_log()` and passes `output_log` + `exit_code` to `report_result()`. The server writes an `ExecutionRecord`. The `/api/executions` endpoint exists.
+**Two bugs in one:**
 
-**Two backend gaps to close:**
+1. **Stub routers are never mounted.** All 6 `*_stub_router` objects in `ee/interfaces/` are defined but `load_ee_plugins` never calls `app.include_router()` on them in the CE path. CE mode currently has NO routes for `/api/blueprints`, `/admin/audit-log`, etc. — they 404 instead of returning the intended 402.
 
-1. **Node.py does not set `retriable=True`** — the node never signals the orchestrator that a failure was a clean (retriable) exit vs a crash. This gates retry policy.
-
-2. **WorkResponse doesn't echo retry config to node** — `max_retries` and `backoff_multiplier` are in `WorkResponse` (models.py) but `job_service.pull_work()` doesn't populate them from `Job` columns. Node.py ignores them anyway.
-
-   Recommendation: populate them in `pull_work()`. Node.py can use them for local timeout enforcement (already has `timeout_minutes` handling). The retry decision stays server-side; node only needs to signal `retriable=True` for non-zero exits.
-
-**Modified components:**
-- `node.py` `execute_task()` — set `retriable=True` when exit_code != 0 and it is not a security rejection
-- `job_service.pull_work()` — populate `max_retries`, `backoff_multiplier`, `timeout_minutes` in `WorkResponse`
-- Frontend `Jobs.tsx` — add execution history drawer/tab showing output_log entries
-
-**New API endpoints needed:** None — `/api/executions` and `/jobs/{guid}/executions` already exist.
-
-**DB changes:** None — `ExecutionRecord` table is complete.
+2. **EE register() contract is undefined.** `plugin.register(ctx)` is called but the expected contract between CE and EE (what `register` must do, what it receives) is implicit, not specified.
 
 ---
 
-### Feature 2: Runtime Attestation (OUTPUT-05, OUTPUT-06, OUTPUT-07)
+## Recommended Architecture
 
-**Status: Absent. New code required throughout the pipeline.**
+### Pattern 1: CE Stub Registration in `load_ee_plugins`
 
-**Concept:** After executing a job, the node constructs a deterministic bundle, signs it with its mTLS private key, and includes the signature in `ResultReport`. The orchestrator verifies the signature against the stored `client_cert_pem` on the `Node` record.
+**What:** When no EE plugin is found, `load_ee_plugins` registers all stub routers on `app` before returning. This ensures all EE API paths exist in CE mode and return 402.
 
-**Attestation bundle structure (canonical, deterministic):**
+**When to use:** Always — this is the CE cold-start path.
 
-```
-bundle = {
-    "script_hash": sha256(script_content),
-    "stdout_hash": sha256(stdout),
-    "stderr_hash": sha256(stderr),
-    "exit_code": int,
-    "start_ts": ISO8601 UTC string,
-    "node_cert_serial": str (from node's own cert)
-}
-serialised = json.dumps(bundle, sort_keys=True, separators=(',', ':'))
-```
-
-Node signs `serialised.encode('utf-8')` using its RSA-2048 private key (at `secrets/{NODE_ID}.key`) with PKCS1v15 + SHA256, producing a base64-encoded signature.
-
-**Key constraint — RSA, not Ed25519:** The node's mTLS key is RSA-2048 (generated in `node.py ensure_identity()` at line 380). Attestation signing uses this same key. The orchestrator already stores the node's full `client_cert_pem` which contains the public key — no new key material needs to be transmitted.
-
-**Node-side changes (node.py):**
+**Implementation in `ee/__init__.py`:**
 
 ```python
-# In execute_task(), after result is obtained:
-attestation_bundle = build_attestation_bundle(
-    script=script,
-    stdout=result.get("stdout", ""),
-    stderr=result.get("stderr", ""),
-    exit_code=result["exit_code"],
-    start_ts=job_started_at,         # pass via job dict (WorkResponse must include started_at)
-    key_file=self.key_file,
-    cert_file=self.cert_file,
-)
-await self.report_result(guid, ..., attestation=attestation_bundle)
+def _register_ce_stubs(app: Any) -> None:
+    """Mount all CE stub routers. Called when no EE plugin is installed."""
+    from .interfaces.foundry import foundry_stub_router
+    from .interfaces.audit import audit_stub_router
+    from .interfaces.webhooks import webhooks_stub_router
+    from .interfaces.triggers import triggers_stub_router
+    from .interfaces.auth_ext import auth_ext_stub_router
+    from .interfaces.smelter import smelter_stub_router
+    # users_router has no stub — user management is CE auth-only in CE mode
+    app.include_router(foundry_stub_router)
+    app.include_router(audit_stub_router)
+    app.include_router(webhooks_stub_router)
+    app.include_router(triggers_stub_router)
+    app.include_router(auth_ext_stub_router)
+    app.include_router(smelter_stub_router)
+
+def load_ee_plugins(app: Any, engine: Any) -> EEContext:
+    ctx = EEContext()
+    try:
+        plugins = list(pkg_resources.iter_entry_points("axiom.ee"))
+        if plugins:
+            for ep in plugins:
+                plugin_cls = ep.load()
+                plugin = plugin_cls(app, engine)
+                plugin.register(ctx)
+                logger.info(f"Loaded EE plugin: {ep.name}")
+        else:
+            logger.info("No EE plugins found — running in CE mode")
+            _register_ce_stubs(app)          # fix: mount stubs in CE path
+    except Exception as e:
+        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
+        _register_ce_stubs(app)              # also mount stubs on load failure
+    return ctx
 ```
 
-New helper `build_attestation_bundle()` in node.py:
-- Builds canonical JSON bundle
-- Signs with `cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15` + SHA256
-- Returns `{"bundle": <serialised_json>, "signature": <base64>, "cert_serial": <serial>}`
-
-**Orchestrator-side changes (job_service.py):**
-
-```python
-# In report_result(), after writing ExecutionRecord:
-if report.attestation:
-    verification_result = verify_attestation(
-        attestation=report.attestation,
-        node_cert_pem=node.client_cert_pem
-    )
-    record.attestation_bundle = report.attestation.get("bundle")
-    record.attestation_signature = report.attestation.get("signature")
-    record.attestation_verified = verification_result   # "VERIFIED" / "FAILED" / "MISSING"
-```
-
-New helper `verify_attestation()` in `services/attestation_service.py`:
-- Load public key from `node.client_cert_pem` via `x509.load_pem_x509_certificate().public_key()`
-- Verify RSA PKCS1v15 signature
-- Returns verification status string
-
-**DB changes — ExecutionRecord table needs 3 new columns:**
-
-```python
-# In db.py ExecutionRecord:
-attestation_bundle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)     # raw JSON bundle
-attestation_signature: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # base64 signature
-attestation_verified: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # VERIFIED/FAILED/MISSING
-```
-
-**Migration SQL for existing deployments:**
-
-```sql
-ALTER TABLE execution_records ADD COLUMN IF NOT EXISTS attestation_bundle TEXT;
-ALTER TABLE execution_records ADD COLUMN IF NOT EXISTS attestation_signature TEXT;
-ALTER TABLE execution_records ADD COLUMN IF NOT EXISTS attestation_verified VARCHAR(20);
-```
-
-**Models changes:**
-- `ResultReport` — add `attestation: Optional[Dict] = None`
-- `ExecutionRecordResponse` — add `attestation_verified: Optional[str] = None`, `attestation_bundle: Optional[str] = None`
-
-**New API endpoint for export (OUTPUT-07):**
-
-```
-GET /api/executions/{id}/attestation
-→ Returns: {bundle, signature, cert_serial, verified}
-Auth: history:read permission
-```
-
-**WorkResponse must include `started_at`** — the node needs the server-assigned start timestamp for the bundle to be reproducible. Add `started_at: Optional[datetime] = None` to `WorkResponse` and populate it in `pull_work()` when `started_at` is set.
+**Critical ordering constraint:** `load_ee_plugins` is called inside `lifespan` after `app = FastAPI(...)` is created. FastAPI allows `include_router` at any point before the first request. This is safe because lifespan runs before the server starts accepting requests.
 
 ---
 
-### Feature 3: Retry Policy (RETRY-01, RETRY-02, RETRY-03)
+### Pattern 2: EEPlugin Class — `register()` Contract
 
-**Status: Orchestrator logic complete. Two gaps: scheduler propagation and node.py signaling.**
+**What:** The private repo's `EEPlugin` class receives `(app, engine)` in `__init__`, then `register(ctx)` mounts routers, creates EE tables, seeds data, and sets feature flags on `ctx`.
 
-**Gap 1: Scheduler does not propagate retry config to dispatched jobs**
-
-`ScheduledJob` has `max_retries` and `backoff_multiplier` columns (db.py lines 79-80). When APScheduler fires and creates a `Job`, `scheduler_service.py` must copy these values into the `Job` row.
+**The canonical `register()` method (async — see Pattern 3 for why):**
 
 ```python
-# In scheduler_service.py, when creating a Job from a ScheduledJob:
-new_job = Job(
+# ee/plugin.py (private repo)
+from agent_service.ee import EEContext
+
+class EEPlugin:
+    def __init__(self, app, engine):
+        self.app = app
+        self.engine = engine
+
+    async def register(self, ctx: EEContext) -> None:
+        # Step 1: Create EE tables (requires async DB access)
+        await self._create_ee_tables()
+        # Step 2: Seed EE data (role permissions, capability matrix defaults)
+        await self._seed_ee_data()
+        # Step 3: Mount all 7 real EE routers (synchronous)
+        self._mount_routers()
+        # Step 4: Set all feature flags on ctx
+        ctx.foundry = True
+        ctx.audit = True
+        ctx.webhooks = True
+        ctx.triggers = True
+        ctx.rbac = True
+        ctx.resource_limits = True
+        ctx.service_principals = True
+        ctx.api_keys = True
+```
+
+**Parameter semantics:**
+- `app: FastAPI` — the live application instance. `app.include_router()` mounts routes.
+- `engine: AsyncEngine` — the SQLAlchemy async engine from `db.py`. Used for `conn.run_sync(EEBase.metadata.create_all)`.
+- `ctx: EEContext` — mutated in-place. Caller (CE) reads flags after `register()` returns.
+
+---
+
+### Pattern 3: EE Table Creation via Engine
+
+**What:** EE models are defined with a separate `EEBase` in the private repo. Table creation runs in an async context using the engine passed to `EEPlugin.__init__`.
+
+**Why `register()` must be async:**
+
+`register()` is called from `load_ee_plugins` which is called from `lifespan` — an `asynccontextmanager` coroutine. The event loop is already running. Calling `asyncio.run()` or `loop.run_until_complete()` from inside an already-running loop raises `RuntimeError`. The only clean solution is to make `register()` async and `await` it.
+
+**Updated `load_ee_plugins` (async version):**
+
+```python
+# ee/__init__.py — upgraded to async
+import asyncio
+
+async def _load_ee_plugins_async(app: Any, engine: Any) -> EEContext:
+    ctx = EEContext()
+    try:
+        plugins = list(pkg_resources.iter_entry_points("axiom.ee"))
+        if plugins:
+            for ep in plugins:
+                plugin_cls = ep.load()
+                plugin = plugin_cls(app, engine)
+                await plugin.register(ctx)
+                logger.info(f"Loaded EE plugin: {ep.name}")
+        else:
+            logger.info("No EE plugins found — running in CE mode")
+            _register_ce_stubs(app)
+    except Exception as e:
+        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
+        _register_ce_stubs(app)
+    return ctx
+
+# Keep sync wrapper for compatibility if needed
+def load_ee_plugins(app: Any, engine: Any) -> EEContext:
+    """Sync entry point — delegates to async version via event loop."""
+    # This is only safe to call from a non-async context.
+    # From lifespan (async), call _load_ee_plugins_async directly.
+    raise RuntimeError("Call _load_ee_plugins_async from async lifespan")
+```
+
+**Updated lifespan in `main.py`:**
+
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    from .ee import _load_ee_plugins_async
+    from .db import engine
+    app.state.ee = await _load_ee_plugins_async(app, engine)
+    # ... rest of lifespan unchanged
+```
+
+**EE table creation inside `EEPlugin._create_ee_tables()`:**
+
+```python
+async def _create_ee_tables(self) -> None:
+    from .db_models import EEBase
+    async with self.engine.begin() as conn:
+        await conn.run_sync(EEBase.metadata.create_all)
+```
+
+---
+
+### Pattern 4: EE Router Mounting — `app.include_router()`
+
+**What:** Each of the 7 real EE routers is an `APIRouter` instance. Mounting is synchronous.
+
+**Implementation in `EEPlugin._mount_routers()`:**
+
+```python
+def _mount_routers(self) -> None:
+    from .routers.foundry_router import foundry_router
+    from .routers.audit_router import audit_router
+    from .routers.webhook_router import webhook_router
+    from .routers.trigger_router import trigger_router
+    from .routers.auth_ext_router import auth_ext_router
+    from .routers.users_router import users_router
+    from .routers.smelter_router import smelter_router
+
+    self.app.include_router(foundry_router)
+    self.app.include_router(audit_router)
+    self.app.include_router(webhook_router)
+    self.app.include_router(trigger_router)
+    self.app.include_router(auth_ext_router)
+    self.app.include_router(users_router)
+    self.app.include_router(smelter_router)
+```
+
+**No prefix needed.** All 7 EE routers already use absolute paths (e.g., `/api/blueprints`, `/admin/audit-log`). Adding a `prefix` here would break all existing frontend API calls.
+
+**Route conflict prevention.** In EE mode, `_register_ce_stubs()` is NOT called — only real routers mount. In CE mode, stubs mount and real routers are never loaded. The two sets of routes never coexist.
+
+---
+
+### Pattern 5: Shared vs Separate SQLAlchemy Base
+
+**Decision: separate `EEBase` in the private repo.**
+
+CE's `Base` (in `db.py`) is imported by all CE code including `init_db()`. If EE models extend the same `Base`, CE's `Base.metadata.create_all` would include EE tables — breaking CE-only installs because the model class definitions are not available without EE installed.
+
+**Correct approach:**
+
+```python
+# axiom-ee/ee/db_models.py
+from sqlalchemy.orm import DeclarativeBase
+
+class EEBase(DeclarativeBase):
+    pass
+
+class AuditLog(EEBase):
+    __tablename__ = "audit_log"
     ...
-    max_retries=sched_job.max_retries,
-    backoff_multiplier=sched_job.backoff_multiplier,
-    timeout_minutes=sched_job.timeout_minutes,
-)
+
+class RolePermission(EEBase):
+    __tablename__ = "role_permissions"
+    ...
+# ... 13 more EE tables
 ```
 
-Ad-hoc dispatch (`POST /jobs`) already accepts `max_retries` via `JobCreate` — check that `JobCreate` model exposes these fields and `create_job()` passes them to the `Job` constructor.
+- CE startup: `Base.metadata.create_all` → 13 CE tables only
+- EE startup: `EEBase.metadata.create_all` → 15 EE tables added to same DB
+- Both use the same engine, same SQLite/Postgres database. Tables coexist. `create_all` is idempotent.
 
-**Gap 2: Node must signal `retriable=True` for non-security failures**
+**Impact on `deps.py`'s `require_permission`:**
 
-`report_result()` in job_service.py only retries when `report.retriable is True`. The node currently never sets this. The node should set `retriable=True` whenever the failure is a clean non-zero exit (not a signature verification failure or memory limit rejection).
+The current implementation checks `Base.metadata.tables.get("role_permissions")`. With a separate `EEBase`, this lookup returns `None` in both CE and EE modes because `role_permissions` is not in `Base.metadata`. The function then falls through to `return current_user` in CE mode — correct behaviour.
+
+In EE mode, the fallback fires incorrectly (no permission check) unless the code is updated to also check `EEBase.metadata.tables`. However, the current `require_permission` uses raw SQL (`text("role_permissions")`) not the ORM table object — so it queries the DB directly and works correctly as long as the table exists in the DB, regardless of which Base it was registered under.
+
+**The check `Base.metadata.tables.get("role_permissions")` is the CE/EE mode detector.** It should remain as-is. It correctly returns `None` in CE (because EE models are not imported), allowing the CE fallback.
+
+---
+
+## Recommended Project Structure
+
+```
+puppeteer/agent_service/ee/          (CE public repo — final state)
+├── __init__.py                      # load_ee_plugins + _register_ce_stubs
+└── interfaces/                      # CE stub routers only
+    ├── __init__.py
+    ├── audit.py                     # audit_stub_router
+    ├── auth_ext.py                  # auth_ext_stub_router
+    ├── foundry.py                   # foundry_stub_router
+    ├── rbac.py                      # RBACInterface stub (no router — CE has no RBAC)
+    ├── resource_limits.py           # ResourceLimitsInterface stub (no router)
+    ├── smelter.py                   # smelter_stub_router
+    ├── triggers.py                  # triggers_stub_router
+    └── webhooks.py                  # webhooks_stub_router
+
+REMOVE from CE repo (move to axiom-ee):
+└── routers/                         # delete after Phase 5 migration
+```
+
+```
+axiom-ee/                            (EE private repo)
+├── setup.cfg                        # entry_points: axiom.ee = core = ee.plugin:EEPlugin
+├── ee/
+│   ├── __init__.py
+│   ├── plugin.py                    # EEPlugin class
+│   ├── db_models.py                 # EEBase + 15 EE SQLAlchemy models
+│   └── routers/                     # moved from CE's ee/routers/
+│       ├── foundry_router.py        # imports fixed: ...db → ee.db_models
+│       ├── audit_router.py
+│       ├── webhook_router.py
+│       ├── trigger_router.py
+│       ├── auth_ext_router.py
+│       ├── users_router.py
+│       └── smelter_router.py
+└── tests/                           # EE-only tests
+    ├── conftest.py                  # creates both CE Base + EE Base tables
+    ├── test_foundry.py
+    ├── test_audit.py
+    ├── test_webhooks.py
+    ├── test_rbac.py
+    └── test_service_principals.py
+```
+
+### Structure Rationale
+
+- **`ee/interfaces/` stays in CE.** These stub routers are the CE contract for EE routes. They ship with CE.
+- **`ee/routers/` moves to axiom-ee.** The real implementations are proprietary. They must not be in the Apache 2.0 repo.
+- **`ee/plugin.py` is private.** Integration glue compiled to `.so`.
+- **`EEBase` is private.** EE model definitions must not leak into CE. Separate base enforces the boundary.
+
+---
+
+## Data Flow
+
+### Startup Sequence (CE mode)
+
+```
+main.py lifespan():
+    await init_db()                           creates 13 CE tables
+    await _load_ee_plugins_async(app, engine)
+        pkg_resources.iter_entry_points()     empty
+        _register_ce_stubs(app)              mounts 6 stub routers
+        returns EEContext(all flags = False)
+    app.state.ee = EEContext(all False)
+    bootstrap admin user (no role column in CE)
+    start scheduler
+```
+
+### Startup Sequence (EE mode, after `pip install axiom-ee`)
+
+```
+main.py lifespan():
+    await init_db()                           creates 13 CE tables
+    await _load_ee_plugins_async(app, engine)
+        pkg_resources.iter_entry_points()     finds "core = ee.plugin:EEPlugin"
+        EEPlugin(app, engine).__init__()
+        await plugin.register(ctx)
+            await _create_ee_tables()         creates 15 EE tables (EEBase)
+            await _seed_ee_data()             seeds role_permissions, cap matrix
+            _mount_routers()                  app.include_router x 7
+            ctx.* = True (all 8 flags)
+        returns EEContext(all flags = True)
+    app.state.ee = EEContext(all True)
+    bootstrap admin user (EE User has role column)
+    start scheduler
+```
+
+### Request Flow — CE mode (EE route hit)
+
+```
+GET /api/blueprints
+    foundry_stub_router.blueprints_get()
+    returns JSONResponse(402, {"detail": "Axiom EE required"})
+```
+
+### Request Flow — EE mode
+
+```
+GET /api/blueprints
+    foundry_router.list_blueprints()
+    require_permission("foundry:read")
+        get_current_user() → JWT decode → User lookup
+        _perm_cache check → DB query role_permissions
+        returns User if permitted
+    DB query select(Blueprint)
+    returns List[BlueprintResponse]
+```
+
+### Feature Flag Check Flow (frontend)
+
+```
+GET /api/features
+    reads app.state.ee (EEContext dataclass)
+    returns {"foundry": true/false, "audit": true/false, ...}
+
+Frontend:
+    useFeatures() hook → caches 5 min
+    UpgradePlaceholder rendered if feature = false
+    Real view rendered if feature = true
+```
+
+---
+
+## Test Isolation Architecture
+
+### The Problem
+
+The CE test suite in `puppeteer/tests/` has tests that reference EE-only concepts:
+
+1. **`test_bootstrap_admin.py`** — asserts `admin.role == "admin"` and passes `role="admin"` to `User()`. CE's `User` model has no `role` column (stripped in Phase 3). These lines fail with `AttributeError` or `TypeError`.
+
+2. **EE-heavy test files** — `test_compatibility_engine.py`, `test_foundry_mirror.py`, `test_mirror.py`, `test_smelter.py`, `test_trigger_service.py` import EE models (Blueprint, CapabilityMatrix, ApprovedIngredient, etc.) that no longer exist in CE's `db.py`.
+
+### Fix for `test_bootstrap_admin.py`
+
+Remove `role` assertions and `role` kwarg from `User()` constructor. CE bootstrap creates a user with only `username` and `password_hash`. The corrected test should assert that admin exists and password verifies correctly, without testing role assignment.
+
+### EE Test Files — Move to axiom-ee
+
+These files should be deleted from the CE repo as part of Phase 5 and recreated in `axiom-ee/tests/` with proper EE fixtures.
+
+### CE Test Isolation Pattern
+
+```
+puppeteer/tests/                     (CE repo — CE routes only)
+├── conftest.py                      in-memory SQLite, Base.metadata.create_all only
+├── test_bootstrap_admin.py          fix: remove role assertions
+├── test_alert_system.py             CE — keep
+├── test_attestation.py              CE — keep
+├── test_device_flow.py              CE — keep
+├── test_env_tag.py                  CE — keep
+├── test_execution_record.py         CE — keep
+├── test_job_staging.py              CE — keep
+├── test_lifecycle_enforcement.py    CE — keep
+├── test_output_capture.py           CE — keep
+├── test_retry_wiring.py             CE — keep
+├── test_openapi_export.py           CE — keep
+└── test_tools.py                    CE — keep
+
+Move to axiom-ee/tests/ then delete from CE:
+- test_compatibility_engine.py       EE — references CapabilityMatrix
+- test_foundry_mirror.py             EE — references Blueprint, Templates
+- test_mirror.py                     EE — references mirror infrastructure
+- test_smelter.py                    EE — references ApprovedIngredient
+- test_trigger_service.py            EE — references Trigger service
+```
+
+### EE Test Fixture Pattern (private repo)
 
 ```python
-# node.py report_result() signature — node decides retriable:
-retriable = (not security_rejected) and (exit_code is not None) and (exit_code != 0)
+# axiom-ee/tests/conftest.py
+import pytest
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from agent_service.db import Base      # CE Base (13 tables)
+from ee.db_models import EEBase        # EE Base (15 tables)
+
+@pytest.fixture
+async def db_session():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)    # CE tables
+        await conn.run_sync(EEBase.metadata.create_all)  # EE tables
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as session:
+        yield session
+    await engine.dispose()
 ```
 
-**Gap 3: Dashboard display (RETRY-03)**
-
-`ExecutionRecord` already stores all attempts (one record per attempt). The `Job` row has `retry_count` and `max_retries`. The dashboard can show "Attempt {retry_count + 1} of {max_retries + 1}" by reading the job detail alongside execution history.
-
-No backend changes needed — this is frontend work in `Jobs.tsx`.
-
----
-
-### Feature 4: Environment Tags (ENVTAG-01 through ENVTAG-04)
-
-**Status: The enforcement logic is already complete. Missing: first-class column, UI, and CI/CD endpoint.**
-
-**Current implementation:** `env:` tags are stored in `Node.tags` (or `Node.operator_tags`) as strings like `"env:PROD"`. Job matching in `pull_work()` already enforces strict env: isolation (lines 312-322). This works correctly and is the right design.
-
-**Gap 1: No dedicated `env_tag` column on Node (ENVTAG-01)**
-
-The existing tags approach works, but ENVTAG-01 calls for a configurable environment tag. The cleanest path is to add a first-class `env_tag` column to `Node` so it:
-- Is visible separately from capability/feature tags in API responses
-- Can be set at enrollment time (via `JOIN_TOKEN` payload extension or env var on node)
-- Appears clearly in dashboard filtering
-
-```python
-# db.py Node addition:
-env_tag: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)  # DEV, TEST, PROD, or custom
-```
-
-**Migration SQL:**
-
-```sql
-ALTER TABLE nodes ADD COLUMN IF NOT EXISTS env_tag VARCHAR(64);
-```
-
-At enrollment, the node can pass `env_tag` in the heartbeat payload. The server stores it on `Node.env_tag`. The existing `env:` tag isolation logic in `pull_work()` continues to use the tags list — the new `env_tag` column feeds the new CI/CD dispatch endpoint and dashboard display.
-
-**Alternative:** Keep the `env:` tags approach (already enforced correctly), populate `Node.env_tag` by extracting the `env:` prefix tag from `operator_tags` at read time (no schema change). This avoids a migration for fresh deployments and is simpler. Recommended for v10.0.
-
-**Node declaration (ENVTAG-01):** Add `ENV_TAG` env var to node compose files. `heartbeat_loop()` reads it and includes it in the heartbeat payload. `receive_heartbeat()` writes it to `operator_tags` as `env:<ENV_TAG>` if not already set by operator.
-
-**Gap 2: CI/CD dispatch endpoint (ENVTAG-04)**
-
-New endpoint:
-
-```
-POST /api/dispatch
-Auth: Bearer token or API key (operator permission: jobs:write)
-Body: {
-    "job_definition_id": str,       # ScheduledJob.id
-    "env_tag": str,                 # "DEV" | "TEST" | "PROD" | custom
-    "override_tags": [str],         # optional additional tag constraints
-    "timeout_minutes": int          # optional override
-}
-Response: {
-    "job_guid": str,
-    "status": "PENDING",
-    "node_assigned": null,          # filled once assigned at next poll
-    "env_tag": str,
-    "job_definition": str           # name
-}
-```
-
-Implementation: looks up the `ScheduledJob`, validates its `status == "ACTIVE"`, constructs a `Job` with `target_tags` including `env:<env_tag>`, and returns the structured JSON. The endpoint must be documented as the CI/CD integration path.
-
-**Gap 3: NodeResponse must expose env_tag (ENVTAG-03)**
-
-`NodeResponse` in models.py needs `env_tag: Optional[str] = None`. The `list_nodes()` handler in main.py must extract env_tag from `operator_tags` (or the new column) and include it in the response dict.
-
----
-
-### Feature 5: CI/CD Dispatch API (ENVTAG-04 — detailed)
-
-**Auth approach:** Service principals already exist (`ServicePrincipal` table, `_SPUserProxy`). CI/CD pipelines should authenticate using a service principal's `client_id` + `client_secret` via `POST /auth/service-principal/token` to get a short-lived JWT, then use that JWT as Bearer for `POST /api/dispatch`.
-
-Alternatively, a service principal API key (`mop_` prefix) can authenticate directly — this is already wired in `security.py`. This is simpler for CI/CD (one credential, no token exchange). Recommended.
-
-**Response contract:** The response must be stable (not change between minor versions) and include enough for a pipeline to poll job status:
-
-```json
-{
-    "job_guid": "abc-123",
-    "status": "PENDING",
-    "job_definition": "deploy-frontend",
-    "env_tag": "PROD",
-    "poll_url": "/jobs/abc-123/executions"
-}
-```
-
-The CI/CD caller can poll `GET /jobs/{guid}` or `GET /jobs/{guid}/executions` for completion.
-
----
-
-## Recommended Component Boundaries
-
-### New Files to Create
-
-| File | Purpose |
-|------|---------|
-| `puppeteer/agent_service/services/attestation_service.py` | `verify_attestation()` — loads public key from PEM, verifies RSA PKCS1v15 + SHA256 signature |
-| (no new DB file) | ExecutionRecord columns added directly to `db.py` |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `puppeteer/agent_service/db.py` | Add 3 attestation columns to `ExecutionRecord`; optionally add `env_tag` to `Node` |
-| `puppeteer/agent_service/models.py` | Extend `ResultReport` (attestation field); extend `ExecutionRecordResponse` (attestation fields); add `DispatchRequest`/`DispatchResponse` models; add `env_tag` to `NodeResponse` |
-| `puppeteer/agent_service/services/job_service.py` | `pull_work()`: populate retry config in WorkResponse; `report_result()`: call `verify_attestation()`, write attestation columns |
-| `puppeteer/agent_service/services/scheduler_service.py` | Propagate `max_retries`, `backoff_multiplier`, `timeout_minutes` to created `Job` |
-| `puppeteer/agent_service/main.py` | Add `POST /api/dispatch` endpoint; add `GET /api/executions/{id}/attestation` endpoint; update `list_nodes()` to expose `env_tag` |
-| `puppets/environment_service/node.py` | Add `build_attestation_bundle()` helper; set `retriable=True` for non-security failures; pass `ENV_TAG` in heartbeat; include `attestation` in `report_result()` call |
-| `puppeteer/dashboard/src/views/Jobs.tsx` | Execution history panel with output_log display, retry state (attempt N of M) |
-| `puppeteer/dashboard/src/views/Nodes.tsx` | Show `env_tag` badge, add env_tag filter |
-| Migration SQL file (e.g. `migration_v14.sql`) | ALTER TABLE for new columns on `execution_records` (and optionally `nodes`) |
-
----
-
-## Data Flow: Attestation
-
-```
-Node executes job:
-  script → runtime.py → {stdout, stderr, exit_code}
-  │
-  ├─ build_attestation_bundle()
-  │    bundle = {script_hash, stdout_hash, stderr_hash, exit_code, start_ts, cert_serial}
-  │    serialised = json.dumps(bundle, sort_keys=True, separators=(',',':'))
-  │    sig = RSA_key.sign(serialised.encode(), PKCS1v15(), SHA256())
-  │    return {bundle: serialised, signature: base64(sig), cert_serial: ...}
-  │
-  └─ POST /work/{guid}/result
-       ResultReport.attestation = {bundle, signature, cert_serial}
-       ResultReport.retriable = (exit_code != 0 and not security_rejected)
-       ResultReport.output_log = build_output_log(stdout, stderr)
-
-Orchestrator receives result:
-  job_service.report_result()
-  │
-  ├─ Write ExecutionRecord (output_log, exit_code, status) — existing
-  │
-  ├─ IF attestation present:
-  │    cert_pem = node.client_cert_pem
-  │    public_key = x509.load_pem_x509_certificate(cert_pem).public_key()
-  │    public_key.verify(b64decode(sig), serialised.encode(), PKCS1v15(), SHA256())
-  │    record.attestation_verified = "VERIFIED" or "FAILED"
-  │    record.attestation_bundle = bundle_json
-  │    record.attestation_signature = sig_b64
-  │
-  └─ Continue with retry / dependency logic — existing
-```
-
----
-
-## Data Flow: Environment Tag + CI/CD Dispatch
-
-```
-Node startup:
-  ENV_TAG=PROD env var → heartbeat payload includes env_tag
-  Orchestrator.receive_heartbeat() → stores "env:PROD" in operator_tags (if not already set by operator)
-
-CI/CD pipeline:
-  POST /api/dispatch  (service principal API key)
-    body: {job_definition_id, env_tag: "PROD"}
-  │
-  ├─ Lookup ScheduledJob → validate ACTIVE status
-  ├─ Build Job with target_tags = existing_tags + ["env:PROD"]
-  ├─ Copy max_retries, backoff_multiplier, timeout_minutes from ScheduledJob
-  ├─ INSERT jobs → status=PENDING
-  └─ Return {job_guid, status, job_definition, env_tag, poll_url}
-
-Next node poll cycle:
-  Node with operator_tags=["env:PROD"] polls /work/pull
-  pull_work() matches env: tag constraint → assigns job
-  Node executes → reports result with attestation
-```
-
----
-
-## Recommended Build Order
-
-Dependencies constrain this order:
-
-**Phase A: Backend completeness (closes all backend gaps — enables testing without UI)**
-
-1. **Output capture wiring** (1-2 days)
-   - `node.py`: set `retriable=True` for non-security failures
-   - `job_service.pull_work()`: populate `max_retries`, `backoff_multiplier`, `timeout_minutes` in `WorkResponse`
-   - `scheduler_service.py`: propagate retry config from `ScheduledJob` to `Job`
-   - No schema changes needed
-
-2. **Environment tags first-class** (0.5 days)
-   - Add `ENV_TAG` env var support to `heartbeat_loop()` in `node.py`
-   - Update `receive_heartbeat()` to store it as `env:<value>` in operator_tags (if not already set)
-   - Add `env_tag` (derived from tags, no schema change) to `NodeResponse`
-   - Update `NodeConfig` to echo env_tag back to node
-
-3. **Attestation: node side** (1-2 days)
-   - Add `build_attestation_bundle()` helper to `node.py`
-   - Requires `cryptography` lib (already a dependency — used for CSR generation)
-   - Include `attestation` dict in `report_result()` call
-   - Requires `WorkResponse.started_at` so the bundle uses the server-assigned timestamp
-
-4. **Attestation: orchestrator side** (1-2 days)
-   - `db.py`: add 3 columns to `ExecutionRecord`
-   - `migration_v14.sql` for existing deployments
-   - `attestation_service.py`: `verify_attestation()` using `cryptography` RSA verify
-   - `job_service.report_result()`: call verify_attestation, write columns
-   - `models.py`: extend `ResultReport`, `ExecutionRecordResponse`
-   - `GET /api/executions/{id}/attestation` endpoint
-
-5. **CI/CD dispatch endpoint** (1 day)
-   - `models.py`: `DispatchRequest`, `DispatchResponse`
-   - `main.py`: `POST /api/dispatch`
-   - Auth via existing service principal API key flow
-
-**Phase B: Frontend (closes UI gaps — can be done in parallel with Phase A after step 1)**
-
-6. **Execution history UI** (`Jobs.tsx`) — output_log display, retry state
-7. **Nodes env_tag display** (`Nodes.tsx`) — badge, filter
-8. **Attestation status in execution detail** — show VERIFIED/FAILED/MISSING badge
-
----
-
-## Architecture Constraints to Preserve
-
-| Constraint | Why It Matters | How v10.0 Respects It |
-|------------|----------------|----------------------|
-| Pull-only model | Nodes work across NAT, no inbound ports needed | Attestation is included in the existing `report_result()` call — no new connections |
-| Nodes are stateless between polls | No state survives container restarts except `secrets/` volume | Attestation uses the persisted mTLS key from `secrets/{node_id}.key` |
-| mTLS for all node communication | Node identity is cryptographically bound | Attestation reuses the mTLS client cert public key — no new key material |
-| No migration framework | `create_all` won't ALTER existing tables | Migration SQL file for all new columns |
-| SQLite + Postgres compatibility | Dev and prod must both work | All new columns use types supported by both (TEXT, VARCHAR, INTEGER) |
-| Secrets never in logs | `report_result()` already scrubs secrets from output_log | Attestation bundle hashes stdout/stderr (hashes don't leak secrets) |
-| env: tags controlled by operator, not node | Prevents node self-escalation (SEC-02 in job_service.py) | `ENV_TAG` env var sets operator_tags on first heartbeat; operator can override via `PATCH /nodes/{id}` |
-
----
-
-## Anti-Patterns to Avoid
-
-### Anti-Pattern 1: Storing raw stdout/stderr in the attestation bundle
-
-**What people do:** Include raw output in the bundle so verifiers can check it.
-**Why it's wrong:** Output can contain secrets; bundle would bypass the existing scrubbing pipeline.
-**Do this instead:** Hash stdout and stderr (SHA-256). The hash is in the bundle; the raw text is scrubbed then stored separately in `execution_records.output_log`.
-
-### Anti-Pattern 2: Node generates a new signing key for attestation
-
-**What people do:** Create a separate Ed25519 key for attestation to avoid reusing the mTLS key.
-**Why it's wrong:** Introduces key management complexity; the new key has no binding to node identity; weakens the security model.
-**Do this instead:** Sign with the RSA mTLS private key. The orchestrator already has the corresponding public key in `client_cert_pem`. The binding is established by the CA-signed enrollment.
-
-### Anti-Pattern 3: CI/CD endpoint creates a new job type
-
-**What people do:** Invent a new job dispatch mechanism with different fields and auth.
-**Why it's wrong:** Creates a parallel dispatch path that bypasses existing validation (signature check, tag enforcement, memory limit checks).
-**Do this instead:** `POST /api/dispatch` is a thin wrapper over the existing `Job` creation flow — it validates the `ScheduledJob`, builds a `Job` with the correct tags, and delegates to `create_job()`.
-
-### Anti-Pattern 4: Retrying security-rejected jobs
-
-**What people do:** Set `retriable=True` on all failures for simplicity.
-**Why it's wrong:** Security-rejected jobs (signature failure, missing verification key) should not retry — the underlying issue is a policy violation, not a transient error. Retrying wastes capacity and obscures the security event.
-**Do this instead:** `retriable = (exit_code is not None) and (not security_rejected)` — already the correct signal.
-
-### Anti-Pattern 5: Adding env_tag as a separate targeting mechanism
-
-**What people do:** Build a new targeting field and new matching logic parallel to the existing tags system.
-**Why it's wrong:** The `env:` tag isolation in `pull_work()` already works correctly. Duplicating it creates two paths to reason about.
-**Do this instead:** Use `env:<value>` convention in existing tags. The dedicated `env_tag` field on `Node` and `DispatchRequest` is only for ergonomics — internally it translates to the existing `env:` tag list entry.
+This gives EE tests a fully-hydrated DB (all 28 tables) while CE tests only create 13.
 
 ---
 
 ## Integration Points
 
-### Node ↔ Orchestrator Interface
+### New Components Required
 
-| Endpoint | Direction | v10.0 Change |
-|----------|-----------|--------------|
-| `POST /work/pull` | Node → Orchestrator | `WorkResponse` must include `max_retries`, `backoff_multiplier`, `timeout_minutes`, `started_at` |
-| `POST /work/{guid}/result` | Node → Orchestrator | `ResultReport` adds `attestation: Optional[Dict]`; node sets `retriable=True` for non-security failures |
-| `POST /heartbeat` | Node → Orchestrator | `HeartbeatPayload` adds `env_tag: Optional[str]`; stored as `env:` operator tag |
+| Component | Location | Purpose | New/Modified |
+|-----------|----------|---------|--------------|
+| `_register_ce_stubs(app)` | `ee/__init__.py` | Mount 6 stub routers in CE/failure paths | MODIFY |
+| `_load_ee_plugins_async` | `ee/__init__.py` | Async wrapper enabling `await plugin.register()` | MODIFY |
+| Updated lifespan call | `main.py` | `await _load_ee_plugins_async(app, engine)` | MODIFY |
+| `EEPlugin` class | `axiom-ee/ee/plugin.py` | Router mounting + table creation + seeding | CREATE |
+| `EEBase` + 15 models | `axiom-ee/ee/db_models.py` | EE SQLAlchemy table definitions | CREATE |
+| EE test conftest | `axiom-ee/tests/conftest.py` | Both-base DB fixture for EE tests | CREATE |
 
-### New Endpoints
+### Modified Components
 
-| Endpoint | Auth | Purpose |
-|----------|------|---------|
-| `POST /api/dispatch` | Bearer / API key (jobs:write) | CI/CD structured dispatch with env_tag |
-| `GET /api/executions/{id}/attestation` | Bearer (history:read) | Export attestation bundle for offline verification |
+| Component | Location | Change |
+|-----------|----------|--------|
+| `load_ee_plugins` / `_load_ee_plugins_async` | `ee/__init__.py` | Add `_register_ce_stubs()` + make async |
+| lifespan | `main.py` | Change `load_ee_plugins` call to `await _load_ee_plugins_async` |
+| `test_bootstrap_admin.py` | `puppeteer/tests/` | Remove `role` attribute references (2 assertions, 1 kwarg) |
+| `ee/routers/*.py` (7 files) | CE repo | DELETE after copying to axiom-ee |
+| 5 EE-heavy test files | `puppeteer/tests/` | DELETE after moving to axiom-ee |
 
-### Existing Endpoints — No Change Required
+### Internal Boundaries
 
-| Endpoint | Reason |
-|----------|--------|
-| `GET /api/executions` | Already supports node_id, status, job_guid filters |
-| `GET /jobs/{guid}/executions` | Already returns all execution records for a job |
-| `POST /jobs` | Already accepts max_retries, target_tags for ad-hoc dispatch |
-| `PATCH /nodes/{id}` | Already accepts tags for operator_tags override |
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| CE `main.py` to EE plugin | `app` + `engine` at construction, `ctx` mutated in `register()` | No circular imports — EE imports CE, not vice versa |
+| CE `deps.py` to EE routers | EE routers import `require_permission`, `audit`, `get_current_user` from `deps.py` | Designed coupling — deps.py is shared infrastructure |
+| CE `Base` to EE `EEBase` | Both point at same engine/DB | Tables coexist; CE `create_all` only creates CE tables |
+| EE routers to CE `db.py` | Currently: `from ...db import Blueprint, AuditLog, ...` | **MUST CHANGE** — relative imports break when moved to private repo |
+
+### Critical Import Path Change
+
+The EE routers currently use relative imports (e.g., `from ...db import AuditLog, Blueprint`). When moved to the private `axiom-ee` repo, the package hierarchy changes and these relative imports resolve to the wrong location or fail entirely.
+
+**Required change when migrating routers to axiom-ee:**
+
+```python
+# Before (in CE's ee/routers/foundry_router.py):
+from ...db import Blueprint, PuppetTemplate, CapabilityMatrix, ...
+
+# After (in axiom-ee's ee/routers/foundry_router.py):
+from agent_service.db import Config, User          # CE models still from CE package
+from ee.db_models import Blueprint, PuppetTemplate, CapabilityMatrix, ...  # EE models local
+
+# Similarly for deps:
+from agent_service.deps import require_permission, get_current_user, audit
+from agent_service.services.foundry_service import foundry_service
+```
+
+This refactor affects all 7 router files. It is the highest-effort part of Phase 5 and should be done carefully with a test run after each file.
 
 ---
 
-## Scalability Considerations
+## Build Order
 
-| Concern | At current scale (homelab/enterprise) | If scale grows |
-|---------|---------------------------------------|----------------|
-| ExecutionRecord growth | Index on job_guid and started_at already in place (db.py lines 229-233). 1 MB cap per log. | Add time-based pruning (keep last 90 days) — a Config key can control this |
-| Attestation verification on every result | RSA verify is fast (~1ms). No concern at this scale. | If volume is extreme, verify async via background task |
-| CI/CD dispatch throughput | Single dispatch per pipeline run. No concern. | Rate limiting via existing `slowapi` limiter |
-| env_tag matching in pull_work | O(n) scan over PENDING/RETRYING jobs, capped at 50 candidates. Already acceptable. | Add DB index on `jobs.status` + `jobs.target_tags` if queue depth grows |
+### Phase 5 (Private repo setup + router migration)
+
+1. Create `axiom-ee` private repo with `setup.cfg` entry_points
+2. Create `ee/db_models.py` — migrate 15 EE model definitions from pre-split history
+3. Create `ee/plugin.py` — `EEPlugin` with `async register()`, `_create_ee_tables()`, `_mount_routers()`, `_seed_ee_data()`
+4. Copy `ee/routers/*.py` from CE worktree, fix import paths (`...db` → `ee.db_models` and `agent_service.db`)
+5. Modify CE `ee/__init__.py` — add `_register_ce_stubs()`, convert to `_load_ee_plugins_async`, fix CE path and failure path
+6. Update CE `main.py` lifespan — `await _load_ee_plugins_async(app, engine)`
+7. Fix CE `test_bootstrap_admin.py` — remove `role` attribute references
+8. Delete CE's `ee/routers/` directory
+9. Delete CE's 5 EE-heavy test files, add them to `axiom-ee/tests/`
+10. Validate CE alone: `pytest` passes, `/api/blueprints` → 402, `/api/features` → all false
+11. Validate CE+EE: `pip install -e axiom-ee/` → `/api/blueprints` → real response, `/api/features` → all true
+
+### Phase 6 (.so compilation)
+
+Only after Phase 5 validates correctly. Compiled `.so` must pass the same Phase 5 validation.
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Importing EE Models in CE Code
+
+**What people do:** Use `from .db import AuditLog` in `deps.py` or `main.py` to check whether EE tables are present.
+
+**Why it's wrong:** CE imports fail when EE is not installed, defeating the plugin architecture entirely.
+
+**Do this instead:** Use `Base.metadata.tables.get("audit_log")` to check table existence at runtime. The current `deps.py` already does this correctly. Do not change this pattern.
+
+### Anti-Pattern 2: Running Async DB Work in Sync `register()`
+
+**What people do:** Call `asyncio.run()` or `loop.run_until_complete()` inside a sync `register()` to create tables.
+
+**Why it's wrong:** `load_ee_plugins` is called from inside an `asynccontextmanager` (lifespan) — the event loop is already running. Both `asyncio.run()` and `loop.run_until_complete()` raise `RuntimeError: This event loop is already running`.
+
+**Do this instead:** Make `register()` async and `await` it from `_load_ee_plugins_async`.
+
+### Anti-Pattern 3: Route Conflicts Between Stubs and Real Routers
+
+**What people do:** Register stub routers at module import time, then register real routers when EE loads.
+
+**Why it's wrong:** FastAPI does not override routes by re-registration. Both the stub and real handler will exist in the route table. The first registered (stub) wins, so real handlers are silently shadowed.
+
+**Do this instead:** Register stubs ONLY in CE mode (no EE plugin found). Register real routers ONLY in EE mode. Never register both.
+
+### Anti-Pattern 4: Relative Imports from Parent Package (post-move)
+
+**What people do:** Copy EE router files to the private repo without updating imports. The routers use `from ...db import Blueprint` which resolves relative to `agent_service.ee.routers` — this path doesn't exist in the private repo.
+
+**Why it's wrong:** Import errors cause the `except Exception` clause in `load_ee_plugins` to catch them silently, dropping into CE stub mode with no indication of the real error.
+
+**Do this instead:** Update all EE router imports to use absolute package names (`agent_service.db`, `ee.db_models`). Add logging in `load_ee_plugins` that prints the full exception traceback to aid debugging.
+
+### Anti-Pattern 5: Testing EE Routes Against CE-Only Fixtures
+
+**What people do:** Run EE route tests against a DB that only has CE tables.
+
+**Why it's wrong:** EE handlers reference `Blueprint`, `CapabilityMatrix`, etc. which don't exist in the CE DB. Queries fail with `ProgrammingError: no such table`.
+
+**Do this instead:** EE test fixtures must run both `Base.metadata.create_all` and `EEBase.metadata.create_all` on the same engine.
 
 ---
 
 ## Sources
 
-- Direct codebase analysis: `db.py`, `models.py`, `main.py`, `job_service.py`, `node.py` (2026-03-17)
-- `cryptography` library RSA signing: existing usage in `node.py ensure_identity()` (RSA-2048 key generation + CSR signing) confirms the library is available and the key format is consistent
-- Requirements: `.planning/REQUIREMENTS.md` — OUTPUT-01..07, RETRY-01..03, ENVTAG-01..04
-- Project context: `.planning/PROJECT.md` — v10.0 goals and architectural constraints
+- Codebase direct inspection: `puppeteer/agent_service/ee/__init__.py` — confirmed stub routers never mounted (HIGH confidence)
+- Codebase direct inspection: `puppeteer/agent_service/ee/interfaces/*.py` — 6 stub routers defined but orphaned (HIGH confidence)
+- Codebase direct inspection: `puppeteer/agent_service/ee/routers/*.py` — 7 real routers use relative `...db` imports (HIGH confidence)
+- Codebase direct inspection: `puppeteer/agent_service/db.py` — confirmed 13 CE tables only, User has no `role` column (HIGH confidence)
+- Codebase direct inspection: `puppeteer/agent_service/deps.py` — `require_permission` and `audit` use runtime table lookup (HIGH confidence)
+- Codebase direct inspection: `puppeteer/tests/test_bootstrap_admin.py` — confirmed `admin.role == "admin"` assertion against role-less CE User (HIGH confidence)
+- FastAPI documentation: `include_router()` is safe to call during lifespan before first request. Standard pattern for plugin systems.
+- Python packaging: `pkg_resources.iter_entry_points` is the standard Python plugin discovery mechanism.
 
 ---
-
-*Architecture research for: Axiom v10.0 — pull-architecture job orchestrator feature integration*
-*Researched: 2026-03-17*
+*Architecture research for: Axiom CE/EE open-core split — EE plugin wiring*
+*Researched: 2026-03-19*
