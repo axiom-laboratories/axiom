@@ -103,7 +103,13 @@ Plans:
   3. The DB contains all expected CE + EE tables after combined install — no missing table errors on first EE route request
   4. `python -c "import ee.plugin"` succeeds without importing `agent_service.main` — no circular import
   5. The `axiom-ee` stub wheel is published to PyPI and the package name is reserved
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 35-01-PLAN.md — axiom-ee repo scaffold: pyproject.toml, EEBase, EEPlugin skeleton (EE-01, EE-05)
+- [ ] 35-02-PLAN.md — EE DB models: all 15 tables in ee/{feature}/models.py (EE-03)
+- [ ] 35-03-PLAN.md — Router migration: 7 routers + services, absolute imports, EEPlugin.register() (EE-02, EE-04)
+- [ ] 35-04-PLAN.md — CE async wiring: load_ee_plugins async, deps.audit() guard fix (EE-05, EE-06)
+- [ ] 35-05-PLAN.md — Smoke tests + PyPI stub wheel (EE-06, EE-07, EE-08)
 
 ### Phase 36: Cython .so Build Pipeline
 **Goal**: The EE codebase compiles to `.so` extension modules via Cython and cibuildwheel, producing a multi-arch wheel with no `.py` source — and the compiled wheel passes the same CE+EE validation as the Python source install
@@ -154,7 +160,7 @@ Plans:
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 7/7 | Complete | 2026-03-19 |
 | 33. Licence Compliance + Release Infrastructure | v10.0 | 4/4 | Complete | 2026-03-18 |
 | 34. CE Baseline Fixes | 4/4 | Complete    | 2026-03-19 | - |
-| 35. Private EE Repo + Plugin Wiring | v11.0 | 0/TBD | Not started | - |
+| 35. Private EE Repo + Plugin Wiring | v11.0 | 0/5 | Not started | - |
 | 36. Cython .so Build Pipeline | v11.0 | 0/TBD | Not started | - |
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 0/TBD | Not started | - |
 
