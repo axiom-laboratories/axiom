@@ -1,5 +1,20 @@
 # Milestones
 
+## v10.0 Axiom Commercial Release (Shipped: 2026-03-19)
+
+**Phases completed:** 5 phases (29–33), 21 plans
+**Stats:** 100 files changed, +13,079 / -208 lines | ~21,220 LOC (Python + TypeScript) | 92 commits
+**Timeline:** 2026-03-18 → 2026-03-19
+
+**Key accomplishments:**
+- Phase 29 — Full job execution pipeline: stdout/stderr capture, script hash verification, retry machinery (attempt_number, job_run_id, retry_after, backoff), and timeout enforcement
+- Phase 30 — Runtime attestation: Ed25519 bundle signing on node, RSA PKCS1v15 server-side verification, attestation export endpoint and UI verification badge
+- Phase 31 — Environment tags end-to-end: DB schema → Pydantic models → node heartbeat → job dispatch → env_tag-aware routing; CI/CD dispatch endpoint (POST /api/dispatch)
+- Phase 32 — Dashboard execution history view with filtering, attestation badge, retry state, attempt tabs in ExecutionLogModal, env tag badges on Nodes, DefinitionHistoryPanel
+- Phase 33 — Licence compliance audit (Python + Node), GitHub org (`axiom-laboratories/axiom`), PyPI OIDC publishing, release.yml CI/CD, v10.0.0-alpha.1 tagged and published
+
+---
+
 ## v7.0 Advanced Foundry & Smelter (Shipped: 2026-03-16)
 
 **Phases completed:** 5 phases (11–15), 34 plans

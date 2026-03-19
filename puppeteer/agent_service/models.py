@@ -639,6 +639,7 @@ class ExecutionRecordResponse(BaseModel):
     attempt_number: Optional[int] = None
     job_run_id: Optional[str] = None
     attestation_verified: Optional[str] = None
+    max_retries: Optional[int] = None
 
 
 class AttestationExportResponse(BaseModel):

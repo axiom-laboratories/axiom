@@ -101,6 +101,44 @@
 - Primarily documentation work — heavy on write/edit operations, light on Bash execution compared to infrastructure milestones
 - Wave-based parallel execution effective: phases with 4-5 plans completed in the same number of agent invocations as phases with 2 plans
 
+## Milestone: v10.0 — Axiom Commercial Release
+
+**Shipped:** 2026-03-19
+**Phases:** 5 (29–33) | **Plans:** 21
+
+### What Was Built
+- Job execution pipeline: stdout/stderr capture, script hash verification, retry machinery (attempt_number, job_run_id, retry_after, configurable backoff), timeout enforcement
+- Runtime attestation: Ed25519 bundle signing on node, RSA PKCS1v15 server-side verification, attestation export endpoint, VERIFIED/FAILED/MISSING UI badge
+- Environment tags (DEV/TEST/PROD): nodes declare in heartbeat, jobs route by env_tag, scheduler propagates, CI/CD dispatch API (POST /api/dispatch + status poll)
+- Dashboard execution UI: History view with job/node/run/status filters, terminal-style stdout/stderr, attestation badge, attempt tabs, DefinitionHistoryPanel, env tag badges and filter on Nodes
+- Licence compliance + release infra: LEGAL.md, NOTICE, PEP 639 pyproject.toml, axiom-laboratories org, PyPI OIDC Trusted Publisher, v10.0.0-alpha.1 on PyPI and GHCR
+
+### What Worked
+- Wave-based parallel execution for Phase 32 (7 plans): backend gap (32-01), test scaffolds (32-02), and feature plans (32-03 to 32-07) separated cleanly by dependency
+- Audit-before-milestone-close workflow caught the RETRY-03 max_retries gap before archiving — the fix (outerjoin Job on list_executions) was a 3-line change that would have been a silent runtime bug
+- Phase 33 (licence + release) was fully independent of all feature phases — running it in parallel with Phase 32 had zero conflicts
+- outerjoin pattern for enriching ExecutionRecord with Job fields is clean and reusable — established as the pattern for future execution query enrichment
+
+### What Was Inefficient
+- Phase 32 required a gap-closure plan (32-07) for an attestation badge null guard that should have been caught during 32-03 implementation — small defensive check missed in the first pass
+- RETRY-03 max_retries was not caught until the post-milestone audit: the field was implemented in the DB (Phase 29) but never joined through to the API response (Phase 32) — cross-phase field propagation needs explicit verification
+- Nyquist VALIDATION.md files left in draft status across all 5 phases — compliance tracking process was not followed during this milestone
+
+### Patterns Established
+- `outerjoin(Job, Job.guid == ExecutionRecord.job_guid)` for enriching execution records with job-level fields (max_retries, env_tag, etc.) — avoids denormalising ExecutionRecord
+- Attestation verification never raises exceptions: verification failure is a string status value, not a raised exception — keeps ExecutionRecord rows complete regardless of verification outcome
+- job_run_id groups all retry attempts: UUID generated at dispatch and propagated through each retry attempt — enables per-run history queries without denormalising attempt data
+
+### Key Lessons
+- Cross-phase field propagation (DB column added in phase N, API response updated in phase M) needs an explicit checklist item in the phase M plan — "verify all DB fields introduced in prior phases appear in API responses"
+- The audit-before-milestone-close gate is valuable: RETRY-03 was a silent bug (tests pass, badge never shows) that required the integration checker to surface — worth running before every milestone close
+- Nyquist compliance tracking should be a plan-level gate, not a milestone-level optional — leaving VALIDATION.md in draft status across 5 phases accumulates process debt that's harder to pay down retroactively
+
+### Cost Observations
+- 5 phases, 21 plans, 92 commits over 2 days
+- Mix of backend (29, 30, 31), frontend (32), and compliance/infra (33) — balanced workload across agent capabilities
+- Phase 33 (release infra) required significant human operator work outside the codebase (GitHub org creation, PyPI publisher setup, tag push) — accounted for in timeline but not in plan count
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -108,3 +146,4 @@
 | v7.0 | 5 | 34 | Infrastructure-heavy; gap-closure plans expected for complex service interactions |
 | v8.0 | 3 | 14 | CLI + backend + UI in one milestone; Playwright as final gate |
 | v9.0 | 9 | 27 | Documentation milestone; stub-first nav pattern; regression gap closure required |
+| v10.0 | 5 | 21 | Security + observability + release; audit-before-close gate caught cross-phase propagation gap |

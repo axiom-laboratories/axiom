@@ -443,7 +443,7 @@ async def list_executions(
     current_user: User = Depends(require_permission("history:read"))
 ):
     """List execution history with filtering and pagination."""
-    query = select(ExecutionRecord)
+    query = select(ExecutionRecord, Job.max_retries).outerjoin(Job, Job.guid == ExecutionRecord.job_guid)
     if node_id:
         query = query.where(ExecutionRecord.node_id == node_id)
     if status:
@@ -455,17 +455,17 @@ async def list_executions(
         query = query.where(ExecutionRecord.job_guid.in_(subq))
     if job_run_id:
         query = query.where(ExecutionRecord.job_run_id == job_run_id)
-    
+
     query = query.order_by(desc(ExecutionRecord.started_at)).offset(skip).limit(limit)
     result = await db.execute(query)
-    records = result.scalars().all()
-    
+    rows = result.all()
+
     responses = []
-    for r in records:
+    for r, job_max_retries in rows:
         duration = None
         if r.started_at and r.completed_at:
             duration = (r.completed_at - r.started_at).total_seconds()
-        
+
         log = []
         if r.output_log:
             try:
@@ -491,6 +491,7 @@ async def list_executions(
             attempt_number=r.attempt_number,
             job_run_id=r.job_run_id,
             attestation_verified=r.attestation_verified,
+            max_retries=job_max_retries,
         ))
     return responses
 
@@ -1633,11 +1634,12 @@ async def list_executions(
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(ExecutionRecord)
+        select(ExecutionRecord, Job.max_retries)
+        .outerjoin(Job, Job.guid == ExecutionRecord.job_guid)
         .where(ExecutionRecord.job_guid == guid)
         .order_by(ExecutionRecord.id.desc())
     )
-    records = result.scalars().all()
+    rows = result.all()
     return [
         {
             "id": r.id,
@@ -1658,8 +1660,9 @@ async def list_executions(
             "attempt_number": r.attempt_number,
             "job_run_id": r.job_run_id,
             "attestation_verified": r.attestation_verified,
+            "max_retries": job_max_retries,
         }
-        for r in records
+        for r, job_max_retries in rows
     ]
 
 @app.post("/work/pull", response_model=PollResponse, tags=["Node Agent"])

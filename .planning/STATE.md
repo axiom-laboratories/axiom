@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v10.0
-milestone_name: — Axiom Commercial Release
-status: planning
-stopped_at: Completed 32-06-PLAN.md
-last_updated: "2026-03-19T14:29:14.344Z"
-last_activity: 2026-03-17 — v10.0 roadmap created
+milestone_name: Axiom Commercial Release
+status: complete
+stopped_at: milestone archived
+last_updated: "2026-03-19"
+last_activity: 2026-03-19 — v10.0 milestone archived
 progress:
   total_phases: 5
   completed_phases: 5
@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-17)
+See: .planning/PROJECT.md (updated 2026-03-19)
 
-**Core value:** Jobs run reliably — on the right node, when scheduled, with output captured — without weakening the security model.
-**Current focus:** v10.0 Axiom Commercial Release — Phase 29 next
+**Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
+**Current focus:** Planning next milestone (v11.0)
 
 ## Current Position
 

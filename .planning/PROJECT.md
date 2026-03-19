@@ -50,17 +50,19 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Axiom rebranding — CLI renamed `axiom-push`, README rewrite, CONTRIBUTING + CHANGELOG, GitHub community health files, full MkDocs naming pass — v9.0
 - ✓ CI/CD pipelines — GitHub Actions CI (pytest + vitest + docker-validate) + release workflow (multi-arch GHCR + PyPI OIDC) — v9.0
 
-### Active — v10.0 Axiom Commercial Release
+### Validated — v10.0 Axiom Commercial Release
 
-- [ ] PyPI Trusted Publisher activation — create `axiom-laboratories` org, `axiom-sdk` project, configure OIDC (RELEASE-01)
-- [ ] GHCR multi-arch image publishing on version tag — activate existing release workflow (RELEASE-02)
-- [ ] Public documentation access — evaluate `/docs/` public exposure for open-source adoption (RELEASE-03)
-- [ ] Job output capture — stdout/stderr, exit codes stored per execution (OUTPUT-01, OUTPUT-02)
-- [ ] Execution history — queryable timeline of past runs per job and per node (OUTPUT-03, OUTPUT-04)
-- [ ] Runtime attestation — node signs execution result bundle with mTLS client key; orchestrator verifies (OUTPUT-05, OUTPUT-06, OUTPUT-07)
-- [ ] Retry policy — configurable retry count + backoff on failure; each attempt a separate execution record (RETRY-01, RETRY-02, RETRY-03)
-- [ ] Environment tags (DEV/TEST/PROD) — nodes declare at enrollment, jobs target by env, CI/CD dispatch API (ENVTAG-01, ENVTAG-02, ENVTAG-03, ENVTAG-04)
-- [ ] Licence compliance — LEGAL.md certifi decision, mop-sdk licence field, NOTICE file, paramiko assessment (LICENCE-01..04)
+- ✓ PyPI Trusted Publisher activation — `axiom-laboratories` org created, OIDC configured on test.pypi.org + pypi.org, v10.0.0-alpha.1 published — v10.0
+- ✓ GHCR multi-arch image publishing on version tag — release.yml triggered on tag push — v10.0
+- ✓ Public documentation access — CF Access protects `/docs/`; open-source release strategy documented — v10.0
+- ✓ Job output capture — stdout/stderr, exit codes stored per execution in ExecutionRecord — v10.0
+- ✓ Execution history — queryable via GET /api/executions with node/status/job/run filters, dashboard History view — v10.0
+- ✓ Runtime attestation — Ed25519 bundle signing on node, RSA PKCS1v15 server verification, export endpoint, UI badge — v10.0
+- ✓ Retry policy — configurable max_retries + backoff, each attempt separate ExecutionRecord; max_retries in API response — v10.0
+- ✓ Environment tags (DEV/TEST/PROD) — nodes declare in heartbeat, jobs target by env_tag, CI/CD dispatch API (POST /api/dispatch) — v10.0
+- ✓ Licence compliance — LEGAL.md certifi decision, axiom-sdk licence field, NOTICE file, paramiko assessment complete — v10.0
+
+### Active — v11.0 (Next Milestone)
 
 ### Planned — Future Milestones
 
@@ -102,8 +104,8 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Ed25519 signing required for all jobs | Prevents arbitrary code execution even if orchestrator is compromised | ✓ Good |
 | Container-per-job isolation | Memory leak containment, runtime isolation, OS-level security boundary | ✓ Good |
 | RBAC seeded from DB, not config files | Supports org-wide teams without redeployment | ✓ Good |
-| Environment tags for CI/CD targeting | Enables DEV→TEST→PROD promotion patterns without separate orchestrator instances | — Pending |
-| Job output stored server-side | Nodes are stateless — results must flow back to orchestrator | — Pending |
+| Environment tags for CI/CD targeting | Enables DEV→TEST→PROD promotion patterns without separate orchestrator instances | ✓ Good |
+| Job output stored server-side | Nodes are stateless — results must flow back to orchestrator | ✓ Good |
 | MoP-native OAuth device flow (not external OIDC) | Avoids external IdP dependency for v1; OIDC documented as v2 path | ✓ Good |
 | Job staging (DRAFT→ACTIVE via dashboard) | Operators review and finalize scheduling before jobs run in production | ✓ Good |
 | Private key stays on operator machine | Ed25519 signing in CLI; only signature transmitted to server | ✓ Good |
@@ -119,27 +121,20 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | openapi.json generated at container build time | No running server required; dummy env vars (postgresql+asyncpg, API_KEY) in Dockerfile builder stage | ✓ Good |
 | CLI renamed `axiom-push`; package `axiom-sdk` | Axiom brand alignment; mop-push name retired | ✓ Good |
 | CDN verification uses `https://` prefix match | Privacy plugin stores assets under `assets/external/fonts.googleapis.com/` — bare domain grep matches local paths (false positive) | ✓ Good |
-| PyPI Trusted Publisher setup deferred | GitHub org `axiom-laboratories` and PyPI project `axiom-sdk` do not exist yet | — Pending |
+| PyPI Trusted Publisher + OIDC via GitHub Actions | Avoids long-lived tokens; OIDC trust between GitHub Actions and PyPI is zero-credential | ✓ Good |
+| job_run_id groups all retry attempts | Enables per-run history queries without denormalising attempt data | ✓ Good |
+| Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
+| outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
-## Current Milestone: v10.0 Axiom Commercial Release
+## Current State — v10.0 Complete (2026-03-19)
 
-**Goal:** Activate release infrastructure (PyPI + GHCR), add production-grade job observability with cryptographic runtime attestation, environment-based CI/CD targeting, retry policy, and licence compliance for the dual-licence model.
+Axiom is commercially released. The `axiom-laboratories/axiom` GitHub org and repo are live. v10.0.0-alpha.1 is published to PyPI (`axiom-sdk`) and GHCR via GitHub Actions OIDC — no long-lived tokens. Job execution is now fully observable: stdout/stderr captured per attempt, execution history queryable by job/node/run/status, runtime attestation signed by node mTLS key and verified server-side.
 
-**Target features:**
-- Release infrastructure — PyPI Trusted Publisher + GHCR activation + public docs strategy
-- Job output capture + execution history — per-run stdout/stderr, queryable timeline
-- Runtime attestation — node signs execution bundle with mTLS client key; orchestrator verifies
-- Retry policy — configurable retries + backoff on failure
-- Environment tags — DEV/TEST/PROD node tags + job targeting + CI/CD dispatch API
-- Licence compliance — LEGAL.md, NOTICE file, mop-sdk licence field, paramiko assessment
+Nodes declare environment tags (DEV/TEST/PROD) in heartbeats; job dispatch and scheduling respect env_tag routing. The CI/CD dispatch API (`POST /api/dispatch`) enables external pipelines to trigger environment-targeted jobs. All retry attempts are linked by job_run_id with configurable backoff. The dashboard has full execution history, attestation badges, retry state, attempt tabs, and env tag filtering.
 
-## Current State — v9.0 Complete (2026-03-17)
+Licence compliance is complete: LEGAL.md documents certifi dual-licence decision, NOTICE file and paramiko assessment complete, `axiom-sdk` licence field correct.
 
-Axiom (formerly Master of Puppets) now ships with a full enterprise documentation site at `/docs/`. The docs container is a standalone MkDocs Material service — air-gapped (CDN-free), auto-generated API reference, task/audience-oriented navigation covering getting started through security hardening and troubleshooting.
-
-The CLI is now `axiom-push` (installable as `axiom-sdk`). GitHub Actions CI/CD pipelines are in place and verified; only the `axiom-laboratories` GitHub org and PyPI project need to be created to activate automated publishing.
-
-**Shipped in v9.0:** Docs container infrastructure (CDN-free, CF Access protected), API reference pipeline, developer docs (architecture + setup + contributing), full operator docs (getting started, Foundry, axiom-push, job scheduling, RBAC, OAuth, mTLS, audit, air-gap), runbooks + FAQ, Axiom rebranding, CI/CD pipelines.
+**Shipped in v10.0:** Output capture + history (Phase 29), runtime attestation (Phase 30), env tags + CI/CD dispatch (Phase 31), dashboard execution UI (Phase 32), licence compliance + release infra (Phase 33).
 
 ---
-*Last updated: 2026-03-17 after v10.0 milestone start — Axiom Commercial Release requirements defined*
+*Last updated: 2026-03-19 after v10.0 milestone — Axiom Commercial Release*
