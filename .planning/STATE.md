@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Phase 35 context gathered
-last_updated: "2026-03-19T21:00:25.637Z"
+stopped_at: Completed 35-01-PLAN.md
+last_updated: "2026-03-19T21:22:37.193Z"
 last_activity: 2026-03-19 — v11.0 roadmap created
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 9
+  completed_plans: 5
   percent: 0
 ---
 
@@ -59,6 +59,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 34]: PollResponse carries env_tag directly as Optional[str] = None — no config nesting, eliminates EE-field AttributeError on CE
 - [Phase 34-ce-baseline-fixes]: testpaths = ['puppeteer/agent_service/tests'] excludes EE test dir from CE default run; puppeteer/tests/ remains opt-in
 - [Phase 34-ce-baseline-fixes]: pre-existing test_sprint3.py 422 vs 200 mismatches marked skip with Phase 34 attribution — deferred to Phase 35+
+- [Phase 35-private-ee-repo-plugin-wiring]: axiom-ee dependencies=[] intentionally empty — CE venv is the shared runtime peer, not a pip dependency
+- [Phase 35-private-ee-repo-plugin-wiring]: EEPlugin.register() is async — deferred router imports prevent circular startup imports; sync DDL via engine.sync_engine
 
 ### Pending Todos
 
@@ -75,7 +77,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-19T21:00:25.635Z
-Stopped at: Phase 35 context gathered
-Resume file: .planning/phases/35-private-ee-repo-plugin-wiring/35-CONTEXT.md
+Last session: 2026-03-19T21:22:37.189Z
+Stopped at: Completed 35-01-PLAN.md
+Resume file: None
 Next action: `/gsd:plan-phase 34`
