@@ -9,8 +9,6 @@ class JobCreate(BaseModel):
     priority: int = 0
     target_tags: Optional[List[str]] = None
     capability_requirements: Optional[Dict[str, str]] = None
-    memory_limit: Optional[str] = None
-    cpu_limit: Optional[str] = None
     depends_on: Optional[List[str]] = None
     max_retries: int = 0
     backoff_multiplier: float = 2.0
@@ -54,8 +52,6 @@ class WorkResponse(BaseModel):
     guid: str
     task_type: str
     payload: Dict
-    memory_limit: Optional[str] = None
-    cpu_limit: Optional[str] = None
     max_retries: int = 0
     backoff_multiplier: float = 2.0
     timeout_minutes: Optional[int] = None
@@ -76,33 +72,9 @@ class ResultReport(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
-    role: str
-    must_change_password: bool = False
 
 class EnrollmentTokenCreate(BaseModel):
     template_id: Optional[str] = None
-
-class TriggerCreate(BaseModel):
-    slug: str
-    name: str
-    job_definition_id: str
-    is_active: bool = True
-
-class TriggerResponse(BaseModel):
-    id: str
-    slug: str
-    name: str
-    job_definition_id: str
-    secret_token: str
-    is_active: bool
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class TriggerUpdate(BaseModel):
-    is_active: Optional[bool] = None
-    name: Optional[str] = None
 
 class SignalFire(BaseModel):
     payload: Optional[Dict] = None
@@ -141,21 +113,6 @@ class PollResponse(BaseModel):
     job: Optional[WorkResponse] = None
     config: NodeConfig
 
-class WebhookCreate(BaseModel):
-    url: str
-    events: Optional[str] = "*" # comma separated or * for all
-
-class WebhookResponse(BaseModel):
-    id: int
-    url: str
-    events: str
-    active: bool
-    created_at: datetime
-    secret: str # Only returned on creation or for admins
-
-    class Config:
-        from_attributes = True
-
 class AlertResponse(BaseModel):
     id: int
     type: str
@@ -182,8 +139,6 @@ class NodeResponse(BaseModel):
     capabilities: Optional[Dict] = None
     expected_capabilities: Optional[Dict] = None
     tamper_details: Optional[str] = None
-    concurrency_limit: Optional[int] = None
-    job_memory_limit: Optional[str] = None
     stats_history: Optional[List[Dict]] = None
     env_tag: Optional[str] = None
 
@@ -197,7 +152,7 @@ class SignatureResponse(BaseModel):
     public_key: str
     uploaded_by: str
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -321,302 +276,6 @@ class NetworkMount(BaseModel):
 
 class MountsConfig(BaseModel):
     mounts: List[NetworkMount]
-
-ALLOWED_ROLES = {"admin", "operator", "viewer"}
-
-class UserCreate(BaseModel):
-    username: str
-    password: str
-    role: str = "viewer"
-
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, v: str) -> str:
-        if v not in ALLOWED_ROLES:
-            raise ValueError(f"role must be one of {sorted(ALLOWED_ROLES)}")
-        return v
-
-class UserResponse(BaseModel):
-    id: str
-    username: str
-    role: str
-    created_at: datetime
-
-class PermissionGrant(BaseModel):
-    permission: str
-
-class ImageBuildRequest(BaseModel):
-    tag: str
-    capabilities: Dict[str, str]
-
-class ImageResponse(BaseModel):
-    tag: str
-    image_uri: str
-    status: str
-    created_at: datetime
-
-class BlueprintCreate(BaseModel):
-    type: str  # RUNTIME, NETWORK
-    name: str
-    definition: Dict
-    os_family: Optional[str] = None          # required for RUNTIME, ignored for NETWORK
-    confirmed_deps: Optional[List[str]] = None  # dep-confirmation resubmit
-
-    @field_validator('os_family', mode='before')
-    @classmethod
-    def normalize_os_family(cls, v):
-        return v.upper() if isinstance(v, str) else v
-
-    @model_validator(mode='after')
-    def runtime_requires_os_family(self):
-        if self.type == 'RUNTIME' and not self.os_family:
-            raise ValueError("os_family is required for RUNTIME blueprints")
-        return self
-
-class BlueprintResponse(BaseModel):
-    id: str
-    type: str
-    name: str
-    definition: Dict
-    version: int
-    created_at: datetime
-    os_family: Optional[str] = None  # nullable — network blueprints have no os_family
-
-    class Config:
-        from_attributes = True
-
-class CapabilityMatrixEntry(BaseModel):
-    id: Optional[int] = None
-    base_os_family: str
-    tool_id: str
-    injection_recipe: str
-    validation_cmd: str
-    artifact_id: Optional[str] = None
-    runtime_dependencies: List[str] = []
-    is_active: bool = True
-
-    @field_validator('runtime_dependencies', mode='before')
-    @classmethod
-    def deserialize_runtime_deps(cls, v: Any) -> Any:
-        if isinstance(v, str):
-            try:
-                return _json.loads(v)
-            except Exception:
-                return []
-        return v
-
-    @field_validator('base_os_family', mode='before')
-    @classmethod
-    def normalize_os_family(cls, v: Any) -> Any:
-        return v.upper() if isinstance(v, str) else v
-
-    class Config:
-        from_attributes = True
-
-
-class CapabilityMatrixUpdate(BaseModel):
-    base_os_family: Optional[str] = None
-    tool_id: Optional[str] = None
-    injection_recipe: Optional[str] = None
-    validation_cmd: Optional[str] = None
-    artifact_id: Optional[str] = None
-    runtime_dependencies: Optional[List[str]] = None
-    is_active: Optional[bool] = None
-
-    @field_validator('base_os_family', mode='before')
-    @classmethod
-    def normalize_os(cls, v: Any) -> Any:
-        return v.upper() if isinstance(v, str) else v
-
-class ArtifactResponse(BaseModel):
-    id: str
-    filename: str
-    content_type: str
-    sha256: str
-    size_bytes: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class ApprovedOSResponse(BaseModel):
-    id: int
-    name: str
-    image_uri: str
-    os_family: str
-
-    class Config:
-        from_attributes = True
-
-class PuppetTemplateCreate(BaseModel):
-    friendly_name: str
-    runtime_blueprint_id: str
-    network_blueprint_id: str
-
-class PuppetTemplateResponse(BaseModel):
-    id: str
-    friendly_name: str
-    runtime_blueprint_id: str
-    network_blueprint_id: str
-    canonical_id: str
-    current_image_uri: Optional[str] = None
-    last_built_image: Optional[str] = None
-    last_built_at: Optional[datetime] = None
-    created_at: datetime
-    is_compliant: bool = True
-    status: str = "DRAFT"
-    bom_captured: bool = False
-
-    class Config:
-        from_attributes = True
-
-# --- Image BOM & Lifecycle ---
-
-class ImageBOMResponse(BaseModel):
-    id: str
-    template_id: str
-    raw_data_json: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class PackageIndexResponse(BaseModel):
-    id: str
-    template_id: str
-    name: str
-    version: str
-    type: str # 'pip', 'apt'
-
-    class Config:
-        from_attributes = True
-
-# --- Smelter Registry ---
-
-class ApprovedIngredientCreate(BaseModel):
-    name: str
-    version_constraint: str
-    sha256: Optional[str] = None
-    os_family: str
-
-    @field_validator('os_family', mode='before')
-    @classmethod
-    def normalize_os_family(cls, v: Any) -> Any:
-        return v.upper() if isinstance(v, str) else v
-
-class ApprovedIngredientResponse(BaseModel):
-    id: str
-    name: str
-    version_constraint: str
-    sha256: Optional[str] = None
-    os_family: str
-    is_vulnerable: bool
-    vulnerability_report: Optional[str] = None
-    mirror_status: str
-    mirror_path: Optional[str] = None
-    mirror_log: Optional[str] = None
-    is_active: bool = True
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class ApprovedIngredientUpdate(BaseModel):
-    version_constraint: Optional[str] = None
-    sha256: Optional[str] = None
-    is_vulnerable: Optional[bool] = None
-    vulnerability_report: Optional[str] = None
-
-class MirrorConfigUpdate(BaseModel):
-    pypi_mirror_url: Optional[str] = None
-    apt_mirror_url: Optional[str] = None
-
-# --- User Signing Keys ---
-
-class UserSigningKeyCreate(BaseModel):
-    name: str
-    public_key_pem: Optional[str] = None  # Omit to auto-generate keypair
-
-class UserSigningKeyResponse(BaseModel):
-    id: str
-    name: str
-    public_key_pem: str
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-class UserSigningKeyGeneratedResponse(UserSigningKeyResponse):
-    """Only returned when server generates the keypair."""
-    private_key_pem: str  # Shown ONCE — user must save it
-
-
-# --- User API Keys ---
-
-class UserApiKeyCreate(BaseModel):
-    name: str
-    expires_in_days: Optional[int] = None
-
-class UserApiKeyResponse(BaseModel):
-    id: str
-    name: str
-    key_prefix: str
-    expires_at: Optional[datetime] = None
-    last_used_at: Optional[datetime] = None
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-class UserApiKeyCreatedResponse(UserApiKeyResponse):
-    """Only returned at creation time."""
-    raw_key: str  # Shown ONCE
-
-
-# --- Service Principals ---
-
-class ServicePrincipalCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    role: str = "operator"
-    expires_in_days: Optional[int] = None
-
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, v: str) -> str:
-        if v not in ALLOWED_ROLES:
-            raise ValueError(f"role must be one of {sorted(ALLOWED_ROLES)}")
-        return v
-
-class ServicePrincipalResponse(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    role: str
-    client_id: str
-    is_active: bool
-    created_by: str
-    last_used_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-class ServicePrincipalCreatedResponse(ServicePrincipalResponse):
-    client_secret: str  # Raw secret — shown ONCE
-
-class ServicePrincipalUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-
-class ServicePrincipalTokenRequest(BaseModel):
-    client_id: str
-    client_secret: str
-
-class ServicePrincipalRotateResponse(BaseModel):
-    client_id: str
-    client_secret: str  # New raw secret — shown ONCE
 
 
 # --- Output Capture ---

@@ -13,72 +13,13 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.future import select
 
-from .db import get_db, AsyncSession, User, RolePermission, AuditLog, ServicePrincipal, UserApiKey
+from .db import get_db, AsyncSession, User
 from .security import oauth2_scheme
 from .auth import verify_password
 
 
-class _SPUserProxy:
-    """Makes a ServicePrincipal quack like a User for permission checks and auditing."""
-    def __init__(self, sp: ServicePrincipal):
-        self.username = f"sp:{sp.name}"
-        self.role = sp.role
-        self.token_version = 0
-        self.must_change_password = False
-        self._sp = sp
-
-
-async def _authenticate_api_key(raw_key: str, db: AsyncSession):
-    """Authenticate using a personal API key (mop_...). Returns the owning User."""
-    prefix = raw_key[:12]
-    result = await db.execute(
-        select(UserApiKey).where(UserApiKey.key_prefix == prefix)
-    )
-    candidates = result.scalars().all()
-
-    for candidate in candidates:
-        if verify_password(raw_key, candidate.key_hash):
-            if candidate.expires_at and candidate.expires_at < datetime.utcnow():
-                raise HTTPException(401, "API key has expired")
-            candidate.last_used_at = datetime.utcnow()
-            await db.commit()
-            user_result = await db.execute(
-                select(User).where(User.username == candidate.username)
-            )
-            user = user_result.scalar_one_or_none()
-            if not user:
-                raise HTTPException(401, "User account not found")
-            return user
-
-    raise HTTPException(401, "Invalid API key")
-
-
-async def _authenticate_sp_jwt(payload: dict, db: AsyncSession):
-    """Authenticate a service principal JWT. Returns an _SPUserProxy."""
-    sp_id = payload.get("sp_id")
-    if not sp_id:
-        raise HTTPException(401, "Invalid service principal token")
-
-    result = await db.execute(
-        select(ServicePrincipal).where(ServicePrincipal.id == sp_id)
-    )
-    sp = result.scalar_one_or_none()
-
-    if not sp or not sp.is_active:
-        raise HTTPException(401, "Service principal not found or disabled")
-
-    if sp.expires_at and sp.expires_at < datetime.utcnow():
-        raise HTTPException(401, "Service principal has expired")
-
-    return _SPUserProxy(sp)
-
-
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    """JWT / API key / SP token auth."""
-    # API key authentication
-    if token.startswith("mop_"):
-        return await _authenticate_api_key(token, db)
-
+    """JWT auth only (CE mode). EE plugin extends this with API key / SP token branches."""
     from jose import jwt, JWTError
     from .auth import SECRET_KEY, ALGORITHM
     credentials_exception = HTTPException(
@@ -90,10 +31,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         raise credentials_exception
-
-    # Service principal JWT
-    if payload.get("type") == "service_principal":
-        return await _authenticate_sp_jwt(payload, db)
 
     # Regular user JWT
     username: str = payload.get("sub")
@@ -108,6 +45,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     if payload.get("tv", 0) != user.token_version:
         raise credentials_exception
     return user
+
+
+# CE alias — all CE routes use this (no RBAC, just authentication)
+require_auth = get_current_user
 
 
 async def get_current_user_optional(
@@ -133,6 +74,12 @@ async def get_current_user_optional(
     return result.scalar_one_or_none()
 
 
+# ---------------------------------------------------------------------------
+# EE-only helpers — kept here so ee/routers/* can import them without
+# circular-import issues.  In CE mode these are never called because
+# the EE routes return 402 stubs.
+# ---------------------------------------------------------------------------
+
 _perm_cache: dict[str, set[str]] = {}
 
 
@@ -145,26 +92,44 @@ def _invalidate_perm_cache(role: str | None = None) -> None:
 
 
 def require_permission(perm: str):
-    """Dependency factory that enforces a named permission via DB-backed RBAC."""
-    async def _check(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-        if current_user.role == "admin":
+    """Dependency factory that enforces a named permission via DB-backed RBAC.
+    Used by EE routers only — CE routes use require_auth instead."""
+    async def _check(current_user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+        # EE tables (RolePermission) must exist for this to work.
+        # In CE mode this code path is never reached.
+        if getattr(current_user, 'role', None) == "admin":
             return current_user
-        if current_user.role not in _perm_cache:
+        from .db import Base
+        RolePermission = Base.metadata.tables.get("role_permissions")
+        if RolePermission is None:
+            # CE mode — no RBAC table, just authenticate
+            return current_user
+        if getattr(current_user, 'role', 'viewer') not in _perm_cache:
+            from sqlalchemy import select as sa_select, text
             result = await db.execute(
-                select(RolePermission.permission).where(RolePermission.role == current_user.role)
+                sa_select(text("permission")).select_from(text("role_permissions")).where(
+                    text(f"role = :role")
+                ), {"role": current_user.role}
             )
-            _perm_cache[current_user.role] = {row for row in result.scalars().all()}
-        if perm not in _perm_cache[current_user.role]:
+            _perm_cache[current_user.role] = {row[0] for row in result.all()}
+        if perm not in _perm_cache.get(getattr(current_user, 'role', 'viewer'), set()):
             raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
         return current_user
     return _check
 
 
 def audit(db: AsyncSession, user, action: str, resource_id: str = None, detail: dict = None):
-    """Append an audit entry to the current session. Caller must commit."""
-    db.add(AuditLog(
-        username=user.username,
-        action=action,
-        resource_id=resource_id,
-        detail=json.dumps(detail) if detail else None,
-    ))
+    """Append an audit entry if the AuditLog table exists (EE). No-op in CE."""
+    try:
+        from .db import Base
+        if "audit_log" not in Base.metadata.tables:
+            return
+        # Lazy import to avoid circular issues — the EE db models extend Base
+        from sqlalchemy import insert, text
+        db.execute(
+            text("INSERT INTO audit_log (username, action, resource_id, detail) VALUES (:u, :a, :r, :d)"),
+            {"u": user.username, "a": action, "r": resource_id, "d": json.dumps(detail) if detail else None}
+        )
+    except Exception:
+        # In CE mode the table doesn't exist; silently ignore
+        pass

@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..db import Alert, Node, AuditLog
-from .webhook_service import WebhookService
+from ..db import Alert, Node
 
 logger = logging.getLogger(__name__)
 
@@ -28,28 +27,10 @@ class AlertService:
             created_at=datetime.utcnow()
         )
         db.add(alert)
-        
-        # Add Audit entry
-        db.add(AuditLog(
-            username="system:alert",
-            action=f"alert:{type}",
-            resource_id=resource_id,
-            detail=f"[{severity}] {message}"
-        ))
-        
+
         await db.flush()
-        
-        logger.info(f"🔔 ALERT CREATED [{severity}]: {message}")
-        
-        # Dispatch Webhook
-        await WebhookService.dispatch_event(db, "alert:new", {
-            "id": alert.id,
-            "type": type,
-            "severity": severity,
-            "message": message,
-            "resource_id": resource_id,
-            "created_at": alert.created_at.isoformat()
-        })
+
+        logger.info(f"ALERT CREATED [{severity}]: {message}")
         
         # Broadcast to dashboard
         try:

@@ -12,7 +12,7 @@ sys.modules['agent_service.main'] = mock_main
 
 from agent_service.services.job_service import JobService
 from agent_service.services.alert_service import AlertService
-from agent_service.db import Job, Node, Alert, AuditLog, ExecutionRecord
+from agent_service.db import Job, Node, Alert, ExecutionRecord
 from agent_service.models import ResultReport, HeartbeatPayload
 
 def _make_mock_db(objects_to_return=None):
@@ -183,6 +183,7 @@ async def test_security_tamper_triggers_alert():
     alerts = [obj for obj in added_objects if isinstance(obj, Alert)]
     assert any(a.type == "security_tamper" for a in alerts)
 
+@pytest.mark.skip(reason="Webhook dispatch is EE-only — moved to ee/routers/webhook_router")
 @pytest.mark.asyncio
 async def test_webhook_dispatch_on_alert():
     """Test that creating an alert triggers a webhook dispatch task."""
