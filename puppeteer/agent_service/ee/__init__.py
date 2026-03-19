@@ -22,9 +22,26 @@ class EEContext:
     service_principals: bool = False
     api_keys: bool = False
 
+
+def _mount_ce_stubs(app: Any) -> None:
+    from .interfaces.foundry import foundry_stub_router
+    from .interfaces.audit import audit_stub_router
+    from .interfaces.webhooks import webhooks_stub_router
+    from .interfaces.triggers import triggers_stub_router
+    from .interfaces.auth_ext import auth_ext_stub_router
+    from .interfaces.smelter import smelter_stub_router
+    app.include_router(foundry_stub_router)
+    app.include_router(audit_stub_router)
+    app.include_router(webhooks_stub_router)
+    app.include_router(triggers_stub_router)
+    app.include_router(auth_ext_stub_router)
+    app.include_router(smelter_stub_router)
+    logger.info("CE mode: mounted 6 stub routers (402 for all EE routes)")
+
+
 def load_ee_plugins(app: Any, engine: Any) -> EEContext:
     """
-    Discover and load EE plugins via pkg_resources entry_points.
+    Discover and load EE plugins via importlib.metadata entry_points.
     Entry point group: 'axiom.ee'
 
     If no EE plugin found, registers stub routers that return 402.
@@ -32,8 +49,8 @@ def load_ee_plugins(app: Any, engine: Any) -> EEContext:
     ctx = EEContext()
 
     try:
-        import pkg_resources
-        plugins = list(pkg_resources.iter_entry_points("axiom.ee"))
+        from importlib.metadata import entry_points
+        plugins = list(entry_points(group="axiom.ee"))
         if plugins:
             for ep in plugins:
                 plugin_cls = ep.load()
@@ -42,7 +59,9 @@ def load_ee_plugins(app: Any, engine: Any) -> EEContext:
                 logger.info(f"Loaded EE plugin: {ep.name}")
         else:
             logger.info("No EE plugins found — running in CE mode")
+            _mount_ce_stubs(app)
     except Exception as e:
         logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
+        _mount_ce_stubs(app)
 
     return ctx
