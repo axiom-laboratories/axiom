@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Completed 35-04-PLAN.md
-last_updated: "2026-03-19T21:40:39.019Z"
+stopped_at: "Checkpoint reached in 35-05-PLAN.md (human-verify: CE+EE smoke + PyPI publish)"
+last_updated: "2026-03-19T21:46:57.960Z"
 last_activity: 2026-03-19 — v11.0 roadmap created
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 35]: WebhookService.dispatch_event uses httpx for real outbound HTTP — CE stub was no-op
 - [Phase 35]: load_ee_plugins made async so EEPlugin.register() can be properly awaited — without this, register() silently returned a coroutine object making EEContext truthy in CE mode
 - [Phase 35]: Base.metadata.tables guard removed from deps.audit() — AuditLog is in EEBase.metadata; try/except is the sole CE/EE boundary in audit()
+- [Phase 35]: test_ce_stub_routers_return_402 calls stub handlers directly — httpx ASGITransport skips ASGI lifespan, so lifespan-mounted stubs are never registered during unit tests
 
 ### Pending Todos
 
@@ -83,7 +84,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-19T21:40:32.018Z
-Stopped at: Completed 35-04-PLAN.md
+Last session: 2026-03-19T21:46:53.399Z
+Stopped at: Checkpoint reached in 35-05-PLAN.md (human-verify: CE+EE smoke + PyPI publish)
 Resume file: None
 Next action: `/gsd:plan-phase 34`

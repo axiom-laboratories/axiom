@@ -70,7 +70,7 @@ Archive: `.planning/milestones/v10.0-ROADMAP.md`
 **Milestone Goal:** Complete the Axiom open-core split — fix 6 blocking gaps on the OSS/EE branch so CE behaves correctly in isolation, wire the EE plugin system in a private repo, compile EE to `.so` for IP protection, and publish `axiom-ce` to Docker Hub with updated docs and licence validation.
 
 - [x] **Phase 34: CE Baseline Fixes** — Mount stub routers (402 not 404), isolate EE tests, strip NodeConfig EE fields, clean job_service dead refs (completed 2026-03-19)
-- [ ] **Phase 35: Private EE Repo + Plugin Wiring** — axiom-ee repo, EEPlugin.register(), EE DB tables, corrected absolute imports, entry_points, CE-alone and CE+EE smoke tests, stub wheel
+- [x] **Phase 35: Private EE Repo + Plugin Wiring** — axiom-ee repo, EEPlugin.register(), EE DB tables, corrected absolute imports, entry_points, CE-alone and CE+EE smoke tests, stub wheel (completed 2026-03-19)
 - [ ] **Phase 36: Cython .so Build Pipeline** — Audit EE source for Cython compat, configure ext_modules, cibuildwheel CI matrix, verify no .py in published wheel, compiled CE+EE smoke test
 - [ ] **Phase 37: Licence Validation + Docs + Docker Hub** — Ed25519 offline licence key validation in EE plugin, axiom-ce on Docker Hub, MkDocs CE/EE admonitions
 
@@ -160,7 +160,7 @@ Plans:
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 7/7 | Complete | 2026-03-19 |
 | 33. Licence Compliance + Release Infrastructure | v10.0 | 4/4 | Complete | 2026-03-18 |
 | 34. CE Baseline Fixes | 4/4 | Complete    | 2026-03-19 | - |
-| 35. Private EE Repo + Plugin Wiring | 4/5 | In Progress|  | - |
+| 35. Private EE Repo + Plugin Wiring | 5/5 | Complete   | 2026-03-19 | - |
 | 36. Cython .so Build Pipeline | v11.0 | 0/TBD | Not started | - |
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 0/TBD | Not started | - |
 
