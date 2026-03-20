@@ -27,12 +27,15 @@ RUN pip install --no-cache-dir -r requirements.txt asyncpg sqlalchemy
 
 # Optional: install axiom-ee compiled wheel from local devpi
 # Set EE_INSTALL=1 at build time to enable: docker compose build --build-arg EE_INSTALL=1 agent
+# DEVPI_URL defaults to the compose service hostname; override for external access.
+# DEVPI_HOST must match the hostname/IP in DEVPI_URL for pip --trusted-host.
 ARG EE_INSTALL=
 ARG DEVPI_URL=http://devpi:3141/root/dev/+simple/
+ARG DEVPI_HOST=devpi
 RUN if [ -n "${EE_INSTALL}" ]; then \
     pip install --no-cache-dir \
       --index-url "${DEVPI_URL}" \
-      --trusted-host devpi \
+      --trusted-host "${DEVPI_HOST}" \
       "axiom-ee==0.1.0"; \
   fi
 
