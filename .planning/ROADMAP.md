@@ -170,7 +170,7 @@ Plans:
 | 34. CE Baseline Fixes | 4/4 | Complete    | 2026-03-19 | - |
 | 35. Private EE Repo + Plugin Wiring | 5/5 | Complete    | 2026-03-20 | - |
 | 36. Cython .so Build Pipeline | 3/3 | Complete    | 2026-03-20 | - |
-| 37. Licence Validation + Docs + Docker Hub | 1/3 | In Progress|  | - |
+| 37. Licence Validation + Docs + Docker Hub | 2/3 | In Progress|  | - |
 
 ---
 

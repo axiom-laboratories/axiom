@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Completed 37-02-PLAN.md
-last_updated: "2026-03-20T16:18:49.323Z"
+stopped_at: Completed 37-licence-validation-docs-docker-hub/37-01-PLAN.md
+last_updated: "2026-03-20T16:21:20.689Z"
 last_activity: 2026-03-19 — Phase 35 complete (CE+EE smoke tests 2 passed, axiom-ee wheel built, PyPI publish pending credentials)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 14
   percent: 50
 ---
 
@@ -76,6 +76,9 @@ Progress: [█████░░░░░] 50% (2/4 phases complete)
 - [Phase 36-cython-so-build-pipeline]: Annotated[type, Query()/Header()] required for FastAPI params in Cython-compiled .so — FieldInfo objects cannot be function default arg values in Cython extensions
 - [Phase 36-cython-so-build-pipeline]: async with engine.begin() as conn: await conn.run_sync(metadata.create_all) — correct async DDL pattern with asyncpg; sync_engine.create_all() raises greenlet_spawn error in asyncio coroutine
 - [Phase 37-02]: useLicence mirrors useFeatures pattern: same staleTime, retry:false, CE fallback; licence const at MainLayout level alongside features
+- [Phase 37-licence-validation-docs-docker-hub]: Ed25519 sig verified against raw bytes BEFORE json.loads() — prevents tampered payload reaching JSON parser
+- [Phase 37-licence-validation-docs-docker-hub]: _parse_licence() returns dict for expired keys (valid sig); expiry check is register()'s responsibility — clean separation
+- [Phase 37-licence-validation-docs-docker-hub]: app.state.licence set only after BOTH sig verify AND expiry check pass — fail-secure
 
 ### Pending Todos
 
@@ -92,7 +95,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-20T16:18:49.321Z
-Stopped at: Completed 37-02-PLAN.md
+Last session: 2026-03-20T16:21:20.688Z
+Stopped at: Completed 37-licence-validation-docs-docker-hub/37-01-PLAN.md
 Resume file: None
 Next action: `/gsd:plan-phase 36`
