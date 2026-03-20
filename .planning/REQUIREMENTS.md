@@ -29,9 +29,9 @@ Requirements for the CE/EE Split Completion milestone.
 
 ### Compilation
 
-- [ ] **BUILD-01**: EE source audited and cleaned for Cython compatibility — no `@dataclass` decorators, `__init__.py` excluded from `ext_modules`
-- [ ] **BUILD-02**: Cython `ext_modules` list configured in EE `pyproject.toml` — enumerates each `.py` file explicitly
-- [ ] **BUILD-03**: `cibuildwheel` CI pipeline in `axiom-ee` repo builds wheels for amd64 + arm64, Python 3.11 / 3.12 / 3.13
+- [x] **BUILD-01**: EE source audited and cleaned for Cython compatibility — no `@dataclass` decorators, `__init__.py` excluded from `ext_modules`
+- [x] **BUILD-02**: Cython `ext_modules` list configured in EE `pyproject.toml` — enumerates each `.py` file explicitly
+- [x] **BUILD-03**: `cibuildwheel` CI pipeline in `axiom-ee` repo builds wheels for amd64 + arm64, Python 3.11 / 3.12 / 3.13
 - [ ] **BUILD-04**: Published EE wheel verified to contain no `.py` source files — only `.so` compiled extensions
 - [ ] **BUILD-05**: CE+EE combined smoke test passes after installing compiled `.so` wheel (not just source install)
 
@@ -79,9 +79,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EE-06 | Phase 35 | Complete |
 | EE-07 | Phase 35 | Complete |
 | EE-08 | Phase 35 | Pending |
-| BUILD-01 | Phase 36 | Pending |
-| BUILD-02 | Phase 36 | Pending |
-| BUILD-03 | Phase 36 | Pending |
+| BUILD-01 | Phase 36 | Complete |
+| BUILD-02 | Phase 36 | Complete |
+| BUILD-03 | Phase 36 | Complete |
 | BUILD-04 | Phase 36 | Pending |
 | BUILD-05 | Phase 36 | Pending |
 | DIST-01 | Phase 37 | Pending |
