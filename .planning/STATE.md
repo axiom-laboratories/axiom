@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Completed 36-02-PLAN.md
-last_updated: "2026-03-20T13:55:33.078Z"
+stopped_at: Completed 36-03-PLAN.md
+last_updated: "2026-03-20T14:52:12.585Z"
 last_activity: 2026-03-19 — Phase 35 complete (CE+EE smoke tests 2 passed, axiom-ee wheel built, PyPI publish pending credentials)
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 50
 ---
 
@@ -73,6 +73,8 @@ Progress: [█████░░░░░] 50% (2/4 phases complete)
 - [Phase 36]: musllinux wheels included (not skipped) — Containerfile.server uses python:3.12-alpine (musl libc); both manylinux and musllinux variants needed
 - [Phase 36-cython-so-build-pipeline]: [36-02] [tool.setuptools.packages.find] must be removed from pyproject.toml — it overrides packages=[] in setup.py with setuptools>=77, causing source files in wheel
 - [Phase 36-cython-so-build-pipeline]: [36-02] exclude_package_data={'': ['*.py','*.c']} added as belt-and-suspenders in setup.py against source inclusion in wheel
+- [Phase 36-cython-so-build-pipeline]: Annotated[type, Query()/Header()] required for FastAPI params in Cython-compiled .so — FieldInfo objects cannot be function default arg values in Cython extensions
+- [Phase 36-cython-so-build-pipeline]: async with engine.begin() as conn: await conn.run_sync(metadata.create_all) — correct async DDL pattern with asyncpg; sync_engine.create_all() raises greenlet_spawn error in asyncio coroutine
 
 ### Pending Todos
 
@@ -89,7 +91,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-20T13:55:33.076Z
-Stopped at: Completed 36-02-PLAN.md
+Last session: 2026-03-20T14:52:12.583Z
+Stopped at: Completed 36-03-PLAN.md
 Resume file: None
 Next action: `/gsd:plan-phase 36`
