@@ -133,7 +133,10 @@ Plans:
   3. `GET /api/nodes` shows 4 nodes with correct `env_tag` values and `HEALTHY` status
   4. `AGENT_URL` on each LXC node is set to the `incusbr0` bridge host IP (discovered dynamically, not hardcoded as `172.17.0.1`)
   5. Revoking a node causes it to receive HTTP 403 on `/work/pull`; re-enrolling with a fresh token restores `HEALTHY` heartbeat status
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 40-01-PLAN.md — LXC compose template + teardown update + provision_lxc_nodes.py
+- [ ] 40-02-PLAN.md — verify_lxc_nodes.py (NODE-01 through NODE-05)
 
 ### Phase 41: CE Validation Pass
 **Goal**: The CE install is confirmed clean — correct stub behaviour, correct table isolation, and a verified job execution baseline — before EE is layered on
