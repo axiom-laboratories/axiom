@@ -1,319 +1,225 @@
 # Pitfalls Research
 
-**Domain:** Open-core CE/EE split — Cython/Nuitka `.so` compilation, entry_points plugin discovery, FastAPI plugin router registration, SQLAlchemy CE/EE model separation, open-core licence key enforcement in a self-hosted Python product
-**Researched:** 2026-03-19
-**Confidence:** HIGH (codebase directly inspected — `ee/__init__.py`, `ee/interfaces/foundry.py`, `ee/routers/foundry_router.py`, `main.py`, `db.py` all read in the `feature/axiom-oss-ee-split` worktree; confirmed against codebase reality, not assumed)
+**Domain:** Adversarial validation of a CE/EE job orchestration platform — stack teardown/spinup safety, EE test keypair patching in Cython-compiled binaries, LXC node enrollment at scale, SQLite concurrency limits, Foundry Docker-in-Docker, air-gap mirror testing, and gap report quality
+**Researched:** 2026-03-20
+**Confidence:** HIGH (based on direct codebase inspection of `puppeteer/compose.server.yaml`, `puppeteer/agent_service/db.py`, `puppeteer/agent_service/main.py`, `puppets/node-compose.yaml`, `puppets/secrets/`, `puppets/environment_service/`, plus confirmed knowledge of Axiom v11.0 architecture)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Stub Routers Never Mounted — CE Falls Through to 404, Not 402
+### Pitfall 1: Teardown Destroys Named Volumes — PKI Root CA and Node Certs Lost
 
 **What goes wrong:**
-The CE stub routers (`foundry_stub_router`, `audit_stub_router`, etc.) are defined in `ee/interfaces/*.py` but are never registered on the FastAPI `app`. `load_ee_plugins()` in `ee/__init__.py` calls `plugin.register(ctx)` on the EE plugin when EE is installed, but has no fallback to mount the CE stub routers when no EE plugin is found. In CE-only mode, requests to EE routes (e.g., `GET /api/blueprints`) return `404 Not Found` (no route registered) instead of `402 Payment Required` (upgrade prompt). The `"Looks Done But Isn't"` trap: the stubs exist in the codebase, so it looks like CE graceful degradation is implemented — but without `app.include_router(foundry_stub_router)`, none of the stubs are active.
+Running `docker compose -f compose.server.yaml down -v` (or `docker compose down` with `--volumes`) destroys the `certs-volume`, `pgdata`, `caddy_data`, `caddy_config`, and `mirror-data` named volumes. The Root CA keypair lives in `certs-volume`. After teardown all LXC nodes hold client certs signed by a CA that no longer exists. Re-spinup generates a new Root CA with a different key — the old client certs are cryptographically invalid against the new CA, but the nodes still present them. The server accepts or rejects them depending on whether `verify_client_cert()` checks the full chain, creating an unpredictable enrollment state. Node ID persistence (the `secrets/node-*.crt` pattern that prevents re-randomization on restart) means nodes try to reuse a cert that is now from a defunct CA.
+
+Additionally, `pgdata` destruction drops all enrollment tokens, node records, and job history. A clean DB combined with old node certs leads to the node believing it is enrolled (it has certs) while the DB has no record of it — `/work/pull` returns 403 forever until the secrets volume on the node is also cleared.
 
 **Why it happens:**
-The Phase 1 scaffold created the stub router objects. Phase 2 extracted the EE router files. Neither phase wired the stubs into `app`. The gap is invisible unless you actually start CE and call an EE endpoint — `GET /api/features` returns correctly, but any attempt to actually use a feature returns 404 instead of the expected 402.
+`-v` is a common cleanup reflex during testing. The distinction between "stop and remove containers" (safe) and "destroy volumes" (destructive) is easy to overlook under time pressure. The teardown feels complete but leaves LXC nodes in a broken state.
 
 **How to avoid:**
-`load_ee_plugins()` must register CE stub routers unconditionally as a first step, then either override them with EE real routers (if EE is installed) or leave the stubs in place. The correct pattern:
-```python
-# In load_ee_plugins(), before entry_points discovery:
-from .interfaces.foundry import foundry_stub_router
-from .interfaces.audit import audit_stub_router
-# ... all stub routers
-app.include_router(foundry_stub_router)
-app.include_router(audit_stub_router)
-# ...
+Define two distinct teardown procedures:
+- **Soft teardown** (between test runs): `docker compose down` with no flags. Containers stop, volumes intact. Re-spinup uses existing certs and DB state.
+- **Hard teardown** (full clean slate): `docker compose down -v` AND clear all LXC node `secrets/` directories in the same operation. Make this a single script (`scripts/nuke.sh`) so they cannot be done independently.
 
-# Then, if EE plugin found, it calls app.include_router(real_foundry_router)
-# which adds real routes FIRST — FastAPI resolves first-registered route for a path.
-```
-Wait: FastAPI matches routes in registration order and adds routes to a list — the first registered route for a path wins. If stubs are added first and EE adds the real router second, the stubs shadow the real routes. **The correct pattern is: EE plugin registers real routers first (EE `register()` runs before stub fallback).** Only mount stubs for routes that EE did NOT register. Track this via the `EEContext` flags:
-```python
-if not ctx.foundry:
-    app.include_router(foundry_stub_router)
-```
+Before any hard teardown, snapshot the current Root CA PEM (`docker exec puppeteer-agent-1 cat /app/global_certs/root_ca.crt > backup_root_ca.pem`) for recovery purposes.
 
 **Warning signs:**
-- `GET /api/blueprints` in CE returns 404 (not 402).
-- `load_ee_plugins()` has no `app.include_router(...)` calls for the stub routers.
-- The `EEContext` flags are set but never used to decide which routers to mount.
+- LXC nodes log `SSL handshake failed` or `certificate verify failed` after a stack restart.
+- `/work/pull` returns 403 with "Node not found" for a node that was previously enrolled.
+- `docker exec puppeteer-agent-1 ls /app/global_certs/` returns a newly generated cert with a different serial than before the restart.
+- Nodes have `secrets/node-*.crt` but the orchestrator DB has no matching node record.
 
-**Phase to address:** Phase 5 (private repo + router migration) — this is the known blocking gap. Fix in the very first step of Phase 5 before testing CE-alone install.
+**Phase to address:** Phase 1 (stack teardown + fresh install) — define and test both teardown procedures as the first deliverable before any other testing begins.
 
 ---
 
-### Pitfall 2: FastAPI Duplicate Route Registration When EE Routers and Stub Routers Both Mount the Same Paths
+### Pitfall 2: EE Test Keypair Cannot Be Swapped Into a Compiled `.so` Without a Rebuild
 
 **What goes wrong:**
-If both the CE stub router and the EE real router for the same feature are mounted on the app (e.g., due to a conditional logic bug), FastAPI silently registers both sets of routes. FastAPI matches routes in first-registration order. The second registration does not raise an error — it emits `UserWarning: Duplicate Operation ID` in the OpenAPI schema generation only. In CE+EE mode this means the stub route (402) shadows the real route (200) if stubs are mounted first. In CE-only mode it means duplicate 402 handlers (harmless but confusing in logs).
+The EE licence validation public key is compiled into the `.so` binary. There is no runtime injection path — the key is a byte constant embedded in the Cython-generated C code. To test EE licence validation with a locally-generated Ed25519 test keypair, you must rebuild the `.so` with the test public key compiled in. Attempts to patch the `.so` after the fact (via binary editing, `LD_PRELOAD`, or monkey-patching the module attribute at runtime) are fragile and unreliable. Specifically:
 
-The specific failure: `load_ee_plugins()` correctly calls `plugin.register(ctx)` which mounts EE routers, but if someone also calls `app.include_router(foundry_stub_router)` unconditionally elsewhere (e.g., during startup debug), both route sets exist. Requests get the stub 402 despite EE being installed.
+- Binary editing: the key is embedded as raw bytes in a C string literal. `strings(1)` can find it, but byte offsets shift with any recompile. A wrong patch crashes the process on the first validation call.
+- Runtime monkey-patch: Cython-compiled modules expose attributes as `__pyx_cython_string_constants` — they are read-only at the C level. `module.PUBLIC_KEY = new_key` raises `AttributeError: readonly attribute` in compiled modules.
+- `LD_PRELOAD` shim: intercepts libc calls but not Python-level attribute access, so this approach fails for Python-embedded key constants.
+
+The result: teams assume they can swap the key without a rebuild and waste hours on approaches that do not work, then discover the key is immutable in the `.so`.
 
 **Why it happens:**
-The silent-addition behavior of FastAPI's `include_router` is not obvious. Developers test the CE stub manually (by calling `app.include_router(foundry_stub_router)` directly to see if 402 works), leave the call in, then find EE always returns 402 when installed.
+The EE binary is treated as a black box during testing. The test plan says "swap the public key" without specifying that this requires a Cython rebuild with the test key substituted in the source before compilation. This is a workflow gap, not a code bug.
 
 **How to avoid:**
-- Guard every stub registration with `if not ctx.{feature}:` — only mount stubs for features EE did not claim.
-- Add a startup assertion: after `load_ee_plugins()`, verify that the routes registered on `app.routes` for each EE path match the expected handler (stub vs real) based on the `EEContext` flags. A 5-line debug log at startup is enough.
-- Never call `app.include_router(stub_router)` without the guard — the guard is the invariant, not an afterthought.
+Define a `dev` build variant of the EE wheel from the start:
+1. Keep the public key as a named constant in the EE source: `LICENCE_PUBLIC_KEY_BYTES = b"..."`.
+2. Make the build script accept a `--test-key path/to/test_public_key.pem` flag that substitutes the constant before Cython compilation.
+3. Produce two wheels per CI run: `axiom_ee-*-prod.whl` (production key) and `axiom_ee-*-dev.whl` (test key). The dev wheel is never shipped to customers.
+4. The adversarial validation test plan uses only the dev wheel. The test keypair is generated locally with `python -m cryptography hazmat ...` or reusing the existing `toms_home/.agents/tools/admin_signer.py --generate` infrastructure.
+
+Never attempt to patch the production `.so` binary. Always rebuild for test key substitution.
 
 **Warning signs:**
-- Application startup logs show `UserWarning: Duplicate Operation ID` for any Foundry, Audit, or Webhook route.
-- EE is installed but `/api/blueprints` returns 402.
-- `GET /api/features` shows `"foundry": true` but GET `/api/blueprints` returns 402.
+- The test plan says "swap the public key" without specifying a wheel rebuild step.
+- The test environment installs the production `axiom_ee` wheel and attempts to inject a different key at runtime.
+- `setattr(ee_module, 'LICENCE_PUBLIC_KEY_BYTES', test_key)` appears in any test script.
+- `LD_PRELOAD` or `ctypes` patching used to intercept key loading in the compiled module.
 
-**Phase to address:** Phase 5 (router migration) — define the registration guard pattern before the EE plugin `register()` method is written, so the protocol is clear.
+**Phase to address:** Phase 2 (EE test infrastructure) — define the dev-wheel build procedure before writing any EE validation test. A dev wheel rebuild must be part of the validation environment setup script.
 
 ---
 
-### Pitfall 3: `pkg_resources.iter_entry_points` Is Deprecated and Slow — Use `importlib.metadata`
+### Pitfall 3: Parallel LXC Node Enrollment Race — Token Consumed Before CSR Arrives
 
 **What goes wrong:**
-The current `ee/__init__.py` uses `pkg_resources.iter_entry_points("axiom.ee")`. `pkg_resources` scans all installed packages on import — in environments with many packages (a typical Python environment has 100+ packages), importing `pkg_resources` alone can take several seconds. More critically, `pkg_resources` is deprecated in favour of `importlib.metadata` as of setuptools 67+ (2023). It will not be removed immediately but is a maintenance liability. When `axiom-ee` is compiled to `.so` (Phase 6), `pkg_resources` has known issues discovering entry_points from compiled extensions in some configurations.
+The enrollment endpoint marks the token as `used = True` immediately on first access (line 1919 of `main.py`). When 4 LXC nodes are provisioned simultaneously with `JOIN_TOKEN`-based enrollment, two failure modes emerge:
 
-The other problem: the current code wraps the entire discovery in a bare `except Exception`, silently swallowing any import error from the EE `.so`. If the `.so` fails to load (ABI mismatch, missing dependency, wrong Python version), the system continues in CE mode with no log entry beyond a generic warning. Operators cannot distinguish "EE not installed" from "EE installed but broken."
+**A) Shared token race:** If the provisioning script reuses the same enrollment token for all 4 nodes (e.g., generating one token and embedding it in all 4 node compose files), the first node to arrive invalidates the token. Nodes 2-4 get `403 Invalid or Expired Enrollment Token` — they are silently stuck in the startup enrollment loop. The node agent retries enrollment, but the token is permanently used, so retries also return 403. The node appears running (container is up) but never appears in the dashboard.
+
+**B) Per-node tokens, DB write conflict:** Even with one token per node, 4 simultaneous `POST /api/enroll` requests hit the async DB session. SQLite (if used in dev) serializes writes. Under aiosqlite's default serialization, 4 concurrent `UPDATE tokens SET used=True` operations will serialize correctly but may all read the token as "not used" before any commit lands, depending on isolation level. Under SQLite's default `DEFERRED` transaction isolation, the second concurrent write sees the pre-commit state and also marks the token as "used" — but the token was already invalidated by the first writer after commit. This creates a window where two nodes believe they enrolled with the same token and the second DB write silently updates the node record to the second node's CSR/cert.
 
 **Why it happens:**
-`pkg_resources` was the standard tool for entry_points discovery for a decade. Many tutorials still reference it. The deprecation is recent enough that existing code predates it.
+The pull model and token-based enrollment design assumes sequential enrollment (one node, then another). Parallel provisioning of 4 nodes was not in scope for earlier sprints. The enrollment endpoint is not designed with concurrent access in mind.
 
 **How to avoid:**
-Replace `pkg_resources.iter_entry_points` with `importlib.metadata.entry_points`:
-```python
-from importlib.metadata import entry_points
-eps = entry_points(group="axiom.ee")
-```
-This API is stable from Python 3.9+ (Python 3.12 standardised the `group=` keyword form). For Python 3.8 compatibility, use the `importlib_metadata` backport or the `select()` workaround.
-
-Tighten the exception handling:
-```python
-try:
-    plugin_cls = ep.load()
-    plugin = plugin_cls(app, engine)
-    plugin.register(ctx)
-    logger.info(f"Loaded EE plugin: {ep.name} from {ep.value}")
-except ImportError as e:
-    logger.error(f"EE plugin {ep.name} failed to import: {e} — running in CE mode")
-except Exception as e:
-    logger.error(f"EE plugin {ep.name} register() raised: {e} — running in CE mode")
-```
-Log the `ep.value` (the dotted module path) so operators can see which `.so` file was being loaded when it failed.
+- Generate one unique token per LXC node before provisioning. Never reuse tokens. Use `POST /admin/tokens` 4 times, capture each token, and inject into the corresponding node's environment.
+- For the adversarial test: add a `SELECT ... FOR UPDATE` (Postgres) or `BEGIN IMMEDIATE` (SQLite) around the token lookup to prevent read-then-write race. In Postgres (production stack), `SELECT ... FOR UPDATE` is the correct pattern — already safe if using Postgres for the validation stack.
+- Stage enrollments: start all 4 nodes, but add a staggered delay (`NODE_ENROLL_DELAY_SECONDS=N*5` where N is node index) in the node startup script to prevent the 4 CSRs from landing simultaneously.
+- Verify enrollment by polling `GET /nodes` after all 4 containers start. All 4 node IDs must appear before proceeding.
 
 **Warning signs:**
-- `from importlib import pkg_resources` or `import pkg_resources` in `ee/__init__.py`.
-- Exception handling catches `Exception` without logging the `ep.name` and error detail.
-- No log difference between "EE not installed" and "EE installed but failed to load."
+- Only 1-3 nodes appear in the dashboard after starting 4 LXC containers.
+- Node container logs show `403 Invalid or Expired Enrollment Token` on the first enrollment attempt.
+- Enrollment token list shows all 4 tokens as `used=True` but fewer than 4 nodes exist in the DB.
+- Two nodes share the same `node_id` hostname (if hostnames were not unique).
 
-**Phase to address:** Phase 5 (private repo setup) — fix before validating CE-alone and CE+EE installs, so test output is interpretable.
+**Phase to address:** Phase 3 (LXC node provisioning) — pre-generate unique tokens for each node and make this part of the provisioning script. Document the single-token-per-node invariant.
 
 ---
 
-### Pitfall 4: Cython Compilation Breaks `@dataclass` — `__annotations__` Stripped
+### Pitfall 4: SQLite Write Locking Under Concurrent Job Polling
 
 **What goes wrong:**
-Cython strips `__annotations__` from class bodies when compiling to `.so`. The `@dataclass` decorator in Python relies entirely on `cls.__annotations__` to discover fields. When a `@dataclass`-decorated class is compiled by Cython, `__annotations__` is empty or absent, and `dataclass()` generates an `__init__` that takes only `self` — regardless of what fields are declared. The symptom is: `TypeError: __init__() takes 1 positional argument but N were given` when constructing any dataclass instance at runtime, even though the Python source looks correct.
+The dev stack uses SQLite via `aiosqlite`. SQLite has a single write lock — only one writer at a time. During the concurrent job test (multiple nodes polling `/work/pull` simultaneously), each poll is a read-modify-write cycle: `SELECT` pending jobs, `UPDATE job SET status=ASSIGNED, node_id=...`. With 4 nodes polling every few seconds:
 
-The Axiom EE plugin code will likely use `@dataclass` for configuration objects, response models, or plugin state containers. The `EEContext` dataclass in CE's `ee/__init__.py` uses `@dataclass` — any EE code that imports and extends this, or defines its own `@dataclass` types, will fail after compilation. This is a confirmed Cython bug (GitHub issue #3336, reported against Cython 0.x and partially fixed in Cython 3 but not fully resolved for all decorator patterns).
+- Each poll acquires a write lock for the UPDATE.
+- Concurrent polls queue behind the lock — no deadlock, but latency spikes.
+- Under load (short poll intervals, many pending jobs), the queue depth grows until aiosqlite connection timeout is reached — the poll request fails with `sqlite3.OperationalError: database is locked`.
+- The node catches the error and retries after its poll interval, but if the retry also locks, the node effectively stops receiving jobs.
+
+The deferred gap MIN-6 (SQLite `NodeStats` pruning compat) is a related issue — pruning queries under load can hold write locks for extended periods.
 
 **Why it happens:**
-Cython's extension type system and Python's annotation system are distinct. Cython 3 improved support but `@dataclass` with certain decorator combinations (e.g., `@dataclass` applied after another decorator, or `@dataclass` on a class with `cdef` attributes) still strips `__annotations__`. The fix in Cython 3 covers the simple `@dataclass class Foo:` case but not all patterns.
+SQLite's writer-serialization model is correct for single-process dev usage. Concurrent async access via `aiosqlite` with multiple simultaneous request handlers hits the write lock limit. This was not a problem with 1-2 test nodes but manifests with 4 nodes all polling at the same interval.
 
 **How to avoid:**
-Three safe strategies (pick one per module):
-1. **Avoid `@dataclass` in compiled modules.** Use plain classes with explicit `__init__`. This is the simplest and most reliable approach for EE code.
-2. **Use Cython's native dataclass support.** In `.pyx` mode: `@cython.dataclasses.dataclass` with `cimport cython` — this generates Cython-native struct-backed fields. Only viable if the module is written as `.pyx`, not pure Python.
-3. **Compile with `--directive annotation_typing=False`** (Cython directive) to prevent Cython from interpreting annotations as type declarations — this preserves `__annotations__` for `@dataclass` introspection. Add to `setup.cfg`: `[cython-compile] compiler_directives = annotation_typing=False`.
-
-For the Axiom EE split specifically: Pydantic models (used throughout for FastAPI request/response) are NOT standard `@dataclass` — Pydantic has its own metaclass that does not rely on `__annotations__` in the same way. Pydantic v2 models compile through Cython without this issue. Only standard-library `@dataclass` and `typing.TypedDict` patterns are affected.
+- **Use Postgres for the validation stack**, not SQLite. The compose stack already has Postgres via `pgdata`. Set `DATABASE_URL` to the Postgres URL in `puppeteer/.env` before starting the validation stack. Postgres has row-level locking and handles concurrent writes without database-level locks.
+- If SQLite is required for any test scenario: enable WAL mode explicitly at startup via `PRAGMA journal_mode=WAL`. Add to `db.py` engine creation: `connect_args={"check_same_thread": False}` for aiosqlite, plus a `@event.listens_for(engine.sync_engine, "connect")` hook that runs `PRAGMA journal_mode=WAL` on every new connection. WAL mode allows concurrent readers while a single writer is active, dramatically reducing lock contention.
+- Stagger node poll intervals: set different `POLL_INTERVAL` values per node (e.g., 3s, 4s, 5s, 6s) to prevent synchronized polling storms.
 
 **Warning signs:**
-- EE module uses `@dataclass` on configuration or state holder classes.
-- `from dataclasses import dataclass` import in any EE module that will be compiled.
-- `TypeError: __init__() takes 1 positional argument` in EE plugin test after compiling to `.so`.
-- `dir(MyCompiledClass)` shows no `__annotations__` attribute.
+- `/work/pull` returns 500 with `sqlite3.OperationalError: database is locked` in server logs.
+- Nodes stop receiving jobs under load despite jobs being in PENDING state.
+- SQLite `jobs.db` file size grows unexpectedly (WAL file accumulates if checkpointing is not triggered).
+- Server logs show many concurrent requests to `/work/pull` timing out simultaneously.
 
-**Phase to address:** Phase 6 (`.so` build pipeline) — audit all EE modules for `@dataclass` usage before setting up the Cython build. Replace with explicit `__init__` in all compiled modules.
+**Phase to address:** Phase 4 (job test matrix with concurrent nodes) — switch to Postgres before concurrent testing. If SQLite is intentionally tested, add WAL mode first.
 
 ---
 
-### Pitfall 5: Cython Compiled `.so` Breaks `__file__`-Relative Resource Loading and Relative Imports
+### Pitfall 5: Foundry Build Touches Docker Socket From Inside the Compose Stack — Wrong Context Path
 
 **What goes wrong:**
-Two distinct failures:
+Foundry builds via `foundry_service.py` run `docker build` using the Docker socket mounted at `/var/run/docker.sock` inside the `agent` container. The build context path is resolved relative to the container filesystem. The compose file mounts `../puppets:/app/puppets:ro`. Inside the container, `foundry_service.py` uses `/app/puppets` as the build context.
 
-**A) `__file__` path changes.** When compiled to `.so`, `module.__file__` is set to the absolute path of the `.so` file (e.g., `/site-packages/ee/plugin.cpython-312-x86_64-linux-gnu.so`), not a `.py` file. Any code that uses `os.path.dirname(__file__)` to locate data files or template resources will get the correct directory — this part works. However, `importlib.resources.files(__name__)` may fail if the package is not structured as a proper package (has no `__init__` module in the same directory). The failure mode is `ModuleNotFoundError` or returning an empty traversable at runtime.
+However, `docker build` is executed via the Docker socket — which means the Docker daemon receives the build context from the socket client (the agent container). The build context is sent as a tar archive from the *agent container's* filesystem perspective. If `foundry_service.py` constructs the build context path as `/tmp/puppet_build_{id}` (the correct pattern after BUG-5 was fixed), this temp directory is inside the agent container. The Docker daemon (running on the host) receives the tar correctly.
 
-**B) Relative imports in compiled `__init__` modules.** If the EE plugin package has a compiled `__init__.so` (i.e., `__init__.py` is also compiled), relative imports from within that module (e.g., `from .plugin import EEPlugin`) may fail with `ImportError: attempted relative import with no known parent package`. This is a CPython issue (bug #59828) that manifests specifically when `__init__` is a `.so` file rather than `.py`. Relative imports in non-`__init__` modules are not affected.
+The new failure mode in adversarial testing: Foundry builds initiated during validation may use `localhost/master-of-puppets-node:latest` as the `FROM` image. If this image does not exist in the host Docker registry (only in the local LXC nodes or only built once), the build fails with `manifest unknown`. The validation environment must pre-build and tag the base node image before Foundry tests.
+
+Additionally, `docker build` inside the compose stack runs as root inside the `agent` container and writes temp directories to `/tmp`. These are never cleaned up (deferred gap MIN-7). Over a long validation run with many Foundry builds, `/tmp` fills up and subsequent builds fail with `No space left on device`.
 
 **Why it happens:**
-Python's import system sets `__package__` based on `__spec__` when importing. For `.so` extension modules, `__spec__` is correctly populated as long as the package is properly installed. The failure occurs when the package is imported in a non-standard way (e.g., added to `sys.path` directly rather than installed via pip). During development or CI testing of the `.so` before formal install, this is a common path.
+Foundry is tested in isolation (one build at a time) during development. Adversarial testing triggers multiple builds in sequence or parallel, exposing the cleanup gap. The base image requirement is implicit — it is assumed to exist because the developer has previously built it locally.
 
 **How to avoid:**
-- **Do not compile `__init__.py`** of the EE plugin package. Leave `__init__.py` as a plain `.py` file that imports from compiled submodules. This sidesteps the `__init__.so` relative import bug entirely.
-- Structure the EE package so `__init__.py` contains only the entry point class definition and imports:
-  ```python
-  # ee_plugin/__init__.py  — NOT compiled
-  from .core import EEPlugin  # core.so can be compiled
+- Before any Foundry test: `docker build -t localhost/master-of-puppets-node:latest -f puppets/Containerfile.node puppets/` on the host and verify with `docker images`.
+- After each Foundry build test: `docker exec puppeteer-agent-1 rm -rf /tmp/puppet_build_*` to manually clear the build dirs, or add a cleanup call to the Foundry test script.
+- If testing Foundry builds with a local registry, ensure the registry container is running and accessible before the test: `curl http://localhost:5000/v2/_catalog` must return a valid response.
+- For adversarial concurrency tests (multiple simultaneous Foundry builds): add a unique suffix to the temp dir name (already uses `{id}`) and increase `/tmp` tmpfs size in the agent container via `tmpfs: /tmp:size=2g` in `compose.server.yaml`.
+
+**Warning signs:**
+- Foundry build fails with `manifest for localhost/master-of-puppets-node:latest not found`.
+- Build fails with `No space left on device` during `docker build`.
+- `docker exec puppeteer-agent-1 ls /tmp/puppet_build_*` shows many stale directories from prior test runs.
+- Registry returns 503 or connection refused when Foundry tries to push the built image.
+
+**Phase to address:** Phase 5 (Foundry + Smelter deep test) — pre-flight checklist must include base image existence and `/tmp` cleanup. Add a cleanup step between Foundry tests.
+
+---
+
+### Pitfall 6: Air-Gap Mirror Test Requires Network Isolation — Without It, pip Falls Back to PyPI Silently
+
+**What goes wrong:**
+The air-gap mirror test verifies that `pip install` from Foundry-built images uses only the local PyPI mirror (hosted at port 8080). The failure mode: the test passes even when the local mirror is broken, because pip silently falls back to the real PyPI if the mirror returns a 404 or connection error. The test appears to succeed (packages install) but is not actually testing air-gap operation — it is testing normal internet-connected install.
+
+The mirror `fail-fast` flag in Axiom enforces that the mirror must be used, but this enforcement is at the `mirror_service.py` level (for mirror sync operations). At the node level, `pip install` uses a generated `pip.conf` that points to the local mirror. If a package is not present in the local mirror, pip returns an error (no fallback, because `--index-url` was set). However, if the `pip.conf` was not injected correctly (e.g., the Foundry build did not include the `pip.conf` injection recipe), pip uses its default PyPI URL with no error.
+
+**Why it happens:**
+Testing the air-gap scenario without actual network isolation relies on behavioral correctness of the `pip.conf` injection, not actual absence of internet. The test cannot distinguish "mirror worked" from "mirror failed, but PyPI worked" without blocking internet.
+
+**How to avoid:**
+- Use a network namespace or iptables rules to block outbound internet from the test container during air-gap tests:
+  ```bash
+  # On the host, before the test
+  iptables -I DOCKER-USER -s <node_container_ip> -d 0.0.0.0/0 ! -d 192.168.0.0/16 -j REJECT
+  # Run Foundry build — pip must succeed using only the local mirror
+  # After test
+  iptables -D DOCKER-USER ...
   ```
-- Avoid `importlib.resources.files()` for locating files within the compiled package. Use `importlib.resources.files(__name__).joinpath("data_file.json")` only if there is a non-compiled `__init__.py` in the package directory. Alternatively, bundle data files as string constants compiled into the `.so`.
-- Always test `.so` loading via `pip install dist/axiom_ee-*.whl` in a clean virtualenv before running CI against it — this matches the real install path and surfaces relative import failures.
+  Alternatively, run the Foundry build inside an LXC container with no external network profile.
+- After the Foundry build, verify `pip.conf` was injected: `docker run --rm <built_image> cat /etc/pip.conf` must show `index-url = http://<mirror_host>:8080/simple`.
+- Check the local PyPI mirror contains the required packages before the test: `curl http://localhost:8080/simple/<package_name>/` must return a valid index page.
 
 **Warning signs:**
-- The EE plugin entry point in `setup.cfg` points to `ee.plugin:EEPlugin` where `ee/__init__.py` is compiled to `__init__.so`.
-- `importlib.resources.files("ee")` raises `ModuleNotFoundError` in the compiled version.
-- CI tests the `.so` by adding the build directory to `sys.path` rather than installing the wheel.
-- Relative imports in any compiled `__init__.so` module.
+- Air-gap test passes but `curl http://pypi.org/simple/requests/` from inside the test container succeeds (network is not blocked).
+- Built image has no `/etc/pip.conf` or the file points to `pypi.org` rather than the local mirror.
+- `pip install` during the test takes longer than normal (internet latency instead of LAN mirror latency).
+- Local mirror is empty (`curl http://localhost:8080/simple/` returns no packages) but test still passes.
 
-**Phase to address:** Phase 6 (`.so` build pipeline) — define the package structure constraint (never compile `__init__.py`) before writing any compilation CI.
+**Phase to address:** Phase 5 (Foundry + Smelter deep test) — air-gap test must include an explicit network isolation step. Document the iptables procedure in the test script.
 
 ---
 
-### Pitfall 6: EE DB Models Must Share the CE `Base` — Two `DeclarativeBase` Instances = Missing Tables
+### Pitfall 7: Job Failure Test — Bad Signature vs Expired Licence vs Crashed Script All Look the Same in Logs
 
 **What goes wrong:**
-SQLAlchemy's `Base.metadata.create_all(engine)` creates only tables registered in that `Base`'s metadata. If the EE plugin defines its models using a separate `Base = DeclarativeBase()` (its own `DeclarativeBase` instance), those models are registered in a different `MetaData` object. The CE startup calls `Base.metadata.create_all(engine)` using the CE `Base` — the EE tables are never created. The failure mode is: EE plugin loads successfully, routes are registered, but the first DB query on an EE table raises `OperationalError: no such table: audit_log`.
+Three distinct failure modes in adversarial job testing produce similar symptoms at the node level:
+1. **Bad signature**: the node rejects the job before executing it. The job stays ASSIGNED indefinitely (the node does not report a failure result).
+2. **Expired licence (EE only)**: EE features gate job dispatch in certain configurations. The job may never reach the node or may be rejected at pickup with no clear error returned to the server.
+3. **Crashed script**: the job executes, the script exits with non-zero code, the node reports FAILED with exit code in the result.
 
-The inverse problem also exists: if the EE `Base` creates tables that reference CE tables via `ForeignKey` (e.g., `audit_log.user_id → users.id`), and the FK uses the string form `"users.id"`, the FK resolution fails silently if the `users` table is not in the EE `Base`'s metadata — the FK is unresolvable at `create_all` time and either raises an error or is silently dropped depending on the DB dialect.
-
-**Why it happens:**
-The EE plugin is a separate Python package. It is natural to define a `Base = DeclarativeBase()` inside the EE package without importing it from CE. The symptom does not appear in development if the EE package is always installed alongside CE and the developer always does a fresh DB (where `create_all` runs against a clean database and the EE-installed state is present at startup).
-
-**How to avoid:**
-The EE plugin must import `Base` from the CE package, not define its own:
-```python
-# In axiom-ee: ee/models/audit.py
-from agent_service.db import Base  # CE's Base — the only Base
-
-class AuditLog(Base):
-    __tablename__ = "audit_log"
-    ...
-```
-This means the EE package has a runtime dependency on the CE package (which is correct — EE extends CE, not the reverse). The `plugin.register(app, engine)` call receives the CE `engine` and can call `Base.metadata.create_all(engine)` — but since CE already called it at startup, EE only needs to call it if new tables were added by the EE models (i.e., EE tables not yet in the DB).
-
-For the EE `register()` method: call `Base.metadata.create_all(engine)` explicitly in `register()` to create any EE tables that did not exist before EE was installed on a running CE deployment:
-```python
-def register(self, ctx):
-    from agent_service.db import Base
-    Base.metadata.create_all(self.engine)  # idempotent — skips existing tables
-    # then mount routers...
-```
-
-**Warning signs:**
-- EE plugin package contains `Base = DeclarativeBase()` in any `db.py` or `models.py` file.
-- `OperationalError: no such table: audit_log` on first EE request after install.
-- EE `ForeignKey` strings reference CE tables but FK resolution fails at metadata creation.
-- `create_all` is never called in the EE `register()` method.
-
-**Phase to address:** Phase 5 (private repo setup) — define the `Base` sharing contract as the first architectural decision before writing any EE model code.
-
----
-
-### Pitfall 7: Licence Key Validation at Startup Only — EE Features Work After Key Expiry
-
-**What goes wrong:**
-A common pattern in open-core plugins is to validate the licence key once at startup (in `register()`), set a flag, and never check again. This means:
-1. A valid key at startup → EE features enabled for the lifetime of the process.
-2. If the process runs for weeks (Docker container restart policy: `unless-stopped`), the licence can expire without EE features being disabled. Customers get months of free EE after their licence expires simply by not restarting their container.
-3. Conversely: clock skew on the host (NTP drift, container time not synced) causes valid licences to fail validation if expiry is checked against wall clock time with no tolerance.
-
-For self-hosted deployments specifically: any online licence validation call (to `api.axiom.run/v1/licence/validate`) will be blocked in air-gapped deployments. If the EE plugin does not support offline licence files, air-gapped customers cannot use EE.
+All three appear as "job stuck in ASSIGNED" or "job FAILED" without indicating which layer failed. The gap: the orchestrator `ExecutionRecord` captures stdout/stderr from crashed scripts, but signature rejection and licence rejection at the node level produce no `ExecutionRecord` at all — the job is simply never completed, and the node's rejection reason is only in the node's container log, not in the orchestrator DB.
 
 **Why it happens:**
-Startup validation is the simplest pattern. Clock-based expiry without tolerance is the first implementation that comes to mind. Online-only validation is what most SaaS-focused licence libraries default to.
+The pull model means nodes pull work and reject silently if local checks fail. There is no push-back mechanism for "I pulled this job but refused to run it" — the node simply does not post a result, and the job stays in ASSIGNED until timeout (if any timeout is implemented).
 
 **How to avoid:**
-- **Periodic re-validation**: re-check the licence every N hours (e.g., every 12 hours) via a background task. If re-validation fails (key expired, network unreachable), log a warning but do not disable EE features immediately — give a grace period (e.g., 7 days of offline tolerance) to avoid disrupting air-gapped deployments.
-- **Cryptographic offline licence files**: Sign licence files with an Ed25519 key whose private key never leaves `api.axiom.run`. The EE plugin bundles only the Ed25519 public key (compiled into the `.so`). Validation is entirely offline — parse the licence file, verify the signature against the embedded public key, check expiry with a `±5 minute` clock tolerance. Axiom already has Ed25519 infrastructure (job signing) — reuse the same `cryptography` library pattern.
-- **Licence file format**: `{customer_id, features[], expiry_utc, issued_utc, signature}` as a signed JSON blob. The `features` array allows per-customer entitlement (e.g., `["rbac", "foundry"]` but not `["smelter"]`).
-- **Never hardcode the public key as a plain string** — compiled `.so` files can be reversed with `strings(1)` or `objdump`. Use a constant array of bytes, split across multiple variables, reassembled at validation time. This is obfuscation only (not real security), but it raises the cost of casual key extraction.
-- **Bypass pattern to protect against**: the most common self-hosted bypass is clock manipulation — set system time to before expiry. Mitigation: compare licence `issued_utc` against system time (system time must be >= issued_utc); if system time is before the issue date, treat as clock manipulation and reject.
+- For adversarial signature tests: after submitting a bad-signature job, check the node container logs directly (`docker logs <lxc-node-container>`) for the signature rejection message within 15 seconds. Do not wait for the orchestrator dashboard to show a failure.
+- Define expected outcomes per failure mode in the test plan:
+  | Failure | Expected node log | Expected orchestrator state |
+  |---------|-------------------|-----------------------------|
+  | Bad signature | `Signature verification failed` | Job stuck ASSIGNED |
+  | Expired licence | EE gate rejection at `/work/pull` or in EE plugin | Job stays PENDING (not assigned) or ASSIGNED with no result |
+  | Crashed script | Exit code N in node log | Job FAILED with stdout/stderr in ExecutionRecord |
+- For the "bad signature" test specifically: after confirming the node log shows the rejection, manually set the job status to FAILED via a direct DB update or admin API call, so the test can continue without a stuck ASSIGNED job blocking node capacity.
+- Add a timeout to job assignment: if a job stays ASSIGNED for more than N seconds without a heartbeat update from the assigned node, auto-requeue it as PENDING. This is a platform gap that adversarial testing should surface and log.
 
 **Warning signs:**
-- `register()` calls `validate_licence()` once and stores a boolean flag — no periodic re-check.
-- Licence validation makes an outbound HTTP call with no offline fallback.
-- Licence expiry check uses `datetime.utcnow() > expiry` with no clock tolerance.
-- Ed25519 public key stored as a plain ASCII string constant in the compiled module.
+- Job is stuck in ASSIGNED for more than 2x the node poll interval with no result appearing.
+- `GET /api/executions?job_id=<guid>` returns no records for a job that should have a failure record.
+- The orchestrator dashboard shows ASSIGNED with no progress, but node container is running.
+- All three failure modes look identical from the orchestrator perspective.
 
-**Phase to address:** Phase 7 (documentation and licensing) — define the offline cryptographic licence file format before Phase 6 (compilation), so the licence validation code is designed with compilation constraints in mind from the start.
-
----
-
-### Pitfall 8: EE-Only Tests Fail in CE CI — Test Suite Not Isolated
-
-**What goes wrong:**
-The CE test suite currently contains tests that import EE models, EE router handlers, or EE DB columns directly. After Phase 3 stripped EE models from `db.py`, these tests fail with `ImportError` or `AttributeError: User has no attribute 'role'`. The plan notes `Fix CE test suite — isolate EE-only tests, fix test_bootstrap_admin.py User.role refs` as a blocking gap.
-
-The less obvious problem: if EE-only tests are simply deleted from the CE test suite (not moved to the EE private repo), the EE router code has no tests at all in any repo. EE code coverage goes to zero. The correct fix is to move EE tests to the `axiom-ee` private repo where they run against a CE+EE install.
-
-A second failure mode: tests that use CE's `Base` fixtures (e.g., a conftest.py that creates tables with `create_all`) will not create EE tables even if EE is installed at test time — because the test fixture runs `create_all` at the start of the test session, before `load_ee_plugins()` is called. EE table queries in integration tests fail with `OperationalError`.
-
-**Why it happens:**
-Tests were written against the pre-split codebase where all models existed in `db.py`. The split happened in phases; tests were not updated in lockstep. Test fixtures that mirror the startup sequence may not replicate the `load_ee_plugins()` → `create_all()` ordering.
-
-**How to avoid:**
-- CE test suite must import only from `agent_service.db` (CE models only) and `agent_service.models` (CE Pydantic models only). Any test importing from `agent_service.ee` must be tagged `@pytest.mark.ee` and skipped in CE CI: `pytest -m "not ee"`.
-- For integration tests that need a full CE+EE stack: maintain a separate test configuration in the `axiom-ee` repo with a `conftest.py` that installs EE, calls `load_ee_plugins()`, then runs `create_all()`.
-- `test_bootstrap_admin.py` specifically: the `User.role` attribute was removed from CE. Fix: either remove the role assertion entirely (CE has no roles), or add a `pytest.importorskip("ee")` guard.
-
-**Warning signs:**
-- `pytest` fails in CE CI with `AttributeError: type object 'User' has no attribute 'role'`.
-- Any test file imports `from agent_service.ee.routers import ...` without an EE skip guard.
-- CE test suite passes locally (developer has EE installed) but fails in CI (clean CE-only environment).
-- `conftest.py` uses `Base.metadata.create_all(engine)` without calling `load_ee_plugins()` first — EE tables never created in test DB.
-
-**Phase to address:** Phase 5 (private repo setup) — fix CE test isolation as step 0, before validating CE-alone install. Otherwise "CE tests pass" is misleading.
-
----
-
-### Pitfall 9: Circular Import Between CE `main.py` → `ee/__init__.py` → CE `db.py`
-
-**What goes wrong:**
-The current import chain is: `main.py` imports `from .db import ...` (CE models) and also imports `from .ee import load_ee_plugins`. Inside `load_ee_plugins`, the EE plugin's `register()` calls `from agent_service.db import Base` to extend CE's Base. This is safe as long as `db.py` is fully initialized before `ee/__init__.py` is imported.
-
-The risk: if any code path within the EE plugin module (not inside `register()`, but at module level) imports from `agent_service.main` (e.g., to access `app` directly, or to access a utility defined in `main.py` rather than a service), a circular import occurs: `main.py` → `ee/__init__.py` → `ee.plugin` → `agent_service.main` → already being loaded. Python's import system partially initializes `main` and returns the incomplete module, causing `ImportError: cannot import name 'X' from partially initialized module 'agent_service.main'`.
-
-The specific trigger in Axiom: `deps.py` contains `require_permission` and `get_current_user`. The EE router files import from `...deps`. `deps.py` imports from `...auth` and `...db`. This chain is safe. But if any EE router imports from `...main` (even accidentally via a wildcard or re-export), the circular import activates.
-
-**Why it happens:**
-Large FastAPI applications tend to accumulate utilities in `main.py` that should be in service files. EE router authors reaching for a utility may grab it from `main` rather than tracing it back to its proper module.
-
-**How to avoid:**
-- Enforce the rule: EE plugin code must never import from `agent_service.main`. All shared utilities must live in `agent_service.deps`, `agent_service.auth`, `agent_service.security`, or `agent_service.services.*`.
-- Add a test: `import agent_service.ee.plugin` in isolation (without importing `main`) — must succeed without error.
-- In `load_ee_plugins()`, after `ep.load()`, catch `ImportError` specifically and log the full traceback (not just the message), so circular import failures are diagnosable.
-
-**Warning signs:**
-- `from ...main import ...` in any EE router file.
-- `ImportError: cannot import name 'X' from partially initialized module 'agent_service.main'` in startup logs.
-- EE plugin loads correctly in isolation but fails when imported as part of the full application.
-
-**Phase to address:** Phase 5 (private repo setup) — define the import boundary rule before writing EE router code; enforce with a CI import isolation test.
-
----
-
-### Pitfall 10: `NodeConfig` CE Strip Leaves Dead References in `job_service.py`
-
-**What goes wrong:**
-Phase 3 stripped `concurrency_limit`, `job_memory_limit`, and `job_cpu_limit` from the CE `NodeConfig` Pydantic model. But `job_service.py` references these fields in the node selection and admission control logic (memory limit checking, concurrency limit enforcement). After the strip, the fields are absent from the model — accessing `node.concurrency_limit` raises `AttributeError` if the field was removed from both the Pydantic model and the DB schema, or returns `None` silently if only the Pydantic model was changed but the DB column still exists.
-
-The silent `None` case is the dangerous one: `if job.memory_limit and node.job_memory_limit:` evaluates to `False` for both conditions (both `None`), so the admission check is silently bypassed — jobs are dispatched without any resource checking in CE.
-
-**Why it happens:**
-The CE strip was a model-level change. `job_service.py` was not audited for every reference to the stripped fields. Python does not catch attribute access on `None` as an error at parse time.
-
-**How to avoid:**
-- After stripping EE fields from CE models, run a search for all references to the stripped field names across the codebase: `concurrency_limit`, `job_memory_limit`, `job_cpu_limit`, `memory_limit`, `cpu_limit`. Every reference must either be removed or guarded with `if hasattr(node, 'concurrency_limit')`.
-- The CE behaviour should be: fixed sensible defaults (e.g., concurrency = unlimited, memory = unchecked) enforced via constants, not via the node model. Replace `node.concurrency_limit or DEFAULT_CONCURRENCY` with just `DEFAULT_CONCURRENCY` in CE `job_service.py`.
-- Add a CE-specific integration test: dispatch a job to a CE node; verify it is assigned without AttributeError in the server logs.
-
-**Warning signs:**
-- `grep -r "concurrency_limit\|job_memory_limit\|job_cpu_limit" puppeteer/agent_service/services/job_service.py` returns any results after the CE strip.
-- `AttributeError: 'Node' object has no attribute 'concurrency_limit'` in CE server logs during job dispatch.
-- CE job dispatch silently never assigns jobs (because a `None` admission check causes a false rejection).
-
-**Phase to address:** Phase 5 gap fix step — this is listed as a blocking gap ("Strip `NodeConfig` model"). Resolve before validating CE core job dispatch.
+**Phase to address:** Phase 4 (job failure mode testing) — pre-define the diagnostic steps for each failure mode before running tests. Establish the "check node container logs" step as mandatory for any ASSIGNED job with no result.
 
 ---
 
@@ -321,12 +227,13 @@ The CE strip was a model-level change. `job_service.py` was not audited for ever
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Validate licence key only at startup | Simple one-time check | Expired licences run forever without restart; no offline grace period | Never for a commercial product — add periodic re-check |
-| EE defines its own `Base = DeclarativeBase()` | No import of CE internals from EE | EE tables never created; CE `create_all` ignores them | Never — EE must share CE's `Base` |
-| Keep `pkg_resources` for entry_points discovery | Already works, no code change | Deprecated, slow on large environments, known `.so` discovery issues | Acceptable short-term (fix before v12.0) |
-| Compile `__init__.py` of EE package to `.so` | Maximum source code protection | Relative imports fail; harder debugging | Never — always leave `__init__.py` as `.py` |
-| Delete EE tests from CE suite rather than moving them | Quick fix for CE CI | EE code has zero test coverage | Never — move tests to `axiom-ee` repo |
-| Store licence public key as plain ASCII string constant | Simplest implementation | `strings(1)` on the `.so` exposes the key | Acceptable if key rotation is possible; not acceptable if key is permanent |
+| Using one enrollment token for all nodes | Simpler provisioning script | First node consumes token; nodes 2-4 get 403 silently | Never — always generate N tokens for N nodes |
+| Testing air-gap without actual network isolation | Faster test setup | Test passes even with internet fallback; false confidence | Never for release validation |
+| Testing EE key patching without a dev wheel rebuild | Skips Cython rebuild step | Patch approaches all fail on compiled `.so`; hours wasted | Never — rebuild is the only valid path |
+| `docker compose down -v` for teardown between runs | Complete cleanup | Destroys Root CA; all LXC nodes break | Never without simultaneous node secrets cleanup |
+| SQLite for concurrent node validation tests | No DB server needed | `database is locked` errors under 4-node polling load | Acceptable for single-node tests only |
+| Skipping `/tmp` cleanup between Foundry builds | Faster iteration | Disk fills up; later builds fail with `No space left` | Never in a multi-build test run |
+| Vague gap report entries ("improve X") | Faster to write | Actionable for nothing; no fix can be verified | Never — every gap must have a reproduction step and acceptance criterion |
 
 ---
 
@@ -334,13 +241,14 @@ The CE strip was a model-level change. `job_service.py` was not audited for ever
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| FastAPI route registration order | Mount both stub and real router → stub shadows real (first wins) | Guard: `if not ctx.foundry: app.include_router(stub)`; EE registers real router in `register()` before guard runs |
-| SQLAlchemy EE models | `Base = DeclarativeBase()` in EE package | `from agent_service.db import Base` — share the one CE Base |
-| Cython `@dataclass` | Decorate class with `@dataclass`, compile → `__init__` ignores all fields | Use plain classes with explicit `__init__` in all compiled modules |
-| Cython `__init__.py` compilation | Compile `__init__.py` to `__init__.so` | Never compile `__init__.py` — keep as `.py`, compile submodules only |
-| entry_points discovery for `.so` | `pkg_resources.iter_entry_points()` | `importlib.metadata.entry_points(group="axiom.ee")` — Python 3.9+ built-in |
-| Licence expiry in air-gapped deployments | Online validation call (blocks in air-gapped env) | Ed25519-signed offline licence file; embed public key in compiled `.so` |
-| EE import of CE utilities | Import from `agent_service.main` | Import only from `agent_service.deps`, `auth`, `security`, `services.*` — never from `main` |
+| LXC nodes + Compose stack | LXC container network cannot reach `puppeteer-agent-1` hostname | Use `host.docker.internal` or host IP as `AGENT_URL`; ensure LXC container has network access to the host port 8001 |
+| LXC nodes + mTLS | LXC node presents cert signed by old Root CA after stack teardown + rebuild | Clear `secrets/` on each LXC node before re-enrolling; do not reuse node cert files across stack rebuilds |
+| Foundry + local registry | Push to `localhost:5000` from inside the `agent` container fails | Use the container-internal registry hostname (`registry:5000`) not `localhost:5000` — Docker networking resolves `registry` via the compose network |
+| Foundry + base image | `FROM localhost/master-of-puppets-node:latest` fails in Foundry build | Image must exist in the host Docker daemon registry, not just locally built with `docker build` in a previous session that was cleared |
+| Air-gap mirror + pip | pip falls back to PyPI if mirror returns 404 | Block internet at the network level during air-gap tests; verify `pip.conf` was injected into the built image |
+| EE dev wheel + CE install | Install dev wheel into the same venv as production CE | Use an isolated venv per EE build variant; never mix dev and prod EE wheels in the same Python environment |
+| Concurrent polling + SQLite | 4 nodes poll simultaneously on SQLite dev DB | Use Postgres for any multi-node validation; enable WAL mode if SQLite is unavoidable |
+| Job signing + node verification | Node verifies signature against the server-registered public key | Test keypair used for signing must be registered in `signatures` table on the orchestrator before submitting the signed job |
 
 ---
 
@@ -348,9 +256,11 @@ The CE strip was a model-level change. `job_service.py` was not audited for ever
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `pkg_resources` import scans all packages | 2–5s delay on first `load_ee_plugins()` call | Switch to `importlib.metadata` (lazy, O(1) lookup) | On any environment with 50+ installed packages |
-| Licence re-validation on every EE API request | Each request makes an outbound HTTP call; 50–200ms added to every EE route | Validate once at startup + periodic re-check (every 12h) via APScheduler | Immediately if online validation is per-request |
-| EE `register()` calls `create_all` on every startup for large EE schema (15 tables) | `create_all` with 28 total tables takes 200–500ms on SQLite; blocks startup | `create_all` is idempotent — this is acceptable; SQLite startup cost is a known tradeoff | Never critical; just note the startup time increase |
+| 4 LXC nodes at identical poll intervals | Synchronized polling storms; write lock queuing on SQLite | Stagger poll intervals by 1-2s per node | At 3+ nodes with < 5s poll interval on SQLite |
+| Foundry builds leave `/tmp/puppet_build_*` dirs | Disk fills; later builds fail with `No space left on device` | Cleanup step after each build test; increase tmpfs size | After 5-10 builds of large images |
+| APScheduler firing all cron jobs at same second | Multiple jobs dispatched simultaneously; node queue depth spikes | Stagger cron schedules by at least 30s between definitions in the test matrix | Any time 3+ cron definitions have the same minute expression |
+| node stats history query on 60 rows × 4 nodes | Acceptable at 4 nodes; not a trap for this scale | No action needed at 4 nodes | Documented: breaks at 1000+ nodes |
+| Concurrent Foundry builds (>2 simultaneous) | Docker daemon build queue; agent HTTP request timeout | Run Foundry builds sequentially in the test matrix | Immediately if builds exceed the agent HTTP timeout (~120s) |
 
 ---
 
@@ -358,11 +268,11 @@ The CE strip was a model-level change. `job_service.py` was not audited for ever
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Licence public key as plain string in `.so` | `strings(1)` or `objdump` extracts key; anyone can forge licences | Split key across multiple byte arrays; reassemble at validation time (obfuscation only, raises bypass cost) |
-| Clock manipulation bypasses expiry | Set system time back → licence never expires | Check `issued_utc <= now <= expiry_utc`; if `now < issued_utc`, reject as clock manipulation |
-| EE plugin silently runs in CE mode on import failure | Compiled `.so` with ABI mismatch fails silently; all EE access continues to return 402 | Log error level (not warning) with full exception on EE load failure; include `.so` path |
-| CE `require_auth` (not `require_permission`) on EE routes | EE routes accessible to any authenticated user including viewers | EE `register()` must wire EE routes with `require_permission` from `deps.py`; CE `deps.py` exposes both `require_auth` (CE) and `require_permission` (EE) |
-| Licence file loaded from user-writable path | Attacker replaces licence file with self-signed one using their own key | Licence file path must be in a non-writable location; validate signature against the public key compiled into the `.so` |
+| Embedding the production EE licence public key in the dev/test wheel | Test fixture generates forged licences that pass validation on the production binary | Keep dev and prod wheel builds completely separate; dev key must never be embedded in the same binary as the prod key |
+| Using a fixed, predictable test JOIN_TOKEN in LXC compose files | Token committed to git is usable by anyone who clones the repo | Regenerate tokens before each validation run; never commit live tokens to git |
+| Testing mTLS revocation without verifying CRL is served | Revoked node may still receive work if the CRL is not reachable | After revoking a node, curl `GET /system/crl.pem` and verify the revoked cert's serial is present before testing work rejection |
+| Running the validation stack with `ENCRYPTION_KEY` unset | Secrets stored as plaintext; encryption test results are meaningless | Set `ENCRYPTION_KEY` to a real Fernet key in `puppeteer/.env` before validation; verify with `docker exec puppeteer-agent-1 env | grep ENCRYPTION_KEY` |
+| Signing test jobs with the operator's real production signing key | Test job scripts submitted and signed with real credentials; if test scripts are malicious, the node executes them | Generate a separate Ed25519 keypair specifically for test jobs; register it as a test signature entry; delete it after validation |
 
 ---
 
@@ -370,25 +280,26 @@ The CE strip was a model-level change. `job_service.py` was not audited for ever
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| 404 (not 402) on EE routes in CE | Operator sees "Not Found" — assumes the feature doesn't exist or the URL is wrong | Ensure all EE routes return 402 with `{"detail": "Requires Axiom EE", "upgrade_url": "https://axiom.run/enterprise"}` |
-| `GET /api/features` returns all `false` but no explanation | Operators don't know if EE is not installed or if it failed to load | Add `ee_status: "not_installed" | "loaded" | "load_failed"` to the features response; include error message when `load_failed` |
-| Licence expiry not visible in dashboard | Operators don't know their licence expires until EE stops working | Add licence expiry date to `GET /api/features` response; dashboard shows amber warning 30 days before expiry |
-| EE install instructions assume online pip install | Air-gapped operators can't install `axiom-ee` from PyPI | Document wheel download + offline `pip install axiom_ee-*.whl` pattern in EE docs |
+| Gap report entries with no reproduction steps | Developers cannot reproduce or verify a fix | Every gap entry must include: observed behaviour, reproduction steps, expected behaviour, acceptance criterion |
+| Gap report mixes critical bugs with cosmetic issues in a flat list | Critical fixes deprioritised; cosmetic fixes done first | Three-tier severity: CRITICAL (blocks jobs or breaks security) / MODERATE (degrades UX) / DEFERRED (known acceptable shortcut) |
+| Gap report created only at the end | Findings from early phases are forgotten or underspecified | Log findings inline during each test phase; write the gap entry immediately after observing the issue |
+| Vague gap entries like "node enrollment is fragile" | Actionable by nobody | Required fields: affected component, reproduction steps, severity, proposed fix |
+| Marking a gap DEFERRED without a tracking note | Gap is silently forgotten | Every DEFERRED entry must reference the milestone where it will be addressed (e.g., "DEFERRED to v12.0 — EE-08") |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Stub routers active in CE:** `curl https://localhost:8001/api/blueprints` on a CE-only install must return `402`, not `404`. If it returns 404, stub routers are not mounted.
-- [ ] **EE routers take effect after install:** `pip install axiom-ee` in a running CE environment (followed by restart) must cause `GET /api/features` to return `"foundry": true` AND `GET /api/blueprints` to return `200` (not `402`).
-- [ ] **EE tables created on first EE install:** On a CE deployment with existing data, `pip install axiom-ee` + restart must create the 15 EE tables. `\dt` (Postgres) or `.tables` (SQLite) must include `audit_log`, `role_permissions`, etc.
-- [ ] **No `.py` source in EE wheel:** `unzip -l dist/axiom_ee-*.whl | grep ".py$"` must return empty (only `__init__.py` may be present, as it is intentionally not compiled).
-- [ ] **Dataclasses work in compiled `.so`:** Construct every `@dataclass` (if any remain) from the compiled EE module — must not raise `TypeError: __init__() takes 1 positional argument`.
-- [ ] **Relative imports work after `pip install` wheel:** `python -c "import ee; print(ee.EEPlugin)"` must succeed in a clean virtualenv where EE was installed from the wheel, not added to sys.path.
-- [ ] **CE test suite passes without EE installed:** Run `pytest` in a virtualenv with `axiom-ce` only (no `axiom-ee`). Zero failures from missing EE attributes or imports.
-- [ ] **Offline licence validation:** Validate a licence file with no network access (`iptables -I OUTPUT -j DROP` in a container). Must succeed if the file is within expiry and signature is valid.
-- [ ] **Expired licence detection:** Set the licence file `expiry_utc` to yesterday; restart; `GET /api/features` must not show EE features as active.
-- [ ] **EE load failure is visible:** Install a `.so` compiled for the wrong Python version; restart; `GET /api/features` must return `"ee_status": "load_failed"` (not silently degrade to CE with no indication).
+- [ ] **Stack teardown + fresh install:** Run `docker compose down -v` AND clear LXC node secrets simultaneously. Confirm fresh stack generates a new Root CA. Confirm all 4 LXC nodes re-enroll cleanly against the new CA.
+- [ ] **EE dev wheel installed:** `pip show axiom-ee` inside the agent container must show the dev wheel (test public key). `GET /api/features` must return `ee_status: loaded`. A licence signed with the test private key must be accepted. A licence signed with a wrong key must be rejected.
+- [ ] **All 4 LXC nodes enrolled:** `GET /nodes` must return exactly 4 nodes, all in ONLINE status. Verify each node has the correct `env_tag` (DEV/TEST/PROD/STAGING).
+- [ ] **Concurrent job dispatch:** Dispatch 8 jobs simultaneously. Verify all 8 reach COMPLETED (or FAILED with a result) — none stuck in ASSIGNED.
+- [ ] **Bad signature rejection:** Submit a job signed with an unregistered key. Confirm the node log shows rejection. Confirm no ExecutionRecord is created in the orchestrator for this job.
+- [ ] **Foundry build completes cleanly:** After a Foundry build, verify `/tmp/puppet_build_*` has been cleaned. Verify the built image exists in the local registry. Verify a node can be enrolled using the Foundry-built image.
+- [ ] **Air-gap test uses real isolation:** `curl https://pypi.org/simple/requests/` from inside the test container during the air-gap test must fail. Packages must install successfully from the local mirror only.
+- [ ] **Gap report is actionable:** Every entry has: severity, component, reproduction steps, expected behaviour, proposed fix or DEFERRED milestone reference. No entry is a single sentence.
+- [ ] **SQLite is not used for concurrent tests:** `DATABASE_URL` in the running stack must point to Postgres (`postgresql+asyncpg://...`), not SQLite. Verify: `docker exec puppeteer-agent-1 env | grep DATABASE_URL`.
+- [ ] **CRL reflects revoked node:** After revoking a node, `GET /system/crl.pem` must contain the revoked cert serial. The revoked node must not receive work on the next poll.
 
 ---
 
@@ -396,13 +307,13 @@ The CE strip was a model-level change. `job_service.py` was not audited for ever
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Stub routers not mounted (404 in CE) | LOW | Add `if not ctx.{feature}: app.include_router(stub_router)` in `load_ee_plugins()`; redeploy |
-| Duplicate route registration (stubs shadow EE) | LOW | Remove unconditional stub `include_router` calls; ensure guard uses `EEContext` flags after `register()` runs |
-| EE tables not created (wrong Base) | MEDIUM | Fix EE to import CE `Base`; manually create missing tables via `ALTER TABLE` / `CREATE TABLE IF NOT EXISTS` for existing deployments |
-| `@dataclass` breaks after Cython compile | MEDIUM | Convert all affected dataclasses to plain classes with explicit `__init__`; rebuild `.so`; redeploy wheel |
-| Circular import between EE and main.py | LOW | Move the imported symbol from `main.py` to a service/deps module; EE imports from there instead |
-| Licence key expired, container not restarted | LOW | Issue a new licence file with updated expiry; copy to licence file path; periodic re-validation picks it up within 12h |
-| CE test suite failures from EE attribute refs | LOW | Add `pytest.mark.ee` skip guards or remove EE attribute assertions from CE tests; move EE tests to private repo |
+| Teardown destroyed Root CA, nodes broken | MEDIUM | Clear all LXC node `secrets/` directories; run hard teardown on stack; fresh install; re-enroll all nodes |
+| EE dev wheel not buildable (Cython environment issue) | HIGH | Install Cython + build toolchain in the test environment; `pip install cython cibuildwheel`; rebuild dev wheel from EE source with test key |
+| LXC nodes stuck at 403 after token race | LOW | Generate 4 new tokens; update each LXC node env with its dedicated token; restart node containers |
+| SQLite locked under concurrent tests | LOW | Switch `DATABASE_URL` to Postgres in `puppeteer/.env`; restart the agent container; re-run concurrent tests |
+| Foundry `/tmp` full | LOW | `docker exec puppeteer-agent-1 rm -rf /tmp/puppet_build_*`; free at least 2GB before re-running builds |
+| Air-gap test false positive | LOW | Add `iptables` block for the test container; re-run; verify pip uses only local mirror |
+| Vague gap report | MEDIUM | Re-run the test that produced the vague entry; observe and document precisely; rewrite the entry with reproduction steps |
 
 ---
 
@@ -410,31 +321,31 @@ The CE strip was a model-level change. `job_service.py` was not audited for ever
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Stub routers not mounted (404 in CE) | Phase 5 first step (router wiring) | `curl /api/blueprints` on CE returns 402 |
-| Duplicate route registration | Phase 5 (registration guard pattern defined) | `GET /api/features` = foundry:true + `GET /api/blueprints` = 200 when EE installed |
-| `pkg_resources` deprecated / slow | Phase 5 (private repo setup) | Startup time < 500ms in environment with 100 packages |
-| Cython `@dataclass` broken | Phase 6 (`.so` build) — pre-audit before CI setup | Construct all compiled dataclass instances in EE unit tests |
-| Cython `__init__.so` relative imports | Phase 6 (`.so` build) — package structure constraint | `pip install wheel` + `python -c "import ee"` succeeds in clean venv |
-| EE models use wrong Base | Phase 5 (private repo setup) — first model written | `\dt` on CE DB after EE install shows all 15 EE tables |
-| Licence validation startup-only | Phase 7 (licensing) | Licence expiry test: expired file → features disabled within 12h |
-| CE tests fail without EE | Phase 5 gap fixes (test isolation) | `pytest -m "not ee"` in CE-only venv: zero failures |
-| Circular import EE → main.py | Phase 5 (private repo setup) — import boundary rule | `python -c "import axiom_ee"` without importing `main` succeeds |
-| `NodeConfig` CE dead references | Phase 5 gap fixes (NodeConfig strip) | CE job dispatch with no AttributeError in server logs |
+| Teardown destroys Root CA (P1) | Phase 1 — define soft/hard teardown scripts before any test | Fresh stack after hard teardown + LXC secrets clear → all 4 nodes re-enroll cleanly |
+| EE key immutable in compiled `.so` (P2) | Phase 2 — dev wheel build procedure defined before EE tests | `GET /api/features` shows `ee_status: loaded` with test-key-signed licence |
+| Parallel enrollment token race (P3) | Phase 3 — per-node token generation in provisioning script | `GET /nodes` shows all 4 nodes ONLINE after parallel spinup |
+| SQLite locking under concurrent polling (P4) | Phase 4 — Postgres confirmed before concurrent job test | No `database is locked` errors in server logs during 8-job concurrent dispatch |
+| Foundry `/tmp` cleanup and base image (P5) | Phase 5 — pre-flight checklist + cleanup step in test script | Foundry builds succeed across a 5-build sequence; `/tmp` stays clean |
+| Air-gap mirror without network isolation (P5) | Phase 5 — network isolation added to air-gap test procedure | `curl https://pypi.org/` fails during test; packages install from local mirror |
+| Failure modes all look identical (P4) | Phase 4 — per-failure-mode diagnostic steps defined upfront | Correct node log message found for bad-sig, expired licence, and crash within 30s of job submission |
+| Vague gap report entries | All phases — gap template enforced from Phase 1 | Every gap entry passes the checklist (severity, reproduction, acceptance criterion) |
 
 ---
 
 ## Sources
 
-- Direct codebase inspection: `.worktrees/axiom-split/puppeteer/agent_service/ee/__init__.py` (confirmed `pkg_resources` usage, no stub mounting), `ee/interfaces/foundry.py` (confirmed stub routers defined but not registered in `app`), `ee/routers/foundry_router.py` (confirmed real router extracted, imports from `...db` including EE models), `main.py` (confirmed `load_ee_plugins()` called in lifespan, no `include_router` calls for stubs), `db.py` (confirmed single `Base = DeclarativeBase()`, 13 CE tables only in worktree)
-- Cython GitHub issue #3336: "Dataclasses do not work with Cython due to annotations being stripped out" — confirmed active issue, partial fix in Cython 3 but not all decorator patterns: https://github.com/cython/cython/issues/3336
-- CPython bug #59828 (GitHub): "Init time relative imports no longer work from `__init__.so` modules" — confirmed `.so` compiled `__init__` breaks relative imports: https://bugs.python.org/issue15623
-- Nuitka GitHub issue #1955: "Nuitka needs support for importlib.metadata.entry_points() hard imports" — `.so` entry_points discovery requires explicit `--include-module` flags: https://github.com/Nuitka/Nuitka/issues/1955
-- setuptools deprecation of `pkg_resources`: setuptools 67.0+ changelog (2023); `importlib.metadata` is the stdlib replacement since Python 3.9
-- FastAPI discussion #9014: "Behavior of `include_router` method" — confirmed silent addition of duplicate routes (no exception, `UserWarning: Duplicate Operation ID` only): https://github.com/fastapi/fastapi/discussions/9014
-- Keygen offline licence pattern: Ed25519-signed licence files for air-gapped self-hosted deployments: https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/
-- SQLAlchemy documentation: shared `MetaData` required for FK resolution; `create_all` scope limited to the calling `Base`'s metadata: https://docs.sqlalchemy.org/en/20/core/metadata.html
-- `.planning/axiom-oss-ee-split.md`: Phase 5/6/7 TODO list confirming blocking gaps (router registration, CE test isolation, NodeConfig strip, private repo, `.so` pipeline, licensing)
+- Direct inspection: `puppeteer/compose.server.yaml` (named volumes: `certs-volume`, `pgdata`, `caddy_data`; Docker socket mount; `../puppets:/app/puppets:ro`)
+- Direct inspection: `puppeteer/agent_service/db.py` line 12 — SQLite default with `aiosqlite`; no WAL mode configured; no `connect_args`
+- Direct inspection: `puppeteer/agent_service/main.py` lines 1912-1919 — token marked `used=True` immediately on first request, before CSR is processed
+- Direct inspection: `puppets/node-compose.yaml` — single JOIN_TOKEN in compose file; `./secrets:/app/secrets` volume mount; node ID persistence pattern
+- Direct inspection: `puppets/secrets/` — contains `node-3d795c2c.crt`, `node-3d795c2c.key`, `root_ca.crt`, `verification.key` (confirms secrets persist in volume)
+- PROJECT.md v11.1 milestone definition — confirms: EE test keypair, 4 LXC nodes (DEV/TEST/PROD/STAGING), concurrent job tests, Foundry/Smelter deep test, air-gap mirror fallback
+- Existing PITFALLS.md (CE/EE split domain, 2026-03-19) — confirms EE public key is compiled into `.so`; confirms Cython compiled modules have read-only attribute restrictions
+- `.agent/reports/core-pipeline-gaps.md` — MIN-7 (build dir cleanup deferred), MIN-6 (SQLite NodeStats pruning compat deferred), WARN-8 (non-deterministic node ID scan)
+- SQLite documentation: WAL mode required for concurrent readers + single writer; `DEFERRED` default isolation — https://www.sqlite.org/wal.html
+- Cython documentation: compiled module attributes are read-only at the C level — attribute assignment raises `AttributeError` — https://cython.readthedocs.io/en/latest/src/tutorial/cdef_classes.html
+- Docker socket + Foundry DinD: build context is sent from the socket-client container's filesystem; `docker build` via mounted socket is the established pattern — https://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/
 
 ---
-*Pitfalls research for: Axiom v11.0 CE/EE Split Completion — Cython/Nuitka .so compilation, entry_points discovery, FastAPI plugin router registration, SQLAlchemy CE/EE model separation, open-core licence enforcement*
-*Researched: 2026-03-19*
+*Pitfalls research for: Axiom v11.1 Stack Validation — adversarial testing, LXC nodes, EE binary patching, SQLite concurrency, Foundry DinD, air-gap mirror, gap report quality*
+*Researched: 2026-03-20*

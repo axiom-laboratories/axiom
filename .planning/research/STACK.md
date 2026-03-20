@@ -1,476 +1,353 @@
 # Stack Research
 
-**Domain:** Enterprise job orchestration — Axiom v10.0 Commercial Release new features
-**Researched:** 2026-03-17
-**Confidence:** HIGH (codebase reviewed directly; PyPI Trusted Publisher prerequisites verified against official docs)
+**Domain:** Axiom v11.1 Stack Validation — adversarial end-to-end testing infrastructure
+**Researched:** 2026-03-20
+**Confidence:** HIGH (all tools verified against live system; Incus 6.22 on host confirmed; cryptography 46.0.5 confirmed; Docker 29.2.1 confirmed)
 
 ---
 
 ## Scope
 
-This file covers ONLY the net-new stack additions for v10.0. The existing validated stack
-(FastAPI, SQLAlchemy, React/Vite, APScheduler, cryptography, PyNaCl, Caddy, Postgres, aiosqlite,
-MkDocs Material container) is not repeated here.
+This addendum covers ONLY the net-new tooling and patterns needed for v11.1 Stack Validation.
+The existing validated stack (FastAPI, SQLAlchemy, React/Vite, Docker Compose, cryptography,
+APScheduler, Caddy, Postgres, MkDocs Material, devpi, Cython EE plugin) is not re-researched.
 
-The previous STACK.md (v9.0) covered the MkDocs Material docs container; that content remains
-valid and is not superseded.
+The previous STACK.md entries cover v10.0 and v11.0 additions. Those remain valid.
 
 ---
 
 ## Pre-Assessment: What Already Exists
 
-Before recommending additions, the codebase was audited directly. Several v10.0 requirements
-are already partially or fully implemented:
-
 | Requirement | Current State |
 |-------------|---------------|
-| OUTPUT-01/02: stdout/stderr/exit code per execution | `ExecutionRecord` table exists in `db.py` with `output_log` (JSON), `exit_code`, `truncated`. Node captures and reports these in `node.py` via `build_output_log()`. Job service writes records in `report_result()`. **Fully implemented.** |
-| OUTPUT-03/04: Execution history query | `ExecutionRecord` has 4 composite indexes (`ix_execution_records_job_guid`, `job_started`, `node_started`, `started_at`). Query infrastructure is ready. Frontend view is the only missing piece. |
-| RETRY-01/02/03: Retry policy with backoff | `Job` has `max_retries`, `retry_count`, `retry_after`, `backoff_multiplier`. `job_service.py` implements exponential backoff with jitter on failure and zombie reaping. `ScheduledJob` also has `max_retries`. **Fully implemented in the data model and job service.** |
-| ENVTAG-01/02: Environment tags | `Node.operator_tags` accepts `env:DEV`, `env:TEST`, `env:PROD` tags. `job_service.pull_work()` has strict env-tag isolation logic (lines 312-322). `HeartbeatPayload` sanitises self-reported `env:` tags. **Fully implemented.** |
+| Incus CLI | `incus` 6.22 installed at `/usr/bin/incus`; user is in `incus-admin` group; `incus list` returns successfully |
+| Single LXC node provisioning | `.agent/skills/manage-test-nodes/scripts/manage_node.py` — launches one Ubuntu 24.04 node, configures SSH + Podman + Python, injects SSH key. Functional. |
+| Ed25519 key generation | `cryptography` 46.0.5 on host; `Ed25519PrivateKey.generate()` confirmed working. Pattern fully documented in phase 37 research. |
+| Test signing script | `~/Development/toms_home/.agents/tools/admin_signer.py --generate` generates a signing keypair |
+| Licence key generation | Pattern documented in phase 37 research: `base64url(json_payload).base64url(ed25519_sig)` wire format |
+| EE public key location | `_LICENCE_PUBLIC_KEY_BYTES` module-level bytes literal in `axiom-ee/ee/plugin.py` — currently a 32-zero placeholder |
+| Job concurrent test | `mop_validation/scripts/test_concurrent_job.py` — submits one job; does not cover the full matrix |
+| Stack teardown | Partial — `mop_validation/scripts/test_teardown.py` targets remote Docker nodes via SSH; no clean local compose teardown script |
+| Validation test runner | `mop_validation/scripts/test_local_stack.py` — linear Phase 0–7 script; not parameterised for job matrix |
 
-**Conclusion:** The core backend logic for OUTPUT, RETRY, and ENVTAG is already in the codebase.
-v10.0 work is primarily:
-1. Runtime attestation (OUTPUT-05..07) — new signing/verification step, new DB column
-2. CI/CD dispatch API (ENVTAG-04) — a documented endpoint, likely already possible via existing `/jobs` POST + env tag
-3. PyPI Trusted Publisher activation (RELEASE-01) — external org/project creation, no code changes
-4. GHCR image publishing (RELEASE-02) — workflow already written, awaits org creation
-5. Frontend views for execution history and retry state (OUTPUT-03/04, RETRY-03) — dashboard work only
-
----
-
-## Recommended Stack
-
-### New Backend: Runtime Attestation (OUTPUT-05..07)
-
-No new Python libraries are required. The `cryptography` library already in
-`puppeteer/requirements.txt` provides everything needed.
-
-| Capability | How Achieved | Library |
-|------------|-------------|---------|
-| Sign attestation bundle on node | `cryptography.hazmat.primitives.asymmetric.padding.PKCS1v15` or `cryptography.hazmat.primitives.asymmetric.ec.ECDSA` via the node's RSA private key (already on disk at `secrets/{node_id}.key`) | `cryptography` (already present) |
-| Verify attestation on orchestrator | Load stored `Node.client_cert_pem`, extract public key, verify signature bytes | `cryptography` (already present) |
-| Serialise attestation bundle | `json.dumps` of bundle dict → `hashlib.sha256` → sign the canonical UTF-8 bytes | stdlib `json`, `hashlib` |
-
-**Node private key format:** Nodes enroll with RSA 2048 keys (confirmed in `node.py` line 380:
-`rsa.generate_private_key(public_exponent=65537, key_size=2048)`). The key is written to
-`secrets/{node_id}.key` in PEM format without encryption. The attestation signer in `node.py`
-should use `RSA + PKCS1v15 + SHA256` — the same algorithm family already used for CSR signing.
-
-**DB addition needed:** `ExecutionRecord` needs two new nullable columns:
-
-```python
-attestation_bundle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)   # raw JSON bundle
-attestation_signature: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # base64 signature
-attestation_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # VERIFIED / FAILED / MISSING
-```
-
-These are nullable so existing records are not broken. `create_all` will not add them to the
-existing table — a migration SQL file is required (same pattern as `migration_v13.sql`).
-
-### New Backend: CI/CD Dispatch API (ENVTAG-04)
-
-No new library required. The existing `POST /jobs` endpoint already accepts `target_tags`
-(which can include `env:PROD`). What ENVTAG-04 requires is:
-
-1. A documented, stable endpoint path for CI/CD consumers — recommend `/api/v1/dispatch` as
-   a thin wrapper around the existing job creation flow, returning structured JSON.
-2. Service Principal auth (already exists) is the correct auth mechanism for pipelines.
-3. The response shape needs to include `node_assigned` (available after polling) or be
-   asynchronous with a `job_id` for polling.
-
-**Recommendation:** Add `GET /api/v1/jobs/{guid}/status` as a lightweight polling endpoint
-that returns `{guid, status, node_id, exit_code, attempt}` — suitable for `curl` + `jq` in CI.
-No new library needed.
-
-### New Frontend: Execution History View (OUTPUT-03/04, RETRY-03)
-
-No new npm packages required. All data is already queryable. The work is:
-
-1. Add `GET /jobs/{guid}/executions` API route (returns list of `ExecutionRecord` rows for
-   a job) — backend work, no new library.
-2. Add an execution history panel to the Jobs view in `Jobs.tsx` or a dedicated
-   `ExecutionHistory.tsx` — uses existing recharts (already in `package.json`) for timeline
-   visualisation, existing Radix UI for the expanded log viewer.
-
-**One potential addition:** A syntax-highlighted log viewer for stdout/stderr output.
-`react-syntax-highlighter` (v15.x) is the standard choice, but the output format is plain text
-line-by-line (not code), so a plain `<pre>` with line coloring by `stream` field is sufficient
-and avoids a new dependency.
-
-### PyPI Trusted Publisher (RELEASE-01)
-
-No code changes required. The `release.yml` workflow is already correctly configured:
-- Uses `pypa/gh-action-pypi-publish@release/v1`
-- Has `permissions: id-token: write` on both publish jobs
-- Targets `environment: testpypi` and `environment: pypi` with the correct URLs
-
-**External prerequisites only:**
-
-| Step | Action | Who |
-|------|--------|-----|
-| 1 | Create `axiom-laboratories` GitHub organisation | Operator |
-| 2 | Transfer or fork this repo into `axiom-laboratories/axiom` | Operator |
-| 3 | On PyPI: go to "Publishing" → "Add a new pending publisher" | Operator |
-| 4 | Fill in: PyPI project name `axiom-sdk`, GitHub owner `axiom-laboratories`, repo `axiom`, workflow `release.yml`, environment `pypi` | Operator |
-| 5 | Repeat step 3-4 for TestPyPI with environment `testpypi` | Operator |
-| 6 | Push a `v*` tag — the workflow runs, PyPI creates the project and publishes | Operator |
-
-**Critical:** The pending publisher does not reserve the name `axiom-sdk` on PyPI until the
-first publish. If another account registers `axiom-sdk` before the first publish, the pending
-publisher is invalidated. Publish as soon as the org and pending publisher are configured.
-
-### GHCR Multi-Arch Publishing (RELEASE-02)
-
-No code changes required. The `docker-release` job in `release.yml` is fully configured:
-- Multi-arch: `linux/amd64,linux/arm64` via QEMU + buildx
-- Pushes to `ghcr.io/axiom-laboratories/axiom`
-- Tags: semver `{{version}}` and `{{major}}.{{minor}}`
-
-**External prerequisite only:** The `axiom-laboratories` GitHub org must exist and the repo
-must be under it. Once the org exists and the repo is transferred, pushing any `v*` tag
-activates both PyPI and GHCR publishing simultaneously.
-
-### Licence Compliance (LICENCE-01..04)
-
-No new libraries required. This is documentation and configuration work:
-
-| Task | File | Action |
-|------|------|--------|
-| LICENCE-01: certifi MPL-2.0 decision | `LEGAL.md` | Document read-only CA bundle usage, no source modification, obligations satisfied |
-| LICENCE-02: License-Expression field | `pyproject.toml` | Add `license-expression = "Apache-2.0"` under `[project]` (PEP 639 field, supported by setuptools >=61) |
-| LICENCE-03: NOTICE file | `NOTICE` | List caniuse-lite CC-BY-4.0 attribution and any others from audit |
-| LICENCE-04: paramiko LGPL-2.1 assessment | `LEGAL.md` | Confirm dynamic-only import pattern; document whether EE bundling requires asyncssh swap |
-
-**Note on `asyncssh`:** If LICENCE-04 assessment concludes that EE wheel bundling would
-statically link paramiko, replace it with `asyncssh` (MIT). `asyncssh` is drop-in compatible
-for SSH-over-Python use cases and avoids the LGPL-2.1 linking concern entirely. Do not swap
-unless the assessment concludes static linking is occurring — dynamic import of paramiko is
-fully LGPL-compliant without source distribution.
+**Conclusion:** All base tools are present. v11.1 work is:
+1. Extend single-node Incus provisioner to 4 nodes with env tags
+2. Write clean local stack teardown + fresh install script
+3. Write a licence keypair generator + EE binary patcher (no Cython rebuild — monkeypatch via env or inject bytes into plugin before rebuild)
+4. Write a parameterised job test matrix runner
 
 ---
 
-## Schema Additions Summary
-
-All are additive (nullable columns or new index) — safe to add via migration SQL.
-
-```sql
--- migration_v14.sql
--- Runtime attestation columns on execution_records
-
-ALTER TABLE execution_records ADD COLUMN IF NOT EXISTS
-    attestation_bundle TEXT;
-ALTER TABLE execution_records ADD COLUMN IF NOT EXISTS
-    attestation_signature TEXT;
-ALTER TABLE execution_records ADD COLUMN IF NOT EXISTS
-    attestation_status VARCHAR(20);
-
--- Environment tag on nodes (for ENVTAG-01 explicit column, if desired)
--- Note: env tags already work via operator_tags JSON column.
--- An explicit column is optional but aids filtering performance.
-ALTER TABLE nodes ADD COLUMN IF NOT EXISTS
-    env_tag VARCHAR(20);
-```
-
-The `env_tag` column on `Node` is optional — the existing `operator_tags` JSON column already
-supports `env:DEV` / `env:TEST` / `env:PROD` tags with enforced isolation in `pull_work()`.
-Adding a dedicated column is recommended for ENVTAG-03 (filterable Nodes view) to avoid
-parsing JSON in the DB query. If added, backfill from `operator_tags` at migration time.
-
----
-
-## Alternatives Considered
-
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| `cryptography` RSA+PKCS1v15 for attestation | `PyNaCl` Ed25519 for attestation | PyNaCl is already used for job signing. Using a different key type for attestation (node's mTLS RSA key) means we cannot reuse PyNaCl — the node's identity key is RSA, not Ed25519. Keeping `cryptography` for attestation uses the already-loaded key material. |
-| stdlib `json` + `hashlib` for bundle serialisation | `msgpack` or CBOR for binary attestation | Binary formats add a new dependency for no operational benefit. JSON is inspectable, debuggable, and sufficient for offline verification by operators. |
-| Existing `/jobs` POST for CI/CD dispatch | New dedicated `/api/v1/dispatch` endpoint | The existing endpoint already does everything needed. A thin wrapper adds a stable documented path without duplicating logic. Either approach works; the recommendation is to document the existing endpoint as the CI/CD interface and add the status-polling endpoint. |
-| `asyncssh` (conditional swap for paramiko) | Keep `paramiko` in all cases | Paramiko is LGPL-2.1. Dynamic import is fine for open-source distribution. The swap is only needed if EE wheel bundling creates static linking — assess before deciding. |
-| Dedicated `env_tag` column on nodes | Keep using `operator_tags` JSON | JSON parsing in SQL WHERE clauses is non-portable (differs between SQLite and Postgres). A dedicated column with an index makes the filter in ENVTAG-03 straightforward and consistent across both DB backends. |
-
----
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| New retry library (tenacity, backoff) | Retry logic with exponential backoff + jitter is already implemented in `job_service.py`. Adding a library would duplicate it. | Extend the existing `max_retries` / `backoff_multiplier` / `retry_after` pattern already in the `Job` model |
-| New attestation library (sigstore, in-toto) | Heavyweight dependencies designed for software supply chain provenance, not runtime execution attestation. The requirement is a signed JSON bundle using the node's existing RSA key — that is 20 lines of `cryptography` code. | `cryptography` (already present) |
-| `PyJWT` or `python-jose` for attestation tokens | JWTs are stateless bearer tokens, not signed execution records. The verification requirement needs the raw signature + stored cert. | Raw PKCS1v15 signature over the JSON bundle bytes |
-| `aiosqlite` version pin changes | The existing `DATABASE_URL` sqlite+aiosqlite pattern is already working. No version changes needed for v10.0 features. | Keep existing aiosqlite as installed by sqlalchemy[asyncio] |
-| New frontend charting library | recharts is already installed and used for sparklines. Execution timeline can use the same library. | recharts (already present) |
-
----
-
-## Stack Patterns by Variant
-
-**Attestation verification on orchestrator (OUTPUT-06):**
-- Load `Node.client_cert_pem` from DB
-- Parse with `cryptography.x509.load_pem_x509_certificate()`
-- Extract public key: `cert.public_key()`
-- Verify: `public_key.verify(signature_bytes, bundle_bytes, padding.PKCS1v15(), hashes.SHA256())`
-- Catch `cryptography.exceptions.InvalidSignature` → store `attestation_status = "FAILED"`
-- Success → store `attestation_status = "VERIFIED"`
-
-**Attestation signing on node (OUTPUT-05):**
-- Build bundle dict: `{script_hash, stdout_hash, stderr_hash, exit_code, started_at, node_cert_serial}`
-- Canonical form: `json.dumps(bundle, sort_keys=True).encode("utf-8")`
-- Load key: `serialization.load_pem_private_key(key_bytes, password=None)`
-- Sign: `private_key.sign(bundle_bytes, padding.PKCS1v15(), hashes.SHA256())`
-- Encode for transport: `base64.b64encode(signature).decode()`
-- Include `attestation_bundle` (JSON string) and `attestation_signature` (base64 string) in the `ResultReport` POST body
-
-**CI/CD dispatch pattern (ENVTAG-04):**
-```bash
-# Minimal CI/CD dispatch — no new tooling required
-JOB_ID=$(curl -sf -X POST https://axiom.example.com/jobs \
-  -H "Authorization: Bearer $SERVICE_PRINCIPAL_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"task_type":"python_script","payload":{...},"target_tags":["env:PROD"]}' \
-  | jq -r .guid)
-
-# Poll for completion
-while true; do
-  STATUS=$(curl -sf https://axiom.example.com/api/v1/jobs/$JOB_ID/status \
-    -H "Authorization: Bearer $SERVICE_PRINCIPAL_TOKEN" | jq -r .status)
-  [ "$STATUS" = "COMPLETED" ] && break
-  [ "$STATUS" = "FAILED" ] && exit 1
-  sleep 5
-done
-```
-
----
-
-## Version Compatibility
-
-| Package | Version in requirements.txt | Notes for v10.0 |
-|---------|---------------------------|-----------------|
-| cryptography | unpinned (latest) | RSA PKCS1v15 signing available since cryptography 1.x. No version concern. Current latest is 44.x. |
-| sqlalchemy | unpinned | `mapped_column` declarative syntax requires SQLAlchemy 2.0+. Already using it. New nullable columns are additive. |
-| aiosqlite | transitive via sqlalchemy | SQLite `ADD COLUMN IF NOT EXISTS` requires SQLite 3.35+ (shipped in Python 3.10+). Project already requires Python 3.10+. |
-| pyproject.toml setuptools | >=61.0 (already pinned) | `License-Expression` (PEP 639) requires setuptools >=62.3 for full support. Bump to `>=62.3` in `[build-system]`. |
-
----
-
-## Installation
-
-No new packages needed in `puppeteer/requirements.txt`.
-
-For `pyproject.toml` build-system:
-```toml
-[build-system]
-requires = ["setuptools>=62.3"]   # was >=61.0; bump for PEP 639 License-Expression
-build-backend = "setuptools.build_meta"
-
-[project]
-# Add this field (PEP 639):
-license-expression = "Apache-2.0"
-# Remove the old:
-# license = {text = "Apache-2.0"}
-```
-
----
-
-## Sources
-
-- `puppeteer/agent_service/db.py` — reviewed directly; `ExecutionRecord`, `Job`, `Node` schemas confirmed (HIGH confidence)
-- `puppeteer/agent_service/services/job_service.py` — retry logic, env-tag isolation, execution record writes confirmed (HIGH confidence)
-- `puppets/environment_service/node.py` — RSA key generation (line 380), `build_output_log()`, `report_result()` confirmed (HIGH confidence)
-- `puppeteer/agent_service/models.py` — `ResultReport` fields, `WorkResponse` fields confirmed (HIGH confidence)
-- `puppeteer/requirements.txt` — existing dependencies confirmed; no new additions needed (HIGH confidence)
-- `.github/workflows/release.yml` — PyPI OIDC publish jobs, GHCR multi-arch build confirmed (HIGH confidence)
-- `pyproject.toml` — current `license = {text = "Apache-2.0"}` form confirmed; PEP 639 migration path identified (HIGH confidence)
-- [PyPI Trusted Publishers — Creating a project through OIDC](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/) — pending publisher prerequisites, name-squatting warning confirmed (HIGH confidence)
-- [pypa/gh-action-pypi-publish](https://github.com/pypa/gh-action-pypi-publish) — `id-token: write` requirement, `repository-url` for TestPyPI confirmed (HIGH confidence)
-- [cryptography X.509 reference](https://cryptography.io/en/latest/x509/reference/) — `load_pem_x509_certificate`, `public_key()`, RSA verify API confirmed (HIGH confidence)
-- [Python packaging — License-Expression (PEP 639)](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license) — setuptools >=62.3 requirement for PEP 639 field (MEDIUM confidence — cross-referenced with setuptools changelog)
-
----
-
-*Stack research for: Axiom v10.0 — Commercial Release new features*
-*Researched: 2026-03-17*
-
----
----
-
-# Stack Research — v11.0 CE/EE Split Completion (ADDENDUM)
-
-**Domain:** CE/EE Split Completion — Python source protection, plugin wiring, Docker Hub publishing
-**Researched:** 2026-03-19
-**Confidence:** HIGH (versions verified from PyPI live pages; Action versions verified from GitHub Marketplace and existing release.yml; entry_points pattern verified from official Python packaging docs)
-
----
-
-## Scope
-
-This addendum covers ONLY the net-new stack requirements for v11.0 CE/EE Split Completion. The existing validated stack (including all v10.0 additions above) is not re-researched.
-
-Three new capability areas:
-1. **Compiling EE Python code to `.so`** — Cython vs Nuitka, build pipeline for private repo CI
-2. **Entry points plugin wiring** — CE discovers EE at startup via `importlib.metadata`
-3. **Docker Hub CE image publishing** — adding `axiom-ce` to Docker Hub alongside existing GHCR
-
----
-
-## Pre-Assessment: What Already Exists in the Split Branch
-
-The `feature/axiom-oss-ee-split` worktree (at `.worktrees/axiom-split/`) already has:
-
-| Component | State |
-|-----------|-------|
-| `agent_service/ee/__init__.py` — `load_ee_plugins(app, engine)` | Implemented using **`pkg_resources`** (deprecated) — needs migration to `importlib.metadata` |
-| `agent_service/ee/interfaces/` — 8 ABC stub files | Complete |
-| `agent_service/ee/routers/` — 7 extracted router files | Complete (to be moved to private `axiom-ee` repo) |
-| EE entry point group name | `"axiom.ee"` — confirmed in `load_ee_plugins()` |
-| `pyproject.toml` (CE side) | Uses `setuptools>=77.0` — sufficient for `[project.entry-points]` table |
-| `release.yml` — GHCR multi-arch publish | Complete using `docker/login-action@v3`, `docker/build-push-action@v6`, `docker/metadata-action@v6` |
-
----
-
-## Recommended Stack — NEW Additions for v11.0
+## Recommended Stack — New Additions for v11.1
 
 ### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Cython | 3.2.4 | Compile EE `.py` router/plugin files to `.so` extension modules | Pure-Python mode compiles unmodified `.py` files — no `.pyx` rewrite needed; standard `ext_modules` in `pyproject.toml`; produces importable `.so` with no readable source; well-established in open-core products (msgpack, lxml, etc.) |
-| cibuildwheel | 3.4.0 | Build Cython `.so` wheels for linux/amd64 and linux/arm64 in CI | pypa-endorsed standard for C extension wheel CI; handles manylinux containers automatically; QEMU handles aarch64 emulation; used by scipy, pandas, numpy — proven at scale |
-| importlib.metadata | stdlib Python 3.10+ | Discover `axiom.ee` entry point at CE startup | Replacement for deprecated `pkg_resources`; `entry_points(group='axiom.ee')` is the canonical modern API; no extra dependency; project already requires Python 3.10+ |
-| docker/login-action | v3 | Authenticate to Docker Hub in GitHub Actions | Official Docker-maintained action; already used for GHCR login in release.yml; PAT-based (password auth deprecated by Docker Hub) |
+| Incus CLI | 6.22 (on host) | Provision and manage LXC containers for the 4 test nodes | Already installed and working; `incus exec` / `incus file push` / `incus list --format json` are the correct CLI verbs for scripted provisioning; no new installation needed |
+| `cryptography` | 46.0.5 (on host) | Generate Ed25519 test licence keypair; sign test licence payloads | Already the EE plugin's verification library; same key format; no new dependency |
+| `requests` | already in `mop_validation/` | HTTP client for the job matrix runner calling the Axiom REST API | Already used by all existing test scripts |
+| `python-dotenv` | already in `mop_validation/` | Load `secrets.env` in test scripts | Already used by `test_concurrent_job.py` and others |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| setuptools | >=77.0 (already in CE pyproject.toml) | Build backend for `ext_modules` Cython compilation in EE repo | Required in `[build-system].requires` of EE private repo's `pyproject.toml` |
-| Cython | >=3.2.4,<4 | Build-time only (NOT in runtime requirements) | Declared in `[build-system].requires` in EE repo; never in `requirements.txt` or runtime image |
-| build (`python -m build`) | latest | Invoke the Cython wheel build in EE CI | Already in CE's `release.yml` — same pattern applies to EE |
+| `subprocess` (stdlib) | Python stdlib | Shell out to `docker compose` and `incus` CLI from test scripts | All teardown, rebuild, and node provisioning logic; avoid `os.system()` — use `subprocess.run(..., check=True)` for error propagation |
+| `time` / `datetime` (stdlib) | Python stdlib | Job timing assertions in the test matrix (fast job < 5s, slow job > 10s) | Duration validation in the job matrix runner |
+| `concurrent.futures.ThreadPoolExecutor` (stdlib) | Python stdlib | Submit N concurrent jobs simultaneously in the concurrency test cases | The REST API is synchronous from the caller's perspective; threads let N jobs be submitted in parallel without async overhead |
+| `json` (stdlib) | Python stdlib | Build job payloads and parse API responses | Already used throughout test scripts |
+| `base64` (stdlib) | Python stdlib | Encode licence key wire format and Ed25519 signatures | Same pattern as phase 37 key generation script |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| `cython --annotate` | Generate HTML showing Python/C interaction per line | Use during EE development to verify compilation coverage; never ship annotate HTML in distribution |
-| `cibuildwheel --platform linux` (local) | Test wheel builds locally before CI push | Requires Docker; `pip install cibuildwheel && cibuildwheel --platform linux` in EE repo root |
+| `incus exec <node> -- <cmd>` | Run commands inside a provisioned LXC node | The correct verb for post-launch configuration; prefer over SSH for provisioning steps |
+| `incus file push <local> <node>/<remote>` | Copy files into an LXC container | Use to inject node compose files, secrets, and JOIN_TOKEN |
+| `incus list --format json` | Poll container state and extract IP addresses | Same pattern as existing `manage_node.py`; parse with `json.loads()` |
+| `docker compose -f compose.server.yaml down -v` | Full stack teardown including volumes | `-v` removes named volumes (pgdata, certs-volume, etc.) — required for a true fresh install |
+| `docker compose -f compose.server.yaml up -d --build` | Fresh stack bring-up with image rebuild | `--build` forces image rebuild so code changes are picked up |
+| `docker compose -f compose.server.yaml ps` | Verify all services are healthy before running tests | Check `State: running` and health status on `db` service |
 
 ---
 
 ## Installation
 
+No new packages need to be added to `puppeteer/requirements.txt` or `mop_validation/`.
+
+All tooling is either:
+- Already installed on the host (`incus`, `cryptography`, `docker`)
+- Python stdlib (`subprocess`, `concurrent.futures`, `base64`, `json`, `time`)
+- Already in `mop_validation/` (`requests`, `python-dotenv`)
+
 ```bash
-# EE private repo — pyproject.toml additions only (not runtime requirements)
-# [build-system]
-# requires = ["setuptools>=77.0", "Cython>=3.2.4,<4"]
-
-# CE side — no new pip installs
-# importlib.metadata is stdlib on Python 3.10+
-# The one change is in ee/__init__.py: replace pkg_resources with importlib.metadata (see below)
-
-# CI tooling (not in any requirements.txt)
-pip install cibuildwheel build
+# Verify prerequisites are in place (run once):
+incus --version          # expect: 6.22
+docker --version         # expect: 29.x
+python3 -c "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey; print('ok')"
+python3 -c "import requests; print('ok')"
 ```
 
 ---
 
-## Decision Details
+## Area 1: Clean Stack Teardown + Fresh Install
 
-### 1. Cython over Nuitka for `.so` compilation
+### What to Build
 
-**Use Cython. This is a firm recommendation.**
+A single script at `mop_validation/scripts/fresh_install.py` (or `teardown_and_reinstall.sh`).
+Use Python (not bash) for consistency with existing test scripts and to share the `load_env()` helper.
 
-**Why Cython wins for this use case:**
+### Pattern
 
-- **Pure-Python mode**: Cython 3.x compiles plain `.py` files with no `.pyx` dialect. The EE router and plugin files are regular Python — zero rewrite required.
-- **setuptools `ext_modules` integration**: Declare all EE `.py` files as extension modules in `pyproject.toml`. `python -m build` produces a wheel containing only `.so` files — no `.py` source shipped.
-- **cibuildwheel compatibility**: cibuildwheel was designed for exactly this pattern (C extension wheels). It handles manylinux containers, QEMU for aarch64, and Python 3.9–3.13 automatically.
-- **Wheel portability**: The output is a standard Python wheel installable via `pip install axiom-ee`. No special runtime shim or wrapper needed.
-- **Maturity**: Cython 3.2.4 (Jan 2026). Widely deployed in production open-core Python products for over a decade.
+```
+Phase 0: Teardown
+  - docker compose -f compose.server.yaml down -v   # stops all containers + wipes volumes
+  - docker compose -f compose.server.yaml rm -f     # remove stopped containers
+  - docker volume prune -f                          # catch any orphan volumes
+  - rm -f puppeteer/pki/root_ca.*                   # wipe CA so enrollment re-runs cleanly
+  - rm -f puppeteer/jobs.db                         # wipe SQLite if dev mode
+  - (optional) docker image rm <built images>       # force full image rebuild
 
-**Why Nuitka is not the right tool:**
+Phase 1: CE-only fresh bring-up
+  - docker compose -f compose.server.yaml up -d --build
+  - poll /api/health until 200 (with 60s timeout)
+  - assert admin login works
 
-- Nuitka 4.0.6 targets standalone executables or single-module compilation (`--mode=module`). Packaging a multi-module package (7 routers + plugin class + interfaces) into a distributable wheel requires `nuitka-setuptools`, a third-party bridge with no official maintenance.
-- Nuitka embeds a C runtime shim that inflates `.so` file size. Cython's output is lean.
-- Nuitka-Action (v1.3) is documented for executable builds. Module-mode multi-file wheel CI with aarch64 is not covered by official Nuitka tooling.
-- The commercial features (encrypted tracebacks) are relevant for standalone executables distributed to end users — not for a wheel-based plugin loaded by a server process.
+Phase 2: CE+EE fresh bring-up (separate run)
+  - add axiom-ee wheel to agent's pip install step (or mount devpi wheel)
+  - set AXIOM_LICENCE_KEY=<test licence key> in compose .env
+  - docker compose -f compose.server.yaml up -d --build
+  - poll /api/licence → assert edition == "enterprise"
+```
 
-**Verdict**: Cython for `.so` wheel builds. Nuitka is the right tool for standalone CLI executables (not this use case).
+### Why `-v` on `down` Matters
+
+`docker compose down` without `-v` leaves named volumes intact (pgdata, certs-volume, mirror-data).
+The next `up` reuses the old DB and old CA — this is not a fresh install. `-v` is mandatory for
+true clean-slate validation.
+
+### Pitfall: PKI Directory Permissions
+
+The `certs-volume` mount at `/app/global_certs` in the agent container is read-only. The CA
+files live in `puppeteer/pki/` on the host. After `down -v`, the Caddy cert-manager container
+regenerates its own TLS certs on next start, but the Axiom Root CA is re-generated by the agent
+on first startup (in `pki.py`). No manual CA cleanup is needed unless testing the case where
+the CA is intentionally corrupted.
 
 ---
 
-### 2. Entry points: migrate from `pkg_resources` to `importlib.metadata`
+## Area 2: 4 LXC Nodes with Different Env Tags
 
-The existing `load_ee_plugins()` in `agent_service/ee/__init__.py` uses `pkg_resources.iter_entry_points("axiom.ee")`. This must be updated before v11.0 ships.
+### What to Build
 
-`pkg_resources` was deprecated in setuptools 67.0 (January 2023) and emits `DeprecationWarning` in current environments. `importlib.metadata` is the stdlib replacement, available since Python 3.8 and fully stabilised in 3.10 — the project's minimum Python version.
+Extend `.agent/skills/manage-test-nodes/scripts/manage_node.py` OR create a new script at
+`mop_validation/scripts/provision_test_nodes.py` that provisions 4 named containers in parallel.
 
-**Updated discovery code (drop-in replacement for the `try` block in `load_ee_plugins()`):**
+The existing skill creates one node (`mop-test-node`). The v11.1 requirement is 4 nodes with
+distinct names and env tags:
+
+| Container Name | Env Tag | JOIN_TOKEN Source | EXECUTION_MODE |
+|---------------|---------|-------------------|----------------|
+| `axiom-node-dev` | `DEV` | from `GET /api/join-token` | `direct` |
+| `axiom-node-test` | `TEST` | from `GET /api/join-token` | `direct` |
+| `axiom-node-prod` | `PROD` | from `GET /api/join-token` | `direct` |
+| `axiom-node-staging` | `STAGING` | from `GET /api/join-token` | `direct` |
+
+### Pattern
 
 ```python
-from importlib.metadata import entry_points
+NODES = [
+    {"name": "axiom-node-dev",     "env_tag": "DEV"},
+    {"name": "axiom-node-test",    "env_tag": "TEST"},
+    {"name": "axiom-node-prod",    "env_tag": "PROD"},
+    {"name": "axiom-node-staging", "env_tag": "STAGING"},
+]
+IMAGE = "images:ubuntu/24.04"
+INCUS_FLAGS = "-c security.nesting=true"
 
-plugins = entry_points(group="axiom.ee")
+# Launch all 4 in sequence (Incus launch is fast; parallel launches can race on the bridge):
+for node in NODES:
+    run(f"incus launch {IMAGE} {node['name']} {INCUS_FLAGS}")
+
+# Configure each node (parallel via threads is safe for exec steps):
+for node in NODES:
+    configure_node(node)   # apt install, SSH key, Python deps
+
+# Inject node compose file into each container with the correct AGENT_URL,
+# ENV_TAG, and JOIN_TOKEN, then start the puppet node.py directly (or via a
+# minimal node-compose.yaml inside the container).
 ```
 
-The `entry_points(group=...)` keyword-argument form requires Python 3.9+. Project requires 3.10+, so this is safe. On a CE-only install, `plugins` is an empty `SelectableGroups` object — no exception, no log noise.
+### Env Tag Injection
 
-**EE private repo `pyproject.toml` entry point declaration (correct modern syntax):**
+The Axiom node declares its env tag via `OPERATOR_TAGS` env var (format: `env:DEV`).
+The node.py sends this in the heartbeat; job_service.py enforces isolation.
 
-```toml
-[project.entry-points."axiom.ee"]
-core = "ee.plugin:EEPlugin"
+Each container's node startup command must set:
+```bash
+OPERATOR_TAGS=env:DEV EXECUTION_MODE=direct python3 -m environment_service.node
 ```
 
-The existing plan's `setup.cfg` example uses legacy INI format. Use `pyproject.toml` instead — it is the current standard and consistent with both the CE repo and the EE repo's build system.
+Or pass via a minimal compose file injected with `incus file push`.
 
-**How the wiring works end-to-end:**
-1. `pip install axiom-ee` registers the entry point metadata alongside the installed `.so` files
-2. CE starts, `lifespan()` calls `load_ee_plugins(app, engine)`
-3. `entry_points(group="axiom.ee")` finds `EEPlugin` (loaded from the compiled `.so`)
-4. `plugin_cls(app, engine)` instantiates with the FastAPI app and SQLAlchemy engine
-5. `plugin.register(ctx)` mounts the 7 EE routers on `app` and sets feature flags `True` in `ctx`
+### Incus Networking to Axiom
+
+The Axiom control plane runs in Docker on the host. Incus containers are on the default
+`incusbr0` bridge (typically 10.x.x.x). The host is reachable from Incus containers at
+the bridge's host-side IP.
+
+Get the host-side Incus bridge IP:
+```bash
+ip addr show incusbr0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1
+```
+
+Set `AGENT_URL=https://<incusbr0_host_ip>:8001` in each node's environment.
+The Axiom TLS cert must include this IP as a SAN. If Caddy was configured with
+`SERVER_HOSTNAME=<host_lan_ip>`, the cert may not cover the Incus bridge IP — this
+is the primary networking pitfall.
+
+**Mitigation:** Use `--no-verify` (disable TLS verification) in the puppet node's connection
+OR configure Caddy with `SERVER_HOSTNAME=` set to the Incus bridge host IP in addition to
+the LAN IP. The simpler path for test nodes is to pass the Root CA PEM via `JOIN_TOKEN`
+(the existing enrollment mechanism) — nodes already extract and trust the Root CA from the token.
+The mTLS root CA trust is separate from the Caddy HTTPS cert trust.
+
+Confirm: nodes talk to `https://AGENT_URL:8001` using the Root CA from JOIN_TOKEN. If Caddy
+is the TLS terminator and its cert is from a different CA (ACME/Let's Encrypt), nodes will
+reject it. **Use `verify=False` on the node's `requests` session for the enroll step**, or
+expose port 8001 (the FastAPI agent directly) rather than routing through Caddy port 443.
+
+The compose.server.yaml exposes `8001:8001` directly on the agent — point nodes to
+`https://<host_ip>:8001` (the FastAPI self-signed cert), not to the Caddy proxy.
 
 ---
 
-### 3. Docker Hub CE publishing — exact workflow change
+## Area 3: EE Test Keypair + Binary Patcher
 
-**The delta from the existing `release.yml` is minimal:**
+### What to Build
 
-1. Add a Docker Hub login step (before the existing GHCR login step)
-2. Add `axiom-laboratories/axiom-ce` to the `metadata-action` images list alongside the existing GHCR image
+A script at `mop_validation/scripts/generate_test_licence.py` that:
+1. Generates a fresh Ed25519 keypair
+2. Prints the raw 32-byte public key as a Python bytes literal (for patching `plugin.py`)
+3. Signs a test licence payload and prints the `AXIOM_LICENCE_KEY` env var value
 
-Single build, single `build-push-action` call, two registry pushes.
+This pattern is already fully documented in phase 37 research — see `37-RESEARCH.md` code
+examples. The script is a direct implementation of that pattern.
 
-**Docker Hub authentication**: Create a Docker Hub Personal Access Token (PAT) with Read/Write/Delete scope at Docker Hub → Account Settings → Security → New Access Token. Store as:
-- Repository secret: `DOCKERHUB_TOKEN` (the PAT value)
-- Repository variable: `DOCKERHUB_USERNAME` (Docker Hub username)
+### Pattern (already verified in phase 37)
 
-**Do not use Docker Hub password** — Docker Hub deprecated password-based API authentication. PAT is required and has been the only supported method since 2021.
+```python
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, PublicFormat
+import base64, json, time
 
-**Additions to the `docker-release` job in `release.yml`:**
+priv = Ed25519PrivateKey.generate()
+pub = priv.public_key()
 
-```yaml
-# Add this step BEFORE the existing GHCR login step:
-- name: Log in to Docker Hub
-  uses: docker/login-action@v3
-  with:
-    username: ${{ vars.DOCKERHUB_USERNAME }}
-    password: ${{ secrets.DOCKERHUB_TOKEN }}
+# 32-byte raw public key — paste into ee/plugin.py as _LICENCE_PUBLIC_KEY_BYTES
+raw_pub = pub.public_bytes(Encoding.Raw, PublicFormat.Raw)
+print(f"_LICENCE_PUBLIC_KEY_BYTES = {raw_pub!r}")
 
-# Update the metadata-action images list:
-- name: Extract Docker metadata
-  id: meta
-  uses: docker/metadata-action@v6
-  with:
-    images: |
-      axiom-laboratories/axiom-ce
-      ghcr.io/axiom-laboratories/axiom
-    # ... rest of tags/flavor config unchanged
+# Build 1-year test licence
+payload = {
+    "customer_id": "axiom-test",
+    "exp": int(time.time()) + 365 * 86400,
+    "features": ["foundry", "rbac", "webhooks", "triggers", "audit"],
+}
+payload_bytes = json.dumps(payload, separators=(',', ':')).encode()
+sig = priv.sign(payload_bytes)
+
+p_b64 = base64.urlsafe_b64encode(payload_bytes).rstrip(b'=').decode()
+s_b64 = base64.urlsafe_b64encode(sig).rstrip(b'=').decode()
+print(f"AXIOM_LICENCE_KEY={p_b64}.{s_b64}")
 ```
 
-The `build-push-action` step requires no changes — it reads from `${{ steps.meta.outputs.tags }}` which now includes both registries.
+### Patching the EE Binary
 
-**Naming**: `axiom-ce` on Docker Hub (not `axiom`) makes the CE/EE distinction explicit to users evaluating the product.
+The `_LICENCE_PUBLIC_KEY_BYTES` is a bytes literal in `axiom-ee/ee/plugin.py` — currently
+32 zero bytes (placeholder). To test EE validation:
+
+1. Run `generate_test_licence.py` → get the raw bytes literal + `AXIOM_LICENCE_KEY` value
+2. Edit `axiom-ee/ee/plugin.py`: replace the `_LICENCE_PUBLIC_KEY_BYTES` placeholder
+3. Rebuild the Cython `.so`: `pip install build && python -m build --wheel --no-sdist`
+   (or use cibuildwheel for the full pipeline)
+4. Re-install the wheel into the devpi index or directly: `pip install dist/axiom_ee-*.whl --force-reinstall`
+5. Rebuild the Docker agent image: `docker compose -f compose.server.yaml build agent`
+6. Set `AXIOM_LICENCE_KEY=<value>` in `puppeteer/.env`
+7. `docker compose -f compose.server.yaml up -d --no-build agent`
+8. `GET /api/licence` should return `edition: enterprise`
+
+**Simpler path for development testing (no Cython rebuild):** Run the EE plugin in pure Python
+mode (skip the `.so`) by modifying the agent's `PYTHONPATH` to point to the raw `axiom-ee/` source
+directory. The `_LICENCE_PUBLIC_KEY_BYTES` can then be patched directly in the `.py` file with
+no compilation step. This is valid for v11.1 validation testing — the `.so` compilation is the
+production path, not required for adversarial functional testing.
+
+---
+
+## Area 4: Job Test Matrix Runner
+
+### What to Build
+
+A script at `mop_validation/scripts/job_matrix_runner.py` that submits a parameterised set
+of jobs and asserts outcomes.
+
+### Job Script Templates
+
+Each job is a small Python script signed with the existing signing key before submission.
+The test matrix covers:
+
+| Case | Script Behaviour | Expected Outcome | Env Tag Target |
+|------|-----------------|-----------------|----------------|
+| fast-success | `time.sleep(1); sys.exit(0)` | COMPLETED in < 5s | DEV |
+| slow-success | `time.sleep(30); sys.exit(0)` | COMPLETED in 30–45s | TEST |
+| light-memory | Allocate 10MB; exit 0 | COMPLETED; memory < limit | PROD |
+| heavy-memory | Allocate 400MB; exit 0 (or OOM) | COMPLETED or FAILED (memory limit enforced) | STAGING |
+| concurrent-N | Submit 4 identical fast jobs simultaneously | All 4 COMPLETED; confirm on correct env | DEV |
+| crash | `raise RuntimeError("deliberate crash")` | FAILED; exit code != 0 | DEV |
+| bad-exit | `sys.exit(99)` | FAILED; exit code == 99 | DEV |
+| bad-sig | Submit job with corrupted signature | Rejected at submission (422) or at node (refused) | any |
+| expired-sig | Submit job signed with revoked/old key | Rejected at node (signature mismatch) | any |
+
+### Signing in the Matrix Runner
+
+All valid jobs must be signed with the operator's Ed25519 signing key (registered via
+`POST /api/signatures`). The matrix runner loads `puppeteer/secrets/signing.key` (PEM),
+signs `script_content.encode('utf-8')`, base64-encodes the signature, and includes it in
+the job payload. This is the same pattern as `mop_validation/scripts/run_signed_job.py`.
+
+For bad-sig and expired-sig cases, corrupt the base64 signature string or use a different
+private key that is not registered.
+
+### Concurrency Pattern
+
+Use `concurrent.futures.ThreadPoolExecutor` to submit N jobs simultaneously:
+
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def submit_job(session, payload):
+    resp = session.post(f"{AGENT_URL}/jobs", json=payload)
+    return resp.json()
+
+with ThreadPoolExecutor(max_workers=4) as executor:
+    futures = [executor.submit(submit_job, session, payload) for _ in range(4)]
+    job_ids = [f.result()["guid"] for f in as_completed(futures)]
+```
+
+### Outcome Polling
+
+Poll `GET /jobs/{guid}` or `GET /api/executions?job_guid={guid}` until status is
+`COMPLETED` or `FAILED`, with a configurable timeout (e.g. 120s for slow jobs).
+
+### Memory Limit Testing
+
+Submit jobs with `memory_limit` field in the payload (already supported by `JobCreate` model).
+The node's `runtime.py` passes `--memory` to Docker. For `direct` mode (which LXC nodes use),
+the memory limit is NOT enforced by the runtime — this is a known limitation. Verify this
+behaviour explicitly in the matrix results: assert that heavy-memory jobs complete successfully
+in `direct` mode (limit bypassed) versus `docker` mode (limit enforced, OOM kills).
 
 ---
 
@@ -478,110 +355,78 @@ The `build-push-action` step requires no changes — it reads from `${{ steps.me
 
 | Recommended | Alternative | Why Not |
 |-------------|-------------|---------|
-| Cython 3.2.4 for `.so` | Nuitka 4.0.6 `--mode=module` | Nuitka targets executables; multi-module wheel packaging requires unsupported `nuitka-setuptools` bridge; larger output; no cibuildwheel integration |
-| cibuildwheel for wheel CI | Manual `docker run manylinux + Cython` | cibuildwheel IS the standard abstraction over manylinux; reinventing it adds maintenance burden with no benefit |
-| `importlib.metadata` (stdlib) | `pkg_resources` (setuptools) | `pkg_resources` deprecated since setuptools 67 (Jan 2023); emits DeprecationWarning; removal is planned |
-| `importlib.metadata` (stdlib) | `importlib_metadata` backport package | Backport only needed for Python < 3.9; CE requires Python 3.10+; no extra dependency needed |
-| `pyproject.toml` `[project.entry-points]` | `setup.cfg` `[options.entry_points]` | `setup.cfg` is legacy; `pyproject.toml` is the current standard; CE repo already uses `pyproject.toml` |
-| Docker Hub PAT (`DOCKERHUB_TOKEN`) | Docker Hub password | Password auth deprecated for Docker Hub API access since 2021; PAT is the only supported method |
-| Wheels-only distribution for EE | EE sdist (source distribution) | sdist would ship `.py` source, defeating the source protection entirely; EE must publish binary wheels only |
-
----
+| Incus LXC for 4 test nodes | 4 Docker-in-Docker containers | DinD has known cgroup v2 issues on Linux 6.x hosts (the project's own CLAUDE.md documents this for `direct` mode); Incus LXC provides a proper Linux namespace boundary without the cgroup nesting problem |
+| Incus LXC for 4 test nodes | 4 separate Docker Compose node stacks on host | Pollutes the host Docker network; makes network isolation per env-tag harder to test; LXC is cleaner for node-level isolation |
+| `concurrent.futures.ThreadPoolExecutor` for concurrent job submission | `asyncio.gather` | The test script is synchronous; threading is the right tool for parallel HTTP calls in a sync script; `asyncio` would require rewriting the entire test client as async |
+| Cython `.so` rebuild + fresh devpi wheel for EE key swap | Monkeypatch `_LICENCE_PUBLIC_KEY_BYTES` in memory at test time | Monkeypatching the compiled `.so` is not possible at runtime; patching the `.py` source + re-running pure Python (skipping Cython) is the dev-testing path; full rebuild is the production-fidelity path |
+| Python script for teardown + install | Bash script | Python scripts share the `load_env()` helper and `subprocess.run(check=True)` error handling with existing test scripts; bash scripts are harder to integrate with the assertion/reporting layer |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `pkg_resources.iter_entry_points()` | Deprecated since setuptools 67 (Jan 2023); emits DeprecationWarning; scheduled for removal | `importlib.metadata.entry_points(group="axiom.ee")` |
-| Nuitka `--mode=module` for EE wheel distribution | No standard cibuildwheel integration; multi-module package compilation is underdocumented and fragile; larger `.so` output | Cython with `ext_modules` in `pyproject.toml` |
-| `.pyx` Cython dialect for EE files | Requires rewriting all EE Python files; pure Python mode works on unmodified `.py` | Cython pure Python mode — compile `.py` files directly |
-| Shipping `.py` files alongside `.so` in EE wheel | Python prefers `.py` over `.so` when both exist in the same location — the source would be imported, not the compiled module | Exclude all `.py` source from the EE wheel; use `MANIFEST.in` exclusions or set `package-data` to exclude `*.py` |
-| EE sdist publishing | An sdist contains the original `.py` source files — defeats source protection | Configure EE CI to build and publish only binary wheels (`--no-sdist` flag in `python -m build`) |
-| Cython in `requirements.txt` or runtime Docker image | Cython is a build-time dependency only; adding it to the runtime image adds ~50MB for zero benefit | Declare in `[build-system].requires` only; never in `requirements.txt` |
-| Docker Hub password as a GitHub secret | Deprecated auth; will break when Docker Hub enforces token-only auth more broadly | Docker Hub PAT stored as `DOCKERHUB_TOKEN` secret |
+| `incus launch` in parallel threads for 4 nodes | Incus bridge assignment can race when multiple containers request IPs simultaneously — launches fail silently | Launch sequentially with `for` loop; configure in parallel after all are running |
+| `docker compose down` without `-v` for teardown | Named volumes (pgdata, certs-volume) survive; next bring-up is not a fresh install | `docker compose down -v` always |
+| `EXECUTION_MODE=auto` or `EXECUTION_MODE=docker` for LXC nodes | LXC containers have nesting enabled but Podman/Docker-in-LXC has the same cgroup v2 issues as DinD; `direct` mode avoids the container runtime entirely | `EXECUTION_MODE=direct` on all LXC test nodes |
+| Submitting jobs without signing for success-case tests | The signature verification is part of what is being validated; unsigned job submission will be rejected at the API layer | Always sign with the registered key for success cases; only corrupt signatures for negative-path tests |
+| Hardcoding the Incus bridge IP | The bridge IP can differ between host configurations (`10.x.x.x` range varies) | Derive dynamically: `ip addr show incusbr0 \| grep 'inet ' \| awk '{print $2}' \| cut -d/ -f1` |
+| Testing EE with the 32-zero placeholder key in `plugin.py` | `Ed25519PublicKey.from_public_bytes(b'\x00' * 32)` will construct successfully but all licence signatures will fail verify — the key is not a valid curve point | Always generate a real keypair with `Ed25519PrivateKey.generate()` before EE testing |
 
 ---
 
 ## Stack Patterns by Variant
 
-**EE private repo `pyproject.toml` — Cython build configuration:**
-```toml
-[build-system]
-requires = ["setuptools>=77.0", "Cython>=3.2.4,<4"]
-build-backend = "setuptools.build_meta"
+**If testing CE-only (no EE wheel installed):**
+- Bring up stack normally
+- `GET /api/licence` returns `{"edition": "community"}`
+- EE routes return 402 (CE stubs)
+- No `AXIOM_LICENCE_KEY` env var needed
 
-[project]
-name = "axiom-ee"
-# ...
+**If testing CE+EE (EE wheel installed, test key):**
+- Run `generate_test_licence.py` → get `_LICENCE_PUBLIC_KEY_BYTES` and `AXIOM_LICENCE_KEY`
+- Patch `axiom-ee/ee/plugin.py` with the new bytes literal
+- Either rebuild `.so` (full fidelity) or run in pure Python mode (dev shortcut)
+- Set `AXIOM_LICENCE_KEY=...` in `puppeteer/.env`
+- Rebuild and restart agent container
+- `GET /api/licence` returns `{"edition": "enterprise", ...}`
 
-[tool.setuptools]
-# Explicitly list all .py files to compile as extension modules
-# so no source ships in the wheel
-ext-modules = [
-  {name = "ee.plugin", sources = ["ee/plugin.py"]},
-  {name = "ee.routers.foundry_router", sources = ["ee/routers/foundry_router.py"]},
-  # ... one entry per file
-]
-```
+**If testing node env-tag isolation:**
+- Submit a job with `env_tag: "PROD"` in the payload
+- Assert it is only picked up by `axiom-node-prod` (not DEV/TEST/STAGING nodes)
+- Verify via `GET /jobs/{guid}` → `node_id` matches the PROD node's registered ID
 
-**EE CI wheel build (cibuildwheel in GitHub Actions):**
-```yaml
-- name: Build wheels
-  uses: pypa/cibuildwheel@v3.4.0
-  env:
-    CIBW_BUILD: "cp312-manylinux_x86_64 cp312-manylinux_aarch64"
-    CIBW_ARCHS_LINUX: "x86_64 aarch64"
-    CIBW_BEFORE_BUILD: "pip install Cython>=3.2.4"
-```
-
-**CE startup entry_points discovery (updated `ee/__init__.py`):**
-```python
-from importlib.metadata import entry_points  # replaces: import pkg_resources
-
-def load_ee_plugins(app, engine) -> EEContext:
-    ctx = EEContext()
-    try:
-        plugins = entry_points(group="axiom.ee")  # replaces: pkg_resources.iter_entry_points(...)
-        for ep in plugins:
-            plugin_cls = ep.load()
-            plugin = plugin_cls(app, engine)
-            plugin.register(ctx)
-            logger.info(f"Loaded EE plugin: {ep.name}")
-        if not plugins:
-            logger.info("No EE plugins found — running in CE mode")
-    except Exception as e:
-        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
-    return ctx
-```
+**If testing `direct` mode memory limits:**
+- Set `memory_limit: "50m"` in the job payload
+- In `direct` mode, the limit is not enforced — the job completes even with 400MB allocation
+- This is expected behaviour; document it in the test results rather than treating as a failure
+- Run the same test via a Docker node (separate node compose stack) to confirm limit IS enforced
 
 ---
 
 ## Version Compatibility
 
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| Cython 3.2.4 | Python 3.9–3.13 | Pure Python mode (`.py` compilation) stable in Cython 3.x; tested against CPython 3.12 (project target) |
-| cibuildwheel 3.4.0 | Cython 3.x, setuptools >=77 | Runs builds inside manylinux2014 containers (x86_64 native, aarch64 via QEMU) |
-| importlib.metadata | Python 3.10+ (stdlib) | `entry_points(group=...)` keyword form requires Python 3.9+; project minimum is 3.10 |
-| docker/login-action v3 | docker/build-push-action v6 | Both current major versions; already used in release.yml for GHCR |
-| docker/metadata-action v6 | docker/build-push-action v6 | Same action generation; already in release.yml |
+| Package | Version on Host | Notes for v11.1 |
+|---------|-----------------|-----------------|
+| Incus | 6.22 | `incus exec <node> -- env ...` runs commands as root inside the container; `security.nesting=true` required for running containered workloads inside LXC |
+| cryptography | 46.0.5 | `Ed25519PrivateKey.generate()` + `.sign(bytes)` → 64-byte signature; `Ed25519PublicKey.from_public_bytes(32_bytes).verify(sig, data)` — 2-arg call, sig first |
+| Docker | 29.2.1 | `docker compose down -v` behaviour confirmed; `--build` flag forces image rebuild |
+| Python (host) | 3.x (host system) | `concurrent.futures.ThreadPoolExecutor` is stdlib; no additional install |
 
 ---
 
 ## Sources
 
-- [Cython PyPI — version 3.2.4 confirmed](https://pypi.org/project/Cython/) — HIGH confidence (live PyPI, released 2026-01-04)
-- [Nuitka PyPI — version 4.0.6 confirmed](https://pypi.org/project/Nuitka/) — HIGH confidence (live PyPI, released 2026-03-18)
-- [Cython source files and compilation — official docs](https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html) — HIGH confidence
-- [Nuitka-Action v1.3 — module mode](https://github.com/Nuitka/Nuitka-Action) — HIGH confidence (official Nuitka GitHub)
-- [cibuildwheel v3.4.0 — platform support](https://cibuildwheel.pypa.io/en/stable/platforms/) — HIGH confidence (pypa official docs)
-- [Python Packaging — Creating and discovering plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/) — HIGH confidence (packaging.python.org)
-- [setuptools — Entry Points](https://setuptools.pypa.io/en/latest/userguide/entry_point.html) — HIGH confidence (official setuptools docs)
-- [GitHub Docs — Publishing Docker images](https://docs.github.com/en/actions/publishing-packages/publishing-docker-images) — HIGH confidence (official GitHub docs)
-- `.github/workflows/release.yml` in repo — existing Action versions (v3/v6) and GHCR pattern confirmed by direct review — HIGH confidence
-- `.worktrees/axiom-split/puppeteer/agent_service/ee/__init__.py` — existing `pkg_resources` usage confirmed by direct review — HIGH confidence
+- Local host verification: `incus --version` → 6.22; `incus list` → clean (HIGH confidence)
+- Local host verification: `python3 -c "from cryptography...Ed25519PrivateKey..."` → confirmed working with v46.0.5 (HIGH confidence)
+- Local host verification: `docker --version` → 29.2.1 (HIGH confidence)
+- `.agent/skills/manage-test-nodes/scripts/manage_node.py` — reviewed directly; existing single-node provisioner pattern (HIGH confidence)
+- `mop_validation/scripts/test_concurrent_job.py` — reviewed directly; signing pattern, job submission structure (HIGH confidence)
+- `mop_validation/scripts/test_local_stack.py` — reviewed directly; stack bring-up structure, path conventions (HIGH confidence)
+- `.planning/milestones/v11.0-phases/37-licence-validation-docs-docker-hub/37-RESEARCH.md` — Ed25519 licence key generation pattern, wire format, verify call order (HIGH confidence — locally verified in phase 37)
+- `puppeteer/compose.server.yaml` — reviewed directly; service names, volume names, port exposures (HIGH confidence)
+- CLAUDE.md `Known Deferred Issues` — `direct` mode is correct for DinD / LXC nodes; memory limits not enforced in direct mode (HIGH confidence — documented project constraint)
 
 ---
 
-*Stack research for: Axiom v11.0 — CE/EE Split Completion (Cython .so pipeline, entry_points EE wiring, Docker Hub CE publish)*
-*Researched: 2026-03-19*
+*Stack research for: Axiom v11.1 — Stack Validation (teardown, LXC nodes, EE test key, job matrix)*
+*Researched: 2026-03-20*

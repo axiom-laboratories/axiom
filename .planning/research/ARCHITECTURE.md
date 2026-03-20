@@ -1,653 +1,510 @@
-# Architecture Research: CE/EE Split — Plugin Wiring
+# Architecture Research: v11.1 Stack Validation
 
-**Domain:** Open-core FastAPI plugin system (CE/EE split)
-**Researched:** 2026-03-19
-**Confidence:** HIGH — derived entirely from reading the actual codebase on `feature/axiom-oss-ee-split`
+**Domain:** Adversarial end-to-end validation of the Axiom CE/EE stack — fresh install, LXC nodes, EE test keypair, job test matrix
+**Researched:** 2026-03-20
+**Confidence:** HIGH — all components derived from direct codebase inspection
 
 ---
 
-## Standard Architecture
+## Context Note
 
-### System Overview
+This file supersedes the v11.0 architecture research (CE/EE plugin wiring) for the purposes of the v11.1 milestone. v11.0 implementation is complete and that architecture is now a fixed constraint. v11.1 adds a validation harness on top of it. Where the v11.0 plugin wiring is relevant context it is referenced, not re-documented.
+
+---
+
+## System Overview
+
+### Full v11.1 Validation Stack
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  CE Public Repo (Apache 2.0)                                        │
+│  HOST MACHINE (Linux, Docker daemon running)                        │
 │                                                                     │
-│  puppeteer/agent_service/                                           │
-│  ├── main.py             ← FastAPI app, lifespan, CE routes         │
-│  ├── db.py               ← Base + 13 CE tables only                │
-│  ├── deps.py             ← get_current_user, require_auth,         │
-│  │                          require_permission, audit (EE-safe)     │
-│  └── ee/                 ← plugin boundary                         │
-│      ├── __init__.py     ← load_ee_plugins(app, engine) → EECtx    │
-│      ├── interfaces/     ← stub routers (6 × APIRouter → 402)      │
-│      └── routers/        ← real EE routers (move to axiom-ee)      │
+│  Control Plane (Docker Compose — puppeteer/compose.server.yaml)    │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐  │
+│  │ agent    │ │ db       │ │ cert-mgr │ │ docs     │ │ devpi   │  │
+│  │ :8001    │ │ postgres │ │ caddy    │ │ nginx    │ │ :3141   │  │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └─────────┘  │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
+│  │ model    │ │ pypi     │ │ mirror   │ │ registry │              │
+│  │ :8000    │ │ :8080    │ │ :8081    │ │ :5000    │              │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘              │
 │                                                                     │
-│  Startup sequence:                                                  │
-│  init_db() → load_ee_plugins(app, engine) → bootstrap admin        │
+│  Local Docker Nodes (mop_validation/local_nodes/)                  │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐               │
+│  │ puppet-alpha │ │ puppet-beta  │ │ puppet-gamma │               │
+│  │ ENV=PROD     │ │ ENV=TEST     │ │ ENV=DEV      │               │
+│  │ tags:hello,  │ │ tags:network,│ │ tags:foundry │               │
+│  │   mounted    │ │   ping       │ │   mounted    │               │
+│  └──────────────┘ └──────────────┘ └──────────────┘               │
 │                                                                     │
-│  load_ee_plugins():                                                 │
-│  1. pkg_resources.iter_entry_points("axiom.ee")                    │
-│  2. If plugins found: plugin_cls(app, engine) → plugin.register()  │
-│  3. If none: register stub routers → ctx stays all-False           │
-└─────────────────────────────────────────────────────────────────────┘
-                              │ pkg_resources entry_point
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  EE Private Repo (axiom-ee, proprietary)                            │
+│  Incus LXC Containers (4 new for v11.1)                            │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌───────────┐ │
+│  │ lxc-dev      │ │ lxc-test     │ │ lxc-prod     │ │lxc-staging│ │
+│  │ ENV=DEV      │ │ ENV=TEST     │ │ ENV=PROD     │ │ENV=STAGING│ │
+│  │ Ubuntu 24.04 │ │ Ubuntu 24.04 │ │ Ubuntu 24.04 │ │Ubuntu 24  │ │
+│  │ + Docker     │ │ + Docker     │ │ + Docker     │ │ + Docker  │ │
+│  └──────────────┘ └──────────────┘ └──────────────┘ └───────────┘ │
 │                                                                     │
-│  ee/                                                                │
-│  ├── plugin.py           ← EEPlugin class (compiled to .so)        │
-│  ├── db_models.py        ← EEBase + 15 EE SQLAlchemy models        │
-│  └── routers/            ← 7 real router files (moved from CE)     │
-│      ├── foundry_router.py                                          │
-│      ├── audit_router.py                                            │
-│      ├── webhook_router.py                                          │
-│      ├── trigger_router.py                                          │
-│      ├── auth_ext_router.py                                         │
-│      ├── users_router.py                                            │
-│      └── smelter_router.py                                          │
-│                                                                     │
-│  setup.cfg:                                                         │
-│  [options.entry_points]                                             │
-│  axiom.ee =                                                         │
-│      core = ee.plugin:EEPlugin                                      │
+│  mop_validation/ (test harness — separate repo)                    │
+│  ├── scripts/test_local_stack.py   (existing CE regression suite)  │
+│  ├── scripts/validate_v11_1.py     (NEW — v11.1 validation runner) │
+│  ├── scripts/generate_licence_key.py  (NEW — test EE licence)      │
+│  ├── scripts/teardown_fresh_install.py  (NEW — clean teardown)     │
+│  └── local_nodes/lxc-{dev,test,prod,staging}/node-compose.yaml    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
-
-| Component | Responsibility | Status |
-|-----------|----------------|--------|
-| `ee/__init__.py` | Entry-point discovery, plugin lifecycle, EEContext creation | EXISTS — needs stub registration added |
-| `ee/interfaces/*.py` | 6 stub routers serving 402 for each EE path group | EXISTS — defined but never mounted on app |
-| `ee/routers/*.py` | 7 real EE router files with full handler logic | EXISTS in CE worktree — move to axiom-ee |
-| `deps.py` | Shared auth deps, `require_permission`, `audit` (EE-safe stubs) | EXISTS — complete |
-| `EEPlugin` (private) | `register(ctx)` mounts real routers, creates EE tables, seeds data | DOES NOT EXIST YET |
-| `EEContext` dataclass | 8 feature flags stored on `app.state.ee` | EXISTS — returned by `load_ee_plugins` |
-
 ---
 
-## The Core Wiring Problem
-
-### Current state of `load_ee_plugins`
-
-```python
-# ee/__init__.py — current implementation
-def load_ee_plugins(app: Any, engine: Any) -> EEContext:
-    ctx = EEContext()
-    try:
-        plugins = list(pkg_resources.iter_entry_points("axiom.ee"))
-        if plugins:
-            for ep in plugins:
-                plugin_cls = ep.load()
-                plugin = plugin_cls(app, engine)
-                plugin.register(ctx)           # calls register but ctx not used
-        else:
-            logger.info("No EE plugins found — running in CE mode")
-            # BUG: stub routers are NEVER mounted here
-    except Exception as e:
-        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
-    return ctx
-```
-
-**Two bugs in one:**
-
-1. **Stub routers are never mounted.** All 6 `*_stub_router` objects in `ee/interfaces/` are defined but `load_ee_plugins` never calls `app.include_router()` on them in the CE path. CE mode currently has NO routes for `/api/blueprints`, `/admin/audit-log`, etc. — they 404 instead of returning the intended 402.
-
-2. **EE register() contract is undefined.** `plugin.register(ctx)` is called but the expected contract between CE and EE (what `register` must do, what it receives) is implicit, not specified.
-
----
-
-## Recommended Architecture
-
-### Pattern 1: CE Stub Registration in `load_ee_plugins`
-
-**What:** When no EE plugin is found, `load_ee_plugins` registers all stub routers on `app` before returning. This ensures all EE API paths exist in CE mode and return 402.
-
-**When to use:** Always — this is the CE cold-start path.
-
-**Implementation in `ee/__init__.py`:**
-
-```python
-def _register_ce_stubs(app: Any) -> None:
-    """Mount all CE stub routers. Called when no EE plugin is installed."""
-    from .interfaces.foundry import foundry_stub_router
-    from .interfaces.audit import audit_stub_router
-    from .interfaces.webhooks import webhooks_stub_router
-    from .interfaces.triggers import triggers_stub_router
-    from .interfaces.auth_ext import auth_ext_stub_router
-    from .interfaces.smelter import smelter_stub_router
-    # users_router has no stub — user management is CE auth-only in CE mode
-    app.include_router(foundry_stub_router)
-    app.include_router(audit_stub_router)
-    app.include_router(webhooks_stub_router)
-    app.include_router(triggers_stub_router)
-    app.include_router(auth_ext_stub_router)
-    app.include_router(smelter_stub_router)
-
-def load_ee_plugins(app: Any, engine: Any) -> EEContext:
-    ctx = EEContext()
-    try:
-        plugins = list(pkg_resources.iter_entry_points("axiom.ee"))
-        if plugins:
-            for ep in plugins:
-                plugin_cls = ep.load()
-                plugin = plugin_cls(app, engine)
-                plugin.register(ctx)
-                logger.info(f"Loaded EE plugin: {ep.name}")
-        else:
-            logger.info("No EE plugins found — running in CE mode")
-            _register_ce_stubs(app)          # fix: mount stubs in CE path
-    except Exception as e:
-        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
-        _register_ce_stubs(app)              # also mount stubs on load failure
-    return ctx
-```
-
-**Critical ordering constraint:** `load_ee_plugins` is called inside `lifespan` after `app = FastAPI(...)` is created. FastAPI allows `include_router` at any point before the first request. This is safe because lifespan runs before the server starts accepting requests.
-
----
-
-### Pattern 2: EEPlugin Class — `register()` Contract
-
-**What:** The private repo's `EEPlugin` class receives `(app, engine)` in `__init__`, then `register(ctx)` mounts routers, creates EE tables, seeds data, and sets feature flags on `ctx`.
-
-**The canonical `register()` method (async — see Pattern 3 for why):**
-
-```python
-# ee/plugin.py (private repo)
-from agent_service.ee import EEContext
-
-class EEPlugin:
-    def __init__(self, app, engine):
-        self.app = app
-        self.engine = engine
-
-    async def register(self, ctx: EEContext) -> None:
-        # Step 1: Create EE tables (requires async DB access)
-        await self._create_ee_tables()
-        # Step 2: Seed EE data (role permissions, capability matrix defaults)
-        await self._seed_ee_data()
-        # Step 3: Mount all 7 real EE routers (synchronous)
-        self._mount_routers()
-        # Step 4: Set all feature flags on ctx
-        ctx.foundry = True
-        ctx.audit = True
-        ctx.webhooks = True
-        ctx.triggers = True
-        ctx.rbac = True
-        ctx.resource_limits = True
-        ctx.service_principals = True
-        ctx.api_keys = True
-```
-
-**Parameter semantics:**
-- `app: FastAPI` — the live application instance. `app.include_router()` mounts routes.
-- `engine: AsyncEngine` — the SQLAlchemy async engine from `db.py`. Used for `conn.run_sync(EEBase.metadata.create_all)`.
-- `ctx: EEContext` — mutated in-place. Caller (CE) reads flags after `register()` returns.
-
----
-
-### Pattern 3: EE Table Creation via Engine
-
-**What:** EE models are defined with a separate `EEBase` in the private repo. Table creation runs in an async context using the engine passed to `EEPlugin.__init__`.
-
-**Why `register()` must be async:**
-
-`register()` is called from `load_ee_plugins` which is called from `lifespan` — an `asynccontextmanager` coroutine. The event loop is already running. Calling `asyncio.run()` or `loop.run_until_complete()` from inside an already-running loop raises `RuntimeError`. The only clean solution is to make `register()` async and `await` it.
-
-**Updated `load_ee_plugins` (async version):**
-
-```python
-# ee/__init__.py — upgraded to async
-import asyncio
-
-async def _load_ee_plugins_async(app: Any, engine: Any) -> EEContext:
-    ctx = EEContext()
-    try:
-        plugins = list(pkg_resources.iter_entry_points("axiom.ee"))
-        if plugins:
-            for ep in plugins:
-                plugin_cls = ep.load()
-                plugin = plugin_cls(app, engine)
-                await plugin.register(ctx)
-                logger.info(f"Loaded EE plugin: {ep.name}")
-        else:
-            logger.info("No EE plugins found — running in CE mode")
-            _register_ce_stubs(app)
-    except Exception as e:
-        logger.warning(f"EE plugin load failed ({e}), continuing in CE mode")
-        _register_ce_stubs(app)
-    return ctx
-
-# Keep sync wrapper for compatibility if needed
-def load_ee_plugins(app: Any, engine: Any) -> EEContext:
-    """Sync entry point — delegates to async version via event loop."""
-    # This is only safe to call from a non-async context.
-    # From lifespan (async), call _load_ee_plugins_async directly.
-    raise RuntimeError("Call _load_ee_plugins_async from async lifespan")
-```
-
-**Updated lifespan in `main.py`:**
-
-```python
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    from .ee import _load_ee_plugins_async
-    from .db import engine
-    app.state.ee = await _load_ee_plugins_async(app, engine)
-    # ... rest of lifespan unchanged
-```
-
-**EE table creation inside `EEPlugin._create_ee_tables()`:**
-
-```python
-async def _create_ee_tables(self) -> None:
-    from .db_models import EEBase
-    async with self.engine.begin() as conn:
-        await conn.run_sync(EEBase.metadata.create_all)
-```
-
----
-
-### Pattern 4: EE Router Mounting — `app.include_router()`
-
-**What:** Each of the 7 real EE routers is an `APIRouter` instance. Mounting is synchronous.
-
-**Implementation in `EEPlugin._mount_routers()`:**
-
-```python
-def _mount_routers(self) -> None:
-    from .routers.foundry_router import foundry_router
-    from .routers.audit_router import audit_router
-    from .routers.webhook_router import webhook_router
-    from .routers.trigger_router import trigger_router
-    from .routers.auth_ext_router import auth_ext_router
-    from .routers.users_router import users_router
-    from .routers.smelter_router import smelter_router
-
-    self.app.include_router(foundry_router)
-    self.app.include_router(audit_router)
-    self.app.include_router(webhook_router)
-    self.app.include_router(trigger_router)
-    self.app.include_router(auth_ext_router)
-    self.app.include_router(users_router)
-    self.app.include_router(smelter_router)
-```
-
-**No prefix needed.** All 7 EE routers already use absolute paths (e.g., `/api/blueprints`, `/admin/audit-log`). Adding a `prefix` here would break all existing frontend API calls.
-
-**Route conflict prevention.** In EE mode, `_register_ce_stubs()` is NOT called — only real routers mount. In CE mode, stubs mount and real routers are never loaded. The two sets of routes never coexist.
-
----
-
-### Pattern 5: Shared vs Separate SQLAlchemy Base
-
-**Decision: separate `EEBase` in the private repo.**
-
-CE's `Base` (in `db.py`) is imported by all CE code including `init_db()`. If EE models extend the same `Base`, CE's `Base.metadata.create_all` would include EE tables — breaking CE-only installs because the model class definitions are not available without EE installed.
-
-**Correct approach:**
-
-```python
-# axiom-ee/ee/db_models.py
-from sqlalchemy.orm import DeclarativeBase
-
-class EEBase(DeclarativeBase):
-    pass
-
-class AuditLog(EEBase):
-    __tablename__ = "audit_log"
-    ...
-
-class RolePermission(EEBase):
-    __tablename__ = "role_permissions"
-    ...
-# ... 13 more EE tables
-```
-
-- CE startup: `Base.metadata.create_all` → 13 CE tables only
-- EE startup: `EEBase.metadata.create_all` → 15 EE tables added to same DB
-- Both use the same engine, same SQLite/Postgres database. Tables coexist. `create_all` is idempotent.
-
-**Impact on `deps.py`'s `require_permission`:**
-
-The current implementation checks `Base.metadata.tables.get("role_permissions")`. With a separate `EEBase`, this lookup returns `None` in both CE and EE modes because `role_permissions` is not in `Base.metadata`. The function then falls through to `return current_user` in CE mode — correct behaviour.
-
-In EE mode, the fallback fires incorrectly (no permission check) unless the code is updated to also check `EEBase.metadata.tables`. However, the current `require_permission` uses raw SQL (`text("role_permissions")`) not the ORM table object — so it queries the DB directly and works correctly as long as the table exists in the DB, regardless of which Base it was registered under.
-
-**The check `Base.metadata.tables.get("role_permissions")` is the CE/EE mode detector.** It should remain as-is. It correctly returns `None` in CE (because EE models are not imported), allowing the CE fallback.
-
----
-
-## Recommended Project Structure
-
-```
-puppeteer/agent_service/ee/          (CE public repo — final state)
-├── __init__.py                      # load_ee_plugins + _register_ce_stubs
-└── interfaces/                      # CE stub routers only
-    ├── __init__.py
-    ├── audit.py                     # audit_stub_router
-    ├── auth_ext.py                  # auth_ext_stub_router
-    ├── foundry.py                   # foundry_stub_router
-    ├── rbac.py                      # RBACInterface stub (no router — CE has no RBAC)
-    ├── resource_limits.py           # ResourceLimitsInterface stub (no router)
-    ├── smelter.py                   # smelter_stub_router
-    ├── triggers.py                  # triggers_stub_router
-    └── webhooks.py                  # webhooks_stub_router
-
-REMOVE from CE repo (move to axiom-ee):
-└── routers/                         # delete after Phase 5 migration
-```
-
-```
-axiom-ee/                            (EE private repo)
-├── setup.cfg                        # entry_points: axiom.ee = core = ee.plugin:EEPlugin
-├── ee/
-│   ├── __init__.py
-│   ├── plugin.py                    # EEPlugin class
-│   ├── db_models.py                 # EEBase + 15 EE SQLAlchemy models
-│   └── routers/                     # moved from CE's ee/routers/
-│       ├── foundry_router.py        # imports fixed: ...db → ee.db_models
-│       ├── audit_router.py
-│       ├── webhook_router.py
-│       ├── trigger_router.py
-│       ├── auth_ext_router.py
-│       ├── users_router.py
-│       └── smelter_router.py
-└── tests/                           # EE-only tests
-    ├── conftest.py                  # creates both CE Base + EE Base tables
-    ├── test_foundry.py
-    ├── test_audit.py
-    ├── test_webhooks.py
-    ├── test_rbac.py
-    └── test_service_principals.py
-```
-
-### Structure Rationale
-
-- **`ee/interfaces/` stays in CE.** These stub routers are the CE contract for EE routes. They ship with CE.
-- **`ee/routers/` moves to axiom-ee.** The real implementations are proprietary. They must not be in the Apache 2.0 repo.
-- **`ee/plugin.py` is private.** Integration glue compiled to `.so`.
-- **`EEBase` is private.** EE model definitions must not leak into CE. Separate base enforces the boundary.
-
----
-
-## Data Flow
-
-### Startup Sequence (CE mode)
-
-```
-main.py lifespan():
-    await init_db()                           creates 13 CE tables
-    await _load_ee_plugins_async(app, engine)
-        pkg_resources.iter_entry_points()     empty
-        _register_ce_stubs(app)              mounts 6 stub routers
-        returns EEContext(all flags = False)
-    app.state.ee = EEContext(all False)
-    bootstrap admin user (no role column in CE)
-    start scheduler
-```
-
-### Startup Sequence (EE mode, after `pip install axiom-ee`)
-
-```
-main.py lifespan():
-    await init_db()                           creates 13 CE tables
-    await _load_ee_plugins_async(app, engine)
-        pkg_resources.iter_entry_points()     finds "core = ee.plugin:EEPlugin"
-        EEPlugin(app, engine).__init__()
-        await plugin.register(ctx)
-            await _create_ee_tables()         creates 15 EE tables (EEBase)
-            await _seed_ee_data()             seeds role_permissions, cap matrix
-            _mount_routers()                  app.include_router x 7
-            ctx.* = True (all 8 flags)
-        returns EEContext(all flags = True)
-    app.state.ee = EEContext(all True)
-    bootstrap admin user (EE User has role column)
-    start scheduler
-```
-
-### Request Flow — CE mode (EE route hit)
-
-```
-GET /api/blueprints
-    foundry_stub_router.blueprints_get()
-    returns JSONResponse(402, {"detail": "Axiom EE required"})
-```
-
-### Request Flow — EE mode
-
-```
-GET /api/blueprints
-    foundry_router.list_blueprints()
-    require_permission("foundry:read")
-        get_current_user() → JWT decode → User lookup
-        _perm_cache check → DB query role_permissions
-        returns User if permitted
-    DB query select(Blueprint)
-    returns List[BlueprintResponse]
-```
-
-### Feature Flag Check Flow (frontend)
-
-```
-GET /api/features
-    reads app.state.ee (EEContext dataclass)
-    returns {"foundry": true/false, "audit": true/false, ...}
-
-Frontend:
-    useFeatures() hook → caches 5 min
-    UpgradePlaceholder rendered if feature = false
-    Real view rendered if feature = true
-```
-
----
-
-## Test Isolation Architecture
-
-### The Problem
-
-The CE test suite in `puppeteer/tests/` has tests that reference EE-only concepts:
-
-1. **`test_bootstrap_admin.py`** — asserts `admin.role == "admin"` and passes `role="admin"` to `User()`. CE's `User` model has no `role` column (stripped in Phase 3). These lines fail with `AttributeError` or `TypeError`.
-
-2. **EE-heavy test files** — `test_compatibility_engine.py`, `test_foundry_mirror.py`, `test_mirror.py`, `test_smelter.py`, `test_trigger_service.py` import EE models (Blueprint, CapabilityMatrix, ApprovedIngredient, etc.) that no longer exist in CE's `db.py`.
-
-### Fix for `test_bootstrap_admin.py`
-
-Remove `role` assertions and `role` kwarg from `User()` constructor. CE bootstrap creates a user with only `username` and `password_hash`. The corrected test should assert that admin exists and password verifies correctly, without testing role assignment.
-
-### EE Test Files — Move to axiom-ee
-
-These files should be deleted from the CE repo as part of Phase 5 and recreated in `axiom-ee/tests/` with proper EE fixtures.
-
-### CE Test Isolation Pattern
-
-```
-puppeteer/tests/                     (CE repo — CE routes only)
-├── conftest.py                      in-memory SQLite, Base.metadata.create_all only
-├── test_bootstrap_admin.py          fix: remove role assertions
-├── test_alert_system.py             CE — keep
-├── test_attestation.py              CE — keep
-├── test_device_flow.py              CE — keep
-├── test_env_tag.py                  CE — keep
-├── test_execution_record.py         CE — keep
-├── test_job_staging.py              CE — keep
-├── test_lifecycle_enforcement.py    CE — keep
-├── test_output_capture.py           CE — keep
-├── test_retry_wiring.py             CE — keep
-├── test_openapi_export.py           CE — keep
-└── test_tools.py                    CE — keep
-
-Move to axiom-ee/tests/ then delete from CE:
-- test_compatibility_engine.py       EE — references CapabilityMatrix
-- test_foundry_mirror.py             EE — references Blueprint, Templates
-- test_mirror.py                     EE — references mirror infrastructure
-- test_smelter.py                    EE — references ApprovedIngredient
-- test_trigger_service.py            EE — references Trigger service
-```
-
-### EE Test Fixture Pattern (private repo)
-
-```python
-# axiom-ee/tests/conftest.py
-import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from agent_service.db import Base      # CE Base (13 tables)
-from ee.db_models import EEBase        # EE Base (15 tables)
-
-@pytest.fixture
-async def db_session():
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)    # CE tables
-        await conn.run_sync(EEBase.metadata.create_all)  # EE tables
-    factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with factory() as session:
-        yield session
-    await engine.dispose()
-```
-
-This gives EE tests a fully-hydrated DB (all 28 tables) while CE tests only create 13.
+## Component Responsibilities
+
+### Existing Components (fixed — do not modify)
+
+| Component | Responsibility | Location |
+|-----------|----------------|----------|
+| `agent` service | FastAPI API, job dispatch, node enrollment, EE plugin host | `puppeteer/agent_service/` |
+| `db` service | PostgreSQL 15 — all CE + EE tables | `compose.server.yaml` |
+| `cert-manager` | Caddy TLS, Root CA, ACME, mTLS enforcement | `puppeteer/cert-manager/` |
+| `devpi` | Internal PyPI for EE compiled wheel | `compose.server.yaml` |
+| `registry` | Docker registry for Foundry-built node images | `compose.server.yaml` :5000 |
+| `ee/plugin.py` | EE startup, licence validation, router mounting | `axiom-ee/` (private, compiled .so) |
+| `node.py` | Puppet node agent — poll, execute, heartbeat | `puppets/environment_service/` |
+| `manage_node.py` | Single Incus LXC lifecycle (launch/teardown) | `.agent/skills/manage-test-nodes/scripts/` |
+
+### New Components for v11.1
+
+| Component | Responsibility | Location | Status |
+|-----------|----------------|----------|--------|
+| `teardown_fresh_install.py` | Deterministic stack teardown preserving nothing (volumes, certs, PKI) | `mop_validation/scripts/` | CREATE |
+| `provision_lxc_nodes.py` | Multi-node LXC provisioning (4 nodes, env-tagged) | `mop_validation/scripts/` | CREATE |
+| `generate_licence_key.py` | Generate test Ed25519 keypair + signed test licence key | `mop_validation/scripts/` | CREATE |
+| `validate_v11_1.py` | Orchestrate full v11.1 validation suite (CE pass, EE pass, job matrix) | `mop_validation/scripts/` | CREATE |
+| `lxc-{dev,test,prod,staging}/node-compose.yaml` | Docker Compose for each env-tagged LXC node | `mop_validation/local_nodes/` | CREATE |
+| `EE test keypair` | Ed25519 key in `~/Development/axiom-ee/test_keys/` — dev build only | `axiom-ee/` | CREATE |
+| `ee_dev` Docker image | CE+EE image with test public key baked in — for validation only | local build | CREATE |
 
 ---
 
 ## Integration Points
 
-### New Components Required
+### New vs Modified — Clear Distinction
 
-| Component | Location | Purpose | New/Modified |
-|-----------|----------|---------|--------------|
-| `_register_ce_stubs(app)` | `ee/__init__.py` | Mount 6 stub routers in CE/failure paths | MODIFY |
-| `_load_ee_plugins_async` | `ee/__init__.py` | Async wrapper enabling `await plugin.register()` | MODIFY |
-| Updated lifespan call | `main.py` | `await _load_ee_plugins_async(app, engine)` | MODIFY |
-| `EEPlugin` class | `axiom-ee/ee/plugin.py` | Router mounting + table creation + seeding | CREATE |
-| `EEBase` + 15 models | `axiom-ee/ee/db_models.py` | EE SQLAlchemy table definitions | CREATE |
-| EE test conftest | `axiom-ee/tests/conftest.py` | Both-base DB fixture for EE tests | CREATE |
+| Component | New or Modified | Notes |
+|-----------|----------------|-------|
+| `compose.server.yaml` | Modified — CE variant | Add `AXIOM_LICENCE_KEY` env var on `agent` service for EE validation pass |
+| `ee/plugin.py` build | Modified — dev build | Swap hardcoded public key bytes for test public key during validation |
+| `manage_node.py` | Not modified | Existing single-node script; new `provision_lxc_nodes.py` wraps it |
+| `test_local_stack.py` | Not modified | Existing CE regression suite runs unchanged |
+| `local_nodes/node_alpha/` | Not modified | Existing local Docker nodes keep their compose files |
+| All API routes | Not modified | Validation is black-box API testing only |
 
-### Modified Components
+### Critical Integration: EE Test Keypair
 
-| Component | Location | Change |
-|-----------|----------|--------|
-| `load_ee_plugins` / `_load_ee_plugins_async` | `ee/__init__.py` | Add `_register_ce_stubs()` + make async |
-| lifespan | `main.py` | Change `load_ee_plugins` call to `await _load_ee_plugins_async` |
-| `test_bootstrap_admin.py` | `puppeteer/tests/` | Remove `role` attribute references (2 assertions, 1 kwarg) |
-| `ee/routers/*.py` (7 files) | CE repo | DELETE after copying to axiom-ee |
-| 5 EE-heavy test files | `puppeteer/tests/` | DELETE after moving to axiom-ee |
+The EE plugin has an Ed25519 **public key hardcoded as bytes** in the compiled `plugin.py`. In production this is the Axiom Labs key. For validation testing, the compiled `.so` must embed a **test public key** that the validation harness controls.
+
+Two approaches — pick one per validation run:
+
+**Approach A (preferred): dev build with test key**
+Build a separate `axiom-ee` wheel with the test public key swapped in before compilation. This wheel is tagged `0.1.0.dev1` or `0.1.0+test` and never published. The validation compose file installs this dev wheel via devpi.
+
+**Approach B: env var override (requires CE code change)**
+Add `AXIOM_LICENCE_PUBLIC_KEY_OVERRIDE` env var support to `plugin.py`. If set, use that key instead of the hardcoded one. This is a development convenience escape hatch; only meaningful if the `.so` is built with this override path compiled in.
+
+Approach A is recommended — it requires no changes to the production code path and keeps the test infrastructure fully isolated from the production EE build.
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| CE `main.py` to EE plugin | `app` + `engine` at construction, `ctx` mutated in `register()` | No circular imports — EE imports CE, not vice versa |
-| CE `deps.py` to EE routers | EE routers import `require_permission`, `audit`, `get_current_user` from `deps.py` | Designed coupling — deps.py is shared infrastructure |
-| CE `Base` to EE `EEBase` | Both point at same engine/DB | Tables coexist; CE `create_all` only creates CE tables |
-| EE routers to CE `db.py` | Currently: `from ...db import Blueprint, AuditLog, ...` | **MUST CHANGE** — relative imports break when moved to private repo |
-
-### Critical Import Path Change
-
-The EE routers currently use relative imports (e.g., `from ...db import AuditLog, Blueprint`). When moved to the private `axiom-ee` repo, the package hierarchy changes and these relative imports resolve to the wrong location or fail entirely.
-
-**Required change when migrating routers to axiom-ee:**
-
-```python
-# Before (in CE's ee/routers/foundry_router.py):
-from ...db import Blueprint, PuppetTemplate, CapabilityMatrix, ...
-
-# After (in axiom-ee's ee/routers/foundry_router.py):
-from agent_service.db import Config, User          # CE models still from CE package
-from ee.db_models import Blueprint, PuppetTemplate, CapabilityMatrix, ...  # EE models local
-
-# Similarly for deps:
-from agent_service.deps import require_permission, get_current_user, audit
-from agent_service.services.foundry_service import foundry_service
-```
-
-This refactor affects all 7 router files. It is the highest-effort part of Phase 5 and should be done carefully with a test run after each file.
+| `teardown_fresh_install.py` → Docker | `subprocess` + `docker compose down -v` | Must remove named volumes (pgdata, certs-volume, etc.) to guarantee clean state |
+| `provision_lxc_nodes.py` → Incus | `incus launch / exec / file push` (same pattern as `manage_node.py`) | 4 containers in parallel; each gets Docker installed (not Podman) for compatibility with existing node-compose pattern |
+| LXC node → Control Plane | `AGENT_URL=https://<host-ip>:8001` using `extra_hosts` bridge pattern | LXC containers use Incus bridge IP, not 172.17.0.1; must discover host IP dynamically |
+| `generate_licence_key.py` → `validate_v11_1.py` | File-based — writes `test_licence.key` to `mop_validation/secrets/` | Licence key is a `base64url(payload).base64url(sig)` dot-separated string passed as `AXIOM_LICENCE_KEY` |
+| `validate_v11_1.py` → API | `requests` over HTTPS to `localhost:8001`, verify=False (self-signed dev cert) | Same pattern as existing `test_local_stack.py` |
+| devpi → agent container | `pip install --index-url http://devpi:3141/...` in Containerfile | devpi is already in `compose.server.yaml`; EE dev wheel is pushed there before stack up |
 
 ---
 
 ## Build Order
 
-### Phase 5 (Private repo setup + router migration)
+Dependencies between phases enforce the following order. Each phase is a prerequisite for the next.
 
-1. Create `axiom-ee` private repo with `setup.cfg` entry_points
-2. Create `ee/db_models.py` — migrate 15 EE model definitions from pre-split history
-3. Create `ee/plugin.py` — `EEPlugin` with `async register()`, `_create_ee_tables()`, `_mount_routers()`, `_seed_ee_data()`
-4. Copy `ee/routers/*.py` from CE worktree, fix import paths (`...db` → `ee.db_models` and `agent_service.db`)
-5. Modify CE `ee/__init__.py` — add `_register_ce_stubs()`, convert to `_load_ee_plugins_async`, fix CE path and failure path
-6. Update CE `main.py` lifespan — `await _load_ee_plugins_async(app, engine)`
-7. Fix CE `test_bootstrap_admin.py` — remove `role` attribute references
-8. Delete CE's `ee/routers/` directory
-9. Delete CE's 5 EE-heavy test files, add them to `axiom-ee/tests/`
-10. Validate CE alone: `pytest` passes, `/api/blueprints` → 402, `/api/features` → all false
-11. Validate CE+EE: `pip install -e axiom-ee/` → `/api/blueprints` → real response, `/api/features` → all true
+### Phase 38: Clean Teardown + Fresh CE Install
 
-### Phase 6 (.so compilation)
+**Must come first.** All subsequent validation requires a known-clean stack state.
 
-Only after Phase 5 validates correctly. Compiled `.so` must pass the same Phase 5 validation.
+1. `teardown_fresh_install.py` — `docker compose down -v --remove-orphans`, wipe `secrets/`, reset `jobs.db` if present
+2. Rebuild CE-only agent image with `docker compose -f compose.server.yaml build agent`
+3. Start stack CE-only (no `AXIOM_LICENCE_KEY`)
+4. Run `test_local_stack.py` — establishes CE regression baseline
+5. Verify `GET /api/licence` → `{"edition": "community"}`
+6. Verify `GET /api/blueprints` → 402
+
+**Rationale:** Can't test EE over CE if there are residual EE artefacts from previous runs. Can't test nodes if control plane isn't healthy. Teardown must be destructive (volumes included) to catch PKI re-initialization bugs.
+
+**Risk:** If `init_db()` or PKI init has bugs that only surface on first run (vs. restart-from-existing), a teardown-less validation misses them entirely.
+
+### Phase 39: EE Test Keypair + Dev Build
+
+**Depends on:** Nothing stack-related — can run in parallel with Phase 38, but output needed for Phase 40.
+
+1. `generate_licence_key.py` — generates Ed25519 keypair, writes `test_keys/signing.key` + `test_keys/verification.key` to `axiom-ee/test_keys/` (git-ignored)
+2. Patch `axiom-ee/ee/plugin.py` — replace production public key bytes constant with test public key bytes
+3. Build EE dev wheel with cibuildwheel (or `pip install -e .` for a source build in dev): `axiom-ee-0.1.0.dev1`
+4. Push dev wheel to devpi: `twine upload --repository devpi axiom_ee-0.1.0.dev1-*.whl`
+5. `generate_licence_key.py --sign` — produce a valid test licence key signed by the test private key, valid 90 days, all features enabled
+
+**Output:** `mop_validation/secrets/test_licence.key` — the `AXIOM_LICENCE_KEY` value for EE validation runs.
+
+**Rationale:** EE licence validation is startup-only. The key must be in the environment when the agent container starts. If the public key in the `.so` doesn't match the signing key, EE features silently stay disabled — making it look like CE mode. This phase establishes the trusted keypair that the rest of v11.1 depends on.
+
+### Phase 40: LXC Node Provisioning
+
+**Depends on:** Phase 38 (stack healthy and JOIN_TOKEN available).
+
+1. `provision_lxc_nodes.py` — launch 4 Incus containers: `axiom-lxc-dev`, `axiom-lxc-test`, `axiom-lxc-prod`, `axiom-lxc-staging`
+2. Each container gets: Docker (not Podman), Python 3, SSH key injection, passwordless sudo
+3. `GET /api/nodes/join-token` for each env tag → store in `mop_validation/secrets.env`
+4. Push `node-compose.yaml` to each LXC via `incus file push`, setting `ENV_TAG`, `JOIN_TOKEN`, `AGENT_URL`
+5. Start node agents on each LXC: `incus exec <name> -- docker compose up -d`
+6. Wait for each node to appear in `GET /api/nodes` with `status=online`
+
+**Key difference from existing nodes:** LXC nodes use Docker inside the container (not Podman). The existing local Docker nodes (`node_alpha/beta/gamma`) mount `/var/run/docker.sock` from the host. LXC nodes run Docker **inside** the LXC container — this is enabled by `security.nesting=true` on the Incus launch (already in `manage_node.py`). The `EXECUTION_MODE=direct` is used (Python subprocess) to avoid nested Docker-in-Docker cgroup issues, consistent with the existing test node pattern.
+
+**LXC node compose template:**
+```
+ENV_TAG={DEV|TEST|PROD|STAGING}
+AGENT_URL=https://<incus-bridge-host-ip>:8001
+VERIFY_SSL=false
+JOIN_TOKEN=<per-node token>
+EXECUTION_MODE=direct
+NODE_TAGS=lxc,<env-tag-lower>
+```
+
+**Rationale:** 4 nodes covering all 4 env tags enables testing of `env_tag` targeting, DEV→TEST→PROD promotion dispatch, and concurrent multi-env job runs. The STAGING env tag is not covered by existing local nodes.
+
+### Phase 41: CE Validation Pass
+
+**Depends on:** Phase 38 (clean CE stack), Phase 40 (LXC nodes enrolled).
+
+Run existing `test_local_stack.py` plus:
+
+1. Job dispatch targeting each env tag — verify only the matching node picks up the job
+2. Concurrent dispatch to all 4 env tags simultaneously
+3. Failure modes: bad signature, crash exit, memory limit exceeded (if EE resource limits not yet needed, skip memory test to Phase 42)
+4. Cron job definition firing, verifying execution record created
+
+**Rationale:** CE regression baseline before EE layer goes on top. Any failures here are CE bugs.
+
+### Phase 42: EE Validation Pass
+
+**Depends on:** Phase 39 (test keypair + dev wheel ready), Phase 41 (CE baseline clean).
+
+1. Stop agent container
+2. Rebuild CE+EE agent image: install `axiom-ee-0.1.0.dev1` from devpi, set `AXIOM_LICENCE_KEY=<test_licence.key contents>` in env
+3. Start stack (EE mode)
+4. Verify `GET /api/licence` → `{"edition": "enterprise", "customer_id": "test", "features": [...]}`
+5. Verify `GET /api/features` → all true
+6. Verify EE routes respond (not 402): `/api/blueprints`, `/admin/audit-log`, `/api/webhooks`
+7. Foundry: create blueprint, create template, build image
+8. Smelter: register ingredient, run CVE scan
+9. RBAC: create operator user, verify permission enforcement
+10. Audit log: check events from steps above are recorded
+11. Resource limits: dispatch job with memory limit, verify admission check
+
+**Rationale:** Validates that the compiled `.so` functions correctly end-to-end, not just that it loads.
+
+### Phase 43: Job Test Matrix
+
+**Depends on:** Phase 42 (full EE stack with 4 LXC nodes).
+
+| Test | Profile | Expected |
+|------|---------|----------|
+| Fast job | 1s sleep, 10MB | COMPLETED, execution record captured |
+| Slow job | 60s sleep | RUNNING during poll, COMPLETED after |
+| Light memory | 50MB alloc | COMPLETED |
+| Heavy memory | 500MB alloc (if limit 256MB) | FAILED with OOM |
+| Concurrent | 5 jobs same node | All COMPLETED, no deadlock |
+| Crash exit | `sys.exit(1)` | FAILED, stderr captured |
+| Bad signature | script modified post-sign | REJECTED at node (not dispatched) |
+| Bad sig bypass attempt | unsigned script via API | 422 validation error at API |
+| Multi-env dispatch | 4 jobs, 4 env tags | Each lands on correct env |
+| Retry | fail 2× then succeed | 3 ExecutionRecords, final COMPLETED |
+
+**Rationale:** These are the categories most likely to expose timing bugs, race conditions in job_service.py, and resource accounting errors. They must be in a fixed matrix so the gap report is reproducible.
+
+### Phase 44: Foundry + Smelter Deep Pass
+
+**Depends on:** Phase 42 (EE stack, Foundry available).
+
+1. Foundry wizard: 5-step blueprint → template → build via Foundry wizard UI
+2. CVE enforcement: STRICT mode, ingredient with known CVE → verify build blocked
+3. Air-gap mirror: disable external network access, verify pypi mirror serves packages
+4. Image lifecycle: mark image DEPRECATED → verify dispatch rejects it
+5. Smelt-Check BOM: verify JSON BOM generated, package index entries created
+
+**Rationale:** Foundry and Smelter have the most complex internal state machine. Edge cases here are likely.
+
+### Phase 45: Gap Report Synthesis
+
+**Depends on:** All previous phases complete.
+
+1. Collect all FAIL/SKIP outcomes from phases 41–44
+2. Categorise: critical (blocks v12.0), moderate (should fix), minor (deferred)
+3. Patch critical bugs inline
+4. Write `.agent/reports/v11_1_validation_report.md`
+
+---
+
+## Data Flow
+
+### Test Job End-to-End Flow
+
+```
+Operator machine
+    ↓ (1) axiom-push sign job_script.py --key test_keys/signing.key
+    ↓     → produces signature (base64-encoded Ed25519 sig)
+    ↓
+    ↓ (2) POST /api/signatures  {name, public_key}
+    ↓     → signature_id stored in DB
+    ↓
+    ↓ (3) POST /api/jobs  {script, signature, signature_id, env_tag="DEV", ...}
+    ↓     → job_service validates sig against registered public key
+    ↓     → Job record created, status=PENDING
+    ↓
+Control Plane (agent_service)
+    ↓ (4) job_service.assign_job()
+    ↓     → SELECT node WHERE env_tag="DEV" AND status=online AND capabilities match
+    ↓     → Job.node_id set, status=ASSIGNED
+    ↓
+LXC node (axiom-lxc-dev)
+    ↓ (5) node.py polls GET /work/pull  (every N seconds)
+    ↓     → server returns WorkResponse {script, signature, ...}
+    ↓     → node verifies Ed25519 sig locally (cryptography lib)
+    ↓     → if invalid: job rejected, error reported back
+    ↓
+    ↓ (6) runtime.py execute()  (EXECUTION_MODE=direct)
+    ↓     → Python subprocess, captures stdout/stderr
+    ↓     → exit code captured
+    ↓
+    ↓ (7) POST /work/complete  {job_id, status, stdout, stderr, exit_code}
+    ↓
+Control Plane
+    ↓ (8) ExecutionRecord created  {job_id, node_id, output, status, duration}
+    ↓
+Dashboard / API consumer
+    (9) GET /api/executions?job_id=X  → execution history visible
+```
+
+### Fresh Install Teardown + Spinup Sequence
+
+```
+teardown_fresh_install.py:
+    (1) docker compose -f puppeteer/compose.server.yaml down -v --remove-orphans
+        → removes: pgdata, certs-volume, caddy_data, caddy_config, registry-data, mirror-data
+    (2) rm -rf puppeteer/secrets/ puppets/secrets/   (local cert artefacts)
+    (3) rm -f puppeteer/jobs.db                      (SQLite if present)
+    (4) PASS → "Stack fully torn down. No residual state."
+
+fresh_install_ce.py (or manual):
+    (1) docker compose build agent                    (CE image, no EE wheel)
+    (2) docker compose up -d                          (stack cold start)
+    (3) wait_for https://localhost:8001/health
+    (4) init_db() runs: 13 CE tables created
+    (5) Root CA generated (new PKI — different CA from previous runs)
+    (6) Admin user seeded (from ADMIN_PASSWORD env var)
+    (7) GET /api/features → all false
+    (8) PASS → CE install clean
+
+fresh_install_ee.py:
+    (1) Push EE dev wheel to devpi (already done in Phase 39)
+    (2) Rebuild agent image: COPY axiom-ee-0.1.0.dev1 from devpi, pip install
+    (3) Set AXIOM_LICENCE_KEY in compose env
+    (4) docker compose up -d
+    (5) wait_for https://localhost:8001/health
+    (6) init_db() + EEPlugin.register() → 28 tables total
+    (7) GET /api/licence → {"edition": "enterprise"}
+    (8) PASS → EE install clean
+```
+
+### EE Keypair Patching Flow
+
+```
+generate_licence_key.py:
+    (1) Ed25519PrivateKey.generate()
+    (2) Write signing.key (PEM) → axiom-ee/test_keys/signing.key
+    (3) Write verification.key (PEM) → axiom-ee/test_keys/verification.key
+
+patch_ee_plugin.py (or manual step in build script):
+    (4) Read verification.key → extract raw public key bytes (32 bytes)
+    (5) In axiom-ee/ee/plugin.py, replace:
+            _LICENCE_PUBLIC_KEY = b"\x<prod bytes>"
+        with:
+            _LICENCE_PUBLIC_KEY = b"\x<test bytes>"
+    (6) cibuildwheel (or pip install -e .) → builds dev wheel
+    (7) twine upload --repository devpi axiom_ee-0.1.0.dev1-*.whl
+
+generate_licence_key.py --sign:
+    (8) Construct payload: {"customer_id": "test", "exp": <now+90days>, "features": ["foundry", "webhooks", "triggers", "rbac", "smelter", "resource_limits", "service_principals", "api_keys"]}
+    (9) base64url(json.dumps(payload)) → payload_b64
+    (10) Ed25519PrivateKey.sign(payload_b64.encode()) → sig_bytes
+    (11) base64url(sig_bytes) → sig_b64
+    (12) Write: payload_b64 + "." + sig_b64 → mop_validation/secrets/test_licence.key
+```
+
+---
+
+## Recommended Project Structure
+
+### New Files for v11.1 Validation
+
+```
+mop_validation/
+├── scripts/
+│   ├── teardown_fresh_install.py    # Stack teardown (new)
+│   ├── provision_lxc_nodes.py       # 4-node LXC provisioning (new)
+│   ├── generate_licence_key.py      # Ed25519 keypair + licence signing (new)
+│   ├── validate_v11_1.py            # Orchestration runner (new)
+│   └── test_local_stack.py          # Existing — unchanged
+└── local_nodes/
+    ├── node_alpha/                  # Existing — unchanged
+    ├── node_beta/                   # Existing — unchanged
+    ├── node_gamma/                  # Existing — unchanged
+    ├── lxc-dev/
+    │   └── node-compose.yaml        # New — ENV_TAG=DEV, EXECUTION_MODE=direct
+    ├── lxc-test/
+    │   └── node-compose.yaml        # New — ENV_TAG=TEST, EXECUTION_MODE=direct
+    ├── lxc-prod/
+    │   └── node-compose.yaml        # New — ENV_TAG=PROD, EXECUTION_MODE=direct
+    └── lxc-staging/
+        └── node-compose.yaml        # New — ENV_TAG=STAGING, EXECUTION_MODE=direct
+
+axiom-ee/
+└── test_keys/                       # Git-ignored, generated by generate_licence_key.py
+    ├── signing.key                  # Ed25519 private key (PEM)
+    └── verification.key             # Ed25519 public key (PEM)
+```
+
+### Structure Rationale
+
+- **`provision_lxc_nodes.py` wraps `manage_node.py` logic** rather than modifying it. The existing skill manages one node; the new script orchestrates 4 in parallel with env-tag-specific config.
+- **`generate_licence_key.py` lives in `mop_validation/scripts/`** not in the main repo. Test key generation is validation infrastructure, not product code.
+- **`test_keys/` is git-ignored** in `axiom-ee`. Test private keys must never be committed. The verification key can be committed if needed for CI, but the private key cannot.
+- **LXC node compose files use `EXECUTION_MODE=direct`** — same as existing scale-test nodes. Avoids Docker-in-Docker cgroup v2 issues that occur when nesting Docker inside Incus containers.
+
+---
+
+## Architectural Patterns
+
+### Pattern 1: Parameterised Teardown
+
+**What:** `teardown_fresh_install.py` accepts a `--scope` flag: `volumes-only`, `full` (default), or `certs-only`. Full scope destroys everything. Volumes-only preserves the image cache (faster for iterative testing).
+
+**When to use:** Always run `full` before the first validation pass. Use `volumes-only` for iterative job testing where you want to preserve the built Docker images.
+
+**Trade-offs:** Full teardown adds ~2 minutes to the setup cycle (stack rebuild + PKI re-init). Acceptable for adversarial validation — the point is to test cold-start.
+
+### Pattern 2: Parallel LXC Provisioning
+
+**What:** `provision_lxc_nodes.py` launches all 4 containers simultaneously using Python `concurrent.futures.ThreadPoolExecutor`. Each thread runs the Incus launch + configuration sequence for one node.
+
+**When to use:** Always — sequential provisioning would be ~4× slower (each container takes ~30s to configure).
+
+**Trade-offs:** Incus can handle parallel launches without issue. The only shared resource is the Incus bridge network, which is not a bottleneck for 4 containers.
+
+### Pattern 3: Licence Key in Environment, Not File
+
+**What:** The test licence key is passed to the agent container via `AXIOM_LICENCE_KEY` environment variable in the compose file, not mounted as a file.
+
+**When to use:** Always — matches the production deployment pattern. The EE plugin reads the env var at startup; no file I/O needed.
+
+**Trade-offs:** The key appears in `docker inspect` output. Acceptable for test keys — production keys should use Docker secrets. Document this explicitly.
+
+### Pattern 4: CE-First, EE-Second Validation Order
+
+**What:** Always validate CE completely before enabling EE. The CE pass must pass clean before the EE wheel is installed.
+
+**When to use:** Always — this is the critical discipline. Running CE+EE tests first could mask CE bugs that are papered over by EE code.
+
+**Trade-offs:** Requires two stack restarts (CE → teardown → EE). Acceptable overhead.
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Importing EE Models in CE Code
+### Anti-Pattern 1: Validating Without Full Volume Teardown
 
-**What people do:** Use `from .db import AuditLog` in `deps.py` or `main.py` to check whether EE tables are present.
+**What people do:** `docker compose restart` or `docker compose down` (without `-v`) between validation runs.
 
-**Why it's wrong:** CE imports fail when EE is not installed, defeating the plugin architecture entirely.
+**Why it's wrong:** Postgres data volume survives. The database retains previous-run state: enrolled nodes, signed jobs, EE tables from a previous EE install. CE-only validation then has EE tables present in the DB, masking the CE isolation guarantee. PKI state survives too — the Root CA is reused, so cert re-enrollment bugs are invisible.
 
-**Do this instead:** Use `Base.metadata.tables.get("audit_log")` to check table existence at runtime. The current `deps.py` already does this correctly. Do not change this pattern.
+**Do this instead:** Always `docker compose down -v` before a CE validation pass. The explicit teardown script enforces this.
 
-### Anti-Pattern 2: Running Async DB Work in Sync `register()`
+### Anti-Pattern 2: Reusing the Same JOIN_TOKEN for LXC Nodes
 
-**What people do:** Call `asyncio.run()` or `loop.run_until_complete()` inside a sync `register()` to create tables.
+**What people do:** Generate one JOIN_TOKEN and use it for all 4 LXC nodes.
 
-**Why it's wrong:** `load_ee_plugins` is called from inside an `asynccontextmanager` (lifespan) — the event loop is already running. Both `asyncio.run()` and `loop.run_until_complete()` raise `RuntimeError: This event loop is already running`.
+**Why it's wrong:** JOIN_TOKEN embeds the Root CA PEM. This is safe to share. The actual uniqueness comes from the node ID (derived from the client cert CN). If the same token is used but each node generates a unique cert, enrollment works — but the PKI is not properly tested. Each node should get its own token from `GET /api/nodes/join-token` to verify the enrollment endpoint is functional per-request.
 
-**Do this instead:** Make `register()` async and `await` it from `_load_ee_plugins_async`.
+**Do this instead:** Call the enrollment token endpoint once per node. Validate the returned token is parseable and contains the current CA.
 
-### Anti-Pattern 3: Route Conflicts Between Stubs and Real Routers
+### Anti-Pattern 3: Using a Production EE Wheel for Validation
 
-**What people do:** Register stub routers at module import time, then register real routers when EE loads.
+**What people do:** Install the published `axiom-ee` wheel (with the Axiom Labs public key) and generate a licence key with the Axiom Labs signing key.
 
-**Why it's wrong:** FastAPI does not override routes by re-registration. Both the stub and real handler will exist in the route table. The first registered (stub) wins, so real handlers are silently shadowed.
+**Why it's wrong:** If Axiom Labs does not provide a test signing key, the test licence cannot be verified against the production public key. More critically, the validation harness needs to control licence expiry and feature lists — which requires owning the signing key.
 
-**Do this instead:** Register stubs ONLY in CE mode (no EE plugin found). Register real routers ONLY in EE mode. Never register both.
+**Do this instead:** Always build a dev wheel with the test public key. Never use the production EE wheel in CI or local validation.
 
-### Anti-Pattern 4: Relative Imports from Parent Package (post-move)
+### Anti-Pattern 4: LXC Nodes Using Host Bridge IP Hardcoded as 172.17.0.1
 
-**What people do:** Copy EE router files to the private repo without updating imports. The routers use `from ...db import Blueprint` which resolves relative to `agent_service.ee.routers` — this path doesn't exist in the private repo.
+**What people do:** Copy the `extra_hosts: host.docker.internal:172.17.0.1` pattern from the local Docker node compose files into the LXC node compose files.
 
-**Why it's wrong:** Import errors cause the `except Exception` clause in `load_ee_plugins` to catch them silently, dropping into CE stub mode with no indication of the real error.
+**Why it's wrong:** LXC containers connect via the Incus bridge (typically `10.x.x.1` range, not `172.17.0.1`). The host's Docker bridge IP is unreachable from inside an Incus container.
 
-**Do this instead:** Update all EE router imports to use absolute package names (`agent_service.db`, `ee.db_models`). Add logging in `load_ee_plugins` that prints the full exception traceback to aid debugging.
+**Do this instead:** Discover the host's Incus bridge IP dynamically in `provision_lxc_nodes.py` (`incus network info incusbr0 | grep inet`), or use the host's primary LAN IP. Pass it as `AGENT_URL=https://<bridge-host-ip>:8001`.
 
-### Anti-Pattern 5: Testing EE Routes Against CE-Only Fixtures
+### Anti-Pattern 5: Testing EE Features Before Verifying Licence Is Loaded
 
-**What people do:** Run EE route tests against a DB that only has CE tables.
+**What people do:** Dispatch to EE routes immediately after stack start, before confirming `GET /api/licence` returns enterprise edition.
 
-**Why it's wrong:** EE handlers reference `Blueprint`, `CapabilityMatrix`, etc. which don't exist in the CE DB. Queries fail with `ProgrammingError: no such table`.
+**Why it's wrong:** If the licence key is malformed, expired, or the public key mismatch is silent, the stack returns CE mode and all EE route tests return 402. The test suite then fails with confusing errors that look like EE router mounting failures rather than licence validation failures.
 
-**Do this instead:** EE test fixtures must run both `Base.metadata.create_all` and `EEBase.metadata.create_all` on the same engine.
+**Do this instead:** Always assert `GET /api/licence` → `{"edition": "enterprise"}` as the first check in the EE validation pass. Gate all subsequent EE tests on this assertion.
+
+---
+
+## Scaling Considerations
+
+This is a validation milestone, not a scalability assessment. Relevant limits for the test environment:
+
+| Concern | At 4 LXC Nodes | Notes |
+|---------|----------------|-------|
+| Incus bridge network | No issue | 4 containers trivial for bridge |
+| Host memory | ~2GB for 4 LXC containers | Each Ubuntu 24.04 container ~512MB idle |
+| Docker-in-LXC | Works with `security.nesting=true` | `EXECUTION_MODE=direct` avoids cgroup v2 issues |
+| Concurrent jobs | 5 per node tested in matrix | `concurrency_limit` column must be set or unlimited assumed |
+| Postgres connections | No issue at this scale | asyncpg pool default handles 4 nodes polling |
 
 ---
 
 ## Sources
 
-- Codebase direct inspection: `puppeteer/agent_service/ee/__init__.py` — confirmed stub routers never mounted (HIGH confidence)
-- Codebase direct inspection: `puppeteer/agent_service/ee/interfaces/*.py` — 6 stub routers defined but orphaned (HIGH confidence)
-- Codebase direct inspection: `puppeteer/agent_service/ee/routers/*.py` — 7 real routers use relative `...db` imports (HIGH confidence)
-- Codebase direct inspection: `puppeteer/agent_service/db.py` — confirmed 13 CE tables only, User has no `role` column (HIGH confidence)
-- Codebase direct inspection: `puppeteer/agent_service/deps.py` — `require_permission` and `audit` use runtime table lookup (HIGH confidence)
-- Codebase direct inspection: `puppeteer/tests/test_bootstrap_admin.py` — confirmed `admin.role == "admin"` assertion against role-less CE User (HIGH confidence)
-- FastAPI documentation: `include_router()` is safe to call during lifespan before first request. Standard pattern for plugin systems.
-- Python packaging: `pkg_resources.iter_entry_points` is the standard Python plugin discovery mechanism.
+- Direct inspection: `puppeteer/compose.server.yaml` — service topology, volume names (HIGH)
+- Direct inspection: `mop_validation/local_nodes/node_alpha/node-compose.yaml` — local Docker node pattern, ENV_TAG, EXECUTION_MODE (HIGH)
+- Direct inspection: `mop_validation/local_nodes/node_beta/node-compose.yaml` — ENV_TAG=TEST, confirms per-node env tag pattern (HIGH)
+- Direct inspection: `mop_validation/local_nodes/node_gamma/node-compose.yaml` — Foundry-built image pattern (HIGH)
+- Direct inspection: `.agent/skills/manage-test-nodes/scripts/manage_node.py` — Incus provisioning pattern: `security.nesting=true`, Ubuntu 24.04, podman/ssh/python install (HIGH)
+- Direct inspection: `mop_validation/scripts/test_local_stack.py` — existing test harness structure, AGENT_URL, auth patterns (HIGH)
+- Direct inspection: `.planning/milestones/v11.0-phases/37-licence-validation-docs-docker-hub/37-CONTEXT.md` — licence key wire format, `AXIOM_LICENCE_KEY`, hardcoded bytes in `.so` (HIGH)
+- Direct inspection: `.planning/axiom-oss-ee-split.md` — CE/EE table split, 13 CE tables, 15 EE tables (HIGH)
+- Direct inspection: `.planning/PROJECT.md` — v11.1 milestone goals, target features (HIGH)
+- Direct inspection: `.planning/research/ARCHITECTURE.md` (prior version) — CE/EE plugin wiring, startup sequence, EEPlugin.register() contract (HIGH)
+- Existing CLAUDE.md: node identity persistence fix (`_load_or_generate_node_id()`), EXECUTION_MODE=direct rationale (HIGH)
+- CLAUDE.md: Node networking pattern: `extra_hosts: host.docker.internal:172.17.0.1`, LXC uses different bridge (HIGH — anti-pattern derived from this)
 
 ---
-*Architecture research for: Axiom CE/EE open-core split — EE plugin wiring*
-*Researched: 2026-03-19*
+
+*Architecture research for: Axiom v11.1 Stack Validation — fresh install teardown, LXC node provisioning, EE test keypair integration, job test matrix*
+*Researched: 2026-03-20*

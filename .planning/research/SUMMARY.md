@@ -1,199 +1,206 @@
 # Project Research Summary
 
-**Project:** Axiom v11.0 — CE/EE Split Completion
-**Domain:** Open-core Python product (FastAPI + SQLAlchemy) with plugin-based CE/EE separation
-**Researched:** 2026-03-19
+**Project:** Axiom v11.1 — Stack Validation
+**Domain:** Adversarial end-to-end validation of a CE/EE job orchestration platform
+**Researched:** 2026-03-20
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Axiom v11.0 completes the open-core split that was scaffolded in previous phases. The foundation — ABC interfaces, stub routers, `GET /api/features`, CE DB strip to 13 tables, and the frontend `useFeatures` hook — is already implemented on the `feature/axiom-oss-ee-split` worktree. Six concrete blocking gaps remain between the current worktree state and a shippable CE/EE product: stub routers never mounted in CE mode (returning 404 instead of 402), a broken test suite that references stripped EE attributes, dead field references in `job_service.py` after the NodeConfig strip, no private `axiom-ee` repo or `EEPlugin` class, no Cython `.so` build pipeline, and no licence key validation. Each gap is well-understood and mechanically fixable — this is completion work, not greenfield design.
+Axiom v11.1 is a validation milestone, not a feature milestone. All implementation work (CE/EE plugin wiring, licence validation, Foundry/Smelter, RBAC, audit log, node lifecycle) is complete from prior sprints. The goal is to stress-test every subsystem under adversarial conditions — from a clean-slate install — across five test domains: fresh install (CE and CE+EE), CE vs EE install path divergence, a 4-node LXC job execution matrix, Foundry and Smelter deep validation, and the full node lifecycle. The research confirms that all tooling required for v11.1 is already installed on the host (Incus 6.22, Docker 29.2.1, cryptography 46.0.5) and that all new work is test harness scripts in `mop_validation/`, not product code changes.
 
-The recommended approach is a strict sequential build order anchored by dependencies between the gaps. Gaps 1, 2, and 3 (router registration fix, test isolation, NodeConfig strip) are independent of each other and form the mandatory CE baseline that must be verified before any EE-side work begins. The private `axiom-ee` repo (Gap 4) requires Gaps 1 and 3 as prerequisites, because the EE `register()` method must mount real routers into a correctly wired CE host, and EE DB models must extend the clean CE baseline. The Cython `.so` pipeline (Gap 5) requires the EE source to be validated in Python form first. Licence key validation and Docker Hub/docs publishing are parallel to the `.so` pipeline.
+The recommended approach is a strict CE-first, EE-second validation order. The CE pass must complete cleanly before the EE wheel is installed. EE validation requires a dev-build wheel with a test Ed25519 public key compiled in — there is no runtime path to swap the key in a Cython `.so` without a rebuild. However, for development testing the pure-Python source path (editable `pip install -e .`) avoids Cython compilation entirely: patch `_LICENCE_PUBLIC_KEY_BYTES` directly in `ee/plugin.py`, set `PYTHONPATH` to the raw source, and skip `.so` compilation. This is the recommended dev shortcut for v11.1 adversarial validation. A full Cython rebuild is required only for production-fidelity `.so` testing.
 
-The primary risks are three concrete engineering traps already identified in the codebase: FastAPI's silent duplicate-route registration means stubs must never coexist with real EE routers (guard every stub registration on `not ctx.{feature}`); Cython strips `__annotations__` from `@dataclass` classes in compiled modules (avoid `@dataclass` entirely in compiled EE code, use explicit `__init__`); and SQLAlchemy's `create_all` is scoped to a single `Base` instance, so EE models must import the CE `Base` rather than define their own. These three traps have clear prevention strategies and must be built into the Phase B (private repo) and Phase C (compilation) implementations from the start.
+The dominant risks are infrastructure risks, not code risks. Hard teardown (`docker compose down -v`) destroys the Root CA and leaves LXC nodes with certs signed by a defunct CA — teardown and LXC node secrets clearing must be a single atomic operation. Parallel enrollment of 4 LXC nodes races on the single-use token endpoint — one token per node, generated separately, is mandatory. SQLite write locking breaks under concurrent 4-node polling; the validation stack must use Postgres. These three pitfalls are responsible for the majority of wasted time in adversarial testing. Prevention is simple if addressed before Phase 38 begins.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new Python or npm packages are required for v11.0. `importlib.metadata` (stdlib on Python 3.10+) replaces the deprecated `pkg_resources` for entry_points discovery. `cryptography` (already present) covers Ed25519 offline licence validation. `recharts` and Radix UI handle any dashboard work.
+No new packages are needed. All tooling is already present: `incus` 6.22 on the host, `cryptography` 46.0.5, Docker 29.2.1, and `requests`/`python-dotenv` already in `mop_validation/`. New test scripts use only Python stdlib (`subprocess`, `concurrent.futures.ThreadPoolExecutor`, `base64`, `json`, `time`) plus these existing libraries. The four new scripts to create are: `teardown_fresh_install.py`, `provision_lxc_nodes.py`, `generate_licence_key.py`, and `validate_v11_1.py`.
 
-Two build-time-only tools are added to the EE private repo's `[build-system]` dependencies only — never to runtime `requirements.txt` or the Docker image:
-
-**Core technologies (new for v11.0):**
-- `Cython 3.2.4` — compile EE `.py` router/plugin files to `.so` extension modules; pure Python mode requires no `.pyx` rewrite; industry-standard for Python IP protection in open-core products
-- `cibuildwheel 3.4.0` — build Cython `.so` wheels for `linux/amd64` and `linux/arm64` in CI; pypa-endorsed standard; handles manylinux containers and QEMU aarch64 automatically
-- `importlib.metadata` (stdlib) — replace `pkg_resources.iter_entry_points()` in `ee/__init__.py`; `entry_points(group="axiom.ee")` is the canonical modern API; already available on Python 3.10+
-- `docker/login-action v3` — authenticate to Docker Hub in release workflow for CE image publishing; already used for GHCR; PAT-based only (Docker Hub deprecated password auth in 2021)
-
-**Critical version note:** EE private repo `pyproject.toml` must specify `setuptools>=77.0` and `Cython>=3.2.4,<4` in `[build-system].requires`. CE public repo already has `setuptools>=77.0`. No changes to `puppeteer/requirements.txt` are needed.
-
-See `.planning/research/STACK.md` for the full Cython `ext_modules` configuration, cibuildwheel CI YAML, `importlib.metadata` migration code, and Docker Hub workflow delta.
+**Core technologies:**
+- `incus` 6.22: provision and manage 4 LXC test nodes — already installed and confirmed working; launch sequentially to avoid bridge IP race, configure in parallel via threads
+- `cryptography` 46.0.5: generate Ed25519 test keypair and sign test licence payloads — same library the EE plugin uses for verification; zero new dependencies
+- `concurrent.futures.ThreadPoolExecutor` (stdlib): submit concurrent jobs and configure LXC nodes in parallel — correct tool for parallel HTTP calls in a synchronous test script
+- `docker compose down -v`: full stack teardown including named volumes — mandatory for clean-slate validation; must always be paired with LXC node `secrets/` cleanup
+- Postgres (already in `compose.server.yaml`): required for all concurrent multi-node tests; SQLite write locking (`database is locked`) breaks under 4-node concurrent polling
 
 ### Expected Features
 
-All v11.0 features are in service of completing the CE/EE split. There are no net-new user-facing features — the milestone is infrastructure and commercial distribution.
+This milestone has no user-facing features. The test scope, expressed as pass/fail criteria, is the deliverable.
 
-**Must have (P1 — blocks shipping v11.0):**
-- Gap 1: Stub router registration — `_register_ce_stubs(app)` mounts all 6 stub routers in CE mode; 404 → 402 for every EE endpoint
-- Gap 2: CE test suite isolation — `@pytest.mark.ee_only` marker + conftest auto-skip; fix `test_bootstrap_admin.py` `User.role` refs; move 5 EE-heavy test files to private repo
-- Gap 3: NodeConfig CE strip — remove `concurrency_limit`, `job_memory_limit`, `job_cpu_limit` from CE `NodeConfig` Pydantic model; clean all dead references in `job_service.py`
-- Private `axiom-ee` repo — `pyproject.toml` with `[project.entry-points."axiom.ee"]`; `EEPlugin` class with async `register(ctx)` mounting 7 real routers and setting all 8 feature flags; `EEBase` extending CE `Base`; 15 EE SQLAlchemy model definitions; corrected absolute import paths in all 7 router files
-- Ed25519 offline licence key validation — `AXIOM_LICENCE_KEY` env var; `cryptography` Ed25519 signature verify; graceful degradation (CE stub mode on failure); no online call-home; check `issued_utc <= now <= expiry_utc`
-- Cython `.so` build — all EE `.py` modules (except `__init__.py`) compiled to `.so`; `cibuildwheel` multi-arch CI matrix; no `.py` source in published wheel; `--no-sdist` flag prevents source distribution
+**Must pass to close milestone:**
+- CE cold-start: 13 CE tables created, admin seeded once, all 7 EE stub routes return 402
+- CE+EE cold-start: valid test licence accepted, EE badge shown, all feature flags true
+- Licence expiry and missing key both degrade gracefully to CE mode without server crash
+- 4 LXC nodes enrolled with distinct DEV/TEST/PROD/STAGING env tags, all ONLINE
+- Env-tag routing: job targeting PROD only executes on the PROD node, never on DEV/TEST/STAGING
+- Fast job completes with stdout/stderr captured in ExecutionRecord
+- Memory admission: job with memory_limit exceeding node limit never dispatches to that node
+- Concurrency limit: never more than N concurrent jobs on a single node at one time
+- Bad signature: job never executes; node log shows rejection; no ExecutionRecord created
+- Foundry wizard: image built end-to-end, node enrolled from it, job executes on it
+- Smelter STRICT mode: unapproved ingredient blocks build with 422
+- Air-gap: build succeeds using only local PyPI mirror with internet explicitly blocked at network level
+- Node revoke: revoked node gets 403 on `/work/pull`; cert serial appears in CRL
+- Node re-enroll: fresh node identity enrolls successfully after prior revocation
+- Node restart: same NODE_ID reused from `secrets/`; no crash loop
 
-**Should have (P2 — completes v11.0 cleanly):**
-- CE/EE feature distinction in MkDocs docs — `!!! enterprise` admonitions on all EE feature pages
-- `axiom-ce` Docker Hub publish — release workflow addition alongside existing GHCR; Hub description with upgrade link to `axiom.run/enterprise`
-- `ee/LICENSE` stub file — Apache-2.0 applies to CE; `/ee/` directory is the proprietary boundary
-- `ee_status` field on `GET /api/features` response — `not_installed | loaded | load_failed` for operator visibility; full exception logged on `load_failed`
-- Licence expiry warning in dashboard — amber notice 30 days before expiry using `exp` claim from licence payload
+**Deferred (not blocking milestone close):**
+- Concurrent Foundry builds (MIN-7 build dir leak)
+- NodeStats SQLite pruning compat (MIN-6)
+- Heartbeat timeout to IN_PROGRESS job auto-transition (WARN-8 adjacent — needs configurable timeout)
+- Fleet-wide BOM CVE search query
+- Per-request DB query optimisation in `require_permission` (MIN-8)
 
-**Defer (v11.x or later):**
-- Feature entitlements in licence payload (tiered pricing by feature subset — `features: ["rbac", "foundry"]` in payload)
-- Signed wheel releases with sigstore for supply chain integrity
-- EE wheel on GitHub Packages private PyPI index (vs. manual token-based git install for v11.0)
-- Periodic 12-hour licence re-validation via APScheduler background task (v11.0 validates at startup only; acceptable for initial commercial release)
-- Hot-reload EE plugin without restart (not supported by Python import system; requires restart by design)
-
-See `.planning/research/FEATURES.md` for full prioritization matrix, feature dependency graph, and competitor analysis (PostHog, Sentry, Metabase patterns).
+**Gaps identified by research:**
+- No existing script tests licence lifecycle (expiry, rotation, degradation to CE) — new test needed in Phase 42
+- No existing script tests CE vs CE+EE table count divergence explicitly — new `information_schema` assertion needed
+- No existing script covers full node revoke → re-enroll cycle in a single flow — new test needed
 
 ### Architecture Approach
 
-The architecture is a FastAPI plugin system using Python entry_points for CE/EE separation. CE ships with stub routers serving 402 for all EE paths. When `axiom-ee` is pip-installed, `EEPlugin` (discovered via `importlib.metadata.entry_points(group="axiom.ee")`) is instantiated with `(app, engine)`, and its async `register(ctx)` method mounts the 7 real EE routers, creates 15 EE tables using a separate `EEBase` called inside an async engine context, seeds EE data, and sets all 8 `EEContext` feature flags to `True`. The critical invariant: stubs and real routers for the same path must never coexist on `app` — guard all stub registrations with `if not ctx.{feature}:` evaluated after `register()` completes.
+The v11.1 validation stack layers new test harness scripts on top of the fixed v11.0 architecture. No production code is modified. The control plane (agent/db/cert-manager/devpi/registry/mirror) runs in Docker Compose as-is. The 4 LXC nodes (Incus, Ubuntu 24.04, `security.nesting=true`, `EXECUTION_MODE=direct`) communicate with the control plane via the Incus bridge host IP — not `172.17.0.1`, which is the Docker bridge and unreachable from Incus containers. Phase ordering is strictly enforced by hard dependencies: teardown before install, CE validation before EE, nodes enrolled before job tests, EE licence confirmed before EE feature tests.
 
-**Major components:**
-1. `ee/__init__.py` (CE) — `_load_ee_plugins_async(app, engine)` called from lifespan via `await`; discovers entry_points with `importlib.metadata`; calls `_register_ce_stubs(app)` if no EE plugin found (CE path) or if `register()` raises (failure path)
-2. `ee/interfaces/*.py` (CE) — 6 stub `APIRouter` instances; each route returns `JSONResponse(status_code=402, ...)`; these are the CE contract for EE paths and remain in the public repo
-3. `ee/routers/*.py` (CE worktree) — 7 real router files; MOVED to `axiom-ee` private repo during Phase B; imports updated from relative (`...db`) to absolute (`agent_service.db`, `ee.db_models`)
-4. `axiom-ee/ee/plugin.py` (EE private, compiled) — `EEPlugin` class with async `register(ctx)`; table creation, data seeding, router mounting, feature flag setting; compiled to `.so`
-5. `axiom-ee/ee/db_models.py` (EE private, compiled) — `EEBase` importing CE `Base` from `agent_service.db`; 15 EE SQLAlchemy table definitions; `create_all` is idempotent
-6. Cython build pipeline (EE CI) — `pyproject.toml` `ext_modules` listing each EE `.py` file except `__init__.py`; `cibuildwheel` matrix for Python 3.11/3.12/3.13 x amd64/arm64; wheel published with `--no-sdist`
+**Major components (new for v11.1):**
+1. `teardown_fresh_install.py` — atomic hard teardown: `docker compose down -v --remove-orphans` plus clearing all LXC node `secrets/` in the same operation
+2. `provision_lxc_nodes.py` — launches 4 Incus containers sequentially, configures them in parallel, injects per-node JOIN_TOKEN and env-tagged `node-compose.yaml` via `incus file push`
+3. `generate_licence_key.py` — generates Ed25519 test keypair, patches `ee/plugin.py` `_LICENCE_PUBLIC_KEY_BYTES`, builds dev wheel or runs in pure-Python editable mode, produces signed test licence key
+4. `validate_v11_1.py` — orchestrates the full validation suite across all 5 domains, produces structured pass/fail output for the gap report
+5. `lxc-{dev,test,prod,staging}/node-compose.yaml` — per-env-tag Docker Compose files for each LXC node, with `ENV_TAG`, `AGENT_URL`, `JOIN_TOKEN`, and `EXECUTION_MODE=direct`
 
-**Startup sequence CE mode:** `init_db()` → `_load_ee_plugins_async()` → entry_points empty → `_register_ce_stubs(app)` → `EEContext(all False)` stored on `app.state.ee`
+**EE keypair patching — resolved conflict between ARCHITECTURE.md and PITFALLS.md:**
+ARCHITECTURE.md recommends `pip install -e .` (editable install, patch `.py` source, skip Cython compilation) for dev testing. PITFALLS.md correctly states that compiled `.so` attributes are read-only and cannot be patched at runtime. Both are correct in different contexts. Patching the `.py` source and using an editable install avoids the compiled `.so` entirely — this is the recommended path for v11.1 adversarial dev validation. A full Cython rebuild (`cibuildwheel` or `python -m build --wheel`) is required only for production-fidelity `.so` testing (verifying the compiled binary works, not just the Python source). Use the editable install path for all local adversarial validation in v11.1.
 
-**Startup sequence EE mode:** `init_db()` → `_load_ee_plugins_async()` → `EEPlugin(app, engine).__init__()` → `await plugin.register(ctx)` → [create 15 EE tables, seed data, mount 7 routers, set all 8 flags True] → `EEContext(all True)` stored on `app.state.ee`
-
-See `.planning/research/ARCHITECTURE.md` for full request flow diagrams, test isolation architecture, import boundary rules, and the complete Phase 5 build order.
+**LXC networking:**
+LXC containers sit on the `incusbr0` bridge, not the Docker bridge. `AGENT_URL` must be set to `https://<incusbr0-host-ip>:8001`, discovered dynamically via `ip addr show incusbr0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1`. Nodes communicate with the FastAPI agent directly on port 8001 (self-signed cert, `VERIFY_SSL=false`), not through Caddy on 443.
 
 ### Critical Pitfalls
 
-1. **Stub routers never mounted (404 not 402 in CE)** — `load_ee_plugins()` currently has no `app.include_router()` call for stubs in the CE fallback path; add `_register_ce_stubs(app)` in both the `else` branch and the `except` block; verify with `curl /api/blueprints` → 402 on a CE-only install before proceeding
+1. **Hard teardown destroys Root CA without clearing LXC node certs** — define two teardown modes: soft (`docker compose down`, volumes intact, safe between test runs) and hard (`docker compose down -v` AND `rm -rf secrets/` on all LXC nodes as a single atomic script). Never run hard teardown without the LXC cleanup step or nodes will present certs from a defunct CA.
 
-2. **FastAPI silent duplicate route registration** — if stub and real router for the same path are both mounted, the first-registered (stub) silently shadows the real handler; guard every stub with `if not ctx.{feature}:` evaluated after `register()` completes; a startup assertion logging route-to-handler mapping detects this during Phase B testing
+2. **EE public key cannot be swapped into compiled `.so` at runtime** — Cython module attributes are read-only at the C level; `setattr()` raises `AttributeError`. For v11.1 dev validation, use `pip install -e .` on raw `axiom-ee/` source and patch `_LICENCE_PUBLIC_KEY_BYTES` directly in the `.py` file — no Cython rebuild needed. For production-fidelity testing, rebuild the wheel with the test key substituted before compilation.
 
-3. **Cython strips `@dataclass` annotations — all fields lost** — any `@dataclass`-decorated class compiled to `.so` produces a zero-argument `__init__`; audit all EE source files for `@dataclass` before Phase C; replace with plain classes using explicit `__init__`; Pydantic v2 models are not affected
+3. **Parallel LXC enrollment races on single-use tokens** — the enrollment endpoint marks tokens `used=True` immediately on first access. Generate one unique JOIN_TOKEN per node via 4 separate calls to `POST /admin/tokens` before provisioning. Never share one token across all 4 nodes.
 
-4. **EE models define own `Base` — EE tables never created** — `Base.metadata.create_all` is scoped to the calling Base; EE must do `from agent_service.db import Base` and define all EE models on it; `OperationalError: no such table` on first EE route request is the failure symptom
+4. **SQLite write locking breaks under 4-node concurrent polling** — use Postgres for all multi-node validation. Confirm `DATABASE_URL` points to `postgresql+asyncpg://...` before running any concurrent job tests. SQLite's `DEFERRED` isolation and single write lock serialise all `/work/pull` polls, causing `database is locked` errors under load.
 
-5. **Compiling `__init__.py` to `.so` breaks relative imports** — never compile `ee/__init__.py`; leave it as a plain `.py` importing from compiled submodules; relative imports from a compiled `__init__.so` fail with `ImportError: attempted relative import with no known parent package`
-
-6. **EE imports from `agent_service.main` trigger circular import** — EE routers must import only from `agent_service.deps`, `auth`, `security`, and `services.*`; importing from `main` triggers circular import that silently drops into CE stub mode; enforce with a CI import isolation test (`import ee.plugin` without importing `main`)
-
-7. **`NodeConfig` dead field references in `job_service.py`** — stripped fields accessed as `None` cause silent admission check bypass; after Gap 3, search for all references to `concurrency_limit`, `job_memory_limit`, `job_cpu_limit` in `job_service.py` and replace with CE-appropriate constants
-
-See `.planning/research/PITFALLS.md` for all 10 pitfalls with recovery strategies, the "looks done but isn't" test checklist, and the pitfall-to-phase mapping table.
+5. **Air-gap test passes even when internet is available** — pip silently falls back to PyPI if the local mirror returns a 404 and `--index-url` is not set in `pip.conf`. Actual network isolation (iptables block on the test container) is required; verify `curl https://pypi.org/` fails from inside the container during the test. Also verify `/etc/pip.conf` was injected into the Foundry-built image before the test.
 
 ## Implications for Roadmap
 
-Based on research, the dependency graph from FEATURES.md is definitive: Gaps 1+3 must precede Gap 4; Gap 4 must precede Gap 5; licensing and docs can proceed in parallel to Gap 5.
+The phase structure is already defined in ARCHITECTURE.md as Phases 38–45. The ordering is enforced by hard dependencies. All phases are new test harness work in `mop_validation/` — no changes to the Axiom product code.
 
-### Phase A: CE Baseline Fixes (Gaps 1, 2, 3)
+### Phase 38: Clean Teardown + Fresh CE Install
+**Rationale:** Cannot test anything else without a known-clean stack state. Teardown must be destructive enough to catch PKI re-initialisation bugs that only surface on true first run — residual volumes mask these bugs entirely.
+**Delivers:** `teardown_fresh_install.py` script (safe to run repeatedly); verified CE cold-start; CE regression baseline via existing `test_local_stack.py`; confirmation `GET /api/licence` returns `community`.
+**Addresses:** CE cold-start table stakes (13 tables, admin seeded once, 7 stubs return 402).
+**Avoids:** Pitfall 1 (teardown without LXC secrets cleanup leaves nodes with defunct CA certs).
 
-**Rationale:** All three gap fixes are independent of each other and of EE-side work. They must be resolved first because every downstream validation step depends on a correctly behaving CE baseline. A CE install that returns 404 instead of 402 produces misleading test results. These are low-complexity changes (each is under 50 lines of net-new code) and should be completed in a single focused phase before any EE-side work begins.
-**Delivers:** CE-only install with correct behaviour — all EE paths return 402, test suite passes in CE-only CI with zero failures, job dispatch works without `AttributeError` from stripped fields.
-**Addresses:** Gap 1 (router registration), Gap 2 (test isolation), Gap 3 (NodeConfig strip)
-**Avoids:** Pitfall 1 (404 in CE), Pitfall 8 (CE CI failures from EE attribute refs), Pitfall 10 (NodeConfig dead refs in `job_service.py`)
-**Verification gate:** `pytest -m "not ee_only"` passes clean; `curl /api/blueprints` → 402; CE job dispatch cycle completes without error in server logs
+### Phase 39: EE Test Keypair + Dev Wheel
+**Rationale:** No stack dependency — can overlap with Phase 38. But its output (`test_licence.key`) is required before Phase 42 can begin. Establishing the dev keypair early avoids blocking the EE validation pass.
+**Delivers:** `generate_licence_key.py`; patched `ee/plugin.py` with test public key; editable EE install (or compiled dev wheel); `mop_validation/secrets/test_licence.key` ready for injection.
+**Addresses:** CE+EE cold-start domain; licence lifecycle edge cases (expiry, missing key, degradation).
+**Avoids:** Pitfall 2 (attempting to patch the compiled `.so` at runtime — use editable install instead).
 
-### Phase B: Private Repo + EE Plugin Wiring (Gap 4)
+### Phase 40: LXC Node Provisioning
+**Rationale:** Depends on Phase 38 (stack healthy, JOIN_TOKEN endpoint live). All job execution and node lifecycle tests require enrolled nodes; nothing in Domain 3 or 5 can proceed without this.
+**Delivers:** `provision_lxc_nodes.py`; 4 LXC containers (DEV/TEST/PROD/STAGING) enrolled and ONLINE; per-env-tag `node-compose.yaml` files; Postgres confirmed as `DATABASE_URL` before concurrent tests.
+**Addresses:** 4-node LXC enrollment, env-tag routing foundation, concurrent enrollment correctness.
+**Avoids:** Pitfall 3 (per-node token generation in provisioning script) and Pitfall 4 (Postgres confirmed here before any concurrent test runs).
 
-**Rationale:** Requires Phase A complete (Gaps 1 and 3). This phase creates the private `axiom-ee` repo and validates the full CE+EE installation path in Python source form. It must precede the `.so` pipeline because debugging compilation issues is significantly harder than debugging Python source issues. Validating in source first ensures the architecture is correct before compilation adds an obfuscation layer.
-**Delivers:** Working CE+EE install from Python source — `pip install -e axiom-ee/` + restart → all 8 feature flags `true`, all EE routes return real responses, all 28 tables exist in DB.
-**Uses:** `importlib.metadata.entry_points(group="axiom.ee")`, async `register()` pattern, `EEBase` sharing CE `Base`, corrected absolute imports in 7 router files
-**Implements:** `EEPlugin` class, `axiom-ee` private repo structure and entry_points declaration, import boundary rule (no imports from `agent_service.main`)
-**Avoids:** Pitfall 2 (duplicate route registration — use `if not ctx.{feature}:` guard), Pitfall 3 (`pkg_resources` deprecated), Pitfall 4 (EE defines own Base), Pitfall 9 (circular import)
-**Verification gate:** `GET /api/features` all `true` after `pip install -e axiom-ee/`; `GET /api/blueprints` returns real response; `\dt` shows all 28 tables; `python -c "import ee.plugin"` without importing `main` succeeds
+### Phase 41: CE Validation Pass
+**Rationale:** CE baseline must be clean before EE is layered on. Failures here are definitively CE bugs, not EE interaction bugs. This is the control condition.
+**Delivers:** CE env-tag routing verified; job matrix (fast/slow/crash/bad-sig/retry/concurrent) executed on CE; cron job firing verified; all anti-features confirmed absent.
+**Addresses:** Job execution matrix table stakes; node lifecycle table stakes; failure mode diagnostic steps defined and verified.
+**Avoids:** Pitfall 7 (failure modes all look identical — per-failure diagnostic steps defined before running; node container logs checked within 15s for bad-signature jobs).
 
-### Phase C: Cython .so Build Pipeline (Gap 5)
+### Phase 42: EE Validation Pass
+**Rationale:** Depends on Phase 39 (test keypair) and Phase 41 (clean CE baseline). First assertion must be `GET /api/licence` → `{"edition": "enterprise"}` — gate all EE tests on this; a silent CE fallback (wrong public key) will make all EE tests fail with confusing 402 errors.
+**Delivers:** EE cold-start verified; all feature flags true; EE routes respond with real data; Foundry/RBAC/audit log smoke-tested; resource limits admission verified; licence lifecycle edge cases (expiry, missing, rotation) covered.
+**Addresses:** CE vs CE+EE install path divergence domain (table count, NodeConfig field presence, feature flag contract).
+**Avoids:** Pitfall 5 (testing EE features before confirming licence loaded — `GET /api/licence` assertion is the first EE test).
 
-**Rationale:** Requires Phase B to validate correctly in source form. The compilation step adds no functionality — it protects IP. Building the CI pipeline after source validation keeps debugging tractable.
-**Delivers:** EE wheel with no `.py` source (only `__init__.py` remains as `.py`); multi-arch wheel for Python 3.11/3.12/3.13 x amd64/arm64; published to GitHub Releases; same Phase B validation passes against compiled artifact.
-**Uses:** `Cython 3.2.4` with pure Python mode (no `.pyx` rewrite), `cibuildwheel 3.4.0`, `python -m build --no-sdist`
-**Avoids:** Pitfall 4 (`@dataclass` — pre-audit all EE modules before CI setup), Pitfall 5 (`__init__.py` must never be compiled), Pitfall 5B (always test via `pip install wheel` in clean venv, not `sys.path` addition)
-**Verification gate:** `unzip -l axiom_ee-*.whl | grep ".py$"` returns only `__init__.py`; compiled EE passes identical CE+EE validation as Phase B; wheel installs cleanly on Python 3.12 in fresh virtualenv
+### Phase 43: Job Test Matrix
+**Rationale:** Depends on Phase 42 (full EE stack, 4 LXC nodes enrolled). Concurrent submission uses `ThreadPoolExecutor`. The concurrency limit enforcement under 4-node load is the highest-risk test in the matrix.
+**Delivers:** Full job matrix results documented: fast/slow/light-memory/heavy-memory/concurrent/crash/bad-sig/multi-env/retry cases with pass/fail and timing data.
+**Addresses:** Job execution matrix differentiators and anti-features (duplicate execution, stuck ASSIGNED, unsigned job bypass, env-tag mismatch silent drop).
+**Avoids:** Pitfall 4 (Postgres confirmed in Phase 40 before this runs).
 
-### Phase D: Licence Key Validation + Docs + Docker Hub
+### Phase 44: Foundry + Smelter Deep Pass
+**Rationale:** Depends on Phase 42 (EE stack). Independent of Phase 43 (job matrix). Foundry builds are independent of job execution unless specifically validating Foundry-built image nodes.
+**Delivers:** Foundry wizard end-to-end build verified; CVE enforcement (STRICT/WARNING modes); air-gap mirror test with real iptables network isolation; image lifecycle enforcement (REVOKED/DEPRECATED); Smelt-Check BOM verified.
+**Addresses:** Foundry + Smelter domain table stakes and anti-features (silent COPY failure, pip fallback to PyPI, BOM missing on build failure).
+**Avoids:** Pitfall 5 (pre-flight checklist: base image `localhost/master-of-puppets-node:latest` must exist before Foundry tests; `/tmp` cleanup between builds); Pitfall 6 (air-gap test with actual iptables isolation, not just behavioral check of `pip.conf`).
 
-**Rationale:** Licence validation is independent of `.so` compilation and can be written and tested in Python source form during Phase B or C. The validation code should be compiled into the `.so` in Phase C, so design it before Phase C builds the wheel. Docker Hub publish and docs updates are release-time steps with no code dependencies — complete as the final gate before tagging v11.0.
-**Delivers:** Ed25519 offline licence validation in EE `register()` method; `AXIOM_LICENCE_KEY` env var support; graceful CE fallback on missing/invalid/expired key; CE/EE feature badges in MkDocs (`!!! enterprise` admonitions); `axiom-ce` on Docker Hub with upgrade link; `ee/LICENSE` stub file; `ee_status` field on `/api/features`
-**Uses:** `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey.verify()`, `docker/login-action v3`, MkDocs Material admonition syntax
-**Avoids:** Pitfall 7 (startup-only licence check — document restart requirement clearly; v11.1 adds periodic re-validation); online-only validation (Ed25519 signed file works air-gapped); plain-string public key constant (split key bytes across multiple variables for obfuscation)
-**Verification gate:** Expired licence file → features disabled on next restart; offline validation works with `iptables -I OUTPUT -j DROP`; `curl hub.docker.com/v2/repositories/axiom-laboratories/axiom-ce` resolves; EE docs pages show enterprise admonitions
+### Phase 45: Gap Report Synthesis
+**Rationale:** Depends on all previous phases. Gap findings must be logged inline during each phase — not reconstructed at the end. A retrospective gap report is always less accurate than inline logging.
+**Delivers:** `v11_1_validation_report.md` with CRITICAL/MODERATE/DEFERRED triage; inline critical fixes where straightforward; every entry includes severity, component, reproduction steps, expected behaviour, and DEFERRED milestone reference where applicable.
+**Addresses:** Gap report quality anti-patterns (vague entries, flat severity list, no reproduction steps, no DEFERRED tracking).
 
 ### Phase Ordering Rationale
 
-- Phase A must come first: every downstream validation step (CE+EE combined, compiled wheel, licence testing) depends on a correctly behaving CE baseline. Running combined-mode tests against a CE that returns 404 instead of 402 produces false results.
-- Phase B must precede Phase C: validate in Python source before adding a compilation layer. A broken architecture is much easier to fix in `.py` than in `.so`.
-- Phase D licence code should be designed before Phase C is closed, so the licence validation code gets compiled into the `.so`. The remainder of Phase D (docs, Docker Hub) can follow Phase C at any time.
-- Gaps 1, 2, and 3 within Phase A are parallel (no dependencies on each other) and can be done as a single batch or sequentially — the order within Phase A does not matter.
+- Phase 38 must be first: a clean stack is the precondition for all other phases; residual volumes mask cold-start bugs.
+- Phase 39 can overlap Phase 38 (no stack dependency) but must complete before Phase 42.
+- Phase 40 requires Phase 38 (JOIN_TOKEN endpoint must be live).
+- Phase 41 (CE pass) must precede Phase 42 (EE pass) — non-negotiable. EE can paper over CE bugs.
+- Phases 43 and 44 both depend on Phase 42 and are independent of each other; order between them does not matter.
+- Phase 45 depends on all prior phases; gap entries must be logged inline throughout, not at the end.
 
 ### Research Flags
 
-Phases with well-documented patterns (no additional research needed):
-- **Phase A:** All three gap fixes are mechanical changes to known code locations; the exact lines to change are identified in ARCHITECTURE.md and PITFALLS.md
-- **Phase D (Docker Hub publish):** Workflow delta is minimal and fully specified in STACK.md (add one login step, extend `metadata-action` images list); licence key Ed25519 pattern mirrors existing job-signing infrastructure
+Phases with standard, well-documented patterns (no additional research needed):
+- **Phase 38:** Stack teardown and cold-start follow existing `test_local_stack.py` patterns exactly.
+- **Phase 39:** Ed25519 key generation is verified and documented in phase 37 research; editable install is standard Python tooling.
+- **Phase 40:** Incus provisioning follows `manage_node.py` — extending to 4 nodes with env tags is mechanical.
+- **Phase 41:** CE job execution patterns are covered by `run_signed_job.py` and `test_concurrent_job.py`.
 
-Phases requiring careful implementation review (validate against documented patterns; not full external research):
-- **Phase B:** The async `register()` pattern and EE table creation via engine are novel for this codebase; the import path changes for 7 router files are high-effort and error-prone — test each router file after migration before proceeding to the next; the `EEContext` guard pattern for stub registration must be established as a protocol before `EEPlugin.register()` is written
-- **Phase C:** Pre-audit all EE source for `@dataclass`, `__annotations__`, and `__init__.py` relative imports before writing CI; first Cython build will surface any Python patterns incompatible with pure-Python mode; test compiled wheel via `pip install` in a clean virtualenv before CI merge
+Phases likely to surface unexpected findings (log inline; do not defer):
+- **Phase 42:** EE licence loading at startup has not been adversarially tested. Silent CE fallback (public key mismatch) is the main risk and is invisible from the API until `GET /api/licence` is checked explicitly.
+- **Phase 43:** Concurrent job dispatch race conditions (duplicate execution, stuck ASSIGNED) have not been tested under 4-node load. `concurrency_limit` column enforcement is the highest-risk area.
+- **Phase 44:** Air-gap mirror validation has never been run with real network isolation. The `pip.conf` injection path in `foundry_service.py` is the highest-risk code path — verify the built image contains `/etc/pip.conf` before running the air-gap test.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | No new runtime packages; Cython 3.2.4 and cibuildwheel 3.4.0 versions verified from live PyPI; `importlib.metadata` API confirmed in Python 3.10+ stdlib docs; existing stack validated through 10 prior sprints |
-| Features | HIGH | Derived directly from worktree codebase inspection; gap list matches the verified checklist items in `.planning/axiom-oss-ee-split.md`; competitor patterns (PostHog, Sentry, Metabase) cross-referenced |
-| Architecture | HIGH | All patterns derived from direct inspection of `ee/__init__.py`, `ee/interfaces/`, `ee/routers/`, `main.py`, `db.py` in the `feature/axiom-oss-ee-split` worktree; no assumptions made from documentation alone |
-| Pitfalls | HIGH | Critical pitfalls 1, 2, 6 verified by reading the actual buggy code in the worktree; Cython pitfalls 4 and 5 cross-referenced against official Cython GitHub issues #3336 and CPython bug #59828 |
+| Stack | HIGH | All tools verified live on host (`incus --version`, `docker --version`, `python3 -c "from cryptography..."`); no new dependencies; patterns match existing test scripts exactly |
+| Features | HIGH | Derived from direct inspection of `PROJECT.md` milestone definition, `core-pipeline-gaps.md`, and `mop_validation/scripts/` inventory; test domains fully specified with complexity ratings |
+| Architecture | HIGH | All components derived from direct inspection of `compose.server.yaml`, existing node compose files, `manage_node.py`, and v11.0 architecture; LXC networking pitfall confirmed from existing CLAUDE.md note about bridge IP |
+| Pitfalls | HIGH | All 7 critical pitfalls derived from direct code inspection: token mark-as-used at line 1919 of `main.py`, `aiosqlite` without WAL mode in `db.py`, Cython read-only attribute constraint, named volume list from `compose.server.yaml`, air-gap fallback behaviour from pip documentation |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **EE DB model inventory (15 tables):** PITFALLS.md and ARCHITECTURE.md both reference 15 EE tables, but the complete list of which models to migrate from pre-split git history was not enumerated during research. During Phase B, inspect the pre-split `db.py` git history to confirm the full model list before writing `ee/db_models.py`.
-- **Service dependency imports in EE routers:** The 7 EE routers import from `agent_service.services.*` (foundry_service, job_service, etc.). When moved to the private repo, these absolute imports will work only if `axiom-ce` is installed in the same Python environment as `axiom-ee`. Verify this assumption holds during Phase B validation before committing to the architecture.
-- **Periodic licence re-validation policy:** v11.0 validates licence at startup only. Pitfall 7 recommends a 12-hour periodic re-check via APScheduler with a 7-day air-gapped grace period. This is deferred to v11.1 but the grace period policy should be documented in `LEGAL.md` or `ee/README.md` at v11.0 release so customer contracts can reference it.
+- **Licence lifecycle log messages:** The exact log output for "licence expired" and "licence key missing" has not been verified against the current EE plugin source — check during Phase 42 setup so tests can assert the correct log lines.
+- **`concurrency_limit` enforcement under concurrent load:** The column exists and `job_service.py` reads it, but concurrent admission under 4-node polling has not been stress-tested. This is the test most likely to reveal a timing bug. Run exclusively on Postgres.
+- **Foundry `pip.conf` injection path:** Whether `pip.conf` is correctly injected into Foundry-built images depends on the recipe in `foundry_service.py`. Verify the built image contains `/etc/pip.conf` pointing to the local mirror before the air-gap test runs.
+- **Incus bridge host IP variability:** The `incusbr0` bridge IP (`10.x.x.x`) varies between host configurations. All provisioning scripts must derive it dynamically — never hardcode it.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `.worktrees/axiom-split/puppeteer/agent_service/ee/__init__.py` — confirmed `pkg_resources` usage, no stub mounting in CE path
-- `.worktrees/axiom-split/puppeteer/agent_service/ee/interfaces/*.py` — 6 stub routers defined but orphaned (not mounted)
-- `.worktrees/axiom-split/puppeteer/agent_service/ee/routers/*.py` — 7 real routers with `...db` relative imports confirmed
-- `.worktrees/axiom-split/puppeteer/agent_service/main.py` — lifespan call location confirmed; no `_register_ce_stubs` call
-- `.worktrees/axiom-split/puppeteer/agent_service/db.py` — single `Base`, 13 CE tables confirmed; `User` has no `role` column
-- `.worktrees/axiom-split/puppeteer/tests/test_bootstrap_admin.py` — `User.role` attribute assertions confirmed on lines 34 and 47
-- [Python Packaging — Creating and Discovering Plugins](https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/) — `entry_points(group=...)` API
-- [Python importlib.metadata docs](https://docs.python.org/3/library/importlib.metadata.html) — keyword-form `entry_points` API stable on Python 3.10+
-- [Cython PyPI](https://pypi.org/project/Cython/) — version 3.2.4 released 2026-01-04 confirmed
-- [cibuildwheel pypa docs](https://cibuildwheel.pypa.io/en/stable/platforms/) — platform support and manylinux container handling confirmed
-- [Keygen — Offline Licensing](https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/) — Ed25519 signed key structure, offline validation pattern, `exp` claim
-- [Keygen — Cryptographic Verification](https://keygen.sh/docs/api/cryptography/) — `ED25519_SIGN` recommended scheme, payload + signature structure
-- [pytest — Working with Custom Markers](https://docs.pytest.org/en/stable/example/markers.html) — `pytest_collection_modifyitems`, `config.addinivalue_line`, skip on condition
-- `.github/workflows/release.yml` — existing Action versions (docker/login-action@v3, docker/build-push-action@v6, docker/metadata-action@v6) confirmed for Docker Hub addition
+
+- `puppeteer/compose.server.yaml` — service topology, named volumes (`pgdata`, `certs-volume`, `caddy_data`, `mirror-data`), Docker socket mount, port exposures
+- `puppeteer/agent_service/db.py` — SQLite default with `aiosqlite`; no WAL mode configured; no `connect_args`
+- `puppeteer/agent_service/main.py` lines 1912–1919 — token marked `used=True` immediately on first request before CSR is processed
+- `.agent/skills/manage-test-nodes/scripts/manage_node.py` — Incus provisioning pattern, `security.nesting=true`, Ubuntu 24.04 base, SSH key injection
+- `mop_validation/scripts/test_local_stack.py` — existing test harness structure, AGENT_URL pattern, auth flow, phase 0–7 structure
+- `mop_validation/scripts/test_concurrent_job.py` — signing pattern, job submission structure, `requests` session use
+- `mop_validation/local_nodes/node_alpha/node-compose.yaml` and `node_beta/node-compose.yaml` — ENV_TAG per-node pattern, EXECUTION_MODE=direct confirmed
+- `.planning/milestones/v11.0-phases/37-licence-validation-docs-docker-hub/37-CONTEXT.md` — licence key wire format (`base64url(payload).base64url(sig)`), `AXIOM_LICENCE_KEY`, `_LICENCE_PUBLIC_KEY_BYTES` location in `ee/plugin.py`
+- `.planning/axiom-oss-ee-split.md` — CE/EE table split (13 CE tables, 15 EE tables)
+- `.planning/PROJECT.md` — v11.1 milestone goals, 5 test domains, deferred items
+- `.agent/reports/core-pipeline-gaps.md` — MIN-6, MIN-7, MIN-8, WARN-8 deferred issues
+- `puppets/secrets/` — confirms secrets persist in volume (`node-3d795c2c.crt`, `node-3d795c2c.key`, `root_ca.crt`, `verification.key` present)
 
 ### Secondary (MEDIUM confidence)
-- [Cython — source files and compilation](https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html) — pure Python mode `.py` compilation confirmed
-- [FastAPI discussion #9014](https://github.com/fastapi/fastapi/discussions/9014) — silent duplicate route registration behaviour; `UserWarning: Duplicate Operation ID` only symptom
-- [Cython GitHub issue #3336](https://github.com/cython/cython/issues/3336) — `@dataclass` annotation stripping in Cython-compiled modules; partial fix in Cython 3 not covering all decorator patterns
-- [CPython bug #59828](https://bugs.python.org/issue15623) — `__init__.so` relative import failure confirmed
 
-### Tertiary (LOW confidence)
-- [Cython — Python source protection pattern](https://art-vasilyev.github.io/posts/protecting-source-code/) — `build_py` override for `.py` exclusion from wheel; needs validation against current Cython 3.2.4 during Phase C
-- [Nuitka GitHub issue #1955](https://github.com/Nuitka/Nuitka/issues/1955) — entry_points discovery requiring explicit `--include-module` flags in Nuitka; used to confirm Nuitka is not the right tool for this use case
+- SQLite WAL mode documentation — concurrent reader/single-writer model; `DEFERRED` default isolation behaviour under `aiosqlite` concurrent writes
+- Cython documentation — compiled module attributes are read-only at the C level; `AttributeError` on attribute assignment in compiled submodules
 
 ---
-*Research completed: 2026-03-19*
+*Research completed: 2026-03-20*
 *Ready for roadmap: yes*
