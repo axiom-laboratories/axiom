@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Phase 40 context gathered
-last_updated: "2026-03-20T22:04:12.819Z"
+stopped_at: Completed 40-02-PLAN.md
+last_updated: "2026-03-20T22:29:08.662Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
   percent: 0
 ---
 
@@ -48,6 +48,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 38-clean-teardown-fresh-ce-install P02 | 2 | 1 tasks | 1 files |
 | Phase 39-ee-test-keypair-dev-install P01 | 10 | 2 tasks | 5 files |
 | Phase 39-ee-test-keypair-dev-install P02 | 3m | 2 tasks | 4 files |
+| Phase 40-lxc-node-provisioning P02 | 3m | 1 tasks | 1 files |
+| Phase 40-lxc-node-provisioning P01 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -65,6 +67,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 39]: patch_ee_source.py uses lambda replacement in re.sub to prevent \xNN byte sequences in repr(pub_raw) being treated as regex escapes
 - [Phase 39]: compose.server.yaml AXIOM_LICENCE_KEY change applied to main puppeteer/ file — the .worktrees/axiom-split/ worktree referenced in plan does not exist
 - [Phase 39]: Plan 39-02 verification condition typo: exp > 1700000000*5 (=8.5B) in plan snippet was wrong for 10yr licence (~2.09B); corrected assertion to > int(time.time()). Implementation correct.
+- [Phase 40]: NODE-05 REVOKED confirmation uses GET /api/nodes status poll — host does not hold node client cert so mTLS /work/pull call is not possible
+- [Phase 40]: NODE-05 requires reinstate before re-enroll — REVOKED nodes are blocked at /api/enroll
+- [Phase 40]: cert serial_number is primary re-enrollment identity proof; node_id diff is fallback when client_cert_pem absent
+- [Phase 40]: ubuntu_node_secrets docker volume removed on compose restart to force fresh CSR and new cert identity
 
 ### Pending Todos
 
@@ -78,7 +84,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T22:04:12.818Z
-Stopped at: Phase 40 context gathered
+Last session: 2026-03-20T22:28:57.464Z
+Stopped at: Completed 40-02-PLAN.md
 Next action: `/gsd:plan-phase 38`
-Resume file: .planning/phases/40-lxc-node-provisioning/40-CONTEXT.md
+Resume file: None

@@ -24,11 +24,11 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 
 ### LXC Node Provisioning
 
-- [ ] **NODE-01**: 4 Incus LXC containers provisioned (`axiom-node-dev`, `axiom-node-test`, `axiom-node-prod`, `axiom-node-staging`), each with correct `OPERATOR_TAGS=env:DEV/TEST/PROD/STAGING`
-- [ ] **NODE-02**: Each node enrolled using a unique per-node JOIN_TOKEN (not shared) — all 4 successfully complete mTLS enrollment
-- [ ] **NODE-03**: All 4 nodes heartbeating at `/heartbeat`; `GET /api/nodes` shows 4 nodes with correct `env_tag` and `HEALTHY` status
-- [ ] **NODE-04**: LXC nodes use Incus bridge IP for `AGENT_URL` (not Docker `172.17.0.1`) — dynamically discovered, not hardcoded
-- [ ] **NODE-05**: Node revoke → re-enroll cycle verified: revoke a node, confirm it gets 403 on `/work/pull`, re-enroll with fresh token, confirm it resumes heartbeating
+- [x] **NODE-01**: 4 Incus LXC containers provisioned (`axiom-node-dev`, `axiom-node-test`, `axiom-node-prod`, `axiom-node-staging`), each with correct `OPERATOR_TAGS=env:DEV/TEST/PROD/STAGING`
+- [x] **NODE-02**: Each node enrolled using a unique per-node JOIN_TOKEN (not shared) — all 4 successfully complete mTLS enrollment
+- [x] **NODE-03**: All 4 nodes heartbeating at `/heartbeat`; `GET /api/nodes` shows 4 nodes with correct `env_tag` and `HEALTHY` status
+- [x] **NODE-04**: LXC nodes use Incus bridge IP for `AGENT_URL` (not Docker `172.17.0.1`) — dynamically discovered, not hardcoded
+- [x] **NODE-05**: Node revoke → re-enroll cycle verified: revoke a node, confirm it gets 403 on `/work/pull`, re-enroll with fresh token, confirm it resumes heartbeating
 
 ### CE Validation Pass
 
@@ -104,11 +104,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EEDEV-03 | Phase 39 | Complete |
 | EEDEV-04 | Phase 39 | Complete |
 | EEDEV-05 | Phase 39 | Complete |
-| NODE-01 | Phase 40 | Pending |
-| NODE-02 | Phase 40 | Pending |
-| NODE-03 | Phase 40 | Pending |
-| NODE-04 | Phase 40 | Pending |
-| NODE-05 | Phase 40 | Pending |
+| NODE-01 | Phase 40 | Complete |
+| NODE-02 | Phase 40 | Complete |
+| NODE-03 | Phase 40 | Complete |
+| NODE-04 | Phase 40 | Complete |
+| NODE-05 | Phase 40 | Complete |
 | CEV-01 | Phase 41 | Pending |
 | CEV-02 | Phase 41 | Pending |
 | CEV-03 | Phase 41 | Pending |

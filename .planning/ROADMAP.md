@@ -84,7 +84,7 @@ Archive: `.planning/milestones/v11.0-ROADMAP.md`
 
 - [x] **Phase 38: Clean Teardown + Fresh CE Install** — Teardown scripts (soft/hard), CE cold-start verification, admin re-seed safety (completed 2026-03-20)
 - [x] **Phase 39: EE Test Keypair + Dev Install** — Ed25519 test keypair, editable EE install with patched key, licence lifecycle edge cases (completed 2026-03-20)
-- [ ] **Phase 40: LXC Node Provisioning** — 4 Incus containers (DEV/TEST/PROD/STAGING), per-node enrollment, env-tag verification, revoke/re-enroll cycle
+- [x] **Phase 40: LXC Node Provisioning** — 4 Incus containers (DEV/TEST/PROD/STAGING), per-node enrollment, env-tag verification, revoke/re-enroll cycle (completed 2026-03-20)
 - [ ] **Phase 41: CE Validation Pass** — EE stubs return 402, CE table count assertion, basic job dispatch on CE
 - [ ] **Phase 42: EE Validation Pass** — CE+EE combined install, 28-table assertion, licence gating, admin endpoint RBAC
 - [ ] **Phase 43: Job Test Matrix** — 9 job scenarios: fast/slow/memory/concurrent/env-routing/promotion/crash/bad-sig/revoked-definition
@@ -228,7 +228,7 @@ Plans:
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 3/3 | Complete | 2026-03-20 |
 | 38. Clean Teardown + Fresh CE Install | 2/2 | Complete    | 2026-03-20 | - |
 | 39. EE Test Keypair + Dev Install | 2/2 | Complete    | 2026-03-20 | - |
-| 40. LXC Node Provisioning | v11.1 | 0/TBD | Not started | - |
+| 40. LXC Node Provisioning | 2/2 | Complete   | 2026-03-20 | - |
 | 41. CE Validation Pass | v11.1 | 0/TBD | Not started | - |
 | 42. EE Validation Pass | v11.1 | 0/TBD | Not started | - |
 | 43. Job Test Matrix | v11.1 | 0/TBD | Not started | - |
