@@ -135,7 +135,11 @@ Plans:
   2. Licence validation passes with `iptables -I OUTPUT -j DROP` active — no online call-home required
   3. `docker pull axiom-laboratories/axiom-ce` succeeds and the image starts correctly
   4. Every EE-only feature page in the MkDocs docs site displays an `!!! enterprise` admonition block
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 37-01-PLAN.md — EE plugin licence validation + GET /api/licence endpoint (DIST-01)
+- [ ] 37-02-PLAN.md — Dashboard edition badge (useLicence hook + sidebar + Admin panel) (DIST-03)
+- [ ] 37-03-PLAN.md — MkDocs enterprise admonitions + licensing.md page (DIST-03)
 
 ## Progress
 
