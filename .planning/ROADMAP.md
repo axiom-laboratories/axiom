@@ -72,7 +72,7 @@ Archive: `.planning/milestones/v10.0-ROADMAP.md`
 - [x] **Phase 34: CE Baseline Fixes** — Mount stub routers (402 not 404), isolate EE tests, strip NodeConfig EE fields, clean job_service dead refs (completed 2026-03-19)
 - [x] **Phase 35: Private EE Repo + Plugin Wiring** — axiom-ee repo, EEPlugin.register(), EE DB tables, corrected absolute imports, entry_points, CE-alone and CE+EE smoke tests, stub wheel (completed 2026-03-19)
 - [x] **Phase 36: Cython .so Build Pipeline** — Audit EE source for Cython compat, configure ext_modules, cibuildwheel CI matrix, verify no .py in published wheel, compiled CE+EE smoke test (completed 2026-03-20)
-- [ ] **Phase 37: Licence Validation + Docs + Docker Hub** — Ed25519 offline licence key validation in EE plugin, axiom-ce on Docker Hub, MkDocs CE/EE admonitions
+- [x] **Phase 37: Licence Validation + Docs + Docker Hub** — Ed25519 offline licence key validation in EE plugin, axiom-ce on Docker Hub, MkDocs CE/EE admonitions (completed 2026-03-20)
 
 ## Phase Details
 
@@ -170,7 +170,7 @@ Plans:
 | 34. CE Baseline Fixes | 4/4 | Complete    | 2026-03-19 | - |
 | 35. Private EE Repo + Plugin Wiring | 5/5 | Complete    | 2026-03-20 | - |
 | 36. Cython .so Build Pipeline | 3/3 | Complete    | 2026-03-20 | - |
-| 37. Licence Validation + Docs + Docker Hub | 2/3 | In Progress|  | - |
+| 37. Licence Validation + Docs + Docker Hub | 3/3 | Complete   | 2026-03-20 | - |
 
 ---
 

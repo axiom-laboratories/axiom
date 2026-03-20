@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Completed 37-licence-validation-docs-docker-hub/37-01-PLAN.md
-last_updated: "2026-03-20T16:21:20.689Z"
+stopped_at: Completed 37-03-PLAN.md
+last_updated: "2026-03-20T16:22:07.910Z"
 last_activity: 2026-03-19 — Phase 35 complete (CE+EE smoke tests 2 passed, axiom-ee wheel built, PyPI publish pending credentials)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
   percent: 50
 ---
 
@@ -79,6 +79,8 @@ Progress: [█████░░░░░] 50% (2/4 phases complete)
 - [Phase 37-licence-validation-docs-docker-hub]: Ed25519 sig verified against raw bytes BEFORE json.loads() — prevents tampered payload reaching JSON parser
 - [Phase 37-licence-validation-docs-docker-hub]: _parse_licence() returns dict for expired keys (valid sig); expiry check is register()'s responsibility — clean separation
 - [Phase 37-licence-validation-docs-docker-hub]: app.state.licence set only after BOTH sig verify AND expiry check pass — fail-secure
+- [Phase 37-licence-validation-docs-docker-hub]: !!! enterprise admonition is label-only (no body text) placed before first EE-specific ## heading per CONTEXT.md
+- [Phase 37-licence-validation-docs-docker-hub]: openapi.json stub created to satisfy swagger-ui-tag plugin in mkdocs strict mode
 
 ### Pending Todos
 
@@ -95,7 +97,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-20T16:21:20.688Z
-Stopped at: Completed 37-licence-validation-docs-docker-hub/37-01-PLAN.md
+Last session: 2026-03-20T16:22:07.907Z
+Stopped at: Completed 37-03-PLAN.md
 Resume file: None
 Next action: `/gsd:plan-phase 36`
