@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Phase 38 context gathered
-last_updated: "2026-03-20T18:47:19.261Z"
+stopped_at: Completed 38-01-PLAN.md (teardown scripts)
+last_updated: "2026-03-20T19:10:47.727Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
   percent: 0
 ---
 
@@ -44,6 +44,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | — | — | — | — |
+| Phase 38-clean-teardown-fresh-ce-install P01 | 1 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -53,6 +54,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 40]: LXC nodes use `incusbr0` bridge host IP for `AGENT_URL`, not Docker's `172.17.0.1`. IP must be discovered dynamically.
 - [Phase 40]: One unique JOIN_TOKEN per node generated before provisioning — parallel enrollment races on a shared token.
 - [All concurrent tests]: Postgres required. SQLite write locking breaks under 4-node concurrent polling.
+- [Phase 38]: Soft teardown uses docker compose down (no -v) + explicit pgdata volume rm — only safe way to preserve certs-volume Root CA between runs
+- [Phase 38]: Hard teardown omits global set -e so a stopped LXC node does not abort the script — best-effort per node with [WARN] output
 
 ### Pending Todos
 
@@ -66,7 +69,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:47:19.260Z
-Stopped at: Phase 38 context gathered
+Last session: 2026-03-20T19:10:47.725Z
+Stopped at: Completed 38-01-PLAN.md (teardown scripts)
 Next action: `/gsd:plan-phase 38`
-Resume file: .planning/phases/38-clean-teardown-fresh-ce-install/38-CONTEXT.md
+Resume file: None

@@ -82,7 +82,7 @@ Archive: `.planning/milestones/v11.0-ROADMAP.md`
 
 **Milestone Goal:** Adversarial end-to-end validation of the full Axiom CE/EE stack from a clean install — CE/EE split verification, 4 LXC environment-tagged nodes, exhaustive job testing, Foundry/Smelter deep pass, and a gap report feeding v12.0+.
 
-- [ ] **Phase 38: Clean Teardown + Fresh CE Install** — Teardown scripts (soft/hard), CE cold-start verification, admin re-seed safety
+- [x] **Phase 38: Clean Teardown + Fresh CE Install** — Teardown scripts (soft/hard), CE cold-start verification, admin re-seed safety (completed 2026-03-20)
 - [ ] **Phase 39: EE Test Keypair + Dev Install** — Ed25519 test keypair, editable EE install with patched key, licence lifecycle edge cases
 - [ ] **Phase 40: LXC Node Provisioning** — 4 Incus containers (DEV/TEST/PROD/STAGING), per-node enrollment, env-tag verification, revoke/re-enroll cycle
 - [ ] **Phase 41: CE Validation Pass** — EE stubs return 402, CE table count assertion, basic job dispatch on CE
@@ -220,7 +220,7 @@ Plans:
 | 35. Private EE Repo + Plugin Wiring | v11.0 | 5/5 | Complete | 2026-03-20 |
 | 36. Cython .so Build Pipeline | v11.0 | 3/3 | Complete | 2026-03-20 |
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 3/3 | Complete | 2026-03-20 |
-| 38. Clean Teardown + Fresh CE Install | v11.1 | 0/TBD | Not started | - |
+| 38. Clean Teardown + Fresh CE Install | 2/2 | Complete   | 2026-03-20 | - |
 | 39. EE Test Keypair + Dev Install | v11.1 | 0/TBD | Not started | - |
 | 40. LXC Node Provisioning | v11.1 | 0/TBD | Not started | - |
 | 41. CE Validation Pass | v11.1 | 0/TBD | Not started | - |
