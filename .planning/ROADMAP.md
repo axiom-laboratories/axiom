@@ -165,7 +165,7 @@ Plans:
 | 33. Licence Compliance + Release Infrastructure | v10.0 | 4/4 | Complete | 2026-03-18 |
 | 34. CE Baseline Fixes | 4/4 | Complete    | 2026-03-19 | - |
 | 35. Private EE Repo + Plugin Wiring | 5/5 | Complete    | 2026-03-20 | - |
-| 36. Cython .so Build Pipeline | 1/3 | In Progress|  | - |
+| 36. Cython .so Build Pipeline | 2/3 | In Progress|  | - |
 | 37. Licence Validation + Docs + Docker Hub | v11.0 | 0/TBD | Not started | - |
 
 ---

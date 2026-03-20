@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Completed 36-01-PLAN.md
-last_updated: "2026-03-20T11:13:26.816Z"
+stopped_at: Completed 36-02-PLAN.md
+last_updated: "2026-03-20T13:55:33.078Z"
 last_activity: 2026-03-19 — Phase 35 complete (CE+EE smoke tests 2 passed, axiom-ee wheel built, PyPI publish pending credentials)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 50
 ---
 
@@ -71,6 +71,8 @@ Progress: [█████░░░░░] 50% (2/4 phases complete)
 - [Phase 35-05]: axiom-ee wheel built (axiom_ee-0.1.0.dev0-py3-none-any.whl in ~/Development/axiom-ee/dist/); PyPI publish is EE-08 and requires TWINE_PASSWORD env var or ~/.pypirc — deferred to manual step
 - [Phase 36]: packages=[] strips .py source from wheel; BuildExtAndCopyInits hook copies __init__.py files back as namespace markers
 - [Phase 36]: musllinux wheels included (not skipped) — Containerfile.server uses python:3.12-alpine (musl libc); both manylinux and musllinux variants needed
+- [Phase 36-cython-so-build-pipeline]: [36-02] [tool.setuptools.packages.find] must be removed from pyproject.toml — it overrides packages=[] in setup.py with setuptools>=77, causing source files in wheel
+- [Phase 36-cython-so-build-pipeline]: [36-02] exclude_package_data={'': ['*.py','*.c']} added as belt-and-suspenders in setup.py against source inclusion in wheel
 
 ### Pending Todos
 
@@ -87,7 +89,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-20T11:13:22.263Z
-Stopped at: Completed 36-01-PLAN.md
+Last session: 2026-03-20T13:55:33.076Z
+Stopped at: Completed 36-02-PLAN.md
 Resume file: None
 Next action: `/gsd:plan-phase 36`
