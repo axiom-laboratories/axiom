@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v12.0
-milestone_name: Planning next milestone
-status: idle
-stopped_at: v11.0 milestone archived
+milestone: v11.1
+milestone_name: Stack Validation
+status: planning
+stopped_at: Defining requirements
 last_updated: "2026-03-20"
-last_activity: 2026-03-20 — v11.0 milestone complete (CE/EE Split Completion)
+last_activity: 2026-03-20 — v11.1 milestone started
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,16 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone (v12.0)
+**Current focus:** v11.1 Stack Validation — defining requirements
 
-## Milestone Complete: v11.0 — CE/EE Split Completion
+## Current Position
 
-All 4 phases (34–37), 15 plans complete. Archived to `.planning/milestones/v11.0-ROADMAP.md`.
-
-**Known deferred:** EE-08 (PyPI stub), DIST-02 (Docker Hub CE) — both noted in MILESTONES.md Known Gaps.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-20 — Milestone v11.1 started
 
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: v11.0 milestone archived
-Next action: `/gsd:new-milestone` to define v12.0
+Stopped at: Requirements definition in progress
+Next action: `/gsd:plan-phase 38` once roadmap is created

@@ -150,6 +150,18 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
+## Current Milestone: v11.1 Stack Validation
+
+**Goal:** Adversarial end-to-end validation of the full Axiom stack from a clean install — CE/EE split verification with a local test keypair, 4 LXC-based environment-tagged nodes, exhaustive job testing (duration/memory/concurrency/failures), and a rigorous Foundry/Smelter pass. Critical findings fixed inline; all others logged to feed v12.0+.
+
+**Target features:**
+- Clean stack teardown + fresh install (CE and CE+EE)
+- EE test infrastructure: local Ed25519 keypair, dev build with swappable public key, signed test licence
+- 4 LXC nodes (DEV/TEST/PROD/STAGING) provisioned and enrolled
+- Job test matrix: fast/slow, light/heavy memory, concurrent, failure modes (crash/bad exit/bad sig)
+- Foundry + Smelter deep test: wizard, CVE enforcement, edge cases, air-gap mirror fallback
+- Gap report synthesised from all findings; critical bugs patched inline
+
 ## Current State — v11.0 Complete (2026-03-20)
 
 Axiom is now a fully open-core product. The CE edition (`axiom-laboratories/axiom`) is the open-source base; the EE edition (`axiom-ee` private repo) ships as Cython-compiled `.so` extensions — no Python source exposed. The EE plugin wires 7 additional routers and 15 database tables into the CE app via Python `entry_points` at startup. A hardcoded Ed25519 public key in the compiled binary validates offline licence keys — EE features are gated at startup without any call-home requirement, suitable for air-gapped deployments.
@@ -163,4 +175,4 @@ MkDocs documentation now distinguishes CE and EE features with `!!! enterprise` 
 **Known deferred:** EE-08 (PyPI stub wheel reservation), DIST-02 (Docker Hub CE publish) — see Known Gaps in MILESTONES.md.
 
 ---
-*Last updated: 2026-03-20 after v11.0 milestone — CE/EE Split Completion*
+*Last updated: 2026-03-20 after v11.1 milestone started — Stack Validation*
