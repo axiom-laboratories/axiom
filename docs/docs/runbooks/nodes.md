@@ -149,7 +149,7 @@ The `secrets/` volume was recreated or the `node-*.crt` and `node-*.key` files w
 !!! tip "Both entries are safe to have"
     The duplicate entry does not affect job dispatch or security. The old node is simply Offline with a stale entry. Deleting it is cosmetic — no jobs are lost.
 
-For more on node identity persistence, see [FAQ → Why does my node appear multiple times in the dashboard?](faq.md#why-does-my-node-appear-multiple-times-in-the-dashboard).
+For more on node identity persistence, see [FAQ → Why does my node appear multiple times in the dashboard?](faq.md#why-does-my-node-appear-multiple-times-in-the-nodes-view).
 
 **Verify it worked:**
 

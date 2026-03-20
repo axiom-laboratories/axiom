@@ -11,8 +11,8 @@ See [Foundry feature guide](../feature-guides/foundry.md) for background on blue
 | Symptom | Section |
 |---------|---------|
 | Template status shows FAILED | [Template build status shows FAILED](#template-build-status-shows-failed) |
-| Build rejected with 403 — unapproved ingredients | [Template build rejected with 403 — unapproved ingredients](#template-build-rejected-with-403--unapproved-ingredients) |
-| Build rejected with 403 — ingredient not yet mirrored | [Template build rejected with 403 — ingredient not yet mirrored](#template-build-rejected-with-403--ingredient-not-yet-mirrored) |
+| Build rejected with 403 — unapproved ingredients | [Template build rejected with 403 — unapproved ingredients](#template-build-rejected-with-403-unapproved-ingredients) |
+| Build rejected with 403 — ingredient not yet mirrored | [Template build rejected with 403 — ingredient not yet mirrored](#template-build-rejected-with-403-ingredient-not-yet-mirrored) |
 | Build log shows environment_service warning | [Build log shows warning: environment_service not found](#build-log-shows-warning-environment_service-not-found) |
 | Template stuck in STAGING after build | [Template status is STAGING after a successful build](#template-status-is-staging-after-a-successful-build) |
 | Template shows amber warning badge | [Template shows amber warning badge in Templates view](#template-shows-amber-warning-badge-in-templates-view) |

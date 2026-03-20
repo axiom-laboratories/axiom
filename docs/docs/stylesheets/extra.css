@@ -1,0 +1,16 @@
+/* Enterprise admonition — marks EE-only feature sections */
+.md-typeset .admonition.enterprise,
+.md-typeset details.enterprise {
+  border-color: #f59e0b;
+}
+.md-typeset .enterprise > .admonition-title,
+.md-typeset .enterprise > summary {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+.md-typeset .enterprise > .admonition-title::before,
+.md-typeset .enterprise > summary::before {
+  background-color: #f59e0b;
+  -webkit-mask-image: var(--md-admonition-icon--tip);
+  mask-image: var(--md-admonition-icon--tip);
+}

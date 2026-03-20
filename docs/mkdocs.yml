@@ -6,6 +6,9 @@ theme:
     scheme: slate
     primary: indigo
     accent: indigo
+extra_css:
+  - stylesheets/extra.css
+
 plugins:
   - search
   # privacy + offline: required for air-gap / offline operation (INFRA-06) — do not remove
@@ -40,6 +43,7 @@ nav:
       - OAuth & Authentication: feature-guides/oauth.md
     - Reference:
       - RBAC Permission Reference: feature-guides/rbac-reference.md
+    - Licensing: licensing.md
   - Security:
     - Overview: security/index.md
     - mTLS & Certificates: security/mtls.md

@@ -9,8 +9,8 @@ This is the single searchable reference for known misconfigurations and operator
 | Question | Section |
 |----------|---------|
 | Blueprint packages are not installed during Foundry builds | [Blueprint packages not installed](#blueprint-packages-are-not-installed-during-foundry-builds) |
-| Node container fails to run jobs — RuntimeError: No container runtime found | [RuntimeError: No container runtime found](#node-container-fails-to-run-jobs--runtimeerror-no-container-runtime-found) |
-| Node fails to enroll — Token payload missing 't' or 'ca' | [JOIN_TOKEN enrollment failure](#node-fails-to-enroll--token-payload-missing-t-or-ca) |
+| Node container fails to run jobs — RuntimeError: No container runtime found | [RuntimeError: No container runtime found](#node-container-fails-to-run-jobs-runtimeerror-no-container-runtime-found) |
+| Node fails to enroll — Token payload missing 't' or 'ca' | [JOIN_TOKEN enrollment failure](#node-fails-to-enroll-token-payload-missing-t-or-ca) |
 | Changing ADMIN_PASSWORD in .env has no effect | [ADMIN_PASSWORD has no effect](#changing-admin_password-in-env-has-no-effect) |
 | How do I reset a node identity without re-enrolling? | [Reset node identity](#how-do-i-reset-a-node-identity-without-re-enrolling) |
 | My scheduled job does not run at the expected local time | [Scheduled job UTC timezone](#my-scheduled-job-does-not-run-at-the-expected-local-time) |
