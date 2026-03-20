@@ -7,7 +7,7 @@
 - ✅ **v8.0 — mop-push CLI & Job Staging** — Phases 17–19 (shipped 2026-03-15)
 - ✅ **v9.0 — Enterprise Documentation** — Phases 20–28 (shipped 2026-03-17)
 - ✅ **v10.0 — Axiom Commercial Release** — Phases 29–33 (shipped 2026-03-19)
-- 🚧 **v11.0 — CE/EE Split Completion** — Phases 34–37 (in progress)
+- ✅ **v11.0 — CE/EE Split Completion** — Phases 34–37 (shipped 2026-03-20)
 
 ## Phases
 
@@ -65,81 +65,19 @@ Archive: `.planning/milestones/v10.0-ROADMAP.md`
 
 </details>
 
-### 🚧 v11.0 — CE/EE Split Completion (In Progress)
+<details>
+<summary>✅ v11.0 — CE/EE Split Completion (Phases 34–37) — SHIPPED 2026-03-20</summary>
 
-**Milestone Goal:** Complete the Axiom open-core split — fix 6 blocking gaps on the OSS/EE branch so CE behaves correctly in isolation, wire the EE plugin system in a private repo, compile EE to `.so` for IP protection, and publish `axiom-ce` to Docker Hub with updated docs and licence validation.
+- [x] **Phase 34: CE Baseline Fixes** — Stub routers return 402, importlib.metadata, ee_only pytest marker, CE suite clean (completed 2026-03-19)
+- [x] **Phase 35: Private EE Repo + Plugin Wiring** — axiom-ee repo, EEPlugin.register(), 15 EE tables, absolute imports, entry_points, CE+EE smoke tests (completed 2026-03-20)
+- [x] **Phase 36: Cython .so Build Pipeline** — 12 compiled wheels (py3.11/3.12/3.13 × amd64/aarch64), devpi hosting, compiled wheel smoke tests pass (completed 2026-03-20)
+- [x] **Phase 37: Licence Validation + Docs** — Ed25519 offline licence validation, edition badge in dashboard, MkDocs enterprise admonitions (completed 2026-03-20)
 
-- [x] **Phase 34: CE Baseline Fixes** — Mount stub routers (402 not 404), isolate EE tests, strip NodeConfig EE fields, clean job_service dead refs (completed 2026-03-19)
-- [x] **Phase 35: Private EE Repo + Plugin Wiring** — axiom-ee repo, EEPlugin.register(), EE DB tables, corrected absolute imports, entry_points, CE-alone and CE+EE smoke tests, stub wheel (completed 2026-03-19)
-- [x] **Phase 36: Cython .so Build Pipeline** — Audit EE source for Cython compat, configure ext_modules, cibuildwheel CI matrix, verify no .py in published wheel, compiled CE+EE smoke test (completed 2026-03-20)
-- [x] **Phase 37: Licence Validation + Docs + Docker Hub** — Ed25519 offline licence key validation in EE plugin, axiom-ce on Docker Hub, MkDocs CE/EE admonitions (completed 2026-03-20)
+Archive: `.planning/milestones/v11.0-ROADMAP.md`
+
+</details>
 
 ## Phase Details
-
-### Phase 34: CE Baseline Fixes
-**Goal**: The CE install behaves correctly — all EE paths return 402, the pytest suite passes clean with zero EE-attribute errors, and job dispatch works without dead-field crashes
-**Depends on**: Nothing (first phase of v11.0; works on existing feature/axiom-oss-ee-split worktree)
-**Requirements**: GAP-01, GAP-02, GAP-03, GAP-04, GAP-05, GAP-06
-**Success Criteria** (what must be TRUE):
-  1. `curl /api/blueprints` on a CE-only install returns HTTP 402 (not 404) for every EE route
-  2. `pytest -m "not ee_only"` passes with zero failures and zero EE-attribute errors in the CE test suite
-  3. EE-only test files are skipped automatically when the `ee_only` marker is present — no manual exclusion needed
-  4. Job dispatch completes a full cycle (assign → pull → execute → report) without `AttributeError` from stripped `NodeConfig` fields in `job_service.py`
-  5. `GET /api/features` returns all feature flags as `false` on a CE-only install
-**Plans**: 4 plans
-Plans:
-- [ ] 34-01-PLAN.md — Fix load_ee_plugins(): stub router mounting + importlib.metadata (GAP-01, GAP-02)
-- [ ] 34-02-PLAN.md — EE test isolation + User.role scrub (GAP-03, GAP-04)
-- [ ] 34-03-PLAN.md — Strip NodeConfig from models, job_service, node.py (GAP-05, GAP-06)
-- [ ] 34-04-PLAN.md — Gap closure: testpaths exclusion + test_sprint3.py skip (GAP-03)
-
-### Phase 35: Private EE Repo + Plugin Wiring
-**Goal**: The private `axiom-ee` repo exists with a working `EEPlugin` class that installs into CE via entry_points — CE+EE combined install in Python source form produces a fully functional EE instance
-**Depends on**: Phase 34
-**Requirements**: EE-01, EE-02, EE-03, EE-04, EE-05, EE-06, EE-07, EE-08
-**Success Criteria** (what must be TRUE):
-  1. `pip install -e axiom-ee/ && restart` results in `GET /api/features` returning all 8 feature flags as `true`
-  2. All EE routes return real responses (not 402) after CE+EE install — `GET /api/blueprints` returns the blueprints list
-  3. The DB contains all expected CE + EE tables after combined install — no missing table errors on first EE route request
-  4. `python -c "import ee.plugin"` succeeds without importing `agent_service.main` — no circular import
-  5. The `axiom-ee` stub wheel is published to PyPI and the package name is reserved
-**Plans**: 5 plans
-Plans:
-- [x] 35-01-PLAN.md — axiom-ee repo scaffold: pyproject.toml, EEBase, EEPlugin skeleton (EE-01, EE-05)
-- [x] 35-02-PLAN.md — EE DB models: all 15 tables in ee/{feature}/models.py (EE-03)
-- [x] 35-03-PLAN.md — Router migration: 7 routers + services, absolute imports, EEPlugin.register() (EE-02, EE-04)
-- [x] 35-04-PLAN.md — CE async wiring: load_ee_plugins async, deps.audit() guard fix (EE-05, EE-06)
-- [x] 35-05-PLAN.md — Smoke tests + PyPI stub wheel (EE-06, EE-07, EE-08 partial)
-
-### Phase 36: Cython .so Build Pipeline
-**Goal**: The EE codebase compiles to `.so` extension modules via Cython and cibuildwheel, producing a multi-arch wheel with no `.py` source — and the compiled wheel passes the same CE+EE validation as the Python source install
-**Depends on**: Phase 35
-**Requirements**: BUILD-01, BUILD-02, BUILD-03, BUILD-04, BUILD-05
-**Success Criteria** (what must be TRUE):
-  1. EE source passes a pre-Cython audit with zero `@dataclass` decorators and no `__init__.py` in `ext_modules`
-  2. `cibuildwheel` CI builds wheels for Python 3.11, 3.12, 3.13 on both amd64 and arm64 without errors
-  3. `unzip -l axiom_ee-*.whl | grep "\.py$"` returns only `__init__.py` — no other Python source in the published wheel
-  4. Installing the compiled wheel in a clean virtualenv and running CE+EE produces the same outcome as the Phase 35 source install — all features true, all routes live, all tables present
-**Plans**: 3 plans
-Plans:
-- [ ] 36-01-PLAN.md — Cython build config: setup.py + pyproject.toml + Makefile (BUILD-01, BUILD-02, BUILD-03)
-- [ ] 36-02-PLAN.md — Run cibuildwheel: produce multi-arch wheels + verify no .py source (BUILD-03, BUILD-04)
-- [ ] 36-03-PLAN.md — devpi service + Containerfile EE install + compiled wheel smoke test (BUILD-05)
-
-### Phase 37: Licence Validation + Docs + Docker Hub
-**Goal**: EE enforces an Ed25519 offline licence key at startup, operators can pull `axiom-ce` from Docker Hub, and the MkDocs docs distinguish CE and EE features with enterprise admonitions
-**Depends on**: Phase 36 (licence code must be compiled into the .so; Docker Hub and docs can proceed in parallel after Phase 35)
-**Requirements**: DIST-01, DIST-02, DIST-03
-**Success Criteria** (what must be TRUE):
-  1. Starting EE with an expired `AXIOM_LICENCE_KEY` disables all EE features on the next restart — `GET /api/features` returns all false
-  2. Licence validation passes with `iptables -I OUTPUT -j DROP` active — no online call-home required
-  3. `docker pull axiom-laboratories/axiom-ce` succeeds and the image starts correctly
-  4. Every EE-only feature page in the MkDocs docs site displays an `!!! enterprise` admonition block
-**Plans**: 3 plans
-Plans:
-- [ ] 37-01-PLAN.md — EE plugin licence validation + GET /api/licence endpoint (DIST-01)
-- [ ] 37-02-PLAN.md — Dashboard edition badge (useLicence hook + sidebar + Admin panel) (DIST-03)
-- [ ] 37-03-PLAN.md — MkDocs enterprise admonitions + licensing.md page (DIST-03)
 
 ## Progress
 
@@ -167,15 +105,16 @@ Plans:
 | 31. Environment Tags + CI/CD Dispatch | v10.0 | 4/4 | Complete | 2026-03-18 |
 | 32. Dashboard UI — Execution History, Retry State, Env Tags | v10.0 | 7/7 | Complete | 2026-03-19 |
 | 33. Licence Compliance + Release Infrastructure | v10.0 | 4/4 | Complete | 2026-03-18 |
-| 34. CE Baseline Fixes | 4/4 | Complete    | 2026-03-19 | - |
-| 35. Private EE Repo + Plugin Wiring | 5/5 | Complete    | 2026-03-20 | - |
-| 36. Cython .so Build Pipeline | 3/3 | Complete    | 2026-03-20 | - |
-| 37. Licence Validation + Docs + Docker Hub | 3/3 | Complete    | 2026-03-20 | - |
+| 34. CE Baseline Fixes | v11.0 | 4/4 | Complete | 2026-03-19 |
+| 35. Private EE Repo + Plugin Wiring | v11.0 | 5/5 | Complete | 2026-03-20 |
+| 36. Cython .so Build Pipeline | v11.0 | 3/3 | Complete | 2026-03-20 |
+| 37. Licence Validation + Docs + Docker Hub | v11.0 | 3/3 | Complete | 2026-03-20 |
 
 ---
 
 ## Archived
 
+- ✅ **v11.0 — CE/EE Split Completion** (Phases 34–37) — shipped 2026-03-20 → `.planning/milestones/v11.0-ROADMAP.md` | phases → `v11.0-phases/`
 - ✅ **v10.0 — Axiom Commercial Release** (Phases 29–33) — shipped 2026-03-19 → `.planning/milestones/v10.0-ROADMAP.md`
 - ✅ **v9.0 — Enterprise Documentation** (Phases 20–28) — shipped 2026-03-17 → `.planning/milestones/v9.0-ROADMAP.md`
 - ✅ **v8.0 — mop-push CLI & Job Staging** (Phases 17–19) — shipped 2026-03-15 → `.planning/milestones/v8.0-ROADMAP.md`

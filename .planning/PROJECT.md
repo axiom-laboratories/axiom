@@ -62,22 +62,31 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Environment tags (DEV/TEST/PROD) — nodes declare in heartbeat, jobs target by env_tag, CI/CD dispatch API (POST /api/dispatch) — v10.0
 - ✓ Licence compliance — LEGAL.md certifi decision, axiom-sdk licence field, NOTICE file, paramiko assessment complete — v10.0
 
-### Active — v11.0 CE/EE Split Completion
+### Validated — v11.0 CE/EE Split Completion
 
-**Goal:** Complete the Axiom open-core split — fix the 4 blocking gaps on `feature/axiom-oss-ee-split`, wire EE router registration, validate CE-alone and CE+EE installs, set up the private `axiom-ee` repo with entry_points, compile EE to `.so`, update docs/licensing, and publish `axiom-ce` to Docker Hub.
+- ✓ CE stub routers return 402 (not 404) for all 7 EE routes on CE-only install — v11.0
+- ✓ `importlib.metadata` replaces deprecated `pkg_resources` for EE plugin discovery — v11.0
+- ✓ `ee_only` pytest marker auto-skips EE tests in CE runs; CE suite passes clean — v11.0
+- ✓ `NodeConfig` stripped of EE-only fields; `job_service.py` dead-field refs removed — v11.0
+- ✓ `axiom-ee` private repo: `EEPlugin` wires 7 routers + 15 EE SQLAlchemy tables via `entry_points` — v11.0
+- ✓ Absolute imports throughout EE codebase; async `load_ee_plugins` correctly awaited in CE lifespan — v11.0
+- ✓ Cython `.so` build pipeline: 12 compiled wheels (py3.11/3.12/3.13 × amd64/aarch64 × manylinux/musllinux) — v11.0
+- ✓ devpi internal wheel index in compose.server.yaml; compiled wheel CE+EE smoke tests pass — v11.0
+- ✓ Ed25519 offline licence validation gates all EE features at startup (air-gap safe) — v11.0
+- ✓ CE/EE edition badge in dashboard sidebar (useLicence hook + LicenceSection in Admin) — v11.0
+- ✓ MkDocs `!!! enterprise` admonitions on 5 EE feature pages; `licensing.md` CE/EE explainer — v11.0
 
-- [ ] Fix router registration — mount 7 EE routers in plugin `register()` method
-- [ ] Fix CE test suite — isolate EE-only tests, fix `test_bootstrap_admin.py` User.role refs
-- [ ] Strip `NodeConfig` model — remove `concurrency_limit`/`job_memory_limit`/`job_cpu_limit` from CE Pydantic model + clean job service
-- [ ] Private `axiom-ee` repo — entry_points wiring, validate CE-alone + CE+EE installs
-- [ ] `.so` build pipeline — Cython/Nuitka CI in private repo, no `.py` in distribution
-- [ ] Docs + licensing — CE/EE distinction in docs, licence key validation in EE plugin, publish `axiom-ce` to Docker Hub
-
-### Planned — Future Milestones
+### Active — Future Milestones
 
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
 - [ ] Conditional triggers — run job based on outcome of previous job or external signal
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
+- [ ] DIST-02: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current use)
+- [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
+- [ ] DIST-04: Licence issuance portal — web UI or automated pipeline for signed licence key delivery
+- [ ] DIST-05: Periodic licence re-validation (currently startup-only)
+- [ ] EE-09: OIDC/SAML SSO integration
+- [ ] EE-10: Custom RBAC roles + fine-grained permissions
 
 ### Out of Scope
 
@@ -124,6 +133,12 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Soft-purge for ingredient delete | Preserves mirror files and audit history; is_active=False flag | ✓ Good |
 | Image lifecycle status (ACTIVE/DEPRECATED/REVOKED) on puppet_templates | Enrollment and work-pull enforcement without DB joins; status is the authority | ✓ Good |
 | Phase 16 (Security & Governance) deferred | No production blockers; provenance/--secret deferred to avoid over-engineering v7.0 | ⚠️ Revisit |
+| Cython over Nuitka for EE compilation | Nuitka multi-module wheel workflow undocumented; Cython is established standard with cibuildwheel support | ✓ Good |
+| `packages=[]` + `exclude_package_data` to strip .py from wheel | Prevents source exposure while keeping `__init__.py` for package structure | ✓ Good |
+| `__init__.py` excluded from `ext_modules` | CPython bug #59828 — compiled `__init__` breaks relative imports; `__init__.py` must stay as plain Python | ✓ Good |
+| Ed25519 offline licence validation (no call-home) | Air-gapped deployments are a core use case — online validation would block them | ✓ Good |
+| devpi for internal EE wheel hosting | Simple HTTP index in compose.server.yaml; no auth needed for internal use; easy to swap for PyPI later | ✓ Good |
+| DIST-02 (Docker Hub CE publish) deferred to v12.0+ | GHCR covers all current deployment scenarios; Docker Hub adds registry maintenance burden for no immediate benefit | ✓ Good |
 | MkDocs Material over DB-backed wiki | Git-backed markdown, no DB, portable, all Insider features free (9.7.0+) | ✓ Good |
 | Two-stage Dockerfile for docs (builder + nginx) | mkdocs serve is not production-safe (GitHub issue #1825) | ✓ Good |
 | Caddy `handle /docs/*` + nginx `alias` | `handle_path` strips prefix → silently breaks all CSS/JS asset resolution | ✓ Good |
@@ -135,25 +150,17 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
-## Current Milestone: v11.0 CE/EE Split Completion
+## Current State — v11.0 Complete (2026-03-20)
 
-**Goal:** Complete the Axiom open-core split — gap fixes on the OSS/EE branch, EE plugin wiring, `.so` compilation pipeline, and Docker Hub CE publish.
+Axiom is now a fully open-core product. The CE edition (`axiom-laboratories/axiom`) is the open-source base; the EE edition (`axiom-ee` private repo) ships as Cython-compiled `.so` extensions — no Python source exposed. The EE plugin wires 7 additional routers and 15 database tables into the CE app via Python `entry_points` at startup. A hardcoded Ed25519 public key in the compiled binary validates offline licence keys — EE features are gated at startup without any call-home requirement, suitable for air-gapped deployments.
 
-**Target features:**
-- 4 blocking gap fixes (router registration, test isolation, NodeConfig model cleanup)
-- Private `axiom-ee` repo + entry_points validation
-- Cython/Nuitka `.so` build pipeline
-- CE/EE documentation update + `axiom-ce` Docker Hub publish
+The build pipeline produces 12 binary wheels per EE release (Python 3.11/3.12/3.13 × amd64/aarch64 × manylinux/musllinux) via `cibuildwheel`. Wheels are hosted on a devpi server in the Docker Compose stack. The dashboard displays a CE/EE edition badge in the sidebar footer; admin users can inspect full licence details in the Admin panel.
 
-## Current State — v10.0 Complete (2026-03-19)
+MkDocs documentation now distinguishes CE and EE features with `!!! enterprise` admonitions on all EE-only feature pages, plus a dedicated `licensing.md` page explaining the open-core model.
 
-Axiom is commercially released. The `axiom-laboratories/axiom` GitHub org and repo are live. v10.0.0-alpha.1 is published to PyPI (`axiom-sdk`) and GHCR via GitHub Actions OIDC — no long-lived tokens. Job execution is now fully observable: stdout/stderr captured per attempt, execution history queryable by job/node/run/status, runtime attestation signed by node mTLS key and verified server-side.
+**Shipped in v11.0:** CE baseline fixes (Phase 34), axiom-ee repo + plugin wiring (Phase 35), Cython .so build pipeline (Phase 36), licence validation + docs (Phase 37).
 
-Nodes declare environment tags (DEV/TEST/PROD) in heartbeats; job dispatch and scheduling respect env_tag routing. The CI/CD dispatch API (`POST /api/dispatch`) enables external pipelines to trigger environment-targeted jobs. All retry attempts are linked by job_run_id with configurable backoff. The dashboard has full execution history, attestation badges, retry state, attempt tabs, and env tag filtering.
-
-Licence compliance is complete: LEGAL.md documents certifi dual-licence decision, NOTICE file and paramiko assessment complete, `axiom-sdk` licence field correct.
-
-**Shipped in v10.0:** Output capture + history (Phase 29), runtime attestation (Phase 30), env tags + CI/CD dispatch (Phase 31), dashboard execution UI (Phase 32), licence compliance + release infra (Phase 33).
+**Known deferred:** EE-08 (PyPI stub wheel reservation), DIST-02 (Docker Hub CE publish) — see Known Gaps in MILESTONES.md.
 
 ---
-*Last updated: 2026-03-19 after v11.0 milestone started — CE/EE Split Completion*
+*Last updated: 2026-03-20 after v11.0 milestone — CE/EE Split Completion*

@@ -139,6 +139,41 @@
 - Mix of backend (29, 30, 31), frontend (32), and compliance/infra (33) — balanced workload across agent capabilities
 - Phase 33 (release infra) required significant human operator work outside the codebase (GitHub org creation, PyPI publisher setup, tag push) — accounted for in timeline but not in plan count
 
+## Milestone: v11.0 — CE/EE Split Completion
+
+**Shipped:** 2026-03-20
+**Phases:** 4 (34–37) | **Plans:** 15
+
+### What Was Built
+- CE isolation: stub routers return 402 for all EE routes, `ee_only` pytest marker, `NodeConfig` stripped of EE-only fields, CE pytest suite passes cleanly
+- `axiom-ee` private repo: `EEPlugin` with 7 FastAPI routers + 15 EE SQLAlchemy tables; absolute imports throughout; async plugin loading wired into CE lifespan via `entry_points`
+- Cython `.so` build pipeline: 12 binary wheels (py3.11/3.12/3.13 × amd64/aarch64 × manylinux/musllinux) via `cibuildwheel`; devpi internal wheel index in compose.server.yaml
+- Ed25519 offline licence validation at EE startup; CE/EE edition badge in dashboard sidebar; MkDocs enterprise admonitions + licensing page
+
+### What Worked
+- `packages=[]` + `exclude_package_data` pattern for stripping `.py` from the wheel was the right call — Cython handles everything else automatically
+- `entry_points` for EE plugin discovery is clean and keeps the CE codebase completely unaware of EE — no conditional imports, no try/except blocks in CE
+- Excluding `__init__.py` from `ext_modules` (CPython bug #59828) was caught early in the Cython audit before any CI time was wasted
+
+### What Was Inefficient
+- REQUIREMENTS.md had EE-08 as Pending at milestone close — the commit message (Phase 35) said it was resolved, but the traceability table wasn't updated. Adds ambiguity at milestone review.
+- No pre-flight audit was run before closing — the audit step was skipped. This meant gap discovery happened at completion rather than during development when gaps are cheaper to close.
+
+### Patterns Established
+- Cython `ext_modules` pattern: glob all `.py` files in `ee/`, exclude `__init__.py`, set `packages=[]` to avoid installing source
+- `Annotated[int, Path()]` pattern required for FastAPI routers compiled with Cython (bare `path_param: int = Path()` triggers Cython compilation failure)
+- async DDL via `run_sync` required in compiled modules — Cython can't handle `await engine.run_sync(Base.metadata.create_all)` directly
+
+### Key Lessons
+- Update traceability table at plan completion, not milestone close — stale Pending rows create noise at retrospective
+- Run `/gsd:audit-milestone` before marking complete — skipping it produced 2 known gaps that could have been addressed during development
+- devpi works well as an internal index but requires manual upload step on each EE version bump — document this in the runbook for whoever manages EE releases
+
+### Cost Observations
+- 4 phases, 15 plans, 44 commits over 2 days
+- Cython compilation was the highest-risk unknown; resolved cleanly with cibuildwheel approach
+- Phase 36 (build pipeline) was the densest in new tooling: cibuildwheel, devpi, manylinux/musllinux matrix — all new to the project
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -147,3 +182,4 @@
 | v8.0 | 3 | 14 | CLI + backend + UI in one milestone; Playwright as final gate |
 | v9.0 | 9 | 27 | Documentation milestone; stub-first nav pattern; regression gap closure required |
 | v10.0 | 5 | 21 | Security + observability + release; audit-before-close gate caught cross-phase propagation gap |
+| v11.0 | 4 | 15 | Open-core split; Cython build pipeline as key technical risk; EE plugin via entry_points |

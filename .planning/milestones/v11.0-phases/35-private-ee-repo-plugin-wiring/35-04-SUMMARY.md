@@ -109,6 +109,13 @@ None — no external service configuration required.
 - audit() will write entries in EE mode — no further changes needed to the deps module for EE audit support
 - Phase 35 wave 5 (if any) or Phase 36 (Cython build) can proceed — the CE-alone gate is green
 
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/35-private-ee-repo-plugin-wiring/35-04-SUMMARY.md
+- FOUND: a2ce72d (feat: make load_ee_plugins async, await in main.py lifespan)
+- FOUND: d4c6e41 (fix: remove Base.metadata guard in deps.audit())
+- FOUND: a2c3c50 (docs: plan metadata commit)
+
 ---
 *Phase: 35-private-ee-repo-plugin-wiring*
 *Completed: 2026-03-19*

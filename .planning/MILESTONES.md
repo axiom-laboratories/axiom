@@ -1,5 +1,24 @@
 # Milestones
 
+## v11.0 CE/EE Split Completion (Shipped: 2026-03-20)
+
+**Phases completed:** 4 phases (34–37), 15 plans
+**Stats:** 48 files changed, +9,883 / -72 lines | 44 commits
+**Timeline:** 2026-03-19 → 2026-03-20
+
+**Key accomplishments:**
+- Phase 34 — CE isolation: 6 stub routers return 402 (not 404) for all EE routes; `importlib.metadata` replaces deprecated `pkg_resources`; `ee_only` pytest marker auto-skips EE tests in CE runs; CE pytest suite passes cleanly
+- Phase 35 — `axiom-ee` private repo: `EEPlugin` wires 7 EE routers + 15 SQLAlchemy tables via `entry_points`; absolute imports throughout; async `load_ee_plugins` correctly awaited in CE lifespan; CE-alone and CE+EE smoke tests pass
+- Phase 36 — Cython build pipeline: 12 compiled wheels produced (Python 3.11/3.12/3.13 × amd64/aarch64 × manylinux/musllinux); devpi server for internal wheel hosting; compiled `.so` wheel CE+EE smoke tests pass; zero `.py` source in published wheel
+- Phase 37 — Licence + docs: Ed25519 offline licence validation gates all EE features at startup (air-gap safe); CE/EE edition badge in dashboard sidebar; MkDocs `!!! enterprise` admonitions across 5 EE feature pages + new `licensing.md`
+
+### Known Gaps
+
+- **EE-08**: `axiom-ee` stub wheel on PyPI — PyPI name reservation not completed (package reserved via GitHub only; full PyPI publish deferred)
+- **DIST-02**: `axiom-ce` image on Docker Hub — explicitly deferred to v12.0+; GHCR covers current deployment scenarios
+
+---
+
 ## v10.0 Axiom Commercial Release (Shipped: 2026-03-19)
 
 **Phases completed:** 5 phases (29–33), 21 plans
