@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v11.0
 milestone_name: — CE/EE Split Completion
 status: planning
-stopped_at: Completed 35-05-PLAN.md — axiom-ee wheel built, CE+EE smoke tests passing, PyPI publish pending credentials
-last_updated: "2026-03-20T09:40:15.571Z"
+stopped_at: Phase 36 context gathered
+last_updated: "2026-03-20T10:52:05.509Z"
 last_activity: 2026-03-19 — Phase 35 complete (CE+EE smoke tests 2 passed, axiom-ee wheel built, PyPI publish pending credentials)
 progress:
   total_phases: 4
@@ -85,7 +85,7 @@ None — v10.0 complete. Starting clean on v11.0:
 
 ## Session Continuity
 
-Last session: 2026-03-19
-Stopped at: Completed 35-05-PLAN.md — axiom-ee wheel built, CE+EE smoke tests passing, PyPI publish pending credentials
-Resume file: None
+Last session: 2026-03-20T10:52:05.507Z
+Stopped at: Phase 36 context gathered
+Resume file: .planning/phases/36-cython-so-build-pipeline/36-CONTEXT.md
 Next action: `/gsd:plan-phase 36`
