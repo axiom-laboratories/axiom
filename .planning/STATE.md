@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 39-01-PLAN.md — EE test keypair + editable install
-last_updated: "2026-03-20T21:10:58.369Z"
+stopped_at: Completed 39-02-PLAN.md — EE licence generator + install verifier
+last_updated: "2026-03-20T21:16:18.929Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -47,6 +47,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 38-clean-teardown-fresh-ce-install P01 | 1 | 2 tasks | 2 files |
 | Phase 38-clean-teardown-fresh-ce-install P02 | 2 | 1 tasks | 1 files |
 | Phase 39-ee-test-keypair-dev-install P01 | 10 | 2 tasks | 5 files |
+| Phase 39-ee-test-keypair-dev-install P02 | 3m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 38]: INST-04 manual steps embedded as INST_04_MANUAL_TEST_STEPS module constant — accessible via grep/editor without running script
 - [Phase 39]: patch_ee_source.py uses lambda replacement in re.sub to prevent \xNN byte sequences in repr(pub_raw) being treated as regex escapes
 - [Phase 39]: compose.server.yaml AXIOM_LICENCE_KEY change applied to main puppeteer/ file — the .worktrees/axiom-split/ worktree referenced in plan does not exist
+- [Phase 39]: Plan 39-02 verification condition typo: exp > 1700000000*5 (=8.5B) in plan snippet was wrong for 10yr licence (~2.09B); corrected assertion to > int(time.time()). Implementation correct.
 
 ### Pending Todos
 
@@ -76,7 +78,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T21:10:58.367Z
-Stopped at: Completed 39-01-PLAN.md — EE test keypair + editable install
+Last session: 2026-03-20T21:16:18.927Z
+Stopped at: Completed 39-02-PLAN.md — EE licence generator + install verifier
 Next action: `/gsd:plan-phase 38`
 Resume file: None

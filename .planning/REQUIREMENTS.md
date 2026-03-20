@@ -18,9 +18,9 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 
 - [x] **EEDEV-01**: Local Ed25519 test keypair generated (test public + private key) and stored in `mop_validation/secrets/`
 - [x] **EEDEV-02**: `axiom-ee` EE plugin patched with test public key bytes and installed as editable source (`pip install -e`) — no Cython rebuild required
-- [ ] **EEDEV-03**: Valid test licence generated (signed with test private key), `GET /api/licence` returns correct `customer_id`, `exp`, `features`
-- [ ] **EEDEV-04**: Expired test licence verified: after restart, `GET /api/features` returns all false; `GET /api/licence` shows expired state
-- [ ] **EEDEV-05**: Missing `AXIOM_LICENCE_KEY` env var verified: EE starts in CE-degraded mode (no crash, all features false)
+- [x] **EEDEV-03**: Valid test licence generated (signed with test private key), `GET /api/licence` returns correct `customer_id`, `exp`, `features`
+- [x] **EEDEV-04**: Expired test licence verified: after restart, `GET /api/features` returns all false; `GET /api/licence` shows expired state
+- [x] **EEDEV-05**: Missing `AXIOM_LICENCE_KEY` env var verified: EE starts in CE-degraded mode (no crash, all features false)
 
 ### LXC Node Provisioning
 
@@ -101,9 +101,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INST-04 | Phase 38 | Complete |
 | EEDEV-01 | Phase 39 | Complete |
 | EEDEV-02 | Phase 39 | Complete |
-| EEDEV-03 | Phase 39 | Pending |
-| EEDEV-04 | Phase 39 | Pending |
-| EEDEV-05 | Phase 39 | Pending |
+| EEDEV-03 | Phase 39 | Complete |
+| EEDEV-04 | Phase 39 | Complete |
+| EEDEV-05 | Phase 39 | Complete |
 | NODE-01 | Phase 40 | Pending |
 | NODE-02 | Phase 40 | Pending |
 | NODE-03 | Phase 40 | Pending |
