@@ -90,6 +90,22 @@ services:
     ports:
       - "8080:8080"
 
+  devpi:
+    image: muccg/devpi:latest
+    container_name: devpi
+    ports:
+      - "3141:3141"
+    volumes:
+      - devpi-data:/data
+    environment:
+      - DEVPI_PASSWORD=${DEVPI_PASSWORD:-changeme}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3141/+api"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   mirror:
     image: caddy:latest
     restart: always
@@ -157,3 +173,4 @@ volumes:
   caddy_config:
   registry-data:
   mirror-data:
+  devpi-data:
