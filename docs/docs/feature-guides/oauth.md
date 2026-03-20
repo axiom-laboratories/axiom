@@ -4,6 +4,8 @@ Axiom uses JWT-based authentication with RFC 8628 device flow for CLI tools and 
 
 ---
 
+!!! enterprise
+
 ## Authentication Methods
 
 Three authentication methods are supported:

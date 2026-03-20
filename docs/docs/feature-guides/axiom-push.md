@@ -7,6 +7,8 @@
 
 ---
 
+!!! enterprise
+
 ## Install
 
 Install `axiom-push` from the repository root:

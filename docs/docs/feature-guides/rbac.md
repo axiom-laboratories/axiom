@@ -4,6 +4,8 @@ Axiom uses three roles — `admin`, `operator`, and `viewer` — with a permissi
 
 ---
 
+!!! enterprise
+
 ## Roles Overview
 
 ### admin

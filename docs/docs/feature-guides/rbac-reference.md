@@ -4,6 +4,8 @@ Complete reference for all permissions in Axiom, with default role assignments.
 
 ---
 
+!!! enterprise
+
 ## Default Role Assignments
 
 These are the default permissions assigned at first startup. Permissions can be customised per role through the dashboard — see the [RBAC guide](rbac.md).

@@ -6,6 +6,8 @@ The workflow has two stages: first you create **blueprints** that define runtime
 
 ---
 
+!!! enterprise
+
 ## Concepts
 
 | Concept | Description |
