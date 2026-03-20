@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 40-02-PLAN.md
-last_updated: "2026-03-20T22:29:08.662Z"
+stopped_at: Completed 40-01-PLAN.md
+last_updated: "2026-03-20T22:29:20.755Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
@@ -71,6 +71,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 40]: NODE-05 requires reinstate before re-enroll — REVOKED nodes are blocked at /api/enroll
 - [Phase 40]: cert serial_number is primary re-enrollment identity proof; node_id diff is fallback when client_cert_pem absent
 - [Phase 40]: ubuntu_node_secrets docker volume removed on compose restart to force fresh CSR and new cert identity
+- [Phase 40]: lxc-node-compose.yaml uses __REGISTRY_IP__ placeholder (not env var) — Docker compose image: field does not reliably support env var registry prefix substitution
+- [Phase 40]: EXECUTION_MODE=docker hardcoded in LXC compose template — LXC nodes have nested Docker via security.nesting=true, not DinD direct mode
+- [Phase 40]: Token generation loop runs fully before provisioning loop — all secrets/nodes/*.env exist before any container starts
 
 ### Pending Todos
 
@@ -84,7 +87,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T22:28:57.464Z
-Stopped at: Completed 40-02-PLAN.md
+Last session: 2026-03-20T22:29:20.753Z
+Stopped at: Completed 40-01-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None
