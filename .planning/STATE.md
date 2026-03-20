@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 40-01-PLAN.md
-last_updated: "2026-03-20T22:29:20.755Z"
+stopped_at: "Checkpoint: 40-03 Task 2 human-verify — run provisioner against live stack"
+last_updated: "2026-03-20T22:42:37.855Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 7
+  completed_plans: 7
   percent: 0
 ---
 
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 40]: lxc-node-compose.yaml uses __REGISTRY_IP__ placeholder (not env var) — Docker compose image: field does not reliably support env var registry prefix substitution
 - [Phase 40]: EXECUTION_MODE=docker hardcoded in LXC compose template — LXC nodes have nested Docker via security.nesting=true, not DinD direct mode
 - [Phase 40]: Token generation loop runs fully before provisioning loop — all secrets/nodes/*.env exist before any container starts
+- [Phase 40]: POST /auth/login uses OAuth2PasswordRequestForm — provisioner must send data= (form-encoded), not json=
 
 ### Pending Todos
 
@@ -87,7 +88,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T22:29:20.753Z
-Stopped at: Completed 40-01-PLAN.md
+Last session: 2026-03-20T22:42:37.853Z
+Stopped at: Checkpoint: 40-03 Task 2 human-verify — run provisioner against live stack
 Next action: `/gsd:plan-phase 38`
 Resume file: None
