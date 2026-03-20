@@ -39,7 +39,7 @@ Requirements for the CE/EE Split Completion milestone.
 
 - [ ] **DIST-01**: Ed25519 offline licence key validation implemented in EE plugin — payload carries `customer_id`, `exp`, `features`; public key hardcoded in compiled binary; checked at startup only
 - [ ] **DIST-02**: `axiom-ce` image published to Docker Hub in existing `release.yml` — two-step addition alongside GHCR
-- [ ] **DIST-03**: MkDocs docs updated with CE/EE admonition callouts — EE-only feature sections marked with `!!! enterprise` admonitions
+- [x] **DIST-03**: MkDocs docs updated with CE/EE admonition callouts — EE-only feature sections marked with `!!! enterprise` admonitions
 
 ## Future Requirements
 
@@ -86,7 +86,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BUILD-05 | Phase 36 | Complete |
 | DIST-01 | Phase 37 | Pending |
 | DIST-02 | Phase 37 | Pending |
-| DIST-03 | Phase 37 | Pending |
+| DIST-03 | Phase 37 | Complete |
 
 **Coverage:**
 - v11.0 requirements: 22 total
