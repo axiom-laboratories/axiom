@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 43-07-PLAN.md
-last_updated: "2026-03-21T21:28:34.580Z"
+stopped_at: Completed 43-08-PLAN.md
+last_updated: "2026-03-21T23:30:28.264Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 20
+  completed_plans: 20
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 43-job-test-matrix P05 | 7min | 2 tasks | 1 files |
 | Phase 43-job-test-matrix P06 | 5min | 2 tasks | 1 files |
 | Phase 43-job-test-matrix P07 | 18min | 1 tasks | 5 files |
+| Phase 43-job-test-matrix P08 | 45m | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 43]: LXC node execution bootstrap: copy docker binary from LXC host into puppet-node container; tag localhost/master-of-puppets-node:latest from registry image
 - [Phase 43]: Matrix script idempotency: POST /api/jobs/push 409 conflict response includes existing ID — extract and reuse to support re-runs
 - [Phase 43]: Job timeout_minutes required for any job sleeping >30s — node.py defaults to 30s when absent
+- [Phase 43]: docker.io apt package on python:3.12-slim only installs dockerd (not docker CLI) — must bind-mount /usr/bin/docker from LXC host into puppet-node container
+- [Phase 43]: retriable=True only on python_script non-zero exit with max_retries > 0 — security_rejected, memory-limit, and runtime-exception paths remain non-retriable by design
+- [Phase 43]: global _current_env_tag must be declared before first use in Python 3.12 — pre-existing SyntaxError fixed in 43-08 (was masked by older node image)
 
 ### Pending Todos
 
@@ -133,7 +137,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T21:28:34.578Z
-Stopped at: Completed 43-07-PLAN.md
+Last session: 2026-03-21T23:30:28.262Z
+Stopped at: Completed 43-08-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None
