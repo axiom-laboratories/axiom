@@ -923,6 +923,17 @@ async def dispatch_job(
             detail={"error": "job_definition_not_found", "job_definition_id": req.job_definition_id},
         )
 
+    # 1b. Reject REVOKED definitions — cannot dispatch a job from a revoked definition
+    if s_job.status == "REVOKED":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "job_definition_revoked",
+                "id": s_job.id,
+                "message": "Cannot dispatch a REVOKED job definition.",
+            },
+        )
+
     # 2. Resolve env_tag: dispatch request overrides definition's env_tag; fall back to definition
     effective_env_tag = req.env_tag if req.env_tag is not None else s_job.env_tag
 
