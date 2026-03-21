@@ -1023,6 +1023,8 @@ async def create_job(job_req: JobCreate, current_user: User = Depends(require_au
         result = await JobService.create_job(job_req, db)
         await ws_manager.broadcast("job:created", {"guid": result["guid"], "status": "PENDING", "task_type": job_req.task_type})
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
