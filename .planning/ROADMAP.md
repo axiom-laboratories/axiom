@@ -196,7 +196,13 @@ Plans:
   3. A build triggered with a bad base image tag returns HTTP 500 with error detail — not a silent 200
   4. Air-gap mirror test: with outbound internet blocked via `iptables` on the build container, a blueprint using the local PyPI mirror installs its ingredient successfully from the mirror; `curl https://pypi.org/` fails from inside the container during the test, confirming isolation
   5. Smelter WARNING mode: a moderate-risk ingredient proceeds through a build but the audit log records the warning; build dir cleanup result (pass or fail) is documented as a finding for MIN-07
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 44-01-PLAN.md — STRICT CVE block (FOUNDRY-02) + bad base image failure (FOUNDRY-03)
+- [ ] 44-02-PLAN.md — Build dir gap documentation (FOUNDRY-04) + WARNING mode (FOUNDRY-06)
+- [ ] 44-03-PLAN.md — Full wizard flow API + Playwright (FOUNDRY-01)
+- [ ] 44-04-PLAN.md — Air-gap mirror with iptables isolation (FOUNDRY-05)
+- [ ] 44-05-PLAN.md — Runner: run_foundry_matrix.py + execute full matrix (all FOUNDRY-*)
 
 ### Phase 45: Gap Report Synthesis + Critical Fixes
 **Goal**: All findings from Phases 38–44 are synthesised into a prioritised gap report; critical bugs are patched with regression tests; the v12.0+ backlog is seeded
@@ -247,7 +253,7 @@ Plans:
 | 41. CE Validation Pass | 3/3 | Complete    | 2026-03-21 | - |
 | 42. EE Validation Pass | 2/2 | Complete    | 2026-03-21 | - |
 | 43. Job Test Matrix | 8/8 | Complete    | 2026-03-21 | - |
-| 44. Foundry + Smelter Deep Pass | v11.1 | 0/TBD | Not started | - |
+| 44. Foundry + Smelter Deep Pass | v11.1 | 0/5 | Not started | - |
 | 45. Gap Report Synthesis + Critical Fixes | v11.1 | 0/TBD | Not started | - |
 
 ---
