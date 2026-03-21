@@ -38,9 +38,9 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 
 ### EE Validation Pass
 
-- [ ] **EEV-01**: CE+EE combined install: `GET /api/features` all true, 28 tables (13 CE + 15 EE), EE routes return real responses
-- [ ] **EEV-02**: Licence gating is startup-only: change to expired licence at runtime, confirm features remain true until restart, then false after restart
-- [ ] **EEV-03**: `GET /api/licence` admin endpoint returns full licence detail; non-admin (operator/viewer) gets 403
+- [x] **EEV-01**: CE+EE combined install: `GET /api/features` all true, 28 tables (13 CE + 15 EE), EE routes return real responses
+- [x] **EEV-02**: Licence gating is startup-only: change to expired licence at runtime, confirm features remain true until restart, then false after restart
+- [x] **EEV-03**: `GET /api/licence` admin endpoint returns full licence detail; non-admin (operator/viewer) gets 403
 
 ### Job Test Matrix
 
@@ -112,9 +112,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CEV-01 | Phase 41 | Complete |
 | CEV-02 | Phase 41 | Complete |
 | CEV-03 | Phase 41 | Complete |
-| EEV-01 | Phase 42 | Pending |
-| EEV-02 | Phase 42 | Pending |
-| EEV-03 | Phase 42 | Pending |
+| EEV-01 | Phase 42 | Complete |
+| EEV-02 | Phase 42 | Complete |
+| EEV-03 | Phase 42 | Complete |
 | JOB-01 | Phase 43 | Pending |
 | JOB-02 | Phase 43 | Pending |
 | JOB-03 | Phase 43 | Pending |

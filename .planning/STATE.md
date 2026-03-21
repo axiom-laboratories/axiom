@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 42-01-PLAN.md
-last_updated: "2026-03-21T18:52:50.993Z"
+stopped_at: Completed 42-02-PLAN.md
+last_updated: "2026-03-21T19:06:33.919Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 41-ce-validation-pass P02 | 13m | 1 tasks | 1 files |
 | Phase 41-ce-validation-pass P03 | 30min | 3 tasks | 1 files |
 | Phase 42-ee-validation-pass P01 | 14m | 2 tasks | 3 files |
+| Phase 42-ee-validation-pass P02 | 11m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 42]: Used getattr(current_user, 'role', None) != 'admin' instead of direct role access — CE User model lacks role column without migration, consistent with deps.py require_permission pattern
 - [Phase 42]: Added role column back to CE db.py User model (server_default='admin') — EE users router reads u.role directly on CE User, stripped in bbcb209 but not re-added by EE plugin startup
 - [Phase 42]: EE image rebuild via FROM axiom-test-agent:latest + COPY approach — devpi root/dev index unavailable after CE validation teardown wiped volumes
+- [Phase 42]: CE main.py is responsible for licence expiry gating — EEPlugin.register() (compiled Cython .so) unconditionally mounts EE routers; expiry enforcement must live in the CE control layer
+- [Phase 42]: app.state.licence must be parsed from AXIOM_LICENCE_KEY in lifespan() before load_ee_plugins() — EE plugin only sets EEContext feature flags, not licence metadata that GET /api/licence reads
 
 ### Pending Todos
 
@@ -107,7 +110,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T18:52:50.991Z
-Stopped at: Completed 42-01-PLAN.md
+Last session: 2026-03-21T19:06:33.917Z
+Stopped at: Completed 42-02-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None
