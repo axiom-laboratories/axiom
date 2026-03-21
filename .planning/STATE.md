@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 43-06-PLAN.md
-last_updated: "2026-03-21T20:53:43.995Z"
+stopped_at: Completed 43-07-PLAN.md
+last_updated: "2026-03-21T21:28:34.580Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
   percent: 0
 ---
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 43-job-test-matrix P04 | 6min | 3 tasks | 3 files |
 | Phase 43-job-test-matrix P05 | 7min | 2 tasks | 1 files |
 | Phase 43-job-test-matrix P06 | 5min | 2 tasks | 1 files |
+| Phase 43-job-test-matrix P07 | 18min | 1 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 43]: Rate-limit guard in run_job_matrix.py runner after every 5th script: each verify_job_*.py calls POST /auth/login once; stack enforces 5/minute; pause skipped if batch already took 62+ seconds naturally
 - [Phase 43]: capture_output=False on subprocess.run() in run_job_matrix.py — each script streams output in real time to terminal
 - [Phase 43]: except HTTPException: raise inserted before generic except in create_job() — standard FastAPI pattern; HTTPException is subclass of Exception so ordering matters
+- [Phase 43]: 8/9 matrix pass is acceptable — JOB-07 FAIL documents known retriable=True gap in node.py; not masked
+- [Phase 43]: LXC node execution bootstrap: copy docker binary from LXC host into puppet-node container; tag localhost/master-of-puppets-node:latest from registry image
+- [Phase 43]: Matrix script idempotency: POST /api/jobs/push 409 conflict response includes existing ID — extract and reuse to support re-runs
+- [Phase 43]: Job timeout_minutes required for any job sleeping >30s — node.py defaults to 30s when absent
 
 ### Pending Todos
 
@@ -128,7 +133,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:53:43.993Z
-Stopped at: Completed 43-06-PLAN.md
+Last session: 2026-03-21T21:28:34.578Z
+Stopped at: Completed 43-07-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None
