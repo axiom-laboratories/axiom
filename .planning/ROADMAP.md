@@ -161,7 +161,10 @@ Plans:
   2. Database contains exactly 28 tables (13 CE + 15 EE); EE routes return real responses, not 402
   3. Licence gating is startup-only: swapping to an expired licence at runtime leaves features true until restart, then false after restart
   4. `GET /api/licence` returns full licence detail for admin; operator and viewer roles receive HTTP 403
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 42-01-PLAN.md — Backend patch: GET /api/licence admin-only + EE image rebuild
+- [ ] 42-02-PLAN.md — Write and execute verify_ee_pass.py (EEV-01, EEV-02, EEV-03)
 
 ### Phase 43: Job Test Matrix
 **Goal**: All 9 job scenarios — covering normal execution, edge cases, and failure modes — are exercised against the full EE stack with 4 LXC nodes
