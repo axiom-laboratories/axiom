@@ -771,8 +771,8 @@ class Node:
                 
                 if job_data:
                     pushed_tag = job_data.get("env_tag")  # None=unmanaged, ""=cleared, "X"=set
+                    global _current_env_tag
                     if pushed_tag is not None and pushed_tag != _current_env_tag:
-                        global _current_env_tag
                         _current_env_tag = pushed_tag  # "" stored as sentinel for "cleared"
 
                     work = job_data.get("job")
