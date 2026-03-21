@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 41-01-PLAN.md (verify_ce_stubs.py + verify_ce_tables.py)
-last_updated: "2026-03-21T15:22:20.027Z"
+stopped_at: Completed 41-02-PLAN.md (CEV-03)
+last_updated: "2026-03-21T15:31:16.509Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 40-lxc-node-provisioning P01 | 3 | 2 tasks | 3 files |
 | Phase 40-lxc-node-provisioning P03 | 21m | 2 tasks | 1 files |
 | Phase 41-ce-validation-pass P01 | 3m | 2 tasks | 2 files |
+| Phase 41-ce-validation-pass P02 | 13m | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 41]: CEV-01 uses admin JWT to decouple auth-layer 403 from EE-gate 402 — stub assertion is unambiguous
 - [Phase 41]: CEV-02 is non-destructive by design — operator runs teardown_hard.sh first, script only asserts table count result
 - [Phase 41]: 7 hardcoded EE stub routes (one per domain) sourced from ee/interfaces/*.py — explicit list fails clearly on route changes
+- [Phase 41]: POST /jobs returns HTTP 200 (not 201) in CE build — validation scripts should accept both status codes
+- [Phase 41]: verification.key in running container may drift from project canonical key — must align before CEV-03 signature verification will pass
+- [Phase 41]: EXECUTION_MODE=auto inside puppet-node selects podman which fails with cgroup v2 errors inside Docker — use EXECUTION_MODE=docker + copy docker binary from LXC host
+- [Phase 41]: master-of-puppets-node:latest must be loaded into LXC docker daemon separately from host docker
 
 ### Pending Todos
 
@@ -95,7 +100,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T15:22:20.024Z
-Stopped at: Completed 41-01-PLAN.md (verify_ce_stubs.py + verify_ce_tables.py)
+Last session: 2026-03-21T15:31:16.507Z
+Stopped at: Completed 41-02-PLAN.md (CEV-03)
 Next action: `/gsd:plan-phase 38`
 Resume file: None

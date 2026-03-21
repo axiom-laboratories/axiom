@@ -85,7 +85,7 @@ Archive: `.planning/milestones/v11.0-ROADMAP.md`
 - [x] **Phase 38: Clean Teardown + Fresh CE Install** — Teardown scripts (soft/hard), CE cold-start verification, admin re-seed safety (completed 2026-03-20)
 - [x] **Phase 39: EE Test Keypair + Dev Install** — Ed25519 test keypair, editable EE install with patched key, licence lifecycle edge cases (completed 2026-03-20)
 - [x] **Phase 40: LXC Node Provisioning** — 4 Incus containers (DEV/TEST/PROD/STAGING), per-node enrollment, env-tag verification, revoke/re-enroll cycle (completed 2026-03-20)
-- [ ] **Phase 41: CE Validation Pass** — EE stubs return 402, CE table count assertion, basic job dispatch on CE
+- [x] **Phase 41: CE Validation Pass** — EE stubs return 402, CE table count assertion, basic job dispatch on CE (completed 2026-03-21)
 - [ ] **Phase 42: EE Validation Pass** — CE+EE combined install, 28-table assertion, licence gating, admin endpoint RBAC
 - [ ] **Phase 43: Job Test Matrix** — 9 job scenarios: fast/slow/memory/concurrent/env-routing/promotion/crash/bad-sig/revoked-definition
 - [ ] **Phase 44: Foundry + Smelter Deep Pass** — Full wizard flow, STRICT/WARNING modes, build failure edge case, air-gap mirror, build dir cleanup
@@ -232,7 +232,7 @@ Plans:
 | 38. Clean Teardown + Fresh CE Install | 2/2 | Complete    | 2026-03-20 | - |
 | 39. EE Test Keypair + Dev Install | 2/2 | Complete    | 2026-03-20 | - |
 | 40. LXC Node Provisioning | 3/3 | Complete    | 2026-03-21 | - |
-| 41. CE Validation Pass | 1/2 | In Progress|  | - |
+| 41. CE Validation Pass | 2/2 | Complete   | 2026-03-21 | - |
 | 42. EE Validation Pass | v11.1 | 0/TBD | Not started | - |
 | 43. Job Test Matrix | v11.1 | 0/TBD | Not started | - |
 | 44. Foundry + Smelter Deep Pass | v11.1 | 0/TBD | Not started | - |

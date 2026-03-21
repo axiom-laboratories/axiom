@@ -34,7 +34,7 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 
 - [x] **CEV-01**: All 7 EE routes return HTTP 402 (not 404) on CE-only install with 4 nodes active
 - [x] **CEV-02**: CE table count assertion: exactly 13 tables, zero EE table leakage after hard teardown + CE reinstall
-- [ ] **CEV-03**: Basic job dispatch on CE: script signed, submitted, executed on a DEV-tagged node, stdout captured in execution history
+- [x] **CEV-03**: Basic job dispatch on CE: script signed, submitted, executed on a DEV-tagged node, stdout captured in execution history
 
 ### EE Validation Pass
 
@@ -111,7 +111,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NODE-05 | Phase 40 | Complete |
 | CEV-01 | Phase 41 | Complete |
 | CEV-02 | Phase 41 | Complete |
-| CEV-03 | Phase 41 | Pending |
+| CEV-03 | Phase 41 | Complete |
 | EEV-01 | Phase 42 | Pending |
 | EEV-02 | Phase 42 | Pending |
 | EEV-03 | Phase 42 | Pending |
