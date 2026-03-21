@@ -55,7 +55,7 @@ services:
     build:
       context: .
       dockerfile: Containerfile.server
-    image: localhost/master-of-puppets-server:ce-validation
+    image: localhost/master-of-puppets-server:v3
     command: python -m agent_service.main
     restart: always
     environment:
