@@ -233,7 +233,7 @@ Plans:
 | 38. Clean Teardown + Fresh CE Install | 2/2 | Complete    | 2026-03-20 | - |
 | 39. EE Test Keypair + Dev Install | 2/2 | Complete    | 2026-03-20 | - |
 | 40. LXC Node Provisioning | 3/3 | Complete    | 2026-03-21 | - |
-| 41. CE Validation Pass | 2/2 | Complete   | 2026-03-21 | - |
+| 41. CE Validation Pass | 3/3 | Complete   | 2026-03-21 | - |
 | 42. EE Validation Pass | v11.1 | 0/TBD | Not started | - |
 | 43. Job Test Matrix | v11.1 | 0/TBD | Not started | - |
 | 44. Foundry + Smelter Deep Pass | v11.1 | 0/TBD | Not started | - |
