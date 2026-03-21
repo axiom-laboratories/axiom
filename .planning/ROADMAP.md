@@ -176,13 +176,15 @@ Plans:
   3. Env-tag routing is strictly enforced: a DEV-tagged job never executes on the PROD node; a cross-tag submission where no eligible node exists returns an appropriate response from the orchestrator
   4. A job configured with `sys.exit(1)` produces `FAILED` status, triggers retry up to `max_retries`, and all attempts appear in execution history with correct `attempt_number` values
   5. A job submitted with a bad Ed25519 signature is rejected by the node before execution; no execution record is created for the actual script run; a revoked job definition is blocked at the orchestrator and never reaches any node
-**Plans**: 5 plans
+**Plans**: 7 plans (5 original + 2 gap-closure)
 Plans:
 - [ ] 43-01-PLAN.md — Backend fixes: REVOKED dispatch guard + no-eligible-node 422 (JOB-05, JOB-09 enablers)
 - [ ] 43-02-PLAN.md — Basic execution scripts: verify_job_01_fast.py, verify_job_02_slow.py, verify_job_03_memory.py (JOB-01, JOB-02, JOB-03)
 - [ ] 43-03-PLAN.md — Routing scripts: verify_job_04_concurrent.py, verify_job_05_env_routing.py, verify_job_06_promotion.py (JOB-04, JOB-05, JOB-06)
 - [ ] 43-04-PLAN.md — Failure scripts: verify_job_07_retry_crash.py, verify_job_08_bad_sig.py, verify_job_09_revoked.py (JOB-07, JOB-08, JOB-09)
 - [ ] 43-05-PLAN.md — Runner: run_job_matrix.py + execute full matrix (all JOB-*)
+- [ ] 43-06-PLAN.md — Gap closure: fix HTTP 500 wrapping bug in POST /jobs route (JOB-05)
+- [ ] 43-07-PLAN.md — Gap closure: provision DEV node + signing key + re-run matrix for genuine PASS evidence (all JOB-*)
 
 ### Phase 44: Foundry + Smelter Deep Pass
 **Goal**: Foundry and Smelter are verified end-to-end — wizard flow, CVE enforcement, build failure handling, air-gap mirror, and known gap documentation
