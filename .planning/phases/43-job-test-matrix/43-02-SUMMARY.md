@@ -106,6 +106,16 @@ None — no external service configuration required. Scripts are ready to run wh
 - Same boilerplate pattern (`load_env`, `wait_for_stack`, `get_admin_token`, `sign_script`, `find_node_by_env_tag`) ready to copy for JOB-04 through JOB-09
 - Phase 43 Plans 03+ can proceed without waiting for nodes — scripts are infrastructure-ready
 
+## Self-Check: PASSED
+
+- FOUND: mop_validation/scripts/verify_job_01_fast.py
+- FOUND: mop_validation/scripts/verify_job_02_slow.py
+- FOUND: mop_validation/scripts/verify_job_03_memory.py
+- FOUND: .planning/phases/43-job-test-matrix/43-02-SUMMARY.md
+- FOUND commit 75a3d87 (task 1)
+- FOUND commit 01ee0c1 (task 2)
+- FOUND commit 7201403 (task 3)
+
 ---
 *Phase: 43-job-test-matrix*
 *Completed: 2026-03-21*

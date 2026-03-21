@@ -47,11 +47,11 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 - [x] **JOB-01**: Fast job (< 5s): executes, stdout captured, visible in execution history dashboard
 - [x] **JOB-02**: Slow job (90s sleep): runs to completion without premature timeout; live in node heartbeat during execution
 - [x] **JOB-03**: Memory-heavy job (allocate 512MB in Python): executes successfully in `direct` mode — resource limit not enforced (documented as known gap, not a failure)
-- [ ] **JOB-04**: Concurrent jobs (5 simultaneous submitted to same node): all 5 complete, no duplicate execution of same job GUID on two nodes
+- [x] **JOB-04**: Concurrent jobs (5 simultaneous submitted to same node): all 5 complete, no duplicate execution of same job GUID on two nodes
 - [x] **JOB-05**: Env-tag routing: DEV-tagged job only executes on `axiom-node-dev`; PROD-tagged job only on `axiom-node-prod`; cross-tag submission returns no eligible node
-- [ ] **JOB-06**: Env promotion chain: same job script submitted to DEV → TEST → PROD in sequence, each execution captured separately in history
-- [ ] **JOB-07**: Failure mode — script crash (`sys.exit(1)`): `FAILED` status captured, retry triggered per configured `max_retries`, all attempts in history with correct `attempt_number`
-- [ ] **JOB-08**: Failure mode — bad Ed25519 signature: node rejects script before execution; execution record shows rejection, not crash
+- [x] **JOB-06**: Env promotion chain: same job script submitted to DEV → TEST → PROD in sequence, each execution captured separately in history
+- [x] **JOB-07**: Failure mode — script crash (`sys.exit(1)`): `FAILED` status captured, retry triggered per configured `max_retries`, all attempts in history with correct `attempt_number`
+- [x] **JOB-08**: Failure mode — bad Ed25519 signature: node rejects script before execution; execution record shows rejection, not crash
 - [x] **JOB-09**: Failure mode — job submitted with revoked job definition status: dispatch blocked at orchestrator, node never receives it
 
 ### Foundry + Smelter
@@ -118,11 +118,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | JOB-01 | Phase 43 | Complete |
 | JOB-02 | Phase 43 | Complete |
 | JOB-03 | Phase 43 | Complete |
-| JOB-04 | Phase 43 | Pending |
+| JOB-04 | Phase 43 | Complete |
 | JOB-05 | Phase 43 | Complete |
-| JOB-06 | Phase 43 | Pending |
-| JOB-07 | Phase 43 | Pending |
-| JOB-08 | Phase 43 | Pending |
+| JOB-06 | Phase 43 | Complete |
+| JOB-07 | Phase 43 | Complete |
+| JOB-08 | Phase 43 | Complete |
 | JOB-09 | Phase 43 | Complete |
 | FOUNDRY-01 | Phase 44 | Pending |
 | FOUNDRY-02 | Phase 44 | Pending |

@@ -99,6 +99,14 @@ None - no external service configuration required.
 - Run teardown_hard.sh before a fresh CE install to ensure zero PKI or data carryover
 - No blockers — scripts are independent of any running stack state
 
+## Self-Check: PASSED
+
+- teardown_soft.sh: FOUND at /home/thomas/Development/mop_validation/scripts/teardown_soft.sh
+- teardown_hard.sh: FOUND at /home/thomas/Development/mop_validation/scripts/teardown_hard.sh
+- 38-01-SUMMARY.md: FOUND at .planning/phases/38-clean-teardown-fresh-ce-install/38-01-SUMMARY.md
+- Commit 4d172ed: FOUND in mop_validation repo
+- Commit c6cb352: FOUND in mop_validation repo
+
 ---
 *Phase: 38-clean-teardown-fresh-ce-install*
 *Completed: 2026-03-20*

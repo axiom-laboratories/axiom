@@ -1,0 +1,2594 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://dev.master-of-puppets.work/docs/developer/setup-deployment.html">
+      
+      
+        <link rel="prev" href="architecture.html">
+      
+      
+        <link rel="next" href="contributing.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Setup & Deployment - Axiom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+        <script src="../assets/external/unpkg.com/iframe-worker/shim.js"></script>
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="../assets/external/fonts.googleapis.com/css.49ea35f2.css">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#setup-deployment" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Axiom" class="md-header__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Axiom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Setup & Deployment
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Axiom" class="md-nav__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Axiom
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/prerequisites.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prerequisites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/install.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/enroll-node.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enroll a Node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/first-job.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Feature Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operator Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/axiom-push.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    axiom-push CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Config
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platform Config
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/foundry.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/job-scheduling.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Scheduling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/rbac.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/oauth.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth & Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/rbac-reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Permission Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/mtls.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mTLS & Certificates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/rbac-hardening.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/audit-log.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/air-gap.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Air-Gap Operation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbooks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runbooks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runbooks/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runbooks/nodes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runbooks/jobs.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runbooks/foundry.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../runbooks/faq.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="architecture.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Deployment
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="setup-deployment.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#all-deployments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All deployments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-development-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local development only
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-deployment-docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Deployment (Docker Compose)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Production Deployment (Docker Compose)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Services
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bring-up-the-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bring up the stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Check health
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#view-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        View logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rebuild-after-code-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rebuild after code changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tear-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tear down
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local Development">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-fastapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend (FastAPI)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backend (FastAPI)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-required-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set required environment variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#start-the-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start the backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-react-vite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend (React / Vite)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend (React / Vite)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-and-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#production-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lint
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running Tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-tests-pytest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend tests (pytest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-tests-vitest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend tests (vitest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tls-bootstrap-node-enrollment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS Bootstrap &amp; Node Enrollment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TLS Bootstrap &amp; Node Enrollment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it works
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pull-and-rebuild" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull and rebuild
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#database-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database migrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="contributing.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#all-deployments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All deployments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-development-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local development only
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-deployment-docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Deployment (Docker Compose)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Production Deployment (Docker Compose)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Services
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bring-up-the-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bring up the stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Check health
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#view-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        View logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rebuild-after-code-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rebuild after code changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tear-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tear down
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Development
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Local Development">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-fastapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend (FastAPI)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backend (FastAPI)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-required-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set required environment variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#start-the-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start the backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-react-vite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend (React / Vite)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend (React / Vite)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#install-and-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#production-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lint
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running Tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-tests-pytest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend tests (pytest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-tests-vitest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend tests (vitest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tls-bootstrap-node-enrollment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TLS Bootstrap &amp; Node Enrollment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TLS Bootstrap &amp; Node Enrollment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it works
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrading
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pull-and-rebuild" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull and rebuild
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#database-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database migrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="setup-deployment">Setup &amp; Deployment</h1>
+<p>This guide covers everything you need to get Axiom running — whether you want a full production stack via Docker Compose or a local development environment to hack on the code.</p>
+<hr />
+<h2 id="quick-start">Quick Start</h2>
+<div class="admonition tip">
+<p class="admonition-title">Get running in 60 seconds</p>
+<p>The fastest path to a working stack:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>&lt;repo-url&gt;<span class="w"> </span>master-of-puppets
+<span class="nb">cd</span><span class="w"> </span>master-of-puppets/puppeteer
+cp<span class="w"> </span>.env.example<span class="w"> </span>.env<span class="w">   </span><span class="c1"># fill in SECRET_KEY, ENCRYPTION_KEY, ADMIN_PASSWORD, API_KEY</span>
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
+<span class="c1"># Dashboard available at https://localhost (Caddy self-signed) or your CF tunnel domain</span>
+</code></pre></div>
+<p>The stack takes approximately 15 seconds to become healthy after containers start.
+See the <a href="#environment-variables">Environment Variables</a> section for how to generate the values needed before <code>docker compose up</code>.</p>
+</div>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<h3 id="all-deployments">All deployments</h3>
+<ul>
+<li><strong>Docker 24+</strong> and <strong>Docker Compose v2</strong> (<code>docker compose</code> — not the legacy <code>docker-compose</code>)</li>
+</ul>
+<h3 id="local-development-only">Local development only</h3>
+<ul>
+<li><strong>Python 3.12</strong> (the backend uses <code>asyncio</code> features not available in earlier versions)</li>
+<li><strong>Node.js 18+</strong> and npm (for the React dashboard)</li>
+</ul>
+<hr />
+<h2 id="production-deployment-docker-compose">Production Deployment (Docker Compose)</h2>
+<p>The recommended way to run Axiom is via the provided <code>compose.server.yaml</code>. This brings up the entire stack as a set of coordinated containers.</p>
+<h3 id="services">Services</h3>
+<p>The stack runs ten services:</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Image</th>
+<th>Port</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>db</code></td>
+<td><code>postgres:15-alpine</code></td>
+<td>5432 (internal)</td>
+<td>PostgreSQL — primary datastore</td>
+</tr>
+<tr>
+<td><code>cert-manager</code></td>
+<td>Custom Caddy</td>
+<td>80, 8443</td>
+<td>Reverse proxy, TLS termination, static asset serving</td>
+</tr>
+<tr>
+<td><code>agent</code></td>
+<td>Custom Python</td>
+<td>8001</td>
+<td>FastAPI agent service — the control plane API</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>Custom Python</td>
+<td>8000 (internal)</td>
+<td>Model service — job model and scoring</td>
+</tr>
+<tr>
+<td><code>dashboard</code></td>
+<td>Via Caddy</td>
+<td>—</td>
+<td>React dashboard (served by cert-manager)</td>
+</tr>
+<tr>
+<td><code>docs</code></td>
+<td>Custom nginx</td>
+<td>—</td>
+<td>MkDocs static site (served by cert-manager at <code>/docs/</code>)</td>
+</tr>
+<tr>
+<td><code>registry</code></td>
+<td><code>registry:2</code></td>
+<td>5000</td>
+<td>Local Docker registry for Foundry-built images</td>
+</tr>
+<tr>
+<td><code>pypi</code></td>
+<td>Custom</td>
+<td>8080 (internal)</td>
+<td>Local PyPI mirror for node builds</td>
+</tr>
+<tr>
+<td><code>mirror</code></td>
+<td>Custom</td>
+<td>8081 (internal)</td>
+<td>Package mirror for offline node builds</td>
+</tr>
+<tr>
+<td><code>tunnel</code></td>
+<td><code>cloudflare/cloudflared</code></td>
+<td>—</td>
+<td>Cloudflare tunnel (outbound only, if enabled)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">docs container uses nginx, not mkdocs serve</p>
+<p>The <code>docs</code> container is a pre-built static site served by nginx. It does <strong>not</strong> run <code>mkdocs serve</code>. Running <code>mkdocs serve</code> in production is unsafe (see <a href="https://github.com/mkdocs/mkdocs/issues/1825">MkDocs GitHub issue #1825</a>) and is only used during local documentation development.</p>
+</div>
+<h3 id="bring-up-the-stack">Bring up the stack</h3>
+<p>Run from the repository root (or adjust the path accordingly):</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<p>Or, if you are already inside <code>puppeteer/</code>:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<h3 id="check-health">Check health</h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>ps
+</code></pre></div>
+<p>All services should show <code>healthy</code> or <code>running</code> within ~30 seconds. If <code>agent</code> is slow to start, it is usually waiting for the <code>db</code> health check to pass — this is normal.</p>
+<h3 id="view-logs">View logs</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Follow logs for the agent service</span>
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>agent
+
+<span class="c1"># Follow all services</span>
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>logs<span class="w"> </span>-f
+</code></pre></div>
+<h3 id="rebuild-after-code-changes">Rebuild after code changes</h3>
+<p>The <code>agent</code> service is the most frequently changed. To rebuild and hot-swap it without restarting the entire stack:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>build<span class="w"> </span>agent
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--no-build<span class="w"> </span>agent
+</code></pre></div>
+<p>To rebuild all services:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>build
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Do not use <code>docker restart</code> for code changes</p>
+<p><code>docker restart</code> only restarts the container — it does not pick up new image layers. Always use <code>docker compose build</code> followed by <code>docker compose up -d</code> to apply code changes.</p>
+</div>
+<h3 id="tear-down">Tear down</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Stop containers, keep volumes (preserves database data)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>down
+
+<span class="c1"># Stop containers and remove volumes (destroys all data — destructive!)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>down<span class="w"> </span>-v
+</code></pre></div>
+<hr />
+<h2 id="environment-variables">Environment Variables</h2>
+<p>The orchestrator reads environment variables from <code>puppeteer/.env</code> (and optionally <code>puppeteer/secrets.env</code> for sensitive values like <code>ADMIN_PASSWORD</code>).</p>
+<p>Copy the example file before your first run:</p>
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>puppeteer/.env.example<span class="w"> </span>puppeteer/.env
+</code></pre></div>
+<p>Then edit <code>puppeteer/.env</code> and fill in the required values:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Purpose</th>
+<th>Example / How to Generate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>API_KEY</code></td>
+<td><strong>Required</strong></td>
+<td>Shared API key for legacy API key auth. <code>security.py</code> calls <code>sys.exit(1)</code> at import time if this is missing — the service <strong>will not start</strong> without it.</td>
+<td><code>openssl rand -hex 32</code></td>
+</tr>
+<tr>
+<td><code>ENCRYPTION_KEY</code></td>
+<td><strong>Required</strong> (unstable if absent)</td>
+<td>Fernet key for job secrets encrypted at rest. If you change this after deployment, all stored secrets become unreadable.</td>
+<td><code>python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</code></td>
+</tr>
+<tr>
+<td><code>SECRET_KEY</code></td>
+<td>Recommended</td>
+<td>JWT signing key. Defaults to a weak dev value — always override in production.</td>
+<td><code>openssl rand -hex 32</code></td>
+</tr>
+<tr>
+<td><code>ADMIN_PASSWORD</code></td>
+<td>Recommended</td>
+<td>Initial admin account password. Only used on <strong>first</strong> startup if the admin user does not yet exist. The database password is the source of truth after that.</td>
+<td>Any secure password</td>
+</tr>
+<tr>
+<td><code>DATABASE_URL</code></td>
+<td>Optional</td>
+<td>Database connection string. Defaults to SQLite (<code>jobs.db</code>) if absent.</td>
+<td><code>postgresql+asyncpg://user:pass@host/db</code></td>
+</tr>
+<tr>
+<td><code>AGENT_URL</code></td>
+<td>Required for nodes</td>
+<td>The URL nodes use to reach the agent service from the network. Must be reachable from every node.</td>
+<td><code>https://192.168.1.10:8001</code></td>
+</tr>
+<tr>
+<td><code>CLOUDFLARE_TUNNEL_TOKEN</code></td>
+<td>CF tunnel only</td>
+<td>Cloudflare Tunnel credentials. Only needed if you are routing the dashboard through a Cloudflare Tunnel.</td>
+<td>From CF Dashboard → Tunnels</td>
+</tr>
+<tr>
+<td><code>DUCKDNS_TOKEN</code> / <code>DUCKDNS_DOMAIN</code></td>
+<td>DuckDNS only</td>
+<td>Dynamic DNS for Caddy cert-manager TLS. Only needed if using DuckDNS for certificate issuance.</td>
+<td>From DuckDNS account page</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Never commit real keys to git</p>
+<p>The <code>.env</code> file is gitignored for good reason. Even though the docs site sits behind Cloudflare Access protection, never commit real API keys, encryption keys, or passwords to the repository. Use <code>.env</code> files, <code>secrets.env</code>, or a proper secrets manager.</p>
+</div>
+<hr />
+<h2 id="local-development">Local Development</h2>
+<p>Most production deployments run via Docker Compose (see above). This section is for contributors who want to run the backend and/or frontend directly on their machine for rapid iteration.</p>
+<h3 id="backend-fastapi">Backend (FastAPI)</h3>
+<h4 id="install-dependencies">Install dependencies</h4>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+pip<span class="w"> </span>install<span class="w"> </span>aiosqlite<span class="w">  </span><span class="c1"># required for SQLite local dev — NOT included in requirements.txt</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">aiosqlite is required for SQLite local dev</p>
+<p>The <code>requirements.txt</code> targets the Docker image, which runs against PostgreSQL. If you run locally without a <code>DATABASE_URL</code> pointing to Postgres, SQLAlchemy defaults to SQLite and requires <code>aiosqlite</code>. Install it separately as shown above.</p>
+</div>
+<h4 id="set-required-environment-variables">Set required environment variables</h4>
+<p><code>security.py</code> calls <code>sys.exit(1)</code> at <strong>import time</strong> if <code>API_KEY</code> is not set. This means the FastAPI process will not start — not even to print a helpful error — unless the env var is present before launch. Set these before running:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">API_KEY</span><span class="o">=</span>dev-key
+<span class="nb">export</span><span class="w"> </span><span class="nv">ENCRYPTION_KEY</span><span class="o">=</span><span class="k">$(</span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span><span class="k">)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">SECRET_KEY</span><span class="o">=</span>dev-secret-key
+</code></pre></div>
+<p>You can also place these in a <code>.env</code> file in <code>puppeteer/</code> and load them with <code>source .env</code> or a tool like <code>direnv</code>.</p>
+<h4 id="start-the-backend">Start the backend</h4>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer
+python<span class="w"> </span>-m<span class="w"> </span>agent_service.main
+</code></pre></div>
+<p>The backend starts on <strong>https://localhost:8001</strong> using a self-signed TLS certificate. The first startup will create <code>jobs.db</code> (SQLite) in the <code>puppeteer/</code> directory and seed the default roles and admin user.</p>
+<h3 id="frontend-react-vite">Frontend (React / Vite)</h3>
+<h4 id="install-and-run">Install and run</h4>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer/dashboard
+npm<span class="w"> </span>install
+npm<span class="w"> </span>run<span class="w"> </span>dev
+</code></pre></div>
+<p>The dev server runs at <strong>http://localhost:5173</strong>. API calls are proxied to <code>https://localhost:8001</code> per the settings in <code>.env.development</code> — the backend must be running for any API calls to succeed.</p>
+<p>The dev server handles hot module replacement (HMR) automatically. Changes to <code>.tsx</code> / <code>.ts</code> / <code>.css</code> files appear immediately without a manual refresh.</p>
+<h4 id="production-build">Production build</h4>
+<p>To test the production bundle locally:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer/dashboard
+npm<span class="w"> </span>run<span class="w"> </span>build
+npm<span class="w"> </span>run<span class="w"> </span>preview
+</code></pre></div>
+<h4 id="lint">Lint</h4>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer/dashboard
+npm<span class="w"> </span>run<span class="w"> </span>lint
+</code></pre></div>
+<h3 id="running-tests">Running Tests</h3>
+<h4 id="backend-tests-pytest">Backend tests (pytest)</h4>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer
+pytest
+</code></pre></div>
+<p>Run a single test file:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer
+pytest<span class="w"> </span>tests/test_tools.py
+</code></pre></div>
+<h4 id="frontend-tests-vitest">Frontend tests (vitest)</h4>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer/dashboard
+npm<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span>
+</code></pre></div>
+<p>Run a single test file:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>puppeteer/dashboard
+npx<span class="w"> </span>vitest<span class="w"> </span>run<span class="w"> </span>src/views/__tests__/JobDefinitions.test.tsx
+</code></pre></div>
+<hr />
+<h2 id="tls-bootstrap-node-enrollment">TLS Bootstrap &amp; Node Enrollment</h2>
+<p>After deploying the orchestrator, nodes need to know where to connect and which CA to trust. This is handled via two environment variables on each node container.</p>
+<h3 id="how-it-works">How it works</h3>
+<ol>
+<li>
+<p><strong>Get the JOIN_TOKEN</strong> — after your first login, navigate to the <strong>Admin</strong> panel in the dashboard. The <code>JOIN_TOKEN</code> is displayed there. It is a base64-encoded JSON blob containing the Root CA PEM that nodes use to bootstrap trust.</p>
+</li>
+<li>
+<p><strong>Set env vars on the node</strong> — when deploying a puppet node container, provide:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">JOIN_TOKEN</span><span class="o">=</span>&lt;token-from-admin-panel&gt;
+<span class="nv">AGENT_URL</span><span class="o">=</span>https://192.168.1.10:8001<span class="w">   </span><span class="c1"># puppeteer&#39;s address reachable from the node</span>
+</code></pre></div>
+</li>
+<li>
+<p><strong>Node auto-enrolls</strong> — on first startup, the node generates a key pair, sends a CSR to <code>AGENT_URL/api/enroll</code>, and receives a signed client certificate. The node appears in the <strong>Nodes</strong> view of the dashboard once enrollment succeeds.</p>
+</li>
+<li>
+<p><strong>Subsequent restarts</strong> — the node stores its certificate in the <code>secrets/</code> volume mount and reuses it on restart. The node ID is derived from the certificate filename to prevent identity drift on container restart.</p>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Deep cert rotation and mTLS details</p>
+<p>This section covers the happy-path enrollment flow. For certificate revocation, CRL management, mTLS verification, and the full PKI lifecycle, see the <strong>Security Guide</strong> (coming in a later documentation phase).</p>
+</div>
+<hr />
+<h2 id="upgrading">Upgrading</h2>
+<h3 id="pull-and-rebuild">Pull and rebuild</h3>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>pull
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>build
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<p>This rebuilds all images from the updated source and replaces running containers. Volumes (including the database) are preserved.</p>
+<h3 id="database-migrations">Database migrations</h3>
+<p><strong>New deployments</strong> are handled automatically — <code>Base.metadata.create_all</code> runs at startup and creates all tables.</p>
+<p><strong>Existing deployments</strong> require manual migration for any new columns added since your last upgrade. Check the <code>puppeteer/</code> directory for migration files:</p>
+<div class="highlight"><pre><span></span><code>ls<span class="w"> </span>puppeteer/migration_v*.sql
+</code></pre></div>
+<p>Apply any migration files with a version higher than your current schema version:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Example: applying a migration to a running Postgres container</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>puppeteer-db-1<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>puppeteer<span class="w"> </span>&lt;<span class="w"> </span>puppeteer/migration_v14.sql
+</code></pre></div>
+<p>See the Contributing guide for the migration pattern used in this project.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

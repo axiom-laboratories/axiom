@@ -1,0 +1,2015 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://dev.master-of-puppets.work/docs/runbooks/foundry.html">
+      
+      
+        <link rel="prev" href="jobs.html">
+      
+      
+        <link rel="next" href="faq.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Foundry - Axiom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+        <script src="../assets/external/unpkg.com/iframe-worker/shim.js"></script>
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="../assets/external/fonts.googleapis.com/css.49ea35f2.css">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#foundry-troubleshooting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Axiom" class="md-header__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Axiom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Foundry
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Axiom" class="md-nav__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Axiom
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/prerequisites.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prerequisites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/install.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/enroll-node.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enroll a Node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/first-job.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Feature Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operator Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/axiom-push.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    axiom-push CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Config
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platform Config
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/foundry.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/job-scheduling.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Scheduling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/rbac.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/oauth.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth & Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/rbac-reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Permission Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/mtls.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mTLS & Certificates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/rbac-hardening.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/audit-log.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/air-gap.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Air-Gap Operation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbooks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runbooks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="nodes.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="jobs.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="foundry.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-build-status-shows-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template build status shows FAILED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-build-rejected-with-403-unapproved-ingredients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template build rejected with 403 — unapproved ingredients
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-build-rejected-with-403-ingredient-not-yet-mirrored" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template build rejected with 403 — ingredient not yet mirrored
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-log-shows-warning-environment_service-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build log shows warning: environment_service not found
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#smelt-check-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smelt-Check Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Smelt-Check Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-status-is-staging-after-a-successful-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template status is STAGING after a successful build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-shows-amber-warning-badge-in-templates-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template shows amber warning badge in Templates view
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registry-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registry Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-shows-a-last-built-time-but-image-is-not-available-on-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template shows a last built time but image is not available on nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-container-fails-to-pull-image-from-the-local-registry-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node container fails to pull image from the local registry at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="faq.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developer/architecture.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developer/setup-deployment.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developer/contributing.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-build-status-shows-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template build status shows FAILED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-build-rejected-with-403-unapproved-ingredients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template build rejected with 403 — unapproved ingredients
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-build-rejected-with-403-ingredient-not-yet-mirrored" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template build rejected with 403 — ingredient not yet mirrored
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-log-shows-warning-environment_service-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build log shows warning: environment_service not found
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#smelt-check-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smelt-Check Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Smelt-Check Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-status-is-staging-after-a-successful-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template status is STAGING after a successful build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-shows-amber-warning-badge-in-templates-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template shows amber warning badge in Templates view
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registry-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registry Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#template-shows-a-last-built-time-but-image-is-not-available-on-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template shows a last built time but image is not available on nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-container-fails-to-pull-image-from-the-local-registry-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node container fails to pull image from the local registry at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="foundry-troubleshooting">Foundry Troubleshooting</h1>
+<p>Foundry builds custom Docker images for Axiom Nodes from blueprints and templates. When a build fails, the error appears in the <strong>Templates</strong> view status column and in the orchestrator logs — this runbook maps each observable symptom to its root cause and recovery steps.</p>
+<p>See <a href="../feature-guides/foundry.html">Foundry feature guide</a> for background on blueprints, templates, and the Smelter.</p>
+<hr />
+<h2 id="quick-reference">Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Template status shows FAILED</td>
+<td><a href="#template-build-status-shows-failed">Template build status shows FAILED</a></td>
+</tr>
+<tr>
+<td>Build rejected with 403 — unapproved ingredients</td>
+<td><a href="#template-build-rejected-with-403--unapproved-ingredients">Template build rejected with 403 — unapproved ingredients</a></td>
+</tr>
+<tr>
+<td>Build rejected with 403 — ingredient not yet mirrored</td>
+<td><a href="#template-build-rejected-with-403--ingredient-not-yet-mirrored">Template build rejected with 403 — ingredient not yet mirrored</a></td>
+</tr>
+<tr>
+<td>Build log shows environment_service warning</td>
+<td><a href="#build-log-shows-warning-environment_service-not-found">Build log shows warning: environment_service not found</a></td>
+</tr>
+<tr>
+<td>Template stuck in STAGING after build</td>
+<td><a href="#template-status-is-staging-after-a-successful-build">Template status is STAGING after a successful build</a></td>
+</tr>
+<tr>
+<td>Template shows amber warning badge</td>
+<td><a href="#template-shows-amber-warning-badge-in-templates-view">Template shows amber warning badge in Templates view</a></td>
+</tr>
+<tr>
+<td>Template shows last built time but image unavailable</td>
+<td><a href="#template-shows-a-last-built-time-but-image-is-not-available-on-nodes">Template shows a last built time but image is not available on nodes</a></td>
+</tr>
+<tr>
+<td>Node container fails to pull image from local registry</td>
+<td><a href="#node-container-fails-to-pull-image-from-the-local-registry-at-startup">Node container fails to pull image from the local registry at startup</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="build-failures">Build Failures</h2>
+<h3 id="template-build-status-shows-failed">Template build status shows FAILED</h3>
+<p>The Docker build process returned a non-zero exit code — the most common causes are a pip package that does not exist, a base image that could not be pulled, or a Dockerfile syntax error generated by the template engine. The orchestrator captures the last 250 characters of the build output in the template status field.</p>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>Check the orchestrator logs for <code>❌ Build Failed:</code> followed by the truncated Docker output.</li>
+<li>Identify the failure type:<ul>
+<li><code>"no such package"</code> or <code>"Could not find a version"</code> — the package name in the blueprint is incorrect or does not exist on PyPI. Check the package name and version specifier.</li>
+<li><code>"image not found"</code> or <code>"pull access denied"</code> — the base image specified in the blueprint cannot be pulled. Verify the base image name and that your registry is reachable.</li>
+<li>Syntax error or unexpected content — the blueprint JSON has a malformed entry. Review the blueprint in <strong>Foundry → Blueprints</strong> and correct any invalid fields.</li>
+</ul>
+</li>
+<li>Fix the blueprint and navigate to <strong>Foundry → Templates → [template] → Rebuild</strong> to trigger a fresh build.</li>
+</ol>
+<p><strong>Verify:</strong> The template status column changes from FAILED to ACTIVE.</p>
+<p>If the build continues to fail after fixing the blueprint, check orchestrator logs for the full Docker build output (<code>docker compose logs agent | grep -A 20 "Build Failed"</code>).</p>
+<p>See <a href="../feature-guides/foundry.html#blueprints">Foundry → Blueprints</a> for the correct blueprint structure.</p>
+<hr />
+<h3 id="template-build-rejected-with-403-unapproved-ingredients">Template build rejected with 403 — unapproved ingredients</h3>
+<p>The Smelter is running in STRICT enforcement mode and the blueprint contains one or more packages that are not present in the approved ingredient list. The response body in the orchestrator logs is:</p>
+<div class="highlight"><pre><span></span><code>Build rejected: Blueprint contains unapproved ingredients: [&lt;pkg&gt;, ...]
+</code></pre></div>
+<p>The build is rejected before Docker is invoked — no image is produced.</p>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>Check the orchestrator logs for the rejected package names.</li>
+<li>Either:<ul>
+<li>Submit an approval request for the missing packages via <strong>Foundry → Smelter → Add Ingredient</strong>, then rebuild once approved.</li>
+<li>Remove the unapproved package from the blueprint if it is not required.</li>
+</ul>
+</li>
+<li>If you need to unblock quickly and your deployment policy permits it, switch the Smelter to WARNING mode — the build will proceed and the template will be marked non-compliant rather than rejected.</li>
+</ol>
+<p><strong>Verify:</strong> Template builds successfully and the status column shows ACTIVE (or STAGING if Smelt-Check runs).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In WARNING mode, templates with unapproved ingredients are marked <code>is_compliant=False</code> and display an amber badge. They can be deployed, but they do not meet the approval policy. Switch back to STRICT mode after resolving ingredient approvals.</p>
+</div>
+<p>See <a href="../feature-guides/foundry.html#smelter">Foundry → Smelter</a> for enforcement mode configuration.</p>
+<hr />
+<h3 id="template-build-rejected-with-403-ingredient-not-yet-mirrored">Template build rejected with 403 — ingredient not yet mirrored</h3>
+<p>The package is approved in the Smelter but has not yet been synchronised to the local PyPI or APT mirror — the <code>mirror_status</code> is not MIRRORED. In air-gapped environments where node containers cannot reach the public internet, Foundry requires all packages to be available on the local mirror before building. The response body is:</p>
+<div class="highlight"><pre><span></span><code>Build rejected: Ingredient &#39;&lt;pkg_name&gt;&#39; is approved but not yet mirrored (Status: &lt;status&gt;). Wait for mirroring to complete or upload the package manually.
+</code></pre></div>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>Wait for the mirror synchronisation job to complete. Mirror status is visible in <strong>Foundry → Smelter → Ingredients</strong>.</li>
+<li>If the sync is taking too long or has stalled, use the Smelter manual upload endpoint to push the package directly.</li>
+<li>Once the ingredient status changes to MIRRORED, trigger a rebuild.</li>
+</ol>
+<p><strong>Verify:</strong> Template builds successfully with no 403 response.</p>
+<p>See <a href="../security/air-gap.html">Air-Gap Operation</a> for mirror configuration and offline package upload procedures.</p>
+<hr />
+<h3 id="build-log-shows-warning-environment_service-not-found">Build log shows warning: environment_service not found</h3>
+<p>The Foundry service builds the Docker context by copying <code>puppets/environment_service/</code> from the orchestrator container's filesystem into a temporary build directory. If the path is not found — due to a misconfigured volume mount or an incorrect working directory — the generated Dockerfile's COPY step will fail. The warning appears in orchestrator logs before the build starts:</p>
+<div class="highlight"><pre><span></span><code>⚠️  environment_service not found at &lt;path&gt; — COPY may fail
+</code></pre></div>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>Confirm the orchestrator container has access to the puppets source directory. Run <code>docker exec puppeteer-agent-1 ls /app/puppets/environment_service</code> to check whether the path exists inside the container.</li>
+<li>If the path is missing, verify the volume mounts in <code>compose.server.yaml</code> include the <code>puppets/</code> directory.</li>
+<li>In production deployments built from the standard Docker Compose setup, <code>environment_service/</code> is baked into the image — no volume mount is needed. If you are running a custom deployment, verify the path matches what the Foundry service expects.</li>
+</ol>
+<p><strong>Verify:</strong> Run the build again and confirm the <code>⚠️  environment_service not found</code> warning does not appear.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>This warning almost always indicates a non-standard deployment path. Standard Docker Compose deployments using <code>compose.server.yaml</code> do not encounter it because <code>environment_service/</code> is included in the agent image build context.</p>
+</div>
+<hr />
+<h2 id="smelt-check-failures">Smelt-Check Failures</h2>
+<h3 id="template-status-is-staging-after-a-successful-build">Template status is STAGING after a successful build</h3>
+<p>The Smelt-Check smoke test (<code>python --version &amp;&amp; pip --version</code>) ran inside the newly built image and returned a non-zero exit code — the image was built successfully but the Python environment inside it is not functional. The build pipeline moves the template to STAGING status and logs:</p>
+<div class="highlight"><pre><span></span><code>❌ Smelt-Check FAILED for &lt;template_name&gt;
+</code></pre></div>
+<p>STAGING templates cannot be deployed to nodes.</p>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>Check the orchestrator logs for the Smelt-Check failure line to confirm the template name.</li>
+<li>The most common cause is a base image and OS family mismatch. Alpine images use <code>apk</code> and have different package paths than Debian images. Verify that the <code>base_os</code> field in the blueprint matches the OS family of the base image (e.g., <code>alpine</code> in the image name → OS family should be ALPINE).</li>
+<li>Fix the blueprint's base image or OS family setting and trigger a rebuild from <strong>Foundry → Templates → [template] → Rebuild</strong>.</li>
+</ol>
+<p><strong>Verify:</strong> Template status changes from STAGING to ACTIVE after the rebuild.</p>
+<p>If the Smelt-Check continues to fail after fixing the OS family, inspect the build output manually: <code>docker run --rm &lt;image_name&gt; python --version</code> to test the built image locally.</p>
+<p>See <a href="../feature-guides/foundry.html#image-lifecycle">Foundry → Image Lifecycle</a> for a description of template statuses.</p>
+<hr />
+<h3 id="template-shows-amber-warning-badge-in-templates-view">Template shows amber warning badge in Templates view</h3>
+<p>The Smelter is in WARNING mode and detected unapproved or unmirrored ingredients during the build. The build succeeded and the Smelt-Check passed, but the template is marked <code>is_compliant=False</code>. The amber badge is informational — the template can be deployed, but it does not meet the current approval policy.</p>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>This is expected behaviour in WARNING mode. No action is required to deploy the template.</li>
+<li>If compliance is required: navigate to <strong>Foundry → Smelter</strong>, approve the flagged ingredients, switch to STRICT mode for future builds, then rebuild the template.</li>
+<li>After rebuilding in STRICT mode with all ingredients approved, the amber badge is removed.</li>
+</ol>
+<p><strong>Verify:</strong> After rebuilding with STRICT mode and approved ingredients, the amber badge is absent.</p>
+<p>See <a href="../feature-guides/foundry.html#smelter">Foundry → Smelter</a> for enforcement mode details.</p>
+<hr />
+<h2 id="registry-issues">Registry Issues</h2>
+<h3 id="template-shows-a-last-built-time-but-image-is-not-available-on-nodes">Template shows a last built time but image is not available on nodes</h3>
+<p>The Docker build succeeded but the subsequent <code>docker push</code> to the local registry (<code>localhost:5000</code>) failed. The template's status field begins with <code>PUSH_FAILED:</code>. The orchestrator logs the push failure and continues — it does not raise an error or mark the template FAILED — so the dashboard may show a <code>last_built_at</code> timestamp even though the image was never pushed.</p>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>Check orchestrator logs for <code>PUSH_FAILED</code> following the build completion line.</li>
+<li>Verify the local registry container is running: <code>docker ps | grep registry</code>. If it is not listed, start it with <code>docker compose -f compose.server.yaml up -d registry</code>.</li>
+<li>Once the registry is confirmed running, navigate to <strong>Foundry → Templates → [template] → Rebuild</strong> to re-trigger the build and push.</li>
+</ol>
+<p><strong>Verify:</strong> Check orchestrator logs — the push step should complete without <code>PUSH_FAILED</code>. Confirm the image is in the registry: <code>curl http://localhost:5000/v2/&lt;image_name&gt;/tags/list</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The dashboard <strong>last built at</strong> timestamp reflects when the Docker build completed, not when the push succeeded. Always check orchestrator logs if nodes cannot pull the image, even if the dashboard shows a recent build time.</p>
+</div>
+<hr />
+<h3 id="node-container-fails-to-pull-image-from-the-local-registry-at-startup">Node container fails to pull image from the local registry at startup</h3>
+<p>The node container cannot reach <code>localhost:5000</code> from inside the Docker bridge network. <code>localhost</code> inside a container resolves to the container itself — not the Docker host. The node logs a pull error at startup.</p>
+<p><strong>Recovery:</strong></p>
+<ol>
+<li>Change the image URL in the node's compose file from <code>localhost:5000/&lt;image&gt;</code> to <code>host.docker.internal:5000/&lt;image&gt;</code> or <code>172.17.0.1:5000/&lt;image&gt;</code>.</li>
+<li>Add <code>extra_hosts</code> to the node service definition to ensure hostname resolution:
+    <div class="highlight"><pre><span></span><code><span class="nt">extra_hosts</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;host.docker.internal:172.17.0.1&quot;</span>
+</code></pre></div></li>
+<li>Restart the node container: <code>docker compose up -d &lt;node_service&gt;</code>.</li>
+</ol>
+<p><strong>Verify:</strong> Node container pulls the image successfully and progresses past the pull step in <code>docker logs &lt;node_container&gt;</code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The validation node compose files in <code>mop_validation/local_nodes/</code> use the correct networking pattern. Copy the <code>extra_hosts</code> block and image URL format from there if setting up a new node.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
