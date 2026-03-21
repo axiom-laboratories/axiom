@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 43-05-PLAN.md
-last_updated: "2026-03-21T20:34:32.451Z"
+stopped_at: Completed 43-06-PLAN.md
+last_updated: "2026-03-21T20:53:43.995Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 6
-  total_plans: 17
-  completed_plans: 17
+  completed_phases: 5
+  total_plans: 19
+  completed_plans: 18
   percent: 0
 ---
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 43-job-test-matrix P03 | 6m | 3 tasks | 3 files |
 | Phase 43-job-test-matrix P04 | 6min | 3 tasks | 3 files |
 | Phase 43-job-test-matrix P05 | 7min | 2 tasks | 1 files |
+| Phase 43-job-test-matrix P06 | 5min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 43]: JOB-08 postgres container discovered dynamically via docker ps --filter name=postgres (not hardcoded to puppeteer-postgres-1)
 - [Phase 43]: Rate-limit guard in run_job_matrix.py runner after every 5th script: each verify_job_*.py calls POST /auth/login once; stack enforces 5/minute; pause skipped if batch already took 62+ seconds naturally
 - [Phase 43]: capture_output=False on subprocess.run() in run_job_matrix.py — each script streams output in real time to terminal
+- [Phase 43]: except HTTPException: raise inserted before generic except in create_job() — standard FastAPI pattern; HTTPException is subclass of Exception so ordering matters
 
 ### Pending Todos
 
@@ -126,7 +128,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:34:32.449Z
-Stopped at: Completed 43-05-PLAN.md
+Last session: 2026-03-21T20:53:43.993Z
+Stopped at: Completed 43-06-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None
