@@ -69,6 +69,18 @@ async def lifespan(app: FastAPI):
     from .ee import load_ee_plugins
     from .db import engine
     app.state.ee = await load_ee_plugins(app, engine)
+    # Parse AXIOM_LICENCE_KEY and store licence metadata on app.state
+    _licence_key = os.getenv("AXIOM_LICENCE_KEY", "")
+    if _licence_key:
+        try:
+            import base64 as _b64, json as _json
+            _payload_b64 = _licence_key.split(".")[0]
+            _payload_b64 += "=" * (4 - len(_payload_b64) % 4)
+            _licence_data = _json.loads(_b64.urlsafe_b64decode(_payload_b64))
+            app.state.licence = _licence_data
+            logger.info(f"Licence loaded: customer={_licence_data.get('customer_id')}, exp={_licence_data.get('exp')}")
+        except Exception as _e:
+            logger.warning(f"Could not parse AXIOM_LICENCE_KEY: {_e}")
     # Bootstrap Admin
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))
