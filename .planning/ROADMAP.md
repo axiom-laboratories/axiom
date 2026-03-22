@@ -212,7 +212,10 @@ Plans:
   1. `mop_validation/reports/v11.1-gap-report.md` exists and contains every finding from all phases, each with severity (critical/major/minor), area, reproduction steps, and v12.0+ fix candidate
   2. All findings rated critical are patched inline during this phase; each patch has an accompanying regression test that fails before the fix and passes after
   3. The final gap report includes a prioritised backlog section ready to seed v12.0+ milestone planning, with deferred items cross-referenced to existing known gaps (MIN-06, MIN-07, MIN-08, WARN-08)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 45-01-PLAN.md — v11.1 gap report synthesis (GAP-01, GAP-03)
+- [ ] 45-02-PLAN.md — MIN-07 regression test + verify_foundry_04 assertion inversion (GAP-02)
 
 ## Progress
 
@@ -254,7 +257,7 @@ Plans:
 | 42. EE Validation Pass | 2/2 | Complete    | 2026-03-21 | - |
 | 43. Job Test Matrix | 8/8 | Complete    | 2026-03-21 | - |
 | 44. Foundry + Smelter Deep Pass | 5/5 | Complete    | 2026-03-22 | - |
-| 45. Gap Report Synthesis + Critical Fixes | v11.1 | 0/TBD | Not started | - |
+| 45. Gap Report Synthesis + Critical Fixes | v11.1 | 0/2 | Not started | - |
 
 ---
 
