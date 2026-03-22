@@ -41,6 +41,7 @@ class Job(Base):
     depends_on: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON list of GUIDs
     job_run_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     env_tag: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    signature_hmac: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)  # SEC-02: HMAC-SHA256 tag
 
 
 class Signature(Base):

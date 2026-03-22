@@ -1,6 +1,8 @@
 import os
 import sys
 import re
+import hmac as _hmac
+import hashlib
 from typing import Dict, Any
 from cryptography.fernet import Fernet
 from fastapi import Header, HTTPException, Request, Depends
@@ -21,6 +23,23 @@ except KeyError:
 # Encryption Key for Secrets
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode() if os.getenv("ENCRYPTION_KEY") else Fernet.generate_key()
 cipher_suite = Fernet(ENCRYPTION_KEY)
+
+
+# ---------------------------------------------------------------------------
+# SEC-02: HMAC integrity helpers for signature_payload fields
+# ---------------------------------------------------------------------------
+
+def compute_signature_hmac(key_bytes: bytes, signature_payload: str, signature_id: str, job_id: str) -> str:
+    """HMAC-SHA256 tag binding payload to its job and signature. key_bytes = ENCRYPTION_KEY."""
+    message = f"{signature_payload}:{signature_id}:{job_id}".encode("utf-8")
+    return _hmac.new(key_bytes, message, hashlib.sha256).hexdigest()
+
+
+def verify_signature_hmac(key_bytes: bytes, stored_hmac: str, signature_payload: str, signature_id: str, job_id: str) -> bool:
+    """Constant-time HMAC verification. Returns True if tag matches."""
+    expected = compute_signature_hmac(key_bytes, signature_payload, signature_id, job_id)
+    return _hmac.compare_digest(stored_hmac, expected)
+
 
 # --- Auth Security Scheme ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
