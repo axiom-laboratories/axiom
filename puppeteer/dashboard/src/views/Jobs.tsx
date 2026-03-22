@@ -303,7 +303,8 @@ const Jobs = () => {
     const [loading, setLoading] = useState(true);
 
     // Dispatch form state
-    const [newTaskType, setNewTaskType] = useState('web_task');
+    const [newTaskType, setNewTaskType] = useState('script');
+    const [newRuntime, setNewRuntime] = useState<string>('python');
     const [newTaskPayload, setNewTaskPayload] = useState('{}');
     const [payloadError, setPayloadError] = useState<string | null>(null);
     const [targetTags, setTargetTags] = useState('');
@@ -358,15 +359,19 @@ const Jobs = () => {
                   )
                 : undefined;
 
+            const body: Record<string, unknown> = {
+                task_type: newTaskType,
+                payload,
+                ...(tags && { target_tags: tags }),
+                ...(caps && { capability_requirements: caps }),
+            };
+            if (newTaskType === 'script') {
+                body.runtime = newRuntime;
+            }
             const res = await authenticatedFetch('/jobs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    task_type: newTaskType,
-                    payload,
-                    ...(tags && { target_tags: tags }),
-                    ...(caps && { capability_requirements: caps }),
-                }),
+                body: JSON.stringify(body),
             });
             if (res.ok) {
                 toast.success('Job dispatched successfully');
@@ -456,12 +461,28 @@ const Jobs = () => {
                                     <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectItem value="script">Script</SelectItem>
                                     <SelectItem value="web_task">Web Task (Puppeteer)</SelectItem>
-                                    <SelectItem value="python_script">Python Executor</SelectItem>
                                     <SelectItem value="file_download">File Provisioner</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {newTaskType === 'script' && (
+                            <div className="space-y-2">
+                                <label className="text-sm text-zinc-400 mb-1 block">Runtime</label>
+                                <Select value={newRuntime} onValueChange={setNewRuntime}>
+                                    <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-white h-11">
+                                        <SelectValue placeholder="Select runtime" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                        <SelectItem value="python">Python</SelectItem>
+                                        <SelectItem value="bash">Bash</SelectItem>
+                                        <SelectItem value="powershell">PowerShell</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">JSON Payload</label>
