@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from agent_service.db import Base, Job, Node, ScheduledJob
+from agent_service.services.job_service import JobService
 
 
 # ---------------------------------------------------------------------------
@@ -36,45 +37,93 @@ async def db():
     await engine.dispose()
 
 
+def _make_job(guid=None, status="PENDING", task_type="script", runtime="python",
+              name=None, created_by=None, tags=None, created_at=None, node_id=None):
+    """Helper: create a Job ORM instance with sensible defaults."""
+    now = created_at or datetime.utcnow()
+    return Job(
+        guid=guid or str(uuid.uuid4()),
+        task_type=task_type,
+        payload=json.dumps({"runtime": runtime, "script": "print('hi')"}),
+        status=status,
+        node_id=node_id,
+        name=name,
+        created_by=created_by,
+        runtime=runtime,
+        target_tags=json.dumps(tags) if tags else None,
+        created_at=now,
+    )
+
+
 # ---------------------------------------------------------------------------
 # SRCH-01: Cursor-based pagination for jobs
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_cursor_pagination(db):
-    """SRCH-01: list_jobs must return {items, total, next_cursor} envelope.
+    """SRCH-01: list_jobs must return {items, total, next_cursor} envelope."""
+    # Insert 5 jobs
+    for _ in range(5):
+        db.add(_make_job())
+    await db.commit()
 
-    Future call shape:
-        result = await JobService.list_jobs(db, limit=10, cursor=None)
-        assert isinstance(result, dict)
-        assert "items" in result
-        assert "total" in result
-        assert "next_cursor" in result
-    """
-    pytest.fail("not implemented")
+    result = await JobService.list_jobs(db, limit=10, cursor=None)
+    assert isinstance(result, dict)
+    assert "items" in result
+    assert "total" in result
+    assert "next_cursor" in result
+    assert result["total"] == 5
+    assert len(result["items"]) == 5
+    assert result["next_cursor"] is None  # fewer than limit → no cursor
 
 
 @pytest.mark.asyncio
 async def test_total_count_stable(db):
     """SRCH-01: total count must be stable across pages (does not drift when
-    new jobs arrive between page fetches).
+    new jobs arrive between page fetches)."""
+    base_time = datetime.utcnow()
+    for i in range(105):
+        db.add(_make_job(created_at=base_time - timedelta(seconds=i)))
+    await db.commit()
 
-    Future assertion:
-        Insert 105 jobs, fetch page 1 (limit=50) and page 2 via next_cursor.
-        assert page1["total"] == page2["total"] == 105
-    """
-    pytest.fail("not implemented")
+    page1 = await JobService.list_jobs(db, limit=50, cursor=None)
+    assert page1["total"] == 105
+    assert len(page1["items"]) == 50
+    assert page1["next_cursor"] is not None
+
+    page2 = await JobService.list_jobs(db, limit=50, cursor=page1["next_cursor"])
+    assert page2["total"] == 105  # total stable across pages
+    assert len(page2["items"]) == 50
+    assert page2["next_cursor"] is not None
+
+    page3 = await JobService.list_jobs(db, limit=50, cursor=page2["next_cursor"])
+    assert page3["total"] == 105
+    assert len(page3["items"]) == 5
+    assert page3["next_cursor"] is None  # last page
 
 
 @pytest.mark.asyncio
 async def test_no_duplicates(db):
-    """SRCH-01: paginating 3 pages of 50 jobs must yield no duplicate GUIDs.
+    """SRCH-01: paginating 3 pages of 50 jobs must yield no duplicate GUIDs."""
+    base_time = datetime.utcnow()
+    all_guids = []
+    for i in range(105):
+        g = str(uuid.uuid4())
+        all_guids.append(g)
+        db.add(_make_job(guid=g, created_at=base_time - timedelta(seconds=i)))
+    await db.commit()
 
-    Future assertion:
-        Insert 105 jobs, paginate through pages 1-3 (limit=50 each).
-        assert len(seen_guids) == len(set(seen_guids))  # no duplicates
-    """
-    pytest.fail("not implemented")
+    seen_guids = []
+    cursor = None
+    for _ in range(3):
+        page = await JobService.list_jobs(db, limit=50, cursor=cursor)
+        seen_guids.extend(item["guid"] for item in page["items"])
+        cursor = page["next_cursor"]
+        if cursor is None:
+            break
+
+    assert len(seen_guids) == len(set(seen_guids)), "Duplicate GUIDs found across pages"
+    assert len(seen_guids) == 105
 
 
 # ---------------------------------------------------------------------------
@@ -101,45 +150,47 @@ async def test_nodes_pagination(db):
 
 @pytest.mark.asyncio
 async def test_filter_status(db):
-    """SRCH-03: Filtering by status=COMPLETED must return only COMPLETED jobs.
+    """SRCH-03: Filtering by status=COMPLETED must return only COMPLETED jobs."""
+    db.add(_make_job(status="COMPLETED"))
+    db.add(_make_job(status="FAILED"))
+    db.add(_make_job(status="PENDING"))
+    await db.commit()
 
-    Future assertion:
-        Insert jobs with statuses COMPLETED, FAILED, PENDING.
-        result = await JobService.list_jobs(db, limit=50, cursor=None, status="COMPLETED")
-        assert all(item["status"] == "COMPLETED" for item in result["items"])
-        assert result["total"] == 1
-    """
-    pytest.fail("not implemented")
+    result = await JobService.list_jobs(db, limit=50, cursor=None, status="COMPLETED")
+    assert all(item["status"] == "COMPLETED" for item in result["items"])
+    assert result["total"] == 1
+    assert len(result["items"]) == 1
 
 
 @pytest.mark.asyncio
 async def test_filter_tags_or(db):
-    """SRCH-03: tag filter uses OR logic.
+    """SRCH-03: tag filter uses OR logic."""
+    db.add(_make_job(tags=["gpu"]))
+    db.add(_make_job(tags=["linux"]))
+    db.add(_make_job(tags=["windows"]))
+    await db.commit()
 
-    Future assertion:
-        Insert job_gpu (target_tags=["gpu"]) and job_linux (target_tags=["linux"]).
-        result_gpu = await JobService.list_jobs(db, limit=50, cursor=None, tags=["gpu"])
-        assert len(result_gpu["items"]) == 1
+    result_gpu = await JobService.list_jobs(db, limit=50, cursor=None, tags=["gpu"])
+    assert len(result_gpu["items"]) == 1
 
-        result_both = await JobService.list_jobs(db, limit=50, cursor=None, tags=["gpu","linux"])
-        assert len(result_both["items"]) == 2  # OR: either tag matches
-    """
-    pytest.fail("not implemented")
+    result_both = await JobService.list_jobs(db, limit=50, cursor=None, tags=["gpu", "linux"])
+    assert len(result_both["items"]) == 2  # OR: either tag matches
 
 
 @pytest.mark.asyncio
 async def test_filter_compose_and(db):
-    """SRCH-03: combining status + runtime filters uses AND logic.
+    """SRCH-03: combining status + runtime filters uses AND logic."""
+    db.add(_make_job(status="COMPLETED", runtime="bash"))
+    db.add(_make_job(status="COMPLETED", runtime="python"))
+    db.add(_make_job(status="FAILED", runtime="bash"))
+    db.add(_make_job(status="FAILED", runtime="python"))
+    await db.commit()
 
-    Future assertion:
-        Insert 4 jobs: (COMPLETED,bash), (COMPLETED,python), (FAILED,bash), (FAILED,python).
-        result = await JobService.list_jobs(db, limit=50, cursor=None,
-                                            status="COMPLETED", runtime="bash")
-        assert len(result["items"]) == 1
-        assert result["items"][0]["runtime"] == "bash"
-        assert result["items"][0]["status"] == "COMPLETED"
-    """
-    pytest.fail("not implemented")
+    result = await JobService.list_jobs(db, limit=50, cursor=None,
+                                        status="COMPLETED", runtime="bash")
+    assert len(result["items"]) == 1
+    assert result["items"][0]["runtime"] == "bash"
+    assert result["items"][0]["status"] == "COMPLETED"
 
 
 # ---------------------------------------------------------------------------
@@ -161,28 +212,27 @@ async def test_scheduled_job_name_auto_populate(db):
 
 @pytest.mark.asyncio
 async def test_search_by_name(db):
-    """SRCH-04: search='nightly' must find job with name='nightly-backup'.
+    """SRCH-04: search='nightly' must find job with name='nightly-backup'."""
+    db.add(_make_job(name="nightly-backup"))
+    db.add(_make_job(name="daily-report"))
+    await db.commit()
 
-    Future assertion:
-        Insert Job with name="nightly-backup".
-        result = await JobService.list_jobs(db, limit=50, cursor=None, search="nightly")
-        assert len(result["items"]) == 1
-        assert result["items"][0]["name"] == "nightly-backup"
-    """
-    pytest.fail("not implemented")
+    result = await JobService.list_jobs(db, limit=50, cursor=None, search="nightly")
+    assert len(result["items"]) == 1
+    assert result["items"][0]["name"] == "nightly-backup"
 
 
 @pytest.mark.asyncio
 async def test_search_by_guid(db):
-    """SRCH-04: searching with a partial GUID prefix must return the matching job.
+    """SRCH-04: searching with a partial GUID prefix must return the matching job."""
+    g = str(uuid.uuid4())
+    db.add(_make_job(guid=g))
+    db.add(_make_job())
+    await db.commit()
 
-    Future assertion:
-        Insert Job with guid=g.
-        result = await JobService.list_jobs(db, limit=50, cursor=None, search=g[:8])
-        assert len(result["items"]) == 1
-        assert result["items"][0]["guid"] == g
-    """
-    pytest.fail("not implemented")
+    result = await JobService.list_jobs(db, limit=50, cursor=None, search=g[:8])
+    assert len(result["items"]) == 1
+    assert result["items"][0]["guid"] == g
 
 
 # ---------------------------------------------------------------------------
