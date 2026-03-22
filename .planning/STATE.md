@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 49-03-PLAN.md
-last_updated: "2026-03-22T21:19:04.499Z"
+stopped_at: Completed 49-04-PLAN.md
+last_updated: "2026-03-22T21:25:56.570Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 49-pagination-filtering-and-search P02 | 10min | 2 tasks | 6 files |
 | Phase 49-pagination-filtering-and-search P01 | 10min | 1 tasks | 1 files |
 | Phase 49 P03 | 3min | 1 tasks | 2 files |
+| Phase 49 P04 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 49-pagination-filtering-and-search]: POST /jobs stamps created_by via model_copy(update={'created_by': username}) — stamped at API boundary, not service layer, to keep service testable without auth context
 - [Phase 49]: Wave 0 stub convention: pytest.fail as first body line (not after awaits) so all 13 stubs fail with 'not implemented' marker; future shapes in docstrings
 - [Phase 49]: Total count query runs before cursor filter — stable totals across pages; tags LIKE '%"tag"%' for exact JSON-quoted match
+- [Phase 49]: GET /nodes returns {items,total,page,pages} envelope; stats batch query scoped to page node IDs only to avoid loading all-nodes stats on large deployments
+- [Phase 49]: JobService.list_nodes added to service layer for testability; GET /jobs/export uses StreamingResponse generator for memory-efficient CSV streaming
 
 ### Pending Todos
 
@@ -95,7 +98,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T21:19:04.497Z
-Stopped at: Completed 49-03-PLAN.md
+Last session: 2026-03-22T21:25:56.569Z
+Stopped at: Completed 49-04-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None
