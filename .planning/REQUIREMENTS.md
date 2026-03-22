@@ -11,10 +11,10 @@
 - [x] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
 - [x] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
 - [x] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
-- [ ] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
-- [ ] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
+- [x] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
+- [x] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
 - [ ] **RT-06**: Existing `python_script` task type is retained as an alias — all existing jobs and CI pipelines unaffected
-- [ ] **RT-07**: Operator can schedule a Bash or PowerShell job via job definitions (`ScheduledJob.runtime` field + migration SQL)
+- [x] **RT-07**: Operator can schedule a Bash or PowerShell job via job definitions (`ScheduledJob.runtime` field + migration SQL)
 
 ### Job Submission UX (JOB)
 
@@ -158,10 +158,10 @@
 | RT-01 | Phase 47 | Complete |
 | RT-02 | Phase 47 | Complete |
 | RT-03 | Phase 47 | Complete |
-| RT-04 | Phase 47 | Pending |
-| RT-05 | Phase 47 | Pending |
+| RT-04 | Phase 47 | Complete |
+| RT-05 | Phase 47 | Complete |
 | RT-06 | Phase 47 | Pending |
-| RT-07 | Phase 47 | Pending |
+| RT-07 | Phase 47 | Complete |
 | SCHED-01 | Phase 48 | Pending |
 | SCHED-02 | Phase 48 | Pending |
 | SCHED-03 | Phase 48 | Pending |

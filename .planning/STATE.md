@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 47-01-PLAN.md
-last_updated: "2026-03-22T16:52:09.425Z"
+stopped_at: Completed 47-02-PLAN.md
+last_updated: "2026-03-22T16:56:54.906Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -48,6 +48,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 46-tech-debt-security-branding P01 | 25min | 2 tasks | 6 files |
 | Phase 46 P02 | 3min | 2 tasks | 7 files |
 | Phase 47-ce-runtime-expansion P01 | 3min | 3 tasks | 3 files |
+| Phase 47-ce-runtime-expansion P02 | 3min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 46]: SEC-01 audit call placed at status determination point (before db.commit()) using sync audit() from deps.py — consistent with existing audit pattern
 - [Phase 46]: SEC-02 HMAC uses ENCRYPTION_KEY bytes directly as key material — avoids introducing a separate secret; message format binds payload to its specific job and signature record
 - [Phase 47-ce-runtime-expansion]: Temp-file mount pattern chosen over stdin for all three runtimes; python_script task_type removed entirely; RUNTIME_EXT/RUNTIME_CMD dispatch maps inline in execute_task
+- [Phase 47-ce-runtime-expansion]: python_script task_type dropped entirely — model_validator raises 422 with clear migration message (RT-06 superseded by CONTEXT.md)
+- [Phase 47-ce-runtime-expansion]: Runtime merged into payload dict (not a separate WorkResponse column) so node.py reads it from payload as before
 
 ### Pending Todos
 
@@ -75,7 +78,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T16:52:09.424Z
-Stopped at: Completed 47-01-PLAN.md
+Last session: 2026-03-22T16:56:54.904Z
+Stopped at: Completed 47-02-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None
