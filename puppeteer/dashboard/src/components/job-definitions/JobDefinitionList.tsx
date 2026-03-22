@@ -10,7 +10,8 @@ import {
     Pencil,
     ChevronDown,
     ChevronUp,
-    Send
+    Send,
+    KeyRound
 } from 'lucide-react';
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
@@ -24,11 +25,16 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface JobDefinition {
     id: string;
     name: string;
     script_content: string;
+    signature_payload?: string;
     schedule_cron: string;
     is_active: boolean;
     status: string;
@@ -42,6 +48,11 @@ interface Execution {
     created_at: string;
 }
 
+interface Signature {
+    id: string;
+    name: string;
+}
+
 interface JobDefinitionListProps {
     definitions: JobDefinition[];
     executions: Execution[];
@@ -51,10 +62,86 @@ interface JobDefinitionListProps {
     onPublish?: (id: string) => void;
     selectedDefId?: string | null;
     onSelect?: (id: string) => void;
+    signatures?: Signature[];
+    onResign?: (id: string, signatureId: string, signature: string) => void;
 }
 
-const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit, onPublish, selectedDefId, onSelect }: JobDefinitionListProps) => {
+const ReSignDialog = ({
+    job,
+    signatures,
+    open,
+    onClose,
+    onResign,
+}: {
+    job: JobDefinition | null;
+    signatures: Signature[];
+    open: boolean;
+    onClose: () => void;
+    onResign: (id: string, signatureId: string, signature: string) => void;
+}) => {
+    const [sigId, setSigId] = useState('');
+    const [sig, setSig] = useState('');
+
+    if (!job) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+            <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800">
+                <DialogHeader>
+                    <DialogTitle className="text-white flex items-center gap-2">
+                        <KeyRound className="h-4 w-4 text-amber-500" />
+                        Re-sign: {job.name}
+                    </DialogTitle>
+                    <DialogDescription className="text-zinc-400">
+                        Confirm the script content below, then provide a valid signature to reactivate.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                    <div>
+                        <Label className="text-zinc-400 text-xs uppercase tracking-wider mb-2 block">Script Content (read-only)</Label>
+                        <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 font-mono overflow-auto max-h-48 whitespace-pre-wrap">{job.script_content}</pre>
+                    </div>
+                    <div>
+                        <Label className="text-zinc-400 text-xs uppercase tracking-wider mb-2 block">Signing Key</Label>
+                        <Select value={sigId} onValueChange={setSigId}>
+                            <SelectTrigger className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                                <SelectValue placeholder="Select a signing key..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-zinc-800">
+                                {signatures.map(s => (
+                                    <SelectItem key={s.id} value={s.id} className="text-zinc-300">{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label className="text-zinc-400 text-xs uppercase tracking-wider mb-2 block">Signature (base64)</Label>
+                        <Textarea
+                            value={sig}
+                            onChange={e => setSig(e.target.value)}
+                            placeholder="Base64-encoded Ed25519 signature..."
+                            className="bg-zinc-900 border-zinc-800 text-zinc-300 font-mono text-xs min-h-[80px]"
+                        />
+                    </div>
+                </div>
+                <DialogFooter className="gap-2">
+                    <Button variant="ghost" onClick={onClose} className="text-zinc-400 hover:text-white">Cancel</Button>
+                    <Button
+                        disabled={!sigId || !sig.trim()}
+                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                        onClick={() => { onResign(job.id, sigId, sig.trim()); onClose(); }}
+                    >
+                        <KeyRound className="h-3.5 w-3.5 mr-1.5" /> Re-sign &amp; Reactivate
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit, onPublish, selectedDefId, onSelect, signatures = [], onResign }: JobDefinitionListProps) => {
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+    const [resigningJob, setResigningJob] = useState<JobDefinition | null>(null);
 
     const toggleRow = (id: string) => {
         setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
@@ -106,6 +193,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
     };
 
     return (
+        <>
         <Card className="bg-zinc-925 border-zinc-800/50 overflow-hidden">
             <Table>
                 <TableHeader className="bg-zinc-900/50 border-zinc-800">
@@ -183,6 +271,17 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                 </TableCell>
                                 <TableCell className="text-right pr-6">
                                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {def.status === 'DRAFT' && onResign && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-md"
+                                                onClick={() => setResigningJob(def)}
+                                                title="Re-sign to reactivate"
+                                            >
+                                                <KeyRound className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
                                         {def.status === 'DRAFT' && onPublish && (
                                             <Button
                                                 variant="ghost"
@@ -254,6 +353,14 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                 </TableBody>
             </Table>
         </Card>
+        <ReSignDialog
+            job={resigningJob}
+            signatures={signatures}
+            open={!!resigningJob}
+            onClose={() => setResigningJob(null)}
+            onResign={(id, sigId, sig) => { onResign?.(id, sigId, sig); setResigningJob(null); }}
+        />
+        </>
     );
 };
 
