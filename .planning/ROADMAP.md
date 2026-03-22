@@ -155,7 +155,10 @@ Plans:
   2. Each skipped cron fire for a DRAFT job produces a log entry with the reason "Skipped: job in DRAFT state, pending re-signing"
   3. Operator sees a modal warning before confirming a script change that will transition the job to DRAFT, with the option to cancel
   4. A DRAFT-state transition causes a notification to appear in the Dashboard notification bell and a WARNING entry in the alerts table linked to the scheduled job
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 48-01-PLAN.md — TDD: Wave 0 test stubs + backend DRAFT transition, re-sign path, verbatim skip log, alert creation (SCHED-01, SCHED-02, SCHED-04)
+- [ ] 48-02-PLAN.md — Frontend: DRAFT warning modal intercept + Re-sign button/dialog in job list (SCHED-03, visual SCHED-04)
 
 ### Phase 49: Pagination, Filtering and Search
 **Goal**: Operators can navigate large job and node datasets efficiently using server-side pagination and multi-axis filtering without frontend performance degradation
