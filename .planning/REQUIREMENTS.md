@@ -70,8 +70,8 @@
 
 ### Security (SEC)
 
-- [ ] **SEC-01**: SECURITY_REJECTED job results produce an audit log entry attributed to the reporting node (system sentinel actor), capturing script hash context
-- [ ] **SEC-02**: Stored `signature_payload` fields carry an HMAC integrity tag (computed from `ENCRYPTION_KEY`); dispatch verifies the HMAC before sending to a node — tampered payloads are rejected at the orchestrator before reaching any node
+- [x] **SEC-01**: SECURITY_REJECTED job results produce an audit log entry attributed to the reporting node (system sentinel actor), capturing script hash context
+- [x] **SEC-02**: Stored `signature_payload` fields carry an HMAC integrity tag (computed from `ENCRYPTION_KEY`); dispatch verifies the HMAC before sending to a node — tampered payloads are rejected at the orchestrator before reaching any node
 
 ### Branding (BRAND)
 
@@ -152,8 +152,8 @@
 | DEBT-02 | Phase 46 | Complete |
 | DEBT-03 | Phase 46 | Complete |
 | DEBT-04 | Phase 46 | Complete |
-| SEC-01 | Phase 46 | Pending |
-| SEC-02 | Phase 46 | Pending |
+| SEC-01 | Phase 46 | Complete |
+| SEC-02 | Phase 46 | Complete |
 | BRAND-01 | Phase 46 | Complete |
 | RT-01 | Phase 47 | Pending |
 | RT-02 | Phase 47 | Pending |

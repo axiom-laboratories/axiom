@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 46-01-PLAN.md (tech debt fixes)
-last_updated: "2026-03-22T15:01:12.052Z"
+stopped_at: Completed 46-02-PLAN.md (SEC-01 audit trail and SEC-02 HMAC integrity)
+last_updated: "2026-03-22T15:08:27.963Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -46,6 +46,7 @@ Progress: [░░░░░░░░░░] 0%
 | — | — | — | — |
 | Phase 46-tech-debt-security-branding P03 | 5 | 2 tasks | 6 files |
 | Phase 46-tech-debt-security-branding P01 | 25min | 2 tasks | 6 files |
+| Phase 46 P02 | 3min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -58,6 +59,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 46-tech-debt-security-branding]: DEBT-01: Two-step SELECT+DELETE replaces correlated subquery for SQLite-portable NodeStats pruning
 - [Phase 46-tech-debt-security-branding]: DEBT-03: Permission cache pre-warmed in lifespan() startup, wrapped in try/except for CE mode compatibility
 - [Phase 46-tech-debt-security-branding]: DEBT-02/04 required zero code changes — foundry_service.py cleanup and node.py sorted() were already correct
+- [Phase 46]: SEC-01 audit call placed at status determination point (before db.commit()) using sync audit() from deps.py — consistent with existing audit pattern
+- [Phase 46]: SEC-02 HMAC uses ENCRYPTION_KEY bytes directly as key material — avoids introducing a separate secret; message format binds payload to its specific job and signature record
 
 ### Pending Todos
 
@@ -70,7 +73,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T15:01:12.050Z
-Stopped at: Completed 46-01-PLAN.md (tech debt fixes)
+Last session: 2026-03-22T15:08:27.961Z
+Stopped at: Completed 46-02-PLAN.md (SEC-01 audit trail and SEC-02 HMAC integrity)
 Next action: `/gsd:plan-phase 46`
 Resume file: None
