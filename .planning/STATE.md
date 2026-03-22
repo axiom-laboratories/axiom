@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 47-02-PLAN.md
-last_updated: "2026-03-22T16:56:54.906Z"
+stopped_at: Completed 47-03-PLAN.md
+last_updated: "2026-03-22T17:31:15.520Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -49,6 +49,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 46 P02 | 3min | 2 tasks | 7 files |
 | Phase 47-ce-runtime-expansion P01 | 3min | 3 tasks | 3 files |
 | Phase 47-ce-runtime-expansion P02 | 3min | 2 tasks | 5 files |
+| Phase 47-ce-runtime-expansion P03 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 47-ce-runtime-expansion]: Temp-file mount pattern chosen over stdin for all three runtimes; python_script task_type removed entirely; RUNTIME_EXT/RUNTIME_CMD dispatch maps inline in execute_task
 - [Phase 47-ce-runtime-expansion]: python_script task_type dropped entirely — model_validator raises 422 with clear migration message (RT-06 superseded by CONTEXT.md)
 - [Phase 47-ce-runtime-expansion]: Runtime merged into payload dict (not a separate WorkResponse column) so node.py reads it from payload as before
+- [Phase 47-ce-runtime-expansion]: Runtime dropdown hidden for non-script task types; display_type ?? task_type fallback for backward compatibility with old python_script jobs; default form task_type changed from web_task to script
 
 ### Pending Todos
 
@@ -78,7 +80,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T16:56:54.904Z
-Stopped at: Completed 47-02-PLAN.md
+Last session: 2026-03-22T17:31:15.518Z
+Stopped at: Completed 47-03-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None

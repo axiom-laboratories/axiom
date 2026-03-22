@@ -102,7 +102,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 ## Phase Checklist
 
 - [x] **Phase 46: Tech Debt + Security + Branding** — Foundation cleanup before new features: fix deferred gaps, add security hardening, align UI labels (completed 2026-03-22)
-- [ ] **Phase 47: CE Runtime Expansion** — Unified `script` task type supporting Python, Bash, and PowerShell runtimes end-to-end
+- [x] **Phase 47: CE Runtime Expansion** — Unified `script` task type supporting Python, Bash, and PowerShell runtimes end-to-end (completed 2026-03-22)
 - [ ] **Phase 48: Scheduled Job Signing Safety** — DRAFT state for stale signatures; skipped fires logged; operator warned before script edits fire
 - [ ] **Phase 49: Pagination, Filtering and Search** — Server-side pagination on Jobs and Nodes; 9-axis job filtering; free-text search; CSV export
 - [ ] **Phase 50: Guided Job Form** — Structured guided form replacing raw JSON for common job submission; Advanced mode available via gate
@@ -223,7 +223,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 46. Tech Debt + Security + Branding | 3/3 | Complete    | 2026-03-22 |
-| 47. CE Runtime Expansion | 2/3 | In Progress|  |
+| 47. CE Runtime Expansion | 3/3 | Complete   | 2026-03-22 |
 | 48. Scheduled Job Signing Safety | 0/TBD | Not started | - |
 | 49. Pagination, Filtering and Search | 0/TBD | Not started | - |
 | 50. Guided Job Form | 0/TBD | Not started | - |
