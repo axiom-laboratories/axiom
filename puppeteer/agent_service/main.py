@@ -977,13 +977,16 @@ async def dispatch_job(
     effective_env_tag = req.env_tag if req.env_tag is not None else s_job.env_tag
 
     # 3. Build JobCreate
+    runtime = getattr(s_job, 'runtime', None) or 'python'
     payload_dict = {
         "script_content": s_job.script_content,
         "signature": s_job.signature_payload,
         "secrets": {},
+        "runtime": runtime,
     }
     job_create = JobCreate(
-        task_type="python_script",
+        task_type="script",
+        runtime=runtime,
         payload=payload_dict,
         target_tags=json.loads(s_job.target_tags) if s_job.target_tags else None,
         capability_requirements=json.loads(s_job.capability_requirements) if s_job.capability_requirements else None,

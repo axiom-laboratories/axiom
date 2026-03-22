@@ -21,7 +21,7 @@ class Job(Base):
     __tablename__ = "jobs"
 
     guid: Mapped[str] = mapped_column(String, primary_key=True)
-    task_type: Mapped[str] = mapped_column(String) # python_script, web_task
+    task_type: Mapped[str] = mapped_column(String) # script, web_task, file_download
     payload: Mapped[str] = mapped_column(Text) # JSON string
     status: Mapped[str] = mapped_column(String, default="PENDING")
     node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)

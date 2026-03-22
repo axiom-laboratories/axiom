@@ -518,38 +518,6 @@ class Node:
             print(f"[{self.node_id}] Error polling Agent: {e}")
         return None
 
-    def run_python_script(self, guid: str, script_content: str, secrets: Dict = {}) -> Dict:
-        temp_filename = f"_temp_job_{guid}.py"
-        try:
-            with open(temp_filename, "w") as f:
-                f.write(script_content)
-                
-            env_vars = os.environ.copy()
-            env_vars.update(secrets)
-            
-            print(f"[{self.node_id}] Spawning subprocess for job {guid}...")
-            result = subprocess.run(
-                ["python", temp_filename],
-                env=env_vars,
-                capture_output=True,
-                text=True,
-                timeout=30 
-            )
-            
-            return {
-                "exit_code": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr
-            }
-            
-        except subprocess.TimeoutExpired:
-            return {"error": "Execution timed out"}
-        except Exception as e:
-            return {"error": f"Execution failed: {e}"}
-        finally:
-            if os.path.exists(temp_filename):
-                os.remove(temp_filename)
-
     async def execute_task(self, job: Dict):
         guid = job["guid"]
         task_type = job.get("task_type", "web_task")
