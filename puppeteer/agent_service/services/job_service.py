@@ -169,7 +169,9 @@ class JobService:
             timeout_minutes=job_req.timeout_minutes,
             scheduled_job_id=job_req.scheduled_job_id,
             runtime=job_req.runtime,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            name=getattr(job_req, 'name', None),        # SRCH-04: optional job name label
+            created_by=getattr(job_req, 'created_by', None),  # SRCH-03: submitter username
         )
         
         # SEC-02: Stamp HMAC tag on signature_payload before persisting

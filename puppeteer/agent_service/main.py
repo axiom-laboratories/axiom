@@ -1062,6 +1062,8 @@ async def get_dispatch_status(
 @app.post("/jobs", response_model=JobResponse, tags=["Jobs"])
 async def create_job(job_req: JobCreate, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     try:
+        # SRCH-03: stamp submitter username so Jobs view can filter by creator
+        job_req = job_req.model_copy(update={"created_by": current_user.username})
         result = await JobService.create_job(job_req, db)
         await ws_manager.broadcast("job:created", {"guid": result["guid"], "status": "PENDING", "task_type": job_req.task_type})
         return result

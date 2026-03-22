@@ -186,6 +186,8 @@ class SchedulerService:
                 timeout_minutes=s_job.timeout_minutes,
                 env_tag=s_job.env_tag,
                 runtime=runtime,
+                name=s_job.name,          # SRCH-04: auto-populate from scheduled job name
+                created_by=s_job.created_by,  # SRCH-03: stamp submitter
             )
             session.add(new_job)
             await session.commit()

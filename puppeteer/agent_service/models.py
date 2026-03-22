@@ -16,6 +16,8 @@ class JobCreate(BaseModel):
     scheduled_job_id: Optional[str] = None
     env_tag: Optional[str] = None
     runtime: Optional[Literal["python", "bash", "powershell"]] = None
+    name: Optional[str] = None          # SRCH-04: optional job name label
+    created_by: Optional[str] = None    # SRCH-03: submitter username
 
     @field_validator("env_tag", mode="before")
     @classmethod
@@ -61,6 +63,16 @@ class JobResponse(BaseModel):
     depends_on: Optional[List[str]] = None
     task_type: Optional[str] = None
     display_type: Optional[str] = None
+    name: Optional[str] = None          # SRCH-04: nullable job name
+    created_by: Optional[str] = None    # SRCH-03: submitter username
+    created_at: Optional[datetime] = None  # needed for cursor encoding in list response
+    runtime: Optional[str] = None       # SRCH-03: runtime filter display
+
+class PaginatedJobResponse(BaseModel):
+    """Cursor-based paginated job list response (Phase 49 — SRCH-01)."""
+    items: List[JobResponse]
+    total: int
+    next_cursor: Optional[str] = None  # base64-encoded {created_at, guid}; None = no more pages
 
 class WorkResponse(BaseModel):
     guid: str
