@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException, Request, Depends, Header, status, WebSocket, WebSocketDisconnect, Query, Form
-from fastapi.responses import Response, HTMLResponse
+from fastapi.responses import Response, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
+import csv
+import io
+import math
 import secrets as _secrets
 import uuid
 import json
@@ -189,6 +192,7 @@ app.add_middleware(
 # --- AUTH HELPERS (moved to deps.py to avoid circular imports with EE routers) ---
 from .deps import (
     get_current_user, get_current_user_optional, require_auth,
+    require_permission,
     audit,
 )
 
@@ -916,9 +920,30 @@ async def get_licence(request: Request, current_user: User = Depends(require_aut
     }
 
 
-@app.get("/jobs", response_model=List[JobResponse], tags=["Jobs"])
-async def list_jobs(skip: int = 0, limit: int = 50, status: Optional[str] = None, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    return await JobService.list_jobs(db, skip=skip, limit=limit, status=status)
+@app.get("/jobs", tags=["Jobs"])
+async def list_jobs(
+    cursor: Optional[str] = None,
+    limit: int = 50,
+    status: Optional[str] = None,
+    runtime: Optional[str] = None,
+    task_type: Optional[str] = None,
+    node_id: Optional[str] = None,
+    tags: Optional[str] = None,
+    created_by: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    search: Optional[str] = None,
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    tags_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    result = await JobService.list_jobs(
+        db, limit=limit, cursor=cursor,
+        status=status, runtime=runtime, task_type=task_type,
+        node_id=node_id, tags=tags_list,
+        created_by=created_by, date_from=date_from, date_to=date_to, search=search,
+    )
+    return result  # {items, total, next_cursor}
 
 @app.get("/jobs/count", tags=["Jobs"])
 async def count_jobs(status: Optional[str] = None, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
@@ -928,6 +953,57 @@ async def count_jobs(status: Optional[str] = None, current_user: User = Depends(
         query = query.where(Job.status == status.upper())
     result = await db.execute(query)
     return {"total": result.scalar()}
+
+@app.get("/jobs/export", tags=["Jobs"])
+async def export_jobs(
+    status: Optional[str] = None,
+    runtime: Optional[str] = None,
+    task_type: Optional[str] = None,
+    node_id: Optional[str] = None,
+    tags: Optional[str] = None,
+    created_by: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    search: Optional[str] = None,
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    tags_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
+    EXPORT_LIMIT = 10_000
+    jobs = await JobService.list_jobs_for_export(
+        db, limit=EXPORT_LIMIT,
+        status=status, runtime=runtime, task_type=task_type,
+        node_id=node_id, tags=tags_list,
+        created_by=created_by, date_from=date_from, date_to=date_to, search=search,
+    )
+
+    HEADERS = ["guid", "name", "status", "task_type", "display_type", "runtime",
+               "node_id", "created_at", "started_at", "completed_at", "duration_seconds", "target_tags"]
+
+    def generate():
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(HEADERS)
+        yield buf.getvalue()
+        buf.seek(0)
+        buf.truncate()
+        for job in jobs:
+            writer.writerow([
+                job.get("guid", ""), job.get("name", ""), job.get("status", ""),
+                job.get("task_type", ""), job.get("display_type", ""), job.get("runtime", ""),
+                job.get("node_id", ""), job.get("created_at", ""), job.get("started_at", ""),
+                job.get("completed_at", ""), job.get("duration_seconds", ""),
+                ",".join(job.get("target_tags") or []),
+            ])
+            yield buf.getvalue()
+            buf.seek(0)
+            buf.truncate()
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=jobs-export.csv"},
+    )
 
 @app.get("/api/jobs/stats", tags=["Jobs"])
 async def get_job_stats(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
@@ -1179,18 +1255,32 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": updated.get("status", "COMPLETED")})
     return updated
 
-@app.get("/nodes", response_model=List[NodeResponse], tags=["Nodes"])
-async def list_nodes(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Node))
+@app.get("/nodes", tags=["Nodes"])
+async def list_nodes(
+    page: int = 1,
+    page_size: int = 25,
+    current_user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    # Step 1: total count
+    total_result = await db.execute(select(func.count()).select_from(Node))
+    total = total_result.scalar() or 0
+
+    # Step 2: paginated node list (paginate BEFORE stats batch query)
+    result = await db.execute(
+        select(Node).order_by(Node.hostname)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     nodes = result.scalars().all()
 
-    # Fetch stats history for all nodes in one query
+    # Step 3: batch stats history — scoped to this page's node_ids only
     history_map: dict = defaultdict(list)
     if nodes:
-        node_ids = [n.node_id for n in nodes]
+        page_node_ids = [n.node_id for n in nodes]
         hist_result = await db.execute(
             select(NodeStats)
-            .where(NodeStats.node_id.in_(node_ids))
+            .where(NodeStats.node_id.in_(page_node_ids))
             .order_by(desc(NodeStats.recorded_at))
         )
         for stat in hist_result.scalars().all():
@@ -1201,13 +1291,14 @@ async def list_nodes(current_user: User = Depends(require_auth), db: AsyncSessio
         for k in history_map:
             history_map[k].reverse()
 
+    # Step 4: build resp list
     resp = []
     for n in nodes:
         if n.status == "REVOKED":
-            status = "REVOKED"
+            node_status = "REVOKED"
         else:
             is_offline = (datetime.utcnow() - n.last_seen).total_seconds() > 60
-            status = "OFFLINE" if is_offline else "ONLINE"
+            node_status = "OFFLINE" if is_offline else "ONLINE"
 
         stats = json.loads(n.stats) if n.stats else None
         reported_tags = json.loads(n.tags) if n.tags else []
@@ -1219,7 +1310,7 @@ async def list_nodes(current_user: User = Depends(require_auth), db: AsyncSessio
             "hostname": n.hostname,
             "ip": n.ip,
             "last_seen": n.last_seen,
-            "status": status,
+            "status": node_status,
             "base_os_family": n.base_os_family,
             "stats": stats,
             "tags": effective_tags,
@@ -1228,7 +1319,13 @@ async def list_nodes(current_user: User = Depends(require_auth), db: AsyncSessio
             "stats_history": history_map.get(n.node_id, []),
             "env_tag": n.env_tag,
         })
-    return resp
+
+    return {
+        "items": resp,
+        "total": total,
+        "page": page,
+        "pages": math.ceil(total / page_size) if total > 0 else 1,
+    }
 
 @app.patch("/nodes/{node_id}", tags=["Nodes"])
 async def update_node_config(node_id: str, config: NodeUpdateRequest, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):

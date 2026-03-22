@@ -265,6 +265,44 @@ class JobService:
         return rows
 
     @staticmethod
+    async def list_nodes(
+        db: AsyncSession,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> dict:
+        """Return a page-based paginated list of nodes.
+
+        Returns {"items": List[dict], "total": int, "page": int, "pages": int}.
+        Each item contains: node_id, hostname, ip, status, last_seen, env_tag.
+        """
+        import math
+
+        total_result = await db.execute(select(func.count()).select_from(Node))
+        total = total_result.scalar() or 0
+
+        result = await db.execute(
+            select(Node).order_by(Node.hostname)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        nodes = result.scalars().all()
+
+        items = [
+            {
+                "node_id": n.node_id,
+                "hostname": n.hostname,
+                "ip": n.ip,
+                "status": n.status,
+                "last_seen": n.last_seen,
+                "env_tag": getattr(n, "env_tag", None),
+            }
+            for n in nodes
+        ]
+
+        pages = math.ceil(total / page_size) if total > 0 else 1
+        return {"items": items, "total": total, "page": page, "pages": pages}
+
+    @staticmethod
     async def _get_dependency_depth(guid: str, db: AsyncSession, current_depth: int = 1) -> int:
         """Trace the graph upwards to calculate depth (protects against complex DAG DoS)."""
         if current_depth > 10: 
