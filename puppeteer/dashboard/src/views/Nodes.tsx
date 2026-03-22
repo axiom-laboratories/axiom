@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+
+const PAGE_SIZE = 25;
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import {
@@ -80,10 +82,22 @@ interface Node {
     env_tag?: string;
 }
 
-const fetchNodes = async (): Promise<Node[]> => {
-    const res = await authenticatedFetch('/nodes');
+interface PaginatedNodeResponse {
+    items: Node[];
+    total: number;
+    page: number;
+    pages: number;
+}
+
+const fetchNodes = async (page: number): Promise<PaginatedNodeResponse> => {
+    const res = await authenticatedFetch(`/nodes?page=${page}&page_size=${PAGE_SIZE}`);
     if (!res.ok) throw new Error('Failed to fetch nodes');
-    return await res.json();
+    const data = await res.json();
+    // Handle both paginated envelope and legacy bare array (backwards compat)
+    if (Array.isArray(data)) {
+        return { items: data, total: data.length, page: 1, pages: 1 };
+    }
+    return data as PaginatedNodeResponse;
 };
 
 const GaugeBar = ({ value, color }: { value: number; color: string }) => (
@@ -534,27 +548,32 @@ const Nodes = () => {
     const [showMountsModal, setShowMountsModal] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const [page, setPage] = useState(1);
 
-    const { data: nodes, isLoading } = useQuery({
-        queryKey: ['nodes'],
-        queryFn: fetchNodes,
+    const { data: pageData, isLoading } = useQuery({
+        queryKey: ['nodes', page],
+        queryFn: () => fetchNodes(page),
         refetchInterval: 10000,
     });
 
+    const nodes = pageData?.items ?? [];
+    const totalNodes = pageData?.total ?? 0;
+    const totalPages = pageData?.pages ?? 1;
+
     useWebSocket((event) => {
-        if (event === 'node:heartbeat') queryClient.invalidateQueries({ queryKey: ['nodes'] });
+        if (event === 'node:heartbeat') queryClient.invalidateQueries({ queryKey: ['nodes', page] });
     });
 
     const [envFilter, setEnvFilter] = useState<string>('ALL');
 
     const uniqueEnvTags = useMemo(() => {
-        const tags = (nodes ?? [])
+        const tags = nodes
             .map(n => n.env_tag)
             .filter((t): t is string => !!t);
         return Array.from(new Set(tags)).sort();
     }, [nodes]);
 
-    const displayNodes = (nodes ?? []).filter(n =>
+    const displayNodes = nodes.filter(n =>
         envFilter === 'ALL' || n.env_tag === envFilter
     );
 
@@ -564,7 +583,7 @@ const Nodes = () => {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-white">Nodes</h1>
                     <p className="text-sm text-zinc-500 mt-1">
-                        Real-time telemetry for {nodes?.length || 0} active nodes.
+                        Real-time telemetry for {totalNodes} active nodes.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -623,6 +642,38 @@ const Nodes = () => {
                     </div>
                 )}
             </div>
+
+            {/* Pagination controls */}
+            {(totalPages > 1 || totalNodes > 0) && (
+                <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-muted-foreground text-zinc-500">
+                        Showing {nodes.length} of {totalNodes} nodes
+                    </span>
+                    {totalPages > 1 && (
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-zinc-700 text-zinc-300 hover:text-white disabled:opacity-40"
+                                disabled={page <= 1}
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-sm text-zinc-400">Page {page} of {totalPages}</span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-zinc-700 text-zinc-300 hover:text-white disabled:opacity-40"
+                                disabled={page >= totalPages}
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <AddNodeModal open={showAddModal} onOpenChange={setShowAddModal} />
             <ManageMountsModal open={showMountsModal} onOpenChange={setShowMountsModal} />
