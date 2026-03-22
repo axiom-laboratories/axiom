@@ -52,6 +52,7 @@ interface Job {
     guid: string;
     status: string;
     task_type?: string;
+    display_type?: string;  // server-computed: "script (python)", "script (bash)", etc.
     payload: Record<string, any>;
     result?: Record<string, any>;
     node_id?: string;
@@ -191,7 +192,7 @@ const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput, onRetry }:
                                 </>
                             )}
                             <span className="text-zinc-500">Type</span>
-                            <span className="font-mono text-zinc-300">{job.task_type || job.payload?.task_type || '—'}</span>
+                            <span className="font-mono text-zinc-300">{job.display_type ?? job.task_type ?? '—'}</span>
                             <span className="text-zinc-500">Node</span>
                             <span className="font-mono text-zinc-300 truncate">{job.node_id || '—'}</span>
                             <span className="text-zinc-500">Started</span>
@@ -580,7 +581,7 @@ const Jobs = () => {
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-white font-medium">
-                                            {job.task_type || job.payload?.task_type || 'Generic'}
+                                            {job.display_type ?? job.task_type ?? '—'}
                                         </TableCell>
                                         <TableCell>
                                             {job.status.toLowerCase() === 'retrying' ? (
