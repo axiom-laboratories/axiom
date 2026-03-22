@@ -123,7 +123,11 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
   4. SECURITY_REJECTED job outcomes produce an audit log entry attributed to the reporting node with script hash context visible to an admin
   5. A tampered `signature_payload` (HMAC tag mismatch) is rejected at the orchestrator before dispatch; the rejection is audit-logged
   6. The Foundry section of the dashboard uses "Image Recipe", "Node Image", and "Tool" throughout with no legacy labels visible
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 46-01-PLAN.md — Backend debt fixes: SQLite NodeStats prune (DEBT-01), perm cache pre-warm (DEBT-03), verify foundry cleanup (DEBT-02), verify node ID sort (DEBT-04)
+- [ ] 46-02-PLAN.md — Security hardening: SECURITY_REJECTED audit entry (SEC-01), HMAC integrity on signature_payload (SEC-02)
+- [ ] 46-03-PLAN.md — UI label rename: Blueprint→Image Recipe, Template→Node Image, Capability Matrix→Tool (BRAND-01)
 
 ### Phase 47: CE Runtime Expansion
 **Goal**: Operators can submit Bash and PowerShell jobs through the same unified task type, with full backend validation and frontend display, without breaking any existing Python jobs
@@ -214,7 +218,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 46. Tech Debt + Security + Branding | 0/TBD | Not started | - |
+| 46. Tech Debt + Security + Branding | 0/3 | Not started | - |
 | 47. CE Runtime Expansion | 0/TBD | Not started | - |
 | 48. Scheduled Job Signing Safety | 0/TBD | Not started | - |
 | 49. Pagination, Filtering and Search | 0/TBD | Not started | - |
