@@ -459,15 +459,22 @@ class JobService:
         if hb.stats:
             db.add(NodeStats(node_id=node_id, cpu=hb.stats.get("cpu"), ram=hb.stats.get("ram")))
             await db.flush()
-            # Prune: keep last 60 rows per node
-            subq = (
+            # Prune: keep last 60 rows per node — DEBT-01: two-step approach
+            # for SQLite compatibility (correlated subquery with OFFSET is not
+            # reliably supported on older SQLite versions).
+            _keep_result = await db.execute(
                 select(NodeStats.id)
                 .where(NodeStats.node_id == node_id)
                 .order_by(desc(NodeStats.recorded_at))
-                .offset(60)
-                .subquery()
+                .limit(60)
             )
-            await db.execute(delete(NodeStats).where(NodeStats.id.in_(select(subq.c.id))))
+            keep_ids = [row[0] for row in _keep_result.all()]
+            if keep_ids:
+                await db.execute(
+                    delete(NodeStats)
+                    .where(NodeStats.node_id == node_id)
+                    .where(NodeStats.id.notin_(keep_ids))
+                )
 
         # Process Job Telemetry
         if hb.job_telemetry:

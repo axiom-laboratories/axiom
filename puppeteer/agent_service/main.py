@@ -93,6 +93,19 @@ async def lifespan(app: FastAPI):
         ctx = EEContext()
         _mount_ce_stubs(app)
         app.state.ee = ctx
+    # Pre-warm permission cache — DEBT-03
+    # Avoids per-request DB queries in require_permission() after startup.
+    try:
+        async with AsyncSessionLocal() as _db:
+            from sqlalchemy import text as _text
+            _result = await _db.execute(_text("SELECT role, permission FROM role_permissions"))
+            from .deps import _perm_cache
+            for _role, _perm in _result.all():
+                _perm_cache.setdefault(_role, set()).add(_perm)
+            logger.info(f"Permission cache pre-warmed: {len(_perm_cache)} roles")
+    except Exception as _e:
+        logger.debug(f"CE mode or no role_permissions table — cache pre-warm skipped: {_e}")
+
     # Bootstrap Admin
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))
