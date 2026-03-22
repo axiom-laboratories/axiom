@@ -1,93 +1,148 @@
-# Requirements: Axiom
+# Requirements: Master of Puppets
 
-**Defined:** 2026-03-20
+**Defined:** 2026-03-22
+**Milestone:** v12.0 — Operator Maturity
 **Core Value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## v11.1 Requirements
+## v12.0 Requirements
 
-Requirements for the Stack Validation milestone — adversarial end-to-end validation of the full Axiom CE/EE stack from a clean install, with critical findings fixed inline.
+### Runtime Expansion (RT)
 
-### Install & Teardown
+- [ ] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
+- [ ] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
+- [ ] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
+- [ ] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
+- [ ] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
+- [ ] **RT-06**: Existing `python_script` task type is retained as an alias — all existing jobs and CI pipelines unaffected
+- [ ] **RT-07**: Operator can schedule a Bash or PowerShell job via job definitions (`ScheduledJob.runtime` field + migration SQL)
 
-- [x] **INST-01**: A soft teardown script preserves the Root CA and node `secrets/` dirs — only stops containers and clears DB data
-- [x] **INST-02**: A hard teardown script runs `docker compose down -v --remove-orphans` AND clears all LXC node `secrets/` dirs — true clean slate
-- [x] **INST-03**: Fresh CE install from cold start produces exactly 13 CE tables, `GET /api/features` all false, and a correctly seeded admin account
-- [x] **INST-04**: Admin password re-seed behaviour verified: if admin already exists, `ADMIN_PASSWORD` env var change does NOT overwrite DB password (existing deployment safety)
+### Job Submission UX (JOB)
 
-### EE Test Infrastructure
+- [ ] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
+- [ ] **JOB-02**: Operator can view the generated JSON payload from guided mode in a read-only panel without editing it
+- [ ] **JOB-03**: Operator can switch to Advanced (raw JSON) mode via a one-way gate with a confirmation dialog; form validates JSON against schema before submission
+- [ ] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
+- [ ] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
+- [ ] **JOB-06**: Operator can edit and resubmit a failed job — guided form pre-populated with failed job's payload, signing state cleared, fresh signing required
 
-- [x] **EEDEV-01**: Local Ed25519 test keypair generated (test public + private key) and stored in `mop_validation/secrets/`
-- [x] **EEDEV-02**: `axiom-ee` EE plugin patched with test public key bytes and installed as editable source (`pip install -e`) — no Cython rebuild required
-- [x] **EEDEV-03**: Valid test licence generated (signed with test private key), `GET /api/licence` returns correct `customer_id`, `exp`, `features`
-- [x] **EEDEV-04**: Expired test licence verified: after restart, `GET /api/features` returns all false; `GET /api/licence` shows expired state
-- [x] **EEDEV-05**: Missing `AXIOM_LICENCE_KEY` env var verified: EE starts in CE-degraded mode (no crash, all features false)
+### Bulk Job Operations (BULK)
 
-### LXC Node Provisioning
+- [ ] **BULK-01**: Operator can multi-select jobs using checkboxes; a floating action bar appears showing available bulk actions
+- [ ] **BULK-02**: Operator can bulk cancel selected PENDING/RUNNING jobs with a count confirmation
+- [ ] **BULK-03**: Operator can bulk resubmit selected FAILED (retries-exhausted) jobs; confirmation shows skipped count for jobs with remaining retries
+- [ ] **BULK-04**: Operator can bulk delete selected terminal-state jobs (COMPLETED/FAILED/CANCELLED) with a count confirmation
 
-- [x] **NODE-01**: 4 Incus LXC containers provisioned (`axiom-node-dev`, `axiom-node-test`, `axiom-node-prod`, `axiom-node-staging`), each with correct `OPERATOR_TAGS=env:DEV/TEST/PROD/STAGING`
-- [x] **NODE-02**: Each node enrolled using a unique per-node JOIN_TOKEN (not shared) — all 4 successfully complete mTLS enrollment
-- [x] **NODE-03**: All 4 nodes heartbeating at `/heartbeat`; `GET /api/nodes` shows 4 nodes with correct `env_tag` and `HEALTHY` status
-- [x] **NODE-04**: LXC nodes use Incus bridge IP for `AGENT_URL` (not Docker `172.17.0.1`) — dynamically discovered, not hardcoded
-- [x] **NODE-05**: Node revoke → re-enroll cycle verified: revoke a node, confirm it gets 403 on `/work/pull`, re-enroll with fresh token, confirm it resumes heartbeating
+### Queue & Visibility (VIS)
 
-### CE Validation Pass
+- [ ] **VIS-01**: A PENDING job's drawer shows an automatic plain-English dispatch diagnosis (no nodes / capability mismatch / all busy / queue position) that updates live via WebSocket
+- [ ] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
+- [ ] **VIS-03**: Nodes page shows a per-node detail drawer (currently running job, queued jobs, recent history, reported capabilities)
+- [ ] **VIS-04**: Admin can put a node into DRAINING state from the node detail drawer; DRAINING status is visible in Queue and Nodes views
+- [ ] **VIS-05**: Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators with a configurable time window (24h / 7d / 30d)
+- [ ] **VIS-06**: Scheduling Health panel detects missed fires (expected cron fires vs actual execution records); affected definitions show a red health indicator
 
-- [x] **CEV-01**: All 7 EE routes return HTTP 402 (not 404) on CE-only install with 4 nodes active
-- [x] **CEV-02**: CE table count assertion: exactly 13 tables, zero EE table leakage after hard teardown + CE reinstall
-- [x] **CEV-03**: Basic job dispatch on CE: script signed, submitted, executed on a DEV-tagged node, stdout captured in execution history
+### Scheduled Job Signing Safety (SCHED)
 
-### EE Validation Pass
+- [ ] **SCHED-01**: Scheduled job automatically enters DRAFT state when `script_content` is changed and the existing `signature_payload` is no longer valid
+- [ ] **SCHED-02**: Jobs in DRAFT state do not dispatch on their cron schedule; each skipped fire is logged with reason: "Skipped: job in DRAFT state, pending re-signing"
+- [ ] **SCHED-03**: Operator sees a save confirmation modal warning when saving a script change that will transition the job to DRAFT
+- [ ] **SCHED-04**: Dashboard notification bell shows an in-app notification when a scheduled job enters DRAFT; a WARNING alert is written to the alerts table with `resource_id = scheduled_job_id`
 
-- [x] **EEV-01**: CE+EE combined install: `GET /api/features` all true, 28 tables (13 CE + 15 EE), EE routes return real responses
-- [x] **EEV-02**: Licence gating is startup-only: change to expired licence at runtime, confirm features remain true until restart, then false after restart
-- [x] **EEV-03**: `GET /api/licence` admin endpoint returns full licence detail; non-admin (operator/viewer) gets 403
+### Search, Scale & Data Management (SRCH)
 
-### Job Test Matrix
+- [ ] **SRCH-01**: Jobs view uses server-side cursor-based pagination — "load more" appends next page; total count shown ("Showing 50 of 12,483")
+- [ ] **SRCH-02**: Nodes view uses server-side page-based pagination with page controls and total count
+- [ ] **SRCH-03**: Operator can filter the Jobs view by status, runtime, task type, target node, target tags, created-by, and date ranges — all server-side; active filters shown as dismissible chips
+- [ ] **SRCH-04**: Operator can search jobs by name or GUID via a free-text search box; operator can optionally name a job at submission time via the guided form
+- [ ] **SRCH-05**: Operator can export the current filtered Jobs view as CSV
+- [ ] **SRCH-06**: Operator can save a job configuration as a reusable named template (signing state explicitly excluded)
+- [ ] **SRCH-07**: Operator can load a saved template into the guided job form; all fields remain editable before submission
+- [ ] **SRCH-08**: Admin can configure global execution record retention period (default: 14 days); a nightly pruning task hard-deletes expired records excluding pinned records
+- [ ] **SRCH-09**: Admin can pin individual execution records to exclude them from automatic pruning; pin/unpin actions are audit-logged
+- [ ] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
 
-- [x] **JOB-01**: Fast job (< 5s): executes, stdout captured, visible in execution history dashboard
-- [x] **JOB-02**: Slow job (90s sleep): runs to completion without premature timeout; live in node heartbeat during execution
-- [x] **JOB-03**: Memory-heavy job (allocate 512MB in Python): executes successfully in `direct` mode — resource limit not enforced (documented as known gap, not a failure)
-- [x] **JOB-04**: Concurrent jobs (5 simultaneous submitted to same node): all 5 complete, no duplicate execution of same job GUID on two nodes
-- [x] **JOB-05**: Env-tag routing: DEV-tagged job only executes on `axiom-node-dev`; PROD-tagged job only on `axiom-node-prod`; cross-tag submission returns no eligible node
-- [x] **JOB-06**: Env promotion chain: same job script submitted to DEV → TEST → PROD in sequence, each execution captured separately in history
-- [x] **JOB-07**: Failure mode — script crash (`sys.exit(1)`): `FAILED` status captured, retry triggered per configured `max_retries`, all attempts in history with correct `attempt_number`
-- [x] **JOB-08**: Failure mode — bad Ed25519 signature: node rejects script before execution; execution record shows rejection, not crash
-- [x] **JOB-09**: Failure mode — job submitted with revoked job definition status: dispatch blocked at orchestrator, node never receives it
+### Tech Debt (DEBT)
 
-### Foundry + Smelter
+- [ ] **DEBT-01**: NodeStats pruning is SQLite-compatible — removes subquery incompatibility that causes pruning to silently fail on SQLite deployments (MIN-06)
+- [ ] **DEBT-02**: Foundry service removes the temporary build directory after both successful and failed builds — no stale `/tmp/puppet_build_*` directories accumulate (MIN-07)
+- [ ] **DEBT-03**: Permission lookups in `require_permission` do not execute a DB query per request — permissions are cached at startup or session level (MIN-08)
+- [ ] **DEBT-04**: Node ID scan in the secrets directory uses deterministic (sorted) ordering — eliminates non-deterministic behavior on filesystems with unordered readdir (WARN-08)
 
-- [x] **FOUNDRY-01**: Full wizard flow: create runtime blueprint → create network blueprint → build image via Foundry → verify image tag in Docker → deploy a node from the Foundry-built image
-- [x] **FOUNDRY-02**: Smelter STRICT mode: attempt to add an ingredient with a known CVE (`cryptography<40.0.0`); confirm STRICT mode blocks the blueprint from being used in a build
-- [x] **FOUNDRY-03**: Build failure edge case: trigger a build failure (bad base image tag); confirm API returns HTTP 500 with error detail, not silent 200
-- [x] **FOUNDRY-04**: Build dir cleanup: after a completed build, confirm temp build directory is removed (MIN-7 gap test — expect failure, document finding)
-- [x] **FOUNDRY-05**: Air-gap mirror: configure a blueprint to use the local PyPI mirror, block outbound internet via `iptables`, confirm pip install of ingredient succeeds from mirror
-- [x] **FOUNDRY-06**: Smelter warning mode: add a moderate-risk ingredient in WARNING mode; confirm build proceeds but audit log records the warning
+### Security (SEC)
 
-### Gap Report
+- [ ] **SEC-01**: SECURITY_REJECTED job results produce an audit log entry attributed to the reporting node (system sentinel actor), capturing script hash context
+- [ ] **SEC-02**: Stored `signature_payload` fields carry an HMAC integrity tag (computed from `ENCRYPTION_KEY`); dispatch verifies the HMAC before sending to a node — tampered payloads are rejected at the orchestrator before reaching any node
 
-- [x] **GAP-01**: Living gap report maintained throughout validation (`mop_validation/reports/v11.1-gap-report.md`) — every finding logged with severity (critical/major/minor), area, reproduction steps, and v12.0+ fix candidate
-- [x] **GAP-02**: All critical findings (duplicate execution race, silent build success on failure, admin re-seed) patched inline during the milestone with accompanying regression test
-- [x] **GAP-03**: Final gap report summarised with prioritised backlog for v12.0+ milestone planning
+### Branding (BRAND)
+
+- [ ] **BRAND-01**: Dashboard displays "Image Recipe" in place of "Blueprint", "Node Image" in place of "PuppetTemplate", and "Tool" in place of "CapabilityMatrix entry" throughout the UI (zero API/DB changes)
+
+---
 
 ## Future Requirements
 
-### v12.0+
+### v12.1+ — Node Lifecycle
 
-- Resource limit enforcement in `direct` mode — currently limits are silently ignored when EXECUTION_MODE=direct
-- Licence re-validation on a schedule (not just at startup)
-- Node death mid-job rescheduling — currently job remains in-flight if node dies
-- WAL mode for SQLite in dev stack — prevents database locked errors under concurrent polling
-- Docker Hub CE image publish (deferred from v11.0)
-- EE-08: PyPI stub wheel publication (deferred from v11.0)
+- **NODE-01**: Operator can view tampered node remediation options (accept drift / push corrective manifest [EE] / isolate + re-image) in the node detail drawer
+- **NODE-02**: Cert auto-renewal via mTLS `POST /api/renew` — node renews within configurable threshold (default 14 days before expiry); DRAINING restart
+- **NODE-03**: Proactive cert expiry alerting — WARNING at 30 days, CRITICAL at 7 days if not yet renewed
+- **NODE-04**: Node onboarding wizard — pre-config + four-tab snippet panel (Token/Docker run/Compose/Script) with live enrollment status via WebSocket
+
+### v12.1+ — Observability & Integrations
+
+- **OBS-01**: Alert management — lifecycle states (Active/Acknowledged/Auto-cleared/Muted), bulk-acknowledge, auto-clear on condition resolution
+- **OBS-02**: Maintenance windows — per-node and fleet-wide alert suppression rules
+- **OBS-03**: Audit log filtering + export — date range, actor, action type, free-text search, CSV/JSON export
+- **OBS-04**: Outbound webhooks — configurable endpoints, per-endpoint event subscriptions, HMAC-signed payloads, retry + dead-letter log
+
+### v12.1+ — Signing & Access
+
+- **AUTH-01**: Inline Ed25519 keypair generation in dashboard (CE) — private key shown once, never stored server-side
+- **AUTH-02**: Key approval workflow (EE) — new public keys require a second admin approval before nodes trust them; step-up TOTP for approval
+- **AUTH-03**: App-based TOTP 2FA (RFC 6238) — optional per-user, admin-enforceable per-role, air-gap compatible (pyotp)
+
+### v12.x+ — First-Run Polish
+
+- **UX-01**: Contextual empty states on all main views (Nodes, Jobs, Signatures, JobDefinitions, Templates) with relevant CTAs
+- **UX-02**: Persistent setup checklist on Dashboard (Upload signing key → Enroll node → Submit first job) — derived from existing API counts, dismissible
+
+### v12.x+ — Fan-out & Campaigns
+
+- **FAN-01**: Node-pinning — optional `target_node_ids` field on Job; node selection loop filters to pinned nodes (prerequisite for fan-out campaigns)
+- **FAN-02**: Fan-out campaigns — create N pinned jobs (one per matched node) under a Campaign parent; aggregate progress tracking
+
+### v12.x+ — EE Workstreams
+
+- **EE-01**: `packages.apt` and `packages.powershell` blueprint fields in Foundry — CapabilityMatrix-driven tool injection for EE node images
+- **EE-02**: Job container architecture — manifest-driven per-job containers, registry-backed, heartbeat-updated
+- **EE-03**: Secret store — native Fernet-encrypted secret store with server-side injection at dispatch, stdout/stderr redaction, RBAC model
+- **EE-04**: Object model simplification + wizard (BLOCKED on EE job container architecture)
+- **EE-08**: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
+
+### v12.x+ — Distribution
+
+- **DIST-02**: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current scenarios)
+- **DIST-04**: Licence issuance portal — web UI or automated pipeline for signed licence key delivery
+- **DIST-05**: Periodic licence re-validation (currently startup-only)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Full Cython rebuild for EE test | Editable install with patched .py source covers all validation needs; .so production fidelity is v12.0+ |
-| Automated CI pipeline for validation suite | Manual adversarial pass is the goal; automation is a future milestone |
-| Load testing (hundreds of jobs) | Scale testing beyond 5 concurrent jobs is out of scope for this milestone |
-| Multi-orchestrator HA testing | Single orchestrator is the current architecture; HA is not planned |
+| OIDC/SAML SSO | Research todo exists; blocked on SSO architecture design — separate workstream |
+| Custom RBAC roles + fine-grained permissions | EE-only feature; separate milestone |
+| Job dependencies (DAG) | Architectural — requires campaign/fan-out infrastructure first |
+| SLSA provenance + `--secret` credentials | Deferred from v7.0; revisit after EE job container architecture settles |
+| EE object model simplification | Blocked on EE job container architecture phase |
+| Fan-out campaigns (Tier 2) | Blocked on node-pinning (Tier 1) — FAN-01 not in v12.0 scope |
+| Secret management (EE native store) | EE dedicated milestone — too large for v12.0 |
+| Alert management + maintenance windows | Deferred to v12.1+ observability phase |
+| Audit log filtering + export | Deferred to v12.1+ observability phase |
+| Outbound webhooks | Deferred to v12.1+ — depends on stable alert/notification surface |
+| Node onboarding wizard | Deferred to v12.1+ node lifecycle phase |
+| Tampered node remediation | Deferred to v12.1+ node lifecycle phase |
+| Cert auto-renewal | Deferred to v12.1+ node lifecycle phase |
+| Empty states + onboarding checklist | Deferred to v12.1+ first-run polish phase |
 
 ## Traceability
 
@@ -95,50 +150,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INST-01 | Phase 38 | Complete |
-| INST-02 | Phase 38 | Complete |
-| INST-03 | Phase 38 | Complete |
-| INST-04 | Phase 38 | Complete |
-| EEDEV-01 | Phase 39 | Complete |
-| EEDEV-02 | Phase 39 | Complete |
-| EEDEV-03 | Phase 39 | Complete |
-| EEDEV-04 | Phase 39 | Complete |
-| EEDEV-05 | Phase 39 | Complete |
-| NODE-01 | Phase 40 | Complete |
-| NODE-02 | Phase 40 | Complete |
-| NODE-03 | Phase 40 | Complete |
-| NODE-04 | Phase 40 | Complete |
-| NODE-05 | Phase 40 | Complete |
-| CEV-01 | Phase 41 | Complete |
-| CEV-02 | Phase 41 | Complete |
-| CEV-03 | Phase 41 | Complete |
-| EEV-01 | Phase 42 | Complete |
-| EEV-02 | Phase 42 | Complete |
-| EEV-03 | Phase 42 | Complete |
-| JOB-01 | Phase 43 | Complete |
-| JOB-02 | Phase 43 | Complete |
-| JOB-03 | Phase 43 | Complete |
-| JOB-04 | Phase 43 | Complete |
-| JOB-05 | Phase 43 | Complete |
-| JOB-06 | Phase 43 | Complete |
-| JOB-07 | Phase 43 | Complete |
-| JOB-08 | Phase 43 | Complete |
-| JOB-09 | Phase 43 | Complete |
-| FOUNDRY-01 | Phase 44 | Complete |
-| FOUNDRY-02 | Phase 44 | Complete |
-| FOUNDRY-03 | Phase 44 | Complete |
-| FOUNDRY-04 | Phase 44 | Complete |
-| FOUNDRY-05 | Phase 44 | Complete |
-| FOUNDRY-06 | Phase 44 | Complete |
-| GAP-01 | Phase 45 | Complete |
-| GAP-02 | Phase 45 | Complete |
-| GAP-03 | Phase 45 | Complete |
+| RT-01 through RT-07 | Phase TBD | Pending |
+| JOB-01 through JOB-06 | Phase TBD | Pending |
+| BULK-01 through BULK-04 | Phase TBD | Pending |
+| VIS-01 through VIS-06 | Phase TBD | Pending |
+| SCHED-01 through SCHED-04 | Phase TBD | Pending |
+| SRCH-01 through SRCH-10 | Phase TBD | Pending |
+| DEBT-01 through DEBT-04 | Phase TBD | Pending |
+| SEC-01 through SEC-02 | Phase TBD | Pending |
+| BRAND-01 | Phase TBD | Pending |
 
 **Coverage:**
-- v11.1 requirements: 37 total
-- Mapped to phases: 37
-- Unmapped: 0 ✓
+- v12.0 requirements: 44 total
+- Mapped to phases: 0 (pending roadmap creation)
+- Unmapped: 44 ⚠️
 
 ---
-*Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 — initial definition*
+*Requirements defined: 2026-03-22*
+*Last updated: 2026-03-22 after initial definition — v12.0 milestone*
