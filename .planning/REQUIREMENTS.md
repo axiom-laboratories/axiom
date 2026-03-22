@@ -43,10 +43,10 @@
 
 ### Scheduled Job Signing Safety (SCHED)
 
-- [ ] **SCHED-01**: Scheduled job automatically enters DRAFT state when `script_content` is changed and the existing `signature_payload` is no longer valid
-- [ ] **SCHED-02**: Jobs in DRAFT state do not dispatch on their cron schedule; each skipped fire is logged with reason: "Skipped: job in DRAFT state, pending re-signing"
+- [x] **SCHED-01**: Scheduled job automatically enters DRAFT state when `script_content` is changed and the existing `signature_payload` is no longer valid
+- [x] **SCHED-02**: Jobs in DRAFT state do not dispatch on their cron schedule; each skipped fire is logged with reason: "Skipped: job in DRAFT state, pending re-signing"
 - [ ] **SCHED-03**: Operator sees a save confirmation modal warning when saving a script change that will transition the job to DRAFT
-- [ ] **SCHED-04**: Dashboard notification bell shows an in-app notification when a scheduled job enters DRAFT; a WARNING alert is written to the alerts table with `resource_id = scheduled_job_id`
+- [x] **SCHED-04**: Dashboard notification bell shows an in-app notification when a scheduled job enters DRAFT; a WARNING alert is written to the alerts table with `resource_id = scheduled_job_id`
 
 ### Search, Scale & Data Management (SRCH)
 
@@ -162,10 +162,10 @@
 | RT-05 | Phase 47 | Complete |
 | RT-06 | Phase 47 | Pending |
 | RT-07 | Phase 47 | Complete |
-| SCHED-01 | Phase 48 | Pending |
-| SCHED-02 | Phase 48 | Pending |
+| SCHED-01 | Phase 48 | Complete |
+| SCHED-02 | Phase 48 | Complete |
 | SCHED-03 | Phase 48 | Pending |
-| SCHED-04 | Phase 48 | Pending |
+| SCHED-04 | Phase 48 | Complete |
 | SRCH-01 | Phase 49 | Pending |
 | SRCH-02 | Phase 49 | Pending |
 | SRCH-03 | Phase 49 | Pending |
