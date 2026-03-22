@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 48-01-PLAN.md — DRAFT transition + skip-log compliance
-last_updated: "2026-03-22T19:47:07.332Z"
+stopped_at: "Completed 48-02-PLAN.md — frontend DRAFT safety layer (checkpoint:human-verify pending)"
+last_updated: "2026-03-22T19:51:41.303Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 47-ce-runtime-expansion P03 | 15min | 2 tasks | 1 files |
 | Phase 47-ce-runtime-expansion P04 | 5min | 2 tasks | 3 files |
 | Phase 48-scheduled-job-signing-safety P01 | 4min | 2 tasks | 2 files |
+| Phase 48 P02 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 47-ce-runtime-expansion]: Runtime derived via getattr(s_job, 'runtime', None) or 'python' in /api/dispatch — mirrors scheduler_service.py pattern; runtime injected into both payload_dict and JobCreate kwargs
 - [Phase 48]: Raw SQL used for audit_log INSERT in execute_scheduled_job — CE-safe (ORM model is EE-only, test_ce_table_count enforces audit_log not in CE Base.metadata)
 - [Phase 48]: test_draft_skip_log_message creates audit_log table via DDL in test setup — avoids altering CE schema while still verifying verbatim skip message
+- [Phase 48]: DRAFT warning modal placed as Dialog sibling in JobDefinitions.tsx rather than inside JobDefinitionModal — decoupled from full edit form lifecycle
+- [Phase 48]: ReSignDialog implemented as standalone component inside JobDefinitionList.tsx — self-contained and co-located with the rows that trigger it
 
 ### Pending Todos
 
@@ -85,7 +88,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T19:47:07.330Z
-Stopped at: Completed 48-01-PLAN.md — DRAFT transition + skip-log compliance
+Last session: 2026-03-22T19:51:41.301Z
+Stopped at: Completed 48-02-PLAN.md — frontend DRAFT safety layer (checkpoint:human-verify pending)
 Next action: `/gsd:plan-phase 46`
 Resume file: None
