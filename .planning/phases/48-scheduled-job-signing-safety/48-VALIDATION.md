@@ -1,9 +1,9 @@
 ---
 phase: 48
 slug: scheduled-job-signing-safety
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-22
 ---
 
@@ -38,13 +38,13 @@ created: 2026-03-22
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 48-W0-01 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_update_script_without_sig_transitions_to_draft -x` | ❌ W0 | ⬜ pending |
-| 48-W0-02 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_update_script_with_sig_stays_active -x` | ❌ W0 | ⬜ pending |
-| 48-W0-03 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_draft_reedits_no_duplicate_alert -x` | ❌ W0 | ⬜ pending |
-| 48-W0-04 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_resign_without_script_change_reactivates -x` | ❌ W0 | ⬜ pending |
-| 48-W0-05 | W0 | 0 | SCHED-02 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_draft_skip_log_message -x` | ❌ W0 | ⬜ pending |
-| 48-W0-06 | W0 | 0 | SCHED-04 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_draft_transition_creates_alert -x` | ❌ W0 | ⬜ pending |
-| 48-??-?? | TBD | 1 | SCHED-03 | manual | Visual verification via Docker stack | N/A | ⬜ pending |
+| 48-W0-01 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_update_script_without_sig_transitions_to_draft -x` | ✅ | ✅ green |
+| 48-W0-02 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_update_script_with_sig_stays_active -x` | ✅ | ✅ green |
+| 48-W0-03 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_draft_reedits_no_duplicate_alert -x` | ✅ | ✅ green |
+| 48-W0-04 | W0 | 0 | SCHED-01 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_resign_without_script_change_reactivates -x` | ✅ | ✅ green |
+| 48-W0-05 | W0 | 0 | SCHED-02 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_draft_skip_log_message -x` | ✅ | ✅ green |
+| 48-W0-06 | W0 | 0 | SCHED-04 | unit | `pytest agent_service/tests/test_scheduler_service.py::test_draft_transition_creates_alert -x` | ✅ | ✅ green |
+| 48-02-01 | 02 | 1 | SCHED-03 | manual | Visual verification via Docker stack (Playwright) | N/A | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,7 +52,7 @@ created: 2026-03-22
 
 ## Wave 0 Requirements
 
-- [ ] `agent_service/tests/test_scheduler_service.py` — 6 new test functions covering SCHED-01 (4 cases), SCHED-02 (1 case), SCHED-04 (1 case)
+- [x] `agent_service/tests/test_scheduler_service.py` — 6 new test functions covering SCHED-01 (4 cases), SCHED-02 (1 case), SCHED-04 (1 case)
 - Existing `conftest.py` and `db_session` fixture are reusable — no new test infrastructure needed
 
 *Existing infrastructure covers all phase requirements except new test stubs.*
@@ -70,11 +70,13 @@ created: 2026-03-22
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Bug found during Playwright test:** `JobDefinitions.tsx` was sending the stale signature with the changed script on "Save & Go to DRAFT", causing a 422 from the backend. Fixed by stripping `signature`/`signature_id` from the PATCH payload in the DRAFT save path.
+
+**Approval:** PASSED — 2026-03-22

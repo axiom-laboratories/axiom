@@ -124,9 +124,10 @@ class SchedulerService:
                 detail = json.dumps({"status": s_job.status, "reason": reason, "name": s_job.name})
                 try:
                     from sqlalchemy import text as _text
+                    from datetime import datetime as _dt
                     await session.execute(
-                        _text("INSERT INTO audit_log (username, action, resource_id, detail) VALUES (:u, :a, :r, :d)"),
-                        {"u": "scheduler", "a": f"job:{s_job.status.lower()}_skip", "r": s_job.id, "d": detail},
+                        _text("INSERT INTO audit_log (timestamp, username, action, resource_id, detail) VALUES (:ts, :u, :a, :r, :d)"),
+                        {"ts": _dt.utcnow(), "u": "scheduler", "a": f"job:{s_job.status.lower()}_skip", "r": s_job.id, "d": detail},
                     )
                 except Exception:
                     pass  # CE mode: audit_log table absent — silently ignore

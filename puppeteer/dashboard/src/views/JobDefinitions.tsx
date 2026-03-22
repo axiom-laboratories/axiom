@@ -242,8 +242,9 @@ const JobDefinitions = () => {
         if (editingJob) {
             const scriptChanged = formData.script_content !== editingJob.script_content;
             const sigUnchanged = formData.signature === editingJob.signature_payload;
+            console.log('[DRAFT]', scriptChanged, sigUnchanged, '|', formData.script_content?.substring(0,25), '|', editingJob.script_content?.substring(0,25), '|', formData.signature?.substring(0,15), '|', editingJob.signature_payload?.substring(0,15));
             if (scriptChanged && sigUnchanged) {
-                setPendingDraftSave(() => () => handleUpdate(editingJob.id));
+                setPendingDraftSave(() => () => handleUpdate(editingJob.id, { signature: undefined, signature_id: undefined }));
                 setShowDraftWarning(true);
                 return;
             }
@@ -270,12 +271,13 @@ const JobDefinitions = () => {
         }
     };
 
-    const handleUpdate = async (id: string) => {
+    const handleUpdate = async (id: string, overrides?: Record<string, unknown>) => {
         try {
+            const payload = overrides ? { ...buildPayload(), ...overrides } : buildPayload();
             const res = await authenticatedFetch(`/jobs/definitions/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(buildPayload())
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 toast.success('Job definition updated successfully');
