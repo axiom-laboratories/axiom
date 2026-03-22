@@ -170,7 +170,14 @@ Plans:
   3. Operator can filter the Jobs view by any combination of: status, runtime, task type, target node, target tags, created-by, and date ranges; each active filter appears as a dismissible chip
   4. Operator can search for jobs by name or GUID using a free-text box; operator can optionally name a job at submission time via the guided form
   5. The current filtered/searched Jobs view can be downloaded as a CSV file
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 49-01-PLAN.md — Wave 0 test scaffold: 13 failing stubs for SRCH-01 through SRCH-05
+- [ ] 49-02-PLAN.md — DB schema: Job.name + Job.created_by columns, migration_v39.sql, PaginatedJobResponse model, scheduler auto-populates name
+- [ ] 49-03-PLAN.md — Backend service: list_jobs cursor pagination with 9 filter axes, list_jobs_for_export
+- [ ] 49-04-PLAN.md — Backend routes: GET /jobs filter params, GET /jobs/export CSV streaming, GET /nodes pagination
+- [ ] 49-05-PLAN.md — Frontend Jobs.tsx: filter bar, chips, cursor pagination, WebSocket banner, export button
+- [ ] 49-06-PLAN.md — Frontend Nodes.tsx: page-based pagination controls + human verify checkpoint
 
 ### Phase 50: Guided Job Form
 **Goal**: Operators have a structured, validated path for job submission that reduces errors and eliminates manual JSON authoring for the common case
