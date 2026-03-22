@@ -27,9 +27,12 @@ const Dashboard = () => {
             ]);
 
             if (nodesRes.ok && jobsRes.ok && statsRes.ok) {
-                const nodes = await nodesRes.json();
-                const jobs = await jobsRes.json();
+                const nodesData = await nodesRes.json();
+                const jobsData = await jobsRes.json();
                 const jobStats = await statsRes.json();
+
+                const nodes: any[] = Array.isArray(nodesData) ? nodesData : (nodesData.items ?? []);
+                const jobs: any[] = Array.isArray(jobsData) ? jobsData : (jobsData.items ?? []);
 
                 const onlineNodes = nodes.filter(n => n.status === 'ONLINE').length;
 
