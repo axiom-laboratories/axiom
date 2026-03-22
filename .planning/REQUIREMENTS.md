@@ -51,10 +51,10 @@
 ### Search, Scale & Data Management (SRCH)
 
 - [x] **SRCH-01**: Jobs view uses server-side cursor-based pagination — "load more" appends next page; total count shown ("Showing 50 of 12,483")
-- [ ] **SRCH-02**: Nodes view uses server-side page-based pagination with page controls and total count
-- [ ] **SRCH-03**: Operator can filter the Jobs view by status, runtime, task type, target node, target tags, created-by, and date ranges — all server-side; active filters shown as dismissible chips
+- [x] **SRCH-02**: Nodes view uses server-side page-based pagination with page controls and total count
+- [x] **SRCH-03**: Operator can filter the Jobs view by status, runtime, task type, target node, target tags, created-by, and date ranges — all server-side; active filters shown as dismissible chips
 - [x] **SRCH-04**: Operator can search jobs by name or GUID via a free-text search box; operator can optionally name a job at submission time via the guided form
-- [ ] **SRCH-05**: Operator can export the current filtered Jobs view as CSV
+- [x] **SRCH-05**: Operator can export the current filtered Jobs view as CSV
 - [ ] **SRCH-06**: Operator can save a job configuration as a reusable named template (signing state explicitly excluded)
 - [ ] **SRCH-07**: Operator can load a saved template into the guided job form; all fields remain editable before submission
 - [ ] **SRCH-08**: Admin can configure global execution record retention period (default: 14 days); a nightly pruning task hard-deletes expired records excluding pinned records
@@ -167,10 +167,10 @@
 | SCHED-03 | Phase 48 | Complete |
 | SCHED-04 | Phase 48 | Complete |
 | SRCH-01 | Phase 49 | Complete |
-| SRCH-02 | Phase 49 | Pending |
-| SRCH-03 | Phase 49 | Pending |
+| SRCH-02 | Phase 49 | Complete |
+| SRCH-03 | Phase 49 | Complete |
 | SRCH-04 | Phase 49 | Complete |
-| SRCH-05 | Phase 49 | Pending |
+| SRCH-05 | Phase 49 | Complete |
 | JOB-01 | Phase 50 | Pending |
 | JOB-02 | Phase 50 | Pending |
 | JOB-03 | Phase 50 | Pending |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 49-02-PLAN.md
-last_updated: "2026-03-22T21:13:18.240Z"
+stopped_at: Completed 49-01-PLAN.md
+last_updated: "2026-03-22T21:14:08.919Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 15
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 48-scheduled-job-signing-safety P01 | 4min | 2 tasks | 2 files |
 | Phase 48 P02 | 3min | 2 tasks | 2 files |
 | Phase 49-pagination-filtering-and-search P02 | 10min | 2 tasks | 6 files |
+| Phase 49-pagination-filtering-and-search P01 | 10min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 48]: ReSignDialog implemented as standalone component inside JobDefinitionList.tsx — self-contained and co-located with the rows that trigger it
 - [Phase 49-pagination-filtering-and-search]: PaginatedJobResponse defined in models.py (not job_service.py) so Plans 03 and 04 share a single import path without circular dependency risk
 - [Phase 49-pagination-filtering-and-search]: POST /jobs stamps created_by via model_copy(update={'created_by': username}) — stamped at API boundary, not service layer, to keep service testable without auth context
+- [Phase 49]: Wave 0 stub convention: pytest.fail as first body line (not after awaits) so all 13 stubs fail with 'not implemented' marker; future shapes in docstrings
 
 ### Pending Todos
 
@@ -91,7 +93,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T21:13:18.238Z
-Stopped at: Completed 49-02-PLAN.md
+Last session: 2026-03-22T21:14:08.917Z
+Stopped at: Completed 49-01-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None
