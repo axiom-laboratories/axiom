@@ -1,16 +1,17 @@
 ---
 created: 2026-03-21T21:50:41.075Z
-title: Plan User Story Alignment milestone from friction reports (Vol. 1 + Vol. 2 + Vol. 3)
+title: Plan User Story Alignment milestone from friction reports (Vol. 1–4)
 area: planning
 files:
   - mop_validation/reports/user_story_friction.md
   - mop_validation/reports/user_story_friction_2.md
   - mop_validation/reports/user_story_friction_3.md
+  - mop_validation/reports/user_story_friction_4.md
 ---
 
 ## Problem
 
-Three User Story Friction reports have been completed identifying seventeen operator-facing friction points with agreed solutions. These need to be turned into a formal milestone with phase plans so the work can be scheduled and executed.
+Four User Story Friction reports have been completed identifying twenty-one operator-facing friction points with agreed solutions. These need to be turned into a formal milestone with phase plans so the work can be scheduled and executed.
 
 ### Vol. 1 scenarios
 
@@ -46,11 +47,20 @@ Three User Story Friction reports have been completed identifying seventeen oper
 | 5 — Multi-node fan-out | Tier 1: node-pinning (`target_node_ids` filter) now; Tier 2: campaign model as follow-on milestone | Tier 2 blocked on Tier 1 |
 | 6 — Outbound webhooks | Webhook-only transport, per-endpoint event subscriptions, HMAC-signed payloads, retry + dead-letter log | No |
 
+### Vol. 4 scenarios
+
+| Scenario | Solution | Blocked |
+|---|---|---|
+| 1 — Job output retention | 14-day default, admin-configurable + audit-logged, nightly pruning, per-record pin, CSV export | No |
+| 2 — Jobs view search + filtering | Nine filter axes, server-side, `Job.name` field added, CSV export | No — implement with S4 |
+| 3 — Job templates | Org-level saved configs, load/save in guided form, signing never saved | No |
+| 4 — Pagination | Cursor-based (Jobs), page-based (Nodes) — prerequisite for S2 filter work | No — implement first |
+
 **Out of scope for this milestone:** EE object model simplification, SSO, secret management (EE dedicated milestone), fan-out campaigns (follow-on milestone), parallel swarming (research todo).
 
 ## Solution
 
-1. Read all three friction reports in full before planning
+1. Read all four friction reports in full before planning
 2. Run `/gsd:new-milestone` to create the User Story Alignment milestone using all three reports as primary input
 3. Break into phases — suggested grouping:
 
@@ -71,6 +81,9 @@ Three User Story Friction reports have been completed identifying seventeen oper
 
    **Phase F: First-run + polish** (V1: S5 rename / V2: S2)
    Contextual empty states, onboarding checklist, EE UI label rename. Minimal backend, pure UX polish. Can run in parallel with other phases.
+
+   **Phase G: Performance + search** (V4: S4 + S2 + S1 + S3)
+   Pagination first (prerequisite), then Jobs view filtering and search, job output retention policy, job templates. Sequenced: S4 → S2 → S1+S3 in parallel.
 
 4. Ensure the following are explicitly marked out of scope with blocking dependency references:
    - EE object model simplification (blocked on EE job container architecture)
