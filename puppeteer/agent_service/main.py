@@ -106,6 +106,32 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.debug(f"CE mode or no role_permissions table — cache pre-warm skipped: {_e}")
 
+    # SEC-02: Backfill HMAC tags for existing jobs without them
+    try:
+        from .security import compute_signature_hmac, ENCRYPTION_KEY as _ENC_KEY
+        import json as _json
+        async with AsyncSessionLocal() as _db:
+            _result = await _db.execute(
+                select(Job).where(Job.signature_hmac == None).limit(1000)  # noqa: E711
+            )
+            _jobs = _result.scalars().all()
+            _backfilled = 0
+            for _job in _jobs:
+                try:
+                    _pl = _json.loads(_job.payload) if _job.payload else {}
+                    _sp = _pl.get("signature_payload")
+                    _si = _pl.get("signature_id")
+                    if _sp and _si:
+                        _job.signature_hmac = compute_signature_hmac(_ENC_KEY, _sp, _si, _job.guid)
+                        _backfilled += 1
+                except Exception:
+                    continue
+            if _backfilled:
+                await _db.commit()
+        logger.info(f"SEC-02: Backfilled HMAC for {_backfilled} existing jobs")
+    except Exception as _e:
+        logger.debug(f"SEC-02 backfill skipped: {_e}")
+
     # Bootstrap Admin
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))

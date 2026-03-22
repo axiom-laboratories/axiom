@@ -12,7 +12,8 @@ from ..models import (
     ResultReport, JobResponse, JobCreate, WorkResponse, PollResponse,
     HeartbeatPayload
 )
-from ..security import mask_secrets, encrypt_secrets, decrypt_secrets
+from ..security import mask_secrets, encrypt_secrets, decrypt_secrets, compute_signature_hmac, verify_signature_hmac, ENCRYPTION_KEY
+from ..deps import audit
 from .alert_service import AlertService
 from .webhook_service import WebhookService
 from . import attestation_service
@@ -155,6 +156,18 @@ class JobService:
             created_at=datetime.utcnow()
         )
         
+        # SEC-02: Stamp HMAC tag on signature_payload before persisting
+        _hmac_payload = encrypted_payload  # work with the pre-encryption dict (encryption is on secrets)
+        _sig_payload = _hmac_payload.get("signature_payload") if isinstance(_hmac_payload, dict) else None
+        _sig_id = _hmac_payload.get("signature_id") if isinstance(_hmac_payload, dict) else None
+        if not _sig_payload and not _sig_id:
+            # Fall back to job_req.payload (original, unencrypted)
+            _raw = job_req.payload if isinstance(job_req.payload, dict) else {}
+            _sig_payload = _raw.get("signature_payload")
+            _sig_id = _raw.get("signature_id")
+        if _sig_payload and _sig_id:
+            new_job.signature_hmac = compute_signature_hmac(ENCRYPTION_KEY, _sig_payload, _sig_id, guid)
+
         try:
             db.add(new_job)
             await db.commit()
@@ -162,7 +175,7 @@ class JobService:
         except Exception as e:
             await db.rollback()
             raise e
-        
+
         return {"guid": guid, "status": initial_status, "payload": encrypted_payload, "target_tags": job_req.target_tags, "depends_on": job_req.depends_on}
 
     @staticmethod
@@ -359,6 +372,34 @@ class JobService:
         # RETRY-02: Set job_run_id at first dispatch; idempotent — retries reuse the same UUID
         if selected_job.job_run_id is None:
             selected_job.job_run_id = str(uuid.uuid4())
+
+        # SEC-02: Verify HMAC integrity before dispatching to node
+        if selected_job.signature_hmac and selected_job.payload:
+            try:
+                _pl = json.loads(selected_job.payload)
+                _sp = _pl.get("signature_payload")
+                _si = _pl.get("signature_id")
+                if _sp and _si and not verify_signature_hmac(
+                    ENCRYPTION_KEY, selected_job.signature_hmac, _sp, _si, selected_job.guid
+                ):
+                    # HMAC mismatch — reject before dispatch; do NOT assign to node
+                    selected_job.status = "SECURITY_REJECTED"
+                    selected_job.completed_at = datetime.utcnow()
+                    selected_job.node_id = None
+                    selected_job.started_at = None
+
+                    class _SystemActor:
+                        username = "system"
+
+                    audit(db, _SystemActor(), "security:hmac_mismatch", resource_id=selected_job.guid, detail={
+                        "job_id": selected_job.guid,
+                        "node_id": node_id,
+                        "reason": "signature_payload HMAC integrity check failed at dispatch",
+                    })
+                    await db.commit()
+                    return PollResponse(job=None, env_tag=current_env_tag)
+            except Exception:
+                pass  # Malformed payload — allow dispatch; node will handle
 
         encrypted_payload = json.loads(selected_job.payload)
         payload = decrypt_secrets(encrypted_payload)
@@ -689,6 +730,22 @@ class JobService:
         # Determine status
         if report.security_rejected:
             new_status = "SECURITY_REJECTED"
+            # SEC-01: Audit SECURITY_REJECTED with node attribution
+            _payload_data = {}
+            try:
+                _payload_data = json.loads(job.payload) if job.payload else {}
+            except Exception:
+                pass
+
+            class _NodeActor:
+                username = job.node_id or "unknown-node"
+
+            audit(db, _NodeActor(), "security:rejected", resource_id=guid, detail={
+                "script_hash": report.script_hash,
+                "job_id": guid,
+                "signature_id": _payload_data.get("signature_id"),
+                "node_id": job.node_id,
+            })
         elif report.success:
             new_status = "COMPLETED"
         else:
