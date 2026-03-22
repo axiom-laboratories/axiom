@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 44-02-PLAN.md
-last_updated: "2026-03-22T09:12:53.861Z"
+stopped_at: Completed 44-01-PLAN.md
+last_updated: "2026-03-22T09:13:02.619Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
@@ -128,6 +128,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 43]: global _current_env_tag must be declared before first use in Python 3.12 — pre-existing SyntaxError fixed in 43-08 (was masked by older node image)
 - [Phase 44]: FOUNDRY-04: Both GAP CONFIRMED and GAP FIXED outcomes are [PASS] — dual-outcome gap documentation test
 - [Phase 44]: FOUNDRY-06: No GET /api/templates/{id} endpoint — use list+filter to read is_compliant; audit log gap noted as [INFO]
+- [Phase 44]: FOUNDRY-02 uses unapproved path (cryptography==38.0.0 not in approved_ingredients) not CVE vulnerability path — simpler and deterministic
+- [Phase 44]: FOUNDRY-02 accepts 403 or 500 — service-layer HTTPException propagates before route post-processing
 
 ### Pending Todos
 
@@ -141,7 +143,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T09:12:43.231Z
-Stopped at: Completed 44-02-PLAN.md
+Last session: 2026-03-22T09:13:02.617Z
+Stopped at: Completed 44-01-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None
