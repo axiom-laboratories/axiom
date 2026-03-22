@@ -4,6 +4,7 @@ import { Plus, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { authenticatedFetch } from '../auth';
 import JobDefinitionList from '../components/job-definitions/JobDefinitionList';
 import JobDefinitionModal from '../components/job-definitions/JobDefinitionModal';
@@ -162,6 +163,8 @@ const JobDefinitions = () => {
     const [showLogModal, setShowLogModal] = useState(false);
 
     const [formData, setFormData] = useState(EMPTY_FORM);
+    const [showDraftWarning, setShowDraftWarning] = useState(false);
+    const [pendingDraftSave, setPendingDraftSave] = useState<(() => void) | null>(null);
 
     useEffect(() => {
         loadData();
@@ -237,6 +240,13 @@ const JobDefinitions = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (editingJob) {
+            const scriptChanged = formData.script_content !== editingJob.script_content;
+            const sigUnchanged = formData.signature === editingJob.signature_payload;
+            if (scriptChanged && sigUnchanged) {
+                setPendingDraftSave(() => () => handleUpdate(editingJob.id));
+                setShowDraftWarning(true);
+                return;
+            }
             await handleUpdate(editingJob.id);
             return;
         }
@@ -278,6 +288,25 @@ const JobDefinitions = () => {
         } catch (e) {
             console.error(e);
             toast.error('Update Error');
+        }
+    };
+
+    const handleResign = async (id: string, signatureId: string, signature: string) => {
+        try {
+            const res = await authenticatedFetch(`/jobs/definitions/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ signature_id: signatureId, signature }),
+            });
+            if (res.ok) {
+                toast.success('Job re-signed and reactivated');
+                loadData();
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || 'Re-sign failed');
+            }
+        } catch (e) {
+            toast.error('Re-sign error');
         }
     };
 
@@ -365,6 +394,8 @@ const JobDefinitions = () => {
                 onToggle={handleToggle}
                 onEdit={handleEdit}
                 onPublish={handlePublish}
+                onResign={handleResign}
+                signatures={signatures}
                 selectedDefId={selectedDefId}
                 onSelect={handleSelectDef}
             />
@@ -385,6 +416,36 @@ const JobDefinitions = () => {
                 open={showLogModal}
                 onClose={() => { setShowLogModal(false); setSelectedRunId(null); setSelectedExId(null); }}
             />
+
+            <Dialog open={showDraftWarning} onOpenChange={(open) => { if (!open) setShowDraftWarning(false); }}>
+                <DialogContent className="max-w-md bg-zinc-950 border-zinc-800">
+                    <DialogHeader>
+                        <DialogTitle className="text-white">Script Change Will Require Re-signing</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            <span className="font-semibold text-white">{editingJob?.name}</span> — cron fires will be
+                            blocked until re-signed. Use the Re-sign button in the job list to reactivate.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowDraftWarning(false)}
+                            className="text-zinc-400 hover:text-white"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                            onClick={() => {
+                                setShowDraftWarning(false);
+                                pendingDraftSave?.();
+                            }}
+                        >
+                            Save &amp; Go to DRAFT
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <JobDefinitionModal
                 isOpen={showModal}
