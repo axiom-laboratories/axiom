@@ -8,9 +8,9 @@
 
 ### Runtime Expansion (RT)
 
-- [ ] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
-- [ ] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
-- [ ] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
+- [x] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
+- [x] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
+- [x] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
 - [ ] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
 - [ ] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
 - [ ] **RT-06**: Existing `python_script` task type is retained as an alias — all existing jobs and CI pipelines unaffected
@@ -155,9 +155,9 @@
 | SEC-01 | Phase 46 | Complete |
 | SEC-02 | Phase 46 | Complete |
 | BRAND-01 | Phase 46 | Complete |
-| RT-01 | Phase 47 | Pending |
-| RT-02 | Phase 47 | Pending |
-| RT-03 | Phase 47 | Pending |
+| RT-01 | Phase 47 | Complete |
+| RT-02 | Phase 47 | Complete |
+| RT-03 | Phase 47 | Complete |
 | RT-04 | Phase 47 | Pending |
 | RT-05 | Phase 47 | Pending |
 | RT-06 | Phase 47 | Pending |

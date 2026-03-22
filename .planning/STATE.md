@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Phase 47 context gathered
-last_updated: "2026-03-22T16:33:33.523Z"
+stopped_at: Completed 47-01-PLAN.md
+last_updated: "2026-03-22T16:52:09.425Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
   percent: 0
 ---
 
@@ -47,6 +47,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 46-tech-debt-security-branding P03 | 5 | 2 tasks | 6 files |
 | Phase 46-tech-debt-security-branding P01 | 25min | 2 tasks | 6 files |
 | Phase 46 P02 | 3min | 2 tasks | 7 files |
+| Phase 47-ce-runtime-expansion P01 | 3min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 46-tech-debt-security-branding]: DEBT-02/04 required zero code changes — foundry_service.py cleanup and node.py sorted() were already correct
 - [Phase 46]: SEC-01 audit call placed at status determination point (before db.commit()) using sync audit() from deps.py — consistent with existing audit pattern
 - [Phase 46]: SEC-02 HMAC uses ENCRYPTION_KEY bytes directly as key material — avoids introducing a separate secret; message format binds payload to its specific job and signature record
+- [Phase 47-ce-runtime-expansion]: Temp-file mount pattern chosen over stdin for all three runtimes; python_script task_type removed entirely; RUNTIME_EXT/RUNTIME_CMD dispatch maps inline in execute_task
 
 ### Pending Todos
 
@@ -73,7 +75,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T16:33:33.520Z
-Stopped at: Phase 47 context gathered
+Last session: 2026-03-22T16:52:09.424Z
+Stopped at: Completed 47-01-PLAN.md
 Next action: `/gsd:plan-phase 46`
-Resume file: .planning/phases/47-ce-runtime-expansion/47-CONTEXT.md
+Resume file: None
