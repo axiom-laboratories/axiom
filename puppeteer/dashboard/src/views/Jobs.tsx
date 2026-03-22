@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Plus,
@@ -20,9 +20,15 @@ import {
     RefreshCw,
     Skull,
     Lock,
-    Zap
+    Zap,
+    SlidersHorizontal,
+    X,
+    Download,
+    ChevronDown,
+    ChevronUp,
     } from 'lucide-react';
 import { toast } from 'sonner';
+import { subHours, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,11 +54,14 @@ import { authenticatedFetch } from '../auth';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
+
 interface Job {
     guid: string;
+    name?: string;
     status: string;
     task_type?: string;
-    display_type?: string;  // server-computed: "script (python)", "script (bash)", etc.
+    display_type?: string;
     payload: Record<string, any>;
     result?: Record<string, any>;
     node_id?: string;
@@ -63,7 +72,39 @@ interface Job {
     max_retries?: number;
     retry_after?: string | null;
     depends_on?: string[];
+    created_by?: string;
 }
+
+interface PaginatedJobResponse {
+    items: Job[];
+    total: number;
+    next_cursor: string | null;
+}
+
+interface NodeItem {
+    node_id: string;
+    hostname?: string;
+}
+
+interface FilterState {
+    search: string;
+    status: string;
+    runtime: string;
+    taskType: string;
+    nodeId: string;
+    tags: string[];
+    createdBy: string;
+    dateFrom: string;
+    dateTo: string;
+    datePreset: string;
+}
+
+const EMPTY_FILTERS: FilterState = {
+    search: '', status: 'all', runtime: 'all', taskType: 'all',
+    nodeId: '', tags: [], createdBy: '', dateFrom: '', dateTo: '', datePreset: '',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const getStatusVariant = (status: string) => {
     switch (status.toLowerCase()) {
@@ -94,7 +135,23 @@ const StatusIcon = ({ status }: { status: string }) => {
     }
 };
 
-const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput, onRetry }: { job: Job | null; open: boolean; onClose: () => void; onCancel: (guid: string) => void; onViewOutput: (guid: string) => void; onRetry: (guid: string) => void }) => {
+// ─── JobDetailPanel ───────────────────────────────────────────────────────────
+
+const JobDetailPanel = ({
+    job,
+    open,
+    onClose,
+    onCancel,
+    onViewOutput,
+    onRetry,
+}: {
+    job: Job | null;
+    open: boolean;
+    onClose: () => void;
+    onCancel: (guid: string) => void;
+    onViewOutput: (guid: string) => void;
+    onRetry: (guid: string) => void;
+}) => {
     const [retryCountdown, setRetryCountdown] = useState<string | null>(null);
 
     useEffect(() => {
@@ -290,54 +347,393 @@ const JobDetailPanel = ({ job, open, onClose, onCancel, onViewOutput, onRetry }:
     );
 };
 
-const PAGE_SIZE = 50;
+// ─── More Filters Sheet ───────────────────────────────────────────────────────
+
+const MoreFiltersSheet = ({
+    open,
+    onOpenChange,
+    filters,
+    setFilters,
+    nodes,
+    nodeSearch,
+    setNodeSearch,
+    tagInput,
+    setTagInput,
+}: {
+    open: boolean;
+    onOpenChange: (v: boolean) => void;
+    filters: FilterState;
+    setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
+    nodes: NodeItem[];
+    nodeSearch: string;
+    setNodeSearch: (v: string) => void;
+    tagInput: string;
+    setTagInput: (v: string) => void;
+}) => {
+    const filteredNodes = nodes.filter(n =>
+        (n.hostname || n.node_id).toLowerCase().includes(nodeSearch.toLowerCase())
+    );
+
+    const setPreset = (preset: string) => {
+        const now = new Date();
+        let from: Date;
+        switch (preset) {
+            case '1h':  from = subHours(now, 1); break;
+            case '24h': from = subHours(now, 24); break;
+            case '7d':  from = subDays(now, 7); break;
+            case '30d': from = subDays(now, 30); break;
+            default:    from = now;
+        }
+        setFilters(f => ({ ...f, datePreset: preset, dateFrom: from.toISOString(), dateTo: '' }));
+    };
+
+    const addTag = (value: string) => {
+        const trimmed = value.trim();
+        if (trimmed && !filters.tags.includes(trimmed)) {
+            setFilters(f => ({ ...f, tags: [...f.tags, trimmed] }));
+        }
+        setTagInput('');
+    };
+
+    return (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent side="right" className="bg-zinc-900 border-zinc-800 text-white w-full sm:max-w-sm overflow-y-auto">
+                <SheetHeader className="pb-4 border-b border-zinc-800">
+                    <SheetTitle className="text-white flex items-center gap-2">
+                        <SlidersHorizontal className="h-4 w-4" />
+                        More Filters
+                    </SheetTitle>
+                    <SheetDescription className="text-zinc-500 text-xs">
+                        Refine jobs by date, node, tags, and creator.
+                    </SheetDescription>
+                </SheetHeader>
+
+                <div className="space-y-6 pt-6">
+                    {/* Date Range */}
+                    <section className="space-y-3">
+                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Date Range</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {(['1h', '24h', '7d', '30d'] as const).map(preset => (
+                                <Button
+                                    key={preset}
+                                    size="sm"
+                                    variant={filters.datePreset === preset ? 'default' : 'outline'}
+                                    className={`h-7 text-xs ${filters.datePreset === preset ? '' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}
+                                    onClick={() => setPreset(preset)}
+                                >
+                                    Last {preset}
+                                </Button>
+                            ))}
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs text-zinc-500">Custom from</label>
+                            <Input
+                                type="datetime-local"
+                                value={filters.dateFrom ? filters.dateFrom.slice(0, 16) : ''}
+                                onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value ? new Date(e.target.value).toISOString() : '', datePreset: 'custom' }))}
+                                className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                            />
+                            <label className="text-xs text-zinc-500">Custom to</label>
+                            <Input
+                                type="datetime-local"
+                                value={filters.dateTo ? filters.dateTo.slice(0, 16) : ''}
+                                onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value ? new Date(e.target.value).toISOString() : '', datePreset: 'custom' }))}
+                                className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                            />
+                        </div>
+                    </section>
+
+                    {/* Target Node */}
+                    <section className="space-y-3">
+                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Target Node</h3>
+                        <Input
+                            placeholder="Search nodes..."
+                            value={nodeSearch}
+                            onChange={e => setNodeSearch(e.target.value)}
+                            className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                        />
+                        {filteredNodes.length > 0 && (
+                            <div className="bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden max-h-40 overflow-y-auto">
+                                {filteredNodes.slice(0, 20).map(n => {
+                                    const label = n.hostname || n.node_id;
+                                    const selected = filters.nodeId === n.node_id;
+                                    return (
+                                        <button
+                                            key={n.node_id}
+                                            className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors ${selected ? 'bg-primary/20 text-primary' : 'text-zinc-300 hover:bg-zinc-700'}`}
+                                            onClick={() => {
+                                                setFilters(f => ({ ...f, nodeId: selected ? '' : n.node_id }));
+                                                setNodeSearch('');
+                                            }}
+                                        >
+                                            {label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {filters.nodeId && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-zinc-400">Selected:</span>
+                                <span className="text-xs font-mono text-primary">{filters.nodeId.slice(0, 16)}…</span>
+                                <button onClick={() => setFilters(f => ({ ...f, nodeId: '' }))} className="text-zinc-500 hover:text-white">
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Target Tags */}
+                    <section className="space-y-3">
+                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Target Tags</h3>
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Add tag, press Enter"
+                                value={tagInput}
+                                onChange={e => setTagInput(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput); }
+                                }}
+                                className="bg-zinc-800 border-zinc-700 text-white text-xs h-9 flex-1"
+                            />
+                            <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 h-9" onClick={() => addTag(tagInput)}>
+                                Add
+                            </Button>
+                        </div>
+                        {filters.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                                {filters.tags.map(tag => (
+                                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-700 text-xs text-zinc-300 border border-zinc-600">
+                                        {tag}
+                                        <button onClick={() => setFilters(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }))} className="hover:text-white">
+                                            <X className="h-2.5 w-2.5" />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Created By */}
+                    <section className="space-y-3">
+                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Created By</h3>
+                        <Input
+                            placeholder="Username..."
+                            value={filters.createdBy}
+                            onChange={e => setFilters(f => ({ ...f, createdBy: e.target.value }))}
+                            className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                        />
+                    </section>
+
+                    {/* Clear All */}
+                    <Button
+                        variant="outline"
+                        className="w-full border-zinc-700 text-zinc-400 hover:text-white"
+                        onClick={() => {
+                            setFilters(EMPTY_FILTERS);
+                            setNodeSearch('');
+                            setTagInput('');
+                        }}
+                    >
+                        Clear All Filters
+                    </Button>
+                </div>
+            </SheetContent>
+        </Sheet>
+    );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const Jobs = () => {
+    // List state
     const [jobs, setJobs] = useState<Job[]>([]);
     const [total, setTotal] = useState(0);
-    const [page, setPage] = useState(0);
-    const [filterText, setFilterText] = useState('');
-    const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [pendingNewJobs, setPendingNewJobs] = useState(0);
+
+    // Filter state
+    const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+    const [showMoreFilters, setShowMoreFilters] = useState(false);
+    const [tagInput, setTagInput] = useState('');
+    const [nodes, setNodes] = useState<NodeItem[]>([]);
+    const [nodeSearch, setNodeSearch] = useState('');
+
+    // Export state
+    const [exporting, setExporting] = useState(false);
+
+    // Detail/log state
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [logModalGuid, setLogModalGuid] = useState<string | null>(null);
 
     // Dispatch form state
     const [newTaskType, setNewTaskType] = useState('script');
     const [newRuntime, setNewRuntime] = useState<string>('python');
     const [newTaskPayload, setNewTaskPayload] = useState('{}');
     const [payloadError, setPayloadError] = useState<string | null>(null);
-    const [targetTags, setTargetTags] = useState('');
+    const [dispatchTargetTags, setDispatchTargetTags] = useState('');
     const [capabilityReqs, setCapabilityReqs] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [logModalGuid, setLogModalGuid] = useState<string | null>(null);
 
-    const fetchJobs = async (p = page, status = filterStatus) => {
+    // Build filter query params (shared between fetchJobs and handleExport)
+    const buildFilterParams = useCallback((f: FilterState): URLSearchParams => {
+        const params = new URLSearchParams();
+        if (f.status !== 'all') params.set('status', f.status);
+        if (f.runtime !== 'all') params.set('runtime', f.runtime);
+        if (f.taskType !== 'all') params.set('task_type', f.taskType);
+        if (f.nodeId) params.set('node_id', f.nodeId);
+        if (f.tags.length) params.set('tags', f.tags.join(','));
+        if (f.createdBy) params.set('created_by', f.createdBy);
+        if (f.dateFrom) params.set('date_from', f.dateFrom);
+        if (f.dateTo) params.set('date_to', f.dateTo);
+        if (f.search) params.set('search', f.search);
+        return params;
+    }, []);
+
+    // Fetch jobs — cursor-based load-more pattern
+    const fetchJobs = useCallback(async (opts: { reset?: boolean; cursor?: string | null } = {}) => {
+        if (opts.reset) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
         try {
-            const statusParam = status !== 'all' ? `&status=${status}` : '';
-            const [jobsRes, countRes] = await Promise.all([
-                authenticatedFetch(`/jobs?skip=${p * PAGE_SIZE}&limit=${PAGE_SIZE}${statusParam}`),
-                authenticatedFetch(`/jobs/count${status !== 'all' ? `?status=${status}` : ''}`),
-            ]);
-            if (jobsRes.ok) setJobs(await jobsRes.json());
-            if (countRes.ok) { const d = await countRes.json(); setTotal(d.total); }
+            const params = buildFilterParams(filters);
+            if (opts.cursor) params.set('cursor', opts.cursor);
+
+            const res = await authenticatedFetch(`/jobs?${params}`);
+            if (!res.ok) return;
+            const data: PaginatedJobResponse = await res.json();
+
+            if (opts.reset) {
+                setJobs(data.items);
+            } else {
+                setJobs(prev => [...prev, ...data.items]);
+            }
+            setTotal(data.total);
+            setNextCursor(data.next_cursor);
+            setPendingNewJobs(0);
         } catch (e) {
             console.error(e);
             toast.error('Failed to load jobs');
         } finally {
             setLoading(false);
+            setLoadingMore(false);
+        }
+    }, [filters, buildFilterParams]);
+
+    // Fetch nodes for combobox
+    const fetchNodes = useCallback(async () => {
+        try {
+            const res = await authenticatedFetch('/nodes?page_size=200');
+            if (!res.ok) return;
+            const data = await res.json();
+            // Handle both paginated envelope {items} and bare array
+            const items: any[] = Array.isArray(data) ? data : (data.items ?? []);
+            setNodes(items.map((n: any) => ({ node_id: n.node_id, hostname: n.hostname })));
+        } catch {
+            // Non-critical — combobox just won't be populated
+        }
+    }, []);
+
+    // On mount
+    useEffect(() => {
+        fetchJobs({ reset: true });
+        fetchNodes();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Re-fetch when filters change
+    const filtersRef = useRef(filters);
+    useEffect(() => {
+        if (filtersRef.current === filters) return; // skip initial mount (handled above)
+        filtersRef.current = filters;
+        fetchJobs({ reset: true });
+    }, [filters, fetchJobs]);
+
+    // WebSocket: banner for new jobs, in-place patch for updates
+    useWebSocket((event, data: any) => {
+        if (event === 'job:created') {
+            setPendingNewJobs(c => c + 1);
+        } else if (event === 'job:updated') {
+            setJobs(prev => prev.map(j => j.guid === data?.guid ? { ...j, ...data } : j));
+        }
+    });
+
+    // Export CSV
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const params = buildFilterParams(filters);
+            const res = await authenticatedFetch(`/jobs/export?${params}`);
+            if (!res.ok) { toast.error('Export failed'); return; }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'jobs-export.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            toast.error('Export failed');
+        } finally {
+            setExporting(false);
         }
     };
 
-    useEffect(() => {
-        fetchJobs(0, filterStatus);
-        const interval = setInterval(() => fetchJobs(page, filterStatus), 10000);
-        return () => clearInterval(interval);
-    }, [page, filterStatus]);
+    // Derive active filter chips
+    const activeChips = [
+        filters.status !== 'all' && { key: 'status', label: `Status: ${filters.status}`, clear: () => setFilters(f => ({ ...f, status: 'all' })) },
+        filters.runtime !== 'all' && { key: 'runtime', label: `Runtime: ${filters.runtime}`, clear: () => setFilters(f => ({ ...f, runtime: 'all' })) },
+        filters.taskType !== 'all' && { key: 'taskType', label: `Type: ${filters.taskType}`, clear: () => setFilters(f => ({ ...f, taskType: 'all' })) },
+        filters.tags.length > 0 && { key: 'tags', label: `Tags: ${filters.tags.join(', ')}`, clear: () => setFilters(f => ({ ...f, tags: [] })) },
+        filters.nodeId && { key: 'node', label: `Node: ${filters.nodeId.slice(0, 12)}…`, clear: () => setFilters(f => ({ ...f, nodeId: '' })) },
+        filters.createdBy && { key: 'createdBy', label: `By: ${filters.createdBy}`, clear: () => setFilters(f => ({ ...f, createdBy: '' })) },
+        (filters.datePreset || filters.dateFrom) && {
+            key: 'date',
+            label: filters.datePreset && filters.datePreset !== 'custom' ? `Last ${filters.datePreset}` : 'Custom date range',
+            clear: () => setFilters(f => ({ ...f, dateFrom: '', dateTo: '', datePreset: '' })),
+        },
+    ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
 
-    useWebSocket((event) => {
-        if (event === 'job:created' || event === 'job:updated') fetchJobs(page, filterStatus);
-    });
+    // Job actions
+    const openDetail = (job: Job) => {
+        setSelectedJob(job);
+        setDetailOpen(true);
+    };
+
+    const cancelJob = async (guid: string) => {
+        try {
+            const res = await authenticatedFetch(`/jobs/${guid}/cancel`, { method: 'PATCH' });
+            if (res.ok) {
+                toast.success('Job cancelled');
+                fetchJobs({ reset: true });
+            } else {
+                toast.error('Failed to cancel job');
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Failed to cancel job');
+        }
+    };
+
+    const handleRetry = async (guid: string) => {
+        try {
+            const res = await authenticatedFetch(`/jobs/${guid}/retry`, { method: 'POST' });
+            if (res.ok) {
+                toast.success('Job re-queued for retry');
+                fetchJobs({ reset: true });
+            } else {
+                const data = await res.json().catch(() => ({}));
+                toast.error(data.detail || 'Failed to retry job');
+            }
+        } catch {
+            toast.error('Failed to retry job');
+        }
+    };
 
     const createJob = async () => {
         try {
@@ -345,12 +741,10 @@ const Jobs = () => {
             setPayloadError(null);
             const payload = JSON.parse(newTaskPayload);
 
-            // Parse tags: "linux, gpu" → ["linux", "gpu"]
-            const tags = targetTags.trim()
-                ? targetTags.split(',').map(t => t.trim()).filter(Boolean)
+            const tags = dispatchTargetTags.trim()
+                ? dispatchTargetTags.split(',').map(t => t.trim()).filter(Boolean)
                 : undefined;
 
-            // Parse capability requirements: "python:3.11, docker:24" → { python: "3.11", docker: "24" }
             const caps = capabilityReqs.trim()
                 ? Object.fromEntries(
                     capabilityReqs.split(',')
@@ -375,9 +769,9 @@ const Jobs = () => {
             });
             if (res.ok) {
                 toast.success('Job dispatched successfully');
-                fetchJobs();
+                fetchJobs({ reset: true });
                 setNewTaskPayload('{}');
-                setTargetTags('');
+                setDispatchTargetTags('');
                 setCapabilityReqs('');
             } else {
                 const err = await res.json();
@@ -391,43 +785,11 @@ const Jobs = () => {
         }
     };
 
-    const openDetail = (job: Job) => {
-        setSelectedJob(job);
-        setDetailOpen(true);
-    };
-
-    const cancelJob = async (guid: string) => {
-        try {
-            const res = await authenticatedFetch(`/jobs/${guid}/cancel`, { method: 'PATCH' });
-            if (res.ok) {
-                toast.success('Job cancelled');
-                fetchJobs();
-            } else {
-                toast.error('Failed to cancel job');
-            }
-        } catch (e) {
-            console.error(e);
-            toast.error('Failed to cancel job');
-        }
-    };
-
-    const handleRetry = async (guid: string) => {
-        try {
-            const res = await authenticatedFetch(`/jobs/${guid}/retry`, { method: 'POST' });
-            if (res.ok) {
-                toast.success('Job re-queued for retry');
-                fetchJobs();
-            } else {
-                const data = await res.json().catch(() => ({}));
-                toast.error(data.detail || 'Failed to retry job');
-            }
-        } catch {
-            toast.error('Failed to retry job');
-        }
-    };
+    // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Page header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-white">Jobs</h1>
@@ -504,8 +866,8 @@ const Jobs = () => {
                             </label>
                             <Input
                                 placeholder="linux, gpu, secure"
-                                value={targetTags}
-                                onChange={e => setTargetTags(e.target.value)}
+                                value={dispatchTargetTags}
+                                onChange={e => setDispatchTargetTags(e.target.value)}
                                 className="bg-zinc-900 border-zinc-800 text-white h-9 font-mono text-sm placeholder:text-zinc-600"
                             />
                         </div>
@@ -534,16 +896,32 @@ const Jobs = () => {
                     </CardContent>
                 </Card>
 
-                {/* Jobs Table */}
+                {/* Queue Monitor */}
                 <Card className="xl:col-span-2 bg-zinc-925 border-zinc-800/50 overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle className="text-lg font-bold text-white">Queue Monitor</CardTitle>
-                            <CardDescription className="text-zinc-500">Real-time status of dispatched tasks.</CardDescription>
+                    <CardHeader className="pb-3">
+                        <div className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="text-lg font-bold text-white">Queue Monitor</CardTitle>
+                                <CardDescription className="text-zinc-500">Real-time status of dispatched tasks.</CardDescription>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(0); fetchJobs(0, v); }}>
-                                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-9 w-32 text-xs">
+
+                        {/* Filter bar — always visible row */}
+                        <div className="flex flex-wrap items-center gap-2 pt-2">
+                            {/* Search */}
+                            <div className="relative flex-1 min-w-40">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                                <Input
+                                    placeholder="Search name or GUID..."
+                                    value={filters.search}
+                                    onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+                                    className="pl-9 bg-zinc-900 border-zinc-800 h-9 text-sm text-white"
+                                />
+                            </div>
+
+                            {/* Status */}
+                            <Select value={filters.status} onValueChange={v => setFilters(f => ({ ...f, status: v }))}>
+                                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-9 w-36 text-xs">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
@@ -558,21 +936,101 @@ const Jobs = () => {
                                     <SelectItem value="dead_letter">Dead Letter</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600" />
-                                <Input
-                                    placeholder="Filter GUID..."
-                                    value={filterText}
-                                    onChange={e => setFilterText(e.target.value)}
-                                    className="pl-9 bg-zinc-900 border-zinc-800 h-9 w-44 text-sm text-white"
-                                />
-                            </div>
+
+                            {/* Runtime */}
+                            <Select value={filters.runtime} onValueChange={v => setFilters(f => ({ ...f, runtime: v }))}>
+                                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-9 w-32 text-xs">
+                                    <SelectValue placeholder="Runtime" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectItem value="all">All Runtimes</SelectItem>
+                                    <SelectItem value="python">Python</SelectItem>
+                                    <SelectItem value="bash">Bash</SelectItem>
+                                    <SelectItem value="powershell">PowerShell</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            {/* More filters toggle */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className={`h-9 border-zinc-700 text-xs gap-1.5 ${showMoreFilters || activeChips.some(c => ['date','node','tags','createdBy','taskType'].includes(c.key)) ? 'border-primary/50 text-primary' : 'text-zinc-400 hover:text-white'}`}
+                                onClick={() => setShowMoreFilters(v => !v)}
+                            >
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                                More filters
+                                {activeChips.some(c => ['date','node','tags','createdBy','taskType'].includes(c.key)) && (
+                                    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                                        {activeChips.filter(c => ['date','node','tags','createdBy','taskType'].includes(c.key)).length}
+                                    </span>
+                                )}
+                            </Button>
                         </div>
+
+                        {/* Active chips row + Export */}
+                        {(activeChips.length > 0) && (
+                            <div className="flex flex-wrap items-center gap-2 pt-2">
+                                <div className="flex flex-wrap gap-1.5 flex-1">
+                                    {activeChips.map(chip => (
+                                        <span
+                                            key={chip.key}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-zinc-300 border border-zinc-700"
+                                        >
+                                            {chip.label}
+                                            <button
+                                                onClick={chip.clear}
+                                                className="hover:text-white text-zinc-500 ml-0.5"
+                                                aria-label={`Remove ${chip.label} filter`}
+                                            >
+                                                <X className="h-2.5 w-2.5" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 border-zinc-700 text-zinc-400 hover:text-white text-xs gap-1.5 ml-auto"
+                                    onClick={handleExport}
+                                    disabled={exporting}
+                                >
+                                    <Download className="h-3 w-3" />
+                                    {exporting ? 'Exporting…' : 'Export CSV'}
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Export CSV when no active chips */}
+                        {activeChips.length === 0 && (
+                            <div className="flex justify-end pt-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-zinc-600 hover:text-zinc-300 text-xs gap-1.5"
+                                    onClick={handleExport}
+                                    disabled={exporting}
+                                >
+                                    <Download className="h-3 w-3" />
+                                    {exporting ? 'Exporting…' : 'Export CSV'}
+                                </Button>
+                            </div>
+                        )}
                     </CardHeader>
+
+                    {/* New jobs banner */}
+                    {pendingNewJobs > 0 && (
+                        <div
+                            className="mx-4 mb-2 sticky top-0 z-10 bg-primary/90 text-primary-foreground text-sm px-4 py-2 cursor-pointer text-center rounded-md"
+                            onClick={() => { setPendingNewJobs(0); fetchJobs({ reset: true }); }}
+                        >
+                            {pendingNewJobs} new job{pendingNewJobs !== 1 ? 's' : ''} — click to refresh
+                        </div>
+                    )}
+
                     <Table>
                         <TableHeader className="bg-zinc-900/50 border-zinc-800">
                             <TableRow className="border-zinc-800 hover:bg-transparent">
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pl-6">GUID</TableHead>
+                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pl-6">Name / ID</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Type</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Status</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Attempt</TableHead>
@@ -592,14 +1050,22 @@ const Jobs = () => {
                                         ))}
                                     </TableRow>
                                 ))
-                            ) : jobs.filter(j => !filterText || j.guid.toLowerCase().includes(filterText.toLowerCase())).length > 0 ? (
-                                jobs.filter(j => !filterText || j.guid.toLowerCase().includes(filterText.toLowerCase())).map(job => (
-                                    <TableRow key={job.guid} className="border-zinc-800 hover:bg-zinc-900/30 transition-colors cursor-pointer" onClick={() => openDetail(job)}>
+                            ) : jobs.length > 0 ? (
+                                jobs.map(job => (
+                                    <TableRow
+                                        key={job.guid}
+                                        className="border-zinc-800 hover:bg-zinc-900/30 transition-colors cursor-pointer"
+                                        onClick={() => openDetail(job)}
+                                    >
                                         <TableCell className="font-mono text-zinc-400 pl-6">
-                                            <div className="flex items-center gap-2">
-                                                <Hash className="h-3 w-3 text-zinc-600" />
-                                                {job.guid.substring(0, 8)}
-                                            </div>
+                                            {job.name ? (
+                                                <span className="text-foreground font-medium text-sm">{job.name}</span>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <Hash className="h-3 w-3 text-zinc-600" />
+                                                    <span className="text-muted-foreground text-xs">{job.guid.slice(0, 8)}…</span>
+                                                </div>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-white font-medium">
                                             {job.display_type ?? job.task_type ?? '—'}
@@ -639,43 +1105,54 @@ const Jobs = () => {
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={7} className="h-32 text-center text-zinc-600">
-                                        {filterText ? 'No jobs match that GUID.' : 'Queue is currently empty.'}
+                                        {activeChips.length > 0 || filters.search ? 'No jobs match the current filters.' : 'Queue is currently empty.'}
                                     </TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
                     </Table>
-                    {total > PAGE_SIZE && (
-                        <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-800 bg-zinc-900/30">
-                            <span className="text-xs text-zinc-500">
-                                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 text-xs text-zinc-400 hover:text-white"
-                                    disabled={page === 0}
-                                    onClick={() => setPage(p => p - 1)}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 text-xs text-zinc-400 hover:text-white"
-                                    disabled={(page + 1) * PAGE_SIZE >= total}
-                                    onClick={() => setPage(p => p + 1)}
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+
+                    {/* Footer: counter + load more */}
+                    <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-800 bg-zinc-900/30">
+                        <span className="text-xs text-zinc-500">
+                            Showing {jobs.length} of {total}
+                        </span>
+                        {nextCursor && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs text-zinc-400 hover:text-white"
+                                disabled={loadingMore}
+                                onClick={() => fetchJobs({ cursor: nextCursor })}
+                            >
+                                {loadingMore ? 'Loading…' : 'Load more'}
+                            </Button>
+                        )}
+                    </div>
                 </Card>
             </div>
 
-            <JobDetailPanel job={selectedJob} open={detailOpen} onClose={() => setDetailOpen(false)} onCancel={cancelJob} onViewOutput={setLogModalGuid} onRetry={handleRetry} />
+            {/* More Filters Sheet */}
+            <MoreFiltersSheet
+                open={showMoreFilters}
+                onOpenChange={setShowMoreFilters}
+                filters={filters}
+                setFilters={setFilters}
+                nodes={nodes}
+                nodeSearch={nodeSearch}
+                setNodeSearch={setNodeSearch}
+                tagInput={tagInput}
+                setTagInput={setTagInput}
+            />
+
+            <JobDetailPanel
+                job={selectedJob}
+                open={detailOpen}
+                onClose={() => setDetailOpen(false)}
+                onCancel={cancelJob}
+                onViewOutput={setLogModalGuid}
+                onRetry={handleRetry}
+            />
             <ExecutionLogModal jobGuid={logModalGuid ?? ''} open={!!logModalGuid} onClose={() => setLogModalGuid(null)} />
         </div>
     );
