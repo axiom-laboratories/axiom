@@ -43,6 +43,8 @@ class Job(Base):
     env_tag: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     signature_hmac: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)  # SEC-02: HMAC-SHA256 tag
     runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # RT-07: python, bash, powershell
+    name: Mapped[Optional[str]] = mapped_column(String, nullable=True)        # SRCH-04: operator-assigned job name
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # SRCH-03: submitter username
 
 
 class Signature(Base):
