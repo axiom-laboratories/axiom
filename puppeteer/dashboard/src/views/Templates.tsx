@@ -148,7 +148,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
             }
         },
         onSuccess: () => {
-            toast.success(`Template ${template.friendly_name} deleted`);
+            toast.success(`Node Image ${template.friendly_name} deleted`);
             queryClient.invalidateQueries({ queryKey: ['templates'] });
         },
         onError: (e: Error) => toast.error(`Delete failed: ${e.message}`),
@@ -159,7 +159,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Node Image?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Are you sure you want to delete {template.friendly_name}? This action cannot be undone.
                         </AlertDialogDescription>
@@ -342,7 +342,7 @@ const BlueprintItem = ({ blueprint }: { blueprint: Blueprint }) => {
             }
         },
         onSuccess: () => {
-            toast.success(`Blueprint ${blueprint.name} deleted`);
+            toast.success(`Image Recipe ${blueprint.name} deleted`);
             queryClient.invalidateQueries({ queryKey: ['blueprints'] });
         },
         onError: (e: Error) => toast.error(`Delete failed: ${e.message}`),
@@ -353,7 +353,7 @@ const BlueprintItem = ({ blueprint }: { blueprint: Blueprint }) => {
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Blueprint?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Image Recipe?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Are you sure you want to delete {blueprint.name}? If it is used by any template, deletion will fail.
                         </AlertDialogDescription>
@@ -440,8 +440,8 @@ const BlueprintEmptyState = ({ type }: { type: 'RUNTIME' | 'NETWORK' }) => (
         ) : (
             <Globe className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
         )}
-        <h3 className="text-zinc-400 font-medium">No {type.toLowerCase()} blueprints found</h3>
-        <p className="text-zinc-600 text-sm mt-1">Create a {type.toLowerCase()} blueprint to get started.</p>
+        <h3 className="text-zinc-400 font-medium">No {type.toLowerCase()} image recipes found</h3>
+        <p className="text-zinc-600 text-sm mt-1">Create a {type.toLowerCase()} image recipe to get started.</p>
     </div>
 );
 
@@ -570,9 +570,9 @@ const Templates = () => {
             ) : (
                 <Tabs defaultValue="templates" className="w-full">
                     <TabsList>
-                        <TabsTrigger value="templates">Templates ({templates.length})</TabsTrigger>
-                        <TabsTrigger value="runtime">Runtime Blueprints ({runtimeBlueprints.length})</TabsTrigger>
-                        <TabsTrigger value="network">Network Blueprints ({networkBlueprints.length})</TabsTrigger>
+                        <TabsTrigger value="templates">Node Images ({templates.length})</TabsTrigger>
+                        <TabsTrigger value="runtime">Runtime Image Recipes ({runtimeBlueprints.length})</TabsTrigger>
+                        <TabsTrigger value="network">Network Image Recipes ({networkBlueprints.length})</TabsTrigger>
                         <TabsTrigger value="tools">
                             <Wrench className="mr-1 h-3.5 w-3.5" />
                             Tools ({tools.length})
@@ -585,7 +585,7 @@ const Templates = () => {
                                 className="bg-primary hover:bg-primary/90 text-white h-10 px-4 rounded-xl font-bold shadow-lg shadow-primary/10"
                                 onClick={() => setIsTemplateOpen(true)}
                             >
-                                <Plus className="mr-2 h-4 w-4" /> New Template
+                                <Plus className="mr-2 h-4 w-4" /> New Node Image
                             </Button>
                         </div>
                         {templates.length > 0 ? (
@@ -595,8 +595,8 @@ const Templates = () => {
                         ) : (
                             <div className="py-20 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
                                 <Boxes className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
-                                <h3 className="text-zinc-400 font-medium">No templates found</h3>
-                                <p className="text-zinc-600 text-sm mt-1">Compose your first template using blueprints.</p>
+                                <h3 className="text-zinc-400 font-medium">No node images found</h3>
+                                <p className="text-zinc-600 text-sm mt-1">Compose your first node image using image recipes.</p>
                             </div>
                         )}
                     </TabsContent>
@@ -608,7 +608,7 @@ const Templates = () => {
                                 className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
                                 onClick={() => setIsWizardOpen(true)}
                             >
-                                <Plus className="mr-2 h-4 w-4" /> New Runtime Blueprint
+                                <Plus className="mr-2 h-4 w-4" /> New Runtime Image Recipe
                             </Button>
                         </div>
                         {runtimeBlueprints.length > 0 ? (
@@ -627,7 +627,7 @@ const Templates = () => {
                                 className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
                                 onClick={() => setIsWizardOpen(true)}
                             >
-                                <Plus className="mr-2 h-4 w-4" /> New Network Blueprint
+                                <Plus className="mr-2 h-4 w-4" /> New Network Image Recipe
                             </Button>
                         </div>
                         {networkBlueprints.length > 0 ? (
@@ -655,7 +655,7 @@ const Templates = () => {
                             <Dialog open={showAddTool} onOpenChange={setShowAddTool}>
                                 <DialogContent className="max-w-lg bg-zinc-950 border-zinc-800 text-white">
                                     <DialogHeader>
-                                        <DialogTitle>Add Capability Matrix Entry</DialogTitle>
+                                        <DialogTitle>Add Tool</DialogTitle>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-2">
                                         <div className="grid gap-1.5">
@@ -807,7 +807,7 @@ const Templates = () => {
 const TemplatesWithFeatureCheck = () => {
     const features = useFeatures();
     if (!features.foundry) {
-        return <UpgradePlaceholder feature="Foundry" description="Build and manage custom node images with Blueprint templates, capability matrix injection, and BOM tracking." />;
+        return <UpgradePlaceholder feature="Foundry" description="Build and manage custom node images with Image Recipe templates, tool injection, and BOM tracking." />;
     }
     return <Templates />;
 };

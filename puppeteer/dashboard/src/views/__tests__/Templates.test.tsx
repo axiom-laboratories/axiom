@@ -129,22 +129,23 @@ describe('BRAND-01: Foundry UI label rename', () => {
     });
 
     it('BRAND-01b: "Node Image" appears somewhere in the Foundry tabs', async () => {
-        renderWithProviders(<Templates />);
+        const { container } = renderWithProviders(<Templates />);
 
+        // Wait for the tab list to render (loading spinner resolves)
         await waitFor(() => {
-            // "Node Image" label appears in at least one place (tab, button, or empty state)
-            // After rename: "Compose Node Image" in tab or button context
-            const nodeImageEl = screen.queryByText(/Node Image/i);
-            expect(nodeImageEl).not.toBeNull();
+            expect(screen.queryByText(/Node Images \(\d+\)/i)).toBeInTheDocument();
         }, { timeout: 5000 });
+
+        // "Node Image" appears at least once — the "Node Images" tab label satisfies this
+        expect(container.textContent).toMatch(/Node Image/i);
     });
 
     it('BRAND-01c: legacy label "Blueprint" (standalone) is not visible in the Foundry tab list', async () => {
         renderWithProviders(<Templates />);
 
         await waitFor(() => {
-            // The tab list renders after data loads — wait for the "Templates" tab
-            expect(screen.queryByText(/Templates \(\d+\)/i)).toBeInTheDocument();
+            // The tab list renders after data loads — wait for the "Node Images" tab (renamed from "Templates")
+            expect(screen.queryByText(/Node Images \(\d+\)/i)).toBeInTheDocument();
         }, { timeout: 5000 });
 
         // Standalone "Blueprint" tab label must not appear
@@ -157,7 +158,7 @@ describe('BRAND-01: Foundry UI label rename', () => {
         const { container } = renderWithProviders(<Templates />);
 
         await waitFor(() => {
-            expect(screen.queryByText(/Templates \(\d+\)/i)).toBeInTheDocument();
+            expect(screen.queryByText(/Node Images \(\d+\)/i)).toBeInTheDocument();
         }, { timeout: 5000 });
 
         expect(container.textContent).not.toMatch(/Puppet Template/i);
@@ -167,7 +168,7 @@ describe('BRAND-01: Foundry UI label rename', () => {
         const { container } = renderWithProviders(<Templates />);
 
         await waitFor(() => {
-            expect(screen.queryByText(/Templates \(\d+\)/i)).toBeInTheDocument();
+            expect(screen.queryByText(/Node Images \(\d+\)/i)).toBeInTheDocument();
         }, { timeout: 5000 });
 
         expect(container.textContent).not.toMatch(/Capability Matrix/i);

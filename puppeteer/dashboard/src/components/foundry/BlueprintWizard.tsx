@@ -148,7 +148,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['blueprints'] });
-            toast.success('Blueprint created successfully');
+            toast.success('Image Recipe created successfully');
             onOpenChange(false);
         },
         onError: (e: Error) => toast.error(e.message)
@@ -498,7 +498,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
         <div className="space-y-6 py-4">
             <div className="space-y-4">
                 <div className="space-y-2">
-                    <Label>Blueprint Name</Label>
+                    <Label>Image Recipe Name</Label>
                     <Input 
                         placeholder="e.g. secure-data-processor" 
                         value={composition.name}
@@ -660,7 +660,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
                                 {createMutation.isPending ? (
                                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
                                 ) : (
-                                    <><Check className="mr-2 h-4 w-4" /> Create Blueprint</>
+                                    <><Check className="mr-2 h-4 w-4" /> Create Image Recipe</>
                                 )}
                             </Button>
                         )
@@ -671,7 +671,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
                             onClick={handleFinish}
                             disabled={createMutation.isPending}
                         >
-                            Save Blueprint
+                            Save Image Recipe
                         </Button>
                     )}
                 </DialogFooter>

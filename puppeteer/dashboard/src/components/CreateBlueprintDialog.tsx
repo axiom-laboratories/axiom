@@ -134,7 +134,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-white">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">Create New Blueprint</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">Create New Image Recipe</DialogTitle>
                     <DialogDescription className="text-zinc-500">
                         Define a reusable environment or network perimeter.
                     </DialogDescription>
@@ -161,7 +161,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                     )}
 
                     <div className="grid gap-2">
-                        <Label htmlFor="name">Blueprint Name</Label>
+                        <Label htmlFor="name">Image Recipe Name</Label>
                         <Input
                             id="name"
                             value={name}
@@ -318,7 +318,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                         disabled={!name || createMutation.isPending}
                         className="bg-primary hover:bg-primary/90"
                     >
-                        {createMutation.isPending ? 'Creating...' : 'Create Blueprint'}
+                        {createMutation.isPending ? 'Creating...' : 'Create Image Recipe'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -329,7 +329,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                     <DialogHeader>
                         <DialogTitle>Runtime Dependencies Required</DialogTitle>
                         <DialogDescription className="text-zinc-400">
-                            The selected tools require the following dependencies. Confirm to auto-add them to the blueprint.
+                            The selected tools require the following dependencies. Confirm to auto-add them to the image recipe.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-2 py-4">

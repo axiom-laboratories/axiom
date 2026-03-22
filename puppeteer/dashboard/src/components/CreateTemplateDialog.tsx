@@ -57,15 +57,15 @@ export const CreateTemplateDialog = ({ open, onOpenChange }: CreateTemplateDialo
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="bg-zinc-950 border-zinc-800 text-white">
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold">Compose Puppet Template</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">Compose Node Image</DialogTitle>
                     <DialogDescription className="text-zinc-500">
-                        Combine environment and network blueprints into a single deployable image.
+                        Combine environment and network image recipes into a single deployable image.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-6 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="t-name">Template Friendly Name</Label>
+                        <Label htmlFor="t-name">Node Image Name</Label>
                         <Input 
                             id="t-name" 
                             value={name} 
@@ -76,7 +76,7 @@ export const CreateTemplateDialog = ({ open, onOpenChange }: CreateTemplateDialo
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Runtime Blueprint</Label>
+                        <Label>Runtime Image Recipe</Label>
                         <Select value={runtimeId} onValueChange={setRuntimeId}>
                             <SelectTrigger className="bg-zinc-900 border-zinc-800">
                                 <SelectValue placeholder="Select a Runtime" />
@@ -123,7 +123,7 @@ export const CreateTemplateDialog = ({ open, onOpenChange }: CreateTemplateDialo
                         disabled={!name || !runtimeId || !networkId || createMutation.isPending}
                         className="bg-primary hover:bg-primary/90"
                     >
-                        {createMutation.isPending ? 'Composing...' : 'Create Template'}
+                        {createMutation.isPending ? 'Composing...' : 'Create Node Image'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

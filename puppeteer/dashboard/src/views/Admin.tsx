@@ -1348,7 +1348,7 @@ const Admin = () => {
                     <TabsTrigger value="onboarding" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Onboarding</TabsTrigger>
                     <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Smelter Registry</TabsTrigger>
                     <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">BOM Explorer</TabsTrigger>
-                    <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Capability Matrix</TabsTrigger>
+                    <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Tools</TabsTrigger>
                     <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Artifact Vault</TabsTrigger>
                     <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Rollouts</TabsTrigger>
                     <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Automation</TabsTrigger>
