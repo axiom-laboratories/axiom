@@ -4,7 +4,7 @@ milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
 stopped_at: Completed 46-02-PLAN.md (SEC-01 audit trail and SEC-02 HMAC integrity)
-last_updated: "2026-03-22T15:08:27.963Z"
+last_updated: "2026-03-22T15:12:16.977Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
