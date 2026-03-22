@@ -56,7 +56,7 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 
 ### Foundry + Smelter
 
-- [ ] **FOUNDRY-01**: Full wizard flow: create runtime blueprint → create network blueprint → build image via Foundry → verify image tag in Docker → deploy a node from the Foundry-built image
+- [x] **FOUNDRY-01**: Full wizard flow: create runtime blueprint → create network blueprint → build image via Foundry → verify image tag in Docker → deploy a node from the Foundry-built image
 - [x] **FOUNDRY-02**: Smelter STRICT mode: attempt to add an ingredient with a known CVE (`cryptography<40.0.0`); confirm STRICT mode blocks the blueprint from being used in a build
 - [x] **FOUNDRY-03**: Build failure edge case: trigger a build failure (bad base image tag); confirm API returns HTTP 500 with error detail, not silent 200
 - [x] **FOUNDRY-04**: Build dir cleanup: after a completed build, confirm temp build directory is removed (MIN-7 gap test — expect failure, document finding)
@@ -124,7 +124,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | JOB-07 | Phase 43 | Complete |
 | JOB-08 | Phase 43 | Complete |
 | JOB-09 | Phase 43 | Complete |
-| FOUNDRY-01 | Phase 44 | Pending |
+| FOUNDRY-01 | Phase 44 | Complete |
 | FOUNDRY-02 | Phase 44 | Complete |
 | FOUNDRY-03 | Phase 44 | Complete |
 | FOUNDRY-04 | Phase 44 | Complete |
