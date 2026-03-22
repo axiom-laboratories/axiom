@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator, model_validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 import json as _json
 
@@ -15,11 +15,23 @@ class JobCreate(BaseModel):
     timeout_minutes: Optional[int] = None
     scheduled_job_id: Optional[str] = None
     env_tag: Optional[str] = None
+    runtime: Optional[Literal["python", "bash", "powershell"]] = None
 
     @field_validator("env_tag", mode="before")
     @classmethod
     def normalize_env_tag(cls, v):
         return v.strip().upper() if isinstance(v, str) and v.strip() else None
+
+    @model_validator(mode="after")
+    def validate_task_type_and_runtime(self):
+        if self.task_type == "python_script":
+            raise ValueError(
+                "task_type 'python_script' is no longer supported. "
+                "Use task_type='script' with runtime='python'."
+            )
+        if self.task_type == "script" and self.runtime is None:
+            raise ValueError("runtime is required when task_type is 'script'")
+        return self
 
 class RegisterRequest(BaseModel):
     client_secret: str
@@ -47,6 +59,8 @@ class JobResponse(BaseModel):
     duration_seconds: Optional[float] = None
     target_tags: Optional[List[str]] = None
     depends_on: Optional[List[str]] = None
+    task_type: Optional[str] = None
+    display_type: Optional[str] = None
 
 class WorkResponse(BaseModel):
     guid: str
@@ -166,6 +180,7 @@ class JobDefinitionCreate(BaseModel):
     backoff_multiplier: float = 2.0
     timeout_minutes: Optional[int] = None
     env_tag: Optional[str] = None
+    runtime: Optional[Literal["python", "bash", "powershell"]] = None
 
     @field_validator("env_tag", mode="before")
     @classmethod
@@ -192,6 +207,7 @@ class JobDefinitionResponse(BaseModel):
     backoff_multiplier: float = 2.0
     timeout_minutes: Optional[int] = None
     env_tag: Optional[str] = None
+    runtime: Optional[str] = None
 
     @field_validator('target_tags', mode='before')
     @classmethod
