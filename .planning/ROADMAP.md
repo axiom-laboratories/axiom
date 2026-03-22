@@ -104,7 +104,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 46: Tech Debt + Security + Branding** — Foundation cleanup before new features: fix deferred gaps, add security hardening, align UI labels (completed 2026-03-22)
 - [x] **Phase 47: CE Runtime Expansion** — Unified `script` task type supporting Python, Bash, and PowerShell runtimes end-to-end (completed 2026-03-22)
 - [x] **Phase 48: Scheduled Job Signing Safety** — DRAFT state for stale signatures; skipped fires logged; operator warned before script edits fire (completed 2026-03-22)
-- [ ] **Phase 49: Pagination, Filtering and Search** — Server-side pagination on Jobs and Nodes; 9-axis job filtering; free-text search; CSV export
+- [x] **Phase 49: Pagination, Filtering and Search** — Server-side pagination on Jobs and Nodes; 9-axis job filtering; free-text search; CSV export (completed 2026-03-22)
 - [ ] **Phase 50: Guided Job Form** — Structured guided form replacing raw JSON for common job submission; Advanced mode available via gate
 - [ ] **Phase 51: Job Detail, Resubmit and Bulk Ops** — Job detail drawer; one-click and edit-then-resubmit; multi-select bulk cancel/resubmit/delete
 - [ ] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state
@@ -235,7 +235,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 46. Tech Debt + Security + Branding | 3/3 | Complete    | 2026-03-22 |
 | 47. CE Runtime Expansion | 4/4 | Complete    | 2026-03-22 |
 | 48. Scheduled Job Signing Safety | 2/2 | Complete   | 2026-03-22 |
-| 49. Pagination, Filtering and Search | 5/6 | In Progress|  |
+| 49. Pagination, Filtering and Search | 6/6 | Complete   | 2026-03-22 |
 | 50. Guided Job Form | 0/TBD | Not started | - |
 | 51. Job Detail, Resubmit and Bulk Ops | 0/TBD | Not started | - |
 | 52. Queue Visibility, Node Drawer and DRAINING | 0/TBD | Not started | - |
