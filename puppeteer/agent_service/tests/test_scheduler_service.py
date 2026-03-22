@@ -229,8 +229,23 @@ async def test_resign_without_script_change_reactivates(db_session, test_user, v
 
 
 @pytest.mark.anyio
-async def test_draft_skip_log_message(db_session, test_user, valid_signature):
+async def test_draft_skip_log_message(db_session, engine, test_user, valid_signature):
     """execute_scheduled_job() on a DRAFT job → AuditLog row detail contains verbatim skip message."""
+    # Create audit_log table in the test DB (it's an EE-only table, not in CE Base.metadata)
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "CREATE TABLE IF NOT EXISTS audit_log ("
+                "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "  username TEXT,"
+                "  action TEXT NOT NULL,"
+                "  resource_id TEXT,"
+                "  detail TEXT,"
+                "  timestamp TEXT DEFAULT CURRENT_TIMESTAMP"
+                ")"
+            )
+        )
+
     sig, private_key = valid_signature
     draft_job_id = uuid.uuid4().hex
     script = "print('draft skip test')"

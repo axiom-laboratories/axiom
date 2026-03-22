@@ -11,6 +11,8 @@ from .. import db as db_module
 from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord
 from ..models import JobDefinitionCreate, JobDefinitionResponse, JobDefinitionUpdate
 from .signature_service import SignatureService
+from .alert_service import AlertService
+from ..deps import audit
 
 logger = logging.getLogger(__name__)
 
@@ -113,14 +115,21 @@ class SchedulerService:
             # Status governance guard (Phase 17) — must come after is_active check
             SKIP_STATUSES = {"DRAFT", "REVOKED", "DEPRECATED"}
             if hasattr(s_job, 'status') and s_job.status in SKIP_STATUSES:
-                logger.warning(f"Skipping cron fire for '{s_job.name}' — status={s_job.status}")
-                from ..db import AuditLog as _AuditLog
-                session.add(_AuditLog(
-                    username="scheduler",
-                    action=f"job:{s_job.status.lower()}_skip",
-                    resource_id=s_job.id,
-                    detail=json.dumps({"status": s_job.status, "name": s_job.name}),
-                ))
+                reason = (
+                    "Skipped: job in DRAFT state, pending re-signing"
+                    if s_job.status == "DRAFT"
+                    else f"Skipped: job status={s_job.status}"
+                )
+                logger.warning(f"Skipping cron fire for '{s_job.name}' — {reason}")
+                detail = json.dumps({"status": s_job.status, "reason": reason, "name": s_job.name})
+                try:
+                    from sqlalchemy import text as _text
+                    await session.execute(
+                        _text("INSERT INTO audit_log (username, action, resource_id, detail) VALUES (:u, :a, :r, :d)"),
+                        {"u": "scheduler", "a": f"job:{s_job.status.lower()}_skip", "r": s_job.id, "d": detail},
+                    )
+                except Exception:
+                    pass  # CE mode: audit_log table absent — silently ignore
                 await session.commit()
                 return
 
@@ -243,25 +252,73 @@ class SchedulerService:
         if not job:
             raise HTTPException(status_code=404, detail="Job definition not found")
 
-        # If script content is changing, a new signature is required
-        if update_req.script_content is not None and update_req.script_content != job.script_content:
-            if not update_req.signature or not update_req.signature_id:
-                raise HTTPException(
-                    status_code=400,
-                    detail="A new signature and signature_id are required when changing script content"
-                )
+        # Case (e): Re-sign without script change — signature + signature_id provided, no script_content change
+        if (
+            update_req.signature
+            and update_req.signature_id
+            and (update_req.script_content is None or update_req.script_content == job.script_content)
+        ):
             sig_result = await db_session.execute(select(Signature).where(Signature.id == update_req.signature_id))
             sig = sig_result.scalar_one_or_none()
             if not sig:
                 raise HTTPException(status_code=404, detail="Signature ID not found")
             try:
-                SignatureService.verify_payload_signature(sig.public_key, update_req.signature, update_req.script_content)
-                logger.info(f"✅ Signature re-validated for job update: {job_id}")
+                SignatureService.verify_payload_signature(sig.public_key, update_req.signature, job.script_content)
+                logger.info(f"✅ Signature re-validated for job re-sign: {job_id}")
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid Signature: {str(e)}")
-            job.script_content = update_req.script_content
             job.signature_id = update_req.signature_id
             job.signature_payload = update_req.signature
+            job.status = "ACTIVE"
+            audit(db_session, current_user, "job_definition:reactivated", job.id, {"name": job.name})
+
+        # Case (a): Signature ID replaced without a valid accompanying signature payload → DRAFT
+        elif update_req.signature_id is not None and update_req.signature_id != job.signature_id and not update_req.signature:
+            no_script_change = (update_req.script_content is None or update_req.script_content == job.script_content)
+            if no_script_change and job.status == "ACTIVE":
+                job.status = "DRAFT"
+                await AlertService.create_alert(
+                    db_session,
+                    type="scheduled_job_draft",
+                    severity="WARNING",
+                    message=f"Scheduled job '{job.name}' moved to DRAFT — re-sign required before next cron fire.",
+                    resource_id=job.id,
+                )
+                audit(db_session, current_user, "job_definition:draft", job.id,
+                      {"previous_status": "ACTIVE", "name": job.name, "reason": "signature_id_change_without_signature"})
+
+        # Case (b/c/d): Script content changed
+        elif update_req.script_content is not None and update_req.script_content != job.script_content:
+            if update_req.signature and update_req.signature_id:
+                # Case (b/c): new signature provided — verify it
+                sig_result = await db_session.execute(select(Signature).where(Signature.id == update_req.signature_id))
+                sig = sig_result.scalar_one_or_none()
+                if not sig:
+                    raise HTTPException(status_code=404, detail="Signature ID not found")
+                try:
+                    SignatureService.verify_payload_signature(sig.public_key, update_req.signature, update_req.script_content)
+                    logger.info(f"✅ Signature re-validated for job update: {job_id}")
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail=f"Invalid Signature: {str(e)}")
+                job.script_content = update_req.script_content
+                job.signature_id = update_req.signature_id
+                job.signature_payload = update_req.signature
+            else:
+                # Case (d): script changed, no signature → soft DRAFT transition
+                job.script_content = update_req.script_content
+                if job.status == "ACTIVE":
+                    job.status = "DRAFT"
+                    await AlertService.create_alert(
+                        db_session,
+                        type="scheduled_job_draft",
+                        severity="WARNING",
+                        message=f"Scheduled job '{job.name}' moved to DRAFT — re-sign required before next cron fire.",
+                        resource_id=job.id,
+                    )
+                    audit(db_session, current_user, "job_definition:draft", job.id,
+                          {"previous_status": "ACTIVE", "name": job.name})
+                # If already DRAFT: just update content, no new alert
+
         elif update_req.script_content is not None:
             # Same content — update without re-sign
             job.script_content = update_req.script_content
