@@ -63,10 +63,10 @@
 
 ### Tech Debt (DEBT)
 
-- [ ] **DEBT-01**: NodeStats pruning is SQLite-compatible — removes subquery incompatibility that causes pruning to silently fail on SQLite deployments (MIN-06)
-- [ ] **DEBT-02**: Foundry service removes the temporary build directory after both successful and failed builds — no stale `/tmp/puppet_build_*` directories accumulate (MIN-07)
-- [ ] **DEBT-03**: Permission lookups in `require_permission` do not execute a DB query per request — permissions are cached at startup or session level (MIN-08)
-- [ ] **DEBT-04**: Node ID scan in the secrets directory uses deterministic (sorted) ordering — eliminates non-deterministic behavior on filesystems with unordered readdir (WARN-08)
+- [x] **DEBT-01**: NodeStats pruning is SQLite-compatible — removes subquery incompatibility that causes pruning to silently fail on SQLite deployments (MIN-06)
+- [x] **DEBT-02**: Foundry service removes the temporary build directory after both successful and failed builds — no stale `/tmp/puppet_build_*` directories accumulate (MIN-07)
+- [x] **DEBT-03**: Permission lookups in `require_permission` do not execute a DB query per request — permissions are cached at startup or session level (MIN-08)
+- [x] **DEBT-04**: Node ID scan in the secrets directory uses deterministic (sorted) ordering — eliminates non-deterministic behavior on filesystems with unordered readdir (WARN-08)
 
 ### Security (SEC)
 
@@ -148,10 +148,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEBT-01 | Phase 46 | Pending |
-| DEBT-02 | Phase 46 | Pending |
-| DEBT-03 | Phase 46 | Pending |
-| DEBT-04 | Phase 46 | Pending |
+| DEBT-01 | Phase 46 | Complete |
+| DEBT-02 | Phase 46 | Complete |
+| DEBT-03 | Phase 46 | Complete |
+| DEBT-04 | Phase 46 | Complete |
 | SEC-01 | Phase 46 | Pending |
 | SEC-02 | Phase 46 | Pending |
 | BRAND-01 | Phase 46 | Complete |
