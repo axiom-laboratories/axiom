@@ -235,7 +235,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 46. Tech Debt + Security + Branding | 3/3 | Complete    | 2026-03-22 |
 | 47. CE Runtime Expansion | 4/4 | Complete    | 2026-03-22 |
 | 48. Scheduled Job Signing Safety | 2/2 | Complete   | 2026-03-22 |
-| 49. Pagination, Filtering and Search | 4/6 | In Progress|  |
+| 49. Pagination, Filtering and Search | 5/6 | In Progress|  |
 | 50. Guided Job Form | 0/TBD | Not started | - |
 | 51. Job Detail, Resubmit and Bulk Ops | 0/TBD | Not started | - |
 | 52. Queue Visibility, Node Drawer and DRAINING | 0/TBD | Not started | - |
