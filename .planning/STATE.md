@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Phase 44 context gathered
-last_updated: "2026-03-21T23:43:21.677Z"
+stopped_at: Completed 44-02-PLAN.md
+last_updated: "2026-03-22T09:12:53.861Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 25
+  completed_plans: 22
   percent: 0
 ---
 
@@ -64,6 +64,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 43-job-test-matrix P06 | 5min | 2 tasks | 1 files |
 | Phase 43-job-test-matrix P07 | 18min | 1 tasks | 5 files |
 | Phase 43-job-test-matrix P08 | 45m | 3 tasks | 2 files |
+| Phase 44-foundry-smelter-deep-pass P02 | 3min | 2 tasks | 2 files |
+| Phase 44 P01 | 4m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -124,6 +126,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 43]: docker.io apt package on python:3.12-slim only installs dockerd (not docker CLI) — must bind-mount /usr/bin/docker from LXC host into puppet-node container
 - [Phase 43]: retriable=True only on python_script non-zero exit with max_retries > 0 — security_rejected, memory-limit, and runtime-exception paths remain non-retriable by design
 - [Phase 43]: global _current_env_tag must be declared before first use in Python 3.12 — pre-existing SyntaxError fixed in 43-08 (was masked by older node image)
+- [Phase 44]: FOUNDRY-04: Both GAP CONFIRMED and GAP FIXED outcomes are [PASS] — dual-outcome gap documentation test
+- [Phase 44]: FOUNDRY-06: No GET /api/templates/{id} endpoint — use list+filter to read is_compliant; audit log gap noted as [INFO]
 
 ### Pending Todos
 
@@ -137,7 +141,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T23:43:21.674Z
-Stopped at: Phase 44 context gathered
+Last session: 2026-03-22T09:12:43.231Z
+Stopped at: Completed 44-02-PLAN.md
 Next action: `/gsd:plan-phase 38`
-Resume file: .planning/phases/44-foundry-smelter-deep-pass/44-CONTEXT.md
+Resume file: None

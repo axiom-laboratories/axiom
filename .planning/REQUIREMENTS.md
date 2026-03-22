@@ -59,9 +59,9 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 - [ ] **FOUNDRY-01**: Full wizard flow: create runtime blueprint → create network blueprint → build image via Foundry → verify image tag in Docker → deploy a node from the Foundry-built image
 - [ ] **FOUNDRY-02**: Smelter STRICT mode: attempt to add an ingredient with a known CVE (`cryptography<40.0.0`); confirm STRICT mode blocks the blueprint from being used in a build
 - [ ] **FOUNDRY-03**: Build failure edge case: trigger a build failure (bad base image tag); confirm API returns HTTP 500 with error detail, not silent 200
-- [ ] **FOUNDRY-04**: Build dir cleanup: after a completed build, confirm temp build directory is removed (MIN-7 gap test — expect failure, document finding)
+- [x] **FOUNDRY-04**: Build dir cleanup: after a completed build, confirm temp build directory is removed (MIN-7 gap test — expect failure, document finding)
 - [ ] **FOUNDRY-05**: Air-gap mirror: configure a blueprint to use the local PyPI mirror, block outbound internet via `iptables`, confirm pip install of ingredient succeeds from mirror
-- [ ] **FOUNDRY-06**: Smelter warning mode: add a moderate-risk ingredient in WARNING mode; confirm build proceeds but audit log records the warning
+- [x] **FOUNDRY-06**: Smelter warning mode: add a moderate-risk ingredient in WARNING mode; confirm build proceeds but audit log records the warning
 
 ### Gap Report
 
@@ -127,9 +127,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUNDRY-01 | Phase 44 | Pending |
 | FOUNDRY-02 | Phase 44 | Pending |
 | FOUNDRY-03 | Phase 44 | Pending |
-| FOUNDRY-04 | Phase 44 | Pending |
+| FOUNDRY-04 | Phase 44 | Complete |
 | FOUNDRY-05 | Phase 44 | Pending |
-| FOUNDRY-06 | Phase 44 | Pending |
+| FOUNDRY-06 | Phase 44 | Complete |
 | GAP-01 | Phase 45 | Pending |
 | GAP-02 | Phase 45 | Pending |
 | GAP-03 | Phase 45 | Pending |
