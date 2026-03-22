@@ -75,7 +75,7 @@
 
 ### Branding (BRAND)
 
-- [ ] **BRAND-01**: Dashboard displays "Image Recipe" in place of "Blueprint", "Node Image" in place of "PuppetTemplate", and "Tool" in place of "CapabilityMatrix entry" throughout the UI (zero API/DB changes)
+- [x] **BRAND-01**: Dashboard displays "Image Recipe" in place of "Blueprint", "Node Image" in place of "PuppetTemplate", and "Tool" in place of "CapabilityMatrix entry" throughout the UI (zero API/DB changes)
 
 ---
 
@@ -154,7 +154,7 @@
 | DEBT-04 | Phase 46 | Pending |
 | SEC-01 | Phase 46 | Pending |
 | SEC-02 | Phase 46 | Pending |
-| BRAND-01 | Phase 46 | Pending |
+| BRAND-01 | Phase 46 | Complete |
 | RT-01 | Phase 47 | Pending |
 | RT-02 | Phase 47 | Pending |
 | RT-03 | Phase 47 | Pending |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Phase 46 context gathered
-last_updated: "2026-03-22T14:26:38.271Z"
+stopped_at: Completed 46-01-PLAN.md (tech debt fixes)
+last_updated: "2026-03-22T15:01:12.052Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 2
   percent: 0
 ---
 
@@ -44,6 +44,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | — | — | — | — |
+| Phase 46-tech-debt-security-branding P03 | 5 | 2 tasks | 6 files |
+| Phase 46-tech-debt-security-branding P01 | 25min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -52,6 +54,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 45]: 4 critical patches applied inline (app.state.licence, EE expiry bypass, retriable=True, global declaration). 5 findings deferred to v12.0+ including MIN-06/07/08/WARN-08.
 - [v12.0 Roadmap]: Phase 49 (pagination/filtering) depends only on Phase 46 — can proceed in parallel with Phase 47 (runtime expansion). Phase 50 (guided form) requires both 47 and 49.
 - [v12.0 Roadmap]: Phase 53 (scheduling health + data mgmt) depends on both Phase 48 (DRAFT signing safety) and Phase 52 (queue visibility).
+- [Phase 46]: BRAND-01 rename: Blueprint=Image Recipe, Template=Node Image, Capability Matrix=Tools applied to 5 Foundry TSX files; TypeScript identifiers preserved
+- [Phase 46-tech-debt-security-branding]: DEBT-01: Two-step SELECT+DELETE replaces correlated subquery for SQLite-portable NodeStats pruning
+- [Phase 46-tech-debt-security-branding]: DEBT-03: Permission cache pre-warmed in lifespan() startup, wrapped in try/except for CE mode compatibility
+- [Phase 46-tech-debt-security-branding]: DEBT-02/04 required zero code changes — foundry_service.py cleanup and node.py sorted() were already correct
 
 ### Pending Todos
 
@@ -64,7 +70,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T14:26:38.269Z
-Stopped at: Phase 46 context gathered
+Last session: 2026-03-22T15:01:12.050Z
+Stopped at: Completed 46-01-PLAN.md (tech debt fixes)
 Next action: `/gsd:plan-phase 46`
-Resume file: .planning/phases/46-tech-debt-security-branding/46-CONTEXT.md
+Resume file: None
