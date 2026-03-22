@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 44-01-PLAN.md
-last_updated: "2026-03-22T09:13:02.619Z"
+stopped_at: Completed 44-04-PLAN.md
+last_updated: "2026-03-22T09:16:25.661Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 25
-  completed_plans: 22
+  completed_plans: 23
   percent: 0
 ---
 
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 43-job-test-matrix P08 | 45m | 3 tasks | 2 files |
 | Phase 44-foundry-smelter-deep-pass P02 | 3min | 2 tasks | 2 files |
 | Phase 44 P01 | 4m | 2 tasks | 2 files |
+| Phase 44-foundry-smelter-deep-pass P04 | 3m | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 44]: FOUNDRY-06: No GET /api/templates/{id} endpoint — use list+filter to read is_compliant; audit log gap noted as [INFO]
 - [Phase 44]: FOUNDRY-02 uses unapproved path (cryptography==38.0.0 not in approved_ingredients) not CVE vulnerability path — simpler and deterministic
 - [Phase 44]: FOUNDRY-02 accepts 403 or 500 — service-layer HTTPException propagates before route post-processing
+- [Phase 44]: FOUNDRY-05 skip conditions checked in priority order: Foundry feature → sudo iptables → MIRRORED ingredient. _rules_added bool guards cleanup in finally block.
 
 ### Pending Todos
 
@@ -143,7 +145,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T09:13:02.617Z
-Stopped at: Completed 44-01-PLAN.md
+Last session: 2026-03-22T09:16:25.658Z
+Stopped at: Completed 44-04-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None
