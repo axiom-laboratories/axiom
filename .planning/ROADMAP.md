@@ -88,7 +88,7 @@ Archive: `.planning/milestones/v11.0-ROADMAP.md`
 - [x] **Phase 41: CE Validation Pass** — EE stubs return 402, CE table count assertion, basic job dispatch on CE (completed 2026-03-21)
 - [x] **Phase 42: EE Validation Pass** — CE+EE combined install, 28-table assertion, licence gating, admin endpoint RBAC (completed 2026-03-21)
 - [x] **Phase 43: Job Test Matrix** — 9 job scenarios: fast/slow/memory/concurrent/env-routing/promotion/crash/bad-sig/revoked-definition (completed 2026-03-21)
-- [ ] **Phase 44: Foundry + Smelter Deep Pass** — Full wizard flow, STRICT/WARNING modes, build failure edge case, air-gap mirror, build dir cleanup
+- [x] **Phase 44: Foundry + Smelter Deep Pass** — Full wizard flow, STRICT/WARNING modes, build failure edge case, air-gap mirror, build dir cleanup (completed 2026-03-22)
 - [ ] **Phase 45: Gap Report Synthesis + Critical Fixes** — Living gap report, inline critical patches with regression tests, prioritised v12.0+ backlog
 
 ## Phase Details
@@ -253,7 +253,7 @@ Plans:
 | 41. CE Validation Pass | 3/3 | Complete    | 2026-03-21 | - |
 | 42. EE Validation Pass | 2/2 | Complete    | 2026-03-21 | - |
 | 43. Job Test Matrix | 8/8 | Complete    | 2026-03-21 | - |
-| 44. Foundry + Smelter Deep Pass | 4/5 | In Progress|  | - |
+| 44. Foundry + Smelter Deep Pass | 5/5 | Complete   | 2026-03-22 | - |
 | 45. Gap Report Synthesis + Critical Fixes | v11.1 | 0/TBD | Not started | - |
 
 ---
