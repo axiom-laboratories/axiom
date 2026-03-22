@@ -572,25 +572,34 @@ class Node:
             except Exception:
                 pass
         
-        if task_type == "python_script":
+        # Runtime dispatch maps — used by the 'script' task_type branch
+        RUNTIME_EXT = {"python": "py", "bash": "sh", "powershell": "ps1"}
+        RUNTIME_CMD = {
+            "python":     lambda p: ["python", p],
+            "bash":       lambda p: ["bash", p],
+            "powershell": lambda p: ["pwsh", p],
+        }
+
+        if task_type == "script":
+            runtime = payload.get("runtime", "python")
             script = payload.get("script_content")
             secrets = payload.get("secrets", {})
             signature = payload.get("signature")
-            
-            if not script or not signature:
-                 await self.report_result(guid, False, {"error": "Missing script or signature"}, security_rejected=True)
-                 return
 
-            # Verify Signature
+            if not script or not signature:
+                await self.report_result(guid, False, {"error": "Missing script or signature"}, security_rejected=True)
+                return
+
+            # Verify Signature — identical path to previous python_script branch
             if not os.path.exists(self.verify_key_path):
-                 print(f"[{self.node_id}] ❌ CRITICAL: Verification Key missing. Cannot verify signature.")
-                 await self.report_result(guid, False, {"error": "Security Check Failed: Verification Key missing"}, security_rejected=True)
-                 return
+                print(f"[{self.node_id}] ❌ CRITICAL: Verification Key missing. Cannot verify signature.")
+                await self.report_result(guid, False, {"error": "Security Check Failed: Verification Key missing"}, security_rejected=True)
+                return
 
             try:
                 with open(self.verify_key_path, "rb") as f:
-                     public_key_bytes = f.read()
-                     public_key = serialization.load_pem_public_key(public_key_bytes)
+                    public_key_bytes = f.read()
+                    public_key = serialization.load_pem_public_key(public_key_bytes)
 
                 sig_bytes = base64.b64decode(signature)
                 public_key.verify(sig_bytes, script.encode('utf-8'))
@@ -603,6 +612,11 @@ class Node:
             # Compute SHA-256 of script before execution for attestation
             script_hash = hashlib.sha256(script.encode('utf-8')).hexdigest()
 
+            # Determine file extension and container command from runtime
+            ext = RUNTIME_EXT.get(runtime, "py")
+            cmd_builder = RUNTIME_CMD.get(runtime, RUNTIME_CMD["python"])
+            tmp_path = f"/tmp/job_{guid}.{ext}"
+
             # Prepare Environment
             krb_ccname = os.environ.get("KRB5CCNAME")
             env = {
@@ -612,40 +626,43 @@ class Node:
                 "KRB5CCNAME": krb_ccname if krb_ccname else ""
             }
             env.update(secrets)
-            
+
             mounts = []
             # Only mount if it's a file path
             if krb_ccname and krb_ccname.startswith("/") and os.path.exists(krb_ccname):
                 mounts.append(f"{krb_ccname}:{krb_ccname}:ro")
-            
+
             # Forward Network Mounts
             for k, v in os.environ.items():
                 if k.startswith("MOUNT_"):
-                    env[k] = v # Pass Config to Job
+                    env[k] = v  # Pass Config to Job
                     if os.path.exists(v):
-                         mounts.append(f"{v}:{v}")
-            
+                        mounts.append(f"{v}:{v}")
+
             # Detect Hostname (Container ID) for Sidecar Networking
-            hostname = socket.gethostname() 
+            hostname = socket.gethostname()
 
             try:
-                # Use python - to read from stdin
-                # Assuming same image for now or configurable
+                # Write script to temp file and mount it into the container
+                with open(tmp_path, "w") as f:
+                    f.write(script)
+                mounts.append(f"{tmp_path}:{tmp_path}:ro")
+
                 default_img = "python:3.12-alpine" if os.name == 'nt' else "localhost/master-of-puppets-node:latest"
                 image = os.getenv("JOB_IMAGE", default_img)
-                
+                cmd = cmd_builder(tmp_path)
+
                 result = await self.runtime_engine.run(
-                   image=image,
-                   command=["python", "-"],
-                   env=env,
-                   mounts=mounts,
-                   network_ref=hostname,
-                   input_data=script,
-                   memory_limit=memory_limit,
-                   cpu_limit=cpu_limit,
-                   timeout=timeout_secs,
+                    image=image,
+                    command=cmd,
+                    env=env,
+                    mounts=mounts,
+                    network_ref=hostname,
+                    memory_limit=memory_limit,
+                    cpu_limit=cpu_limit,
+                    timeout=timeout_secs,
                 )
-                
+
                 success = (result["exit_code"] == 0)
 
                 runtime_report = {
@@ -662,11 +679,6 @@ class Node:
                 output_log = build_output_log(result.get("stdout", ""), result.get("stderr", ""))
                 exit_code = result["exit_code"]
 
-                # Check if Sidecar already handled it?
-                # We can't easily know in this stateless flow without global tracking.
-                # However, reporting again is usually safe if DB handles it (Update WHERE guid=...)
-                # We report the container output.
-
                 await self.report_result(guid, success, runtime_report,
                                          output_log=output_log, exit_code=exit_code,
                                          script_hash=script_hash,
@@ -674,15 +686,19 @@ class Node:
                                          stderr_hash=stderr_hash,
                                          started_at=started_at_iso,
                                          retriable=(exit_code != 0 and max_retries > 0))
-                
+
             except Exception as e:
-                 print(f"[{self.node_id}] Runtime Execution Failed: {e}")
-                 await self.report_result(guid, False, {"error": str(e)})
+                print(f"[{self.node_id}] Runtime Execution Failed: {e}")
+                await self.report_result(guid, False, {"error": str(e)})
+
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
 
         else:
-             # Web Task (Simulation)
-             await asyncio.sleep(2)
-             await self.report_result(guid, True, {"processed": True})
+            # Web Task (Simulation)
+            await asyncio.sleep(2)
+            await self.report_result(guid, True, {"processed": True})
 
     async def report_result(self, guid: str, success: bool, result: Dict,
                             output_log=None, exit_code=None, security_rejected=False,
