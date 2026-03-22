@@ -130,17 +130,21 @@ Plans:
 - [ ] 46-03-PLAN.md — UI label rename: Blueprint→Image Recipe, Template→Node Image, Capability Matrix→Tool (BRAND-01)
 
 ### Phase 47: CE Runtime Expansion
-**Goal**: Operators can submit Bash and PowerShell jobs through the same unified task type, with full backend validation and frontend display, without breaking any existing Python jobs
+**Goal**: Operators can submit Bash and PowerShell jobs through the same unified task type, with full backend validation and frontend display
 **Depends on**: Phase 46
-**Requirements**: RT-01, RT-02, RT-03, RT-04, RT-05, RT-06, RT-07
+**Requirements**: RT-01, RT-02, RT-03, RT-04, RT-05, RT-07
+**Note**: RT-06 (python_script alias) dropped per planning decision — python_script returns HTTP 422; use script+runtime=python
 **Success Criteria** (what must be TRUE):
   1. Operator can submit a Bash job via `script` task type with `runtime: bash`; the job executes on a standard node and returns output
   2. Operator can submit a PowerShell job via `script` task type with `runtime: powershell`; the job executes on a standard node and returns output
   3. Submitting a job with an unrecognised `runtime` value returns HTTP 422 with a clear validation error message
   4. The Jobs list shows a computed `display_type` column (`script (bash)`, `script (python)`, `script (powershell)`) — value comes from the server, not from frontend JSON parsing
-  5. All existing jobs and CI calls using `python_script` task type continue to work without any changes
-  6. A job definition can specify a `runtime` field; a Bash or PowerShell scheduled job fires correctly on its cron schedule
-**Plans**: TBD
+  5. A job definition can specify a `runtime` field; a Bash or PowerShell scheduled job fires correctly on its cron schedule
+**Plans**: 3 plans
+Plans:
+- [ ] 47-01-PLAN.md — Test scaffold (Wave 0) + Containerfile.node PowerShell install (RT-03) + node.py script execution branch (RT-01, RT-02)
+- [ ] 47-02-PLAN.md — Backend API: runtime validation, display_type computation, ScheduledJob.runtime column, scheduler update, migration_v38.sql (RT-04, RT-05, RT-07)
+- [ ] 47-03-PLAN.md — Frontend: runtime dropdown in submission form, display_type column in jobs table (RT-05)
 
 ### Phase 48: Scheduled Job Signing Safety
 **Goal**: Stale scheduled jobs cannot silently dispatch with an invalidated signature — script changes require fresh signing before the job resumes firing
