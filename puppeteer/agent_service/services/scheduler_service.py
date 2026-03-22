@@ -151,19 +151,21 @@ class SchedulerService:
 
             # Construct Execution Payload
             execution_guid = uuid.uuid4().hex
-            
+            runtime = getattr(s_job, 'runtime', None) or 'python'
+
             payload_dict = {
                 "script_content": s_job.script_content,
-                "signature": s_job.signature_payload, 
-                "secrets": {} 
+                "signature": s_job.signature_payload,
+                "secrets": {},
+                "runtime": runtime,
             }
-            
+
             payload_json = json.dumps(payload_dict)
-            
+
             # Create Job
             new_job = Job(
                 guid=execution_guid,
-                task_type="python_script",
+                task_type="script",
                 payload=payload_json,
                 status="PENDING",
                 node_id=s_job.target_node_id,
@@ -173,6 +175,7 @@ class SchedulerService:
                 backoff_multiplier=s_job.backoff_multiplier,
                 timeout_minutes=s_job.timeout_minutes,
                 env_tag=s_job.env_tag,
+                runtime=runtime,
             )
             session.add(new_job)
             await session.commit()
@@ -201,11 +204,12 @@ class SchedulerService:
             name=def_req.name,
             script_content=def_req.script_content,
             signature_id=def_req.signature_id,
-            signature_payload=def_req.signature, 
+            signature_payload=def_req.signature,
             schedule_cron=def_req.schedule_cron,
             target_node_id=def_req.target_node_id,
             target_tags=json.dumps(def_req.target_tags) if def_req.target_tags else None,
-            created_by=current_user.username
+            created_by=current_user.username,
+            runtime=def_req.runtime or "python",
         )
         db_session.add(new_def)
         await db_session.commit()
@@ -281,6 +285,8 @@ class SchedulerService:
             job.timeout_minutes = update_req.timeout_minutes
         if update_req.status is not None:
             job.status = update_req.status
+        if hasattr(update_req, 'runtime') and update_req.runtime is not None:
+            job.runtime = update_req.runtime
 
         job.updated_at = datetime.utcnow()
         await db_session.commit()

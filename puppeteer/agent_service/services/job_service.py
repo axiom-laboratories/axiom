@@ -23,6 +23,14 @@ logger = logging.getLogger(__name__)
 MAX_OUTPUT_BYTES = 1_048_576  # 1 MB
 
 
+def _compute_display_type(task_type: str, payload: dict) -> str:
+    """Server-authoritative display string — never let frontend parse payload."""
+    if task_type == "script":
+        runtime = payload.get("runtime", "python")
+        return f"script ({runtime})"
+    return task_type
+
+
 class JobService:
     @staticmethod
     async def _get_zombie_timeout(db: AsyncSession) -> int:
@@ -53,13 +61,15 @@ class JobService:
             response_jobs.append({
                 "guid": job.guid,
                 "status": job.status,
-                "payload": mask_secrets(payload), 
+                "payload": mask_secrets(payload),
                 "result": json.loads(job.result) if job.result else None,
                 "node_id": job.node_id,
                 "started_at": job.started_at,
                 "duration_seconds": duration,
                 "target_tags": json.loads(job.target_tags) if job.target_tags else None,
-                "depends_on": json.loads(job.depends_on) if job.depends_on else None
+                "depends_on": json.loads(job.depends_on) if job.depends_on else None,
+                "task_type": job.task_type,
+                "display_type": _compute_display_type(job.task_type, payload),
             })
         return response_jobs
 
@@ -112,8 +122,13 @@ class JobService:
                     },
                 )
 
+        # Merge runtime into payload dict before encryption (RT-05)
+        payload_dict = dict(job_req.payload)
+        if job_req.runtime is not None:
+            payload_dict["runtime"] = job_req.runtime
+
         # Encrypt secrets before storing
-        encrypted_payload = encrypt_secrets(job_req.payload)
+        encrypted_payload = encrypt_secrets(payload_dict)
         
         initial_status = "PENDING"
         depends_on_json = None
@@ -153,6 +168,7 @@ class JobService:
             backoff_multiplier=job_req.backoff_multiplier,
             timeout_minutes=job_req.timeout_minutes,
             scheduled_job_id=job_req.scheduled_job_id,
+            runtime=job_req.runtime,
             created_at=datetime.utcnow()
         )
         
@@ -161,10 +177,9 @@ class JobService:
         _sig_payload = _hmac_payload.get("signature_payload") if isinstance(_hmac_payload, dict) else None
         _sig_id = _hmac_payload.get("signature_id") if isinstance(_hmac_payload, dict) else None
         if not _sig_payload and not _sig_id:
-            # Fall back to job_req.payload (original, unencrypted)
-            _raw = job_req.payload if isinstance(job_req.payload, dict) else {}
-            _sig_payload = _raw.get("signature_payload")
-            _sig_id = _raw.get("signature_id")
+            # Fall back to payload_dict (original, unencrypted, with runtime merged in)
+            _sig_payload = payload_dict.get("signature_payload")
+            _sig_id = payload_dict.get("signature_id")
         if _sig_payload and _sig_id:
             new_job.signature_hmac = compute_signature_hmac(ENCRYPTION_KEY, _sig_payload, _sig_id, guid)
 
@@ -176,7 +191,7 @@ class JobService:
             await db.rollback()
             raise e
 
-        return {"guid": guid, "status": initial_status, "payload": encrypted_payload, "target_tags": job_req.target_tags, "depends_on": job_req.depends_on}
+        return {"guid": guid, "status": initial_status, "payload": encrypted_payload, "target_tags": job_req.target_tags, "depends_on": job_req.depends_on, "task_type": job_req.task_type, "display_type": _compute_display_type(job_req.task_type, payload_dict)}
 
     @staticmethod
     def _get_effective_tags(node: Node) -> List[str]:

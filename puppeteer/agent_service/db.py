@@ -42,6 +42,7 @@ class Job(Base):
     job_run_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     env_tag: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     signature_hmac: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)  # SEC-02: HMAC-SHA256 tag
+    runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # RT-07: python, bash, powershell
 
 
 class Signature(Base):
@@ -73,6 +74,7 @@ class ScheduledJob(Base):
     backoff_multiplier: Mapped[float] = mapped_column(Float, default=2.0)
     timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     env_tag: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="python")  # RT-07
 
 class Token(Base):
     __tablename__ = "tokens"

@@ -247,6 +247,7 @@ class JobDefinitionUpdate(BaseModel):
     timeout_minutes: Optional[int] = None
     status: Optional[str] = None
     env_tag: Optional[str] = None
+    runtime: Optional[Literal["python", "bash", "powershell"]] = None
 
     @field_validator("status")
     @classmethod
