@@ -1,3 +1,4 @@
+import base64
 import logging
 import uuid
 import json
@@ -31,6 +32,18 @@ def _compute_display_type(task_type: str, payload: dict) -> str:
     return task_type
 
 
+def _encode_cursor(created_at: datetime, guid: str) -> str:
+    """Base64-encode a pagination cursor from (created_at, guid)."""
+    payload = {"ts": created_at.isoformat(), "guid": guid}
+    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
+
+
+def _decode_cursor(cursor: str) -> tuple:
+    """Decode a pagination cursor back to (datetime, guid)."""
+    payload = json.loads(base64.urlsafe_b64decode(cursor).decode())
+    return datetime.fromisoformat(payload["ts"]), payload["guid"]
+
+
 class JobService:
     @staticmethod
     async def _get_zombie_timeout(db: AsyncSession) -> int:
@@ -39,20 +52,129 @@ class JobService:
         return int(cfg.value) if cfg else 30
 
     @staticmethod
-    async def list_jobs(db: AsyncSession, skip: int = 0, limit: int = 50, status: Optional[str] = None) -> List[dict]:
-        """For the Dashboard. Filters system jobs by default."""
-        query = select(Job).where(Job.task_type != 'system_heartbeat')
+    def _build_job_filter_queries(
+        base_query,
+        count_query,
+        *,
+        status: Optional[str] = None,
+        runtime: Optional[str] = None,
+        task_type: Optional[str] = None,
+        node_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        created_by: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        search: Optional[str] = None,
+    ):
+        """Apply 9-axis filter composition to both items query and count query.
+
+        Returns (filtered_base_query, filtered_count_query).
+        All axes compose with AND; tags use OR within the axis.
+        """
         if status and status.upper() != 'ALL':
-            query = query.where(Job.status == status.upper())
-        query = query.order_by(desc(Job.created_at)).offset(skip).limit(limit)
+            f = Job.status == status.upper()
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if runtime:
+            f = Job.runtime == runtime
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if task_type:
+            f = Job.task_type == task_type
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if node_id:
+            f = Job.node_id == node_id
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if tags:
+            # OR logic within axis; exact JSON-quoted match avoids substring ambiguity
+            tag_filters = [Job.target_tags.like(f'%"{t}"%') for t in tags]
+            f = or_(*tag_filters)
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if created_by:
+            f = Job.created_by == created_by
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if date_from:
+            f = Job.created_at >= date_from
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if date_to:
+            f = Job.created_at <= date_to
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        if search:
+            # ILIKE for Postgres; SQLite LIKE is case-insensitive for ASCII by default
+            pattern = f"%{search}%"
+            f = or_(Job.name.ilike(pattern), Job.guid.ilike(pattern))
+            base_query = base_query.where(f)
+            count_query = count_query.where(f)
+
+        return base_query, count_query
+
+    @staticmethod
+    async def list_jobs(
+        db: AsyncSession,
+        limit: int = 50,
+        cursor: Optional[str] = None,
+        status: Optional[str] = None,
+        runtime: Optional[str] = None,
+        task_type: Optional[str] = None,
+        node_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        created_by: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        search: Optional[str] = None,
+    ) -> dict:
+        """Cursor-paginated job list with 9-axis filter composition.
+
+        Returns {"items": List[dict], "total": int, "next_cursor": Optional[str]}.
+        total is computed BEFORE cursor filter so it remains stable across pages.
+        """
+        base_filter = Job.task_type != 'system_heartbeat'
+        query = select(Job).where(base_filter)
+        count_query = select(func.count()).select_from(Job).where(base_filter)
+
+        # Apply all 9 filter axes to both queries
+        query, count_query = JobService._build_job_filter_queries(
+            query, count_query,
+            status=status, runtime=runtime, task_type=task_type,
+            node_id=node_id, tags=tags, created_by=created_by,
+            date_from=date_from, date_to=date_to, search=search,
+        )
+
+        # Count BEFORE cursor filter — total stays stable across "load more"
+        count_result = await db.execute(count_query)
+        total = count_result.scalar_one()
+
+        # Apply cursor WHERE to items query only
+        if cursor:
+            ts, guid_val = _decode_cursor(cursor)
+            cursor_filter = or_(
+                Job.created_at < ts,
+                and_(Job.created_at == ts, Job.guid < guid_val),
+            )
+            query = query.where(cursor_filter)
+
+        query = query.order_by(desc(Job.created_at), desc(Job.guid)).limit(limit)
         result = await db.execute(query)
         jobs = result.scalars().all()
-        
+
         response_jobs = []
         for job in jobs:
             payload = json.loads(job.payload)
-            
-            # Calculate duration
+
             duration = None
             if job.started_at:
                 end = job.completed_at or datetime.utcnow()
@@ -70,8 +192,77 @@ class JobService:
                 "depends_on": json.loads(job.depends_on) if job.depends_on else None,
                 "task_type": job.task_type,
                 "display_type": _compute_display_type(job.task_type, payload),
+                "name": job.name,
+                "created_by": job.created_by,
+                "created_at": job.created_at,
+                "runtime": job.runtime,
             })
-        return response_jobs
+
+        next_cursor = None
+        if len(jobs) == limit:
+            last = jobs[-1]
+            next_cursor = _encode_cursor(last.created_at, last.guid)
+
+        return {"items": response_jobs, "total": total, "next_cursor": next_cursor}
+
+    @staticmethod
+    async def list_jobs_for_export(
+        db: AsyncSession,
+        limit: int = 10_000,
+        status: Optional[str] = None,
+        runtime: Optional[str] = None,
+        task_type: Optional[str] = None,
+        node_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        created_by: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        search: Optional[str] = None,
+    ) -> List[dict]:
+        """Flat metadata-only export list capped at limit rows.
+
+        Does not include payload content, result, or secrets.
+        Returns dicts with: guid, name, status, task_type, display_type, runtime,
+        node_id, created_at, started_at, completed_at, duration_seconds, target_tags.
+        """
+        base_filter = Job.task_type != 'system_heartbeat'
+        query = select(Job).where(base_filter)
+        count_query = select(func.count()).select_from(Job).where(base_filter)
+
+        query, count_query = JobService._build_job_filter_queries(
+            query, count_query,
+            status=status, runtime=runtime, task_type=task_type,
+            node_id=node_id, tags=tags, created_by=created_by,
+            date_from=date_from, date_to=date_to, search=search,
+        )
+
+        query = query.order_by(desc(Job.created_at), desc(Job.guid)).limit(limit)
+        result = await db.execute(query)
+        jobs = result.scalars().all()
+
+        rows = []
+        for job in jobs:
+            payload = json.loads(job.payload)
+            duration = None
+            if job.started_at:
+                end = job.completed_at or datetime.utcnow()
+                duration = (end - job.started_at).total_seconds()
+
+            rows.append({
+                "guid": job.guid,
+                "name": job.name,
+                "status": job.status,
+                "task_type": job.task_type,
+                "display_type": _compute_display_type(job.task_type, payload),
+                "runtime": job.runtime,
+                "node_id": job.node_id,
+                "created_at": job.created_at,
+                "started_at": job.started_at,
+                "completed_at": job.completed_at,
+                "duration_seconds": duration,
+                "target_tags": json.loads(job.target_tags) if job.target_tags else None,
+            })
+        return rows
 
     @staticmethod
     async def _get_dependency_depth(guid: str, db: AsyncSession, current_depth: int = 1) -> int:
