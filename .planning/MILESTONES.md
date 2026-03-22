@@ -1,5 +1,22 @@
 # Milestones
 
+## v11.1 Stack Validation (Shipped: 2026-03-22)
+
+**Phases completed:** 8 phases (38–45), 27 plans
+**Stats:** 387 files changed, +143,856 / -4,366 lines | 134 commits
+**Timeline:** 2026-03-20 → 2026-03-22
+
+**Key accomplishments:**
+- Phase 38 — Teardown + CE install: idempotent soft/hard teardown scripts (PKI-preserving soft, true clean-slate hard); CE verification script covers INST-01 through INST-04 including admin re-seed safety
+- Phase 39 — EE test infrastructure: Ed25519 test keypair generated; `axiom-ee` installed editable with patched public key — no Cython rebuild required; licence lifecycle edge cases (valid/expired/absent) scripted
+- Phase 40 — LXC node provisioning: 4 Incus containers (DEV/TEST/PROD/STAGING) enrolled with unique per-node JOIN_TOKENs via dynamic `incusbr0` bridge IP discovery; revoke/re-enroll cycle verified
+- Phase 41/42 — CE + EE validation: CE stub routes return 402 (7 routes confirmed); 13-table CE assertion; EE raises to 28 tables with all feature flags true; licence startup-gating and RBAC on `/api/licence` verified
+- Phase 43 — Job test matrix: 8/9 scenarios genuinely PASS with 4 live LXC nodes — fast/slow/concurrent/env-routing/promotion/crash/bad-sig/revoked-definition; JOB-07 retry gap documented as known issue
+- Phase 44 — Foundry + Smelter deep pass: STRICT CVE block, bad-base 500, dual-outcome build-dir test, air-gap mirror with iptables isolation, WARNING mode — all 6 scripts correctly SKIP on CE stack
+- Phase 45 — Gap synthesis: 11 findings across the validation run (0 critical, 2 major, 9 minor); 4 patched inline with regression tests; v12.0+ backlog seeded with MIN-06/07/08/WARN-08
+
+---
+
 ## v11.0 CE/EE Split Completion (Shipped: 2026-03-20)
 
 **Phases completed:** 4 phases (34–37), 15 plans

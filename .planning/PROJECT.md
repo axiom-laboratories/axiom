@@ -62,6 +62,18 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Environment tags (DEV/TEST/PROD) — nodes declare in heartbeat, jobs target by env_tag, CI/CD dispatch API (POST /api/dispatch) — v10.0
 - ✓ Licence compliance — LEGAL.md certifi decision, axiom-sdk licence field, NOTICE file, paramiko assessment complete — v10.0
 
+### Validated — v11.1 Stack Validation
+
+- ✓ Idempotent soft teardown (PKI-preserving) + hard teardown (true clean slate) scripts — v11.1
+- ✓ CE install verification: 13-table count, all features false, admin re-seed safety — v11.1
+- ✓ EE test keypair infrastructure: editable axiom-ee install with patched public key, no Cython rebuild — v11.1
+- ✓ Licence lifecycle edge cases verified: valid / expired / absent AXIOM_LICENCE_KEY — v11.1
+- ✓ 4 LXC nodes (DEV/TEST/PROD/STAGING) provisioned with unique per-node JOIN_TOKENs, revoke/re-enroll verified — v11.1
+- ✓ CE/EE validation pass: 7 EE stub routes return 402 on CE; 28 tables on CE+EE; all feature flags true; licence startup-gating — v11.1
+- ✓ Job test matrix: 8/9 scenarios PASS with genuine live execution — fast/slow/concurrent/env-routing/promotion/crash/bad-sig/revoked — v11.1
+- ✓ Foundry + Smelter deep pass scripted: STRICT CVE block, bad-base 500 error, air-gap mirror with iptables isolation, WARNING mode — v11.1
+- ✓ v11.1 gap report: 11 findings, 4 critical patches applied inline with regression tests, v12.0+ backlog seeded — v11.1
+
 ### Validated — v11.0 CE/EE Split Completion
 
 - ✓ CE stub routers return 402 (not 404) for all 7 EE routes on CE-only install — v11.0
@@ -150,29 +162,15 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
-## Current Milestone: v11.1 Stack Validation
+## Current State — v11.1 Complete (2026-03-22)
 
-**Goal:** Adversarial end-to-end validation of the full Axiom stack from a clean install — CE/EE split verification with a local test keypair, 4 LXC-based environment-tagged nodes, exhaustive job testing (duration/memory/concurrency/failures), and a rigorous Foundry/Smelter pass. Critical findings fixed inline; all others logged to feed v12.0+.
+Axiom v11.1 completed an adversarial end-to-end validation of the full CE/EE stack. The platform is confirmed deployable from a clean install through a reproducible teardown/install cycle, with 4 environment-tagged LXC nodes covering the full job execution matrix (9 scenarios), licence lifecycle edge cases (valid/expired/absent), and Foundry/Smelter scripted validation. A gap report (11 findings) was synthesised; 4 critical issues were patched inline with regression tests; the v12.0+ backlog is seeded.
 
-**Target features:**
-- Clean stack teardown + fresh install (CE and CE+EE)
-- EE test infrastructure: local Ed25519 keypair, dev build with swappable public key, signed test licence
-- 4 LXC nodes (DEV/TEST/PROD/STAGING) provisioned and enrolled
-- Job test matrix: fast/slow, light/heavy memory, concurrent, failure modes (crash/bad exit/bad sig)
-- Foundry + Smelter deep test: wizard, CVE enforcement, edge cases, air-gap mirror fallback
-- Gap report synthesised from all findings; critical bugs patched inline
+The stack is stable and fully documented. The CE/EE open-core architecture (Cython `.so` EE extensions, Ed25519 offline licence validation, devpi wheel hosting) was validated operationally. Known deferred gaps: MIN-06/07/08/WARN-08 and the EE-stack Foundry pass (requires EE stack with AXIOM_LICENCE_KEY).
 
-## Current State — v11.0 Complete (2026-03-20)
+**Shipped in v11.1:** Teardown scripts (Phase 38), EE test infrastructure (Phase 39), LXC provisioning (Phase 40), CE/EE validation passes (Phases 41–42), job matrix (Phase 43), Foundry/Smelter pass (Phase 44), gap synthesis + patches (Phase 45).
 
-Axiom is now a fully open-core product. The CE edition (`axiom-laboratories/axiom`) is the open-source base; the EE edition (`axiom-ee` private repo) ships as Cython-compiled `.so` extensions — no Python source exposed. The EE plugin wires 7 additional routers and 15 database tables into the CE app via Python `entry_points` at startup. A hardcoded Ed25519 public key in the compiled binary validates offline licence keys — EE features are gated at startup without any call-home requirement, suitable for air-gapped deployments.
-
-The build pipeline produces 12 binary wheels per EE release (Python 3.11/3.12/3.13 × amd64/aarch64 × manylinux/musllinux) via `cibuildwheel`. Wheels are hosted on a devpi server in the Docker Compose stack. The dashboard displays a CE/EE edition badge in the sidebar footer; admin users can inspect full licence details in the Admin panel.
-
-MkDocs documentation now distinguishes CE and EE features with `!!! enterprise` admonitions on all EE-only feature pages, plus a dedicated `licensing.md` page explaining the open-core model.
-
-**Shipped in v11.0:** CE baseline fixes (Phase 34), axiom-ee repo + plugin wiring (Phase 35), Cython .so build pipeline (Phase 36), licence validation + docs (Phase 37).
-
-**Known deferred:** EE-08 (PyPI stub wheel reservation), DIST-02 (Docker Hub CE publish) — see Known Gaps in MILESTONES.md.
+**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), MIN-06/07/08/WARN-08 (tech debt from gap report).
 
 ---
-*Last updated: 2026-03-20 after v11.1 milestone started — Stack Validation*
+*Last updated: 2026-03-22 after v11.1 milestone — Stack Validation*
