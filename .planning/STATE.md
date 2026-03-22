@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v11.1
 milestone_name: — Stack Validation
 status: planning
-stopped_at: Completed 45-01-PLAN.md (v11.1 gap report written)
-last_updated: "2026-03-22T12:35:21.018Z"
+stopped_at: Completed 45-02-PLAN.md
+last_updated: "2026-03-22T12:38:41.744Z"
 last_activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 27
-  completed_plans: 26
+  completed_plans: 27
   percent: 0
 ---
 
@@ -70,6 +70,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 44-foundry-smelter-deep-pass P03 | 2m | 1 tasks | 1 files |
 | Phase 44-foundry-smelter-deep-pass P05 | 2min | 2 tasks | 1 files |
 | Phase 45-gap-report-synthesis-critical-fixes P01 | 8m | 1 tasks | 1 files |
+| Phase 45-gap-report-synthesis-critical-fixes P02 | 6m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 44]: All 6 FOUNDRY scripts [SKIP] because stack is running CE build (AXIOM_LICENCE_KEY not set) — SKIP exits 0 so matrix reports 6/6 passed
 - [Phase 44]: FOUNDRY-04 MIN-7 gap and FOUNDRY-06 audit log gap deferred to EE stack run; CE stack cannot exercise them
 - [Phase Phase 45]: v11.1 gap report: 11 findings (0 critical, 2 major, 9 minor). 4 closed with commits (app.state.licence, EE expiry bypass, retriable=True, global declaration). 5 deferred to v12.0+ (FOUNDRY-06 audit gap, node_id attribution, verify key drift, MIN-08, WARN-08).
+- [Phase 45-gap-report-synthesis-critical-fixes]: 45-02: EE model stubs injected via sys.modules for CE testing — Blueprint/PuppetTemplate not in CE db.py; MagicMock() instances used; select() patched to avoid SQLAlchemy ArgumentError
 
 ### Pending Todos
 
@@ -153,7 +155,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T12:35:21.016Z
-Stopped at: Completed 45-01-PLAN.md (v11.1 gap report written)
+Last session: 2026-03-22T12:38:41.742Z
+Stopped at: Completed 45-02-PLAN.md
 Next action: `/gsd:plan-phase 38`
 Resume file: None

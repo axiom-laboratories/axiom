@@ -66,7 +66,7 @@ Requirements for the Stack Validation milestone — adversarial end-to-end valid
 ### Gap Report
 
 - [x] **GAP-01**: Living gap report maintained throughout validation (`mop_validation/reports/v11.1-gap-report.md`) — every finding logged with severity (critical/major/minor), area, reproduction steps, and v12.0+ fix candidate
-- [ ] **GAP-02**: All critical findings (duplicate execution race, silent build success on failure, admin re-seed) patched inline during the milestone with accompanying regression test
+- [x] **GAP-02**: All critical findings (duplicate execution race, silent build success on failure, admin re-seed) patched inline during the milestone with accompanying regression test
 - [x] **GAP-03**: Final gap report summarised with prioritised backlog for v12.0+ milestone planning
 
 ## Future Requirements
@@ -131,7 +131,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUNDRY-05 | Phase 44 | Complete |
 | FOUNDRY-06 | Phase 44 | Complete |
 | GAP-01 | Phase 45 | Complete |
-| GAP-02 | Phase 45 | Pending |
+| GAP-02 | Phase 45 | Complete |
 | GAP-03 | Phase 45 | Complete |
 
 **Coverage:**

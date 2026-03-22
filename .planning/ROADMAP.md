@@ -89,7 +89,7 @@ Archive: `.planning/milestones/v11.0-ROADMAP.md`
 - [x] **Phase 42: EE Validation Pass** — CE+EE combined install, 28-table assertion, licence gating, admin endpoint RBAC (completed 2026-03-21)
 - [x] **Phase 43: Job Test Matrix** — 9 job scenarios: fast/slow/memory/concurrent/env-routing/promotion/crash/bad-sig/revoked-definition (completed 2026-03-21)
 - [x] **Phase 44: Foundry + Smelter Deep Pass** — Full wizard flow, STRICT/WARNING modes, build failure edge case, air-gap mirror, build dir cleanup (completed 2026-03-22)
-- [ ] **Phase 45: Gap Report Synthesis + Critical Fixes** — Living gap report, inline critical patches with regression tests, prioritised v12.0+ backlog
+- [x] **Phase 45: Gap Report Synthesis + Critical Fixes** — Living gap report, inline critical patches with regression tests, prioritised v12.0+ backlog (completed 2026-03-22)
 
 ## Phase Details
 
@@ -257,7 +257,7 @@ Plans:
 | 42. EE Validation Pass | 2/2 | Complete    | 2026-03-21 | - |
 | 43. Job Test Matrix | 8/8 | Complete    | 2026-03-21 | - |
 | 44. Foundry + Smelter Deep Pass | 5/5 | Complete    | 2026-03-22 | - |
-| 45. Gap Report Synthesis + Critical Fixes | 1/2 | In Progress|  | - |
+| 45. Gap Report Synthesis + Critical Fixes | 2/2 | Complete   | 2026-03-22 | - |
 
 ---
 
