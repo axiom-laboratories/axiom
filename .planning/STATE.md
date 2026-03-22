@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v12.0
-milestone_name: (not yet defined)
-status: milestone_complete
-stopped_at: v11.1 milestone archived
+milestone_name: Operator Maturity
+status: defining_requirements
+stopped_at: Requirements defined, roadmap pending
 last_updated: "2026-03-22T00:00:00.000Z"
-last_activity: 2026-03-22 — v11.1 milestone complete and archived
+last_activity: 2026-03-22 — Milestone v12.0 started, requirements defined
 progress:
   total_phases: 0
   completed_phases: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone (v12.0+)
+**Current focus:** v12.0 — Operator Maturity
 
 ## Current Position
 
-Phase: 38 of 45 (Clean Teardown + Fresh CE Install)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-20 — Roadmap created for v11.1 (Phases 38–45)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-22 — Milestone v12.0 started
 
 Progress: [░░░░░░░░░░] 0%
 

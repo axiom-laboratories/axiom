@@ -162,6 +162,23 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
+## Current Milestone: v12.0 — Operator Maturity
+
+**Goal:** Make the day-to-day operator experience materially better — multi-runtime job execution, guided job form, failure visibility, queue diagnosis, bulk operations, search/filtering/pagination, and a tech debt sweep.
+
+**Target features:**
+- CE runtime expansion (Python/Bash/PowerShell unified `script` task type)
+- Guided job form + Advanced mode + job detail drawer + resubmit
+- Bulk job operations (cancel/resubmit/delete)
+- PENDING diagnosis + live Queue dashboard + node detail drawer + DRAINING
+- Scheduling Health panel on Dashboard; scheduled job DRAFT state for stale signing
+- Server-side pagination + 9-axis job filtering + job templates + execution retention
+- Tech debt: MIN-06/07/08, WARN-08
+- Security: SECURITY_REJECTED audit log, HMAC signature payload integrity
+- EE UI label rename (Blueprint → Image Recipe, PuppetTemplate → Node Image)
+
+---
+
 ## Current State — v11.1 Complete (2026-03-22)
 
 Axiom v11.1 completed an adversarial end-to-end validation of the full CE/EE stack. The platform is confirmed deployable from a clean install through a reproducible teardown/install cycle, with 4 environment-tagged LXC nodes covering the full job execution matrix (9 scenarios), licence lifecycle edge cases (valid/expired/absent), and Foundry/Smelter scripted validation. A gap report (11 findings) was synthesised; 4 critical issues were patched inline with regression tests; the v12.0+ backlog is seeded.
@@ -170,7 +187,7 @@ The stack is stable and fully documented. The CE/EE open-core architecture (Cyth
 
 **Shipped in v11.1:** Teardown scripts (Phase 38), EE test infrastructure (Phase 39), LXC provisioning (Phase 40), CE/EE validation passes (Phases 41–42), job matrix (Phase 43), Foundry/Smelter pass (Phase 44), gap synthesis + patches (Phase 45).
 
-**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), MIN-06/07/08/WARN-08 (tech debt from gap report).
+**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), MIN-06/07/08/WARN-08 (tech debt from gap report — addressed in v12.0).
 
 ---
-*Last updated: 2026-03-22 after v11.1 milestone — Stack Validation*
+*Last updated: 2026-03-22 after v12.0 milestone started — Operator Maturity*
