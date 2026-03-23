@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import GuidedDispatchCard from '../../components/GuidedDispatchCard';
@@ -191,22 +190,129 @@ describe('GuidedDispatchCard', () => {
         });
     });
 
-    // JOB-03: advanced mode stubs (Plan 03 — not yet implemented)
+    // JOB-03: advanced mode stubs
 
-    it('ADV button shows confirmation dialog before switching to Advanced mode', () => {
-        throw new Error('not implemented');
+    it('ADV button shows confirmation dialog before switching to Advanced mode', async () => {
+        render(<GuidedDispatchCard {...defaultProps} />);
+        await waitFor(() => {});
+
+        // ADV button should be visible initially
+        const advBtn = screen.getByRole('button', { name: /advanced mode/i });
+        expect(advBtn).toBeDefined();
+
+        // Dialog should not be open yet
+        expect(screen.queryByText(/switch to advanced mode/i)).toBeNull();
+
+        // Click ADV — dialog opens
+        fireEvent.click(advBtn);
+
+        await waitFor(() => {
+            expect(screen.getByText(/switch to advanced mode\?/i)).toBeDefined();
+        });
+
+        // Cancel — dialog closes, guided form still visible
+        fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+        await waitFor(() => {
+            expect(screen.queryByText(/switch to advanced mode\?/i)).toBeNull();
+        });
+
+        // Guided form elements still present
+        expect(screen.getByLabelText(/script content/i)).toBeDefined();
     });
 
-    it('confirming Advanced mode pre-fills JSON editor with serialised guided form values', () => {
-        throw new Error('not implemented');
+    it('confirming Advanced mode pre-fills JSON editor with serialised guided form values', async () => {
+        render(<GuidedDispatchCard {...defaultProps} />);
+        await waitFor(() => {});
+
+        // Fill in a name so the payload has something identifiable
+        const nameInput = screen.getByPlaceholderText(/job name/i);
+        fireEvent.change(nameInput, { target: { value: 'test-job' } });
+
+        // Click ADV
+        const advBtn = screen.getByRole('button', { name: /advanced mode/i });
+        fireEvent.click(advBtn);
+
+        await waitFor(() => {
+            expect(screen.getByText(/switch to advanced mode\?/i)).toBeDefined();
+        });
+
+        // Confirm switch
+        fireEvent.click(screen.getByRole('button', { name: /switch to advanced/i }));
+
+        await waitFor(() => {
+            // Advanced JSON textarea should be visible
+            const textarea = screen.getByLabelText(/advanced json payload/i) as HTMLTextAreaElement;
+            expect(textarea).toBeDefined();
+            // Should contain the serialised name field
+            expect(textarea.value).toContain('test-job');
+            expect(textarea.value).toContain('task_type');
+        });
     });
 
-    it('Dispatch button is disabled in Advanced mode when JSON is invalid', () => {
-        throw new Error('not implemented');
+    it('Dispatch button is disabled in Advanced mode when JSON is invalid', async () => {
+        render(<GuidedDispatchCard {...defaultProps} />);
+        await waitFor(() => {});
+
+        // Switch to advanced mode
+        fireEvent.click(screen.getByRole('button', { name: /advanced mode/i }));
+        await waitFor(() => screen.getByText(/switch to advanced mode\?/i));
+        fireEvent.click(screen.getByRole('button', { name: /switch to advanced/i }));
+
+        await waitFor(() => {
+            expect(screen.getByLabelText(/advanced json payload/i)).toBeDefined();
+        });
+
+        // Clear the textarea to make it invalid JSON
+        const textarea = screen.getByLabelText(/advanced json payload/i) as HTMLTextAreaElement;
+        fireEvent.change(textarea, { target: { value: 'not valid json {{{' } });
+
+        await waitFor(() => {
+            expect(screen.getByText(/invalid json/i)).toBeDefined();
+        });
+
+        // Dispatch button should be disabled (wrapped in tooltip span)
+        const dispatchBtn = screen.getByRole('button', { name: /dispatch job/i });
+        expect(dispatchBtn).toBeDisabled();
     });
 
-    it('Reset button in Advanced mode shows confirmation dialog and returns to blank guided form', () => {
-        throw new Error('not implemented');
+    it('Reset button in Advanced mode shows confirmation dialog and returns to blank guided form', async () => {
+        render(<GuidedDispatchCard {...defaultProps} />);
+        await waitFor(() => {});
+
+        // Fill name before switching
+        const nameInput = screen.getByPlaceholderText(/job name/i);
+        fireEvent.change(nameInput, { target: { value: 'my-job' } });
+
+        // Switch to advanced
+        fireEvent.click(screen.getByRole('button', { name: /advanced mode/i }));
+        await waitFor(() => screen.getByText(/switch to advanced mode\?/i));
+        fireEvent.click(screen.getByRole('button', { name: /switch to advanced/i }));
+
+        await waitFor(() => {
+            expect(screen.getByLabelText(/advanced json payload/i)).toBeDefined();
+        });
+
+        // Guided mode button should now be "← Guided"
+        const guidedBtn = screen.getByRole('button', { name: /return to guided mode/i });
+        expect(guidedBtn).toBeDefined();
+        fireEvent.click(guidedBtn);
+
+        // Reset confirmation dialog — check for the title specifically (role="heading")
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: /return to guided mode\?/i })).toBeDefined();
+        });
+
+        // Confirm reset
+        fireEvent.click(screen.getByRole('button', { name: /^reset$/i }));
+
+        await waitFor(() => {
+            // Back to guided form — script textarea visible
+            expect(screen.getByLabelText(/script content/i)).toBeDefined();
+            // Name should be blank (form reset)
+            const nameField = screen.getByPlaceholderText(/job name/i) as HTMLInputElement;
+            expect(nameField.value).toBe('');
+        });
     });
 
 });
