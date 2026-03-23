@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 51-01-PLAN.md (Wave 0 scaffold)
-last_updated: "2026-03-23T14:10:27.696Z"
+stopped_at: Completed 51-02-PLAN.md
+last_updated: "2026-03-23T14:14:21.929Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 22
-  completed_plans: 19
+  completed_plans: 20
   percent: 0
 ---
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 50-guided-job-form P02 | 6min | 2 tasks | 3 files |
 | Phase 50-guided-job-form P03 | 3 | 1 tasks | 2 files |
 | Phase 51-job-detail-resubmit-and-bulk-ops P01 | 3min | 3 tasks | 7 files |
+| Phase 51-job-detail-resubmit-and-bulk-ops P02 | 15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 50-guided-job-form]: GuidedDispatchCard: targetNodeId prepended to target_tags list (not separate field) to match JobCreate model; stale sig detection via prevScriptRef; ADV placeholder for Plan 03
 - [Phase 50-guided-job-form]: Advanced mode gate: @radix-ui/react-tooltip imported directly (no ui/tooltip.tsx wrapper); pendingAdvSwitch/pendingAdvReset state controls two confirmation Dialog gates; advancedJsonError useMemo provides real-time JSON schema validation
 - [Phase 51]: it.todo() used for BULK-01 frontend stubs — vitest marks as todo not skip; @radix-ui/react-checkbox installed via npm --save (was absent from package.json)
+- [Phase 51-job-detail-resubmit-and-bulk-ops]: Bulk endpoints placed before /{guid} routes to prevent FastAPI routing ambiguity
+- [Phase 51-job-detail-resubmit-and-bulk-ops]: get_current_user override used in tests (not require_permission) since admin bypasses RBAC
 
 ### Pending Todos
 
@@ -114,7 +117,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:10:27.694Z
-Stopped at: Completed 51-01-PLAN.md (Wave 0 scaffold)
+Last session: 2026-03-23T14:14:21.926Z
+Stopped at: Completed 51-02-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None
