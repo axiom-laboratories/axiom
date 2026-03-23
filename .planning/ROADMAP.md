@@ -239,7 +239,7 @@ Plans:
   5. Operator can download all execution records for a specific job as a CSV file from the job detail drawer
 **Plans**: 6 plans
 Plans:
-- [ ] 53-01-PLAN.md — Wave 0 test stubs: all 7 failing stubs for Phase 53 requirements
+- [x] 53-01-PLAN.md — Wave 0 test stubs: all 7 failing stubs for Phase 53 requirements (completed 2026-03-23)
 - [ ] 53-02-PLAN.md — DB schema: ScheduledFireLog, JobTemplate, ExecutionRecord.pinned, ScheduledJob.allow_overlap + dispatch_timeout_minutes, migration_v43.sql
 - [ ] 53-03-PLAN.md — Backend health: APScheduler fire log hooks, GET /health/scheduling, dispatch timeout sweeper (VIS-05, VIS-06)
 - [ ] 53-04-PLAN.md — Backend templates/retention/pin/export: job templates CRUD, pin/unpin, admin retention config, per-job CSV export (SRCH-06, SRCH-07, SRCH-08, SRCH-09, SRCH-10)
