@@ -20,7 +20,8 @@ import {
     Zap,
     ChevronRight,
     CheckCircle2,
-    Loader2
+    Loader2,
+    PauseCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,8 +50,9 @@ import {
 import AddNodeModal from '../components/AddNodeModal';
 import ManageMountsModal from '../components/ManageMountsModal';
 import HotUpgradeModal from '../components/HotUpgradeModal';
-import { authenticatedFetch } from '../auth';
+import { authenticatedFetch, getUser } from '../auth';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 interface NodeStats {
     cpu: number;
@@ -67,7 +69,7 @@ interface Node {
     node_id: string;
     hostname: string;
     ip: string;
-    status: 'ONLINE' | 'OFFLINE' | 'BUSY' | 'REVOKED' | 'TAMPERED';
+    status: 'ONLINE' | 'OFFLINE' | 'BUSY' | 'REVOKED' | 'TAMPERED' | 'DRAINING';
     last_seen: string;
     base_os_family?: string;
     stats?: NodeStats;
@@ -80,6 +82,13 @@ interface Node {
     job_memory_limit?: string;
     stats_history?: StatPoint[];
     env_tag?: string;
+}
+
+interface NodeDetail {
+    running_job: { guid: string; status: string; task_type: string; name?: string; runtime?: string } | null;
+    eligible_pending_jobs: Array<{ guid: string; status: string; task_type: string; name?: string; created_at: string }>;
+    recent_history: Array<{ guid: string; status: string; task_type: string; name?: string; completed_at: string }>;
+    capabilities: Record<string, string>;
 }
 
 interface PaginatedNodeResponse {
@@ -305,21 +314,27 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
         }
     };
 
+    const isDraining = node.status === 'DRAINING';
+
     const statusDot = isOnline
         ? <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-        : isTampered
-            ? <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
-            : isRevoked
-                ? <div className="h-2 w-2 rounded-full bg-amber-500" />
-                : <div className="h-2 w-2 rounded-full bg-red-500" />;
+        : isDraining
+            ? <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            : isTampered
+                ? <div className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+                : isRevoked
+                    ? <div className="h-2 w-2 rounded-full bg-amber-500" />
+                    : <div className="h-2 w-2 rounded-full bg-red-500" />;
 
     const statusIcon = isOnline
         ? <ShieldCheck className="h-4 w-4 text-green-500" />
-        : isTampered
-            ? <ShieldAlert className="h-4 w-4 text-red-600 animate-pulse" />
-            : isRevoked
-                ? <Ban className="h-4 w-4 text-amber-500" />
-                : <AlertTriangle className="h-4 w-4 text-red-500" />;
+        : isDraining
+            ? <PauseCircle className="h-4 w-4 text-amber-500" />
+            : isTampered
+                ? <ShieldAlert className="h-4 w-4 text-red-600 animate-pulse" />
+                : isRevoked
+                    ? <Ban className="h-4 w-4 text-amber-500" />
+                    : <AlertTriangle className="h-4 w-4 text-red-500" />;
 
     return (
         <Card className={`overflow-hidden bg-zinc-925 border-zinc-800/50 ${isRevoked ? 'opacity-70' : ''}`}>
@@ -365,6 +380,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                         {node.hostname}
                         {statusDot}
                         {isRevoked && <span className="text-[10px] font-mono text-amber-500 border border-amber-500/30 rounded px-1">REVOKED</span>}
+                        {isDraining && <span className="text-[10px] font-mono text-amber-400 border border-amber-400/30 rounded px-1">DRAINING</span>}
                         {node.env_tag && (
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getEnvTagBadgeClass(node.env_tag)}`}>
                                 {node.env_tag.toUpperCase()}
@@ -450,7 +466,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
             </CardContent>
 
             <Separator className="bg-zinc-800" />
-            <CardFooter className="px-4 py-2 flex items-center justify-between gap-2">
+            <CardFooter className="px-4 py-2 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
                 {editing ? (
                     <div className="flex flex-col gap-2 w-full">
                         <div className="flex items-center gap-1.5 w-full">
@@ -544,11 +560,18 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
 
 const Nodes = () => {
     const queryClient = useQueryClient();
+    const currentUser = getUser();
     const [showAddModal, setShowAddModal] = useState(false);
     const [showMountsModal, setShowMountsModal] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [page, setPage] = useState(1);
+
+    // Node detail drawer state
+    const [drawerNode, setDrawerNode] = useState<Node | null>(null);
+    const [nodeDrawerOpen, setNodeDrawerOpen] = useState(false);
+    const [nodeDetail, setNodeDetail] = useState<NodeDetail | null>(null);
+    const [nodeDetailLoading, setNodeDetailLoading] = useState(false);
 
     const { data: pageData, isLoading } = useQuery({
         queryKey: ['nodes', page],
@@ -561,8 +584,44 @@ const Nodes = () => {
     const totalPages = pageData?.pages ?? 1;
 
     useWebSocket((event) => {
-        if (event === 'node:heartbeat') queryClient.invalidateQueries({ queryKey: ['nodes', page] });
+        if (event === 'node:heartbeat' || event === 'node:updated') queryClient.invalidateQueries({ queryKey: ['nodes', page] });
     });
+
+    const handleNodeClick = async (node: Node) => {
+        setDrawerNode(node);
+        setNodeDrawerOpen(true);
+        setNodeDetail(null);
+        setNodeDetailLoading(true);
+        try {
+            const res = await authenticatedFetch(`/nodes/${node.node_id}/detail`);
+            if (res.ok) setNodeDetail(await res.json());
+        } catch { /* non-critical */ }
+        finally { setNodeDetailLoading(false); }
+    };
+
+    const handleDrain = async (nodeId: string) => {
+        const res = await authenticatedFetch(`/nodes/${nodeId}/drain`, { method: 'PATCH' });
+        if (res.ok) {
+            toast.success('Node set to DRAINING');
+            setNodeDrawerOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['nodes'] });
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast.error((err as any).detail || 'Failed to drain node');
+        }
+    };
+
+    const handleUndrain = async (nodeId: string) => {
+        const res = await authenticatedFetch(`/nodes/${nodeId}/undrain`, { method: 'PATCH' });
+        if (res.ok) {
+            toast.success('Node returned to ONLINE');
+            setNodeDrawerOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['nodes'] });
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast.error((err as any).detail || 'Failed to undrain node');
+        }
+    };
 
     const [envFilter, setEnvFilter] = useState<string>('ALL');
 
@@ -624,11 +683,16 @@ const Nodes = () => {
                     ))
                 ) : displayNodes.length ? (
                     displayNodes.map(node => (
-                        <NodeCard
+                        <div
                             key={node.node_id}
-                            node={node}
-                            onUpgrade={(n) => { setSelectedNode(n); setShowUpgradeModal(true); }}
-                        />
+                            onClick={() => handleNodeClick(node)}
+                            className="cursor-pointer"
+                        >
+                            <NodeCard
+                                node={node}
+                                onUpgrade={(n) => { setSelectedNode(n); setShowUpgradeModal(true); }}
+                            />
+                        </div>
                     ))
                 ) : (
                     <div className="col-span-full py-20 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
@@ -678,12 +742,119 @@ const Nodes = () => {
             <AddNodeModal open={showAddModal} onOpenChange={setShowAddModal} />
             <ManageMountsModal open={showMountsModal} onOpenChange={setShowMountsModal} />
             {selectedNode && (
-                <HotUpgradeModal 
-                    node={selectedNode} 
-                    open={showUpgradeModal} 
-                    onOpenChange={setShowUpgradeModal} 
+                <HotUpgradeModal
+                    node={selectedNode}
+                    open={showUpgradeModal}
+                    onOpenChange={setShowUpgradeModal}
                 />
             )}
+
+            {/* Node Detail Drawer */}
+            <Sheet open={nodeDrawerOpen} onOpenChange={setNodeDrawerOpen}>
+                <SheetContent className="bg-zinc-900 border-zinc-800 text-white w-full sm:max-w-xl overflow-y-auto">
+                    <SheetHeader className="pb-4 border-b border-zinc-800">
+                        <SheetTitle className="text-white flex items-center gap-2">
+                            <Server className="h-4 w-4" /> {drawerNode?.hostname}
+                        </SheetTitle>
+                        <SheetDescription className="font-mono text-zinc-500 text-xs">
+                            {drawerNode?.node_id}
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <div className="space-y-6 pt-6">
+                        {/* Drain / Un-drain action — admin only */}
+                        {currentUser?.role === 'admin' && drawerNode && (
+                            drawerNode.status === 'DRAINING'
+                                ? (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full border-green-500/40 text-green-400 hover:bg-green-500/10 hover:text-green-300"
+                                        onClick={() => handleUndrain(drawerNode.node_id)}
+                                    >
+                                        <RotateCcw className="mr-2 h-4 w-4" /> Un-drain Node
+                                    </Button>
+                                )
+                                : (drawerNode.status === 'ONLINE' || drawerNode.status === 'BUSY') && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                                        onClick={() => handleDrain(drawerNode.node_id)}
+                                    >
+                                        <PauseCircle className="mr-2 h-4 w-4" /> Drain Node
+                                    </Button>
+                                )
+                        )}
+
+                        {/* Running job */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Running Job</h3>
+                            {nodeDetailLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                            ) : nodeDetail?.running_job ? (
+                                <div className="font-mono text-xs text-zinc-300 bg-zinc-800 p-2 rounded">
+                                    <span className="text-zinc-400">{nodeDetail.running_job.name || nodeDetail.running_job.guid}</span>
+                                    <Badge variant="outline" className="ml-2 text-[10px] border-yellow-500/30 text-yellow-400">
+                                        {nodeDetail.running_job.status}
+                                    </Badge>
+                                </div>
+                            ) : (
+                                <p className="text-xs text-zinc-500">No job currently running</p>
+                            )}
+                        </div>
+
+                        {/* Eligible pending jobs */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">
+                                Eligible Pending Jobs ({nodeDetail?.eligible_pending_jobs?.length ?? 0})
+                            </h3>
+                            {!nodeDetailLoading && nodeDetail?.eligible_pending_jobs?.length === 0 && (
+                                <p className="text-xs text-zinc-500">No pending jobs eligible for this node</p>
+                            )}
+                            {nodeDetail?.eligible_pending_jobs?.slice(0, 10).map(j => (
+                                <div key={j.guid} className="text-xs text-zinc-400 font-mono py-1 border-b border-zinc-800">
+                                    {j.name || j.guid.slice(0, 8)}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Recent history */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Recent History (24h)</h3>
+                            {!nodeDetailLoading && nodeDetail?.recent_history?.length === 0 && (
+                                <p className="text-xs text-zinc-500">No completed jobs in the last 24 hours</p>
+                            )}
+                            {nodeDetail?.recent_history?.slice(0, 10).map(j => (
+                                <div key={j.guid} className="flex items-center justify-between text-xs py-1 border-b border-zinc-800">
+                                    <span className="font-mono text-zinc-400">{j.name || j.guid.slice(0, 8)}</span>
+                                    <Badge
+                                        variant="outline"
+                                        className={j.status === 'COMPLETED' ? 'border-green-500/30 text-green-400' : 'border-red-500/30 text-red-400'}
+                                    >
+                                        {j.status}
+                                    </Badge>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Capabilities */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Capabilities</h3>
+                            {Object.keys(nodeDetail?.capabilities ?? {}).length === 0
+                                ? <p className="text-xs text-zinc-500">No capabilities reported</p>
+                                : (
+                                    <div className="flex flex-wrap gap-1">
+                                        {Object.entries(nodeDetail?.capabilities ?? {}).map(([name, ver]) => (
+                                            <Badge key={name} variant="outline" className="text-xs border-zinc-600 text-zinc-300">
+                                                {name} {ver}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )
+                            }
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 };
