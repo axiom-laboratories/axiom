@@ -888,7 +888,7 @@ async def health_check():
     return {"status": "healthy", "service": "Agent Service v0.7"}
 
 
-@app.get("/health/scheduling", response_model=SchedulingHealthResponse, tags=["Health"])
+@app.get("/api/health/scheduling", response_model=SchedulingHealthResponse, tags=["Health"])
 async def get_scheduling_health_endpoint(
     window: str = "24h",
     current_user: User = Depends(require_permission("jobs:read")),
@@ -2146,7 +2146,7 @@ EXEC_CSV_HEADERS = ["job_guid", "node_id", "status", "exit_code",
                     "started_at", "completed_at", "duration_s", "attempt_number", "pinned"]
 
 
-@app.post("/job-templates", status_code=201, tags=["Job Templates"])
+@app.post("/api/job-templates", status_code=201, tags=["Job Templates"])
 async def create_job_template(
     body: JobTemplateCreate,
     current_user: User = Depends(require_permission("jobs:write")),
@@ -2174,7 +2174,7 @@ async def create_job_template(
     }
 
 
-@app.get("/job-templates", tags=["Job Templates"])
+@app.get("/api/job-templates", tags=["Job Templates"])
 async def list_job_templates(
     current_user: User = Depends(require_permission("jobs:read")),
     db: AsyncSession = Depends(get_db),
@@ -2199,7 +2199,7 @@ async def list_job_templates(
     ]
 
 
-@app.get("/job-templates/{template_id}", tags=["Job Templates"])
+@app.get("/api/job-templates/{template_id}", tags=["Job Templates"])
 async def get_job_template(
     template_id: str,
     current_user: User = Depends(require_permission("jobs:read")),
@@ -2222,7 +2222,7 @@ async def get_job_template(
     }
 
 
-@app.patch("/job-templates/{template_id}", tags=["Job Templates"])
+@app.patch("/api/job-templates/{template_id}", tags=["Job Templates"])
 async def update_job_template(
     template_id: str,
     body: JobTemplateUpdate,
@@ -2252,7 +2252,7 @@ async def update_job_template(
     }
 
 
-@app.delete("/job-templates/{template_id}", status_code=204, tags=["Job Templates"])
+@app.delete("/api/job-templates/{template_id}", status_code=204, tags=["Job Templates"])
 async def delete_job_template(
     template_id: str,
     current_user: User = Depends(require_permission("jobs:write")),
@@ -2271,7 +2271,7 @@ async def delete_job_template(
 
 # --- Execution Pin/Unpin (SRCH-09) ---
 
-@app.patch("/executions/{exec_id}/pin", tags=["Execution Records"])
+@app.patch("/api/executions/{exec_id}/pin", tags=["Execution Records"])
 async def pin_execution(
     exec_id: int,
     current_user: User = Depends(require_permission("jobs:write")),
@@ -2288,7 +2288,7 @@ async def pin_execution(
     return {"id": exec_id, "pinned": True}
 
 
-@app.patch("/executions/{exec_id}/unpin", tags=["Execution Records"])
+@app.patch("/api/executions/{exec_id}/unpin", tags=["Execution Records"])
 async def unpin_execution(
     exec_id: int,
     current_user: User = Depends(require_permission("jobs:write")),
@@ -2307,7 +2307,7 @@ async def unpin_execution(
 
 # --- Retention Config (SRCH-08) ---
 
-@app.get("/admin/retention", tags=["Admin"])
+@app.get("/api/admin/retention", tags=["Admin"])
 async def get_retention_config(
     current_user: User = Depends(require_permission("users:write")),
     db: AsyncSession = Depends(get_db),
@@ -2335,7 +2335,7 @@ async def get_retention_config(
     }
 
 
-@app.patch("/admin/retention", tags=["Admin"])
+@app.patch("/api/admin/retention", tags=["Admin"])
 async def update_retention_config(
     body: RetentionConfigUpdate,
     current_user: User = Depends(require_permission("users:write")),
@@ -2354,7 +2354,7 @@ async def update_retention_config(
 
 # --- Per-job Execution CSV Export (SRCH-10) ---
 
-@app.get("/jobs/{guid}/executions/export", tags=["Execution Records"])
+@app.get("/api/jobs/{guid}/executions/export", tags=["Execution Records"])
 async def export_job_executions(
     guid: str,
     current_user: User = Depends(require_permission("jobs:read")),

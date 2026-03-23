@@ -935,7 +935,7 @@ const Jobs = () => {
                     const initialValues: Partial<GuidedFormState> = {
                         name: p.name ?? '',
                         runtime: (p.runtime as GuidedFormState['runtime']) ?? 'python',
-                        scriptContent: p.payload?.script ?? p.payload?.script_content ?? '',
+                        scriptContent: p.script ?? p.script_content ?? p.payload?.script ?? p.payload?.script_content ?? '',
                         targetNodeId: '',
                         targetTags: p.target_tags ?? [],
                         capabilityReqs: p.capability_requirements

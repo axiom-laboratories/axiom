@@ -183,9 +183,9 @@ const JobDefinitions = () => {
                 authenticatedFetch('/signatures')
             ]);
 
-            if (defRes.ok) setDefinitions(await defRes.ok ? await defRes.json() : []);
-            if (execRes.ok) setExecutions(await execRes.ok ? await execRes.json() : []);
-            if (sigRes.ok) setSignatures(await sigRes.ok ? await sigRes.json() : []);
+            if (defRes.ok) { const d = await defRes.json(); setDefinitions(Array.isArray(d) ? d : (d.items ?? [])); }
+            if (execRes.ok) { const d = await execRes.json(); setExecutions(Array.isArray(d) ? d : (d.items ?? [])); }
+            if (sigRes.ok) { const d = await sigRes.json(); setSignatures(Array.isArray(d) ? d : (d.items ?? [])); }
         } catch (e) {
             console.error(e);
         } finally {
