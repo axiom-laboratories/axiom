@@ -43,6 +43,14 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
 import { authenticatedFetch } from '../auth';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
@@ -686,6 +694,29 @@ const Jobs = () => {
     const [guidedInitialValues, setGuidedInitialValues] = useState<Partial<GuidedFormState> | null>(null);
     const guidedCardRef = useRef<HTMLDivElement>(null);
 
+    // Bulk selection state
+    const [selectedGuids, setSelectedGuids] = useState<Set<string>>(new Set());
+    const selectionActive = selectedGuids.size > 0;
+    const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+    const [pendingBulkAction, setPendingBulkAction] = useState<'cancel' | 'resubmit' | 'delete' | null>(null);
+
+    // Bulk selection helpers
+    const TERMINAL_STATES = new Set(['COMPLETED', 'FAILED', 'DEAD_LETTER', 'CANCELLED', 'SECURITY_REJECTED']);
+    const CANCELLABLE_STATES = new Set(['PENDING', 'ASSIGNED', 'RUNNING']);
+
+    const toggleSelect = (guid: string) =>
+        setSelectedGuids(prev => {
+            const next = new Set(prev);
+            next.has(guid) ? next.delete(guid) : next.add(guid);
+            return next;
+        });
+
+    const allSelected = jobs.length > 0 && jobs.every(j => selectedGuids.has(j.guid));
+    const toggleAll = () =>
+        setSelectedGuids(allSelected ? new Set() : new Set(jobs.map(j => j.guid)));
+
+    const getSelectedJobs = () => jobs.filter(j => selectedGuids.has(j.guid));
+
     // Build filter query params (shared between fetchJobs and handleExport)
     const buildFilterParams = useCallback((f: FilterState): URLSearchParams => {
         const params = new URLSearchParams();
@@ -718,6 +749,7 @@ const Jobs = () => {
 
             if (opts.reset) {
                 setJobs(data.items);
+                setSelectedGuids(new Set());  // clear selection on any reload/filter reset
             } else {
                 setJobs(prev => [...prev, ...data.items]);
             }
@@ -865,6 +897,74 @@ const Jobs = () => {
         }
     };
 
+    // Bulk action handlers
+    const handleBulkCancel = () => {
+        setPendingBulkAction('cancel');
+        setBulkConfirmOpen(true);
+    };
+    const handleBulkResubmit = () => {
+        setPendingBulkAction('resubmit');
+        setBulkConfirmOpen(true);
+    };
+    const handleBulkDelete = () => {
+        setPendingBulkAction('delete');
+        setBulkConfirmOpen(true);
+    };
+
+    const executeBulkAction = async () => {
+        setBulkConfirmOpen(false);
+        const guids = [...selectedGuids];
+        try {
+            if (pendingBulkAction === 'cancel') {
+                const res = await authenticatedFetch('/jobs/bulk-cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guids }),
+                });
+                const data = await res.json();
+                toast.success(`Cancelled ${data.processed} job(s)${data.skipped > 0 ? `, skipped ${data.skipped}` : ''}`);
+            } else if (pendingBulkAction === 'resubmit') {
+                const res = await authenticatedFetch('/jobs/bulk-resubmit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guids }),
+                });
+                const data = await res.json();
+                toast.success(`Resubmitted ${data.processed} job(s)${data.skipped > 0 ? `, skipped ${data.skipped}` : ''}`);
+            } else if (pendingBulkAction === 'delete') {
+                const res = await authenticatedFetch('/jobs/bulk', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guids }),
+                });
+                const data = await res.json();
+                toast.success(`Deleted ${data.processed} job(s)${data.skipped > 0 ? `, skipped ${data.skipped} non-terminal` : ''}`);
+            }
+            setSelectedGuids(new Set());
+            await fetchJobs({ reset: true });
+        } catch { toast.error('Bulk action failed'); }
+    };
+
+    const bulkConfirmText = () => {
+        const selected = getSelectedJobs();
+        if (pendingBulkAction === 'cancel') {
+            const toCancel = selected.filter(j => CANCELLABLE_STATES.has(j.status));
+            const toSkip = selected.length - toCancel.length;
+            return `Cancel ${toCancel.length} job(s)?${toSkip > 0 ? ` (${toSkip} already terminal and will be skipped)` : ''}`;
+        }
+        if (pendingBulkAction === 'resubmit') {
+            const toResubmit = selected.filter(j => j.status === 'FAILED' || j.status === 'DEAD_LETTER');
+            const toSkip = selected.length - toResubmit.length;
+            return `Resubmit ${toResubmit.length} job(s)?${toSkip > 0 ? ` (${toSkip} not in FAILED/DEAD_LETTER will be skipped)` : ''}`;
+        }
+        if (pendingBulkAction === 'delete') {
+            const toDelete = selected.filter(j => TERMINAL_STATES.has(j.status));
+            const toSkip = selected.length - toDelete.length;
+            return `Delete ${toDelete.length} job(s)?${toSkip > 0 ? ` (${toSkip} non-terminal will be skipped)` : ''}`;
+        }
+        return '';
+    };
+
     const handleRetry = async (guid: string) => {
         try {
             const res = await authenticatedFetch(`/jobs/${guid}/retry`, { method: 'POST' });
@@ -903,7 +1003,6 @@ const Jobs = () => {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Guided Dispatch Form */}
                 <div ref={guidedCardRef}>
-                    {/* @ts-ignore — initialValues prop added in Plan 04 */}
                     <GuidedDispatchCard
                         nodes={nodes}
                         onJobCreated={() => fetchJobs({ reset: true })}
@@ -920,6 +1019,27 @@ const Jobs = () => {
                                 <CardDescription className="text-zinc-500">Real-time status of dispatched tasks.</CardDescription>
                             </div>
                         </div>
+
+                        {/* Bulk action bar — replaces filter bar when selection is active */}
+                        {selectionActive ? (
+                            <div className="flex items-center gap-3 px-1 py-2 border-b border-zinc-800">
+                                <span className="text-sm text-zinc-300 font-medium">{selectedGuids.size} selected</span>
+                                <div className="flex gap-2">
+                                    {getSelectedJobs().some(j => CANCELLABLE_STATES.has(j.status)) && (
+                                        <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white" onClick={handleBulkCancel}>Cancel</Button>
+                                    )}
+                                    {getSelectedJobs().some(j => j.status === 'FAILED' || j.status === 'DEAD_LETTER') && (
+                                        <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white" onClick={handleBulkResubmit}>Resubmit</Button>
+                                    )}
+                                    {getSelectedJobs().some(j => TERMINAL_STATES.has(j.status)) && (
+                                        <Button size="sm" variant="destructive" onClick={handleBulkDelete}>Delete</Button>
+                                    )}
+                                </div>
+                                <Button size="sm" variant="ghost" className="ml-auto text-zinc-400 hover:text-white" onClick={() => setSelectedGuids(new Set())}>
+                                    Clear selection ×
+                                </Button>
+                            </div>
+                        ) : null}
 
                         {/* Filter bar — always visible row */}
                         <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -1045,6 +1165,13 @@ const Jobs = () => {
                     <Table>
                         <TableHeader className="bg-zinc-900/50 border-zinc-800">
                             <TableRow className="border-zinc-800 hover:bg-transparent">
+                                <TableHead className="w-10 pl-4">
+                                    <Checkbox
+                                        checked={allSelected}
+                                        onCheckedChange={toggleAll}
+                                        aria-label="Select all jobs"
+                                    />
+                                </TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pl-6">Name / ID</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Type</TableHead>
                                 <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Status</TableHead>
@@ -1058,7 +1185,7 @@ const Jobs = () => {
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <TableRow key={i} className="border-zinc-800">
-                                        {Array.from({ length: 7 }).map((_, j) => (
+                                        {Array.from({ length: 8 }).map((_, j) => (
                                             <TableCell key={j} className="py-3 pl-6">
                                                 <div className="h-3 bg-zinc-800 animate-pulse rounded w-3/4" />
                                             </TableCell>
@@ -1074,6 +1201,13 @@ const Jobs = () => {
                                         }`}
                                         onClick={() => openDetail(job)}
                                     >
+                                        <TableCell className="w-10 pl-4" onClick={e => e.stopPropagation()}>
+                                            <Checkbox
+                                                checked={selectedGuids.has(job.guid)}
+                                                onCheckedChange={() => toggleSelect(job.guid)}
+                                                aria-label={`Select job ${job.guid}`}
+                                            />
+                                        </TableCell>
                                         <TableCell className="font-mono text-zinc-400 pl-6">
                                             {job.name ? (
                                                 <span className="text-foreground font-medium text-sm">{job.name}</span>
@@ -1121,7 +1255,7 @@ const Jobs = () => {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-32 text-center text-zinc-600">
+                                    <TableCell colSpan={8} className="h-32 text-center text-zinc-600">
                                         {activeChips.length > 0 || filters.search ? 'No jobs match the current filters.' : 'Queue is currently empty.'}
                                     </TableCell>
                                 </TableRow>
@@ -1171,6 +1305,27 @@ const Jobs = () => {
                 onEditResubmit={handleEditResubmit}
             />
             <ExecutionLogModal jobGuid={logModalGuid ?? ''} open={!!logModalGuid} onClose={() => setLogModalGuid(null)} />
+
+            {/* Bulk action confirmation dialog */}
+            <Dialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
+                <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirm bulk action</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            {bulkConfirmText()}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex gap-2 justify-end mt-4">
+                        <Button variant="ghost" onClick={() => setBulkConfirmOpen(false)}>Cancel</Button>
+                        <Button
+                            variant={pendingBulkAction === 'delete' ? 'destructive' : 'default'}
+                            onClick={executeBulkAction}
+                        >
+                            Confirm
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
