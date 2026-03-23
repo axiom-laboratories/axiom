@@ -2,8 +2,8 @@
 phase: 51
 slug: job-detail-resubmit-and-bulk-ops
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-23
 ---
 
@@ -40,6 +40,7 @@ created: 2026-03-23
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 51-01-01 | 01 | 0 | JOB-05 | unit | `cd puppeteer && pytest agent_service/tests/test_job51_resubmit.py -x` | ❌ W0 | ⬜ pending |
 | 51-01-02 | 01 | 0 | BULK-02,03,04 | unit | `cd puppeteer && pytest agent_service/tests/test_job51_bulk.py -x` | ❌ W0 | ⬜ pending |
+| 51-01-03 | 01 | 0 | BULK-01 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Jobs.test.tsx` | ❌ W0 | ⬜ pending |
 | 51-02-01 | 02 | 1 | JOB-05 | unit | `cd puppeteer && pytest agent_service/tests/test_job51_resubmit.py -x` | ❌ W0 | ⬜ pending |
 | 51-02-02 | 02 | 1 | JOB-05 | unit | `cd puppeteer && pytest agent_service/tests/test_job51_resubmit.py -x` | ❌ W0 | ⬜ pending |
 | 51-02-03 | 02 | 1 | BULK-02 | unit | `cd puppeteer && pytest agent_service/tests/test_job51_bulk.py -x` | ❌ W0 | ⬜ pending |
@@ -47,10 +48,8 @@ created: 2026-03-23
 | 51-02-05 | 02 | 1 | BULK-04 | unit | `cd puppeteer && pytest agent_service/tests/test_job51_bulk.py -x` | ❌ W0 | ⬜ pending |
 | 51-03-01 | 03 | 2 | JOB-04 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Jobs.test.tsx` | ✅ extend | ⬜ pending |
 | 51-03-02 | 03 | 2 | JOB-04 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Jobs.test.tsx` | ✅ extend | ⬜ pending |
-| 51-04-01 | 04 | 2 | JOB-06 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Jobs.test.tsx` | ✅ extend | ⬜ pending |
-| 51-04-02 | 04 | 2 | JOB-06 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Jobs.test.tsx` | ✅ extend | ⬜ pending |
-| 51-05-01 | 05 | 3 | BULK-01 | unit | `cd puppeteer/dashboard && npx vitest run src/components/__tests__/JobsBulkSelect.test.tsx` | ❌ W0 | ⬜ pending |
-| 51-05-02 | 05 | 3 | BULK-01,02,03,04 | unit | `cd puppeteer/dashboard && npx vitest run src/components/__tests__/JobsBulkSelect.test.tsx` | ❌ W0 | ⬜ pending |
+| 51-04-01 | 04 | 3 | JOB-06 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Jobs.test.tsx` | ✅ extend | ⬜ pending |
+| 51-04-02 | 04 | 3 | BULK-01,02,03,04 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Jobs.test.tsx` | ✅ extend | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -60,10 +59,9 @@ created: 2026-03-23
 
 - [ ] `puppeteer/agent_service/tests/test_job51_resubmit.py` — stubs for JOB-05 (resubmit endpoint, resubmit rejection for invalid status)
 - [ ] `puppeteer/agent_service/tests/test_job51_bulk.py` — stubs for BULK-02 (bulk-cancel), BULK-03 (bulk-resubmit), BULK-04 (bulk-delete)
-- [ ] `puppeteer/migration_v14.sql` — `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS originating_guid VARCHAR`
+- [ ] `puppeteer/migration_v40.sql` — `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS originating_guid VARCHAR`
 - [ ] `puppeteer/dashboard/src/components/ui/checkbox.tsx` — if not already present (check before creating)
-- [ ] Extend `puppeteer/dashboard/src/views/__tests__/Jobs.test.tsx` — inline output drawer render, checkbox column presence, GuidedDispatchCard initialValues pre-population
-- [ ] `puppeteer/dashboard/src/components/__tests__/JobsBulkSelect.test.tsx` — stub for BULK-01 checkbox/bulk bar
+- [ ] Extend `puppeteer/dashboard/src/views/__tests__/Jobs.test.tsx` — three `it.todo` stubs for BULK-01: checkbox column presence, row-select activates bulk bar, header-select-all
 
 ---
 
@@ -81,11 +79,11 @@ created: 2026-03-23
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
