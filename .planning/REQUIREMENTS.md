@@ -8,21 +8,21 @@
 
 ### Runtime Expansion (RT)
 
-- [x] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
-- [x] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
+- [ ] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
+- [ ] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
 - [x] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
 - [x] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
 - [x] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
-- [ ] **RT-06**: Existing `python_script` task type is retained as an alias — all existing jobs and CI pipelines unaffected
+- [ ] **RT-06**: ~~Existing `python_script` task type is retained as an alias~~ — **Dropped by design** (Phase 47 planning decision: `python_script` returns HTTP 422; operators use `script` + `runtime: python`). REQUIREMENTS.md update pending Phase 55.
 - [x] **RT-07**: Operator can schedule a Bash or PowerShell job via job definitions (`ScheduledJob.runtime` field + migration SQL)
 
 ### Job Submission UX (JOB)
 
-- [x] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
+- [ ] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
 - [x] **JOB-02**: Operator can view the generated JSON payload from guided mode in a read-only panel without editing it
 - [x] **JOB-03**: Operator can switch to Advanced (raw JSON) mode via a one-way gate with a confirmation dialog; form validates JSON against schema before submission
-- [x] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
-- [x] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
+- [ ] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
+- [ ] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
 - [x] **JOB-06**: Operator can edit and resubmit a failed job — guided form pre-populated with failed job's payload, signing state cleared, fresh signing required
 
 ### Bulk Job Operations (BULK)
@@ -35,7 +35,7 @@
 ### Queue & Visibility (VIS)
 
 - [x] **VIS-01**: A PENDING job's drawer shows an automatic plain-English dispatch diagnosis (no nodes / capability mismatch / all busy / queue position) that updates live via WebSocket
-- [x] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
+- [ ] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
 - [x] **VIS-03**: Nodes page shows a per-node detail drawer (currently running job, queued jobs, recent history, reported capabilities)
 - [x] **VIS-04**: Admin can put a node into DRAINING state from the node detail drawer; DRAINING status is visible in Queue and Nodes views
 - [x] **VIS-05**: Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators with a configurable time window (24h / 7d / 30d)
@@ -43,10 +43,10 @@
 
 ### Scheduled Job Signing Safety (SCHED)
 
-- [x] **SCHED-01**: Scheduled job automatically enters DRAFT state when `script_content` is changed and the existing `signature_payload` is no longer valid
-- [x] **SCHED-02**: Jobs in DRAFT state do not dispatch on their cron schedule; each skipped fire is logged with reason: "Skipped: job in DRAFT state, pending re-signing"
-- [x] **SCHED-03**: Operator sees a save confirmation modal warning when saving a script change that will transition the job to DRAFT
-- [x] **SCHED-04**: Dashboard notification bell shows an in-app notification when a scheduled job enters DRAFT; a WARNING alert is written to the alerts table with `resource_id = scheduled_job_id`
+- [ ] **SCHED-01**: Scheduled job automatically enters DRAFT state when `script_content` is changed and the existing `signature_payload` is no longer valid
+- [ ] **SCHED-02**: Jobs in DRAFT state do not dispatch on their cron schedule; each skipped fire is logged with reason: "Skipped: job in DRAFT state, pending re-signing"
+- [ ] **SCHED-03**: Operator sees a save confirmation modal warning when saving a script change that will transition the job to DRAFT
+- [ ] **SCHED-04**: Dashboard notification bell shows an in-app notification when a scheduled job enters DRAFT; a WARNING alert is written to the alerts table with `resource_id = scheduled_job_id`
 
 ### Search, Scale & Data Management (SRCH)
 
@@ -59,7 +59,7 @@
 - [x] **SRCH-07**: Operator can load a saved template into the guided job form; all fields remain editable before submission
 - [x] **SRCH-08**: Admin can configure global execution record retention period (default: 14 days); a nightly pruning task hard-deletes expired records excluding pinned records
 - [x] **SRCH-09**: Admin can pin individual execution records to exclude them from automatic pruning; pin/unpin actions are audit-logged
-- [x] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
+- [ ] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
 
 ### Tech Debt (DEBT)
 
@@ -155,34 +155,34 @@
 | SEC-01 | Phase 46 | Complete |
 | SEC-02 | Phase 46 | Complete |
 | BRAND-01 | Phase 46 | Complete |
-| RT-01 | Phase 47 | Complete |
-| RT-02 | Phase 47 | Complete |
+| RT-01 | Phase 54 | Pending |
+| RT-02 | Phase 54 | Pending |
 | RT-03 | Phase 47 | Complete |
 | RT-04 | Phase 47 | Complete |
 | RT-05 | Phase 47 | Complete |
-| RT-06 | Phase 47 | Pending |
+| RT-06 | Phase 55 | Pending |
 | RT-07 | Phase 47 | Complete |
-| SCHED-01 | Phase 48 | Complete |
-| SCHED-02 | Phase 48 | Complete |
-| SCHED-03 | Phase 48 | Complete |
-| SCHED-04 | Phase 48 | Complete |
+| SCHED-01 | Phase 55 | Pending |
+| SCHED-02 | Phase 55 | Pending |
+| SCHED-03 | Phase 55 | Pending |
+| SCHED-04 | Phase 55 | Pending |
 | SRCH-01 | Phase 49 | Complete |
 | SRCH-02 | Phase 49 | Complete |
 | SRCH-03 | Phase 49 | Complete |
 | SRCH-04 | Phase 49 | Complete |
 | SRCH-05 | Phase 49 | Complete |
-| JOB-01 | Phase 50 | Complete |
+| JOB-01 | Phase 54 | Pending |
 | JOB-02 | Phase 50 | Complete |
 | JOB-03 | Phase 50 | Complete |
-| JOB-04 | Phase 51 | Complete |
-| JOB-05 | Phase 51 | Complete |
+| JOB-04 | Phase 54 | Pending |
+| JOB-05 | Phase 54 | Pending |
 | JOB-06 | Phase 51 | Complete |
 | BULK-01 | Phase 51 | Complete |
 | BULK-02 | Phase 51 | Complete |
 | BULK-03 | Phase 51 | Complete |
 | BULK-04 | Phase 51 | Complete |
 | VIS-01 | Phase 52 | Complete |
-| VIS-02 | Phase 52 | Complete |
+| VIS-02 | Phase 54 | Pending |
 | VIS-03 | Phase 52 | Complete |
 | VIS-04 | Phase 52 | Complete |
 | VIS-05 | Phase 53 | Complete |
@@ -191,11 +191,12 @@
 | SRCH-07 | Phase 53 | Complete |
 | SRCH-08 | Phase 53 | Complete |
 | SRCH-09 | Phase 53 | Complete |
-| SRCH-10 | Phase 53 | Complete |
+| SRCH-10 | Phase 54 | Pending |
 
 **Coverage:**
 - v12.0 requirements: 44 total
-- Mapped to phases: 44 (Phase 46: 7, Phase 47: 7, Phase 48: 4, Phase 49: 5, Phase 50: 3, Phase 51: 7, Phase 52: 4, Phase 53: 7)
+- Mapped to phases: 44 (Phase 46: 7, Phase 47: 5, Phase 48: 0, Phase 49: 5, Phase 50: 1, Phase 51: 5, Phase 52: 3, Phase 53: 6, Phase 54: 7, Phase 55: 5)
+- Pending (gap closure): 12 (RT-01, RT-02, RT-06, SCHED-01–04, JOB-01, JOB-04, JOB-05, VIS-02, SRCH-10)
 - Unmapped: 0 ✓
 
 ---

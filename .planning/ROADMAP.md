@@ -109,6 +109,8 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 51: Job Detail, Resubmit and Bulk Ops** — Job detail drawer; one-click and edit-then-resubmit; multi-select bulk cancel/resubmit/delete (completed 2026-03-23)
 - [x] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state (completed 2026-03-23)
 - [x] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning (completed 2026-03-23)
+- [ ] **Phase 54: Bug Fix Blitz** — Four targeted code fixes closing 7 gap-closure requirements: script key mismatch, Queue double-prefix, CSV export 404, list_jobs missing retry/originating fields
+- [ ] **Phase 55: Verification + Docs Cleanup** — Retroactive Phase 48 verification (SCHED-01–04) + RT-06 design-decision documentation update
 
 ## Phase Details
 
@@ -246,10 +248,40 @@ Plans:
 - [ ] 53-05-PLAN.md — Frontend: JobDefinitions three-tab layout, HealthTab, TemplatesTab, JobDefinitionModal overlap/timeout fields
 - [ ] 53-06-PLAN.md — Frontend: Admin retention panel, Save as Template, template loading, pin toggle, CSV export + human verify
 
+### Phase 54: Bug Fix Blitz
+**Goal**: All four integration defects identified by the v12.0 audit are patched — guided-form jobs actually execute, Queue view renders live data, CSV export works, and job detail drawer shows retry state and provenance
+**Depends on**: Phase 53
+**Requirements**: JOB-01, RT-01, RT-02, VIS-02, SRCH-10, JOB-04, JOB-05
+**Gap Closure:** Closes INT-01, INT-02, INT-03, INT-04 gaps from v12.0 audit
+**Success Criteria** (what must be TRUE):
+  1. A job submitted via the guided form reaches the node with a non-empty script; execution succeeds end-to-end for Python, Bash, and PowerShell runtimes
+  2. The Queue view renders PENDING and RUNNING jobs correctly (no 404 on data fetch)
+  3. The execution CSV export from the job detail drawer returns a 200 with CSV data, not a 404
+  4. The job detail drawer displays retry attempt count, max retries, and retry-after timestamp when applicable
+  5. The job detail drawer shows the "Resubmitted from" provenance link when originating_guid is set
+**Plans**: 2 plans
+Plans:
+- [ ] 54-01-PLAN.md — Backend fix: add retry_count, max_retries, retry_after, originating_guid to list_jobs() response dict (INT-04 → JOB-04, JOB-05)
+- [ ] 54-02-PLAN.md — Frontend fixes: GuidedDispatchCard payload key (INT-01), Queue.tsx fetch URLs (INT-02), Jobs.tsx CSV export URL (INT-03) + human verify
+
+### Phase 55: Verification + Docs Cleanup
+**Goal**: Phase 48 reaches verified state (VERIFICATION.md created by gsd-verifier) and REQUIREMENTS.md accurately reflects the RT-06 design decision
+**Depends on**: Phase 54
+**Requirements**: SCHED-01, SCHED-02, SCHED-03, SCHED-04, RT-06
+**Gap Closure:** Closes verification gap for Phase 48; resolves RT-06 documentation mismatch from v12.0 audit
+**Success Criteria** (what must be TRUE):
+  1. Phase 48 has a VERIFICATION.md produced by gsd-verifier confirming SCHED-01–04 are satisfied in the actual codebase
+  2. REQUIREMENTS.md RT-06 entry reflects the planning decision to drop the python_script alias (checkbox corrected, traceability note added)
+  3. REQUIREMENTS.md coverage count is accurate
+**Plans**: 2 plans
+Plans:
+- [ ] 55-01-PLAN.md — Run gsd-verifier on Phase 48; produce VERIFICATION.md confirming SCHED-01 through SCHED-04
+- [ ] 55-02-PLAN.md — Update REQUIREMENTS.md: RT-06 design-decision annotation; fix coverage count; update traceability table status for all gap-closure requirements
+
 ## Progress
 
 **Execution Order:**
-46 → 47 → 48 → 49 → 50 → 51 → 52 → 53
+46 → 47 → 48 → 49 → 50 → 51 → 52 → 53 → 54 → 55
 Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 46). Phase 50 requires both 47 and 49 complete. Phase 53 requires both 48 and 52 complete.
 
 | Phase | Plans Complete | Status | Completed |
@@ -262,6 +294,8 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 51. Job Detail, Resubmit and Bulk Ops | 4/4 | Complete    | 2026-03-23 |
 | 52. Queue Visibility, Node Drawer and DRAINING | 5/5 | Complete    | 2026-03-23 |
 | 53. Scheduling Health and Data Management | 6/6 | Complete    | 2026-03-23 |
+| 54. Bug Fix Blitz | 0/2 | Pending | — |
+| 55. Verification + Docs Cleanup | 0/2 | Pending | — |
 
 ## Archived
 
