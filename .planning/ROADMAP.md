@@ -187,7 +187,11 @@ Plans:
   1. Operator can submit a job using a guided form with fields for runtime, script content, target environment, and capability tags — no JSON authoring required
   2. Guided form shows a read-only panel displaying the generated JSON payload; the raw JSON is not editable in this mode
   3. Operator can switch to Advanced (raw JSON) mode via a one-way confirmation gate; the JSON editor validates against schema before submission is permitted
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 50-01-PLAN.md — Wave 0 test scaffold: 11 failing stubs for JOB-01, JOB-02, JOB-03
+- [ ] 50-02-PLAN.md — GuidedDispatchCard component: guided form, signing, targeting, JSON preview (JOB-01, JOB-02)
+- [ ] 50-03-PLAN.md — Advanced mode gate: confirmation dialog, JSON validation, reset path (JOB-03)
 
 ### Phase 51: Job Detail, Resubmit and Bulk Ops
 **Goal**: Operators can investigate failed jobs in context, resubmit them quickly or with edits, and operate on multiple jobs at once without repetitive individual actions
@@ -236,7 +240,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 47. CE Runtime Expansion | 4/4 | Complete    | 2026-03-22 |
 | 48. Scheduled Job Signing Safety | 2/2 | Complete   | 2026-03-22 |
 | 49. Pagination, Filtering and Search | 6/6 | Complete    | 2026-03-22 |
-| 50. Guided Job Form | 0/TBD | Not started | - |
+| 50. Guided Job Form | 0/3 | Not started | - |
 | 51. Job Detail, Resubmit and Bulk Ops | 0/TBD | Not started | - |
 | 52. Queue Visibility, Node Drawer and DRAINING | 0/TBD | Not started | - |
 | 53. Scheduling Health and Data Management | 0/TBD | Not started | - |
