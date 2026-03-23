@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { ChevronDown, ChevronUp, Play, X, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Play, X, AlertTriangle, Bookmark } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,6 +90,10 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
     const [advancedJson, setAdvancedJson] = useState('');
     const [pendingAdvSwitch, setPendingAdvSwitch] = useState(false);
     const [pendingAdvReset, setPendingAdvReset] = useState(false);
+
+    // Save as Template state
+    const [saveTemplatePending, setSaveTemplatePending] = useState(false);
+    const [saveTemplateNameInput, setSaveTemplateNameInput] = useState('');
 
     // Fetch key IDs on mount
     useEffect(() => {
@@ -198,6 +202,49 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
         setAdvancedJson('');
         setPendingAdvReset(false);
         setForm(INITIAL_FORM_STATE);
+    };
+
+    // ── Save as Template handler ──────────────────────────────────────────────
+
+    const handleSaveTemplate = async () => {
+        if (!saveTemplateNameInput.trim()) return;
+        // Build template payload from current form state (exclude signing fields)
+        const templatePayload: Record<string, unknown> = {
+            task_type: 'script',
+            payload: { script: form.scriptContent },
+            runtime: form.runtime,
+        };
+        if (form.name) templatePayload.name = form.name;
+        if (form.targetTags.length) templatePayload.target_tags = form.targetTags;
+        const capDict: Record<string, string> = {};
+        for (const chip of form.capabilityReqs) {
+            const idx = chip.indexOf(':');
+            if (idx > 0) capDict[chip.slice(0, idx).trim()] = chip.slice(idx + 1).trim();
+        }
+        if (Object.keys(capDict).length) templatePayload.capability_requirements = capDict;
+
+        try {
+            const res = await authenticatedFetch('/api/job-templates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: saveTemplateNameInput.trim(),
+                    visibility: 'private',
+                    payload: templatePayload,
+                }),
+            });
+            if (res.ok) {
+                toast.success(`Template "${saveTemplateNameInput.trim()}" saved`);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                toast.error(err.detail || 'Failed to save template');
+            }
+        } catch {
+            toast.error('Failed to save template');
+        } finally {
+            setSaveTemplatePending(false);
+            setSaveTemplateNameInput('');
+        }
     };
 
     // ── Chip helpers ──────────────────────────────────────────────────────────
@@ -544,6 +591,50 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                             )}
                         </div>
                     </>
+                )}
+
+                {/* Save as Template */}
+                {!advancedMode && (
+                    <div className="space-y-2">
+                        {saveTemplatePending ? (
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Template name..."
+                                    value={saveTemplateNameInput}
+                                    onChange={e => setSaveTemplateNameInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') handleSaveTemplate();
+                                        if (e.key === 'Escape') { setSaveTemplatePending(false); setSaveTemplateNameInput(''); }
+                                    }}
+                                    autoFocus
+                                    className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-white rounded px-3 py-1.5 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                />
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-xs text-zinc-400 h-8"
+                                    onClick={() => { setSaveTemplatePending(false); setSaveTemplateNameInput(''); }}
+                                >Cancel</Button>
+                                <Button
+                                    size="sm"
+                                    className="text-xs h-8 bg-primary hover:bg-primary/90 text-white"
+                                    onClick={handleSaveTemplate}
+                                    disabled={!saveTemplateNameInput.trim()}
+                                >Save</Button>
+                            </div>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 h-8"
+                                onClick={() => setSaveTemplatePending(true)}
+                            >
+                                <Bookmark className="mr-2 h-3 w-3" />
+                                Save as Template
+                            </Button>
+                        )}
+                    </div>
                 )}
 
                 {/* Dispatch button */}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     History,
     Terminal,
@@ -20,6 +20,7 @@ import {
     SlidersHorizontal,
     X,
     Download,
+    Pin,
     } from 'lucide-react';
 import { toast } from 'sonner';
 import { subHours, subDays } from 'date-fns';
@@ -182,6 +183,7 @@ const JobDetailPanel = ({
     const [execLoading, setExecLoading] = useState(false);
     const [diagnosis, setDiagnosis] = useState<DispatchDiagnosis | null>(null);
     const [diagnosisLoading, setDiagnosisLoading] = useState(false);
+    const [exportingCsv, setExportingCsv] = useState(false);
 
     useEffect(() => {
         if (!job?.retry_after || job.status !== 'RETRYING') {
@@ -239,6 +241,39 @@ const JobDetailPanel = ({
                 .catch(() => {});
         }
     });
+
+    const handlePin = async (id: number, currentlyPinned: boolean) => {
+        const action = currentlyPinned ? 'unpin' : 'pin';
+        // Optimistic update
+        setExecutions(prev => prev ? prev.map(r => r.id === id ? { ...r, pinned: !currentlyPinned } : r) : prev);
+        try {
+            await authenticatedFetch(`/api/executions/${id}/${action}`, { method: 'PATCH' });
+        } catch {
+            // Revert on error
+            setExecutions(prev => prev ? prev.map(r => r.id === id ? { ...r, pinned: currentlyPinned } : r) : prev);
+            toast.error('Failed to update pin status');
+        }
+    };
+
+    const handleExportCsv = async () => {
+        if (!job) return;
+        setExportingCsv(true);
+        try {
+            const res = await authenticatedFetch(`/jobs/${job.guid}/executions/export`);
+            if (!res.ok) { toast.error('Export failed'); return; }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `executions-${job.guid}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            toast.error('Export failed');
+        } finally {
+            setExportingCsv(false);
+        }
+    };
 
     if (!job) return null;
     const cancellable = job.status === 'PENDING' || job.status === 'ASSIGNED';
@@ -337,9 +372,22 @@ const JobDetailPanel = ({
 
                     {/* Inline output */}
                     <section className="space-y-2">
-                        <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <Terminal className="h-3 w-3" /> Output
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                                <Terminal className="h-3 w-3" /> Output
+                            </h3>
+                            {executions && executions.length > 0 && (
+                                <button
+                                    onClick={handleExportCsv}
+                                    disabled={exportingCsv}
+                                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                                    title="Download execution records as CSV"
+                                >
+                                    <Download className="h-3 w-3" />
+                                    {exportingCsv ? 'Exporting…' : 'Download CSV'}
+                                </button>
+                            )}
+                        </div>
                         {execLoading ? (
                             <div className="flex items-center gap-2 text-xs text-zinc-600 py-2">
                                 <RefreshCw className="h-3 w-3 animate-spin" /> Loading output...
@@ -368,6 +416,48 @@ const JobDetailPanel = ({
                             <p className="text-xs text-zinc-600 italic py-1">No execution records yet.</p>
                         )}
                     </section>
+
+                    {/* Execution Records table with pin toggles */}
+                    {executions && executions.length > 0 && (
+                        <section className="space-y-2">
+                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Execution Records</h3>
+                            <div className="rounded-lg border border-zinc-800 overflow-hidden">
+                                <table className="w-full text-xs">
+                                    <thead className="bg-zinc-900/50">
+                                        <tr className="border-b border-zinc-800">
+                                            <th className="w-7 pl-2 py-1.5 text-left text-zinc-500"></th>
+                                            <th className="px-2 py-1.5 text-left text-zinc-500">Status</th>
+                                            <th className="px-2 py-1.5 text-left text-zinc-500">Attempt</th>
+                                            <th className="px-2 py-1.5 text-left text-zinc-500">Started</th>
+                                            <th className="px-2 py-1.5 text-left text-zinc-500">Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {executions.map((rec: any) => (
+                                            <tr
+                                                key={rec.id}
+                                                className={`border-t border-zinc-900 ${rec.pinned ? 'border-l-2 border-l-amber-500' : ''}`}
+                                            >
+                                                <td className="pl-2 py-1.5">
+                                                    <button
+                                                        onClick={() => handlePin(rec.id, rec.pinned)}
+                                                        title={rec.pinned ? 'Unpin' : 'Pin'}
+                                                        className="flex items-center"
+                                                    >
+                                                        <Pin className={`h-3 w-3 ${rec.pinned ? 'fill-amber-500 text-amber-500' : 'text-zinc-500 hover:text-zinc-300'}`} />
+                                                    </button>
+                                                </td>
+                                                <td className="px-2 py-1.5 font-mono text-zinc-300 capitalize">{(rec.status || '—').toLowerCase()}</td>
+                                                <td className="px-2 py-1.5 text-zinc-400">{rec.attempt_number ?? 1}</td>
+                                                <td className="px-2 py-1.5 text-zinc-400">{rec.started_at ? new Date(rec.started_at).toLocaleTimeString() : '—'}</td>
+                                                <td className="px-2 py-1.5 text-zinc-400">{rec.duration_s != null ? `${rec.duration_s.toFixed(1)}s` : '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    )}
 
                     {/* Node health snapshot */}
                     {nodeHealth && (
@@ -717,6 +807,9 @@ const MoreFiltersSheet = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const Jobs = () => {
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+
     // List state
     const [jobs, setJobs] = useState<Job[]>([]);
     const [total, setTotal] = useState(0);
@@ -829,6 +922,39 @@ const Jobs = () => {
             // Non-critical — combobox just won't be populated
         }
     }, []);
+
+    // Load template from ?template_id query param on mount
+    const templateId = searchParams.get('template_id');
+    useEffect(() => {
+        if (templateId) {
+            authenticatedFetch(`/api/job-templates/${templateId}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(tmpl => {
+                    if (!tmpl) return;
+                    const p = tmpl.payload ?? {};
+                    const initialValues: Partial<GuidedFormState> = {
+                        name: p.name ?? '',
+                        runtime: (p.runtime as GuidedFormState['runtime']) ?? 'python',
+                        scriptContent: p.payload?.script ?? p.payload?.script_content ?? '',
+                        targetNodeId: '',
+                        targetTags: p.target_tags ?? [],
+                        capabilityReqs: p.capability_requirements
+                            ? Object.entries(p.capability_requirements).map(([k, v]) => `${k}:${v}`)
+                            : [],
+                        signatureId: '',
+                        signature: '',
+                        signatureCleared: true,
+                    };
+                    setGuidedInitialValues(initialValues);
+                    // Clear the query param
+                    navigate('/jobs', { replace: true });
+                    setTimeout(() => {
+                        guidedCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                })
+                .catch(() => {/* non-critical */});
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // On mount
     useEffect(() => {

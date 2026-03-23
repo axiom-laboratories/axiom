@@ -1295,6 +1295,48 @@ const Admin = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
+    // Data Retention state
+    const [retentionDays, setRetentionDays] = useState<number>(14);
+    const [retentionEligible, setRetentionEligible] = useState<number>(0);
+    const [retentionPinned, setRetentionPinned] = useState<number>(0);
+    const [retentionInput, setRetentionInput] = useState<number>(14);
+
+    useEffect(() => {
+        authenticatedFetch('/api/admin/retention')
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (data) {
+                    setRetentionDays(data.retention_days ?? 14);
+                    setRetentionInput(data.retention_days ?? 14);
+                    setRetentionEligible(data.eligible_count ?? 0);
+                    setRetentionPinned(data.pinned_count ?? 0);
+                }
+            })
+            .catch(() => {/* non-critical */});
+    }, []);
+
+    const handleSaveRetention = async () => {
+        try {
+            const res = await authenticatedFetch('/api/admin/retention', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ retention_days: retentionInput }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setRetentionDays(data.retention_days ?? retentionInput);
+                setRetentionEligible(data.eligible_count ?? retentionEligible);
+                setRetentionPinned(data.pinned_count ?? retentionPinned);
+                toast.success('Retention period saved');
+            } else {
+                toast.error('Failed to save retention period');
+            }
+        } catch {
+            toast.error('Failed to save retention period');
+        }
+    };
+    void retentionDays; // used via retentionInput display
+
     const generateToken = async () => {
         try {
             setIsGenerating(true);
@@ -1352,6 +1394,7 @@ const Admin = () => {
                     <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Artifact Vault</TabsTrigger>
                     <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Rollouts</TabsTrigger>
                     <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Automation</TabsTrigger>
+                    <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Data</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="onboarding" className="space-y-8">
@@ -1487,6 +1530,34 @@ const Admin = () => {
 
                 <TabsContent value="automation">
                     <TriggerManager />
+                </TabsContent>
+
+                <TabsContent value="data" className="space-y-6">
+                    <div className="bg-zinc-800/50 rounded-lg p-6 border border-zinc-700">
+                        <h3 className="text-sm font-semibold text-zinc-300 mb-4">Data Retention</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-4">
+                                <label className="text-sm text-zinc-400 w-40">Retention period</label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={retentionInput}
+                                    onChange={e => setRetentionInput(parseInt(e.target.value) || 1)}
+                                    className="w-24 bg-zinc-900 border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-100"
+                                />
+                                <span className="text-sm text-zinc-500">days</span>
+                                <button
+                                    onClick={handleSaveRetention}
+                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-xs text-white"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                            <p className="text-xs text-zinc-500">
+                                Next pruning: ~{retentionEligible} records eligible · {retentionPinned} pinned (excluded)
+                            </p>
+                        </div>
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>
