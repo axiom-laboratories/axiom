@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 50-guided-job-form 50-02-PLAN.md
-last_updated: "2026-03-23T12:45:17.402Z"
+stopped_at: Completed 50-guided-job-form 50-03-PLAN.md
+last_updated: "2026-03-23T12:50:46.436Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
   percent: 0
 ---
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 49-pagination-filtering-and-search P06 | 5min | 2 tasks | 1 files |
 | Phase 50-guided-job-form P01 | 3min | 1 tasks | 1 files |
 | Phase 50-guided-job-form P02 | 6min | 2 tasks | 3 files |
+| Phase 50-guided-job-form P03 | 3 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 50-guided-job-form]: Wave 0 stub pattern: throw new Error('not implemented') used consistently — runner reports failure not skip, matching Phase 49 decision
 - [Phase 50-guided-job-form]: GuidedDispatchCard imported from path that does not exist yet — intentional to confirm red phase before Plan 02 creates the component
 - [Phase 50-guided-job-form]: GuidedDispatchCard: targetNodeId prepended to target_tags list (not separate field) to match JobCreate model; stale sig detection via prevScriptRef; ADV placeholder for Plan 03
+- [Phase 50-guided-job-form]: Advanced mode gate: @radix-ui/react-tooltip imported directly (no ui/tooltip.tsx wrapper); pendingAdvSwitch/pendingAdvReset state controls two confirmation Dialog gates; advancedJsonError useMemo provides real-time JSON schema validation
 
 ### Pending Todos
 
@@ -110,7 +112,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T12:45:17.400Z
-Stopped at: Completed 50-guided-job-form 50-02-PLAN.md
+Last session: 2026-03-23T12:50:46.434Z
+Stopped at: Completed 50-guided-job-form 50-03-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None

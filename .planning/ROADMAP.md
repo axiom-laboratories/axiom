@@ -105,7 +105,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 47: CE Runtime Expansion** — Unified `script` task type supporting Python, Bash, and PowerShell runtimes end-to-end (completed 2026-03-22)
 - [x] **Phase 48: Scheduled Job Signing Safety** — DRAFT state for stale signatures; skipped fires logged; operator warned before script edits fire (completed 2026-03-22)
 - [x] **Phase 49: Pagination, Filtering and Search** — Server-side pagination on Jobs and Nodes; 9-axis job filtering; free-text search; CSV export (completed 2026-03-22)
-- [ ] **Phase 50: Guided Job Form** — Structured guided form replacing raw JSON for common job submission; Advanced mode available via gate
+- [x] **Phase 50: Guided Job Form** — Structured guided form replacing raw JSON for common job submission; Advanced mode available via gate (completed 2026-03-23)
 - [ ] **Phase 51: Job Detail, Resubmit and Bulk Ops** — Job detail drawer; one-click and edit-then-resubmit; multi-select bulk cancel/resubmit/delete
 - [ ] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state
 - [ ] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning
@@ -240,7 +240,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 47. CE Runtime Expansion | 4/4 | Complete    | 2026-03-22 |
 | 48. Scheduled Job Signing Safety | 2/2 | Complete   | 2026-03-22 |
 | 49. Pagination, Filtering and Search | 6/6 | Complete    | 2026-03-22 |
-| 50. Guided Job Form | 2/3 | In Progress|  |
+| 50. Guided Job Form | 3/3 | Complete   | 2026-03-23 |
 | 51. Job Detail, Resubmit and Bulk Ops | 0/TBD | Not started | - |
 | 52. Queue Visibility, Node Drawer and DRAINING | 0/TBD | Not started | - |
 | 53. Scheduling Health and Data Management | 0/TBD | Not started | - |
