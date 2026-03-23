@@ -34,10 +34,10 @@
 
 ### Queue & Visibility (VIS)
 
-- [ ] **VIS-01**: A PENDING job's drawer shows an automatic plain-English dispatch diagnosis (no nodes / capability mismatch / all busy / queue position) that updates live via WebSocket
+- [x] **VIS-01**: A PENDING job's drawer shows an automatic plain-English dispatch diagnosis (no nodes / capability mismatch / all busy / queue position) that updates live via WebSocket
 - [ ] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
-- [ ] **VIS-03**: Nodes page shows a per-node detail drawer (currently running job, queued jobs, recent history, reported capabilities)
-- [ ] **VIS-04**: Admin can put a node into DRAINING state from the node detail drawer; DRAINING status is visible in Queue and Nodes views
+- [x] **VIS-03**: Nodes page shows a per-node detail drawer (currently running job, queued jobs, recent history, reported capabilities)
+- [x] **VIS-04**: Admin can put a node into DRAINING state from the node detail drawer; DRAINING status is visible in Queue and Nodes views
 - [ ] **VIS-05**: Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators with a configurable time window (24h / 7d / 30d)
 - [ ] **VIS-06**: Scheduling Health panel detects missed fires (expected cron fires vs actual execution records); affected definitions show a red health indicator
 
@@ -181,10 +181,10 @@
 | BULK-02 | Phase 51 | Complete |
 | BULK-03 | Phase 51 | Complete |
 | BULK-04 | Phase 51 | Complete |
-| VIS-01 | Phase 52 | Pending |
+| VIS-01 | Phase 52 | Complete |
 | VIS-02 | Phase 52 | Pending |
-| VIS-03 | Phase 52 | Pending |
-| VIS-04 | Phase 52 | Pending |
+| VIS-03 | Phase 52 | Complete |
+| VIS-04 | Phase 52 | Complete |
 | VIS-05 | Phase 53 | Pending |
 | VIS-06 | Phase 53 | Pending |
 | SRCH-06 | Phase 53 | Pending |
