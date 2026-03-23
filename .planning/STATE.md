@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 52-01-PLAN.md
-last_updated: "2026-03-23T16:23:13.873Z"
+stopped_at: Completed 52-03-PLAN.md
+last_updated: "2026-03-23T16:29:34.574Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 27
-  completed_plans: 23
+  completed_plans: 24
   percent: 0
 ---
 
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 51-job-detail-resubmit-and-bulk-ops P03 | 5min | 2 tasks | 3 files |
 | Phase 51-job-detail-resubmit-and-bulk-ops P04 | 10min | 2 tasks | 3 files |
 | Phase 52 P01 | 4min | 3 tasks | 3 files |
+| Phase 52 P03 | 8min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase Phase 51]: Human verification approved programmatically via Playwright + API: all bulk ops and job detail drawer features confirmed working end-to-end
 - [Phase 52-01]: pytest.fail('not implemented') as first body line — consistent with Phase 49 Wave 0 stub convention so all stubs fail with FAILED marker (not ERROR or skip)
 - [Phase 52-01]: Helper factories (_make_node, _make_job) defined per-file rather than shared conftest — keeps stubs self-contained for Wave 2 implementors
+- [Phase 52-03]: get_node_detail evaluates first 100 PENDING jobs via Python loop to reuse _node_is_eligible without duplicating logic; caps result at 50
+- [Phase 52-03]: GET /nodes/{node_id}/detail placed before PATCH /nodes/{node_id} to prevent FastAPI routing ambiguity on /detail path segment
 
 ### Pending Todos
 
@@ -127,7 +130,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T16:23:13.871Z
-Stopped at: Completed 52-01-PLAN.md
+Last session: 2026-03-23T16:29:34.572Z
+Stopped at: Completed 52-03-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None
