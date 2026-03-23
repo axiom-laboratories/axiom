@@ -36,6 +36,8 @@ from .models import (
     DispatchRequest, DispatchResponse, DispatchStatusResponse,
     BulkJobActionRequest, BulkActionResponse,
     SchedulingHealthResponse, DefinitionHealthRow,
+    JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
+    SIGNING_FIELDS,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
@@ -54,7 +56,7 @@ from sqlalchemy.future import select
 from sqlalchemy import update, desc, func, delete
 from collections import defaultdict
 from cryptography import x509 as _x509
-from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert
+from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert, JobTemplate
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 from .services.job_service import JobService
 from .services.signature_service import SignatureService
@@ -2137,6 +2139,263 @@ async def clear_signal(
     await db.delete(sig)
     await db.commit()
     return {"status": "cleared"}
+
+# --- Job Templates (SRCH-06, SRCH-07) ---
+
+EXEC_CSV_HEADERS = ["job_guid", "node_id", "status", "exit_code",
+                    "started_at", "completed_at", "duration_s", "attempt_number", "pinned"]
+
+
+@app.post("/job-templates", status_code=201, tags=["Job Templates"])
+async def create_job_template(
+    body: JobTemplateCreate,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new job template. Signing state fields are stripped from the payload."""
+    payload_clean = {k: v for k, v in body.payload.items() if k not in SIGNING_FIELDS}
+    template = JobTemplate(
+        id=uuid.uuid4().hex,
+        name=body.name,
+        creator_id=current_user.username,
+        visibility=body.visibility,
+        payload=json.dumps(payload_clean),
+    )
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+    return {
+        "id": template.id,
+        "name": template.name,
+        "creator_id": template.creator_id,
+        "visibility": template.visibility,
+        "payload": payload_clean,
+        "created_at": template.created_at,
+    }
+
+
+@app.get("/job-templates", tags=["Job Templates"])
+async def list_job_templates(
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """List job templates visible to the current user (own private + all shared)."""
+    result = await db.execute(
+        select(JobTemplate).where(
+            (JobTemplate.visibility == "shared") | (JobTemplate.creator_id == current_user.username)
+        ).order_by(JobTemplate.created_at.desc())
+    )
+    templates = result.scalars().all()
+    return [
+        {
+            "id": t.id,
+            "name": t.name,
+            "creator_id": t.creator_id,
+            "visibility": t.visibility,
+            "payload": json.loads(t.payload),
+            "created_at": t.created_at,
+        }
+        for t in templates
+    ]
+
+
+@app.get("/job-templates/{template_id}", tags=["Job Templates"])
+async def get_job_template(
+    template_id: str,
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch a single job template (visibility rules apply)."""
+    result = await db.execute(select(JobTemplate).where(JobTemplate.id == template_id))
+    t = result.scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Job template not found")
+    if t.visibility != "shared" and t.creator_id != current_user.username and current_user.role != "admin":
+        raise HTTPException(404, "Job template not found")
+    return {
+        "id": t.id,
+        "name": t.name,
+        "creator_id": t.creator_id,
+        "visibility": t.visibility,
+        "payload": json.loads(t.payload),
+        "created_at": t.created_at,
+    }
+
+
+@app.patch("/job-templates/{template_id}", tags=["Job Templates"])
+async def update_job_template(
+    template_id: str,
+    body: JobTemplateUpdate,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a job template's name or visibility. Restricted to creator or admin."""
+    result = await db.execute(select(JobTemplate).where(JobTemplate.id == template_id))
+    t = result.scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Job template not found")
+    if t.creator_id != current_user.username and current_user.role != "admin":
+        raise HTTPException(403, "Only the template creator or an admin can modify this template")
+    if body.name is not None:
+        t.name = body.name
+    if body.visibility is not None:
+        t.visibility = body.visibility
+    await db.commit()
+    await db.refresh(t)
+    return {
+        "id": t.id,
+        "name": t.name,
+        "creator_id": t.creator_id,
+        "visibility": t.visibility,
+        "payload": json.loads(t.payload),
+        "created_at": t.created_at,
+    }
+
+
+@app.delete("/job-templates/{template_id}", status_code=204, tags=["Job Templates"])
+async def delete_job_template(
+    template_id: str,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a job template. Restricted to creator or admin."""
+    result = await db.execute(select(JobTemplate).where(JobTemplate.id == template_id))
+    t = result.scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Job template not found")
+    if t.creator_id != current_user.username and current_user.role != "admin":
+        raise HTTPException(403, "Only the template creator or an admin can delete this template")
+    await db.delete(t)
+    await db.commit()
+
+
+# --- Execution Pin/Unpin (SRCH-09) ---
+
+@app.patch("/executions/{exec_id}/pin", tags=["Execution Records"])
+async def pin_execution(
+    exec_id: int,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pin an execution record to protect it from retention pruning."""
+    result = await db.execute(select(ExecutionRecord).where(ExecutionRecord.id == exec_id))
+    rec = result.scalar_one_or_none()
+    if not rec:
+        raise HTTPException(404, "Execution record not found")
+    rec.pinned = True
+    audit(db, current_user.username, "execution:pin", str(exec_id), {"exec_id": exec_id})
+    await db.commit()
+    return {"id": exec_id, "pinned": True}
+
+
+@app.patch("/executions/{exec_id}/unpin", tags=["Execution Records"])
+async def unpin_execution(
+    exec_id: int,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unpin an execution record, making it eligible for retention pruning."""
+    result = await db.execute(select(ExecutionRecord).where(ExecutionRecord.id == exec_id))
+    rec = result.scalar_one_or_none()
+    if not rec:
+        raise HTTPException(404, "Execution record not found")
+    rec.pinned = False
+    audit(db, current_user.username, "execution:unpin", str(exec_id), {"exec_id": exec_id})
+    await db.commit()
+    return {"id": exec_id, "pinned": False}
+
+
+# --- Retention Config (SRCH-08) ---
+
+@app.get("/admin/retention", tags=["Admin"])
+async def get_retention_config(
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current execution retention config and live record counts."""
+    res = await db.execute(select(Config.value).where(Config.key == "execution_retention_days"))
+    val = res.scalar_one_or_none()
+    retention_days = int(val) if val else 14
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    eligible = await db.scalar(
+        select(func.count(ExecutionRecord.id)).where(
+            ExecutionRecord.completed_at < cutoff,
+            ExecutionRecord.pinned.is_(False),
+        )
+    )
+    pinned_count = await db.scalar(
+        select(func.count(ExecutionRecord.id)).where(
+            ExecutionRecord.pinned.is_(True)
+        )
+    )
+    return {
+        "retention_days": retention_days,
+        "eligible_count": eligible or 0,
+        "pinned_count": pinned_count or 0,
+    }
+
+
+@app.patch("/admin/retention", tags=["Admin"])
+async def update_retention_config(
+    body: RetentionConfigUpdate,
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update execution retention period in days."""
+    existing = await db.execute(select(Config).where(Config.key == "execution_retention_days"))
+    row = existing.scalar_one_or_none()
+    if row:
+        row.value = str(body.retention_days)
+    else:
+        db.add(Config(key="execution_retention_days", value=str(body.retention_days)))
+    await db.commit()
+    return {"retention_days": body.retention_days}
+
+
+# --- Per-job Execution CSV Export (SRCH-10) ---
+
+@app.get("/jobs/{guid}/executions/export", tags=["Execution Records"])
+async def export_job_executions(
+    guid: str,
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Stream a CSV of all execution records for a specific job."""
+    result = await db.execute(
+        select(ExecutionRecord)
+        .where(ExecutionRecord.job_guid == guid)
+        .order_by(ExecutionRecord.started_at)
+    )
+    records = result.scalars().all()
+
+    def generate():
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(EXEC_CSV_HEADERS)
+        yield buf.getvalue()
+        buf.seek(0)
+        buf.truncate()
+        for rec in records:
+            duration = (
+                (rec.completed_at - rec.started_at).total_seconds()
+                if rec.started_at and rec.completed_at
+                else None
+            )
+            writer.writerow([
+                rec.job_guid, rec.node_id, rec.status, rec.exit_code,
+                rec.started_at, rec.completed_at, duration,
+                rec.attempt_number, rec.pinned,
+            ])
+            yield buf.getvalue()
+            buf.seek(0)
+            buf.truncate()
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=executions-{guid}.csv"},
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -380,6 +380,39 @@ class DispatchStatusResponse(BaseModel):
     is_terminal: bool
 
 
+# --- Job Templates (SRCH-06, SRCH-07) ---
+
+SIGNING_FIELDS = {"signature_id", "signature_payload", "signature_hmac"}
+
+
+class JobTemplateCreate(BaseModel):
+    name: str
+    visibility: str = "private"  # "private" | "shared"
+    payload: Dict  # all job fields; signing state stripped server-side
+
+
+class JobTemplateResponse(BaseModel):
+    id: str
+    name: str
+    creator_id: str
+    visibility: str
+    payload: Dict
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class JobTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    visibility: Optional[str] = None
+
+
+# --- Retention Config (SRCH-08) ---
+
+class RetentionConfigUpdate(BaseModel):
+    retention_days: int
+
+
 # --- Scheduling Health (VIS-05, VIS-06) ---
 
 class DefinitionHealthRow(BaseModel):
