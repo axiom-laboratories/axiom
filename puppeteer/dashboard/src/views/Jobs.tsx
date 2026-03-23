@@ -259,7 +259,7 @@ const JobDetailPanel = ({
         if (!job) return;
         setExportingCsv(true);
         try {
-            const res = await authenticatedFetch(`/jobs/${job.guid}/executions/export`);
+            const res = await authenticatedFetch(`/api/jobs/${job.guid}/executions/export`);
             if (!res.ok) { toast.error('Export failed'); return; }
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -935,7 +935,7 @@ const Jobs = () => {
                     const initialValues: Partial<GuidedFormState> = {
                         name: p.name ?? '',
                         runtime: (p.runtime as GuidedFormState['runtime']) ?? 'python',
-                        scriptContent: p.script ?? p.script_content ?? p.payload?.script ?? p.payload?.script_content ?? '',
+                        scriptContent: p.script_content ?? '',
                         targetNodeId: '',
                         targetTags: p.target_tags ?? [],
                         capabilityReqs: p.capability_requirements
@@ -1044,7 +1044,7 @@ const Jobs = () => {
         const initialValues: Partial<GuidedFormState> = {
             name: job.name ?? '',
             runtime: (job.runtime as GuidedFormState['runtime']) ?? 'python',
-            scriptContent: payload.script ?? payload.script_content ?? '',
+            scriptContent: payload.script_content ?? '',
             targetNodeId: '',
             targetTags: job.target_tags ?? [],
             capabilityReqs: [],

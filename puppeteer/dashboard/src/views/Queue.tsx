@@ -110,7 +110,7 @@ const formatRelative = (ts?: string) => {
 
 async function fetchJobs(params: Record<string, string>): Promise<PaginatedJobResponse> {
     const qs = new URLSearchParams(params).toString();
-    const res = await authenticatedFetch(`/api/jobs?${qs}`);
+    const res = await authenticatedFetch(`/jobs?${qs}`);
     if (!res.ok) throw new Error('Failed to fetch jobs');
     const json = await res.json();
     // Handle both paginated envelope and bare array (backwards compat)
@@ -121,7 +121,7 @@ async function fetchJobs(params: Record<string, string>): Promise<PaginatedJobRe
 }
 
 async function fetchNodes(): Promise<QueueNode[]> {
-    const res = await authenticatedFetch('/api/nodes');
+    const res = await authenticatedFetch('/nodes');
     if (!res.ok) throw new Error('Failed to fetch nodes');
     const json = await res.json();
     const items: QueueNode[] = Array.isArray(json) ? json : (json.items ?? []);

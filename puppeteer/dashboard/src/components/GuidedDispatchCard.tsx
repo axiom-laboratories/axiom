@@ -157,7 +157,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
         const payload: Record<string, unknown> = {
             task_type: 'script',
-            payload: { script: form.scriptContent },
+            payload: { script_content: form.scriptContent },
             runtime: form.runtime,
         };
         if (form.name) payload.name = form.name;
@@ -211,7 +211,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
         // Build template payload from current form state (exclude signing fields)
         const templatePayload: Record<string, unknown> = {
             task_type: 'script',
-            payload: { script: form.scriptContent },
+            payload: { script_content: form.scriptContent },
             runtime: form.runtime,
         };
         if (form.name) templatePayload.name = form.name;
