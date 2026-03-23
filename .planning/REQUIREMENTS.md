@@ -8,8 +8,8 @@
 
 ### Runtime Expansion (RT)
 
-- [ ] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
-- [ ] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
+- [x] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
+- [x] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
 - [x] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
 - [x] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
 - [x] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
@@ -18,7 +18,7 @@
 
 ### Job Submission UX (JOB)
 
-- [ ] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
+- [x] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
 - [x] **JOB-02**: Operator can view the generated JSON payload from guided mode in a read-only panel without editing it
 - [x] **JOB-03**: Operator can switch to Advanced (raw JSON) mode via a one-way gate with a confirmation dialog; form validates JSON against schema before submission
 - [ ] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
@@ -35,7 +35,7 @@
 ### Queue & Visibility (VIS)
 
 - [x] **VIS-01**: A PENDING job's drawer shows an automatic plain-English dispatch diagnosis (no nodes / capability mismatch / all busy / queue position) that updates live via WebSocket
-- [ ] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
+- [x] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
 - [x] **VIS-03**: Nodes page shows a per-node detail drawer (currently running job, queued jobs, recent history, reported capabilities)
 - [x] **VIS-04**: Admin can put a node into DRAINING state from the node detail drawer; DRAINING status is visible in Queue and Nodes views
 - [x] **VIS-05**: Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators with a configurable time window (24h / 7d / 30d)
@@ -59,7 +59,7 @@
 - [x] **SRCH-07**: Operator can load a saved template into the guided job form; all fields remain editable before submission
 - [x] **SRCH-08**: Admin can configure global execution record retention period (default: 14 days); a nightly pruning task hard-deletes expired records excluding pinned records
 - [x] **SRCH-09**: Admin can pin individual execution records to exclude them from automatic pruning; pin/unpin actions are audit-logged
-- [ ] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
+- [x] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
 
 ### Tech Debt (DEBT)
 
@@ -155,8 +155,8 @@
 | SEC-01 | Phase 46 | Complete |
 | SEC-02 | Phase 46 | Complete |
 | BRAND-01 | Phase 46 | Complete |
-| RT-01 | Phase 54 | Pending |
-| RT-02 | Phase 54 | Pending |
+| RT-01 | Phase 54 | Complete |
+| RT-02 | Phase 54 | Complete |
 | RT-03 | Phase 47 | Complete |
 | RT-04 | Phase 47 | Complete |
 | RT-05 | Phase 47 | Complete |
@@ -171,7 +171,7 @@
 | SRCH-03 | Phase 49 | Complete |
 | SRCH-04 | Phase 49 | Complete |
 | SRCH-05 | Phase 49 | Complete |
-| JOB-01 | Phase 54 | Pending |
+| JOB-01 | Phase 54 | Complete |
 | JOB-02 | Phase 50 | Complete |
 | JOB-03 | Phase 50 | Complete |
 | JOB-04 | Phase 54 | Pending |
@@ -182,7 +182,7 @@
 | BULK-03 | Phase 51 | Complete |
 | BULK-04 | Phase 51 | Complete |
 | VIS-01 | Phase 52 | Complete |
-| VIS-02 | Phase 54 | Pending |
+| VIS-02 | Phase 54 | Complete |
 | VIS-03 | Phase 52 | Complete |
 | VIS-04 | Phase 52 | Complete |
 | VIS-05 | Phase 53 | Complete |
@@ -191,7 +191,7 @@
 | SRCH-07 | Phase 53 | Complete |
 | SRCH-08 | Phase 53 | Complete |
 | SRCH-09 | Phase 53 | Complete |
-| SRCH-10 | Phase 54 | Pending |
+| SRCH-10 | Phase 54 | Complete |
 
 **Coverage:**
 - v12.0 requirements: 44 total
