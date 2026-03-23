@@ -89,8 +89,10 @@ export const ExecutionLogModal = ({
             // Fetch all executions for a job (Jobs view use-case)
             authenticatedFetch(`/jobs/${jobGuid}/executions`)
                 .then(r => r.json())
-                .then((data: ExecutionRecord[]) => {
-                    const sorted = [...data].sort((a, b) => (a.attempt_number ?? 0) - (b.attempt_number ?? 0));
+                .then((data: { records: ExecutionRecord[] } | ExecutionRecord[]) => {
+                    // Handle both envelope format (new) and bare array (defensive compat)
+                    const records = Array.isArray(data) ? data : (data as any).records ?? [];
+                    const sorted = [...records].sort((a, b) => (a.attempt_number ?? 0) - (b.attempt_number ?? 0));
                     setExecutions(sorted);
                     setSelected(sorted[sorted.length - 1] ?? null);
                 })

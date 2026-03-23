@@ -1348,6 +1348,10 @@ async def list_executions(
     current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db)
 ):
+    # Fetch the job to get node_id and started_at for health snapshot
+    job_result = await db.execute(select(Job).where(Job.guid == guid))
+    job_obj = job_result.scalar_one_or_none()
+
     result = await db.execute(
         select(ExecutionRecord, Job.max_retries)
         .outerjoin(Job, Job.guid == ExecutionRecord.job_guid)
@@ -1355,7 +1359,7 @@ async def list_executions(
         .order_by(ExecutionRecord.id.desc())
     )
     rows = result.all()
-    return [
+    records = [
         {
             "id": r.id,
             "job_guid": r.job_guid,
@@ -1379,6 +1383,29 @@ async def list_executions(
         }
         for r, job_max_retries in rows
     ]
+
+    # Query NodeStats for the execution-time health snapshot
+    node_health = None
+    if job_obj and job_obj.node_id and job_obj.started_at:
+        nh_result = await db.execute(
+            select(NodeStats)
+            .where(NodeStats.node_id == job_obj.node_id)
+            .where(NodeStats.recorded_at <= job_obj.started_at)
+            .order_by(desc(NodeStats.recorded_at))
+            .limit(1)
+        )
+        nh = nh_result.scalar_one_or_none()
+        if nh:
+            node_health = {
+                "cpu": nh.cpu,
+                "ram": nh.ram,
+                "recorded_at": nh.recorded_at.isoformat(),
+            }
+
+    return {
+        "records": records,
+        "node_health_at_execution": node_health,
+    }
 
 @app.post("/work/pull", response_model=PollResponse, tags=["Node Agent"])
 async def pull_work(request: Request, node_id: str = Depends(verify_node_secret), api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
