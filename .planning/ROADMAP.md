@@ -107,7 +107,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 49: Pagination, Filtering and Search** — Server-side pagination on Jobs and Nodes; 9-axis job filtering; free-text search; CSV export (completed 2026-03-22)
 - [x] **Phase 50: Guided Job Form** — Structured guided form replacing raw JSON for common job submission; Advanced mode available via gate (completed 2026-03-23)
 - [x] **Phase 51: Job Detail, Resubmit and Bulk Ops** — Job detail drawer; one-click and edit-then-resubmit; multi-select bulk cancel/resubmit/delete (completed 2026-03-23)
-- [ ] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state
+- [x] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state (completed 2026-03-23)
 - [ ] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning
 
 ## Phase Details
@@ -253,7 +253,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 49. Pagination, Filtering and Search | 6/6 | Complete    | 2026-03-22 |
 | 50. Guided Job Form | 3/3 | Complete    | 2026-03-23 |
 | 51. Job Detail, Resubmit and Bulk Ops | 4/4 | Complete    | 2026-03-23 |
-| 52. Queue Visibility, Node Drawer and DRAINING | 4/5 | In Progress|  |
+| 52. Queue Visibility, Node Drawer and DRAINING | 5/5 | Complete   | 2026-03-23 |
 | 53. Scheduling Health and Data Management | 0/TBD | Not started | - |
 
 ## Archived

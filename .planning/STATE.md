@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 52-04-PLAN.md
-last_updated: "2026-03-23T16:38:11.984Z"
+stopped_at: Completed 52-05-PLAN.md
+last_updated: "2026-03-23T17:46:21.324Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 27
-  completed_plans: 26
+  completed_plans: 27
   percent: 0
 ---
 
@@ -71,6 +71,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 52 P03 | 8min | 1 tasks | 3 files |
 | Phase 52 P02 | 12min | 2 tasks | 6 files |
 | Phase 52 P04 | 8min | 2 tasks | 4 files |
+| Phase 52-queue-visibility-node-drawer-and-draining P05 | 50min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase Phase 52]: _node_is_eligible() extracted as static method — reused in pull_work and get_dispatch_diagnosis; no eligibility logic duplication
 - [Phase Phase 52]: Job.target_node_id added to Job ORM model (was only on ScheduledJob) for dispatch diagnosis target_node_unavailable case
 - [Phase Phase 52-04]: Queue.tsx uses ['queue','active'] and ['queue','terminal',recencyWindow] React Query keys — invalidate(['queue']) prefix refreshes both at once; DRAINING badge cross-references PENDING job target_tags against draining node_ids; no setInterval/refetchInterval — WebSocket-only refresh
+- [Phase Phase 52-05]: JWT payload missing role field fixed inline (Rule 1) before human verify — getUser() parses role from token so admin drain/undrain buttons need it; all 12 UI tests confirmed passing
 
 ### Pending Todos
 
@@ -135,7 +137,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T16:38:11.982Z
-Stopped at: Completed 52-04-PLAN.md
+Last session: 2026-03-23T17:46:21.321Z
+Stopped at: Completed 52-05-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None
