@@ -4,17 +4,39 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.future import select
-from sqlalchemy import delete
+from sqlalchemy import delete, func
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 from .. import db as db_module
-from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord
+from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord, ScheduledFireLog
 from ..models import JobDefinitionCreate, JobDefinitionResponse, JobDefinitionUpdate
 from .signature_service import SignatureService
 from .alert_service import AlertService
 from ..deps import audit
 
 logger = logging.getLogger(__name__)
+
+
+def expected_fires_in_window(cron_expr: str, window_start: datetime, window_end: datetime) -> List[datetime]:
+    """Return all expected fire times for a cron expression within [window_start, window_end)."""
+    parts = cron_expr.split()
+    if len(parts) != 5:
+        return []
+    trigger = CronTrigger(
+        minute=parts[0], hour=parts[1], day=parts[2],
+        month=parts[3], day_of_week=parts[4]
+    )
+    fires = []
+    t = window_start
+    while True:
+        next_fire = trigger.get_next_fire_time(None, t)
+        if next_fire is None or next_fire.replace(tzinfo=None) >= window_end:
+            break
+        fires.append(next_fire.replace(tzinfo=None))
+        t = next_fire + timedelta(seconds=1)
+    return fires
+
 
 class SchedulerService:
     def __init__(self):
@@ -39,6 +61,13 @@ class SchedulerService:
                 id='__prune_execution_history__',
                 replace_existing=True,
             )
+            self.scheduler.add_job(
+                self.sweep_dispatch_timeouts,
+                'interval',
+                minutes=5,
+                id='__dispatch_timeout_sweeper__',
+                replace_existing=True,
+            )
         except Exception as e:
             logger.error(f"⚠️ Scheduler Failed to Start: {e}")
 
@@ -56,24 +85,37 @@ class SchedulerService:
                 logger.info(f"🧹 Pruned NodeStats for {len(stale_ids)} stale nodes")
 
     async def prune_execution_history(self):
-        """Prune old execution history based on retention config."""
+        """Prune old execution history based on retention config. Respects pinned=True rows."""
         async with db_module.AsyncSessionLocal() as session:
-            # 1. Get retention period
-            res = await session.execute(select(Config.value).where(Config.key == 'history_retention_days'))
+            # 1. Get retention period — prefer execution_retention_days, fallback to history_retention_days, then 14
+            res = await session.execute(select(Config.value).where(Config.key == 'execution_retention_days'))
             retention_str = res.scalar_one_or_none()
-            retention_days = int(retention_str) if retention_str else 30
-            
+            if not retention_str:
+                res2 = await session.execute(select(Config.value).where(Config.key == 'history_retention_days'))
+                retention_str = res2.scalar_one_or_none()
+            retention_days = int(retention_str) if retention_str else 14
+
             cutoff = datetime.utcnow() - timedelta(days=retention_days)
-            
-            # 2. Perform deletion
+
+            # 2. Perform deletion — only unpinned rows
             result = await session.execute(
-                delete(ExecutionRecord).where(ExecutionRecord.started_at < cutoff)
+                delete(ExecutionRecord).where(
+                    ExecutionRecord.completed_at < cutoff,
+                    ExecutionRecord.pinned.is_(False),
+                )
             )
             count = result.rowcount
             await session.commit()
-            
+
             if count > 0:
                 logger.info(f"🧹 Pruned {count} old execution records (cutoff: {cutoff.isoformat()})")
+
+            # 3. Prune ScheduledFireLog rows older than 31 days
+            fire_log_cutoff = datetime.utcnow() - timedelta(days=31)
+            await session.execute(
+                delete(ScheduledFireLog).where(ScheduledFireLog.created_at < fire_log_cutoff)
+            )
+            await session.commit()
 
     async def sync_scheduler(self):
         """Syncs DB ScheduledJobs with APScheduler."""
@@ -107,10 +149,20 @@ class SchedulerService:
         async with db_module.AsyncSessionLocal() as session:
             result = await session.execute(select(ScheduledJob).where(ScheduledJob.id == scheduled_job_id))
             s_job = result.scalar_one_or_none()
-            
+
             if not s_job or not s_job.is_active:
-                 logger.warning(f"⚠️ Job {scheduled_job_id} not found or inactive.")
-                 return
+                logger.warning(f"⚠️ Job {scheduled_job_id} not found or inactive.")
+                return
+
+            # Write a ScheduledFireLog row immediately (before any skip checks)
+            fire_time = datetime.utcnow()
+            fire_log = ScheduledFireLog(
+                scheduled_job_id=scheduled_job_id,
+                expected_at=fire_time,
+                status='fired',
+            )
+            session.add(fire_log)
+            await session.flush()  # get fire_log.id without committing
 
             # Status governance guard (Phase 17) — must come after is_active check
             SKIP_STATUSES = {"DRAFT", "REVOKED", "DEPRECATED"}
@@ -131,33 +183,40 @@ class SchedulerService:
                     )
                 except Exception:
                     pass  # CE mode: audit_log table absent — silently ignore
+                fire_log.status = 'skipped_draft'
                 await session.commit()
                 return
 
             # Cron overlap guard: skip if a previous instance is still active
-            from sqlalchemy import desc as _sched_desc
-            overlap_result = await session.execute(
-                select(Job)
-                .where(Job.scheduled_job_id == s_job.id)
-                .where(Job.status.in_(["PENDING", "ASSIGNED", "RETRYING"]))
-                .order_by(_sched_desc(Job.created_at))
-                .limit(1)
-            )
-            active_job = overlap_result.scalar_one_or_none()
-            if active_job:
-                logger.warning(
-                    f"Skipping cron fire for '{s_job.name}' — previous job {active_job.guid} "
-                    f"still active (status: {active_job.status})"
+            # allow_overlap=True skips the overlap check entirely
+            if not getattr(s_job, 'allow_overlap', False):
+                from sqlalchemy import desc as _sched_desc
+                overlap_result = await session.execute(
+                    select(Job)
+                    .where(Job.scheduled_job_id == s_job.id)
+                    .where(Job.status.in_(["PENDING", "ASSIGNED", "RETRYING"]))
+                    .order_by(_sched_desc(Job.created_at))
+                    .limit(1)
                 )
-                from ..db import AuditLog as _AuditLog
-                session.add(_AuditLog(
-                    username="scheduler",
-                    action="job:cron_skip",
-                    resource_id=s_job.id,
-                    detail=f"Skipped fire; job {active_job.guid} still {active_job.status}",
-                ))
-                await session.commit()
-                return
+                active_job = overlap_result.scalar_one_or_none()
+                if active_job:
+                    logger.warning(
+                        f"Skipping cron fire for '{s_job.name}' — previous job {active_job.guid} "
+                        f"still active (status: {active_job.status})"
+                    )
+                    try:
+                        from ..db import AuditLog as _AuditLog
+                        session.add(_AuditLog(
+                            username="scheduler",
+                            action="job:cron_skip",
+                            resource_id=s_job.id,
+                            detail=f"Skipped fire; job {active_job.guid} still {active_job.status}",
+                        ))
+                    except Exception:
+                        pass  # CE mode: AuditLog may be absent
+                    fire_log.status = 'skipped_overlap'
+                    await session.commit()
+                    return
 
             # Construct Execution Payload
             execution_guid = uuid.uuid4().hex
@@ -192,6 +251,155 @@ class SchedulerService:
             session.add(new_job)
             await session.commit()
             logger.info(f"✅ Job {execution_guid} created for scheduled task {s_job.name}")
+
+    async def sweep_dispatch_timeouts(self):
+        """Mark PENDING jobs past their dispatch_timeout_minutes as FAILED."""
+        async with db_module.AsyncSessionLocal() as session:
+            now = datetime.utcnow()
+            result = await session.execute(
+                select(Job).where(Job.status == "PENDING", Job.dispatch_timeout_minutes.isnot(None))
+            )
+            jobs = result.scalars().all()
+            failed_count = 0
+            for job in jobs:
+                deadline = job.created_at + timedelta(minutes=job.dispatch_timeout_minutes)
+                if now > deadline:
+                    job.status = "FAILED"
+                    job.result = json.dumps({"error": f"Dispatch timeout: no node picked up the job within {job.dispatch_timeout_minutes} minutes"})
+                    job.completed_at = now
+                    failed_count += 1
+            if failed_count:
+                await session.commit()
+                logger.info(f"Dispatch timeout sweeper: failed {failed_count} jobs")
+
+    async def get_scheduling_health(self, window: str, db: AsyncSession) -> dict:
+        """Return aggregate and per-definition scheduling health for the given window."""
+        window_hours = {"24h": 24, "7d": 168, "30d": 720}.get(window, 24)
+        now = datetime.utcnow()
+        window_start = now - timedelta(hours=window_hours)
+
+        # Query ScheduledFireLog rows in the window grouped by job_id + status
+        log_result = await db.execute(
+            select(ScheduledFireLog).where(
+                ScheduledFireLog.expected_at >= window_start,
+                ScheduledFireLog.expected_at <= now,
+            )
+        )
+        log_rows = log_result.scalars().all()
+
+        # Aggregate counts by scheduled_job_id
+        from collections import defaultdict
+        counts: dict = defaultdict(lambda: {"fired": 0, "skipped": 0, "failed": 0})
+        for row in log_rows:
+            jid = row.scheduled_job_id
+            if row.status == 'fired':
+                counts[jid]["fired"] += 1
+            elif row.status in ('skipped_draft', 'skipped_overlap'):
+                counts[jid]["skipped"] += 1
+            # 'failed' status could be added in the future
+
+        # Also count FAILED Job rows dispatched from each scheduled job in the window
+        failed_result = await db.execute(
+            select(Job.scheduled_job_id, func.count(Job.guid)).where(
+                Job.scheduled_job_id.isnot(None),
+                Job.status == "FAILED",
+                Job.created_at >= window_start,
+            ).group_by(Job.scheduled_job_id)
+        )
+        for jid, cnt in failed_result.all():
+            counts[jid]["failed"] += cnt
+
+        # Load all active ScheduledJobs with cron schedules
+        active_result = await db.execute(
+            select(ScheduledJob).where(
+                ScheduledJob.is_active == True,
+                ScheduledJob.schedule_cron.isnot(None),
+            )
+        )
+        active_jobs = active_result.scalars().all()
+        job_map = {j.id: j for j in active_jobs}
+
+        # Compute LATE/MISSED via expected_fires_in_window vs. actual fire log rows
+        grace = timedelta(minutes=5)
+        definition_rows = []
+
+        # Aggregate totals
+        total_fired = 0
+        total_skipped = 0
+        total_failed = 0
+        total_late = 0
+        total_missed = 0
+
+        for sj in active_jobs:
+            jid = sj.id
+            # Skip DRAFT/REVOKED jobs — they intentionally skip; exclude from missed calc
+            if hasattr(sj, 'status') and sj.status in ("DRAFT", "REVOKED", "DEPRECATED"):
+                continue
+
+            c = counts[jid]
+            fired = c["fired"]
+            skipped = c["skipped"]
+            failed = c["failed"]
+
+            # Compute expected fires and classify late/missed
+            late = 0
+            missed = 0
+            if sj.schedule_cron:
+                expected = expected_fires_in_window(sj.schedule_cron, window_start, now)
+                # Get actual fire log rows for this job
+                actual_times = [r.expected_at for r in log_rows if r.scheduled_job_id == jid]
+                for exp_t in expected:
+                    # Check if there's an actual fire within 5 min of expected
+                    matched = any(abs((actual - exp_t).total_seconds()) <= 300 for actual in actual_times)
+                    if not matched:
+                        # Unmatched — compute next expected fire
+                        time_since = now - exp_t
+                        if time_since > grace:
+                            # Compute next fire after exp_t
+                            try:
+                                next_fires = expected_fires_in_window(
+                                    sj.schedule_cron, exp_t + timedelta(seconds=1), now + timedelta(hours=1)
+                                )
+                                next_fire = next_fires[0] if next_fires else None
+                            except Exception:
+                                next_fire = None
+                            if next_fire is not None and next_fire <= now:
+                                missed += 1
+                            else:
+                                late += 1
+
+            health = "ok"
+            if missed > 0 or failed > 0:
+                health = "error"
+            elif late > 0:
+                health = "warning"
+
+            total_fired += fired
+            total_skipped += skipped
+            total_failed += failed
+            total_late += late
+            total_missed += missed
+
+            definition_rows.append({
+                "id": jid,
+                "name": sj.name,
+                "fired": fired,
+                "skipped": skipped,
+                "failed": failed,
+                "missed": missed,
+                "health": health,
+            })
+
+        return {
+            "aggregate": {
+                "fired": total_fired,
+                "skipped": total_skipped,
+                "failed": total_failed,
+                "late": total_late,
+                "missed": total_missed,
+            },
+            "definitions": definition_rows,
+        }
 
     async def create_job_definition(self, def_req: JobDefinitionCreate, current_user: User, db_session: AsyncSession) -> ScheduledJob:
         """Creates a new Scheduled Job. VALIDATES SIGNATURE First."""
