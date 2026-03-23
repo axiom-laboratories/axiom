@@ -45,6 +45,7 @@ class Job(Base):
     runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # RT-07: python, bash, powershell
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)        # SRCH-04: operator-assigned job name
     created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # SRCH-03: submitter username
+    originating_guid: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # JOB-05: resubmit traceability
 
 
 class Signature(Base):

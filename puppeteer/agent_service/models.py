@@ -67,12 +67,23 @@ class JobResponse(BaseModel):
     created_by: Optional[str] = None    # SRCH-03: submitter username
     created_at: Optional[datetime] = None  # needed for cursor encoding in list response
     runtime: Optional[str] = None       # SRCH-03: runtime filter display
+    originating_guid: Optional[str] = None  # JOB-05: set when job was created via resubmit
 
 class PaginatedJobResponse(BaseModel):
     """Cursor-based paginated job list response (Phase 49 — SRCH-01)."""
     items: List[JobResponse]
     total: int
     next_cursor: Optional[str] = None  # base64-encoded {created_at, guid}; None = no more pages
+
+class BulkJobActionRequest(BaseModel):
+    """Request body for bulk job operations (Phase 51 — JOB-05/BULK-02/03/04)."""
+    guids: List[str]
+
+class BulkActionResponse(BaseModel):
+    """Response for bulk job operations."""
+    processed: int
+    skipped: int
+    skipped_guids: List[str]
 
 class WorkResponse(BaseModel):
     guid: str
