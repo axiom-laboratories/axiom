@@ -35,6 +35,7 @@ from .models import (
     AlertResponse,
     DispatchRequest, DispatchResponse, DispatchStatusResponse,
     BulkJobActionRequest, BulkActionResponse,
+    SchedulingHealthResponse, DefinitionHealthRow,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
@@ -883,6 +884,18 @@ async def update_self(req: dict, current_user: User = Depends(get_current_user),
 @app.get("/", tags=["System"])
 async def health_check():
     return {"status": "healthy", "service": "Agent Service v0.7"}
+
+
+@app.get("/health/scheduling", response_model=SchedulingHealthResponse, tags=["Health"])
+async def get_scheduling_health_endpoint(
+    window: str = "24h",
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    if window not in ("24h", "7d", "30d"):
+        raise HTTPException(status_code=422, detail="window must be 24h, 7d, or 30d")
+    data = await scheduler_service.get_scheduling_health(window, db)
+    return SchedulingHealthResponse(**data, window=window)
 
 
 @app.get("/api/features", tags=["System"])

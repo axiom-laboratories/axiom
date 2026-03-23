@@ -378,3 +378,21 @@ class DispatchStatusResponse(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     is_terminal: bool
+
+
+# --- Scheduling Health (VIS-05, VIS-06) ---
+
+class DefinitionHealthRow(BaseModel):
+    id: str
+    name: str
+    fired: int
+    skipped: int
+    failed: int
+    missed: int
+    health: str  # "ok" | "warning" | "error"
+
+
+class SchedulingHealthResponse(BaseModel):
+    window: str
+    aggregate: Dict[str, int]  # {fired, skipped, failed, late, missed}
+    definitions: List[DefinitionHealthRow]
