@@ -79,6 +79,12 @@ interface Job {
     runtime?: string;
 }
 
+interface DispatchDiagnosis {
+    reason: 'no_nodes_online' | 'capability_mismatch' | 'all_nodes_busy' | 'target_node_unavailable' | 'pending_dispatch' | 'not_pending';
+    message: string;
+    queue_position?: number | null;
+}
+
 interface GuidedFormState {
     name: string;
     runtime: 'python' | 'bash' | 'powershell';
@@ -174,6 +180,8 @@ const JobDetailPanel = ({
     const [executions, setExecutions] = useState<any[] | null>(null);
     const [nodeHealth, setNodeHealth] = useState<{ cpu: number; ram: number; recorded_at: string } | null>(null);
     const [execLoading, setExecLoading] = useState(false);
+    const [diagnosis, setDiagnosis] = useState<DispatchDiagnosis | null>(null);
+    const [diagnosisLoading, setDiagnosisLoading] = useState(false);
 
     useEffect(() => {
         if (!job?.retry_after || job.status !== 'RETRYING') {
@@ -209,6 +217,29 @@ const JobDetailPanel = ({
             .finally(() => setExecLoading(false));
     }, [open, job?.guid]);
 
+    useEffect(() => {
+        if (!open || !job || job.status !== 'PENDING') {
+            setDiagnosis(null);
+            return;
+        }
+        setDiagnosisLoading(true);
+        authenticatedFetch(`/jobs/${job.guid}/dispatch-diagnosis`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => setDiagnosis(data))
+            .catch(() => {})
+            .finally(() => setDiagnosisLoading(false));
+    }, [open, job?.guid, job?.status]);
+
+    useWebSocket((event) => {
+        if ((event === 'node:updated' || event === 'node:heartbeat' || event === 'job:updated')
+            && open && job?.status === 'PENDING' && job?.guid) {
+            authenticatedFetch(`/jobs/${job.guid}/dispatch-diagnosis`)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => data && setDiagnosis(data))
+                .catch(() => {});
+        }
+    });
+
     if (!job) return null;
     const cancellable = job.status === 'PENDING' || job.status === 'ASSIGNED';
     const retryable = job.status === 'FAILED' || job.status === 'DEAD_LETTER';
@@ -236,6 +267,26 @@ const JobDetailPanel = ({
                 </SheetHeader>
 
                 <div className="space-y-6 pt-6">
+                    {/* PENDING dispatch diagnosis callout */}
+                    {job.status === 'PENDING' && (
+                        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
+                            <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-1">
+                                Dispatch Diagnosis
+                            </h4>
+                            {diagnosisLoading && !diagnosis && (
+                                <p className="text-xs text-amber-300/60">Analysing...</p>
+                            )}
+                            {diagnosis && (
+                                <p className="text-sm text-amber-300">{diagnosis.message}</p>
+                            )}
+                            {diagnosis?.queue_position != null && diagnosis.queue_position > 1 && (
+                                <p className="text-xs text-amber-300/80 mt-1">
+                                    Approximately {diagnosis.queue_position - 1} jobs ahead in queue.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {cancellable && (
                         <Button
                             variant="outline"
