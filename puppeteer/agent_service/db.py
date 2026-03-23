@@ -47,6 +47,7 @@ class Job(Base):
     created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # SRCH-03: submitter username
     originating_guid: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # JOB-05: resubmit traceability
     target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # VIS-04: explicit node targeting
+    dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
 
 
 class Signature(Base):
@@ -79,6 +80,8 @@ class ScheduledJob(Base):
     timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     env_tag: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="python")  # RT-07
+    allow_overlap: Mapped[bool] = mapped_column(Boolean, default=False)  # SRCH-08: default safe — no concurrent runs
+    dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
 
 class Token(Base):
     __tablename__ = "tokens"
@@ -172,6 +175,7 @@ class ExecutionRecord(Base):
     attestation_bundle: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     attestation_signature: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     attestation_verified: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)  # SRCH-09: user-pinned execution record
 
     __table_args__ = (
         Index("ix_execution_records_job_guid", "job_guid"),
@@ -179,6 +183,30 @@ class ExecutionRecord(Base):
         Index("ix_execution_records_node_started", "node_id", started_at.desc()),
         Index("ix_execution_records_job_started", "job_guid", started_at.desc()),
     )
+
+
+class ScheduledFireLog(Base):
+    __tablename__ = "scheduled_fire_log"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    scheduled_job_id: Mapped[str] = mapped_column(String, nullable=False)
+    expected_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default='fired')
+    # status values: fired | skipped_draft | skipped_overlap
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_fire_log_job_expected", "scheduled_job_id", "expected_at"),
+    )
+
+
+class JobTemplate(Base):
+    __tablename__ = "job_templates"
+    id: Mapped[str] = mapped_column(String, primary_key=True)  # UUID hex
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    creator_id: Mapped[str] = mapped_column(String, nullable=False)  # username
+    visibility: Mapped[str] = mapped_column(String, nullable=False, default='private')  # private | shared
+    payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON of all job fields, signing state excluded
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Signal(Base):
