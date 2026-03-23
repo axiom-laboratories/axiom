@@ -253,7 +253,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 49. Pagination, Filtering and Search | 6/6 | Complete    | 2026-03-22 |
 | 50. Guided Job Form | 3/3 | Complete    | 2026-03-23 |
 | 51. Job Detail, Resubmit and Bulk Ops | 4/4 | Complete    | 2026-03-23 |
-| 52. Queue Visibility, Node Drawer and DRAINING | 2/5 | In Progress|  |
+| 52. Queue Visibility, Node Drawer and DRAINING | 3/5 | In Progress|  |
 | 53. Scheduling Health and Data Management | 0/TBD | Not started | - |
 
 ## Archived
