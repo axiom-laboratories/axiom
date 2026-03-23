@@ -108,7 +108,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 50: Guided Job Form** — Structured guided form replacing raw JSON for common job submission; Advanced mode available via gate (completed 2026-03-23)
 - [x] **Phase 51: Job Detail, Resubmit and Bulk Ops** — Job detail drawer; one-click and edit-then-resubmit; multi-select bulk cancel/resubmit/delete (completed 2026-03-23)
 - [x] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state (completed 2026-03-23)
-- [ ] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning
+- [x] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning (completed 2026-03-23)
 
 ## Phase Details
 
@@ -261,7 +261,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 50. Guided Job Form | 3/3 | Complete    | 2026-03-23 |
 | 51. Job Detail, Resubmit and Bulk Ops | 4/4 | Complete    | 2026-03-23 |
 | 52. Queue Visibility, Node Drawer and DRAINING | 5/5 | Complete    | 2026-03-23 |
-| 53. Scheduling Health and Data Management | 5/6 | In Progress|  |
+| 53. Scheduling Health and Data Management | 6/6 | Complete   | 2026-03-23 |
 
 ## Archived
 
