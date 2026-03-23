@@ -41,6 +41,8 @@ interface JobDefinitionFormData {
     target_node_id: string;
     target_tags: string;
     capability_requirements: string;
+    allow_overlap: boolean;
+    dispatch_timeout_minutes: number | null;
 }
 
 interface EditingJob {
@@ -53,6 +55,8 @@ interface EditingJob {
     target_node_id: string | null;
     target_tags: string[] | null;
     capability_requirements: Record<string, string> | null;
+    allow_overlap?: boolean;
+    dispatch_timeout_minutes?: number | null;
 }
 
 interface JobDefinitionModalProps {
@@ -87,6 +91,8 @@ const JobDefinitionModal = ({
             capability_requirements: Object.entries(editingJob.capability_requirements ?? {})
                 .map(([k, v]) => `${k}:${v}`)
                 .join(', '),
+            allow_overlap: editingJob.allow_overlap ?? false,
+            dispatch_timeout_minutes: editingJob.dispatch_timeout_minutes ?? null,
         });
     }, [editingJob]);
 
@@ -132,6 +138,43 @@ const JobDefinitionModal = ({
                                         onChange={e => setFormData({ ...formData, schedule_cron: e.target.value })}
                                         aria-label="Cron schedule"
                                     />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <label className="text-sm text-zinc-400">Allow Overlap</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, allow_overlap: !formData.allow_overlap })}
+                                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                            formData.allow_overlap
+                                                ? 'bg-amber-600 text-white'
+                                                : 'bg-zinc-700 text-zinc-300'
+                                        }`}
+                                    >
+                                        {formData.allow_overlap ? 'Allowed' : 'Blocked (default)'}
+                                    </button>
+                                    <span className="text-xs text-zinc-500">
+                                        {formData.allow_overlap
+                                            ? 'Concurrent runs permitted — use with caution'
+                                            : 'Skip fire if previous run still active'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-zinc-400">Dispatch Timeout (minutes)</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        placeholder="No timeout"
+                                        value={formData.dispatch_timeout_minutes ?? ''}
+                                        onChange={e => setFormData({
+                                            ...formData,
+                                            dispatch_timeout_minutes: e.target.value ? parseInt(e.target.value) : null,
+                                        })}
+                                        className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500"
+                                    />
+                                    <p className="text-xs text-zinc-500 mt-1">
+                                        PENDING jobs failing to dispatch within this window are auto-failed. Leave blank for no timeout.
+                                        <em className="ml-1">(Distinct from Execution Timeout which kills running jobs.)</em>
+                                    </p>
                                 </div>
                                 <Input
                                     id="job-target"

@@ -5,10 +5,13 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { authenticatedFetch } from '../auth';
 import JobDefinitionList from '../components/job-definitions/JobDefinitionList';
 import JobDefinitionModal from '../components/job-definitions/JobDefinitionModal';
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
+import HealthTab from '../components/job-definitions/HealthTab';
+import TemplatesTab from '../components/TemplatesTab';
 
 interface EditingJob {
     id: string;
@@ -33,6 +36,8 @@ const EMPTY_FORM = {
     target_node_id: '',
     target_tags: '',
     capability_requirements: '',
+    allow_overlap: false,
+    dispatch_timeout_minutes: null as number | null,
 };
 
 const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
@@ -367,57 +372,82 @@ const JobDefinitions = () => {
                     <h1 className="text-2xl font-bold tracking-tight text-white">Scheduled Jobs</h1>
                     <p className="text-sm text-zinc-500 mt-1">Signed, zero-trust recurring payloads.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 flex mr-4">
-                        <button
-                            onClick={() => setActiveTab('active')}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'active' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                        >
-                            ACTIVE
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('staging')}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'staging' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                        >
-                            STAGING
-                        </button>
-                    </div>
-                    <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-primary/10">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Archive New Payload
-                    </Button>
-                </div>
             </div>
 
-            <JobDefinitionList
-                definitions={filteredDefinitions}
-                executions={executions}
-                onDelete={handleDelete}
-                onToggle={handleToggle}
-                onEdit={handleEdit}
-                onPublish={handlePublish}
-                onResign={handleResign}
-                signatures={signatures}
-                selectedDefId={selectedDefId}
-                onSelect={handleSelectDef}
-            />
+            <Tabs defaultValue="definitions">
+                <TabsList>
+                    <TabsTrigger value="definitions">Definitions</TabsTrigger>
+                    <TabsTrigger value="health">Health</TabsTrigger>
+                    <TabsTrigger value="templates">Templates</TabsTrigger>
+                </TabsList>
 
-            {selectedDefId && (
-                <DefinitionHistoryPanel
-                    definitionId={selectedDefId}
-                    onOpenRun={(jobRunId, executionId) => {
-                        setSelectedRunId(jobRunId);
-                        setSelectedExId(executionId);
-                        setShowLogModal(true);
-                    }}
-                />
-            )}
-            <ExecutionLogModal
-                jobRunId={selectedRunId ?? undefined}
-                executionId={!selectedRunId ? (selectedExId ?? undefined) : undefined}
-                open={showLogModal}
-                onClose={() => { setShowLogModal(false); setSelectedRunId(null); setSelectedExId(null); }}
-            />
+                <TabsContent value="definitions">
+                    <div className="space-y-4 mt-4">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 flex mr-4">
+                                <button
+                                    onClick={() => setActiveTab('active')}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'active' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                >
+                                    ACTIVE
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('staging')}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'staging' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                >
+                                    STAGING
+                                </button>
+                            </div>
+                            <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-primary/10">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Archive New Payload
+                            </Button>
+                        </div>
+
+                        <JobDefinitionList
+                            definitions={filteredDefinitions}
+                            executions={executions}
+                            onDelete={handleDelete}
+                            onToggle={handleToggle}
+                            onEdit={handleEdit}
+                            onPublish={handlePublish}
+                            onResign={handleResign}
+                            signatures={signatures}
+                            selectedDefId={selectedDefId}
+                            onSelect={handleSelectDef}
+                        />
+
+                        {selectedDefId && (
+                            <DefinitionHistoryPanel
+                                definitionId={selectedDefId}
+                                onOpenRun={(jobRunId, executionId) => {
+                                    setSelectedRunId(jobRunId);
+                                    setSelectedExId(executionId);
+                                    setShowLogModal(true);
+                                }}
+                            />
+                        )}
+                        <ExecutionLogModal
+                            jobRunId={selectedRunId ?? undefined}
+                            executionId={!selectedRunId ? (selectedExId ?? undefined) : undefined}
+                            open={showLogModal}
+                            onClose={() => { setShowLogModal(false); setSelectedRunId(null); setSelectedExId(null); }}
+                        />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="health">
+                    <div className="mt-4">
+                        <HealthTab />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="templates">
+                    <div className="mt-4">
+                        <TemplatesTab />
+                    </div>
+                </TabsContent>
+            </Tabs>
 
             <Dialog open={showDraftWarning} onOpenChange={(open) => { if (!open) setShowDraftWarning(false); }}>
                 <DialogContent className="max-w-md bg-zinc-950 border-zinc-800">
