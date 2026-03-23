@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 54-01-PLAN.md
-last_updated: "2026-03-23T22:14:43.415Z"
+stopped_at: Completed 54-02-PLAN.md
+last_updated: "2026-03-23T22:25:06.515Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 10
@@ -81,6 +81,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 53 P06 | 15min | 2 tasks | 3 files |
 | Phase 54-bug-fix-blitz P02 | 3min | 2 tasks | 4 files |
 | Phase 54-bug-fix-blitz P01 | 3min | 2 tasks | 2 files |
+| Phase 54-bug-fix-blitz P02 | 10min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 53-06]: Save as Template uses inline expand UI (no modal) — simpler UX, avoids Dialog import overhead
 - [Phase 54]: INT-01: script_content key chosen to match node.py; INT-02: authenticatedFetch URL contract confirmed (no /api prefix); INT-03: CSV export uses full /api prefix (locked per CONTEXT.md)
 - [Phase 54-01]: retry_after serialised via .isoformat() at list_jobs() dict boundary; list_jobs_for_export() left unchanged (different shape)
+- [Phase 54]: INT-01: script_content key chosen to match node.py line 553; both dispatch sites in GuidedDispatchCard patched; INT-02: authenticatedFetch URL contract confirmed (no /api prefix); INT-03: CSV export uses full /api prefix (locked per CONTEXT.md)
 
 ### Pending Todos
 
@@ -160,7 +162,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T22:14:43.412Z
-Stopped at: Completed 54-01-PLAN.md
+Last session: 2026-03-23T22:25:06.513Z
+Stopped at: Completed 54-02-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None
