@@ -848,7 +848,7 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "tv": user.token_version},
+        data={"sub": user.username, "tv": user.token_version, "role": user.role},
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
@@ -873,7 +873,7 @@ async def update_self(req: dict, current_user: User = Depends(get_current_user),
     await db.commit()
     # Issue a new token for the current session (old tokens for other sessions are now invalid)
     new_token = create_access_token(
-        data={"sub": current_user.username, "tv": current_user.token_version},
+        data={"sub": current_user.username, "tv": current_user.token_version, "role": current_user.role},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     return {"status": "ok", "access_token": new_token}
