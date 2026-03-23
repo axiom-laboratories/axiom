@@ -142,7 +142,7 @@ describe('GuidedDispatchCard', () => {
 
         // Warning should appear
         await waitFor(() => {
-            expect(screen.getByText(/script changed.*signature cleared/i)).toBeDefined();
+            expect(screen.getByText(/re-signing required/i)).toBeDefined();
         });
 
         // Signature field should be cleared

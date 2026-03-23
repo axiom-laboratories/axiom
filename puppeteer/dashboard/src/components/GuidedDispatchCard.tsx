@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { ChevronDown, ChevronUp, Play, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Play, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,11 +72,12 @@ const INITIAL_FORM_STATE: GuidedFormState = INITIAL_FORM;
 interface GuidedDispatchCardProps {
     nodes: NodeItem[];
     onJobCreated: () => void;
+    initialValues?: Partial<GuidedFormState>;  // JOB-06: pre-populate for edit-then-resubmit
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const GuidedDispatchCard = ({ nodes, onJobCreated }: GuidedDispatchCardProps) => {
+const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispatchCardProps) => {
     const [form, setForm] = useState<GuidedFormState>(INITIAL_FORM);
     const [tagInput, setTagInput] = useState('');
     const [capInput, setCapInput] = useState('');
@@ -106,6 +107,18 @@ const GuidedDispatchCard = ({ nodes, onJobCreated }: GuidedDispatchCardProps) =>
             })
             .catch(() => {/* non-critical */});
     }, []);
+
+    // JOB-06: Apply initialValues when provided (edit-then-resubmit)
+    useEffect(() => {
+        if (!initialValues) return;
+        setForm(prev => ({
+            ...prev,
+            ...initialValues,
+            signatureId: '',
+            signature: '',
+            signatureCleared: true,  // always force re-sign on pre-populated form
+        }));
+    }, [initialValues]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Stale signature detection (Pattern 3)
     const prevScriptRef = useRef(form.scriptContent);
@@ -462,8 +475,9 @@ const GuidedDispatchCard = ({ nodes, onJobCreated }: GuidedDispatchCardProps) =>
 
                             {/* Stale signature warning */}
                             {form.signatureCleared && (
-                                <div className="rounded-md bg-amber-900/30 border border-amber-700/50 px-3 py-2 text-xs text-amber-300">
-                                    Script changed — signature cleared. Re-sign before dispatching.
+                                <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+                                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                    Re-signing required — script payload has changed or job was resubmitted.
                                 </div>
                             )}
 
