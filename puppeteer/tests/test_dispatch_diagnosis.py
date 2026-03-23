@@ -1,11 +1,6 @@
 """
-Phase 52 — Queue Visibility, Node Drawer, and Draining: Test scaffold for VIS-01.
-6 failing stubs covering dispatch diagnosis / pending job explanations.
-
-Each stub documents the expected future API shape via its docstring, then immediately
-calls pytest.fail("not implemented") so they fail with the correct marker before
-any implementation lands. Plan 02 will remove the pytest.fail lines and complete
-the assertions.
+Phase 52 — Queue Visibility, Node Drawer, and Draining: Tests for VIS-01.
+6 tests covering dispatch diagnosis / pending job explanations.
 """
 import json
 import uuid
@@ -39,8 +34,7 @@ async def db():
 # Helper factories
 # ---------------------------------------------------------------------------
 
-def _make_node(node_id=None, status="ONLINE", concurrency_limit=2,
-               capabilities=None, tags=None):
+def _make_node(node_id=None, status="ONLINE", capabilities=None, tags=None):
     return Node(
         node_id=node_id or str(uuid.uuid4()),
         hostname="test-host",
@@ -49,8 +43,7 @@ def _make_node(node_id=None, status="ONLINE", concurrency_limit=2,
         last_seen=datetime.utcnow(),
         tags=json.dumps(tags or []),
         capabilities=json.dumps(capabilities or {}),
-        env_tag="test",
-        concurrency_limit=concurrency_limit,
+        env_tag=None,
     )
 
 
@@ -65,7 +58,7 @@ def _make_job(guid=None, status="PENDING", node_id=None,
         payload=json.dumps({"script": "print('hello')"}),
         target_tags=json.dumps(target_tags or []),
         capability_requirements=json.dumps(capability_requirements or {}),
-        env_tag="test",
+        env_tag=None,
         created_at=created_at or datetime.utcnow(),
         created_by="test-user",
         target_node_id=target_node_id,
@@ -73,97 +66,128 @@ def _make_job(guid=None, status="PENDING", node_id=None,
 
 
 # ---------------------------------------------------------------------------
-# VIS-01 stubs
+# VIS-01 tests
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_diagnosis_no_nodes_online(db):
-    """
-    No nodes exist in the DB; the dispatch diagnosis result has:
-        reason == "no_nodes_online"
-        message is a non-empty string
+    """No nodes exist; diagnosis returns reason=="no_nodes_online"."""
+    job = _make_job(status="PENDING")
+    db.add(job)
+    await db.commit()
 
-    Expected call:
-        result = await JobService.get_dispatch_diagnosis(job.guid, db)
-        assert result.reason == "no_nodes_online"
-        assert result.message
-    """
-    pytest.fail("not implemented")
+    result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    assert result["reason"] == "no_nodes_online"
+    assert result["message"]
 
 
 @pytest.mark.asyncio
 async def test_diagnosis_capability_mismatch(db):
     """
-    One ONLINE node exists; the job requires capability "gpu" >= "1.0" but the
-    node's capabilities dict does not include "gpu".
-
-    Expected result:
-        result.reason == "capability_mismatch"
-        result.message contains the missing capability name (e.g. "gpu")
-
-    Expected call:
-        result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    One ONLINE node, but job requires capability "gpu" >= "1.0" that node lacks.
+    Result: reason=="capability_mismatch", message mentions "gpu".
     """
-    pytest.fail("not implemented")
+    node = _make_node(status="ONLINE", capabilities={"python": "3.11"})
+    db.add(node)
+    job = _make_job(status="PENDING", capability_requirements={"gpu": "1.0"})
+    db.add(job)
+    await db.commit()
+
+    result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    assert result["reason"] == "capability_mismatch"
+    assert "gpu" in result["message"]
 
 
 @pytest.mark.asyncio
 async def test_diagnosis_all_nodes_busy(db):
     """
-    Two eligible nodes exist (tags and capabilities match), both at full capacity
-    (number of ASSIGNED jobs equals their concurrency_limit).
-
-    Expected result:
-        result.reason == "all_nodes_busy"
-        result.queue_position >= 1  (int)
-
-    Expected call:
-        result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    Two eligible nodes, both at concurrency limit (5 ASSIGNED jobs each).
+    Result: reason=="all_nodes_busy", queue_position >= 1.
     """
-    pytest.fail("not implemented")
+    node1 = _make_node(status="ONLINE")
+    node2 = _make_node(status="ONLINE")
+    db.add(node1)
+    db.add(node2)
+
+    # Fill both nodes to capacity (5 each)
+    for _ in range(5):
+        db.add(_make_job(status="ASSIGNED", node_id=node1.node_id))
+        db.add(_make_job(status="ASSIGNED", node_id=node2.node_id))
+
+    job = _make_job(status="PENDING")
+    db.add(job)
+    await db.commit()
+
+    result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    assert result["reason"] == "all_nodes_busy"
+    assert isinstance(result["queue_position"], int)
+    assert result["queue_position"] >= 1
 
 
 @pytest.mark.asyncio
 async def test_diagnosis_target_node_unavailable(db):
     """
-    The job has an explicit target_node_id pointing to a node whose status is
-    OFFLINE or DRAINING (not ONLINE).
-
-    Expected result:
-        result.reason == "target_node_unavailable"
-
-    Expected call:
-        result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    Job has explicit target_node_id pointing to an OFFLINE node.
+    Result: reason=="target_node_unavailable".
     """
-    pytest.fail("not implemented")
+    offline_node = _make_node(status="OFFLINE")
+    db.add(offline_node)
+    job = _make_job(status="PENDING", target_node_id=offline_node.node_id)
+    db.add(job)
+    await db.commit()
+
+    result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    assert result["reason"] == "target_node_unavailable"
 
 
 @pytest.mark.asyncio
 async def test_diagnosis_pending_dispatch(db):
     """
-    An eligible ONLINE node with spare capacity exists for the job.
-
-    Expected result:
-        result.reason == "pending_dispatch"
-        result.message indicates the job will be dispatched soon (non-empty string)
-
-    Expected call:
-        result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    Eligible ONLINE node with spare capacity exists.
+    Result: reason=="pending_dispatch", non-empty message.
     """
-    pytest.fail("not implemented")
+    node = _make_node(status="ONLINE")
+    db.add(node)
+    job = _make_job(status="PENDING")
+    db.add(job)
+    await db.commit()
+
+    result = await JobService.get_dispatch_diagnosis(job.guid, db)
+    assert result["reason"] == "pending_dispatch"
+    assert result["message"]
 
 
 @pytest.mark.asyncio
 async def test_diagnosis_queue_position_is_count_of_earlier_pending(db):
     """
-    3 PENDING jobs were created BEFORE this job, and 2 PENDING jobs were created
-    AFTER this job (all eligible for the same nodes).
-
-    Expected: result.queue_position == 3
-    (Only jobs created before this one count toward queue_position.)
-
-    Expected call:
-        result = await JobService.get_dispatch_diagnosis(job.guid, db)
-        assert result.queue_position == 3
+    3 PENDING jobs created BEFORE this job; 2 created AFTER.
+    All nodes at capacity.
+    Result: queue_position == 4 (3 earlier jobs + 1 for the current job itself).
     """
-    pytest.fail("not implemented")
+    node = _make_node(status="BUSY")
+    db.add(node)
+
+    # Fill node to capacity
+    for _ in range(5):
+        db.add(_make_job(status="ASSIGNED", node_id=node.node_id))
+
+    base_time = datetime.utcnow()
+
+    # 3 PENDING jobs created BEFORE
+    for i in range(3):
+        db.add(_make_job(status="PENDING", created_at=base_time + timedelta(seconds=i)))
+
+    # The target job
+    target_job = _make_job(status="PENDING", created_at=base_time + timedelta(seconds=10))
+    db.add(target_job)
+
+    # 2 PENDING jobs created AFTER
+    for i in range(2):
+        db.add(_make_job(status="PENDING", created_at=base_time + timedelta(seconds=20 + i)))
+
+    await db.commit()
+
+    result = await JobService.get_dispatch_diagnosis(target_job.guid, db)
+    assert result["reason"] == "all_nodes_busy"
+    # queue_position = count of earlier PENDING/RETRYING + 1 = 3 + 1 = 4
+    assert result["queue_position"] == 4
