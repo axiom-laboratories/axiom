@@ -196,6 +196,10 @@ class JobService:
                 "created_by": job.created_by,
                 "created_at": job.created_at,
                 "runtime": job.runtime,
+                "retry_count": job.retry_count,
+                "max_retries": job.max_retries,
+                "retry_after": job.retry_after.isoformat() if job.retry_after else None,
+                "originating_guid": job.originating_guid,
             })
 
         next_cursor = None
