@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Phase 51 context gathered
-last_updated: "2026-03-23T13:25:43.278Z"
+stopped_at: Completed 51-01-PLAN.md (Wave 0 scaffold)
+last_updated: "2026-03-23T14:10:27.696Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 22
+  completed_plans: 19
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 50-guided-job-form P01 | 3min | 1 tasks | 1 files |
 | Phase 50-guided-job-form P02 | 6min | 2 tasks | 3 files |
 | Phase 50-guided-job-form P03 | 3 | 1 tasks | 2 files |
+| Phase 51-job-detail-resubmit-and-bulk-ops P01 | 3min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 50-guided-job-form]: GuidedDispatchCard imported from path that does not exist yet — intentional to confirm red phase before Plan 02 creates the component
 - [Phase 50-guided-job-form]: GuidedDispatchCard: targetNodeId prepended to target_tags list (not separate field) to match JobCreate model; stale sig detection via prevScriptRef; ADV placeholder for Plan 03
 - [Phase 50-guided-job-form]: Advanced mode gate: @radix-ui/react-tooltip imported directly (no ui/tooltip.tsx wrapper); pendingAdvSwitch/pendingAdvReset state controls two confirmation Dialog gates; advancedJsonError useMemo provides real-time JSON schema validation
+- [Phase 51]: it.todo() used for BULK-01 frontend stubs — vitest marks as todo not skip; @radix-ui/react-checkbox installed via npm --save (was absent from package.json)
 
 ### Pending Todos
 
@@ -112,7 +114,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T13:25:43.276Z
-Stopped at: Phase 51 context gathered
+Last session: 2026-03-23T14:10:27.694Z
+Stopped at: Completed 51-01-PLAN.md (Wave 0 scaffold)
 Next action: `/gsd:plan-phase 46`
-Resume file: .planning/phases/51-job-detail-resubmit-and-bulk-ops/51-CONTEXT.md
+Resume file: None

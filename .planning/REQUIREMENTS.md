@@ -22,15 +22,15 @@
 - [x] **JOB-02**: Operator can view the generated JSON payload from guided mode in a read-only panel without editing it
 - [x] **JOB-03**: Operator can switch to Advanced (raw JSON) mode via a one-way gate with a confirmation dialog; form validates JSON against schema before submission
 - [ ] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
-- [ ] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
+- [x] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
 - [ ] **JOB-06**: Operator can edit and resubmit a failed job — guided form pre-populated with failed job's payload, signing state cleared, fresh signing required
 
 ### Bulk Job Operations (BULK)
 
-- [ ] **BULK-01**: Operator can multi-select jobs using checkboxes; a floating action bar appears showing available bulk actions
-- [ ] **BULK-02**: Operator can bulk cancel selected PENDING/RUNNING jobs with a count confirmation
-- [ ] **BULK-03**: Operator can bulk resubmit selected FAILED (retries-exhausted) jobs; confirmation shows skipped count for jobs with remaining retries
-- [ ] **BULK-04**: Operator can bulk delete selected terminal-state jobs (COMPLETED/FAILED/CANCELLED) with a count confirmation
+- [x] **BULK-01**: Operator can multi-select jobs using checkboxes; a floating action bar appears showing available bulk actions
+- [x] **BULK-02**: Operator can bulk cancel selected PENDING/RUNNING jobs with a count confirmation
+- [x] **BULK-03**: Operator can bulk resubmit selected FAILED (retries-exhausted) jobs; confirmation shows skipped count for jobs with remaining retries
+- [x] **BULK-04**: Operator can bulk delete selected terminal-state jobs (COMPLETED/FAILED/CANCELLED) with a count confirmation
 
 ### Queue & Visibility (VIS)
 
@@ -175,12 +175,12 @@
 | JOB-02 | Phase 50 | Complete |
 | JOB-03 | Phase 50 | Complete |
 | JOB-04 | Phase 51 | Pending |
-| JOB-05 | Phase 51 | Pending |
+| JOB-05 | Phase 51 | Complete |
 | JOB-06 | Phase 51 | Pending |
-| BULK-01 | Phase 51 | Pending |
-| BULK-02 | Phase 51 | Pending |
-| BULK-03 | Phase 51 | Pending |
-| BULK-04 | Phase 51 | Pending |
+| BULK-01 | Phase 51 | Complete |
+| BULK-02 | Phase 51 | Complete |
+| BULK-03 | Phase 51 | Complete |
+| BULK-04 | Phase 51 | Complete |
 | VIS-01 | Phase 52 | Pending |
 | VIS-02 | Phase 52 | Pending |
 | VIS-03 | Phase 52 | Pending |
