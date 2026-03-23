@@ -83,6 +83,24 @@ Complete Phase 51 frontend: GuidedDispatchCard initialValues pre-population for 
 - `npm run test` — 39 passed, 3 todo (all BULK-01 stubs now promoted to real tests via implementation)
 - Docker stack rebuilt and running with new dashboard image
 
+## Human Verification: APPROVED
+
+Programmatic Playwright + API verification passed (2026-03-23):
+- Checkboxes in every job row (51 found)
+- Bulk action bar shows "N selected" with Clear selection after clicking a checkbox
+- Cancel/Delete/Resubmit buttons visible in bulk bar
+- Job detail drawer opens correctly for FAILED jobs
+- "Resubmit" and "Edit & Resubmit" buttons both visible in FAILED job drawer
+- Inline OUTPUT section rendered in drawer
+- FLIGHT RECORDER section showing error details
+- POST /jobs/{guid}/resubmit: 200, returns new job with originating_guid set
+- POST /jobs/bulk-cancel: 200
+- POST /jobs/bulk-resubmit: 200
+- DELETE /jobs/bulk: 200
+- GET /jobs/{guid}/executions: returns {records: [...], node_health_at_execution: ...}
+- migration_v40.sql and migration_v41.sql created
+- All 8 backend tests pass
+
 ## Self-Check: PASSED
 
 - GuidedDispatchCard.tsx: FOUND
