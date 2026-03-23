@@ -1221,6 +1221,108 @@ class JobService:
             })
 
         return {"status": job.status}
+
+    @staticmethod
+    async def get_dispatch_diagnosis(guid: str, db: AsyncSession) -> dict:
+        """Returns {reason, message, queue_position} explaining why a PENDING job hasn't dispatched."""
+        # 1. Load job
+        job_result = await db.execute(select(Job).where(Job.guid == guid))
+        job = job_result.scalar_one_or_none()
+        if not job:
+            return {"reason": "not_found", "message": "Job not found", "queue_position": None}
+        if job.status != "PENDING":
+            return {
+                "reason": "not_pending",
+                "message": f"Job is {job.status}, not PENDING",
+                "queue_position": None,
+            }
+
+        # 2. Handle explicit target_node_id targeting
+        if job.target_node_id:
+            tn_result = await db.execute(select(Node).where(Node.node_id == job.target_node_id))
+            target_node = tn_result.scalar_one_or_none()
+            if not target_node or target_node.status not in ("ONLINE", "BUSY"):
+                status_str = target_node.status if target_node else "not found"
+                return {
+                    "reason": "target_node_unavailable",
+                    "message": f"Target node '{job.target_node_id}' is {status_str} and cannot accept work.",
+                    "queue_position": None,
+                }
+
+        # 3. Check if any ONLINE/BUSY node exists at all
+        nodes_result = await db.execute(
+            select(Node).where(Node.status.in_(["ONLINE", "BUSY"]))
+        )
+        online_nodes = nodes_result.scalars().all()
+
+        if not online_nodes:
+            return {
+                "reason": "no_nodes_online",
+                "message": "No nodes are currently online. The job will dispatch when a node connects.",
+                "queue_position": None,
+            }
+
+        # 4. Find eligible nodes using _node_is_eligible helper
+        eligible_nodes = []
+        missing_cap = None
+        for node in online_nodes:
+            node_tags = JobService._get_effective_tags(node)
+            node_caps_dict = json.loads(node.capabilities) if node.capabilities else {}
+            if JobService._node_is_eligible(node, job, node_tags, node_caps_dict):
+                eligible_nodes.append(node)
+            else:
+                # Try to identify the missing capability for better error messages
+                if job.capability_requirements:
+                    try:
+                        req_caps = json.loads(job.capability_requirements)
+                        for cap_name in req_caps:
+                            if cap_name not in node_caps_dict:
+                                missing_cap = cap_name
+                                break
+                    except Exception:
+                        pass
+
+        if not eligible_nodes:
+            msg = "No nodes match this job's requirements."
+            if missing_cap:
+                msg = f"No nodes have the required capability '{missing_cap}'."
+            return {"reason": "capability_mismatch", "message": msg, "queue_position": None}
+
+        # 5. Check if all eligible nodes are at concurrency limit (default 5)
+        all_busy = True
+        for node in eligible_nodes:
+            assigned_result = await db.execute(
+                select(func.count(Job.guid)).where(
+                    Job.status == 'ASSIGNED',
+                    Job.node_id == node.node_id,
+                )
+            )
+            assigned = assigned_result.scalar() or 0
+            if assigned < 5:
+                all_busy = False
+                break
+
+        if all_busy:
+            # Count jobs ahead in queue (created before this job, PENDING or RETRYING)
+            pos_result = await db.execute(
+                select(func.count(Job.guid)).where(
+                    Job.status.in_(["PENDING", "RETRYING"]),
+                    Job.created_at < job.created_at,
+                )
+            )
+            queue_position = (pos_result.scalar() or 0) + 1
+            return {
+                "reason": "all_nodes_busy",
+                "message": f"All eligible nodes are at capacity. Approximately {queue_position - 1} jobs ahead in queue.",
+                "queue_position": queue_position,
+            }
+
+        return {
+            "reason": "pending_dispatch",
+            "message": "This job will be dispatched on the next poll cycle.",
+            "queue_position": 1,
+        }
+
     @staticmethod
     async def get_job_stats(db: AsyncSession) -> dict:
         """Returns aggregated job statistics for the dashboard."""

@@ -46,6 +46,7 @@ class Job(Base):
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)        # SRCH-04: operator-assigned job name
     created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # SRCH-03: submitter username
     originating_guid: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # JOB-05: resubmit traceability
+    target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # VIS-04: explicit node targeting
 
 
 class Signature(Base):

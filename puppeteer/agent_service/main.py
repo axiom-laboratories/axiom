@@ -1164,6 +1164,15 @@ async def cancel_job(guid: str, current_user: User = Depends(require_auth), db: 
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": "CANCELLED"})
     return {"status": "cancelled", "guid": guid}
 
+@app.get("/jobs/{guid}/dispatch-diagnosis", tags=["Jobs"])
+async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+    """Returns structured explanation for why a PENDING job has not yet dispatched."""
+    result = await JobService.get_dispatch_diagnosis(guid, db)
+    if result.get("reason") == "not_found":
+        raise HTTPException(status_code=404, detail="Job not found")
+    return result
+
+
 @app.post("/jobs/{guid}/retry", tags=["Jobs"])
 async def retry_job(
     guid: str,

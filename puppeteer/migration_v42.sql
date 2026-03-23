@@ -1,0 +1,28 @@
+-- Migration v42: DRAINING node status + Job.target_node_id (Phase 52, Plan 02)
+-- Date: 2026-03-23
+--
+-- Part 1: DRAINING node status — DOCUMENTATION ONLY (no DDL needed)
+--
+-- Node.status is an unbounded VARCHAR column (no CHECK constraint or ENUM).
+-- The "DRAINING" value can be written and read without any schema change.
+--
+-- Existing status values: ONLINE, OFFLINE, REVOKED, TAMPERED, BUSY, UPGRADING
+-- New status value added: DRAINING
+--
+-- Behaviour:
+--   - PATCH /nodes/{id}/drain   → sets status to "DRAINING"
+--   - PATCH /nodes/{id}/undrain → sets status back to "ONLINE"
+--   - pull_work skips DRAINING nodes (returns PollResponse(job=None))
+--   - receive_heartbeat preserves DRAINING status (does not revert to ONLINE)
+--   - list_nodes returns status="DRAINING" for draining nodes
+--   - report_result auto-transitions node to "OFFLINE" when last ASSIGNED job completes
+--
+-- Part 2: Job.target_node_id — NEW COLUMN
+--
+-- Adds optional explicit node targeting to Job dispatch diagnosis.
+-- Fresh deployments: handled automatically by create_all at startup.
+-- Existing deployments: run the ALTER TABLE below.
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS target_node_id VARCHAR;
+-- SQLite (dev only, no IF NOT EXISTS):
+-- ALTER TABLE jobs ADD COLUMN target_node_id TEXT;
