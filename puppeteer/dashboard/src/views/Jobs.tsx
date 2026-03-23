@@ -67,6 +67,20 @@ interface Job {
     retry_after?: string | null;
     depends_on?: string[];
     created_by?: string;
+    originating_guid?: string;
+    runtime?: string;
+}
+
+interface GuidedFormState {
+    name: string;
+    runtime: 'python' | 'bash' | 'powershell';
+    scriptContent: string;
+    targetNodeId: string;
+    targetTags: string[];
+    capabilityReqs: string[];
+    signatureId: string;
+    signature: string;
+    signatureCleared: boolean;
 }
 
 interface PaginatedJobResponse {
@@ -137,17 +151,21 @@ const JobDetailPanel = ({
     open,
     onClose,
     onCancel,
-    onViewOutput,
-    onRetry,
+    onResubmit,
+    onEditResubmit,
 }: {
     job: Job | null;
     open: boolean;
     onClose: () => void;
     onCancel: (guid: string) => void;
-    onViewOutput: (guid: string) => void;
-    onRetry: (guid: string) => void;
+    onResubmit: (guid: string) => void;
+    onEditResubmit: (job: Job) => void;
 }) => {
     const [retryCountdown, setRetryCountdown] = useState<string | null>(null);
+    const [resubmitConfirming, setResubmitConfirming] = useState(false);
+    const [executions, setExecutions] = useState<any[] | null>(null);
+    const [nodeHealth, setNodeHealth] = useState<{ cpu: number; ram: number; recorded_at: string } | null>(null);
+    const [execLoading, setExecLoading] = useState(false);
 
     useEffect(() => {
         if (!job?.retry_after || job.status !== 'RETRYING') {
@@ -166,14 +184,35 @@ const JobDetailPanel = ({
         return () => clearInterval(id);
     }, [job?.retry_after, job?.status]);
 
+    useEffect(() => {
+        if (!open) { setResubmitConfirming(false); return; }
+    }, [open]);
+
+    useEffect(() => {
+        if (!open || !job) { setExecutions(null); setNodeHealth(null); return; }
+        setExecLoading(true);
+        authenticatedFetch(`/jobs/${job.guid}/executions`)
+            .then(r => r.json())
+            .then(data => {
+                setExecutions(data.records ?? []);
+                setNodeHealth(data.node_health_at_execution ?? null);
+            })
+            .catch(() => { /* non-critical — drawer still useful without output */ })
+            .finally(() => setExecLoading(false));
+    }, [open, job?.guid]);
+
     if (!job) return null;
     const cancellable = job.status === 'PENDING' || job.status === 'ASSIGNED';
     const retryable = job.status === 'FAILED' || job.status === 'DEAD_LETTER';
+    const securityRejected = job.result?.security_rejected === true || job.status === 'SECURITY_REJECTED';
 
     const flightRecorder = job.result?.flight_recorder;
     const resultData = job.result
         ? Object.fromEntries(Object.entries(job.result).filter(([k]) => k !== 'flight_recorder'))
         : null;
+
+    const latestExecution = executions && executions.length > 0 ? executions[0] : null;
+    const outputLines: Array<{ t: string; stream: string; line: string }> = latestExecution?.output_log ?? [];
 
     return (
         <Sheet open={open} onOpenChange={onClose}>
@@ -200,22 +239,94 @@ const JobDetailPanel = ({
                     )}
 
                     {retryable && (
-                        <Button
-                            variant="outline"
-                            className="w-full border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                            onClick={() => { onRetry(job.guid); onClose(); }}
-                        >
-                            <RefreshCw className="mr-2 h-4 w-4" /> Re-queue Job
-                        </Button>
+                        <div className="flex gap-2">
+                            {resubmitConfirming ? (
+                                <div className="flex gap-2 items-center flex-1">
+                                    <span className="text-xs text-zinc-400">Confirm resubmit?</span>
+                                    <Button size="sm" variant="ghost" onClick={() => setResubmitConfirming(false)}>Cancel</Button>
+                                    <Button size="sm" onClick={() => { onResubmit(job.guid); setResubmitConfirming(false); }}>Confirm</Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                                    onClick={() => setResubmitConfirming(true)}
+                                >
+                                    <RefreshCw className="mr-2 h-3.5 w-3.5" /> Resubmit
+                                </Button>
+                            )}
+                            {!resubmitConfirming && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                                    onClick={() => onEditResubmit(job)}
+                                >
+                                    <Terminal className="mr-2 h-3.5 w-3.5" /> Edit &amp; Resubmit
+                                </Button>
+                            )}
+                        </div>
                     )}
 
-                    <Button
-                        variant="outline"
-                        className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-                        onClick={() => { onViewOutput(job.guid); onClose(); }}
-                    >
-                        <Terminal className="mr-2 h-4 w-4" /> View Output
-                    </Button>
+                    {/* SECURITY_REJECTED callout */}
+                    {securityRejected && (
+                        <div className="border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-400 rounded-md">
+                            Script signature did not match registered key — re-sign and resubmit.
+                        </div>
+                    )}
+
+                    {/* Inline output */}
+                    <section className="space-y-2">
+                        <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Terminal className="h-3 w-3" /> Output
+                        </h3>
+                        {execLoading ? (
+                            <div className="flex items-center gap-2 text-xs text-zinc-600 py-2">
+                                <RefreshCw className="h-3 w-3 animate-spin" /> Loading output...
+                            </div>
+                        ) : outputLines.length > 0 ? (
+                            <div className="bg-black/50 rounded-lg p-3 overflow-auto max-h-48 space-y-0.5 font-mono text-[11px]">
+                                {outputLines.map((l, i) => (
+                                    <div key={i} className="flex gap-4 group hover:bg-zinc-900/50 px-2 py-0.5 rounded">
+                                        <span className="text-zinc-700 shrink-0">
+                                            {new Date(l.t).toLocaleTimeString('en-GB', { hour12: false })}
+                                        </span>
+                                        <span className={`shrink-0 ${l.stream === 'stderr' ? 'text-amber-500/80' : 'text-zinc-600'}`}>
+                                            [{l.stream.slice(0, 3).toUpperCase()}]
+                                        </span>
+                                        <span className={l.stream === 'stderr' ? 'text-amber-200' : 'text-zinc-300'}>
+                                            {l.line}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : latestExecution?.stdout || latestExecution?.stderr ? (
+                            <pre className="bg-black/50 rounded-lg p-3 overflow-auto max-h-48 text-xs text-zinc-300 font-mono whitespace-pre-wrap">
+                                {latestExecution.stdout}{latestExecution.stderr}
+                            </pre>
+                        ) : (
+                            <p className="text-xs text-zinc-600 italic py-1">No execution records yet.</p>
+                        )}
+                    </section>
+
+                    {/* Node health snapshot */}
+                    {nodeHealth && (
+                        <section className="space-y-2">
+                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Node Health at Execution</h3>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-zinc-800">
+                                    <span className="text-zinc-500 block">CPU</span>
+                                    <span className="text-zinc-200 font-mono font-medium">{nodeHealth.cpu.toFixed(1)}%</span>
+                                </div>
+                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-zinc-800">
+                                    <span className="text-zinc-500 block">RAM</span>
+                                    <span className="text-zinc-200 font-mono font-medium">{nodeHealth.ram.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-zinc-600">Recorded at {new Date(nodeHealth.recorded_at).toLocaleString()}</p>
+                        </section>
+                    )}
 
                     {/* Metadata */}
                     <section className="space-y-3">
@@ -251,6 +362,12 @@ const JobDetailPanel = ({
                             <span className="text-zinc-300">{job.started_at ? new Date(job.started_at).toLocaleString() : '—'}</span>
                             <span className="text-zinc-500">Duration</span>
                             <span className="text-zinc-300">{job.duration_seconds != null ? `${job.duration_seconds.toFixed(2)}s` : '—'}</span>
+                            {job.originating_guid && (
+                                <>
+                                    <span className="text-zinc-500">Resubmitted from</span>
+                                    <span className="font-mono text-zinc-400 text-xs break-all">{job.originating_guid}</span>
+                                </>
+                            )}
                             {job.target_tags && job.target_tags.length > 0 && (
                                 <>
                                     <span className="text-zinc-500">Tags</span>
@@ -564,6 +681,11 @@ const Jobs = () => {
     const [detailOpen, setDetailOpen] = useState(false);
     const [logModalGuid, setLogModalGuid] = useState<string | null>(null);
 
+    // Resubmit + highlight state
+    const [highlightGuid, setHighlightGuid] = useState<string | null>(null);
+    const [guidedInitialValues, setGuidedInitialValues] = useState<Partial<GuidedFormState> | null>(null);
+    const guidedCardRef = useRef<HTMLDivElement>(null);
+
     // Build filter query params (shared between fetchJobs and handleExport)
     const buildFilterParams = useCallback((f: FilterState): URLSearchParams => {
         const params = new URLSearchParams();
@@ -691,6 +813,43 @@ const Jobs = () => {
         setDetailOpen(true);
     };
 
+    const closeDetail = () => {
+        setDetailOpen(false);
+    };
+
+    const handleResubmit = async (guid: string) => {
+        try {
+            const res = await authenticatedFetch(`/jobs/${guid}/resubmit`, { method: 'POST' });
+            if (!res.ok) { toast.error('Resubmit failed'); return; }
+            const newJob = await res.json();
+            closeDetail();
+            await fetchJobs({ reset: true });
+            setHighlightGuid(newJob.guid);
+            setTimeout(() => setHighlightGuid(null), 2500);
+            toast.success(`Job resubmitted — ${newJob.guid.slice(0, 8)}`);
+        } catch { toast.error('Resubmit failed'); }
+    };
+
+    const handleEditResubmit = (job: Job) => {
+        const payload = typeof job.payload === 'object' ? job.payload : {};
+        const initialValues: Partial<GuidedFormState> = {
+            name: job.name ?? '',
+            runtime: (job.runtime as GuidedFormState['runtime']) ?? 'python',
+            scriptContent: payload.script ?? payload.script_content ?? '',
+            targetNodeId: '',
+            targetTags: job.target_tags ?? [],
+            capabilityReqs: [],
+            signatureId: '',
+            signature: '',
+            signatureCleared: true,
+        };
+        closeDetail();
+        setGuidedInitialValues(initialValues);
+        setTimeout(() => {
+            guidedCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    };
+
     const cancelJob = async (guid: string) => {
         try {
             const res = await authenticatedFetch(`/jobs/${guid}/cancel`, { method: 'PATCH' });
@@ -743,10 +902,14 @@ const Jobs = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Guided Dispatch Form */}
-                <GuidedDispatchCard
-                    nodes={nodes}
-                    onJobCreated={() => fetchJobs({ reset: true })}
-                />
+                <div ref={guidedCardRef}>
+                    {/* @ts-ignore — initialValues prop added in Plan 04 */}
+                    <GuidedDispatchCard
+                        nodes={nodes}
+                        onJobCreated={() => fetchJobs({ reset: true })}
+                        initialValues={guidedInitialValues ?? undefined}
+                    />
+                </div>
 
                 {/* Queue Monitor */}
                 <Card className="xl:col-span-2 bg-zinc-925 border-zinc-800/50 overflow-hidden">
@@ -906,7 +1069,9 @@ const Jobs = () => {
                                 jobs.map(job => (
                                     <TableRow
                                         key={job.guid}
-                                        className="border-zinc-800 hover:bg-zinc-900/30 transition-colors cursor-pointer"
+                                        className={`border-zinc-800 cursor-pointer hover:bg-zinc-800/50 transition-all duration-500 ${
+                                            highlightGuid === job.guid ? 'ring-1 ring-primary/60 bg-primary/5' : ''
+                                        }`}
                                         onClick={() => openDetail(job)}
                                     >
                                         <TableCell className="font-mono text-zinc-400 pl-6">
@@ -1000,10 +1165,10 @@ const Jobs = () => {
             <JobDetailPanel
                 job={selectedJob}
                 open={detailOpen}
-                onClose={() => setDetailOpen(false)}
+                onClose={closeDetail}
                 onCancel={cancelJob}
-                onViewOutput={setLogModalGuid}
-                onRetry={handleRetry}
+                onResubmit={handleResubmit}
+                onEditResubmit={handleEditResubmit}
             />
             <ExecutionLogModal jobGuid={logModalGuid ?? ''} open={!!logModalGuid} onClose={() => setLogModalGuid(null)} />
         </div>
