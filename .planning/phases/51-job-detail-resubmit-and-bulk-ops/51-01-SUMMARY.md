@@ -117,3 +117,14 @@ None - no external service configuration required.
 ---
 *Phase: 51-job-detail-resubmit-and-bulk-ops*
 *Completed: 2026-03-23*
+
+## Self-Check: PASSED
+
+- FOUND: puppeteer/migration_v40.sql
+- FOUND: puppeteer/dashboard/src/components/ui/checkbox.tsx
+- FOUND: puppeteer/agent_service/tests/test_job51_resubmit.py
+- FOUND: puppeteer/agent_service/tests/test_job51_bulk.py
+- FOUND: .planning/phases/51-job-detail-resubmit-and-bulk-ops/51-01-SUMMARY.md
+- FOUND: commits 374c3f8, 9b77863, 49ea107 (task commits)
+- All 8 pytest tests pass (auto-enriched to real API tests by system)
+- All 3 it.todo stubs present in Jobs.test.tsx (vitest shows 3 todo)
