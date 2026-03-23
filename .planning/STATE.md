@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 51-02-PLAN.md
-last_updated: "2026-03-23T14:14:21.929Z"
+stopped_at: Completed 51-03-PLAN.md
+last_updated: "2026-03-23T14:21:56.537Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
   percent: 0
 ---
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 50-guided-job-form P03 | 3 | 1 tasks | 2 files |
 | Phase 51-job-detail-resubmit-and-bulk-ops P01 | 3min | 3 tasks | 7 files |
 | Phase 51-job-detail-resubmit-and-bulk-ops P02 | 15min | 2 tasks | 6 files |
+| Phase 51-job-detail-resubmit-and-bulk-ops P03 | 5min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 51]: it.todo() used for BULK-01 frontend stubs — vitest marks as todo not skip; @radix-ui/react-checkbox installed via npm --save (was absent from package.json)
 - [Phase 51-job-detail-resubmit-and-bulk-ops]: Bulk endpoints placed before /{guid} routes to prevent FastAPI routing ambiguity
 - [Phase 51-job-detail-resubmit-and-bulk-ops]: get_current_user override used in tests (not require_permission) since admin bypasses RBAC
+- [Phase 51-job-detail-resubmit-and-bulk-ops]: Executions endpoint changed from bare list to {records, node_health_at_execution} envelope; defensive array fallback in ExecutionLogModal ensures backward compat
+- [Phase 51-job-detail-resubmit-and-bulk-ops]: Resubmit confirm pattern is inline transform (button -> Cancel/Confirm row), not a modal
 
 ### Pending Todos
 
@@ -117,7 +120,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:14:21.926Z
-Stopped at: Completed 51-02-PLAN.md
+Last session: 2026-03-23T14:21:56.535Z
+Stopped at: Completed 51-03-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None

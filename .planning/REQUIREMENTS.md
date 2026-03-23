@@ -21,9 +21,9 @@
 - [x] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
 - [x] **JOB-02**: Operator can view the generated JSON payload from guided mode in a read-only panel without editing it
 - [x] **JOB-03**: Operator can switch to Advanced (raw JSON) mode via a one-way gate with a confirmation dialog; form validates JSON against schema before submission
-- [ ] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
+- [x] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
 - [x] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
-- [ ] **JOB-06**: Operator can edit and resubmit a failed job — guided form pre-populated with failed job's payload, signing state cleared, fresh signing required
+- [x] **JOB-06**: Operator can edit and resubmit a failed job — guided form pre-populated with failed job's payload, signing state cleared, fresh signing required
 
 ### Bulk Job Operations (BULK)
 
@@ -174,9 +174,9 @@
 | JOB-01 | Phase 50 | Complete |
 | JOB-02 | Phase 50 | Complete |
 | JOB-03 | Phase 50 | Complete |
-| JOB-04 | Phase 51 | Pending |
+| JOB-04 | Phase 51 | Complete |
 | JOB-05 | Phase 51 | Complete |
-| JOB-06 | Phase 51 | Pending |
+| JOB-06 | Phase 51 | Complete |
 | BULK-01 | Phase 51 | Complete |
 | BULK-02 | Phase 51 | Complete |
 | BULK-03 | Phase 51 | Complete |
