@@ -1,16 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Plus,
-    Play,
     History,
     Terminal,
     Clock,
     Hash,
     MoreHorizontal,
     Search,
-    Tag,
-    Cpu,
     CheckCircle2,
     XCircle,
     AlertTriangle,
@@ -24,12 +20,10 @@ import {
     SlidersHorizontal,
     X,
     Download,
-    ChevronDown,
-    ChevronUp,
     } from 'lucide-react';
 import { toast } from 'sonner';
 import { subHours, subDays } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -49,10 +43,10 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { authenticatedFetch } from '../auth';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
+import { GuidedDispatchCard } from '../components/GuidedDispatchCard';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -84,6 +78,7 @@ interface PaginatedJobResponse {
 interface NodeItem {
     node_id: string;
     hostname?: string;
+    tags?: string[];
 }
 
 interface FilterState {
@@ -569,15 +564,6 @@ const Jobs = () => {
     const [detailOpen, setDetailOpen] = useState(false);
     const [logModalGuid, setLogModalGuid] = useState<string | null>(null);
 
-    // Dispatch form state
-    const [newTaskType, setNewTaskType] = useState('script');
-    const [newRuntime, setNewRuntime] = useState<string>('python');
-    const [newTaskPayload, setNewTaskPayload] = useState('{}');
-    const [payloadError, setPayloadError] = useState<string | null>(null);
-    const [dispatchTargetTags, setDispatchTargetTags] = useState('');
-    const [capabilityReqs, setCapabilityReqs] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
     // Build filter query params (shared between fetchJobs and handleExport)
     const buildFilterParams = useCallback((f: FilterState): URLSearchParams => {
         const params = new URLSearchParams();
@@ -633,7 +619,7 @@ const Jobs = () => {
             const data = await res.json();
             // Handle both paginated envelope {items} and bare array
             const items: any[] = Array.isArray(data) ? data : (data.items ?? []);
-            setNodes(items.map((n: any) => ({ node_id: n.node_id, hostname: n.hostname })));
+            setNodes(items.map((n: any) => ({ node_id: n.node_id, hostname: n.hostname, tags: n.tags ?? [] })));
         } catch {
             // Non-critical — combobox just won't be populated
         }
@@ -735,56 +721,6 @@ const Jobs = () => {
         }
     };
 
-    const createJob = async () => {
-        try {
-            setIsSubmitting(true);
-            setPayloadError(null);
-            const payload = JSON.parse(newTaskPayload);
-
-            const tags = dispatchTargetTags.trim()
-                ? dispatchTargetTags.split(',').map(t => t.trim()).filter(Boolean)
-                : undefined;
-
-            const caps = capabilityReqs.trim()
-                ? Object.fromEntries(
-                    capabilityReqs.split(',')
-                        .map(s => s.trim().split(':').map(p => p.trim()))
-                        .filter(parts => parts.length === 2 && parts[0])
-                  )
-                : undefined;
-
-            const body: Record<string, unknown> = {
-                task_type: newTaskType,
-                payload,
-                ...(tags && { target_tags: tags }),
-                ...(caps && { capability_requirements: caps }),
-            };
-            if (newTaskType === 'script') {
-                body.runtime = newRuntime;
-            }
-            const res = await authenticatedFetch('/jobs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            if (res.ok) {
-                toast.success('Job dispatched successfully');
-                fetchJobs({ reset: true });
-                setNewTaskPayload('{}');
-                setDispatchTargetTags('');
-                setCapabilityReqs('');
-            } else {
-                const err = await res.json();
-                toast.error(err.detail || 'Failed to dispatch job');
-            }
-        } catch (e) {
-            console.error('Invalid JSON Payload', e);
-            setPayloadError('Invalid JSON Payload');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
@@ -806,95 +742,11 @@ const Jobs = () => {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Dispatch Form */}
-                <Card className="bg-zinc-925 border-zinc-800/50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
-                            <Plus className="h-5 w-5 text-primary" />
-                            Submit New Job
-                        </CardTitle>
-                        <CardDescription className="text-zinc-500">Configure a manual orchestration payload.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Task Definition</label>
-                            <Select value={newTaskType} onValueChange={setNewTaskType}>
-                                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-11">
-                                    <SelectValue placeholder="Select type" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
-                                    <SelectItem value="script">Script</SelectItem>
-                                    <SelectItem value="web_task">Web Task (Puppeteer)</SelectItem>
-                                    <SelectItem value="file_download">File Provisioner</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {newTaskType === 'script' && (
-                            <div className="space-y-2">
-                                <label className="text-sm text-zinc-400 mb-1 block">Runtime</label>
-                                <Select value={newRuntime} onValueChange={setNewRuntime}>
-                                    <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-white h-11">
-                                        <SelectValue placeholder="Select runtime" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
-                                        <SelectItem value="python">Python</SelectItem>
-                                        <SelectItem value="bash">Bash</SelectItem>
-                                        <SelectItem value="powershell">PowerShell</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">JSON Payload</label>
-                            <div className="relative">
-                                <Terminal className="absolute top-3 left-3 h-4 w-4 text-zinc-600" />
-                                <textarea
-                                    value={newTaskPayload}
-                                    onChange={e => { setNewTaskPayload(e.target.value); setPayloadError(null); }}
-                                    className={`w-full h-32 pl-10 pr-4 py-3 bg-zinc-900 border ${payloadError ? 'border-red-500/50' : 'border-zinc-800'} text-green-500 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all`}
-                                />
-                                {payloadError && <p className="text-xs text-red-400 mt-1">{payloadError}</p>}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <Tag className="h-3 w-3" /> Target Tags
-                                <span className="text-zinc-600 normal-case font-normal">(optional)</span>
-                            </label>
-                            <Input
-                                placeholder="linux, gpu, secure"
-                                value={dispatchTargetTags}
-                                onChange={e => setDispatchTargetTags(e.target.value)}
-                                className="bg-zinc-900 border-zinc-800 text-white h-9 font-mono text-sm placeholder:text-zinc-600"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <Cpu className="h-3 w-3" /> Capability Requirements
-                                <span className="text-zinc-600 normal-case font-normal">(optional)</span>
-                            </label>
-                            <Input
-                                placeholder="python:3.11, docker:24.0"
-                                value={capabilityReqs}
-                                onChange={e => setCapabilityReqs(e.target.value)}
-                                className="bg-zinc-900 border-zinc-800 text-white h-9 font-mono text-sm placeholder:text-zinc-600"
-                            />
-                        </div>
-
-                        <Button
-                            className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
-                            onClick={createJob}
-                            disabled={isSubmitting}
-                        >
-                            <Play className="mr-2 h-4 w-4 fill-current" />
-                            {isSubmitting ? 'Dispatching...' : 'Dispatch Payload'}
-                        </Button>
-                    </CardContent>
-                </Card>
+                {/* Guided Dispatch Form */}
+                <GuidedDispatchCard
+                    nodes={nodes}
+                    onJobCreated={() => fetchJobs({ reset: true })}
+                />
 
                 {/* Queue Monitor */}
                 <Card className="xl:col-span-2 bg-zinc-925 border-zinc-800/50 overflow-hidden">
