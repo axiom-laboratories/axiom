@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Completed 54-02-PLAN.md (at checkpoint Task 3)
-last_updated: "2026-03-23T22:14:11.081Z"
+stopped_at: Completed 54-01-PLAN.md
+last_updated: "2026-03-23T22:14:43.415Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 10
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 35
-  completed_plans: 34
+  completed_plans: 35
   percent: 0
 ---
 
@@ -80,6 +80,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 53 P06 | 4min | 1 tasks | 3 files |
 | Phase 53 P06 | 15min | 2 tasks | 3 files |
 | Phase 54-bug-fix-blitz P02 | 3min | 2 tasks | 4 files |
+| Phase 54-bug-fix-blitz P01 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 53-06]: Data Retention added as new Data tab in Admin.tsx tabs rather than inline section — keeps tab surface consistent
 - [Phase 53-06]: Save as Template uses inline expand UI (no modal) — simpler UX, avoids Dialog import overhead
 - [Phase 54]: INT-01: script_content key chosen to match node.py; INT-02: authenticatedFetch URL contract confirmed (no /api prefix); INT-03: CSV export uses full /api prefix (locked per CONTEXT.md)
+- [Phase 54-01]: retry_after serialised via .isoformat() at list_jobs() dict boundary; list_jobs_for_export() left unchanged (different shape)
 
 ### Pending Todos
 
@@ -158,7 +160,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T22:14:11.078Z
-Stopped at: Completed 54-02-PLAN.md (at checkpoint Task 3)
+Last session: 2026-03-23T22:14:43.412Z
+Stopped at: Completed 54-01-PLAN.md
 Next action: `/gsd:plan-phase 46`
 Resume file: None

@@ -109,7 +109,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 51: Job Detail, Resubmit and Bulk Ops** — Job detail drawer; one-click and edit-then-resubmit; multi-select bulk cancel/resubmit/delete (completed 2026-03-23)
 - [x] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state (completed 2026-03-23)
 - [x] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning (completed 2026-03-23)
-- [ ] **Phase 54: Bug Fix Blitz** — Four targeted code fixes closing 7 gap-closure requirements: script key mismatch, Queue double-prefix, CSV export 404, list_jobs missing retry/originating fields
+- [x] **Phase 54: Bug Fix Blitz** — Four targeted code fixes closing 7 gap-closure requirements: script key mismatch, Queue double-prefix, CSV export 404, list_jobs missing retry/originating fields (completed 2026-03-23)
 - [ ] **Phase 55: Verification + Docs Cleanup** — Retroactive Phase 48 verification (SCHED-01–04) + RT-06 design-decision documentation update
 
 ## Phase Details
@@ -294,7 +294,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 51. Job Detail, Resubmit and Bulk Ops | 4/4 | Complete    | 2026-03-23 |
 | 52. Queue Visibility, Node Drawer and DRAINING | 5/5 | Complete    | 2026-03-23 |
 | 53. Scheduling Health and Data Management | 6/6 | Complete    | 2026-03-23 |
-| 54. Bug Fix Blitz | 1/2 | In Progress|  |
+| 54. Bug Fix Blitz | 2/2 | Complete   | 2026-03-23 |
 | 55. Verification + Docs Cleanup | 0/2 | Pending | — |
 
 ## Archived
