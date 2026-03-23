@@ -237,7 +237,14 @@ Plans:
   3. Operator can save a job configuration as a named reusable template (without signing state); loading a template pre-populates the guided form with all fields editable before submission
   4. Admin can configure a global execution record retention period (default 14 days); a nightly pruning task hard-deletes expired records while skipping pinned records; pin/unpin actions are audit-logged
   5. Operator can download all execution records for a specific job as a CSV file from the job detail drawer
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 53-01-PLAN.md — Wave 0 test stubs: all 7 failing stubs for Phase 53 requirements
+- [ ] 53-02-PLAN.md — DB schema: ScheduledFireLog, JobTemplate, ExecutionRecord.pinned, ScheduledJob.allow_overlap + dispatch_timeout_minutes, migration_v43.sql
+- [ ] 53-03-PLAN.md — Backend health: APScheduler fire log hooks, GET /health/scheduling, dispatch timeout sweeper (VIS-05, VIS-06)
+- [ ] 53-04-PLAN.md — Backend templates/retention/pin/export: job templates CRUD, pin/unpin, admin retention config, per-job CSV export (SRCH-06, SRCH-07, SRCH-08, SRCH-09, SRCH-10)
+- [ ] 53-05-PLAN.md — Frontend: JobDefinitions three-tab layout, HealthTab, TemplatesTab, JobDefinitionModal overlap/timeout fields
+- [ ] 53-06-PLAN.md — Frontend: Admin retention panel, Save as Template, template loading, pin toggle, CSV export + human verify
 
 ## Progress
 
