@@ -203,7 +203,12 @@ Plans:
   3. Operator can open a failed job in the guided form pre-populated with that job's payload; signing state is cleared; fresh signing is required before resubmission
   4. Operator can multi-select jobs using checkboxes; a floating action bar appears with applicable bulk actions for the selected set
   5. Bulk cancel (PENDING/RUNNING), bulk resubmit (FAILED retries-exhausted), and bulk delete (terminal state) each display a count confirmation before executing
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 51-01-PLAN.md — Wave 0: migration SQL (originating_guid), backend test stubs, checkbox.tsx
+- [ ] 51-02-PLAN.md — Backend: resubmit endpoint, bulk-cancel/resubmit/delete endpoints, models
+- [ ] 51-03-PLAN.md — Drawer enrichment: inline output, node health, resubmit buttons, edit-then-resubmit wiring
+- [ ] 51-04-PLAN.md — GuidedDispatchCard initialValues, bulk checkboxes + action bar, human verify
 
 ### Phase 52: Queue Visibility, Node Drawer and DRAINING
 **Goal**: Operators can diagnose why a PENDING job is stuck, see the full live queue in one place, inspect per-node state in detail, and safely drain a node without forcefully terminating jobs
@@ -241,7 +246,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 48. Scheduled Job Signing Safety | 2/2 | Complete   | 2026-03-22 |
 | 49. Pagination, Filtering and Search | 6/6 | Complete    | 2026-03-22 |
 | 50. Guided Job Form | 3/3 | Complete    | 2026-03-23 |
-| 51. Job Detail, Resubmit and Bulk Ops | 0/TBD | Not started | - |
+| 51. Job Detail, Resubmit and Bulk Ops | 0/4 | Not started | - |
 | 52. Queue Visibility, Node Drawer and DRAINING | 0/TBD | Not started | - |
 | 53. Scheduling Health and Data Management | 0/TBD | Not started | - |
 
