@@ -276,6 +276,11 @@ describe('GuidedDispatchCard', () => {
         expect(dispatchBtn).toBeDisabled();
     });
 
+    // BULK-01 — Wave 0 stubs: these must be implemented by Plan 04
+    it.todo('checkbox column: jobs table renders a checkbox in the first column of each row');
+    it.todo('checkbox select: clicking a row checkbox activates the bulk action bar (filter bar replaced)');
+    it.todo('header checkbox: clicking the header checkbox marks all visible rows as selected');
+
     it('Reset button in Advanced mode shows confirmation dialog and returns to blank guided form', async () => {
         render(<GuidedDispatchCard {...defaultProps} />);
         await waitFor(() => {});
