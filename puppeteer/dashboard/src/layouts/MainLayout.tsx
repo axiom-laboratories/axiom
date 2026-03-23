@@ -17,6 +17,7 @@ import {
     History as HistoryIcon,
     BookOpen,
     Lock,
+    ListOrdered,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -86,6 +87,7 @@ const MainLayout = () => {
                     </div>
                     <NavItem to="/nodes" icon={Server} label="Nodes" />
                     <NavItem to="/jobs" icon={Cpu} label="Jobs" />
+                    <NavItem to="/queue" icon={ListOrdered} label="Queue" />
                     <NavItem to="/history" icon={HistoryIcon} label="History" />
                     <NavItem to="/scheduled-jobs" icon={CalendarClock} label="Scheduled Jobs" />
 

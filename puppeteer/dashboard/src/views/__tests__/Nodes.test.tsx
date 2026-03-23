@@ -8,6 +8,7 @@ import Nodes from '../Nodes';
 const mockAuthFetch = vi.fn();
 vi.mock('../../auth', () => ({
     authenticatedFetch: (...args: any[]) => mockAuthFetch(...args),
+    getUser: () => ({ username: 'testuser', role: 'admin' }),
 }));
 
 // Mock useWebSocket — Nodes.tsx uses live WebSocket updates

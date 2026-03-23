@@ -17,6 +17,7 @@ const Users = lazy(() => import('./views/Users'));
 const Account = lazy(() => import('./views/Account'));
 const ServicePrincipals = lazy(() => import('./views/ServicePrincipals'));
 const Webhooks = lazy(() => import('./views/Webhooks'));
+const Queue = lazy(() => import('./views/Queue'));
 
 // Temporary explicit imports for JS files (if allowed) or placeholder
 // Because we haven't migrated everything, we might need to suppress TS errors
@@ -40,6 +41,7 @@ const AppRoutes = () => {
                     <Route index element={<Dashboard />} />
                     <Route path="nodes" element={<Nodes />} />
                     <Route path="jobs" element={<Jobs />} />
+                    <Route path="queue" element={<Queue />} />
                     <Route path="scheduled-jobs" element={<JobDefinitions />} />
                     <Route path="history" element={<History />} />
                     <Route path="signatures" element={<Signatures />} />
