@@ -34,6 +34,7 @@ from .models import (
     AttestationExportResponse,
     AlertResponse,
     DispatchRequest, DispatchResponse, DispatchStatusResponse,
+    BulkJobActionRequest, BulkActionResponse,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
@@ -1188,6 +1189,158 @@ async def retry_job(
     await db.commit()
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": "PENDING"})
     return {"status": "PENDING", "guid": guid}
+
+# --- Resubmit / Bulk job operations (Phase 51) ---
+
+CANCELLABLE_STATES = {"PENDING", "ASSIGNED"}
+RESUBMITTABLE_STATES = {"FAILED", "DEAD_LETTER"}
+TERMINAL_STATES = {"COMPLETED", "FAILED", "DEAD_LETTER", "CANCELLED", "SECURITY_REJECTED"}
+
+
+def _job_to_response(job: Job) -> JobResponse:
+    """Build a JobResponse from a Job ORM object."""
+    payload = json.loads(job.payload) if isinstance(job.payload, str) else job.payload
+    duration = None
+    if job.started_at:
+        end = job.completed_at or datetime.utcnow()
+        duration = (end - job.started_at).total_seconds()
+    return JobResponse(
+        guid=job.guid,
+        status=job.status,
+        payload=payload,
+        result=json.loads(job.result) if job.result else None,
+        node_id=job.node_id,
+        started_at=job.started_at,
+        duration_seconds=duration,
+        target_tags=json.loads(job.target_tags) if job.target_tags else None,
+        depends_on=json.loads(job.depends_on) if job.depends_on else None,
+        task_type=job.task_type,
+        name=job.name,
+        created_by=job.created_by,
+        created_at=job.created_at,
+        runtime=job.runtime,
+        originating_guid=job.originating_guid,
+    )
+
+
+@app.post("/jobs/bulk-cancel", response_model=BulkActionResponse, tags=["Jobs"])
+async def bulk_cancel_jobs(
+    req: BulkJobActionRequest,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cancel PENDING/ASSIGNED jobs in bulk; skips terminal-state jobs and reports them."""
+    result = await db.execute(select(Job).where(Job.guid.in_(req.guids)))
+    jobs = result.scalars().all()
+    processed, skipped_guids = 0, []
+    for job in jobs:
+        if job.status in CANCELLABLE_STATES:
+            job.status = "CANCELLED"
+            job.completed_at = datetime.utcnow()
+            audit(db, current_user, "job:cancel", job.guid)
+            processed += 1
+        else:
+            skipped_guids.append(job.guid)
+    await db.commit()
+    return BulkActionResponse(processed=processed, skipped=len(skipped_guids), skipped_guids=skipped_guids)
+
+
+@app.post("/jobs/bulk-resubmit", response_model=BulkActionResponse, tags=["Jobs"])
+async def bulk_resubmit_jobs(
+    req: BulkJobActionRequest,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resubmit FAILED/DEAD_LETTER jobs in bulk; creates a new PENDING job for each."""
+    result = await db.execute(select(Job).where(Job.guid.in_(req.guids)))
+    jobs = result.scalars().all()
+    processed, skipped_guids = 0, []
+    for job in jobs:
+        if job.status in RESUBMITTABLE_STATES:
+            new_guid = str(uuid.uuid4())
+            new_job = Job(
+                guid=new_guid,
+                task_type=job.task_type,
+                payload=job.payload,
+                status="PENDING",
+                target_tags=job.target_tags,
+                capability_requirements=job.capability_requirements,
+                max_retries=job.max_retries,
+                backoff_multiplier=job.backoff_multiplier,
+                timeout_minutes=job.timeout_minutes,
+                runtime=job.runtime,
+                name=job.name,
+                created_by=current_user.username,
+                signature_hmac=job.signature_hmac,
+                originating_guid=job.guid,
+            )
+            db.add(new_job)
+            audit(db, current_user, "job:resubmit", new_guid)
+            processed += 1
+        else:
+            skipped_guids.append(job.guid)
+    await db.commit()
+    return BulkActionResponse(processed=processed, skipped=len(skipped_guids), skipped_guids=skipped_guids)
+
+
+@app.delete("/jobs/bulk", response_model=BulkActionResponse, tags=["Jobs"])
+async def bulk_delete_jobs(
+    req: BulkJobActionRequest,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete terminal-state jobs in bulk; skips non-terminal jobs and reports them."""
+    result = await db.execute(select(Job).where(Job.guid.in_(req.guids)))
+    jobs = result.scalars().all()
+    processed, skipped_guids = 0, []
+    for job in jobs:
+        if job.status in TERMINAL_STATES:
+            await db.delete(job)
+            audit(db, current_user, "job:delete", job.guid)
+            processed += 1
+        else:
+            skipped_guids.append(job.guid)
+    await db.commit()
+    return BulkActionResponse(processed=processed, skipped=len(skipped_guids), skipped_guids=skipped_guids)
+
+
+@app.post("/jobs/{guid}/resubmit", response_model=JobResponse, tags=["Jobs"])
+async def resubmit_job(
+    guid: str,
+    current_user: User = Depends(require_permission("jobs:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new PENDING job from a FAILED/DEAD_LETTER job, with originating_guid set."""
+    result = await db.execute(select(Job).where(Job.guid == guid))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status not in RESUBMITTABLE_STATES:
+        raise HTTPException(status_code=409, detail="Only FAILED or DEAD_LETTER jobs can be resubmitted")
+    new_guid = str(uuid.uuid4())
+    new_job = Job(
+        guid=new_guid,
+        task_type=job.task_type,
+        payload=job.payload,
+        status="PENDING",
+        target_tags=job.target_tags,
+        capability_requirements=job.capability_requirements,
+        max_retries=job.max_retries,
+        backoff_multiplier=job.backoff_multiplier,
+        timeout_minutes=job.timeout_minutes,
+        runtime=job.runtime,
+        name=job.name,
+        created_by=current_user.username,
+        signature_hmac=job.signature_hmac,
+        originating_guid=guid,
+    )
+    db.add(new_job)
+    audit(db, current_user, "job:resubmit", new_guid)
+    await db.commit()
+    await db.refresh(new_job)
+    await ws_manager.broadcast("job:created", {"guid": new_guid, "status": "PENDING"})
+    return _job_to_response(new_job)
+
 
 @app.get("/jobs/{guid}/executions", tags=["Jobs"])
 async def list_executions(
