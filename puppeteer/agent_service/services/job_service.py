@@ -435,6 +435,114 @@ class JobService:
         return json.loads(node.tags) if node.tags else []
 
     @staticmethod
+    def _node_is_eligible(node: Node, job: Job, node_tags: List[str], node_caps_dict: dict) -> bool:
+        """Returns True if node can accept the given job based on tags, env isolation, and capabilities."""
+        req_tags = json.loads(job.target_tags) if job.target_tags else []
+        if not isinstance(req_tags, list):
+            req_tags = []
+
+        # 1. Standard: Node must have ALL requested tags
+        if not all(t in node_tags for t in req_tags):
+            return False
+
+        # 2. Strict Environment isolation (env: prefix)
+        node_env_tags = [t for t in node_tags if t.startswith("env:")]
+        job_env_tags = [t for t in req_tags if t.startswith("env:")]
+
+        # Rule: If Node is env-restricted, Job must match at least one of those env tags
+        if node_env_tags and not any(et in job_env_tags for et in node_env_tags):
+            return False
+
+        # Rule: If Job is env-targeted, Node must have at least one of those env tags
+        if job_env_tags and not any(et in node_env_tags for et in job_env_tags):
+            return False
+
+        # ENVTAG-02: first-class env_tag column check
+        if job.env_tag:
+            node_env_tag = (node.env_tag or "").upper() if node.env_tag else None
+            if node_env_tag != job.env_tag.upper():
+                return False
+
+        # Check Capabilities
+        if job.capability_requirements:
+            try:
+                req_caps = json.loads(job.capability_requirements)
+                if not isinstance(req_caps, dict):
+                    return False
+                for cap_name, min_version in req_caps.items():
+                    if cap_name not in node_caps_dict:
+                        return False
+                    node_ver = node_caps_dict[cap_name]
+                    try:
+                        satisfies = Version(node_ver) >= Version(min_version)
+                    except InvalidVersion:
+                        satisfies = node_ver >= min_version
+                    if not satisfies:
+                        return False
+            except Exception:
+                return False
+
+        return True
+
+    @staticmethod
+    async def get_node_detail(node_id: str, db: AsyncSession) -> "dict | None":
+        """Returns compound node detail: running job, eligible pending jobs, 24h history, capabilities."""
+        # 1. Load node
+        node_result = await db.execute(select(Node).where(Node.node_id == node_id))
+        node = node_result.scalar_one_or_none()
+        if not node:
+            return None
+
+        # 2. Running job (ASSIGNED on this node)
+        running_result = await db.execute(
+            select(Job).where(Job.status == 'ASSIGNED', Job.node_id == node_id).limit(1)
+        )
+        running_job = running_result.scalar_one_or_none()
+
+        # 3. Eligible pending jobs (evaluate first 100 PENDING, return up to 50 matches)
+        pending_result = await db.execute(
+            select(Job).where(Job.status == 'PENDING').order_by(Job.created_at).limit(100)
+        )
+        pending_jobs = pending_result.scalars().all()
+        node_tags = JobService._get_effective_tags(node)
+        node_caps_dict = json.loads(node.capabilities) if node.capabilities else {}
+        eligible = []
+        for job in pending_jobs:
+            if len(eligible) >= 50:
+                break
+            if JobService._node_is_eligible(node, job, node_tags, node_caps_dict):
+                eligible.append(job)
+
+        # 4. Recent execution history (jobs completed on this node in past 24h)
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        history_result = await db.execute(
+            select(Job).where(
+                Job.node_id == node_id,
+                Job.status.in_(['COMPLETED', 'FAILED', 'DEAD_LETTER', 'SECURITY_REJECTED']),
+                Job.completed_at >= cutoff
+            ).order_by(Job.completed_at.desc()).limit(100)
+        )
+        recent_jobs = history_result.scalars().all()
+
+        def job_summary(j: Job) -> dict:
+            return {
+                "guid": j.guid,
+                "status": j.status,
+                "task_type": j.task_type,
+                "name": getattr(j, 'name', None),
+                "created_at": j.created_at.isoformat() if j.created_at else None,
+                "completed_at": j.completed_at.isoformat() if j.completed_at else None,
+                "runtime": getattr(j, 'runtime', None),
+            }
+
+        return {
+            "running_job": job_summary(running_job) if running_job else None,
+            "eligible_pending_jobs": [job_summary(j) for j in eligible],
+            "recent_history": [job_summary(j) for j in recent_jobs],
+            "capabilities": json.loads(node.capabilities) if node.capabilities else {},
+        }
+
+    @staticmethod
     async def pull_work(node_id: str, node_ip: str, db: AsyncSession) -> PollResponse:
         """Called by Environment Nodes."""
         # 1. Fetch Node Configuration
@@ -445,9 +553,10 @@ class JobService:
         concurrency = 5
 
         if node:
-            # Security TDA-04: Quarantine check
-            if node.status == "TAMPERED":
-                logger.error(f"Rejecting work request from TAMPERED node {node_id}")
+            # Security TDA-04: Quarantine check; DRAINING nodes also get no new work
+            if node.status in ("TAMPERED", "DRAINING"):
+                if node.status == "TAMPERED":
+                    logger.error(f"Rejecting work request from TAMPERED node {node_id}")
                 return PollResponse(job=None)
 
             node.last_seen = datetime.utcnow()
@@ -551,60 +660,8 @@ class JobService:
         node_caps_dict = json.loads(node.capabilities) if node and node.capabilities else {}
 
         for candidate in jobs:
-            # Check Tags
-            req_tags = json.loads(candidate.target_tags) if candidate.target_tags else []
-            if not isinstance(req_tags, list):
-                req_tags = []
-
-            # 1. Standard: Node must have ALL requested tags
-            if not all(t in node_tags for t in req_tags):
+            if not JobService._node_is_eligible(node, candidate, node_tags, node_caps_dict):
                 continue
-                
-            # 2. Strict Environment isolation (env: prefix)
-            node_env_tags = [t for t in node_tags if t.startswith("env:")]
-            job_env_tags = [t for t in req_tags if t.startswith("env:")]
-            
-            # Rule: If Node is env-restricted, Job must match at least one of those env tags
-            if node_env_tags and not any(et in job_env_tags for et in node_env_tags):
-                continue
-                
-            # Rule: If Job is env-targeted, Node must have at least one of those env tags
-            if job_env_tags and not any(et in node_env_tags for et in job_env_tags):
-                continue
-
-            # ENVTAG-02: first-class env_tag column check (added Phase 31)
-            # Runs AFTER the env: tag prefix guard, which is preserved for backward compat.
-            if candidate.env_tag:
-                node_env_tag = (node.env_tag or "").upper() if node and node.env_tag else None
-                if node_env_tag != candidate.env_tag.upper():
-                    continue
-
-            # Check Capabilities
-            if candidate.capability_requirements:
-                try:
-                    req_caps = json.loads(candidate.capability_requirements)
-                    if not isinstance(req_caps, dict):
-                         continue
-                    # Match: Node must have ALL required capabilities,
-                    # and versions must be >= required (proper semver comparison)
-                    match = True
-                    for cap_name, min_version in req_caps.items():
-                        if cap_name not in node_caps_dict:
-                            match = False
-                            break
-                        node_ver = node_caps_dict[cap_name]
-                        try:
-                            satisfies = Version(node_ver) >= Version(min_version)
-                        except InvalidVersion:
-                            satisfies = node_ver >= min_version
-                        if not satisfies:
-                            match = False
-                            break
-                    if not match:
-                        continue
-                except:
-                    continue
-                    
             selected_job = candidate
             break
         
@@ -685,12 +742,14 @@ class JobService:
             # If node was previously OFFLINE or TAMPERED, auto-resolve alerts when it returns ONLINE
             if node.status in ["OFFLINE", "TAMPERED"]:
                 await AlertService.resolve_alert(db, "node_offline", node_id)
-                # Note: We don't auto-resolve TAMPERED unless specified by a security clear event, 
+                # Note: We don't auto-resolve TAMPERED unless specified by a security clear event,
                 # but if it was just OFFLINE, we clear those.
-            
+
             node.last_seen = datetime.utcnow()
             prev_status = node.status
-            node.status = "ONLINE"
+            # VIS-04: Preserve DRAINING/TAMPERED/REVOKED status — heartbeat must not overwrite
+            if node.status not in ("DRAINING", "TAMPERED", "REVOKED"):
+                node.status = "ONLINE"
             if stats_json:
                 node.stats = stats_json
             if tags_json:
@@ -1131,7 +1190,26 @@ class JobService:
             # If a job is rejected or failed terminally, we cancel dependents to avoid deadlocks
             await JobService._cancel_dependents(guid, db)
 
+        # Store node_id before commit clears it on retry
+        _reporting_node_id = job.node_id
         await db.commit()
+
+        # VIS-04: DRAINING auto-transition — if the last ASSIGNED job on this node just completed,
+        # transition the node to OFFLINE. Runs AFTER commit so the count sees updated state.
+        if _reporting_node_id:
+            _node_result = await db.execute(select(Node).where(Node.node_id == _reporting_node_id))
+            _draining_node = _node_result.scalar_one_or_none()
+            if _draining_node and _draining_node.status == "DRAINING":
+                _count_result = await db.execute(
+                    select(func.count(Job.guid)).where(
+                        Job.status == 'ASSIGNED',
+                        Job.node_id == _reporting_node_id,
+                    )
+                )
+                if (_count_result.scalar() or 0) == 0:
+                    _draining_node.status = "OFFLINE"
+                    await db.commit()
+
         # 4. Final Terminal Status Webhook
         is_terminal = job.status in ["COMPLETED", "FAILED", "DEAD_LETTER", "SECURITY_REJECTED"]
         if is_terminal:

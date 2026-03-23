@@ -1474,8 +1474,8 @@ async def list_nodes(
     # Step 4: build resp list
     resp = []
     for n in nodes:
-        if n.status == "REVOKED":
-            node_status = "REVOKED"
+        if n.status in ("REVOKED", "TAMPERED", "DRAINING"):
+            node_status = n.status
         else:
             is_offline = (datetime.utcnow() - n.last_seen).total_seconds() > 60
             node_status = "OFFLINE" if is_offline else "ONLINE"
@@ -1506,6 +1506,14 @@ async def list_nodes(
         "page": page,
         "pages": math.ceil(total / page_size) if total > 0 else 1,
     }
+
+@app.get("/nodes/{node_id}/detail", tags=["Nodes"])
+async def get_node_detail(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+    detail = await JobService.get_node_detail(node_id, db)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Node not found")
+    return detail
+
 
 @app.patch("/nodes/{node_id}", tags=["Nodes"])
 async def update_node_config(node_id: str, config: NodeUpdateRequest, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
@@ -1558,6 +1566,36 @@ async def revoke_node(node_id: str, current_user: User = Depends(require_auth), 
     audit(db, current_user, "node:revoke", node_id)
     await db.commit()
     return {"status": "revoked", "node_id": node_id}
+
+@app.patch("/nodes/{node_id}/drain", tags=["Nodes"])
+async def drain_node(node_id: str, current_user: User = Depends(require_permission("nodes:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Node).where(Node.node_id == node_id))
+    node = result.scalar_one_or_none()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    if node.status not in ("ONLINE", "BUSY"):
+        raise HTTPException(status_code=409, detail=f"Cannot drain node in {node.status} state")
+    node.status = "DRAINING"
+    audit(db, current_user, "node:drain", node_id)
+    await db.commit()
+    await ws_manager.broadcast("node:updated", {"node_id": node_id, "status": "DRAINING"})
+    return {"status": "DRAINING", "node_id": node_id}
+
+
+@app.patch("/nodes/{node_id}/undrain", tags=["Nodes"])
+async def undrain_node(node_id: str, current_user: User = Depends(require_permission("nodes:write")), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Node).where(Node.node_id == node_id))
+    node = result.scalar_one_or_none()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node not found")
+    if node.status != "DRAINING":
+        raise HTTPException(status_code=409, detail="Node is not in DRAINING state")
+    node.status = "ONLINE"
+    audit(db, current_user, "node:undrain", node_id)
+    await db.commit()
+    await ws_manager.broadcast("node:updated", {"node_id": node_id, "status": "ONLINE"})
+    return {"status": "ONLINE", "node_id": node_id}
+
 
 @app.post("/api/nodes/{node_id}/clear-tamper", tags=["Nodes"])
 async def clear_node_tamper(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
