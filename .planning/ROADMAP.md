@@ -219,7 +219,13 @@ Plans:
   2. A dedicated Queue view shows PENDING, RUNNING, and recently completed jobs; the list updates in real time via WebSocket without any page refresh or polling
   3. The Nodes page includes a per-node detail drawer showing: currently running job, jobs queued for that node, recent execution history, and the node's reported capabilities
   4. An admin can set a node to DRAINING from the node detail drawer; the DRAINING status is visible in both the Nodes view and the Queue view; no new jobs are dispatched to a DRAINING node
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 52-01-PLAN.md — Wave 0 test scaffold: failing stubs for VIS-01 (diagnosis), VIS-03 (node detail), VIS-04 (draining lifecycle)
+- [ ] 52-02-PLAN.md — Backend: DRAINING lifecycle + _node_is_eligible helper + dispatch-diagnosis endpoint (VIS-01, VIS-04)
+- [ ] 52-03-PLAN.md — Backend: node detail aggregation endpoint GET /nodes/{id}/detail (VIS-03)
+- [ ] 52-04-PLAN.md — Frontend: Queue.tsx view + /queue route + nav entry (VIS-02)
+- [ ] 52-05-PLAN.md — Frontend: node drawer in Nodes.tsx + DRAINING badge + PENDING diagnosis callout in Jobs.tsx + human verify (VIS-01, VIS-03, VIS-04)
 
 ### Phase 53: Scheduling Health and Data Management
 **Goal**: Operators have a clear picture of scheduled job health over time, can reuse job configurations via templates, and the platform self-manages execution record growth with operator control over retention
@@ -247,7 +253,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 49. Pagination, Filtering and Search | 6/6 | Complete    | 2026-03-22 |
 | 50. Guided Job Form | 3/3 | Complete    | 2026-03-23 |
 | 51. Job Detail, Resubmit and Bulk Ops | 4/4 | Complete    | 2026-03-23 |
-| 52. Queue Visibility, Node Drawer and DRAINING | 0/TBD | Not started | - |
+| 52. Queue Visibility, Node Drawer and DRAINING | 0/5 | Not started | - |
 | 53. Scheduling Health and Data Management | 0/TBD | Not started | - |
 
 ## Archived
