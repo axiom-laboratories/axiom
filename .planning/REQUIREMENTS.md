@@ -38,8 +38,8 @@
 - [x] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
 - [x] **VIS-03**: Nodes page shows a per-node detail drawer (currently running job, queued jobs, recent history, reported capabilities)
 - [x] **VIS-04**: Admin can put a node into DRAINING state from the node detail drawer; DRAINING status is visible in Queue and Nodes views
-- [ ] **VIS-05**: Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators with a configurable time window (24h / 7d / 30d)
-- [ ] **VIS-06**: Scheduling Health panel detects missed fires (expected cron fires vs actual execution records); affected definitions show a red health indicator
+- [x] **VIS-05**: Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators with a configurable time window (24h / 7d / 30d)
+- [x] **VIS-06**: Scheduling Health panel detects missed fires (expected cron fires vs actual execution records); affected definitions show a red health indicator
 
 ### Scheduled Job Signing Safety (SCHED)
 
@@ -55,11 +55,11 @@
 - [x] **SRCH-03**: Operator can filter the Jobs view by status, runtime, task type, target node, target tags, created-by, and date ranges — all server-side; active filters shown as dismissible chips
 - [x] **SRCH-04**: Operator can search jobs by name or GUID via a free-text search box; operator can optionally name a job at submission time via the guided form
 - [x] **SRCH-05**: Operator can export the current filtered Jobs view as CSV
-- [ ] **SRCH-06**: Operator can save a job configuration as a reusable named template (signing state explicitly excluded)
-- [ ] **SRCH-07**: Operator can load a saved template into the guided job form; all fields remain editable before submission
-- [ ] **SRCH-08**: Admin can configure global execution record retention period (default: 14 days); a nightly pruning task hard-deletes expired records excluding pinned records
-- [ ] **SRCH-09**: Admin can pin individual execution records to exclude them from automatic pruning; pin/unpin actions are audit-logged
-- [ ] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
+- [x] **SRCH-06**: Operator can save a job configuration as a reusable named template (signing state explicitly excluded)
+- [x] **SRCH-07**: Operator can load a saved template into the guided job form; all fields remain editable before submission
+- [x] **SRCH-08**: Admin can configure global execution record retention period (default: 14 days); a nightly pruning task hard-deletes expired records excluding pinned records
+- [x] **SRCH-09**: Admin can pin individual execution records to exclude them from automatic pruning; pin/unpin actions are audit-logged
+- [x] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
 
 ### Tech Debt (DEBT)
 
@@ -185,13 +185,13 @@
 | VIS-02 | Phase 52 | Complete |
 | VIS-03 | Phase 52 | Complete |
 | VIS-04 | Phase 52 | Complete |
-| VIS-05 | Phase 53 | Pending |
-| VIS-06 | Phase 53 | Pending |
-| SRCH-06 | Phase 53 | Pending |
-| SRCH-07 | Phase 53 | Pending |
-| SRCH-08 | Phase 53 | Pending |
-| SRCH-09 | Phase 53 | Pending |
-| SRCH-10 | Phase 53 | Pending |
+| VIS-05 | Phase 53 | Complete |
+| VIS-06 | Phase 53 | Complete |
+| SRCH-06 | Phase 53 | Complete |
+| SRCH-07 | Phase 53 | Complete |
+| SRCH-08 | Phase 53 | Complete |
+| SRCH-09 | Phase 53 | Complete |
+| SRCH-10 | Phase 53 | Complete |
 
 **Coverage:**
 - v12.0 requirements: 44 total
