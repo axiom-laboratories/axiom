@@ -213,9 +213,16 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
-## Current Milestone
+## Current Milestone: v14.0 CE/EE Cold-Start Validation
 
-Planning next milestone. Run `/gsd:new-milestone` to begin requirements and roadmap for v14.0.
+**Goal:** Validate Axiom's install and operator paths end-to-end using Gemini CLI agents as first-time users inside LXC containers, covering both CE and EE scenarios across all job runtimes.
+
+**Target features:**
+- LXC-based test environment (full Axiom Docker stack + puppet nodes inside a single container)
+- Gemini CLI tester agents with docs-only access and file-based checkpoint steering
+- CE cold-start: install path + operator path (Python, Bash, PowerShell jobs)
+- EE cold-start: install path + operator path + EE-gated features (with pre-generated licence)
+- Friction report synthesising findings from both runs
 
 ## Previous State — v13.0 Complete (2026-03-24)
 
@@ -228,4 +235,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-24 after v13.0 milestone — Research & Documentation Foundation*
+*Last updated: 2026-03-24 after v14.0 milestone start — CE/EE Cold-Start Validation*

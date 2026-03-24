@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v13.0
-milestone_name: — Research & Documentation Foundation
-status: complete
-stopped_at: Milestone archived — all 4 phases, 8 plans complete
+milestone: v14.0
+milestone_name: — CE/EE Cold-Start Validation
+status: defining_requirements
+stopped_at: Milestone started — defining requirements
 last_updated: "2026-03-24"
-last_activity: 2026-03-24 — v13.0 milestone archived
+last_activity: 2026-03-24 — Milestone v14.0 started
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,68 +21,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone — run `/gsd:new-milestone` to begin v14.0
+**Current focus:** Defining requirements for v14.0 CE/EE Cold-Start Validation
 
 ## Current Position
 
-Phase: Milestone complete
-Plan: All 8 plans complete
-Status: v13.0 archived — ready for next milestone
-Last activity: 2026-03-24 — v13.0 milestone archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-24 — Milestone v14.0 started
 
-Progress: [██████████] 100%
-
-## Phases — v13.0 (Complete)
-
-| Phase | Goal | Requirements | Status |
-|-------|------|--------------|--------|
-| 57. Research — Parallel Job Swarming | Design doc enabling informed build/defer decision on fan-out swarming | SWRM-01, SWRM-02, SWRM-03 | Complete |
-| 58. Research — Organisational SSO | Design doc enabling future SSO implementation without re-doing architecture choices | SSO-01–SSO-06 | Complete |
-| 59. Documentation | Docs site accurate for v12.0, visually consistent with dashboard, Docker deployment covered | DOCS-01, DOCS-02, DOCS-03, DOCS-04 | Complete |
-| 60. Quick Reference | HTML quick-ref files relocated, rebranded, and updated for v12.0 | QREF-01, QREF-02, QREF-03, QREF-04 | Complete |
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 8 (v13.0)
-- Average duration: ~1 day (2026-03-24)
-- All 4 phases executed in parallel
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| — | — | — | — |
-| Phase 57-research-parallel-job-swarming P01 | 15 | 2 tasks | 1 files |
-| Phase 58-research-organisational-sso P01 | 35 | 2 tasks | 1 files |
-| Phase 59-documentation P01 | 5 | 1 tasks | 1 files |
-| Phase 59-documentation P02 | 1m | 2 tasks | 4 files |
-| Phase 59-documentation P03 | 2 | 2 tasks | 4 files |
-| Phase 60-quick-reference P01 | 5m | 2 tasks | 4 files |
-| Phase 60-quick-reference P02 | 5m | 2 tasks | 1 files |
-| Phase 60-quick-reference P03 | 10m | 2 tasks | 1 files |
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
 ### Decisions
 
-- [v13.0 Roadmap]: All 4 phases are independent — Phases 57, 58, 59, 60 have no inter-dependencies and can execute in any order or in parallel.
-- [v13.0 Roadmap]: Phases 57 and 58 are research-only — no implementation. Output is a design document. Implementation of swarming and SSO are explicitly deferred (Out of Scope in REQUIREMENTS.md).
-- [v13.0 Roadmap]: Phase 59 (Documentation) targets the MkDocs docs site in `docs/`. DOCS-03 (branding alignment) requires reading the current dashboard visual identity before making changes.
-- [v13.0 Roadmap]: Phase 60 (Quick Reference) targets the two HTML files currently at project root (`master_of_puppets_course.html`, `master_of_puppets_operator_guide.html`). QREF-01 moves them to `quick-ref/`.
-- [Phase 57-research-parallel-job-swarming]: Fan-out swarming recommended as next milestone (Tier 1, ~3 phases, 9-12 plans); work-queue pattern deferred
-- [Phase 57-research-parallel-job-swarming]: Pre-pin target_node_id at swarm creation to eliminate double-assignment race condition in pull model
-- [Phase 57-research-parallel-job-swarming]: Barrier sync via recompute_aggregate trigger on job completion; PARTIAL is a valid terminal swarm state
-- [Phase 58-research-organisational-sso]: OIDC chosen over SAML for v1 SSO: natural extension of existing RFC 8628 device flow, Authlib 1.6.x as client library, SAML deferred as future extension
-- [Phase 58-research-organisational-sso]: SSO is an EE-only plugin using axiom.ee entry_points; CE installs get 402 stubs; token_version increment on SSO logout same as password-change mechanism
-- [Phase 58-research-organisational-sso]: RBAC group re-sync on every SSO login; default viewer role; highest-role-wins; admin break-glass preserved as local-auth only; Mode A/B 2FA configurable per-deployment
-- [Phase 59-01]: DATABASE_URL left uncommented with Compose service name placeholder — SQLite is dev-only and operators must know to use Postgres in production
-- [Phase 59-documentation]: DOCS-02/DOCS-03: @import placed at bottom of extra.css; mkdocs.yml palette block unchanged — color override done via CSS custom properties only
-- [Phase 59-documentation]: Jobs and Nodes nav entries placed before Foundry in Platform Config section — core features precede advanced config
-- [Phase 60-quick-reference]: HTML files copied bit-for-bit; root originals deleted via rm (were untracked); Quick Reference nav section appended after API Reference in mkdocs.yml
-- [Phase 60-quick-reference]: 6 targeted per-occurrence replacements in course.html replace all Master of Puppets with Axiom without affecting base64 content
-- [Phase 60-quick-reference]: Queue card placed after Jobs in nav listing; section title updated to 'nine sections at a glance'
-- [Phase 60-quick-reference]: Scheduling Health section placed before Module 4 quiz so learner sees content before being tested; four distinct callouts used for LATE/MISSED, roll-up, API, and retention
+- [v14.0 Kickoff]: Single LXC contains full Axiom Docker stack (orchestrator + nodes) + Gemini tester agent — mirrors a real engineer eval in a VM
+- [v14.0 Kickoff]: Gemini CLI (Flash model, GEMINI_API_KEY) used as tester agents to save Claude tokens; Claude orchestrates externally via file-based checkpoint protocol
+- [v14.0 Kickoff]: Agents constrained to docs-only access (no codebase reads) to preserve cold-start validity; they write checkpoint files when blocked, Claude provides steering
+- [v14.0 Kickoff]: Playwright (Python, --no-sandbox) used for UI interaction — Lightpanda rejected due to incomplete React SPA support
+- [v14.0 Kickoff]: Two runs: CE (no licence) and EE (pre-generated Ed25519 licence); both test install path + operator path
+- [v14.0 Kickoff]: Three job types per run: Python, Bash, PowerShell
+- [v14.0 Kickoff]: GEMINI_API_KEY stored in mop_validation/secrets.env; model pinned to Flash to avoid paid tier
 
 ### Pending Todos
 
@@ -90,11 +50,12 @@ None.
 
 ### Blockers/Concerns
 
-None. All 4 phases are self-contained deliverables — documentation and design docs, no stack dependencies.
+- PowerShell (`pwsh`) availability in standard CE node container image needs verification before test run
+- EE licence must be pre-generated before EE run (admin_signer.py tooling available)
 
 ## Session Continuity
 
-Last session: 2026-03-24T19:59:34.216Z
-Stopped at: Completed 60-03-PLAN.md
-Next action: `/gsd:plan-phase 57`
+Last session: 2026-03-24
+Stopped at: Milestone v14.0 started — defining requirements
+Next action: Complete requirements definition and run roadmapper
 Resume file: None
