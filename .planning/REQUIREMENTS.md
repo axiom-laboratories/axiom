@@ -7,9 +7,9 @@
 
 ### Research — Swarming
 
-- [ ] **SWRM-01**: Design doc produced covering parallel job swarming use case analysis (is fan-out + campaigns sufficient or is there a genuine gap?)
-- [ ] **SWRM-02**: Design doc covers architectural impact on the pull model (what breaks, backpressure, ordering/barrier synchronisation)
-- [ ] **SWRM-03**: Design doc delivers a complexity/value trade-off recommendation with clear next-step guidance
+- [x] **SWRM-01**: Design doc produced covering parallel job swarming use case analysis (is fan-out + campaigns sufficient or is there a genuine gap?)
+- [x] **SWRM-02**: Design doc covers architectural impact on the pull model (what breaks, backpressure, ordering/barrier synchronisation)
+- [x] **SWRM-03**: Design doc delivers a complexity/value trade-off recommendation with clear next-step guidance
 
 ### Research — SSO
 
@@ -51,9 +51,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SWRM-01 | Phase 57 | Pending |
-| SWRM-02 | Phase 57 | Pending |
-| SWRM-03 | Phase 57 | Pending |
+| SWRM-01 | Phase 57 | Complete |
+| SWRM-02 | Phase 57 | Complete |
+| SWRM-03 | Phase 57 | Complete |
 | SSO-01 | Phase 58 | Pending |
 | SSO-02 | Phase 58 | Pending |
 | SSO-03 | Phase 58 | Pending |
