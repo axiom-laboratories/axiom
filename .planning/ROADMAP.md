@@ -292,7 +292,7 @@ Plans:
   5. The job detail drawer shows the "Resubmitted from" provenance link when originating_guid is set
 **Plans**: 1 plan
 Plans:
-- [ ] 56-01-PLAN.md — Fix GuidedDispatchCard script key (INT-01), Queue.tsx fetch URLs (INT-02), Jobs.tsx CSV export URL (INT-03), list_jobs() missing fields (INT-04) + human verify
+- [ ] 56-01-PLAN.md — E2E verification of INT-01–04 fixes: write test_phase56_integration.py, run Playwright against Docker stack, human checkpoint, close 7 requirements
 
 ## Progress
 
