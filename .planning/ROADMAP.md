@@ -222,7 +222,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 58. Research — Organisational SSO | v13.0 | 1/1 | Complete | 2026-03-24 |
 | 59. Documentation | v13.0 | 3/3 | Complete | 2026-03-24 |
 | 60. Quick Reference | v13.0 | 3/3 | Complete | 2026-03-24 |
-| 61. LXC Environment and Cold-Start Compose | 1/3 | In Progress|  | - |
+| 61. LXC Environment and Cold-Start Compose | 2/3 | In Progress|  | - |
 | 62. Agent Scaffolding | v14.0 | 0/? | Not started | - |
 | 63. CE Cold-Start Run | v14.0 | 0/? | Not started | - |
 | 64. EE Cold-Start Run | v14.0 | 0/? | Not started | - |

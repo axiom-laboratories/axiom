@@ -10,8 +10,8 @@ Requirements for the CE/EE Cold-Start Validation milestone. Each maps to roadmap
 ### Environment Setup (ENV)
 
 - [x] **ENV-01**: LXC provisioning script creates an Incus container with Docker nesting enabled, AppArmor override applied, Node.js 20 installed (NodeSource PPA), Gemini CLI installed (npm, pinned ≥ v0.23.0), and Playwright + system dependencies installed
-- [ ] **ENV-02**: Cold-start Compose file (`compose.cold-start.yaml`) runs the full Axiom stack (orchestrator, docs container, 2 puppet nodes) inside the LXC with `SERVER_HOSTNAME` set correctly so Caddy generates a TLS cert with the right SAN for both Playwright and puppet node connections
-- [ ] **ENV-03**: `Containerfile.node` installs PowerShell via direct `.deb` download from GitHub releases (replaces the silently-failing Debian 12 repository method)
+- [x] **ENV-02**: Cold-start Compose file (`compose.cold-start.yaml`) runs the full Axiom stack (orchestrator, docs container, 2 puppet nodes) inside the LXC with `SERVER_HOSTNAME` set correctly so Caddy generates a TLS cert with the right SAN for both Playwright and puppet node connections
+- [x] **ENV-03**: `Containerfile.node` installs PowerShell via direct `.deb` download from GitHub releases (replaces the silently-failing Debian 12 repository method)
 - [ ] **ENV-04**: EE licence pre-generation script produces a test Ed25519 EE licence with a 1-year expiry and stores it in `mop_validation/secrets.env` ready for EE scenario injection
 
 ### Agent Scaffolding (SCAF)
@@ -71,8 +71,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ENV-01 | Phase 61 | Complete |
-| ENV-02 | Phase 61 | Pending |
-| ENV-03 | Phase 61 | Pending |
+| ENV-02 | Phase 61 | Complete |
+| ENV-03 | Phase 61 | Complete |
 | ENV-04 | Phase 61 | Pending |
 | SCAF-01 | Phase 62 | Pending |
 | SCAF-02 | Phase 62 | Pending |
