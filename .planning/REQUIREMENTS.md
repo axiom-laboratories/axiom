@@ -8,8 +8,8 @@
 
 ### Runtime Expansion (RT)
 
-- [x] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
-- [x] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
+- [ ] **RT-01**: Operator can submit a Bash script job using the unified `script` task type with `runtime: bash`
+- [ ] **RT-02**: Operator can submit a PowerShell script job using the unified `script` task type with `runtime: powershell`
 - [x] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
 - [x] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
 - [x] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
@@ -18,11 +18,11 @@
 
 ### Job Submission UX (JOB)
 
-- [x] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
+- [ ] **JOB-01**: Operator can submit a job using a structured guided form (runtime selector, script textarea, target environment dropdown, capability tag chips)
 - [x] **JOB-02**: Operator can view the generated JSON payload from guided mode in a read-only panel without editing it
 - [x] **JOB-03**: Operator can switch to Advanced (raw JSON) mode via a one-way gate with a confirmation dialog; form validates JSON against schema before submission
-- [x] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
-- [x] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
+- [ ] **JOB-04**: Operator can view job details (stdout/stderr, node health, retry state, SECURITY_REJECTED plain-English reason) in a drawer without leaving the Jobs view
+- [ ] **JOB-05**: Operator can resubmit an exhausted-retry failed job with one click — new GUID, same payload and signature, originating GUID stored for traceability
 - [x] **JOB-06**: Operator can edit and resubmit a failed job — guided form pre-populated with failed job's payload, signing state cleared, fresh signing required
 
 ### Bulk Job Operations (BULK)
@@ -35,7 +35,7 @@
 ### Queue & Visibility (VIS)
 
 - [x] **VIS-01**: A PENDING job's drawer shows an automatic plain-English dispatch diagnosis (no nodes / capability mismatch / all busy / queue position) that updates live via WebSocket
-- [x] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
+- [ ] **VIS-02**: A dedicated live Queue dashboard view shows PENDING, RUNNING, and recently completed jobs in real time (WebSocket-driven, no polling)
 - [x] **VIS-03**: Nodes page shows a per-node detail drawer (currently running job, queued jobs, recent history, reported capabilities)
 - [x] **VIS-04**: Admin can put a node into DRAINING state from the node detail drawer; DRAINING status is visible in Queue and Nodes views
 - [x] **VIS-05**: Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators with a configurable time window (24h / 7d / 30d)
@@ -59,7 +59,7 @@
 - [x] **SRCH-07**: Operator can load a saved template into the guided job form; all fields remain editable before submission
 - [x] **SRCH-08**: Admin can configure global execution record retention period (default: 14 days); a nightly pruning task hard-deletes expired records excluding pinned records
 - [x] **SRCH-09**: Admin can pin individual execution records to exclude them from automatic pruning; pin/unpin actions are audit-logged
-- [x] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
+- [ ] **SRCH-10**: Operator can download execution records for a job as CSV from the job detail drawer
 
 ### Tech Debt (DEBT)
 
@@ -155,8 +155,8 @@
 | SEC-01 | Phase 46 | Complete |
 | SEC-02 | Phase 46 | Complete |
 | BRAND-01 | Phase 46 | Complete |
-| RT-01 | Phase 54 | Complete |
-| RT-02 | Phase 54 | Complete |
+| RT-01 | Phase 56 | Pending |
+| RT-02 | Phase 56 | Pending |
 | RT-03 | Phase 47 | Complete |
 | RT-04 | Phase 47 | Complete |
 | RT-05 | Phase 47 | Complete |
@@ -171,18 +171,18 @@
 | SRCH-03 | Phase 49 | Complete |
 | SRCH-04 | Phase 49 | Complete |
 | SRCH-05 | Phase 49 | Complete |
-| JOB-01 | Phase 54 | Complete |
+| JOB-01 | Phase 56 | Pending |
 | JOB-02 | Phase 50 | Complete |
 | JOB-03 | Phase 50 | Complete |
-| JOB-04 | Phase 54 | Complete |
-| JOB-05 | Phase 54 | Complete |
+| JOB-04 | Phase 56 | Pending |
+| JOB-05 | Phase 56 | Pending |
 | JOB-06 | Phase 51 | Complete |
 | BULK-01 | Phase 51 | Complete |
 | BULK-02 | Phase 51 | Complete |
 | BULK-03 | Phase 51 | Complete |
 | BULK-04 | Phase 51 | Complete |
 | VIS-01 | Phase 52 | Complete |
-| VIS-02 | Phase 54 | Complete |
+| VIS-02 | Phase 56 | Pending |
 | VIS-03 | Phase 52 | Complete |
 | VIS-04 | Phase 52 | Complete |
 | VIS-05 | Phase 53 | Complete |
@@ -191,14 +191,14 @@
 | SRCH-07 | Phase 53 | Complete |
 | SRCH-08 | Phase 53 | Complete |
 | SRCH-09 | Phase 53 | Complete |
-| SRCH-10 | Phase 54 | Complete |
+| SRCH-10 | Phase 56 | Pending |
 
 **Coverage:**
 - v12.0 requirements: 44 total
-- Mapped to phases: 44 (Phase 46: 7, Phase 47: 5, Phase 48: 4, Phase 49: 5, Phase 50: 2, Phase 51: 5, Phase 52: 3, Phase 53: 6, Phase 54: 7)
-- Pending (gap closure): 0
+- Mapped to phases: 44 (Phase 46: 7, Phase 47: 5, Phase 48: 4, Phase 49: 5, Phase 50: 2, Phase 51: 5, Phase 52: 3, Phase 53: 6, Phase 56: 7)
+- Pending (gap closure): 7 (RT-01, RT-02, JOB-01, JOB-04, JOB-05, VIS-02, SRCH-10 — Phase 56)
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-22*
-*Last updated: 2026-03-23 — Phase 55: RT-06 closed as Dropped; SCHED-01–04 marked Complete; Phase 54 traceability backfilled; coverage count recalculated*
+*Last updated: 2026-03-24 — Phase 56 added: 7 requirements reset to Pending for INT-01–04 gap closure*

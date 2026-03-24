@@ -9,7 +9,7 @@
 - ✅ **v10.0 — Axiom Commercial Release** — Phases 29–33 (shipped 2026-03-19)
 - ✅ **v11.0 — CE/EE Split Completion** — Phases 34–37 (shipped 2026-03-20)
 - ✅ **v11.1 — Stack Validation** — Phases 38–45 (shipped 2026-03-22)
-- 🚧 **v12.0 — Operator Maturity** — Phases 46–53 (in progress)
+- 🚧 **v12.0 — Operator Maturity** — Phases 46–56 (in progress)
 
 ## Phases
 
@@ -95,7 +95,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 
 </details>
 
-### 🚧 v12.0 — Operator Maturity (Phases 46–53)
+### 🚧 v12.0 — Operator Maturity (Phases 46–56)
 
 **Milestone Goal:** Make day-to-day operator experience materially better — multi-runtime execution, guided job form, failure visibility, queue diagnosis, bulk operations, search/filtering/pagination, and a tech debt sweep.
 
@@ -111,6 +111,7 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning (completed 2026-03-23)
 - [x] **Phase 54: Bug Fix Blitz** — Four targeted code fixes closing 7 gap-closure requirements: script key mismatch, Queue double-prefix, CSV export 404, list_jobs missing retry/originating fields (completed 2026-03-23)
 - [x] **Phase 55: Verification + Docs Cleanup** — Retroactive Phase 48 verification (SCHED-01–04) + RT-06 design-decision documentation update (completed 2026-03-24)
+- [ ] **Phase 56: Integration Bug Fixes** — Four targeted code fixes: script key mismatch (GuidedDispatchCard), Queue.tsx double /api/ prefix, CSV export 404, list_jobs missing retry/originating fields
 
 ## Phase Details
 
@@ -275,13 +276,28 @@ Plans:
   3. REQUIREMENTS.md coverage count is accurate
 **Plans**: 2 plans
 Plans:
-- [ ] 55-01-PLAN.md — Run gsd-verifier on Phase 48; produce VERIFICATION.md confirming SCHED-01 through SCHED-04
-- [ ] 55-02-PLAN.md — Update REQUIREMENTS.md: RT-06 design-decision annotation; fix coverage count; update traceability table status for all gap-closure requirements
+- [x] 55-01-PLAN.md — Run gsd-verifier on Phase 48; produce VERIFICATION.md confirming SCHED-01 through SCHED-04 (completed 2026-03-24)
+- [x] 55-02-PLAN.md — Update REQUIREMENTS.md: RT-06 design-decision annotation; fix coverage count; update traceability table status for all gap-closure requirements (completed 2026-03-24)
+
+### Phase 56: Integration Bug Fixes
+**Goal**: All four integration defects that survived Phase 54 are patched — guided-form jobs actually execute, Queue view renders live data, CSV export works, and job detail drawer shows retry state and provenance
+**Depends on**: Phase 55
+**Requirements**: JOB-01, RT-01, RT-02, VIS-02, SRCH-10, JOB-04, JOB-05
+**Gap Closure:** Closes INT-01, INT-02, INT-03, INT-04 gaps from v12.0 audit
+**Success Criteria** (what must be TRUE):
+  1. A job submitted via the guided form reaches the node with a non-empty script; execution succeeds end-to-end for Python, Bash, and PowerShell runtimes
+  2. The Queue view renders PENDING and RUNNING jobs correctly (no 404 on data fetch)
+  3. The execution CSV export from the job detail drawer returns a 200 with CSV data, not a 404
+  4. The job detail drawer displays retry attempt count, max retries, and retry-after timestamp when applicable
+  5. The job detail drawer shows the "Resubmitted from" provenance link when originating_guid is set
+**Plans**: 1 plan
+Plans:
+- [ ] 56-01-PLAN.md — Fix GuidedDispatchCard script key (INT-01), Queue.tsx fetch URLs (INT-02), Jobs.tsx CSV export URL (INT-03), list_jobs() missing fields (INT-04) + human verify
 
 ## Progress
 
 **Execution Order:**
-46 → 47 → 48 → 49 → 50 → 51 → 52 → 53 → 54 → 55
+46 → 47 → 48 → 49 → 50 → 51 → 52 → 53 → 54 → 55 → 56
 Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 46). Phase 50 requires both 47 and 49 complete. Phase 53 requires both 48 and 52 complete.
 
 | Phase | Plans Complete | Status | Completed |
@@ -296,6 +312,7 @@ Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 
 | 53. Scheduling Health and Data Management | 6/6 | Complete    | 2026-03-23 |
 | 54. Bug Fix Blitz | 2/2 | Complete    | 2026-03-23 |
 | 55. Verification + Docs Cleanup | 2/2 | Complete    | 2026-03-24 |
+| 56. Integration Bug Fixes | 0/1 | Not started | - |
 
 ## Archived
 
