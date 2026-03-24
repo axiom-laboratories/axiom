@@ -31,7 +31,7 @@
 
 - [x] **QREF-01**: Both HTML files moved from project root to `quick-ref/` directory
 - [x] **QREF-02**: Course file rebranded from "Master of Puppets" to "Axiom" throughout
-- [ ] **QREF-03**: Operator guide updated for v12.0 feature set (new views, task types, form modes, node states)
+- [x] **QREF-03**: Operator guide updated for v12.0 feature set (new views, task types, form modes, node states)
 - [x] **QREF-04**: Course content updated to reflect current architecture and tooling
 
 ## Future Requirements
@@ -66,7 +66,7 @@
 | DOCS-04 | Phase 59 | Complete |
 | QREF-01 | Phase 60 | Complete |
 | QREF-02 | Phase 60 | Complete |
-| QREF-03 | Phase 60 | Pending |
+| QREF-03 | Phase 60 | Complete |
 | QREF-04 | Phase 60 | Complete |
 
 **Coverage:**

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v13.0
 milestone_name: — Research & Documentation Foundation
 status: planning
-stopped_at: Completed 60-02-PLAN.md
-last_updated: "2026-03-24T19:58:29.400Z"
+stopped_at: Completed 60-03-PLAN.md
+last_updated: "2026-03-24T19:59:34.217Z"
 last_activity: 2026-03-24 — v13.0 roadmap created
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 59-documentation P03 | 2 | 2 tasks | 4 files |
 | Phase 60-quick-reference P01 | 5m | 2 tasks | 4 files |
 | Phase 60-quick-reference P02 | 5m | 2 tasks | 1 files |
+| Phase 60-quick-reference P03 | 10m | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 59-documentation]: Jobs and Nodes nav entries placed before Foundry in Platform Config section — core features precede advanced config
 - [Phase 60-quick-reference]: HTML files copied bit-for-bit; root originals deleted via rm (were untracked); Quick Reference nav section appended after API Reference in mkdocs.yml
 - [Phase 60-quick-reference]: 6 targeted per-occurrence replacements in course.html replace all Master of Puppets with Axiom without affecting base64 content
+- [Phase 60-quick-reference]: Queue card placed after Jobs in nav listing; section title updated to 'nine sections at a glance'
+- [Phase 60-quick-reference]: Scheduling Health section placed before Module 4 quiz so learner sees content before being tested; four distinct callouts used for LATE/MISSED, roll-up, API, and retention
 
 ### Pending Todos
 
@@ -91,7 +94,7 @@ None. All 4 phases are self-contained deliverables — documentation and design 
 
 ## Session Continuity
 
-Last session: 2026-03-24T19:58:29.399Z
-Stopped at: Completed 60-02-PLAN.md
+Last session: 2026-03-24T19:59:34.216Z
+Stopped at: Completed 60-03-PLAN.md
 Next action: `/gsd:plan-phase 57`
 Resume file: None
