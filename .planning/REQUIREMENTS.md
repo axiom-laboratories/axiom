@@ -1,77 +1,97 @@
-# Requirements: Axiom
+# Requirements: Axiom CE/EE Cold-Start Validation
 
 **Defined:** 2026-03-24
 **Core Value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## v13 Requirements
+## v14.0 Requirements
 
-### Research — Swarming
+Requirements for the CE/EE Cold-Start Validation milestone. Each maps to roadmap phases.
 
-- [x] **SWRM-01**: Design doc produced covering parallel job swarming use case analysis (is fan-out + campaigns sufficient or is there a genuine gap?)
-- [x] **SWRM-02**: Design doc covers architectural impact on the pull model (what breaks, backpressure, ordering/barrier synchronisation)
-- [x] **SWRM-03**: Design doc delivers a complexity/value trade-off recommendation with clear next-step guidance
+### Environment Setup (ENV)
 
-### Research — SSO
+- [ ] **ENV-01**: LXC provisioning script creates an Incus container with Docker nesting enabled, AppArmor override applied, Node.js 20 installed (NodeSource PPA), Gemini CLI installed (npm, pinned ≥ v0.23.0), and Playwright + system dependencies installed
+- [ ] **ENV-02**: Cold-start Compose file (`compose.cold-start.yaml`) runs the full Axiom stack (orchestrator, docs container, 2 puppet nodes) inside the LXC with `SERVER_HOSTNAME` set correctly so Caddy generates a TLS cert with the right SAN for both Playwright and puppet node connections
+- [ ] **ENV-03**: `Containerfile.node` installs PowerShell via direct `.deb` download from GitHub releases (replaces the silently-failing Debian 12 repository method)
+- [ ] **ENV-04**: EE licence pre-generation script produces a test Ed25519 EE licence with a 1-year expiry and stores it in `mop_validation/secrets.env` ready for EE scenario injection
 
-- [x] **SSO-01**: Protocol recommendation produced (OIDC vs SAML, rationale for non-air-gapped EE deployments)
-- [x] **SSO-02**: JWT bridge design documented (exchange flow, `token_version` interaction, SSO session invalidation)
-- [x] **SSO-03**: RBAC group mapping design documented (IdP group → MoP role mapping, default role on first SSO login)
-- [x] **SSO-04**: Cloudflare Access integration pattern documented (`Cf-Access-Jwt-Assertion` header trust model, security implications)
-- [x] **SSO-05**: Air-gap isolation strategy documented (feature flag/plugin pattern, zero impact on offline deployments)
-- [x] **SSO-06**: TOTP 2FA interaction policy documented (SSO auth + MoP TOTP for step-up actions)
+### Agent Scaffolding (SCAF)
 
-### Documentation
+- [ ] **SCAF-01**: Tester `GEMINI.md` (separate from the repo developer `GEMINI.md`) constrains the Gemini agent to first-user behaviour — docs site and dashboard access only, no codebase reads, no prior knowledge assumed
+- [ ] **SCAF-02**: File-based checkpoint protocol implemented — Gemini writes a version-stamped `checkpoint.json` when blocked, Claude reads via `incus file pull` and writes a steering response file; 5-minute timeout with graceful degradation prevents deadlock
+- [ ] **SCAF-03**: Session HOME isolation ensures each validation run starts with a fresh `HOME` directory so Gemini cannot auto-load developer context, prior session history, or repo `GEMINI.md`
+- [ ] **SCAF-04**: Scenario prompt scripts define the structured test procedure for CE install path, CE operator path, EE install path, and EE operator path — each with explicit pass/fail criteria and checkpoint trigger conditions
 
-- [x] **DOCS-01**: `.env.example` created listing all required and optional env vars with descriptions for the release container
-- [x] **DOCS-02**: "Running with Docker" deployment section added to docs covering env var requirements
-- [x] **DOCS-03**: Docs/wiki branding (colours, fonts, logo) aligned with dashboard visual identity
-- [x] **DOCS-04**: Existing docs updated for v12.0 changes (unified `script` type, guided form, DRAFT lifecycle, bulk ops, queue view, scheduling health, retention, UI label renames)
+### CE Validation (CE)
 
-### Quick Reference
+- [ ] **CE-01**: Gemini agent follows CE getting-started docs to install Axiom CE from scratch — stack running, nodes enrolled, dashboard accessible
+- [ ] **CE-02**: Gemini agent dispatches and verifies a Python job via the guided dispatch form; execution confirmed in job history
+- [ ] **CE-03**: Gemini agent dispatches and verifies a Bash job via the guided dispatch form; execution confirmed in job history
+- [ ] **CE-04**: Gemini agent dispatches and verifies a PowerShell job via the guided dispatch form; execution confirmed in job history
+- [ ] **CE-05**: CE `FRICTION.md` produced with verbatim doc quotes for every friction point, full step log, checkpoint steering interventions disclosed, and BLOCKER/NOTABLE/MINOR classification per finding
 
-- [x] **QREF-01**: Both HTML files moved from project root to `quick-ref/` directory
-- [x] **QREF-02**: Course file rebranded from "Master of Puppets" to "Axiom" throughout
-- [x] **QREF-03**: Operator guide updated for v12.0 feature set (new views, task types, form modes, node states)
-- [x] **QREF-04**: Course content updated to reflect current architecture and tooling
+### EE Validation (EE)
+
+- [ ] **EE-01**: Gemini agent follows EE install docs with pre-generated licence injected — EE plugin installed, all EE feature flags active, licence badge visible in dashboard
+- [ ] **EE-02**: Gemini agent dispatches and verifies Python, Bash, and PowerShell jobs via EE operator path; execution confirmed in job history
+- [ ] **EE-03**: Gemini agent exercises at least one EE-gated feature beyond job dispatch (e.g. execution history, attestation badge, or environment tag routing)
+- [ ] **EE-04**: EE `FRICTION.md` produced to the same standard as CE-05, with EE-specific findings noted separately from CE-identical findings
+
+### Reporting (RPT)
+
+- [ ] **RPT-01**: Final friction report merges CE and EE `FRICTION.md` files into a single deliverable with cross-edition comparison, BLOCKER/NOTABLE/MINOR triage, actionable recommendations per finding, and a verdict on first-user readiness
 
 ## Future Requirements
 
-*(None captured yet — deferred items will be added here as they emerge)*
+### Extended Scenarios
+
+- Scheduled job cold-start path (create a job definition, verify it fires on schedule)
+- Foundry / Image Recipe cold-start (build a custom node image from docs)
+- axiom-push CLI cold-start (install SDK, sign and push a job from terminal)
+- Multi-node targeting and environment tag routing validation
+
+### Automation
+
+- Automated re-run on docs or code changes (CI-triggered cold-start)
+- Regression comparison between runs (diff FRICTION.md against baseline)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| SSO implementation | Research phase only — implementation deferred until design doc complete |
-| Swarming implementation | Research phase only — implementation deferred until design doc complete |
-| EE secret management | Dedicated EE milestone |
-| Fan-out campaigns | Requires node-pinning Tier 1 first (future milestone) |
+| Foundry / Smelter validation | High complexity; separate scenario; not in first-user getting-started path |
+| axiom-push CLI validation | CLI install is a separate user journey; deferred to follow-on |
+| Automated CI re-run | Infrastructure for automated agent scheduling not yet in place |
+| Performance/load testing | Not a cold-start concern; separate milestone if needed |
+| Windows or macOS LXC | Linux-only test environment; cross-platform testing is out of scope |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SWRM-01 | Phase 57 | Complete |
-| SWRM-02 | Phase 57 | Complete |
-| SWRM-03 | Phase 57 | Complete |
-| SSO-01 | Phase 58 | Complete |
-| SSO-02 | Phase 58 | Complete |
-| SSO-03 | Phase 58 | Complete |
-| SSO-04 | Phase 58 | Complete |
-| SSO-05 | Phase 58 | Complete |
-| SSO-06 | Phase 58 | Complete |
-| DOCS-01 | Phase 59 | Complete |
-| DOCS-02 | Phase 59 | Complete |
-| DOCS-03 | Phase 59 | Complete |
-| DOCS-04 | Phase 59 | Complete |
-| QREF-01 | Phase 60 | Complete |
-| QREF-02 | Phase 60 | Complete |
-| QREF-03 | Phase 60 | Complete |
-| QREF-04 | Phase 60 | Complete |
+| ENV-01 | Phase 61 | Pending |
+| ENV-02 | Phase 61 | Pending |
+| ENV-03 | Phase 61 | Pending |
+| ENV-04 | Phase 61 | Pending |
+| SCAF-01 | Phase 62 | Pending |
+| SCAF-02 | Phase 62 | Pending |
+| SCAF-03 | Phase 62 | Pending |
+| SCAF-04 | Phase 62 | Pending |
+| CE-01 | Phase 63 | Pending |
+| CE-02 | Phase 63 | Pending |
+| CE-03 | Phase 63 | Pending |
+| CE-04 | Phase 63 | Pending |
+| CE-05 | Phase 63 | Pending |
+| EE-01 | Phase 64 | Pending |
+| EE-02 | Phase 64 | Pending |
+| EE-03 | Phase 64 | Pending |
+| EE-04 | Phase 64 | Pending |
+| RPT-01 | Phase 65 | Pending |
 
 **Coverage:**
-- v13 requirements: 17 total
-- Mapped to phases: 17
+- v14.0 requirements: 18 total
+- Mapped to phases: 18
 - Unmapped: 0 ✓
 
 ---
