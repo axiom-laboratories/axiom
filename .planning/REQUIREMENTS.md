@@ -30,9 +30,9 @@
 ### Quick Reference
 
 - [x] **QREF-01**: Both HTML files moved from project root to `quick-ref/` directory
-- [ ] **QREF-02**: Course file rebranded from "Master of Puppets" to "Axiom" throughout
+- [x] **QREF-02**: Course file rebranded from "Master of Puppets" to "Axiom" throughout
 - [ ] **QREF-03**: Operator guide updated for v12.0 feature set (new views, task types, form modes, node states)
-- [ ] **QREF-04**: Course content updated to reflect current architecture and tooling
+- [x] **QREF-04**: Course content updated to reflect current architecture and tooling
 
 ## Future Requirements
 
@@ -65,9 +65,9 @@
 | DOCS-03 | Phase 59 | Complete |
 | DOCS-04 | Phase 59 | Complete |
 | QREF-01 | Phase 60 | Complete |
-| QREF-02 | Phase 60 | Pending |
+| QREF-02 | Phase 60 | Complete |
 | QREF-03 | Phase 60 | Pending |
-| QREF-04 | Phase 60 | Pending |
+| QREF-04 | Phase 60 | Complete |
 
 **Coverage:**
 - v13 requirements: 17 total
