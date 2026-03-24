@@ -22,7 +22,7 @@
 
 ### Documentation
 
-- [ ] **DOCS-01**: `.env.example` created listing all required and optional env vars with descriptions for the release container
+- [x] **DOCS-01**: `.env.example` created listing all required and optional env vars with descriptions for the release container
 - [ ] **DOCS-02**: "Running with Docker" deployment section added to docs covering env var requirements
 - [ ] **DOCS-03**: Docs/wiki branding (colours, fonts, logo) aligned with dashboard visual identity
 - [ ] **DOCS-04**: Existing docs updated for v12.0 changes (unified `script` type, guided form, DRAFT lifecycle, bulk ops, queue view, scheduling health, retention, UI label renames)
@@ -60,7 +60,7 @@
 | SSO-04 | Phase 58 | Complete |
 | SSO-05 | Phase 58 | Complete |
 | SSO-06 | Phase 58 | Complete |
-| DOCS-01 | Phase 59 | Pending |
+| DOCS-01 | Phase 59 | Complete |
 | DOCS-02 | Phase 59 | Pending |
 | DOCS-03 | Phase 59 | Pending |
 | DOCS-04 | Phase 59 | Pending |
