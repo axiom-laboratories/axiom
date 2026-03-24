@@ -1,225 +1,282 @@
 # Pitfalls Research
 
-**Domain:** Adversarial validation of a CE/EE job orchestration platform — stack teardown/spinup safety, EE test keypair patching in Cython-compiled binaries, LXC node enrollment at scale, SQLite concurrency limits, Foundry Docker-in-Docker, air-gap mirror testing, and gap report quality
-**Researched:** 2026-03-20
-**Confidence:** HIGH (based on direct codebase inspection of `puppeteer/compose.server.yaml`, `puppeteer/agent_service/db.py`, `puppeteer/agent_service/main.py`, `puppets/node-compose.yaml`, `puppets/secrets/`, `puppets/environment_service/`, plus confirmed knowledge of Axiom v11.0 architecture)
+**Domain:** CE/EE Cold-Start Validation Framework — Gemini CLI agent inside Ubuntu 24.04 LXC (Incus), Docker-in-LXC with EXECUTION_MODE=direct, Python Playwright (--no-sandbox), file-based checkpoint steering, Ed25519 licence gating, and self-signed TLS (Caddy)
+**Researched:** 2026-03-24
+**Confidence:** HIGH (based on direct codebase inspection of `puppeteer/cert-manager/entrypoint.sh`, `puppeteer/Caddyfile`, `puppeteer/compose.server.yaml`, `puppets/environment_service/runtime.py`, PROJECT.md v14.0 milestone definition, confirmed Playwright/Chromium cert-store behaviour from upstream GitHub issues, and Gemini CLI non-interactive mode issue tracker)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Teardown Destroys Named Volumes — PKI Root CA and Node Certs Lost
+### Pitfall 1: Caddy TLS SAN Mismatch — Playwright Hits Wrong Hostname and Gets ERR_CERT_AUTHORITY_INVALID
 
 **What goes wrong:**
-Running `docker compose -f compose.server.yaml down -v` (or `docker compose down` with `--volumes`) destroys the `certs-volume`, `pgdata`, `caddy_data`, `caddy_config`, and `mirror-data` named volumes. The Root CA keypair lives in `certs-volume`. After teardown all LXC nodes hold client certs signed by a CA that no longer exists. Re-spinup generates a new Root CA with a different key — the old client certs are cryptographically invalid against the new CA, but the nodes still present them. The server accepts or rejects them depending on whether `verify_client_cert()` checks the full chain, creating an unpredictable enrollment state. Node ID persistence (the `secrets/node-*.crt` pattern that prevents re-randomization on restart) means nodes try to reuse a cert that is now from a defunct CA.
+The cert-manager generates Caddy's TLS certificate with SANs `localhost,127.0.0.1` plus optionally `SERVER_HOSTNAME` (see `puppeteer/cert-manager/entrypoint.sh` lines 17-19). Inside the LXC container, the Docker bridge gives the Caddy container an IP (e.g. `172.17.0.3`) and the host stack is accessible from the LXC at whatever IP Incus assigns to the Docker host interface — typically `172.17.0.1` or the bridge gateway. Neither of these IPs is `localhost` from the LXC perspective.
 
-Additionally, `pgdata` destruction drops all enrollment tokens, node records, and job history. A clean DB combined with old node certs leads to the node believing it is enrolled (it has certs) while the DB has no record of it — `/work/pull` returns 403 forever until the secrets volume on the node is also cleared.
+When the Gemini agent or Playwright opens `https://<docker-bridge-ip>:8443`, Chromium's TLS stack checks the presented certificate. The cert's SANs are `localhost` and `127.0.0.1`, not the actual IP used. TLS fails with `ERR_CERT_AUTHORITY_INVALID` (SAN mismatch). Playwright crashes. The agent is unable to load the dashboard at all.
+
+There is a second layer: even if the agent accesses via `https://localhost:8443` (forwarded into the LXC from the host), Chromium inside the LXC does not trust the Axiom Root CA because Chromium has its own certificate store. Installing the Root CA into `/etc/ssl/certs/` via `update-ca-certificates` is confirmed to be insufficient — Chromium ignores the system store (Playwright GitHub issue #4785, status: closed/confirmed). The cert must be trusted via Playwright launch options or Chromium's NSS DB directly.
 
 **Why it happens:**
-`-v` is a common cleanup reflex during testing. The distinction between "stop and remove containers" (safe) and "destroy volumes" (destructive) is easy to overlook under time pressure. The teardown feels complete but leaves LXC nodes in a broken state.
+Two compounding assumptions:
+1. "localhost will work from inside the LXC" — false: LXC networking routes to the Docker bridge IP, not loopback.
+2. "system CA install will make Chromium trust our self-signed cert" — false: Chromium uses its own NSS-based trust store, not the OS store.
 
 **How to avoid:**
-Define two distinct teardown procedures:
-- **Soft teardown** (between test runs): `docker compose down` with no flags. Containers stop, volumes intact. Re-spinup uses existing certs and DB state.
-- **Hard teardown** (full clean slate): `docker compose down -v` AND clear all LXC node `secrets/` directories in the same operation. Make this a single script (`scripts/nuke.sh`) so they cannot be done independently.
+Do all of the following at LXC setup time, before Playwright tests run:
 
-Before any hard teardown, snapshot the current Root CA PEM (`docker exec puppeteer-agent-1 cat /app/global_certs/root_ca.crt > backup_root_ca.pem`) for recovery purposes.
+1. Set `SERVER_HOSTNAME` in the compose env to the LXC-accessible IP or hostname of the Docker host before starting the Axiom stack. This causes cert-manager to include that IP/hostname in the SAN list. Example: `SERVER_HOSTNAME=172.17.0.1` (or the host's LXC bridge IP).
+
+2. Export the Root CA PEM from the running stack:
+   ```bash
+   docker exec puppeteer-cert-manager-1 cat /etc/certs/root_ca.crt > /tmp/axiom_root_ca.pem
+   ```
+
+3. Pass the Root CA to Playwright launch via the `ca_certs` option (Playwright Python) or `--ignore-certificate-errors` for expediency:
+   ```python
+   browser = p.chromium.launch(
+       args=['--no-sandbox'],
+       # Option A: ignore all TLS errors (acceptable in isolated test LXC)
+       ignore_https_errors=True
+   )
+   # Option B: trusted CA — launch a persistent browser context
+   context = browser.new_context(
+       ignore_https_errors=False,  # prefer this
+       # Playwright Python does not expose ca_certs at browser level;
+       # use --ignore-certificate-errors or the certutil approach below
+   )
+   ```
+   Or add the Root CA to Chromium's NSS DB before the test:
+   ```bash
+   certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n axiom-root-ca -i /tmp/axiom_root_ca.pem
+   ```
+
+4. For Gemini CLI HTTP calls that hit the Axiom API directly (not via Playwright), set `NODE_EXTRA_CA_CERTS=/tmp/axiom_root_ca.pem` in the environment before invoking `gemini`. This makes Node.js trust the Axiom Root CA.
 
 **Warning signs:**
-- LXC nodes log `SSL handshake failed` or `certificate verify failed` after a stack restart.
-- `/work/pull` returns 403 with "Node not found" for a node that was previously enrolled.
-- `docker exec puppeteer-agent-1 ls /app/global_certs/` returns a newly generated cert with a different serial than before the restart.
-- Nodes have `secrets/node-*.crt` but the orchestrator DB has no matching node record.
+- Playwright test exits immediately with `ERR_CERT_AUTHORITY_INVALID` or `net::ERR_SSL_PROTOCOL_ERROR`.
+- `curl https://<stack-host>:8443/` from inside the LXC returns `SSL certificate problem: self-signed certificate in certificate chain`.
+- Gemini CLI HTTP tool calls return `certificate has expired` or `self-signed cert` errors.
+- Dashboard never loads; Playwright screenshot shows browser's "Your connection is not private" page.
 
-**Phase to address:** Phase 1 (stack teardown + fresh install) — define and test both teardown procedures as the first deliverable before any other testing begins.
+**Phase to address:** Phase 1 (LXC environment setup) — add SERVER_HOSTNAME injection, Root CA export, and Playwright TLS bypass to the LXC provisioning script. This must be done before any Gemini agent session starts.
 
 ---
 
-### Pitfall 2: EE Test Keypair Cannot Be Swapped Into a Compiled `.so` Without a Rebuild
+### Pitfall 2: Gemini CLI Rate Limit (429) Stalls the Agent Mid-Test Run
 
 **What goes wrong:**
-The EE licence validation public key is compiled into the `.so` binary. There is no runtime injection path — the key is a byte constant embedded in the Cython-generated C code. To test EE licence validation with a locally-generated Ed25519 test keypair, you must rebuild the `.so` with the test public key compiled in. Attempts to patch the `.so` after the fact (via binary editing, `LD_PRELOAD`, or monkey-patching the module attribute at runtime) are fragile and unreliable. Specifically:
+On the free tier, Gemini 2.5 Flash has a limit of approximately 10 RPM and 250 RPD (requests per day). A cold-start validation run — which involves the Gemini agent reading docs, navigating the dashboard via Playwright, dispatching multiple jobs, and synthesizing findings — can easily exceed 250 API calls over a multi-hour session. When the daily quota is exhausted, Gemini CLI returns `RESOURCE_EXHAUSTED (429)` and the agent stops responding. The validation run is incomplete, the checkpoint file is stuck, and Claude's orchestration session is waiting for an output that will never arrive.
 
-- Binary editing: the key is embedded as raw bytes in a C string literal. `strings(1)` can find it, but byte offsets shift with any recompile. A wrong patch crashes the process on the first validation call.
-- Runtime monkey-patch: Cython-compiled modules expose attributes as `__pyx_cython_string_constants` — they are read-only at the C level. `module.PUBLIC_KEY = new_key` raises `AttributeError: readonly attribute` in compiled modules.
-- `LD_PRELOAD` shim: intercepts libc calls but not Python-level attribute access, so this approach fails for Python-embedded key constants.
-
-The result: teams assume they can swap the key without a rebuild and waste hours on approaches that do not work, then discover the key is immutable in the `.so`.
+Additionally, even within the RPM window, bursts of activity (e.g. the agent reads 20 doc pages back-to-back) can hit the per-minute limit, causing silent hangs — the CLI does not always surface 429s clearly; it sometimes just stalls (confirmed: Gemini CLI GitHub issue #10722, #16567).
 
 **Why it happens:**
-The EE binary is treated as a black box during testing. The test plan says "swap the public key" without specifying that this requires a Cython rebuild with the test key substituted in the source before compilation. This is a workflow gap, not a code bug.
+Multi-step validation tasks involve many rapid sequential model calls. The free tier is designed for exploratory development, not sustained automated test runs. A full CE + EE cold-start pass (install path + operator path + friction report) is likely to consume 100-250 model calls across both runs.
 
 **How to avoid:**
-Define a `dev` build variant of the EE wheel from the start:
-1. Keep the public key as a named constant in the EE source: `LICENCE_PUBLIC_KEY_BYTES = b"..."`.
-2. Make the build script accept a `--test-key path/to/test_public_key.pem` flag that substitutes the constant before Cython compilation.
-3. Produce two wheels per CI run: `axiom_ee-*-prod.whl` (production key) and `axiom_ee-*-dev.whl` (test key). The dev wheel is never shipped to customers.
-4. The adversarial validation test plan uses only the dev wheel. The test keypair is generated locally with `python -m cryptography hazmat ...` or reusing the existing `toms_home/.agents/tools/admin_signer.py --generate` infrastructure.
-
-Never attempt to patch the production `.so` binary. Always rebuild for test key substitution.
-
-**Warning signs:**
-- The test plan says "swap the public key" without specifying a wheel rebuild step.
-- The test environment installs the production `axiom_ee` wheel and attempts to inject a different key at runtime.
-- `setattr(ee_module, 'LICENCE_PUBLIC_KEY_BYTES', test_key)` appears in any test script.
-- `LD_PRELOAD` or `ctypes` patching used to intercept key loading in the compiled module.
-
-**Phase to address:** Phase 2 (EE test infrastructure) — define the dev-wheel build procedure before writing any EE validation test. A dev wheel rebuild must be part of the validation environment setup script.
-
----
-
-### Pitfall 3: Parallel LXC Node Enrollment Race — Token Consumed Before CSR Arrives
-
-**What goes wrong:**
-The enrollment endpoint marks the token as `used = True` immediately on first access (line 1919 of `main.py`). When 4 LXC nodes are provisioned simultaneously with `JOIN_TOKEN`-based enrollment, two failure modes emerge:
-
-**A) Shared token race:** If the provisioning script reuses the same enrollment token for all 4 nodes (e.g., generating one token and embedding it in all 4 node compose files), the first node to arrive invalidates the token. Nodes 2-4 get `403 Invalid or Expired Enrollment Token` — they are silently stuck in the startup enrollment loop. The node agent retries enrollment, but the token is permanently used, so retries also return 403. The node appears running (container is up) but never appears in the dashboard.
-
-**B) Per-node tokens, DB write conflict:** Even with one token per node, 4 simultaneous `POST /api/enroll` requests hit the async DB session. SQLite (if used in dev) serializes writes. Under aiosqlite's default serialization, 4 concurrent `UPDATE tokens SET used=True` operations will serialize correctly but may all read the token as "not used" before any commit lands, depending on isolation level. Under SQLite's default `DEFERRED` transaction isolation, the second concurrent write sees the pre-commit state and also marks the token as "used" — but the token was already invalidated by the first writer after commit. This creates a window where two nodes believe they enrolled with the same token and the second DB write silently updates the node record to the second node's CSR/cert.
-
-**Why it happens:**
-The pull model and token-based enrollment design assumes sequential enrollment (one node, then another). Parallel provisioning of 4 nodes was not in scope for earlier sprints. The enrollment endpoint is not designed with concurrent access in mind.
-
-**How to avoid:**
-- Generate one unique token per LXC node before provisioning. Never reuse tokens. Use `POST /admin/tokens` 4 times, capture each token, and inject into the corresponding node's environment.
-- For the adversarial test: add a `SELECT ... FOR UPDATE` (Postgres) or `BEGIN IMMEDIATE` (SQLite) around the token lookup to prevent read-then-write race. In Postgres (production stack), `SELECT ... FOR UPDATE` is the correct pattern — already safe if using Postgres for the validation stack.
-- Stage enrollments: start all 4 nodes, but add a staggered delay (`NODE_ENROLL_DELAY_SECONDS=N*5` where N is node index) in the node startup script to prevent the 4 CSRs from landing simultaneously.
-- Verify enrollment by polling `GET /nodes` after all 4 containers start. All 4 node IDs must appear before proceeding.
-
-**Warning signs:**
-- Only 1-3 nodes appear in the dashboard after starting 4 LXC containers.
-- Node container logs show `403 Invalid or Expired Enrollment Token` on the first enrollment attempt.
-- Enrollment token list shows all 4 tokens as `used=True` but fewer than 4 nodes exist in the DB.
-- Two nodes share the same `node_id` hostname (if hostnames were not unique).
-
-**Phase to address:** Phase 3 (LXC node provisioning) — pre-generate unique tokens for each node and make this part of the provisioning script. Document the single-token-per-node invariant.
-
----
-
-### Pitfall 4: SQLite Write Locking Under Concurrent Job Polling
-
-**What goes wrong:**
-The dev stack uses SQLite via `aiosqlite`. SQLite has a single write lock — only one writer at a time. During the concurrent job test (multiple nodes polling `/work/pull` simultaneously), each poll is a read-modify-write cycle: `SELECT` pending jobs, `UPDATE job SET status=ASSIGNED, node_id=...`. With 4 nodes polling every few seconds:
-
-- Each poll acquires a write lock for the UPDATE.
-- Concurrent polls queue behind the lock — no deadlock, but latency spikes.
-- Under load (short poll intervals, many pending jobs), the queue depth grows until aiosqlite connection timeout is reached — the poll request fails with `sqlite3.OperationalError: database is locked`.
-- The node catches the error and retries after its poll interval, but if the retry also locks, the node effectively stops receiving jobs.
-
-The deferred gap MIN-6 (SQLite `NodeStats` pruning compat) is a related issue — pruning queries under load can hold write locks for extended periods.
-
-**Why it happens:**
-SQLite's writer-serialization model is correct for single-process dev usage. Concurrent async access via `aiosqlite` with multiple simultaneous request handlers hits the write lock limit. This was not a problem with 1-2 test nodes but manifests with 4 nodes all polling at the same interval.
-
-**How to avoid:**
-- **Use Postgres for the validation stack**, not SQLite. The compose stack already has Postgres via `pgdata`. Set `DATABASE_URL` to the Postgres URL in `puppeteer/.env` before starting the validation stack. Postgres has row-level locking and handles concurrent writes without database-level locks.
-- If SQLite is required for any test scenario: enable WAL mode explicitly at startup via `PRAGMA journal_mode=WAL`. Add to `db.py` engine creation: `connect_args={"check_same_thread": False}` for aiosqlite, plus a `@event.listens_for(engine.sync_engine, "connect")` hook that runs `PRAGMA journal_mode=WAL` on every new connection. WAL mode allows concurrent readers while a single writer is active, dramatically reducing lock contention.
-- Stagger node poll intervals: set different `POLL_INTERVAL` values per node (e.g., 3s, 4s, 5s, 6s) to prevent synchronized polling storms.
-
-**Warning signs:**
-- `/work/pull` returns 500 with `sqlite3.OperationalError: database is locked` in server logs.
-- Nodes stop receiving jobs under load despite jobs being in PENDING state.
-- SQLite `jobs.db` file size grows unexpectedly (WAL file accumulates if checkpointing is not triggered).
-- Server logs show many concurrent requests to `/work/pull` timing out simultaneously.
-
-**Phase to address:** Phase 4 (job test matrix with concurrent nodes) — switch to Postgres before concurrent testing. If SQLite is intentionally tested, add WAL mode first.
-
----
-
-### Pitfall 5: Foundry Build Touches Docker Socket From Inside the Compose Stack — Wrong Context Path
-
-**What goes wrong:**
-Foundry builds via `foundry_service.py` run `docker build` using the Docker socket mounted at `/var/run/docker.sock` inside the `agent` container. The build context path is resolved relative to the container filesystem. The compose file mounts `../puppets:/app/puppets:ro`. Inside the container, `foundry_service.py` uses `/app/puppets` as the build context.
-
-However, `docker build` is executed via the Docker socket — which means the Docker daemon receives the build context from the socket client (the agent container). The build context is sent as a tar archive from the *agent container's* filesystem perspective. If `foundry_service.py` constructs the build context path as `/tmp/puppet_build_{id}` (the correct pattern after BUG-5 was fixed), this temp directory is inside the agent container. The Docker daemon (running on the host) receives the tar correctly.
-
-The new failure mode in adversarial testing: Foundry builds initiated during validation may use `localhost/master-of-puppets-node:latest` as the `FROM` image. If this image does not exist in the host Docker registry (only in the local LXC nodes or only built once), the build fails with `manifest unknown`. The validation environment must pre-build and tag the base node image before Foundry tests.
-
-Additionally, `docker build` inside the compose stack runs as root inside the `agent` container and writes temp directories to `/tmp`. These are never cleaned up (deferred gap MIN-7). Over a long validation run with many Foundry builds, `/tmp` fills up and subsequent builds fail with `No space left on device`.
-
-**Why it happens:**
-Foundry is tested in isolation (one build at a time) during development. Adversarial testing triggers multiple builds in sequence or parallel, exposing the cleanup gap. The base image requirement is implicit — it is assumed to exist because the developer has previously built it locally.
-
-**How to avoid:**
-- Before any Foundry test: `docker build -t localhost/master-of-puppets-node:latest -f puppets/Containerfile.node puppets/` on the host and verify with `docker images`.
-- After each Foundry build test: `docker exec puppeteer-agent-1 rm -rf /tmp/puppet_build_*` to manually clear the build dirs, or add a cleanup call to the Foundry test script.
-- If testing Foundry builds with a local registry, ensure the registry container is running and accessible before the test: `curl http://localhost:5000/v2/_catalog` must return a valid response.
-- For adversarial concurrency tests (multiple simultaneous Foundry builds): add a unique suffix to the temp dir name (already uses `{id}`) and increase `/tmp` tmpfs size in the agent container via `tmpfs: /tmp:size=2g` in `compose.server.yaml`.
-
-**Warning signs:**
-- Foundry build fails with `manifest for localhost/master-of-puppets-node:latest not found`.
-- Build fails with `No space left on device` during `docker build`.
-- `docker exec puppeteer-agent-1 ls /tmp/puppet_build_*` shows many stale directories from prior test runs.
-- Registry returns 503 or connection refused when Foundry tries to push the built image.
-
-**Phase to address:** Phase 5 (Foundry + Smelter deep test) — pre-flight checklist must include base image existence and `/tmp` cleanup. Add a cleanup step between Foundry tests.
-
----
-
-### Pitfall 6: Air-Gap Mirror Test Requires Network Isolation — Without It, pip Falls Back to PyPI Silently
-
-**What goes wrong:**
-The air-gap mirror test verifies that `pip install` from Foundry-built images uses only the local PyPI mirror (hosted at port 8080). The failure mode: the test passes even when the local mirror is broken, because pip silently falls back to the real PyPI if the mirror returns a 404 or connection error. The test appears to succeed (packages install) but is not actually testing air-gap operation — it is testing normal internet-connected install.
-
-The mirror `fail-fast` flag in Axiom enforces that the mirror must be used, but this enforcement is at the `mirror_service.py` level (for mirror sync operations). At the node level, `pip install` uses a generated `pip.conf` that points to the local mirror. If a package is not present in the local mirror, pip returns an error (no fallback, because `--index-url` was set). However, if the `pip.conf` was not injected correctly (e.g., the Foundry build did not include the `pip.conf` injection recipe), pip uses its default PyPI URL with no error.
-
-**Why it happens:**
-Testing the air-gap scenario without actual network isolation relies on behavioral correctness of the `pip.conf` injection, not actual absence of internet. The test cannot distinguish "mirror worked" from "mirror failed, but PyPI worked" without blocking internet.
-
-**How to avoid:**
-- Use a network namespace or iptables rules to block outbound internet from the test container during air-gap tests:
+- Use a paid API key (Tier 1 minimum, 300 RPM / 1M TPD) for the validation runs. The cost of a single validation run at Tier 1 is negligible (< $0.10 at Flash pricing) compared to the iteration cost of a stalled run.
+- If using the free tier, break the validation into separate Gemini sessions: one session per phase (install, CE operator, EE operator, friction synthesis). Export checkpoint files between sessions to preserve state.
+- Implement a retry wrapper around the Gemini CLI invocation in the orchestration script:
   ```bash
-  # On the host, before the test
-  iptables -I DOCKER-USER -s <node_container_ip> -d 0.0.0.0/0 ! -d 192.168.0.0/16 -j REJECT
-  # Run Foundry build — pip must succeed using only the local mirror
-  # After test
-  iptables -D DOCKER-USER ...
+  for attempt in 1 2 3; do
+    timeout 300 gemini -p "$PROMPT" && break
+    sleep $((attempt * 60))  # back off 1min, 2min, 3min
+  done
   ```
-  Alternatively, run the Foundry build inside an LXC container with no external network profile.
-- After the Foundry build, verify `pip.conf` was injected: `docker run --rm <built_image> cat /etc/pip.conf` must show `index-url = http://<mirror_host>:8080/simple`.
-- Check the local PyPI mirror contains the required packages before the test: `curl http://localhost:8080/simple/<package_name>/` must return a valid index page.
+- Set `GEMINI_MODEL=gemini-2.0-flash` in the environment as a fallback (lower quota pressure than 2.5 Flash).
+- Monitor quota consumption: after each agent phase, check remaining quota before starting the next.
 
 **Warning signs:**
-- Air-gap test passes but `curl http://pypi.org/simple/requests/` from inside the test container succeeds (network is not blocked).
-- Built image has no `/etc/pip.conf` or the file points to `pypi.org` rather than the local mirror.
-- `pip install` during the test takes longer than normal (internet latency instead of LAN mirror latency).
-- Local mirror is empty (`curl http://localhost:8080/simple/` returns no packages) but test still passes.
+- Gemini CLI output stops mid-sentence with no error message (429 silent stall).
+- `gemini` process is still running but producing no output for > 2 minutes.
+- `RESOURCE_EXHAUSTED` appears in Gemini CLI stderr.
+- The checkpoint file has not been updated for > 5 minutes during an expected active phase.
 
-**Phase to address:** Phase 5 (Foundry + Smelter deep test) — air-gap test must include an explicit network isolation step. Document the iptables procedure in the test script.
+**Phase to address:** Phase 1 (LXC environment setup) and Phase 2 (Gemini agent scaffolding) — configure the API key tier and add retry/backoff logic before the first agent run.
 
 ---
 
-### Pitfall 7: Job Failure Test — Bad Signature vs Expired Licence vs Crashed Script All Look the Same in Logs
+### Pitfall 3: Gemini CLI Hangs in Non-Interactive/Headless Mode Inside LXC
 
 **What goes wrong:**
-Three distinct failure modes in adversarial job testing produce similar symptoms at the node level:
-1. **Bad signature**: the node rejects the job before executing it. The job stays ASSIGNED indefinitely (the node does not report a failure result).
-2. **Expired licence (EE only)**: EE features gate job dispatch in certain configurations. The job may never reach the node or may be rejected at pickup with no clear error returned to the server.
-3. **Crashed script**: the job executes, the script exits with non-zero code, the node reports FAILED with exit code in the result.
+Gemini CLI has confirmed bugs with non-interactive execution — particularly when running shell commands via its tool executor in headless mode. Issues confirmed in the GitHub tracker (issues #16567, #12362, #20433) include:
 
-All three appear as "job stuck in ASSIGNED" or "job FAILED" without indicating which layer failed. The gap: the orchestrator `ExecutionRecord` captures stdout/stderr from crashed scripts, but signature rejection and licence rejection at the node level produce no `ExecutionRecord` at all — the job is simply never completed, and the node's rejection reason is only in the node's container log, not in the orchestrator DB.
+- CLI hangs for up to 300 seconds during initialization on headless Linux (Debian/Ubuntu Server) due to a `ripgrep` (`rg`) missing dependency. If `rg` is not installed in the LXC container, `gemini` hangs silently at "Initializing..." for the duration of the dbus timeout before falling back.
+- The CLI can hang indefinitely when executing certain shell commands (curl, git) in non-interactive mode. This was partially fixed in v0.23.0 (PR #20893), but older versions remain affected.
+- When running inside a container (Podman noted, likely also Docker-in-LXC), the interactive mode spin-lock busy-loop manifests (issue #17275).
 
 **Why it happens:**
-The pull model means nodes pull work and reject silently if local checks fail. There is no push-back mechanism for "I pulled this job but refused to run it" — the node simply does not post a result, and the job stays in ASSIGNED until timeout (if any timeout is implemented).
+Gemini CLI was designed for interactive terminal use. Headless/piped mode is a secondary use case with fewer test cycles. The dbus secret service dependency causes a blocking wait when running on a server without a desktop environment.
 
 **How to avoid:**
-- For adversarial signature tests: after submitting a bad-signature job, check the node container logs directly (`docker logs <lxc-node-container>`) for the signature rejection message within 15 seconds. Do not wait for the orchestrator dashboard to show a failure.
-- Define expected outcomes per failure mode in the test plan:
-  | Failure | Expected node log | Expected orchestrator state |
-  |---------|-------------------|-----------------------------|
-  | Bad signature | `Signature verification failed` | Job stuck ASSIGNED |
-  | Expired licence | EE gate rejection at `/work/pull` or in EE plugin | Job stays PENDING (not assigned) or ASSIGNED with no result |
-  | Crashed script | Exit code N in node log | Job FAILED with stdout/stderr in ExecutionRecord |
-- For the "bad signature" test specifically: after confirming the node log shows the rejection, manually set the job status to FAILED via a direct DB update or admin API call, so the test can continue without a stuck ASSIGNED job blocking node capacity.
-- Add a timeout to job assignment: if a job stays ASSIGNED for more than N seconds without a heartbeat update from the assigned node, auto-requeue it as PENDING. This is a platform gap that adversarial testing should surface and log.
+- Pin Gemini CLI to a version >= 0.23.0 (post-PR #20893 fix).
+- Install `ripgrep` (`apt install ripgrep`) in the LXC container before running Gemini CLI.
+- Set `GEMINI_API_KEY` in the environment and also set `KEYRING_BACKEND=null` (or `SECRET_SERVICE_AVAILABLE=false` if the env var is supported) to bypass dbus secret service lookup. Alternatively, pre-configure `~/.gemini/settings.json` with the API key so Gemini CLI does not query the keyring.
+- Run Gemini with an explicit timeout wrapper: `timeout 600 gemini -p "$PROMPT"`. Never let the orchestrator wait indefinitely for Gemini output.
+- Test headless mode explicitly during Phase 1 with a minimal prompt before the full validation run. Confirm Gemini CLI returns within 30 seconds before proceeding.
 
 **Warning signs:**
-- Job is stuck in ASSIGNED for more than 2x the node poll interval with no result appearing.
-- `GET /api/executions?job_id=<guid>` returns no records for a job that should have a failure record.
-- The orchestrator dashboard shows ASSIGNED with no progress, but node container is running.
-- All three failure modes look identical from the orchestrator perspective.
+- Gemini CLI prints "Initializing..." and then nothing for > 30 seconds.
+- `ps aux` shows `gemini` process at 0% CPU but not exiting.
+- Checkpoint file never receives the Gemini output file.
+- `strace` shows `gemini` blocking on a dbus socket call.
 
-**Phase to address:** Phase 4 (job failure mode testing) — pre-define the diagnostic steps for each failure mode before running tests. Establish the "check node container logs" step as mandatory for any ASSIGNED job with no result.
+**Phase to address:** Phase 1 (LXC environment setup) — test headless Gemini CLI operation as an explicit acceptance criterion before any validation scenario runs.
+
+---
+
+### Pitfall 4: Docker-in-LXC Networking — Caddy Binds to Container IP, Gemini Agent Cannot Reach Dashboard
+
+**What goes wrong:**
+Inside the LXC, Docker creates a bridge network (default `172.17.0.0/16`). The Caddy container binds port 443 to the bridge IP. From within the LXC (outside Docker's network namespace), the Axiom dashboard is at `https://172.17.0.X:443` — not `https://localhost:443`.
+
+The Gemini agent's system prompt says "navigate to the dashboard at https://localhost:8443" (or whatever the doc says). Inside the LXC, `localhost` is the LXC itself — not the Docker host bridge. The agent hits a connection refused. If the Axiom compose maps host port 8443 to Caddy's 443 (`"8443:443"` is confirmed in `compose.server.yaml`), then `localhost:8443` from within the LXC **does** work for TCP — but only if the LXC's loopback resolves to the Docker host's published port. On a standard Incus bridge setup, this requires IP forwarding to be enabled on the host and the LXC's network interface to route to the host's loopback.
+
+A more reliable pattern: the Axiom stack port 8443 is published to the LXC host's IP. The Gemini agent should be given the LXC host's `incusbr0` IP address (e.g. `10.77.183.1`) as the target, not `localhost`. This IP is stable across LXC restarts.
+
+Additionally, Incus with `security.nesting=true` (required for Docker-in-LXC) on Ubuntu 24.04 with kernel 6.8.x can have AppArmor denial issues that break Docker networking inside the LXC (confirmed: Incus GitHub issue #791). The `pivot_root: permission denied` error prevents Docker containers from starting at all, which means no Axiom stack inside the LXC.
+
+**Why it happens:**
+Docker bridge networking creates an isolated L2 domain. LXC containers are not inside this domain. Addresses that look like "localhost" are scoped to the LXC's network namespace, not Docker's internal network. The AppArmor issue is Ubuntu 24.04-kernel-specific and not obvious from Incus documentation.
+
+**How to avoid:**
+- Enable Docker port publishing explicitly in the compose file (already done: `"8443:443"`) and verify from inside the LXC that `curl https://$(ip route show default | awk '{print $3}'):8443/` works. Use the gateway IP, not `localhost`.
+- Set `SERVER_HOSTNAME` in the Axiom compose environment to the LXC's default gateway IP so Caddy's cert SAN includes it.
+- In the Gemini agent's system prompt / GEMINI.md context, provide the correct `AXIOM_URL=https://<gateway-ip>:8443` rather than localhost.
+- For the AppArmor/Ubuntu 24.04 issue:
+  - Check: `incus config show <container> | grep security.nesting`
+  - If Docker containers fail to start with `pivot_root: permission denied`, run `incus config set <container> raw.apparmor "pivot_root,"` to add the missing AppArmor rule, or upgrade to the mainline kernel (6.8.0-060800-generic) which does not block this.
+- Test Docker container startup inside the LXC as an explicit Phase 1 acceptance criterion.
+
+**Warning signs:**
+- Gemini agent reports "connection refused" when navigating to the dashboard URL.
+- `curl https://localhost:8443` from inside the LXC returns `Connection refused` even though Docker is running.
+- Docker containers inside the LXC fail to start with `pivot_root: permission denied` in journalctl.
+- `docker ps` inside the LXC shows all containers as `Exiting (1)` on startup.
+
+**Phase to address:** Phase 1 (LXC environment setup) — verify Docker-in-LXC networking from the LXC's perspective before any Gemini session starts. Determine the correct reachable IP and put it in the agent's context.
+
+---
+
+### Pitfall 5: Gemini Agent Shortcuts Via Codebase Knowledge — "First User" Validity Fails
+
+**What goes wrong:**
+The v14.0 milestone requires Gemini to act as a "first-time user" who discovers the product solely through documentation and the UI. The validity of the cold-start test depends on Gemini not having access to the codebase, internal API structure, or secrets.
+
+Failure modes:
+1. **GEMINI.md contamination**: If the validation LXC contains a clone of the full master_of_puppets repository, Gemini CLI automatically reads `GEMINI.md` in the working directory. `GEMINI.md` references internal architecture, key file paths, and known limitations. The agent immediately has codebase knowledge and cannot act as a first-time user.
+2. **`.gemini/` history bleed**: Gemini CLI stores conversation history in `~/.gemini/history/<project_hash>`. If the same user account runs both development sessions and validation sessions, prior context (codebase exploration, bug fixes) leaks into the validation session.
+3. **System prompt injection**: If the orchestration script injects internal codebase details (file paths, admin credentials from `secrets.env`) into the Gemini prompt to "help it set up", it bypasses the first-user constraint.
+
+**Why it happens:**
+Convenience. The easiest way to give Gemini the Axiom stack is to clone the full repo into the LXC. This is correct for the install step but wrong for the operator-path validation step.
+
+**How to avoid:**
+- Structure the LXC working directory as two isolated zones:
+  - `/root/axiom-install/` — contains only the installer artifacts (compose file, env template). No GEMINI.md, no source code. Gemini runs from here during install validation.
+  - `/root/axiom-docs/` — contains a checked-out copy of `docs/site/` only. Gemini reads docs from here during operator validation.
+- Use a fresh `~/.gemini/` directory for each validation session: `export HOME=/root/validation-home` before invoking `gemini`, ensuring no history contamination.
+- The Gemini agent's starting prompt must be explicit: "You are a first-time operator. You have access only to the documentation at `/root/axiom-docs/`. You do not have access to the source code. Do not assume any knowledge beyond what the documentation provides."
+- Admin credentials (JOIN_TOKEN, ADMIN_PASSWORD) needed for setup are provided via the checkpoint/steering mechanism, not pre-loaded into the Gemini context. The agent must discover the login UI, not have credentials injected.
+
+**Warning signs:**
+- Gemini references internal file paths like `puppeteer/agent_service/main.py` or mentions `DATABASE_URL` format without reading docs.
+- Gemini uses API paths or parameter names not documented in the public docs site.
+- Gemini skips steps that a real first-user would need (e.g., skips TLS bootstrap because it "knows" the cert is in `certs-volume`).
+- `ls ~/.gemini/history/` shows entries from prior development sessions in the same HOME.
+
+**Phase to address:** Phase 2 (Gemini agent scaffolding) — define the LXC directory structure and HOME isolation before the first agent session. Test that Gemini cannot read source code files from within its working directory.
+
+---
+
+### Pitfall 6: Ed25519 Licence Expires During the EE Validation Run
+
+**What goes wrong:**
+The EE licence key is signed with an expiry timestamp. If the licence was pre-generated with a short validity window (e.g. 30 days, as used in v11.1 testing), there is a risk that:
+1. The licence expires between the CE run and the EE run if the validation takes multiple days.
+2. The licence expires mid-run if the EE validation covers a long test sequence (licence check is startup-only per PROJECT.md, but any stack restart during EE testing re-validates and will fail).
+3. A licence generated with a clock-skewed host has a start time in the future (appears invalid immediately) or expiry in the past (valid only on the clock-skewed host).
+
+Axiom's licence validation is described as "startup-only" (DIST-05 is deferred), so a running EE stack continues operating even after licence expiry — but any restart during the test run will gate on the expired licence and refuse to start EE features.
+
+**Why it happens:**
+Test licences are generated once and stored. The connection between "licence generation date" and "validation run date" is easy to lose track of across milestones.
+
+**How to avoid:**
+- Generate the EE test licence immediately before each validation run, not during stack setup days earlier. Use a validity window of 72 hours minimum from generation time.
+- Store the licence generation command and the test keypair in the LXC provisioning script so they are always fresh: `python generate_ee_licence.py --days 7 > /root/axiom_ee_licence.key`.
+- Before starting the EE run, verify the licence is valid and its expiry is at least 2 hours away: decode the base64 payload and check the `exp` field.
+- Avoid restarting the Axiom stack during the EE operator validation phase once it is confirmed running with EE features loaded. Schedule any required restarts for before EE operator testing begins.
+- Add a pre-flight check to the EE validation script: `GET /api/admin/features` must return `ee_status: loaded` before the EE operator tests begin.
+
+**Warning signs:**
+- `GET /api/admin/features` returns `ee_status: not_loaded` on a stack that should have EE.
+- EE-gated routes return 402 even though the `axiom-ee` dev wheel is installed.
+- Stack startup logs show `Licence expired` or `Licence not yet valid`.
+- The `exp` field in the decoded licence JSON is in the past.
+
+**Phase to address:** Phase 3 (EE test infrastructure setup) — add licence freshness check as a pre-flight step. Regenerate the licence in the LXC provisioning script, not manually.
+
+---
+
+### Pitfall 7: PowerShell Jobs Fail — pwsh Not in Docker Node Image
+
+**What goes wrong:**
+v12.0 unified the `script` task type to support Python, Bash, and PowerShell via container temp-file mounts. The node runtime executes PowerShell scripts with `pwsh -File <tempfile>`. This requires `pwsh` (PowerShell Core) to be present in the Docker image the node container runs.
+
+The base node image (`localhost/master-of-puppets-node:latest`, built from `puppets/Containerfile.node`) likely does not include `pwsh` — PowerShell is a 200MB+ install that would significantly bloat the base image. If a cold-start validation test dispatches a PowerShell job to a node using the base image, the job will fail with exit code 127 (`pwsh: command not found`). The failure looks identical to a crashed script (exit code, no stdout), making it hard to distinguish from a logic error in the test script.
+
+Additionally, the Microsoft Container Registry deprecated the standalone PowerShell Docker images in 2025 (confirmed by search results). The correct approach is `mcr.microsoft.com/dotnet/sdk:8.0` or installing `pwsh` via APT from the Microsoft package feed.
+
+**Why it happens:**
+PowerShell support is tested with custom Foundry-built images in development. Cold-start validation uses whatever the base node image provides. The PowerShell test is added to the validation matrix without verifying the base image has `pwsh`.
+
+**How to avoid:**
+- Build a dedicated PowerShell-capable node image for the cold-start validation: start from the base node image and add `pwsh` via the Microsoft APT feed. Use this image for the PowerShell job test node.
+- Alternatively, create a Foundry blueprint that adds PowerShell and build the validation node image via Foundry as part of the EE operator path test (this simultaneously validates Foundry and PowerShell support).
+- Verify `pwsh` availability before dispatching the PowerShell test job: `docker exec <node_container> which pwsh` must return `/usr/bin/pwsh`.
+- If using a pre-built Foundry image, tag and push it to the local registry before the validation run starts.
+
+**Warning signs:**
+- PowerShell job returns exit code 127 with stderr `pwsh: not found`.
+- The node's execution log shows `OSError: [Errno 2] No such file or directory: 'pwsh'`.
+- `docker exec <node_container> pwsh --version` returns "command not found".
+- All Python and Bash jobs succeed, only PowerShell jobs fail.
+
+**Phase to address:** Phase 3 (LXC node provisioning and Docker image preparation) — include `pwsh` installation in the node image build step for the PowerShell test scenario.
+
+---
+
+### Pitfall 8: Checkpoint File Deadlock — Agent Waits for Steering, Claude Session Times Out
+
+**What goes wrong:**
+The file-based checkpoint protocol works as follows: Gemini writes a checkpoint file requesting a decision, Claude reads it and writes a steering file, Gemini reads the steering file and continues. If either side stalls:
+
+1. **Claude session timeout**: If the Claude orchestration session is idle (waiting for Gemini to produce a checkpoint) for more than the session idle timeout, the Claude session is terminated. When the checkpoint arrives, there is no Claude session to read it and provide steering. Gemini waits indefinitely for a steering response that will never come.
+
+2. **Gemini rate-limited while writing checkpoint**: Gemini hits a 429 error while in the middle of composing the checkpoint file. The file is written partially. Claude reads a malformed checkpoint JSON, cannot parse it, and either crashes or writes invalid steering. Gemini receives garbage steering and produces nonsense output.
+
+3. **Stale checkpoint from prior run**: The checkpoint directory from a previous partial run still contains a `CHECKPOINT_COMPLETE` file. Gemini reads it at startup, believes the session is already complete, and exits without running any tests.
+
+4. **File locking on the shared volume**: If the checkpoint directory is on a volume shared between the LXC and the host, and the LXC uses a filesystem without proper POSIX fcntl locks (e.g., 9p/virtio), file write visibility may be delayed. Gemini writes the checkpoint, the delay means Claude reads stale content.
+
+**Why it happens:**
+File-based IPC is simple to implement but brittle. Race conditions between the writer finishing and the reader polling are inherent. Long-lived agent sessions are vulnerable to session timeouts on either side.
+
+**How to avoid:**
+- Use atomic writes for checkpoint files: Gemini writes to a `.tmp` file first, then renames atomically. Claude polls for the final filename, not the `.tmp` file.
+- Define a maximum wait time on both sides: Gemini waits at most 10 minutes for a steering file; Claude checks for checkpoint files every 60 seconds with a 30-minute maximum.
+- Clear the checkpoint directory at the start of each validation run. The provisioning script should `rm -f /root/checkpoints/*` before invoking Gemini.
+- Use a local filesystem for checkpoints (not a shared 9p/virtio volume). Write checkpoints to a path inside the LXC's native ext4 filesystem.
+- If the Claude session times out, restart it with the last checkpoint file as context: the orchestrator should save the last checkpoint path so the session can resume rather than restart.
+
+**Warning signs:**
+- Checkpoint file exists but has no corresponding steering file after > 15 minutes.
+- Checkpoint file is 0 bytes or truncated (partial write during rate-limit error).
+- Multiple checkpoint files with the same name from prior runs.
+- Gemini exits 0 (success) but no validation output was produced (read stale COMPLETE checkpoint).
+
+**Phase to address:** Phase 2 (Gemini agent scaffolding and checkpoint protocol) — implement atomic write + cleanup procedures before the first validation run. Test the checkpoint round-trip explicitly with a mock Gemini session.
 
 ---
 
@@ -227,13 +284,13 @@ The pull model means nodes pull work and reject silently if local checks fail. T
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Using one enrollment token for all nodes | Simpler provisioning script | First node consumes token; nodes 2-4 get 403 silently | Never — always generate N tokens for N nodes |
-| Testing air-gap without actual network isolation | Faster test setup | Test passes even with internet fallback; false confidence | Never for release validation |
-| Testing EE key patching without a dev wheel rebuild | Skips Cython rebuild step | Patch approaches all fail on compiled `.so`; hours wasted | Never — rebuild is the only valid path |
-| `docker compose down -v` for teardown between runs | Complete cleanup | Destroys Root CA; all LXC nodes break | Never without simultaneous node secrets cleanup |
-| SQLite for concurrent node validation tests | No DB server needed | `database is locked` errors under 4-node polling load | Acceptable for single-node tests only |
-| Skipping `/tmp` cleanup between Foundry builds | Faster iteration | Disk fills up; later builds fail with `No space left` | Never in a multi-build test run |
-| Vague gap report entries ("improve X") | Faster to write | Actionable for nothing; no fix can be verified | Never — every gap must have a reproduction step and acceptance criterion |
+| Using `ignore_https_errors=True` in Playwright instead of injecting Root CA | Simpler setup, no cert export step | Any TLS error (not just self-signed) is silently bypassed; network attacks undetected | Acceptable for isolated validation LXC only — never in production or shared environments |
+| Using free-tier Gemini API key for validation | Zero cost | 429 rate limit stops the run at any point; 250 RPD makes a full CE+EE pass infeasible | Never for a full validation run — use paid tier or split into multiple sessions |
+| Running Gemini in a HOME directory with prior dev history | No setup required | Prior codebase knowledge leaks into "first user" test; invalidates the test premise | Never — always use a fresh HOME for validation sessions |
+| Pre-generating EE licence key weeks before the run | Simpler pre-staging | Licence may expire before or during the run | Never — generate within 24h of the planned run |
+| Skipping PowerShell node image build | Faster test setup | PowerShell jobs always fail with exit 127; PowerShell test path is untested | Never — PowerShell is an explicit validation requirement |
+| Sharing the checkpoint directory on a 9p/virtio volume | Convenient access from host | File visibility delays cause stale reads; POSIX lock semantics not guaranteed | Never — use native LXC filesystem for checkpoints |
+| Running Gemini CLI without pinning to a specific version | Always gets latest features | Non-interactive hangs and 429-silent-stall behaviour vary by version; untested versions introduce flakiness | Never for automated runs — pin to a tested version |
 
 ---
 
@@ -241,14 +298,16 @@ The pull model means nodes pull work and reject silently if local checks fail. T
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| LXC nodes + Compose stack | LXC container network cannot reach `puppeteer-agent-1` hostname | Use `host.docker.internal` or host IP as `AGENT_URL`; ensure LXC container has network access to the host port 8001 |
-| LXC nodes + mTLS | LXC node presents cert signed by old Root CA after stack teardown + rebuild | Clear `secrets/` on each LXC node before re-enrolling; do not reuse node cert files across stack rebuilds |
-| Foundry + local registry | Push to `localhost:5000` from inside the `agent` container fails | Use the container-internal registry hostname (`registry:5000`) not `localhost:5000` — Docker networking resolves `registry` via the compose network |
-| Foundry + base image | `FROM localhost/master-of-puppets-node:latest` fails in Foundry build | Image must exist in the host Docker daemon registry, not just locally built with `docker build` in a previous session that was cleared |
-| Air-gap mirror + pip | pip falls back to PyPI if mirror returns 404 | Block internet at the network level during air-gap tests; verify `pip.conf` was injected into the built image |
-| EE dev wheel + CE install | Install dev wheel into the same venv as production CE | Use an isolated venv per EE build variant; never mix dev and prod EE wheels in the same Python environment |
-| Concurrent polling + SQLite | 4 nodes poll simultaneously on SQLite dev DB | Use Postgres for any multi-node validation; enable WAL mode if SQLite is unavoidable |
-| Job signing + node verification | Node verifies signature against the server-registered public key | Test keypair used for signing must be registered in `signatures` table on the orchestrator before submitting the signed job |
+| Playwright + Caddy self-signed TLS | Trust Root CA via `update-ca-certificates` and expect Chromium to respect it | Install Root CA into Chromium's NSS DB via `certutil`, or use `ignore_https_errors=True` at browser launch |
+| Gemini CLI + LXC headless Linux | Run without installing `ripgrep` | `apt install ripgrep` before running `gemini`; prevents 300s initialization hang |
+| Gemini CLI + non-interactive API calls | Assume the CLI returns promptly for all shell commands | Wrap all `gemini` invocations with `timeout 300`; never wait indefinitely |
+| Gemini CLI + API key | Store key in keyring (system default) | Set `GEMINI_API_KEY` env var explicitly; configure `~/.gemini/settings.json` to bypass dbus/keyring lookup |
+| Docker-in-LXC + Axiom port binding | Access Axiom via `localhost:8443` inside LXC | Use the LXC's default gateway IP (Docker host bridge IP); verify with `ip route show default | awk '{print $3}'` |
+| Caddy TLS SAN + LXC networking | Generate cert without `SERVER_HOSTNAME` and expect `localhost` to work from inside LXC | Set `SERVER_HOSTNAME` to the LXC-accessible IP before starting the stack; regenerate cert if SANs were already written to the volume |
+| Ed25519 EE licence + clock skew | Pre-generate licence on a system with incorrect clock | Generate licence on the same host that will run the validation; verify system time before generation |
+| PowerShell jobs + base node image | Assume the base image has `pwsh` | Build a dedicated PowerShell-capable node image or use a Foundry blueprint that includes `pwsh` |
+| Checkpoint files + shared volumes | Write checkpoints to a 9p/virtio-shared directory | Write to native LXC ext4 filesystem; share results with host via `incus file pull` after validation |
+| Gemini "first user" + GEMINI.md | Clone full repo into LXC working directory | Separate install artifacts from source; use an isolated HOME for the Gemini session |
 
 ---
 
@@ -256,11 +315,11 @@ The pull model means nodes pull work and reject silently if local checks fail. T
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| 4 LXC nodes at identical poll intervals | Synchronized polling storms; write lock queuing on SQLite | Stagger poll intervals by 1-2s per node | At 3+ nodes with < 5s poll interval on SQLite |
-| Foundry builds leave `/tmp/puppet_build_*` dirs | Disk fills; later builds fail with `No space left on device` | Cleanup step after each build test; increase tmpfs size | After 5-10 builds of large images |
-| APScheduler firing all cron jobs at same second | Multiple jobs dispatched simultaneously; node queue depth spikes | Stagger cron schedules by at least 30s between definitions in the test matrix | Any time 3+ cron definitions have the same minute expression |
-| node stats history query on 60 rows × 4 nodes | Acceptable at 4 nodes; not a trap for this scale | No action needed at 4 nodes | Documented: breaks at 1000+ nodes |
-| Concurrent Foundry builds (>2 simultaneous) | Docker daemon build queue; agent HTTP request timeout | Run Foundry builds sequentially in the test matrix | Immediately if builds exceed the agent HTTP timeout (~120s) |
+| Gemini CLI context saturation | Agent stops referencing earlier findings; starts repeating initial setup steps | Break validation into scoped sessions (install, CE operator, EE operator); each session < 30 turns | After ~50 turns in a single session on a large codebase |
+| Playwright screenshot on every navigation | Test script accumulates 100+ 2MB PNGs; disk fills inside LXC | Save screenshots only on assertion failure; use `page.screenshot(path=...)` selectively | After ~50 navigations in a test that captures every step |
+| Docker image pull inside LXC on every test run | Each run re-pulls `pwsh` base image (400MB+) | Pre-pull and tag all images before the validation run; use `docker image ls` to verify | On networks with < 10 Mbps; or when Docker Hub rate limits apply (100 pulls/6h for free accounts) |
+| Axiom stack startup race inside LXC | Gemini agent tries to access dashboard while Caddy/agent are still starting | Add a health-check wait loop in the provisioning script: `until curl -sk https://<host>:8443/api/health; do sleep 2; done` | Immediately on first run without startup gate |
+| Concurrent Playwright + Gemini API calls | 429 errors triggered by combined RPM usage if both hit the API simultaneously | Run Playwright scripts synchronously from within the Gemini session; never in parallel threads | Any time Playwright test runs while Gemini is also making API calls |
 
 ---
 
@@ -268,38 +327,40 @@ The pull model means nodes pull work and reject silently if local checks fail. T
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Embedding the production EE licence public key in the dev/test wheel | Test fixture generates forged licences that pass validation on the production binary | Keep dev and prod wheel builds completely separate; dev key must never be embedded in the same binary as the prod key |
-| Using a fixed, predictable test JOIN_TOKEN in LXC compose files | Token committed to git is usable by anyone who clones the repo | Regenerate tokens before each validation run; never commit live tokens to git |
-| Testing mTLS revocation without verifying CRL is served | Revoked node may still receive work if the CRL is not reachable | After revoking a node, curl `GET /system/crl.pem` and verify the revoked cert's serial is present before testing work rejection |
-| Running the validation stack with `ENCRYPTION_KEY` unset | Secrets stored as plaintext; encryption test results are meaningless | Set `ENCRYPTION_KEY` to a real Fernet key in `puppeteer/.env` before validation; verify with `docker exec puppeteer-agent-1 env | grep ENCRYPTION_KEY` |
-| Signing test jobs with the operator's real production signing key | Test job scripts submitted and signed with real credentials; if test scripts are malicious, the node executes them | Generate a separate Ed25519 keypair specifically for test jobs; register it as a test signature entry; delete it after validation |
+| Storing EE test private key alongside production keys in `toms_home/.agents/tools/secrets/` | Test key mixed with production keys; risk of signing production licences with test key | Store EE test keypair in a dedicated directory inside the validation LXC only; never commit test private keys to any repository |
+| Running Playwright with `ignore_https_errors=True` against a production stack | TLS errors from a genuine MITM attack would be silently ignored | Restrict `ignore_https_errors=True` to validation LXC only; confirm with `incus list` that the stack IP is inside the LXC network range |
+| Embedding ADMIN_PASSWORD in the Gemini system prompt | Admin credential exposed in prompt history stored at `~/.gemini/history/` | Inject ADMIN_PASSWORD only via the checkpoint/steering mechanism, not the initial prompt; clear `~/.gemini/history/` after the validation run |
+| Using the same Gemini API key for development and validation | Validation run exhausts the daily quota needed for development work | Use a separate API key for validation runs; set a spend limit on the validation key |
+| Leaving the EE dev wheel installed in the production stack after validation | Production stack accepts test licences signed with the dev key | Use a separate Docker compose override for EE validation; never install the dev wheel into the production named volume |
 
 ---
 
 ## UX Pitfalls
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Gap report entries with no reproduction steps | Developers cannot reproduce or verify a fix | Every gap entry must include: observed behaviour, reproduction steps, expected behaviour, acceptance criterion |
-| Gap report mixes critical bugs with cosmetic issues in a flat list | Critical fixes deprioritised; cosmetic fixes done first | Three-tier severity: CRITICAL (blocks jobs or breaks security) / MODERATE (degrades UX) / DEFERRED (known acceptable shortcut) |
-| Gap report created only at the end | Findings from early phases are forgotten or underspecified | Log findings inline during each test phase; write the gap entry immediately after observing the issue |
-| Vague gap entries like "node enrollment is fragile" | Actionable by nobody | Required fields: affected component, reproduction steps, severity, proposed fix |
-| Marking a gap DEFERRED without a tracking note | Gap is silently forgotten | Every DEFERRED entry must reference the milestone where it will be addressed (e.g., "DEFERRED to v12.0 — EE-08") |
+(These apply to the friction report quality and agent experience design, not end-user UX.)
+
+| Pitfall | Impact | Better Approach |
+|---------|--------|-----------------|
+| Gemini agent given too broad a mandate per session | Agent context saturates; later findings are lower quality than early findings | Scope each Gemini session to one workflow (install, CE operator, EE features); combine findings in the friction report |
+| Friction report captures "agent got confused" as a product issue | Misattributes Gemini CLI limitations (rate limits, context saturation) as Axiom UX problems | Distinguish agent environment issues from genuine product friction in the report template |
+| No baseline comparison in friction report | Cannot tell if findings are regressions vs. long-standing issues | Reference the v11.1 gap report findings when writing the friction synthesis; note which findings are new vs. known |
+| Agent success defined as "no errors" | A smooth but silent run does not validate EE features were actually exercised | Define per-scenario acceptance criteria: specific API responses, dashboard state changes, or execution records that confirm the feature was used |
+| Checkpoint steering injects too much help | Agent succeeds because the orchestrator compensated for every friction point | Checkpoint steering is for unblocking (e.g. providing credentials); it must not substitute for features the product should provide |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Stack teardown + fresh install:** Run `docker compose down -v` AND clear LXC node secrets simultaneously. Confirm fresh stack generates a new Root CA. Confirm all 4 LXC nodes re-enroll cleanly against the new CA.
-- [ ] **EE dev wheel installed:** `pip show axiom-ee` inside the agent container must show the dev wheel (test public key). `GET /api/features` must return `ee_status: loaded`. A licence signed with the test private key must be accepted. A licence signed with a wrong key must be rejected.
-- [ ] **All 4 LXC nodes enrolled:** `GET /nodes` must return exactly 4 nodes, all in ONLINE status. Verify each node has the correct `env_tag` (DEV/TEST/PROD/STAGING).
-- [ ] **Concurrent job dispatch:** Dispatch 8 jobs simultaneously. Verify all 8 reach COMPLETED (or FAILED with a result) — none stuck in ASSIGNED.
-- [ ] **Bad signature rejection:** Submit a job signed with an unregistered key. Confirm the node log shows rejection. Confirm no ExecutionRecord is created in the orchestrator for this job.
-- [ ] **Foundry build completes cleanly:** After a Foundry build, verify `/tmp/puppet_build_*` has been cleaned. Verify the built image exists in the local registry. Verify a node can be enrolled using the Foundry-built image.
-- [ ] **Air-gap test uses real isolation:** `curl https://pypi.org/simple/requests/` from inside the test container during the air-gap test must fail. Packages must install successfully from the local mirror only.
-- [ ] **Gap report is actionable:** Every entry has: severity, component, reproduction steps, expected behaviour, proposed fix or DEFERRED milestone reference. No entry is a single sentence.
-- [ ] **SQLite is not used for concurrent tests:** `DATABASE_URL` in the running stack must point to Postgres (`postgresql+asyncpg://...`), not SQLite. Verify: `docker exec puppeteer-agent-1 env | grep DATABASE_URL`.
-- [ ] **CRL reflects revoked node:** After revoking a node, `GET /system/crl.pem` must contain the revoked cert serial. The revoked node must not receive work on the next poll.
+- [ ] **TLS trust verified**: `curl -v https://<gateway-ip>:8443/` from inside the LXC returns 200 without `--insecure`. If using `ignore_https_errors=True` instead, confirm the browser can reach the login page and the page renders correctly (not a blank HTTPS error page).
+- [ ] **Gemini CLI headless confirmed**: `timeout 30 gemini -p "Say hello"` from the validation HOME returns a response within 30 seconds. Hang here means ripgrep missing or keyring blocking.
+- [ ] **Docker networking verified**: `docker ps` inside the LXC shows all Axiom containers as `Up`. `curl http://localhost:8080/+api` (devpi) and `curl -sk https://<gateway>:8443/api/health` both succeed.
+- [ ] **EE dev wheel active**: `GET /api/admin/features` returns `ee_status: loaded`. Verify before starting any EE scenario.
+- [ ] **EE licence freshness**: Decode the licence payload and check `exp` field is at least 2 hours in the future.
+- [ ] **PowerShell node image ready**: `docker exec <ps_node_container> which pwsh` returns a path. Dispatch a trivial PowerShell job (`Write-Host "ok"`) and verify it reaches COMPLETED before starting the full test matrix.
+- [ ] **Gemini working directory isolated**: `ls <gemini-working-dir>` shows no `CLAUDE.md`, `GEMINI.md`, or `puppeteer/` source directories. Gemini cannot read source code.
+- [ ] **Checkpoint directory clean**: `ls /root/checkpoints/` is empty before each validation run. No stale files from prior runs.
+- [ ] **API key tier confirmed**: `echo $GEMINI_API_KEY` is set and the key's tier is confirmed via AI Studio. Free tier requires multi-session approach. Paid tier confirmed before starting.
+- [ ] **AppArmor / Docker nesting verified**: `docker run --rm hello-world` inside the LXC completes successfully. If this fails, AppArmor pivot_root issue needs resolution before any Axiom stack testing.
 
 ---
 
@@ -307,13 +368,14 @@ The pull model means nodes pull work and reject silently if local checks fail. T
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Teardown destroyed Root CA, nodes broken | MEDIUM | Clear all LXC node `secrets/` directories; run hard teardown on stack; fresh install; re-enroll all nodes |
-| EE dev wheel not buildable (Cython environment issue) | HIGH | Install Cython + build toolchain in the test environment; `pip install cython cibuildwheel`; rebuild dev wheel from EE source with test key |
-| LXC nodes stuck at 403 after token race | LOW | Generate 4 new tokens; update each LXC node env with its dedicated token; restart node containers |
-| SQLite locked under concurrent tests | LOW | Switch `DATABASE_URL` to Postgres in `puppeteer/.env`; restart the agent container; re-run concurrent tests |
-| Foundry `/tmp` full | LOW | `docker exec puppeteer-agent-1 rm -rf /tmp/puppet_build_*`; free at least 2GB before re-running builds |
-| Air-gap test false positive | LOW | Add `iptables` block for the test container; re-run; verify pip uses only local mirror |
-| Vague gap report | MEDIUM | Re-run the test that produced the vague entry; observe and document precisely; rewrite the entry with reproduction steps |
+| TLS SAN mismatch blocks Playwright | LOW | Set `SERVER_HOSTNAME` in compose env; `docker compose down; docker compose up -d`; Root CA and cert are regenerated on next start; re-export Root CA |
+| 429 rate limit exhausted mid-run | LOW-MEDIUM | Wait for quota reset (midnight UTC for daily limits); resume from last checkpoint file; switch to paid tier for remainder |
+| Gemini CLI hangs in headless mode | LOW | Install `ripgrep`; clear `~/.gemini/history/`; upgrade CLI version; restart with `timeout` wrapper |
+| Docker-in-LXC AppArmor blocks pivot_root | MEDIUM | Check Ubuntu kernel version; if 6.8.x with broken AppArmor: `incus config set <container> raw.apparmor "pivot_root,"` and restart LXC; or upgrade to mainline kernel |
+| Gemini first-user contamination discovered mid-run | HIGH | Invalidate the run; reset to fresh HOME; clear source code from working directory; restart from Phase 1 |
+| EE licence expired before/during run | LOW | Regenerate licence with `python generate_ee_licence.py --days 7`; restart Axiom stack to load new licence; verify `ee_status: loaded` |
+| PowerShell node has no pwsh | LOW | `docker exec <node> apt-get install -y powershell` (if network available) or rebuild node image with pwsh; re-enroll node if image changed |
+| Checkpoint deadlock (no steering response) | LOW-MEDIUM | Kill `gemini` process; read checkpoint file to determine what decision was needed; write steering file manually; restart Gemini from last state |
 
 ---
 
@@ -321,31 +383,33 @@ The pull model means nodes pull work and reject silently if local checks fail. T
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Teardown destroys Root CA (P1) | Phase 1 — define soft/hard teardown scripts before any test | Fresh stack after hard teardown + LXC secrets clear → all 4 nodes re-enroll cleanly |
-| EE key immutable in compiled `.so` (P2) | Phase 2 — dev wheel build procedure defined before EE tests | `GET /api/features` shows `ee_status: loaded` with test-key-signed licence |
-| Parallel enrollment token race (P3) | Phase 3 — per-node token generation in provisioning script | `GET /nodes` shows all 4 nodes ONLINE after parallel spinup |
-| SQLite locking under concurrent polling (P4) | Phase 4 — Postgres confirmed before concurrent job test | No `database is locked` errors in server logs during 8-job concurrent dispatch |
-| Foundry `/tmp` cleanup and base image (P5) | Phase 5 — pre-flight checklist + cleanup step in test script | Foundry builds succeed across a 5-build sequence; `/tmp` stays clean |
-| Air-gap mirror without network isolation (P5) | Phase 5 — network isolation added to air-gap test procedure | `curl https://pypi.org/` fails during test; packages install from local mirror |
-| Failure modes all look identical (P4) | Phase 4 — per-failure-mode diagnostic steps defined upfront | Correct node log message found for bad-sig, expired licence, and crash within 30s of job submission |
-| Vague gap report entries | All phases — gap template enforced from Phase 1 | Every gap entry passes the checklist (severity, reproduction, acceptance criterion) |
+| Caddy TLS SAN mismatch + Chromium cert trust (P1) | Phase 1 — LXC environment setup | `curl -v https://<gateway>:8443/api/health` succeeds without `--insecure` from inside the LXC |
+| Gemini 429 rate limit stalls run (P2) | Phase 1+2 — API key tier confirmation + retry wrapper | `gemini -p "hello"` succeeds 10 times in 1 minute without 429 errors |
+| Gemini CLI headless hang (P3) | Phase 1 — headless smoke test | `timeout 30 gemini -p "Say hello"` returns within 30 seconds |
+| Docker-in-LXC networking + AppArmor (P4) | Phase 1 — Docker nesting verification | `docker run --rm hello-world` succeeds inside LXC; Axiom stack ports reachable from LXC network namespace |
+| First-user codebase contamination (P5) | Phase 2 — agent scaffolding and HOME isolation | `ls $GEMINI_HOME` shows no source code; Gemini cannot access GEMINI.md or CLAUDE.md |
+| EE licence expiry (P6) | Phase 3 — EE test infrastructure | Licence decoded `exp` > now + 2h; `ee_status: loaded` confirmed before EE tests |
+| PowerShell node missing pwsh (P7) | Phase 3 — node image preparation | `docker exec <ps_node> which pwsh` returns a path; trivial PowerShell job completes |
+| Checkpoint protocol deadlock (P8) | Phase 2 — checkpoint design and testing | Mock round-trip (write checkpoint → write steering → Gemini reads steering) completes in < 60 seconds |
 
 ---
 
 ## Sources
 
-- Direct inspection: `puppeteer/compose.server.yaml` (named volumes: `certs-volume`, `pgdata`, `caddy_data`; Docker socket mount; `../puppets:/app/puppets:ro`)
-- Direct inspection: `puppeteer/agent_service/db.py` line 12 — SQLite default with `aiosqlite`; no WAL mode configured; no `connect_args`
-- Direct inspection: `puppeteer/agent_service/main.py` lines 1912-1919 — token marked `used=True` immediately on first request, before CSR is processed
-- Direct inspection: `puppets/node-compose.yaml` — single JOIN_TOKEN in compose file; `./secrets:/app/secrets` volume mount; node ID persistence pattern
-- Direct inspection: `puppets/secrets/` — contains `node-3d795c2c.crt`, `node-3d795c2c.key`, `root_ca.crt`, `verification.key` (confirms secrets persist in volume)
-- PROJECT.md v11.1 milestone definition — confirms: EE test keypair, 4 LXC nodes (DEV/TEST/PROD/STAGING), concurrent job tests, Foundry/Smelter deep test, air-gap mirror fallback
-- Existing PITFALLS.md (CE/EE split domain, 2026-03-19) — confirms EE public key is compiled into `.so`; confirms Cython compiled modules have read-only attribute restrictions
-- `.agent/reports/core-pipeline-gaps.md` — MIN-7 (build dir cleanup deferred), MIN-6 (SQLite NodeStats pruning compat deferred), WARN-8 (non-deterministic node ID scan)
-- SQLite documentation: WAL mode required for concurrent readers + single writer; `DEFERRED` default isolation — https://www.sqlite.org/wal.html
-- Cython documentation: compiled module attributes are read-only at the C level — attribute assignment raises `AttributeError` — https://cython.readthedocs.io/en/latest/src/tutorial/cdef_classes.html
-- Docker socket + Foundry DinD: build context is sent from the socket-client container's filesystem; `docker build` via mounted socket is the established pattern — https://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/
+- Direct inspection: `puppeteer/cert-manager/entrypoint.sh` — SANs are `localhost,127.0.0.1` plus optional `SERVER_HOSTNAME`; cert signed by Axiom Root CA (not a public CA)
+- Direct inspection: `puppeteer/Caddyfile` — TLS via `/etc/certs/caddy.crt`; port 443/80 binding
+- Direct inspection: `puppeteer/compose.server.yaml` — port `"8443:443"` published; `cert-manager` container generates TLS
+- PROJECT.md v14.0 milestone — confirms: Gemini CLI as first-user agent, file-based checkpoint steering, CE+EE cold-start, PowerShell job runtime, Ed25519 licence gating
+- Playwright GitHub issue #4785 — "Playwright Chromium ignores root CA certificates installed manually" — confirmed: `update-ca-certificates` is insufficient; Chromium uses NSS store
+- Gemini CLI GitHub issue #16567 — "Gemini CLI consistently hangs when running a command in non-interactive mode" — fixed in v0.23.0 (PR #20893)
+- Gemini CLI GitHub issue #20433 — "CLI hangs on 'Initializing...' for 3-5 minutes in headless Linux due to ripgrep (rg) missing"
+- Gemini CLI GitHub issue #17275 — "Interactive mode hangs in a busy-loop when run inside a Podman container"
+- Incus GitHub issue #791 — "Nesting (docker) in containers broken on Ubuntu 24.04" — AppArmor `pivot_root: permission denied`; workaround: mainline kernel or `raw.apparmor` override
+- Gemini API rate limits: free tier Gemini 2.5 Flash ~10 RPM / 250 RPD — https://ai.google.dev/gemini-api/docs/rate-limits
+- Gemini CLI 429 issues: https://github.com/google-gemini/gemini-cli/issues/10722
+- Microsoft PowerShell in Docker (2025): standalone images deprecated; current path is `mcr.microsoft.com/dotnet/sdk:8.0` — https://learn.microsoft.com/en-us/powershell/scripting/install/powershell-in-docker
+- Playwright TLS workarounds: https://www.browserstack.com/guide/playwright-ignore-certificate-errors
 
 ---
-*Pitfalls research for: Axiom v11.1 Stack Validation — adversarial testing, LXC nodes, EE binary patching, SQLite concurrency, Foundry DinD, air-gap mirror, gap report quality*
-*Researched: 2026-03-20*
+*Pitfalls research for: Axiom v14.0 CE/EE Cold-Start Validation — Gemini CLI agent, Python Playwright, Docker-in-LXC (Incus), file-based checkpoint protocol, Ed25519 EE licence gating, self-signed Caddy TLS*
+*Researched: 2026-03-24*

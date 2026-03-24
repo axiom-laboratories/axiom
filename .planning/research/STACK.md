@@ -1,18 +1,17 @@
 # Stack Research
 
-**Domain:** Axiom v11.1 Stack Validation — adversarial end-to-end testing infrastructure
-**Researched:** 2026-03-20
-**Confidence:** HIGH (all tools verified against live system; Incus 6.22 on host confirmed; cryptography 46.0.5 confirmed; Docker 29.2.1 confirmed)
+**Domain:** Axiom v14.0 — CE/EE Cold-Start Validation Framework (addendum to v11.1 stack)
+**Researched:** 2026-03-24
+**Confidence:** HIGH (Gemini CLI install/config verified via official docs; PowerShell confirmed via Microsoft Learn + Containerfile.node source review; Playwright version confirmed via PyPI; existing stack from v11.1 STACK.md remains valid)
 
 ---
 
 ## Scope
 
-This addendum covers ONLY the net-new tooling and patterns needed for v11.1 Stack Validation.
-The existing validated stack (FastAPI, SQLAlchemy, React/Vite, Docker Compose, cryptography,
-APScheduler, Caddy, Postgres, MkDocs Material, devpi, Cython EE plugin) is not re-researched.
-
-The previous STACK.md entries cover v10.0 and v11.0 additions. Those remain valid.
+This addendum covers ONLY the net-new tooling for v14.0 CE/EE Cold-Start Validation.
+The existing validated stack (Incus 6.22, cryptography 46.0.5, Docker 29.2.1, Python Playwright
+with --no-sandbox, Ed25519 signing, LXC provisioning via manage-test-nodes) is NOT re-researched.
+See the v11.1 STACK.md entry for the base stack.
 
 ---
 
@@ -20,334 +19,208 @@ The previous STACK.md entries cover v10.0 and v11.0 additions. Those remain vali
 
 | Requirement | Current State |
 |-------------|---------------|
-| Incus CLI | `incus` 6.22 installed at `/usr/bin/incus`; user is in `incus-admin` group; `incus list` returns successfully |
-| Single LXC node provisioning | `.agent/skills/manage-test-nodes/scripts/manage_node.py` — launches one Ubuntu 24.04 node, configures SSH + Podman + Python, injects SSH key. Functional. |
-| Ed25519 key generation | `cryptography` 46.0.5 on host; `Ed25519PrivateKey.generate()` confirmed working. Pattern fully documented in phase 37 research. |
-| Test signing script | `~/Development/toms_home/.agents/tools/admin_signer.py --generate` generates a signing keypair |
-| Licence key generation | Pattern documented in phase 37 research: `base64url(json_payload).base64url(ed25519_sig)` wire format |
-| EE public key location | `_LICENCE_PUBLIC_KEY_BYTES` module-level bytes literal in `axiom-ee/ee/plugin.py` — currently a 32-zero placeholder |
-| Job concurrent test | `mop_validation/scripts/test_concurrent_job.py` — submits one job; does not cover the full matrix |
-| Stack teardown | Partial — `mop_validation/scripts/test_teardown.py` targets remote Docker nodes via SSH; no clean local compose teardown script |
-| Validation test runner | `mop_validation/scripts/test_local_stack.py` — linear Phase 0–7 script; not parameterised for job matrix |
+| Incus LXC provisioning | `.agent/skills/manage-test-nodes/scripts/manage_node.py` — functional single-node Ubuntu 24.04 provisioner |
+| Python Playwright | Already used in `mop_validation/scripts/test_playwright.py` with `--no-sandbox` and JWT-via-localStorage pattern |
+| Ed25519 licence signing | `admin_signer.py`, `generate_test_licence.py` — fully operational from v11.1 |
+| CE/EE teardown + install scripts | `mop_validation/scripts/fresh_install.py` — from v11.1 |
+| LXC 4-node provisioner | `mop_validation/scripts/provision_test_nodes.py` — from v11.1 |
+| PowerShell in node image | `puppets/Containerfile.node` — already attempts `apt-get install -y powershell` via `packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb` with silent fallback |
+| Gemini CLI | NOT YET INSTALLED in LXC containers — new for v14.0 |
+| File-based checkpoint protocol | NOT YET BUILT — new for v14.0 |
 
-**Conclusion:** All base tools are present. v11.1 work is:
-1. Extend single-node Incus provisioner to 4 nodes with env tags
-2. Write clean local stack teardown + fresh install script
-3. Write a licence keypair generator + EE binary patcher (no Cython rebuild — monkeypatch via env or inject bytes into plugin before rebuild)
-4. Write a parameterised job test matrix runner
+**Conclusion:** v14.0 net-new requirements are:
+1. Gemini CLI headless install in Ubuntu 24.04 LXC
+2. Model pinning to `gemini-2.0-flash` via env var or config file
+3. GEMINI.md constraint file for docs-only access
+4. File-based checkpoint steering protocol (plain Python + JSON files)
+5. PowerShell fix: switch Containerfile.node from Debian 12 repo to Ubuntu 24.04 repo
 
 ---
 
-## Recommended Stack — New Additions for v11.1
+## Recommended Stack — New Additions for v14.0
 
 ### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Incus CLI | 6.22 (on host) | Provision and manage LXC containers for the 4 test nodes | Already installed and working; `incus exec` / `incus file push` / `incus list --format json` are the correct CLI verbs for scripted provisioning; no new installation needed |
-| `cryptography` | 46.0.5 (on host) | Generate Ed25519 test licence keypair; sign test licence payloads | Already the EE plugin's verification library; same key format; no new dependency |
-| `requests` | already in `mop_validation/` | HTTP client for the job matrix runner calling the Axiom REST API | Already used by all existing test scripts |
-| `python-dotenv` | already in `mop_validation/` | Load `secrets.env` in test scripts | Already used by `test_concurrent_job.py` and others |
+| Gemini CLI | latest stable (`npm install -g @google/gemini-cli`) | Headless AI agent inside LXC containers to simulate first-time operator | Official Google CLI; GEMINI_API_KEY env var provides zero-interaction auth; `--prompt` flag enables headless mode; `GEMINI_MODEL` env var pins model; no browser required |
+| Node.js | 20.x (LTS) | Runtime requirement for Gemini CLI | Gemini CLI requires Node.js 20.0.0+; Ubuntu 24.04 ships Node.js 18 which is below the minimum; use NodeSource PPA for the correct version |
+| Python Playwright | 1.58.0 (`pip install playwright`) | UI smoke tests from validation orchestrator | Already proven working in project (--no-sandbox, JWT via localStorage, form-encoded login — all solved); v1.58.0 is current stable as of 2026-01-30 |
+| PowerShell 7.6 | 7.6.0 (via `packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb`) | PowerShell job runtime inside node's JOB_IMAGE container | Current LTS; Containerfile.node uses Debian 12 repo which rejects SHA1 keys — switch to Ubuntu 24.04 repo eliminates the silent-fallback issue; `pwsh` already wired in `node.py` RUNTIME_CMD |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `subprocess` (stdlib) | Python stdlib | Shell out to `docker compose` and `incus` CLI from test scripts | All teardown, rebuild, and node provisioning logic; avoid `os.system()` — use `subprocess.run(..., check=True)` for error propagation |
-| `time` / `datetime` (stdlib) | Python stdlib | Job timing assertions in the test matrix (fast job < 5s, slow job > 10s) | Duration validation in the job matrix runner |
-| `concurrent.futures.ThreadPoolExecutor` (stdlib) | Python stdlib | Submit N concurrent jobs simultaneously in the concurrency test cases | The REST API is synchronous from the caller's perspective; threads let N jobs be submitted in parallel without async overhead |
-| `json` (stdlib) | Python stdlib | Build job payloads and parse API responses | Already used throughout test scripts |
-| `base64` (stdlib) | Python stdlib | Encode licence key wire format and Ed25519 signatures | Same pattern as phase 37 key generation script |
+| `json` (stdlib) | Python stdlib | Checkpoint file serialization: write/read `checkpoint.json` for orchestrator-to-agent steering | All checkpoint read/write in the validation harness |
+| `pathlib` (stdlib) | Python stdlib | Filesystem checkpoint path management; `.exists()` polling loop without external deps | Preferred over `os.path` for legibility; already used in other project scripts |
+| `time` (stdlib) | Python stdlib | Polling loop for checkpoint file arrival (1s sleep between polls) | Checkpoint wait loop in the validation harness |
+| `subprocess` (stdlib) | Python stdlib | Shell out to `gemini --prompt` in headless mode from the orchestrator script | Same pattern as existing Incus/Docker exec calls in provision scripts |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| `incus exec <node> -- <cmd>` | Run commands inside a provisioned LXC node | The correct verb for post-launch configuration; prefer over SSH for provisioning steps |
-| `incus file push <local> <node>/<remote>` | Copy files into an LXC container | Use to inject node compose files, secrets, and JOIN_TOKEN |
-| `incus list --format json` | Poll container state and extract IP addresses | Same pattern as existing `manage_node.py`; parse with `json.loads()` |
-| `docker compose -f compose.server.yaml down -v` | Full stack teardown including volumes | `-v` removes named volumes (pgdata, certs-volume, etc.) — required for a true fresh install |
-| `docker compose -f compose.server.yaml up -d --build` | Fresh stack bring-up with image rebuild | `--build` forces image rebuild so code changes are picked up |
-| `docker compose -f compose.server.yaml ps` | Verify all services are healthy before running tests | Check `State: running` and health status on `db` service |
+| `GEMINI_API_KEY` env var | Non-interactive auth for Gemini CLI inside LXC | Set via `incus exec <node> -- env GEMINI_API_KEY=... gemini --prompt "..."` or inject into node's shell profile; avoids OAuth browser flow entirely |
+| `GEMINI_MODEL` env var | Pin model to `gemini-2.0-flash` | Set alongside `GEMINI_API_KEY`; overrides the default model (which may auto-upgrade to Flash or Pro depending on quota); precedence order: CLI arg > env var > config file > default |
+| `.gemini/settings.json` (project) | Alternative model pin (persistent across all gemini invocations in the project) | Format: `{"model": {"name": "gemini-2.0-flash"}}`; lives at `.gemini/settings.json` in the working directory; loaded automatically |
+| `GEMINI.md` (project root) | Constrain Gemini agent to docs-only behavior | Place in LXC working directory; instructs the agent to act as a first-time user consulting only the Axiom docs site; do not add tool restrictions that block filesystem reads (needed for checkpoint reading) |
 
 ---
 
 ## Installation
 
-No new packages need to be added to `puppeteer/requirements.txt` or `mop_validation/`.
-
-All tooling is either:
-- Already installed on the host (`incus`, `cryptography`, `docker`)
-- Python stdlib (`subprocess`, `concurrent.futures`, `base64`, `json`, `time`)
-- Already in `mop_validation/` (`requests`, `python-dotenv`)
+### Gemini CLI in Ubuntu 24.04 LXC
 
 ```bash
-# Verify prerequisites are in place (run once):
-incus --version          # expect: 6.22
-docker --version         # expect: 29.x
-python3 -c "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey; print('ok')"
-python3 -c "import requests; print('ok')"
+# Step 1: Install Node.js 20.x (Ubuntu 24.04 ships 18, below Gemini CLI minimum)
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs
+
+# Verify: node --version should be 20.x
+# npm comes bundled with Node.js 20.x
+
+# Step 2: Install Gemini CLI globally
+npm install -g @google/gemini-cli
+
+# Step 3: Verify headless mode works
+GEMINI_API_KEY="<key>" GEMINI_MODEL="gemini-2.0-flash" gemini --prompt "Say hello"
 ```
+
+Run these steps via `incus exec <container> -- bash -c "..."` from the provisioner script.
+
+### PowerShell in Containerfile.node (Fix)
+
+Replace the existing Debian 12 repo block with the Ubuntu 24.04 repo:
+
+```dockerfile
+# Current (broken — SHA1 key rejected on Debian 12 base):
+RUN wget -q "https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb" \
+    && dpkg -i packages-microsoft-prod.deb && apt-get install -y powershell \
+    || echo "PowerShell install skipped"
+
+# Fixed (Ubuntu 24.04 repo — no SHA1 issue; image is python:3.12-slim which is Debian-based):
+# NOTE: python:3.12-slim is Debian 12, not Ubuntu. For the Ubuntu path use ubuntu:24.04 base.
+# Recommended: use the .deb direct download method (version-pinned, no repo key dependency):
+RUN wget -q "https://github.com/PowerShell/PowerShell/releases/download/v7.6.0/powershell_7.6.0-1.deb_amd64.deb" \
+    && dpkg -i powershell_7.6.0-1.deb_amd64.deb \
+    && apt-get install -f -y \
+    && rm -f powershell_7.6.0-1.deb_amd64.deb
+```
+
+The direct `.deb` download from GitHub releases is the most reliable method regardless of base OS (works on both Debian 12 and Ubuntu 24.04 derived images). No repo key issues. Version-pinned.
+
+### Playwright in Headless LXC (already solved pattern)
+
+```bash
+# Inside LXC (Ubuntu 24.04) — run from provisioner via incus exec
+pip install playwright==1.58.0
+playwright install chromium --with-deps
+
+# --with-deps handles all Ubuntu 24.04 system dependencies in one step
+# Chromium bundled binary is used (not system Chrome)
+```
+
+The `--with-deps` flag is the canonical single-command approach for Ubuntu 24.04 — it runs `apt-get` internally to install all required system libraries. This is already solved and working from v11.1 testing.
 
 ---
 
-## Area 1: Clean Stack Teardown + Fresh Install
+## Gemini CLI Configuration Details
 
-### What to Build
+### Model Pinning
 
-A single script at `mop_validation/scripts/fresh_install.py` (or `teardown_and_reinstall.sh`).
-Use Python (not bash) for consistency with existing test scripts and to share the `load_env()` helper.
+Use `GEMINI_MODEL` env var. This is the simplest and most reliable method for scripted invocations:
 
-### Pattern
-
-```
-Phase 0: Teardown
-  - docker compose -f compose.server.yaml down -v   # stops all containers + wipes volumes
-  - docker compose -f compose.server.yaml rm -f     # remove stopped containers
-  - docker volume prune -f                          # catch any orphan volumes
-  - rm -f puppeteer/pki/root_ca.*                   # wipe CA so enrollment re-runs cleanly
-  - rm -f puppeteer/jobs.db                         # wipe SQLite if dev mode
-  - (optional) docker image rm <built images>       # force full image rebuild
-
-Phase 1: CE-only fresh bring-up
-  - docker compose -f compose.server.yaml up -d --build
-  - poll /api/health until 200 (with 60s timeout)
-  - assert admin login works
-
-Phase 2: CE+EE fresh bring-up (separate run)
-  - add axiom-ee wheel to agent's pip install step (or mount devpi wheel)
-  - set AXIOM_LICENCE_KEY=<test licence key> in compose .env
-  - docker compose -f compose.server.yaml up -d --build
-  - poll /api/licence → assert edition == "enterprise"
-```
-
-### Why `-v` on `down` Matters
-
-`docker compose down` without `-v` leaves named volumes intact (pgdata, certs-volume, mirror-data).
-The next `up` reuses the old DB and old CA — this is not a fresh install. `-v` is mandatory for
-true clean-slate validation.
-
-### Pitfall: PKI Directory Permissions
-
-The `certs-volume` mount at `/app/global_certs` in the agent container is read-only. The CA
-files live in `puppeteer/pki/` on the host. After `down -v`, the Caddy cert-manager container
-regenerates its own TLS certs on next start, but the Axiom Root CA is re-generated by the agent
-on first startup (in `pki.py`). No manual CA cleanup is needed unless testing the case where
-the CA is intentionally corrupted.
-
----
-
-## Area 2: 4 LXC Nodes with Different Env Tags
-
-### What to Build
-
-Extend `.agent/skills/manage-test-nodes/scripts/manage_node.py` OR create a new script at
-`mop_validation/scripts/provision_test_nodes.py` that provisions 4 named containers in parallel.
-
-The existing skill creates one node (`mop-test-node`). The v11.1 requirement is 4 nodes with
-distinct names and env tags:
-
-| Container Name | Env Tag | JOIN_TOKEN Source | EXECUTION_MODE |
-|---------------|---------|-------------------|----------------|
-| `axiom-node-dev` | `DEV` | from `GET /api/join-token` | `direct` |
-| `axiom-node-test` | `TEST` | from `GET /api/join-token` | `direct` |
-| `axiom-node-prod` | `PROD` | from `GET /api/join-token` | `direct` |
-| `axiom-node-staging` | `STAGING` | from `GET /api/join-token` | `direct` |
-
-### Pattern
-
-```python
-NODES = [
-    {"name": "axiom-node-dev",     "env_tag": "DEV"},
-    {"name": "axiom-node-test",    "env_tag": "TEST"},
-    {"name": "axiom-node-prod",    "env_tag": "PROD"},
-    {"name": "axiom-node-staging", "env_tag": "STAGING"},
-]
-IMAGE = "images:ubuntu/24.04"
-INCUS_FLAGS = "-c security.nesting=true"
-
-# Launch all 4 in sequence (Incus launch is fast; parallel launches can race on the bridge):
-for node in NODES:
-    run(f"incus launch {IMAGE} {node['name']} {INCUS_FLAGS}")
-
-# Configure each node (parallel via threads is safe for exec steps):
-for node in NODES:
-    configure_node(node)   # apt install, SSH key, Python deps
-
-# Inject node compose file into each container with the correct AGENT_URL,
-# ENV_TAG, and JOIN_TOKEN, then start the puppet node.py directly (or via a
-# minimal node-compose.yaml inside the container).
-```
-
-### Env Tag Injection
-
-The Axiom node declares its env tag via `OPERATOR_TAGS` env var (format: `env:DEV`).
-The node.py sends this in the heartbeat; job_service.py enforces isolation.
-
-Each container's node startup command must set:
 ```bash
-OPERATOR_TAGS=env:DEV EXECUTION_MODE=direct python3 -m environment_service.node
+export GEMINI_API_KEY="<key_from_aistudio.google.com>"
+export GEMINI_MODEL="gemini-2.0-flash"
+gemini --prompt "Your question here"
 ```
 
-Or pass via a minimal compose file injected with `incus file push`.
+Configuration precedence (highest wins): CLI `--model` flag > env var `GEMINI_MODEL` > project `.gemini/settings.json` > user `~/.gemini/settings.json` > default.
 
-### Incus Networking to Axiom
+For persistent configuration inside the LXC container's working directory, use `.gemini/settings.json`:
 
-The Axiom control plane runs in Docker on the host. Incus containers are on the default
-`incusbr0` bridge (typically 10.x.x.x). The host is reachable from Incus containers at
-the bridge's host-side IP.
-
-Get the host-side Incus bridge IP:
-```bash
-ip addr show incusbr0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1
-```
-
-Set `AGENT_URL=https://<incusbr0_host_ip>:8001` in each node's environment.
-The Axiom TLS cert must include this IP as a SAN. If Caddy was configured with
-`SERVER_HOSTNAME=<host_lan_ip>`, the cert may not cover the Incus bridge IP — this
-is the primary networking pitfall.
-
-**Mitigation:** Use `--no-verify` (disable TLS verification) in the puppet node's connection
-OR configure Caddy with `SERVER_HOSTNAME=` set to the Incus bridge host IP in addition to
-the LAN IP. The simpler path for test nodes is to pass the Root CA PEM via `JOIN_TOKEN`
-(the existing enrollment mechanism) — nodes already extract and trust the Root CA from the token.
-The mTLS root CA trust is separate from the Caddy HTTPS cert trust.
-
-Confirm: nodes talk to `https://AGENT_URL:8001` using the Root CA from JOIN_TOKEN. If Caddy
-is the TLS terminator and its cert is from a different CA (ACME/Let's Encrypt), nodes will
-reject it. **Use `verify=False` on the node's `requests` session for the enroll step**, or
-expose port 8001 (the FastAPI agent directly) rather than routing through Caddy port 443.
-
-The compose.server.yaml exposes `8001:8001` directly on the agent — point nodes to
-`https://<host_ip>:8001` (the FastAPI self-signed cert), not to the Caddy proxy.
-
----
-
-## Area 3: EE Test Keypair + Binary Patcher
-
-### What to Build
-
-A script at `mop_validation/scripts/generate_test_licence.py` that:
-1. Generates a fresh Ed25519 keypair
-2. Prints the raw 32-byte public key as a Python bytes literal (for patching `plugin.py`)
-3. Signs a test licence payload and prints the `AXIOM_LICENCE_KEY` env var value
-
-This pattern is already fully documented in phase 37 research — see `37-RESEARCH.md` code
-examples. The script is a direct implementation of that pattern.
-
-### Pattern (already verified in phase 37)
-
-```python
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, PublicFormat
-import base64, json, time
-
-priv = Ed25519PrivateKey.generate()
-pub = priv.public_key()
-
-# 32-byte raw public key — paste into ee/plugin.py as _LICENCE_PUBLIC_KEY_BYTES
-raw_pub = pub.public_bytes(Encoding.Raw, PublicFormat.Raw)
-print(f"_LICENCE_PUBLIC_KEY_BYTES = {raw_pub!r}")
-
-# Build 1-year test licence
-payload = {
-    "customer_id": "axiom-test",
-    "exp": int(time.time()) + 365 * 86400,
-    "features": ["foundry", "rbac", "webhooks", "triggers", "audit"],
+```json
+{
+  "model": {
+    "name": "gemini-2.0-flash"
+  }
 }
-payload_bytes = json.dumps(payload, separators=(',', ':')).encode()
-sig = priv.sign(payload_bytes)
-
-p_b64 = base64.urlsafe_b64encode(payload_bytes).rstrip(b'=').decode()
-s_b64 = base64.urlsafe_b64encode(sig).rstrip(b'=').decode()
-print(f"AXIOM_LICENCE_KEY={p_b64}.{s_b64}")
 ```
 
-### Patching the EE Binary
+### GEMINI.md Constraint File
 
-The `_LICENCE_PUBLIC_KEY_BYTES` is a bytes literal in `axiom-ee/ee/plugin.py` — currently
-32 zero bytes (placeholder). To test EE validation:
+Place a `GEMINI.md` in the LXC container's working directory (loaded as project context for all sessions):
 
-1. Run `generate_test_licence.py` → get the raw bytes literal + `AXIOM_LICENCE_KEY` value
-2. Edit `axiom-ee/ee/plugin.py`: replace the `_LICENCE_PUBLIC_KEY_BYTES` placeholder
-3. Rebuild the Cython `.so`: `pip install build && python -m build --wheel --no-sdist`
-   (or use cibuildwheel for the full pipeline)
-4. Re-install the wheel into the devpi index or directly: `pip install dist/axiom_ee-*.whl --force-reinstall`
-5. Rebuild the Docker agent image: `docker compose -f compose.server.yaml build agent`
-6. Set `AXIOM_LICENCE_KEY=<value>` in `puppeteer/.env`
-7. `docker compose -f compose.server.yaml up -d --no-build agent`
-8. `GET /api/licence` should return `edition: enterprise`
+```markdown
+# Axiom Cold-Start Validation Agent
 
-**Simpler path for development testing (no Cython rebuild):** Run the EE plugin in pure Python
-mode (skip the `.so`) by modifying the agent's `PYTHONPATH` to point to the raw `axiom-ee/` source
-directory. The `_LICENCE_PUBLIC_KEY_BYTES` can then be patched directly in the `.py` file with
-no compilation step. This is valid for v11.1 validation testing — the `.so` compilation is the
-production path, not required for adversarial functional testing.
+You are a first-time user of Axiom, an open-source job scheduler.
+Your goal is to follow the getting-started documentation at http://<docs_url>/docs/
+and attempt to: install the stack, enroll a node, and run a job.
+
+Constraints:
+- Only consult the Axiom documentation. Do not use prior knowledge about Axiom internals.
+- Report every step you take and every error you encounter.
+- Write findings to checkpoint.json in the working directory after each major step.
+- Do not modify any source code files.
+```
+
+GEMINI.md is loaded hierarchically: `~/.gemini/GEMINI.md` (global), then project root `GEMINI.md`. The project file overrides for per-container scope.
+
+### Headless Mode Invocation
+
+```bash
+# Non-interactive prompt (exits after response):
+gemini --prompt "Follow the Axiom getting started guide and report what you did"
+
+# Pipe from file (for multi-step prompts):
+cat prompt.txt | gemini
+
+# With output to file for checkpoint processing:
+gemini --prompt "..." > output.txt 2>&1
+```
+
+Headless mode is triggered when `--prompt` / `-p` is provided OR when stdin is not a TTY. Both cases return output to stdout and exit cleanly — suitable for scripted invocation from the validation orchestrator.
 
 ---
 
-## Area 4: Job Test Matrix Runner
+## File-Based Checkpoint Protocol
 
-### What to Build
+No external framework needed. Use plain JSON files on a shared path (host filesystem mounted into LXC via `incus file push` / `incus file pull`, or via SSH + SCP):
 
-A script at `mop_validation/scripts/job_matrix_runner.py` that submits a parameterised set
-of jobs and asserts outcomes.
-
-### Job Script Templates
-
-Each job is a small Python script signed with the existing signing key before submission.
-The test matrix covers:
-
-| Case | Script Behaviour | Expected Outcome | Env Tag Target |
-|------|-----------------|-----------------|----------------|
-| fast-success | `time.sleep(1); sys.exit(0)` | COMPLETED in < 5s | DEV |
-| slow-success | `time.sleep(30); sys.exit(0)` | COMPLETED in 30–45s | TEST |
-| light-memory | Allocate 10MB; exit 0 | COMPLETED; memory < limit | PROD |
-| heavy-memory | Allocate 400MB; exit 0 (or OOM) | COMPLETED or FAILED (memory limit enforced) | STAGING |
-| concurrent-N | Submit 4 identical fast jobs simultaneously | All 4 COMPLETED; confirm on correct env | DEV |
-| crash | `raise RuntimeError("deliberate crash")` | FAILED; exit code != 0 | DEV |
-| bad-exit | `sys.exit(99)` | FAILED; exit code == 99 | DEV |
-| bad-sig | Submit job with corrupted signature | Rejected at submission (422) or at node (refused) | any |
-| expired-sig | Submit job signed with revoked/old key | Rejected at node (signature mismatch) | any |
-
-### Signing in the Matrix Runner
-
-All valid jobs must be signed with the operator's Ed25519 signing key (registered via
-`POST /api/signatures`). The matrix runner loads `puppeteer/secrets/signing.key` (PEM),
-signs `script_content.encode('utf-8')`, base64-encodes the signature, and includes it in
-the job payload. This is the same pattern as `mop_validation/scripts/run_signed_job.py`.
-
-For bad-sig and expired-sig cases, corrupt the base64 signature string or use a different
-private key that is not registered.
-
-### Concurrency Pattern
-
-Use `concurrent.futures.ThreadPoolExecutor` to submit N jobs simultaneously:
-
-```python
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-def submit_job(session, payload):
-    resp = session.post(f"{AGENT_URL}/jobs", json=payload)
-    return resp.json()
-
-with ThreadPoolExecutor(max_workers=4) as executor:
-    futures = [executor.submit(submit_job, session, payload) for _ in range(4)]
-    job_ids = [f.result()["guid"] for f in as_completed(futures)]
+```
+checkpoint.json         # Written by Gemini agent; read by orchestrator
+steering.json           # Written by orchestrator; read by Gemini agent in next prompt
+result.json             # Final report written by Gemini agent
 ```
 
-### Outcome Polling
+### Pattern
 
-Poll `GET /jobs/{guid}` or `GET /api/executions?job_guid={guid}` until status is
-`COMPLETED` or `FAILED`, with a configurable timeout (e.g. 120s for slow jobs).
+```python
+# Orchestrator side (Python):
+import json, time, pathlib
 
-### Memory Limit Testing
+checkpoint_path = pathlib.Path("/tmp/axiom_validation/checkpoint.json")
+timeout = 300  # 5 minutes
 
-Submit jobs with `memory_limit` field in the payload (already supported by `JobCreate` model).
-The node's `runtime.py` passes `--memory` to Docker. For `direct` mode (which LXC nodes use),
-the memory limit is NOT enforced by the runtime — this is a known limitation. Verify this
-behaviour explicitly in the matrix results: assert that heavy-memory jobs complete successfully
-in `direct` mode (limit bypassed) versus `docker` mode (limit enforced, OOM kills).
+# Poll for checkpoint
+for _ in range(timeout):
+    if checkpoint_path.exists():
+        data = json.loads(checkpoint_path.read_text())
+        if data.get("status") in ("completed", "blocked", "error"):
+            break
+    time.sleep(1)
+```
+
+```bash
+# Gemini agent invocation (from orchestrator via subprocess):
+gemini --prompt "$(cat prompt.txt)" > /tmp/axiom_validation/output.txt
+# After: parse output.txt and write checkpoint.json
+```
+
+The orchestrator drives the conversation loop: write a prompt file, invoke `gemini --prompt`, parse the output, write a steering file, repeat. No persistent Gemini session state is required — each `--prompt` invocation is stateless from the CLI's perspective.
 
 ---
 
@@ -355,78 +228,75 @@ in `direct` mode (limit bypassed) versus `docker` mode (limit enforced, OOM kill
 
 | Recommended | Alternative | Why Not |
 |-------------|-------------|---------|
-| Incus LXC for 4 test nodes | 4 Docker-in-Docker containers | DinD has known cgroup v2 issues on Linux 6.x hosts (the project's own CLAUDE.md documents this for `direct` mode); Incus LXC provides a proper Linux namespace boundary without the cgroup nesting problem |
-| Incus LXC for 4 test nodes | 4 separate Docker Compose node stacks on host | Pollutes the host Docker network; makes network isolation per env-tag harder to test; LXC is cleaner for node-level isolation |
-| `concurrent.futures.ThreadPoolExecutor` for concurrent job submission | `asyncio.gather` | The test script is synchronous; threading is the right tool for parallel HTTP calls in a sync script; `asyncio` would require rewriting the entire test client as async |
-| Cython `.so` rebuild + fresh devpi wheel for EE key swap | Monkeypatch `_LICENCE_PUBLIC_KEY_BYTES` in memory at test time | Monkeypatching the compiled `.so` is not possible at runtime; patching the `.py` source + re-running pure Python (skipping Cython) is the dev-testing path; full rebuild is the production-fidelity path |
-| Python script for teardown + install | Bash script | Python scripts share the `load_env()` helper and `subprocess.run(check=True)` error handling with existing test scripts; bash scripts are harder to integrate with the assertion/reporting layer |
+| `GEMINI_API_KEY` env var auth | OAuth browser flow | Browser flow requires interactive terminal + browser redirect — impossible inside headless LXC. API key is zero-interaction. |
+| `GEMINI_MODEL` env var for model pin | `--model` flag on each invocation | Env var is inherited by all child processes and subshells; less error-prone than repeating a flag. Both work; env var is cleaner for scripted use. |
+| Direct `.deb` download for PowerShell | Microsoft APT repo (`packages-microsoft-prod.deb`) | The existing Containerfile.node already shows the APT repo fails silently due to SHA1 key rejection on Debian 12. Direct `.deb` download bypasses the key entirely and is version-pinned. |
+| `playwright install --with-deps` | Manual `apt-get install` of individual libraries | `--with-deps` is the Playwright-maintained single-command solution that tracks the correct library list for each Ubuntu version. Manual installs drift. |
+| File-based checkpoints (plain JSON) | MCP server / HTTP API between orchestrator and Gemini | Gemini CLI does not have a built-in server mode; adding an HTTP layer introduces unnecessary complexity for a sequential validation workflow. |
+| NodeSource PPA for Node.js 20 | `nvm install 20` | `nvm` requires shell sourcing (`.bashrc`) which is not reliable in non-interactive `incus exec` invocations. NodeSource PPA installs via `apt-get` and is available to all users and shells immediately. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `incus launch` in parallel threads for 4 nodes | Incus bridge assignment can race when multiple containers request IPs simultaneously — launches fail silently | Launch sequentially with `for` loop; configure in parallel after all are running |
-| `docker compose down` without `-v` for teardown | Named volumes (pgdata, certs-volume) survive; next bring-up is not a fresh install | `docker compose down -v` always |
-| `EXECUTION_MODE=auto` or `EXECUTION_MODE=docker` for LXC nodes | LXC containers have nesting enabled but Podman/Docker-in-LXC has the same cgroup v2 issues as DinD; `direct` mode avoids the container runtime entirely | `EXECUTION_MODE=direct` on all LXC test nodes |
-| Submitting jobs without signing for success-case tests | The signature verification is part of what is being validated; unsigned job submission will be rejected at the API layer | Always sign with the registered key for success cases; only corrupt signatures for negative-path tests |
-| Hardcoding the Incus bridge IP | The bridge IP can differ between host configurations (`10.x.x.x` range varies) | Derive dynamically: `ip addr show incusbr0 \| grep 'inet ' \| awk '{print $2}' \| cut -d/ -f1` |
-| Testing EE with the 32-zero placeholder key in `plugin.py` | `Ed25519PublicKey.from_public_bytes(b'\x00' * 32)` will construct successfully but all licence signatures will fail verify — the key is not a valid curve point | Always generate a real keypair with `Ed25519PrivateKey.generate()` before EE testing |
+| `gemini` without `GEMINI_MODEL` set | Default model may auto-switch between Flash and Pro based on quota; model switching mid-run is documented as an active bug (GitHub issue #3485) | Always set `GEMINI_MODEL=gemini-2.0-flash` explicitly for reproducible behaviour |
+| OAuth / Google account login in LXC | Requires browser redirect; blocks headless operation permanently | `GEMINI_API_KEY` from aistudio.google.com — free tier allows 1000 requests/day |
+| `npm run dev` / Vite dev server for Playwright UI tests | Documented in CLAUDE.md as explicitly forbidden; never use local dev servers for verification | Rebuild and test inside Docker stack containers |
+| `EXECUTION_MODE=direct` in node.py | Node.py now raises `RuntimeError` at startup if `EXECUTION_MODE=direct` (removed in v12.0+) | Use `EXECUTION_MODE=docker` or `EXECUTION_MODE=podman`; for LXC test nodes use Docker-in-LXC with nested container support (`security.nesting=true`) |
+| Gemini CLI interactive mode (no `--prompt`) for validation | Interactive mode blocks the script waiting for user TTY input; validation harness must be fully automated | Always use `gemini --prompt "..."` or piped stdin |
+| `incus launch` in parallel threads for Gemini nodes | Same pitfall as v11.1: bridge IP assignment races; launch sequentially | Sequential `for` loop for launch; parallel for configuration steps after all containers are running |
 
 ---
 
 ## Stack Patterns by Variant
 
-**If testing CE-only (no EE wheel installed):**
-- Bring up stack normally
-- `GET /api/licence` returns `{"edition": "community"}`
-- EE routes return 402 (CE stubs)
-- No `AXIOM_LICENCE_KEY` env var needed
+**If running CE cold-start validation (Gemini agent as first-time user):**
+- Provision one LXC container with Gemini CLI + Node.js 20 + Python Playwright
+- Set `GEMINI_API_KEY` + `GEMINI_MODEL=gemini-2.0-flash`
+- Place `GEMINI.md` in container's working directory constraining agent to Axiom docs only
+- Orchestrator invokes `gemini --prompt` in a loop; reads checkpoint.json after each step
+- Playwright tests verify the UI state after Gemini completes each operator action
 
-**If testing CE+EE (EE wheel installed, test key):**
-- Run `generate_test_licence.py` → get `_LICENCE_PUBLIC_KEY_BYTES` and `AXIOM_LICENCE_KEY`
-- Patch `axiom-ee/ee/plugin.py` with the new bytes literal
-- Either rebuild `.so` (full fidelity) or run in pure Python mode (dev shortcut)
-- Set `AXIOM_LICENCE_KEY=...` in `puppeteer/.env`
-- Rebuild and restart agent container
-- `GET /api/licence` returns `{"edition": "enterprise", ...}`
+**If running EE cold-start validation (with pre-generated licence):**
+- Same container setup as CE
+- Pass `AXIOM_LICENCE_KEY` into the Axiom stack's `.env` before container start
+- Gemini agent prompt includes instruction to verify EE features via the docs
+- Checkpoint protocol is identical — same file paths, same orchestrator loop
 
-**If testing node env-tag isolation:**
-- Submit a job with `env_tag: "PROD"` in the payload
-- Assert it is only picked up by `axiom-node-prod` (not DEV/TEST/STAGING nodes)
-- Verify via `GET /jobs/{guid}` → `node_id` matches the PROD node's registered ID
-
-**If testing `direct` mode memory limits:**
-- Set `memory_limit: "50m"` in the job payload
-- In `direct` mode, the limit is not enforced — the job completes even with 400MB allocation
-- This is expected behaviour; document it in the test results rather than treating as a failure
-- Run the same test via a Docker node (separate node compose stack) to confirm limit IS enforced
+**If PowerShell job runtime fails in cold-start test:**
+- Root cause is likely the Containerfile.node Debian 12 repo key issue
+- Fix: rebuild `localhost/master-of-puppets-node:latest` after switching to direct `.deb` install
+- Verify: `docker run --rm localhost/master-of-puppets-node:latest pwsh -Version`
+- Expected output: `PowerShell 7.6.0`
 
 ---
 
 ## Version Compatibility
 
-| Package | Version on Host | Notes for v11.1 |
-|---------|-----------------|-----------------|
-| Incus | 6.22 | `incus exec <node> -- env ...` runs commands as root inside the container; `security.nesting=true` required for running containered workloads inside LXC |
-| cryptography | 46.0.5 | `Ed25519PrivateKey.generate()` + `.sign(bytes)` → 64-byte signature; `Ed25519PublicKey.from_public_bytes(32_bytes).verify(sig, data)` — 2-arg call, sig first |
-| Docker | 29.2.1 | `docker compose down -v` behaviour confirmed; `--build` flag forces image rebuild |
-| Python (host) | 3.x (host system) | `concurrent.futures.ThreadPoolExecutor` is stdlib; no additional install |
+| Package | Version | Notes |
+|---------|---------|-------|
+| Gemini CLI | latest (weekly stable) | No pinned version — `npm install -g @google/gemini-cli` always pulls latest stable |
+| Node.js | 20.x LTS | Minimum for Gemini CLI; install via NodeSource `setup_20.x` PPA in LXC |
+| Python Playwright | 1.58.0 | Current stable as of 2026-01-30; Python 3.9+ required; use `pip install playwright==1.58.0` to pin |
+| PowerShell | 7.6.0 | Current LTS; direct `.deb` from GitHub releases; installs to `/opt/microsoft/powershell/7/`; binary: `pwsh` |
+| GEMINI_MODEL value | `gemini-2.0-flash` | Stable Flash model; pinning prevents automatic upgrade to 2.5-pro which has different rate limits and cost profile |
 
 ---
 
 ## Sources
 
-- Local host verification: `incus --version` → 6.22; `incus list` → clean (HIGH confidence)
-- Local host verification: `python3 -c "from cryptography...Ed25519PrivateKey..."` → confirmed working with v46.0.5 (HIGH confidence)
-- Local host verification: `docker --version` → 29.2.1 (HIGH confidence)
-- `.agent/skills/manage-test-nodes/scripts/manage_node.py` — reviewed directly; existing single-node provisioner pattern (HIGH confidence)
-- `mop_validation/scripts/test_concurrent_job.py` — reviewed directly; signing pattern, job submission structure (HIGH confidence)
-- `mop_validation/scripts/test_local_stack.py` — reviewed directly; stack bring-up structure, path conventions (HIGH confidence)
-- `.planning/milestones/v11.0-phases/37-licence-validation-docs-docker-hub/37-RESEARCH.md` — Ed25519 licence key generation pattern, wire format, verify call order (HIGH confidence — locally verified in phase 37)
-- `puppeteer/compose.server.yaml` — reviewed directly; service names, volume names, port exposures (HIGH confidence)
-- CLAUDE.md `Known Deferred Issues` — `direct` mode is correct for DinD / LXC nodes; memory limits not enforced in direct mode (HIGH confidence — documented project constraint)
+- [Gemini CLI official docs — headless mode](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html) — `--prompt` flag, headless trigger conditions (HIGH confidence)
+- [Gemini CLI official docs — configuration](https://google-gemini.github.io/gemini-cli/docs/get-started/configuration.html) — `settings.json` format, `GEMINI_MODEL` env var, config precedence (HIGH confidence)
+- [Gemini CLI official docs — GEMINI.md](https://google-gemini.github.io/gemini-cli/docs/cli/gemini-md.html) — context file location, hierarchy, constraint mechanism (HIGH confidence)
+- [Gemini CLI installation docs](https://geminicli.com/docs/get-started/installation/) — Node.js 20.0.0+ minimum requirement, `npm install -g @google/gemini-cli` (HIGH confidence)
+- [Microsoft Learn — Install PowerShell 7 on Ubuntu](https://learn.microsoft.com/en-us/powershell/scripting/install/install-ubuntu?view=powershell-7.5) — Direct `.deb` method, Ubuntu 24.04 support confirmed, version 7.6.0 current (HIGH confidence — Microsoft official docs, updated 2026-03-12)
+- [PyPI — playwright](https://pypi.org/project/playwright/) — Version 1.58.0 confirmed current; Python 3.9+ requirement (HIGH confidence)
+- [Playwright Python docs — intro](https://playwright.dev/python/docs/intro) — `playwright install --with-deps` for Ubuntu 24.04 system deps (HIGH confidence)
+- `puppets/Containerfile.node` — reviewed directly; PowerShell Debian 12 fallback pattern documented; `python:3.12-slim` base confirmed (HIGH confidence — local source)
+- `puppets/environment_service/node.py` — reviewed directly; `RUNTIME_CMD["powershell"]` uses `["pwsh", p]`; `JOB_IMAGE` default is `localhost/master-of-puppets-node:latest` (HIGH confidence — local source)
+- GitHub issue `google-gemini/gemini-cli #3485` — model auto-switching bug with `.env` settings; confirms `GEMINI_MODEL` env var is the reliable pin method (MEDIUM confidence — issue thread, not release note)
 
 ---
 
-*Stack research for: Axiom v11.1 — Stack Validation (teardown, LXC nodes, EE test key, job matrix)*
-*Researched: 2026-03-20*
+*Stack research for: Axiom v14.0 — CE/EE Cold-Start Validation (Gemini CLI headless, model pinning, PowerShell fix, Playwright in LXC, file-based checkpoints)*
+*Researched: 2026-03-24*
