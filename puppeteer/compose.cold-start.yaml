@@ -1,0 +1,139 @@
+version: "3"
+
+# compose.cold-start.yaml — Axiom CE/EE evaluation stack
+#
+# A stripped-down version of compose.server.yaml for cold-start evaluation.
+# No external service credentials required (no Cloudflare tunnel, DuckDNS, or registry).
+#
+# Usage:
+#   CE run:  docker compose -f compose.cold-start.yaml up -d
+#   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml up -d
+#
+# Puppet nodes require JOIN_TOKEN to enroll. Generate tokens from the dashboard
+# (Admin → Join Tokens), then set JOIN_TOKEN_1 and JOIN_TOKEN_2 in your environment
+# or in a .env file before starting the stack.
+#
+# Dashboard is reachable at: https://172.17.0.1:8443
+# API is reachable at:       https://172.17.0.1:8001
+
+services:
+  db:
+    image: docker.io/library/postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: puppet
+      POSTGRES_PASSWORD: masterpassword
+      POSTGRES_DB: puppet_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U puppet -d puppet_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cert-manager:
+    image: localhost/app_cert-manager:v3
+    build:
+      context: ./cert-manager
+    ports:
+      - "80:80"
+      - "8443:443"
+    volumes:
+      - certs-volume:/etc/certs
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - SERVER_HOSTNAME=172.17.0.1
+    restart: always
+
+  agent:
+    build:
+      context: .
+      dockerfile: Containerfile.server
+    image: localhost/master-of-puppets-server:v3
+    command: python -m agent_service.main
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
+      - API_KEY=${API_KEY:-master-secret-key}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - PYTHONUNBUFFERED=1
+      - AGENT_URL=${AGENT_URL:-https://localhost:8001}
+      - NODE_IMAGE=${NODE_IMAGE:-localhost/master-of-puppets-node:latest}
+      - NODE_EXECUTION_MODE=${NODE_EXECUTION_MODE:-auto}
+      - AXIOM_LICENCE_KEY=${AXIOM_LICENCE_KEY:-}
+    ports:
+      - "8001:8001"
+    volumes:
+      - certs-volume:/app/global_certs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../puppets:/app/puppets:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      cert-manager:
+        condition: service_started
+
+  dashboard:
+    image: localhost/master-of-puppets-dashboard:v3
+    build:
+      context: ./dashboard
+      dockerfile: Containerfile
+    restart: always
+
+  docs:
+    image: localhost/master-of-puppets-docs:v1
+    build:
+      context: ..
+      dockerfile: docs/Dockerfile
+    restart: always
+
+  puppet-node-1:
+    build:
+      context: ..
+      dockerfile: puppets/Containerfile.node
+    image: localhost/axiom-node:cold-start
+    environment:
+      - AGENT_URL=https://172.17.0.1:8001
+      - JOIN_TOKEN=${JOIN_TOKEN_1:-}
+      - ROOT_CA_PATH=/app/secrets/root_ca.crt
+      - EXECUTION_MODE=direct
+      - PYTHONUNBUFFERED=1
+      - NODE_TAGS=coldstart,linux
+    volumes:
+      - node1-secrets:/app/secrets
+    restart: unless-stopped
+    depends_on:
+      agent:
+        condition: service_started
+
+  puppet-node-2:
+    build:
+      context: ..
+      dockerfile: puppets/Containerfile.node
+    image: localhost/axiom-node:cold-start
+    environment:
+      - AGENT_URL=https://172.17.0.1:8001
+      - JOIN_TOKEN=${JOIN_TOKEN_2:-}
+      - ROOT_CA_PATH=/app/secrets/root_ca.crt
+      - EXECUTION_MODE=direct
+      - PYTHONUNBUFFERED=1
+      - NODE_TAGS=coldstart,linux
+    volumes:
+      - node2-secrets:/app/secrets
+    restart: unless-stopped
+    depends_on:
+      agent:
+        condition: service_started
+
+volumes:
+  pgdata:
+  certs-volume:
+  caddy_data:
+  caddy_config:
+  node1-secrets:
+  node2-secrets:
