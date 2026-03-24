@@ -1,5 +1,22 @@
 # Milestones
 
+## v12.0 Operator Maturity (Shipped: 2026-03-24)
+
+**Phases completed:** 11 phases (46–56), 38 plans
+**Stats:** 263 files changed, +31,143 / -17,271 lines | ~23,500 LOC (Python + TypeScript) | 47 feat commits
+**Timeline:** 2026-03-22 → 2026-03-24
+
+**Key accomplishments:**
+- Phase 46–48 — Security + reliability hardening: HMAC-SHA256 integrity on signature payloads, forensic audit entries for SECURITY_REJECTED outcomes, DRAFT transition safety for scheduled job re-signing, SQLite-portable NodeStats pruning and permission cache pre-warm
+- Phase 47 — Multi-runtime job execution: Python, Bash, and PowerShell via unified `script` task type with container isolation, Ed25519 verification; `python_script` legacy alias removed
+- Phase 49 — Cursor pagination and 9-axis job filtering: performant filtered views over large job histories with streaming CSV export and compact filter-chip UI
+- Phase 50–51 — Operator-grade job management: guided dispatch form, job detail drawer with retry countdown and resubmit traceability, bulk cancel/resubmit/delete with floating action bar
+- Phase 52 — Live queue monitoring and node draining: Queue.tsx WebSocket-driven view, DRAINING state machine, per-node detail drawer with dispatch diagnosis callout
+- Phase 53 — Scheduling health and data management: APScheduler fire log with LATE/MISSED detection, job templates CRUD, pin/unpin execution records, retention config, CSV export
+- Phase 54–56 — Integration bug fixes: all 7/7 E2E integration tests passing (script_content key, Queue URL prefix, CSV export route, retry+provenance fields)
+
+---
+
 ## v11.1 Stack Validation (Shipped: 2026-03-22)
 
 **Phases completed:** 8 phases (38–45), 27 plans

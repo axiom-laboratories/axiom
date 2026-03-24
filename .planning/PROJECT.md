@@ -4,6 +4,8 @@
 
 **Axiom** — a secure, fully-featured task and job scheduler built for hostile environments. A central orchestrator manages a mesh of worker nodes using a pull architecture — nodes poll for work according to their declared capabilities. Security is structural, not bolted-on: mTLS between all components, Ed25519-signed scripts required before execution, all jobs isolated in containers inside the node's environment.
 
+Operators submit Python, Bash, or PowerShell jobs via a guided dispatch form or raw JSON, with full retry traceability, resubmit-from-detail, and bulk cancel/resubmit/delete. A live Queue view with WebSocket updates and per-node detail drawer with DRAINING state machine gives real-time visibility into job execution. Scheduling health tracking (fire logs, LATE/MISSED detection, job templates, retention config) and 9-axis job filtering make large-scale operation practical.
+
 Targets homelab and enterprise internal deployments where nodes may be shared or partially untrusted. Ships with a full enterprise documentation site (`/docs/`) covering every operator and developer workflow, from getting started through security hardening and troubleshooting. Designed to integrate with CI/CD pipelines for environment-tagged deployment promotion (DEV → TEST → PROD).
 
 ## Core Value
@@ -73,6 +75,37 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Job test matrix: 8/9 scenarios PASS with genuine live execution — fast/slow/concurrent/env-routing/promotion/crash/bad-sig/revoked — v11.1
 - ✓ Foundry + Smelter deep pass scripted: STRICT CVE block, bad-base 500 error, air-gap mirror with iptables isolation, WARNING mode — v11.1
 - ✓ v11.1 gap report: 11 findings, 4 critical patches applied inline with regression tests, v12.0+ backlog seeded — v11.1
+
+### Validated — v12.0 Operator Maturity
+
+- ✓ SQLite-portable NodeStats pruning (two-pass DELETE), Foundry build dir cleanup, permission cache pre-warm at lifespan startup — v12.0
+- ✓ SECURITY_REJECTED audit log entries with script hash context (SEC-01); HMAC-SHA256 integrity on signature_payload fields (SEC-02) — v12.0
+- ✓ Foundry UI label rename: Blueprint → Image Recipe, Template → Node Image, Capability Matrix → Tool (BRAND-01) — v12.0
+- ✓ Unified `script` task type supporting Python, Bash, and PowerShell via container temp-file mounts; `python_script` alias removed (returns HTTP 422) — v12.0
+- ✓ Server-authoritative `display_type` field (`script (python)`, `script (bash)`, `script (powershell)`) — v12.0
+- ✓ Runtime column on ScheduledJob; scheduler dispatches with `task_type="script"` + `runtime` from definition — v12.0
+- ✓ Scheduled job DRAFT transition on script edit (soft, not hard HTTP 400); verbatim skip-log; APScheduler Alert on ACTIVE→DRAFT — v12.0
+- ✓ Frontend DRAFT warning modal intercepts script saves; inline Re-sign dialog on DRAFT job rows — v12.0
+- ✓ Cursor pagination on Jobs (load-more, `next_cursor`); page-based pagination on Nodes; both with total counts — v12.0
+- ✓ 9-axis job filter bar (status, runtime, task type, node, tags, created-by, date ranges) with dismissible chips — v12.0
+- ✓ Free-text job search by name or GUID; job name stamped at creation — v12.0
+- ✓ Streaming GET /jobs/export CSV endpoint — v12.0
+- ✓ Guided dispatch form (Name/Runtime/Script/Targeting/Sign) with live JSON preview; Advanced mode via one-way confirmation gate — v12.0
+- ✓ Job detail drawer: inline stdout/stderr, node health at execution time, retry state, PENDING diagnosis — v12.0
+- ✓ One-click resubmit + edit-then-resubmit with `originating_guid` provenance tracked — v12.0
+- ✓ Multi-select with floating bulk action bar: bulk cancel, bulk resubmit, bulk delete — v12.0
+- ✓ DRAINING node state machine (drain/undrain endpoints, pull_work guard, auto-offline transition) — v12.0
+- ✓ Live Queue.tsx view (WebSocket-driven, active/recent sections, per-PENDING DRAINING badge) — v12.0
+- ✓ Per-node detail drawer: running job, queued jobs, 24h history, capabilities, drain/undrain admin controls — v12.0
+- ✓ Dispatch diagnosis endpoint + PENDING diagnosis callout in job detail drawer — v12.0
+- ✓ APScheduler ScheduledFireLog with LATE/MISSED detection; GET /health/scheduling endpoint — v12.0
+- ✓ JobDefinitions three-tab layout: Definitions / Health / Templates; HealthTab with recharts sparklines + Sheet drawer — v12.0
+- ✓ Job templates CRUD (save-as-template strips signing fields; load pre-populates guided form) — v12.0
+- ✓ Execution record pin/unpin (pinned records exempt from pruning); audit-logged — v12.0
+- ✓ Admin retention config (global default + per-definition override); nightly pruner — v12.0
+- ✓ Per-job execution CSV export from job detail drawer — v12.0
+- ✓ Node identity persistence: `_load_or_generate_node_id()` scans secrets/ for existing cert on startup — v12.0
+- ✓ `--userns=keep-id` removed from Podman runtime (caused sysfs OCI permission failure with VFS storage driver) — v12.0
 
 ### Validated — v11.0 CE/EE Split Completion
 
@@ -152,6 +185,14 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | devpi for internal EE wheel hosting | Simple HTTP index in compose.server.yaml; no auth needed for internal use; easy to swap for PyPI later | ✓ Good |
 | DIST-02 (Docker Hub CE publish) deferred to v12.0+ | GHCR covers all current deployment scenarios; Docker Hub adds registry maintenance burden for no immediate benefit | ✓ Good |
 | MkDocs Material over DB-backed wiki | Git-backed markdown, no DB, portable, all Insider features free (9.7.0+) | ✓ Good |
+| Unified `script` task type; `python_script` alias dropped (RT-06) | Cleaner dispatch model; alias would require maintaining two validation paths; returns HTTP 422 with clear message | ✓ Good |
+| DRAFT transition (soft) over hard HTTP 400 on stale-signature script edit | Hard reject blocked operators from even seeing the edit form; DRAFT lets them save and re-sign in a separate step | ✓ Good |
+| Cursor pagination for jobs, page-based for nodes | Jobs table is large and filtered — cursor avoids expensive COUNT(*) on every page; nodes are small — page numbers are useful UX | ✓ Good |
+| One-way Advanced mode gate (guided → advanced, cannot return without reset) | Prevents JSON corruption from partial form state; resets to blank guided form instead of roundtripping | ✓ Good |
+| `originating_guid` on Job model for resubmit lineage | No separate table needed; single nullable FK captures full provenance chain for n-depth resubmit | ✓ Good |
+| DRAINING auto-offline after no heartbeat (not immediate) | Graceful degradation — DRAINING node finishes running jobs, then auto-transitions OFFLINE only when heartbeat stops | ✓ Good |
+| ScheduledFireLog as separate table (not on Job) | Jobs table is already large and hot; fire log is append-only analytics — separation keeps job queries fast | ✓ Good |
+| `--userns=keep-id` removed from Podman runtime | Caused sysfs OCI permission denied (exit 126) when running Podman inside Docker with VFS storage driver; rootless mapping unnecessary for job containers | ✓ Good |
 | Two-stage Dockerfile for docs (builder + nginx) | mkdocs serve is not production-safe (GitHub issue #1825) | ✓ Good |
 | Caddy `handle /docs/*` + nginx `alias` | `handle_path` strips prefix → silently breaks all CSS/JS asset resolution | ✓ Good |
 | openapi.json generated at container build time | No running server required; dummy env vars (postgresql+asyncpg, API_KEY) in Dockerfile builder stage | ✓ Good |
@@ -162,32 +203,17 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
-## Current Milestone: v12.0 — Operator Maturity
+## Current State — v12.0 Complete (2026-03-24)
 
-**Goal:** Make the day-to-day operator experience materially better — multi-runtime job execution, guided job form, failure visibility, queue diagnosis, bulk operations, search/filtering/pagination, and a tech debt sweep.
+Axiom v12.0 delivered the full Operator Maturity milestone — 11 phases, 38 plans, all 44 requirements satisfied. The platform now supports Python, Bash, and PowerShell job execution via a unified `script` task type; operators use a guided dispatch form with structured inputs and live JSON preview (with Advanced mode via one-way gate). The job detail drawer shows retry state, resubmit controls, and inline stdout/stderr. Bulk operations (cancel/resubmit/delete) work across multi-select jobs. A live Queue view with WebSocket updates and per-node detail drawer with DRAINING state machine provide real-time operational visibility.
 
-**Target features:**
-- CE runtime expansion (Python/Bash/PowerShell unified `script` task type)
-- Guided job form + Advanced mode + job detail drawer + resubmit
-- Bulk job operations (cancel/resubmit/delete)
-- PENDING diagnosis + live Queue dashboard + node detail drawer + DRAINING
-- Scheduling Health panel on Dashboard; scheduled job DRAFT state for stale signing
-- Server-side pagination + 9-axis job filtering + job templates + execution retention
-- Tech debt: MIN-06/07/08, WARN-08
-- Security: SECURITY_REJECTED audit log, HMAC signature payload integrity
-- EE UI label rename (Blueprint → Image Recipe, PuppetTemplate → Node Image)
+Scheduling Health tracking (ScheduledFireLog, LATE/MISSED detection, fire log sparklines) makes scheduled job reliability visible. Job templates, execution retention config, and pin/unpin give operators control over data lifecycle. 9-axis cursor-paginated job filtering with CSV export makes large job histories navigable.
+
+All integration gaps from the v12.0 audit were closed by Phase 56 (7/7 E2E integration tests passing). Known deferred gaps from v11.1 (MIN-06/07/08, WARN-08) were addressed in Phase 46.
+
+**~23,500 LOC (Python + TypeScript). Stack: FastAPI + SQLAlchemy + React/Vite + Caddy + APScheduler.**
+
+**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG (future milestones).
 
 ---
-
-## Current State — v11.1 Complete (2026-03-22)
-
-Axiom v11.1 completed an adversarial end-to-end validation of the full CE/EE stack. The platform is confirmed deployable from a clean install through a reproducible teardown/install cycle, with 4 environment-tagged LXC nodes covering the full job execution matrix (9 scenarios), licence lifecycle edge cases (valid/expired/absent), and Foundry/Smelter scripted validation. A gap report (11 findings) was synthesised; 4 critical issues were patched inline with regression tests; the v12.0+ backlog is seeded.
-
-The stack is stable and fully documented. The CE/EE open-core architecture (Cython `.so` EE extensions, Ed25519 offline licence validation, devpi wheel hosting) was validated operationally. Known deferred gaps: MIN-06/07/08/WARN-08 and the EE-stack Foundry pass (requires EE stack with AXIOM_LICENCE_KEY).
-
-**Shipped in v11.1:** Teardown scripts (Phase 38), EE test infrastructure (Phase 39), LXC provisioning (Phase 40), CE/EE validation passes (Phases 41–42), job matrix (Phase 43), Foundry/Smelter pass (Phase 44), gap synthesis + patches (Phase 45).
-
-**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), MIN-06/07/08/WARN-08 (tech debt from gap report — addressed in v12.0).
-
----
-*Last updated: 2026-03-22 after v12.0 milestone started — Operator Maturity*
+*Last updated: 2026-03-24 after v12.0 milestone — Operator Maturity*

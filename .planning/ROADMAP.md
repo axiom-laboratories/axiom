@@ -9,7 +9,7 @@
 - ✅ **v10.0 — Axiom Commercial Release** — Phases 29–33 (shipped 2026-03-19)
 - ✅ **v11.0 — CE/EE Split Completion** — Phases 34–37 (shipped 2026-03-20)
 - ✅ **v11.1 — Stack Validation** — Phases 38–45 (shipped 2026-03-22)
-- 🚧 **v12.0 — Operator Maturity** — Phases 46–56 (in progress)
+- ✅ **v12.0 — Operator Maturity** — Phases 46–56 (shipped 2026-03-24)
 
 ## Phases
 
@@ -95,11 +95,8 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 
 </details>
 
-### 🚧 v12.0 — Operator Maturity (Phases 46–56)
-
-**Milestone Goal:** Make day-to-day operator experience materially better — multi-runtime execution, guided job form, failure visibility, queue diagnosis, bulk operations, search/filtering/pagination, and a tech debt sweep.
-
-## Phase Checklist
+<details>
+<summary>✅ v12.0 — Operator Maturity (Phases 46–56) — SHIPPED 2026-03-24</summary>
 
 - [x] **Phase 46: Tech Debt + Security + Branding** — Foundation cleanup before new features: fix deferred gaps, add security hardening, align UI labels (completed 2026-03-22)
 - [x] **Phase 47: CE Runtime Expansion** — Unified `script` task type supporting Python, Bash, and PowerShell runtimes end-to-end (completed 2026-03-22)
@@ -109,213 +106,33 @@ Archive: `.planning/milestones/v11.1-ROADMAP.md`
 - [x] **Phase 51: Job Detail, Resubmit and Bulk Ops** — Job detail drawer; one-click and edit-then-resubmit; multi-select bulk cancel/resubmit/delete (completed 2026-03-23)
 - [x] **Phase 52: Queue Visibility, Node Drawer and DRAINING** — Live Queue view; PENDING diagnosis; per-node detail drawer; DRAINING node state (completed 2026-03-23)
 - [x] **Phase 53: Scheduling Health and Data Management** — Scheduling Health panel; missed-fire detection; job templates; execution retention + pinning (completed 2026-03-23)
-- [x] **Phase 54: Bug Fix Blitz** — Four targeted code fixes closing 7 gap-closure requirements: script key mismatch, Queue double-prefix, CSV export 404, list_jobs missing retry/originating fields (completed 2026-03-23)
-- [x] **Phase 55: Verification + Docs Cleanup** — Retroactive Phase 48 verification (SCHED-01–04) + RT-06 design-decision documentation update (completed 2026-03-24)
-- [ ] **Phase 56: Integration Bug Fixes** — Four targeted code fixes: script key mismatch (GuidedDispatchCard), Queue.tsx double /api/ prefix, CSV export 404, list_jobs missing retry/originating fields
+- [x] **Phase 54: Bug Fix Blitz** — Four targeted code fixes closing 7 gap-closure requirements (completed 2026-03-23)
+- [x] **Phase 55: Verification + Docs Cleanup** — Retroactive Phase 48 verification + RT-06 design-decision documentation update (completed 2026-03-24)
+- [x] **Phase 56: Integration Bug Fixes** — E2E verification; all 7/7 integration tests passing; 7 requirements closed (completed 2026-03-24)
 
-## Phase Details
+Archive: `.planning/milestones/v12.0-ROADMAP.md`
 
-### Phase 46: Tech Debt + Security + Branding
-**Goal**: The platform is clean, secure by default, and correctly branded before new operator-facing features land
-**Depends on**: Phase 45
-**Requirements**: DEBT-01, DEBT-02, DEBT-03, DEBT-04, SEC-01, SEC-02, BRAND-01
-**Success Criteria** (what must be TRUE):
-  1. SQLite deployments correctly prune NodeStats on schedule; no subquery incompatibility errors appear in logs on a SQLite-backed stack
-  2. After any Foundry build completes or fails, no stale `/tmp/puppet_build_*` directories remain on the host filesystem
-  3. Permission lookups under repeated API load do not execute a DB query per request; permissions are resolved from cache
-  4. SECURITY_REJECTED job outcomes produce an audit log entry attributed to the reporting node with script hash context visible to an admin
-  5. A tampered `signature_payload` (HMAC tag mismatch) is rejected at the orchestrator before dispatch; the rejection is audit-logged
-  6. The Foundry section of the dashboard uses "Image Recipe", "Node Image", and "Tool" throughout with no legacy labels visible
-**Plans**: 3 plans
-Plans:
-- [ ] 46-01-PLAN.md — Backend debt fixes: SQLite NodeStats prune (DEBT-01), perm cache pre-warm (DEBT-03), verify foundry cleanup (DEBT-02), verify node ID sort (DEBT-04)
-- [ ] 46-02-PLAN.md — Security hardening: SECURITY_REJECTED audit entry (SEC-01), HMAC integrity on signature_payload (SEC-02)
-- [ ] 46-03-PLAN.md — UI label rename: Blueprint→Image Recipe, Template→Node Image, Capability Matrix→Tool (BRAND-01)
-
-### Phase 47: CE Runtime Expansion
-**Goal**: Operators can submit Bash and PowerShell jobs through the same unified task type, with full backend validation and frontend display
-**Depends on**: Phase 46
-**Requirements**: RT-01, RT-02, RT-03, RT-04, RT-05, RT-07
-**Note**: RT-06 (python_script alias) dropped per planning decision — python_script returns HTTP 422; use script+runtime=python
-**Success Criteria** (what must be TRUE):
-  1. Operator can submit a Bash job via `script` task type with `runtime: bash`; the job executes on a standard node and returns output
-  2. Operator can submit a PowerShell job via `script` task type with `runtime: powershell`; the job executes on a standard node and returns output
-  3. Submitting a job with an unrecognised `runtime` value returns HTTP 422 with a clear validation error message
-  4. The Jobs list shows a computed `display_type` column (`script (bash)`, `script (python)`, `script (powershell)`) — value comes from the server, not from frontend JSON parsing
-  5. A job definition can specify a `runtime` field; a Bash or PowerShell scheduled job fires correctly on its cron schedule
-**Plans**: 3 plans
-Plans:
-- [ ] 47-01-PLAN.md — Test scaffold (Wave 0) + Containerfile.node PowerShell install (RT-03) + node.py script execution branch (RT-01, RT-02)
-- [ ] 47-02-PLAN.md — Backend API: runtime validation, display_type computation, ScheduledJob.runtime column, scheduler update, migration_v38.sql (RT-04, RT-05, RT-07)
-- [ ] 47-03-PLAN.md — Frontend: runtime dropdown in submission form, display_type column in jobs table (RT-05)
-
-### Phase 48: Scheduled Job Signing Safety
-**Goal**: Stale scheduled jobs cannot silently dispatch with an invalidated signature — script changes require fresh signing before the job resumes firing
-**Depends on**: Phase 47
-**Requirements**: SCHED-01, SCHED-02, SCHED-03, SCHED-04
-**Success Criteria** (what must be TRUE):
-  1. Editing and saving a scheduled job's script content transitions the job to DRAFT state; subsequent cron fires do not dispatch
-  2. Each skipped cron fire for a DRAFT job produces a log entry with the reason "Skipped: job in DRAFT state, pending re-signing"
-  3. Operator sees a modal warning before confirming a script change that will transition the job to DRAFT, with the option to cancel
-  4. A DRAFT-state transition causes a notification to appear in the Dashboard notification bell and a WARNING entry in the alerts table linked to the scheduled job
-**Plans**: 2 plans
-Plans:
-- [ ] 48-01-PLAN.md — TDD: Wave 0 test stubs + backend DRAFT transition, re-sign path, verbatim skip log, alert creation (SCHED-01, SCHED-02, SCHED-04)
-- [ ] 48-02-PLAN.md — Frontend: DRAFT warning modal intercept + Re-sign button/dialog in job list (SCHED-03, visual SCHED-04)
-
-### Phase 49: Pagination, Filtering and Search
-**Goal**: Operators can navigate large job and node datasets efficiently using server-side pagination and multi-axis filtering without frontend performance degradation
-**Depends on**: Phase 46
-**Requirements**: SRCH-01, SRCH-02, SRCH-03, SRCH-04, SRCH-05
-**Success Criteria** (what must be TRUE):
-  1. The Jobs view loads using cursor-based pagination; "load more" appends the next page without replacing the current list; a count shows "Showing N of M"
-  2. The Nodes view uses page-based pagination with page controls and a total node count
-  3. Operator can filter the Jobs view by any combination of: status, runtime, task type, target node, target tags, created-by, and date ranges; each active filter appears as a dismissible chip
-  4. Operator can search for jobs by name or GUID using a free-text box; operator can optionally name a job at submission time via the guided form
-  5. The current filtered/searched Jobs view can be downloaded as a CSV file
-**Plans**: 6 plans
-Plans:
-- [ ] 49-01-PLAN.md — Wave 0 test scaffold: 13 failing stubs for SRCH-01 through SRCH-05
-- [ ] 49-02-PLAN.md — DB schema: Job.name + Job.created_by columns, migration_v39.sql, PaginatedJobResponse model, scheduler auto-populates name
-- [ ] 49-03-PLAN.md — Backend service: list_jobs cursor pagination with 9 filter axes, list_jobs_for_export
-- [ ] 49-04-PLAN.md — Backend routes: GET /jobs filter params, GET /jobs/export CSV streaming, GET /nodes pagination
-- [ ] 49-05-PLAN.md — Frontend Jobs.tsx: filter bar, chips, cursor pagination, WebSocket banner, export button
-- [ ] 49-06-PLAN.md — Frontend Nodes.tsx: page-based pagination controls + human verify checkpoint
-
-### Phase 50: Guided Job Form
-**Goal**: Operators have a structured, validated path for job submission that reduces errors and eliminates manual JSON authoring for the common case
-**Depends on**: Phase 47, Phase 49
-**Requirements**: JOB-01, JOB-02, JOB-03
-**Success Criteria** (what must be TRUE):
-  1. Operator can submit a job using a guided form with fields for runtime, script content, target environment, and capability tags — no JSON authoring required
-  2. Guided form shows a read-only panel displaying the generated JSON payload; the raw JSON is not editable in this mode
-  3. Operator can switch to Advanced (raw JSON) mode via a one-way confirmation gate; the JSON editor validates against schema before submission is permitted
-**Plans**: 3 plans
-Plans:
-- [ ] 50-01-PLAN.md — Wave 0 test scaffold: 11 failing stubs for JOB-01, JOB-02, JOB-03
-- [ ] 50-02-PLAN.md — GuidedDispatchCard component: guided form, signing, targeting, JSON preview (JOB-01, JOB-02)
-- [ ] 50-03-PLAN.md — Advanced mode gate: confirmation dialog, JSON validation, reset path (JOB-03)
-
-### Phase 51: Job Detail, Resubmit and Bulk Ops
-**Goal**: Operators can investigate failed jobs in context, resubmit them quickly or with edits, and operate on multiple jobs at once without repetitive individual actions
-**Depends on**: Phase 50
-**Requirements**: JOB-04, JOB-05, JOB-06, BULK-01, BULK-02, BULK-03, BULK-04
-**Success Criteria** (what must be TRUE):
-  1. Operator can open a job detail drawer from the Jobs view showing stdout/stderr, node health at time of execution, retry state, and any SECURITY_REJECTED reason in plain English
-  2. Operator can resubmit a retries-exhausted failed job with one click; a new GUID is assigned; the originating job GUID is recorded on the new job
-  3. Operator can open a failed job in the guided form pre-populated with that job's payload; signing state is cleared; fresh signing is required before resubmission
-  4. Operator can multi-select jobs using checkboxes; a floating action bar appears with applicable bulk actions for the selected set
-  5. Bulk cancel (PENDING/RUNNING), bulk resubmit (FAILED retries-exhausted), and bulk delete (terminal state) each display a count confirmation before executing
-**Plans**: 4 plans
-Plans:
-- [ ] 51-01-PLAN.md — Wave 0: migration SQL (originating_guid), backend test stubs, checkbox.tsx
-- [ ] 51-02-PLAN.md — Backend: resubmit endpoint, bulk-cancel/resubmit/delete endpoints, models
-- [ ] 51-03-PLAN.md — Drawer enrichment: inline output, node health, resubmit buttons, edit-then-resubmit wiring
-- [ ] 51-04-PLAN.md — GuidedDispatchCard initialValues, bulk checkboxes + action bar, human verify
-
-### Phase 52: Queue Visibility, Node Drawer and DRAINING
-**Goal**: Operators can diagnose why a PENDING job is stuck, see the full live queue in one place, inspect per-node state in detail, and safely drain a node without forcefully terminating jobs
-**Depends on**: Phase 51
-**Requirements**: VIS-01, VIS-02, VIS-03, VIS-04
-**Success Criteria** (what must be TRUE):
-  1. A PENDING job's detail drawer shows an automatic plain-English dispatch diagnosis (e.g., "No nodes match capability X", "All eligible nodes busy — queue position 3") that refreshes live via WebSocket
-  2. A dedicated Queue view shows PENDING, RUNNING, and recently completed jobs; the list updates in real time via WebSocket without any page refresh or polling
-  3. The Nodes page includes a per-node detail drawer showing: currently running job, jobs queued for that node, recent execution history, and the node's reported capabilities
-  4. An admin can set a node to DRAINING from the node detail drawer; the DRAINING status is visible in both the Nodes view and the Queue view; no new jobs are dispatched to a DRAINING node
-**Plans**: 5 plans
-Plans:
-- [ ] 52-01-PLAN.md — Wave 0 test scaffold: failing stubs for VIS-01 (diagnosis), VIS-03 (node detail), VIS-04 (draining lifecycle)
-- [ ] 52-02-PLAN.md — Backend: DRAINING lifecycle + _node_is_eligible helper + dispatch-diagnosis endpoint (VIS-01, VIS-04)
-- [ ] 52-03-PLAN.md — Backend: node detail aggregation endpoint GET /nodes/{id}/detail (VIS-03)
-- [ ] 52-04-PLAN.md — Frontend: Queue.tsx view + /queue route + nav entry (VIS-02)
-- [ ] 52-05-PLAN.md — Frontend: node drawer in Nodes.tsx + DRAINING badge + PENDING diagnosis callout in Jobs.tsx + human verify (VIS-01, VIS-03, VIS-04)
-
-### Phase 53: Scheduling Health and Data Management
-**Goal**: Operators have a clear picture of scheduled job health over time, can reuse job configurations via templates, and the platform self-manages execution record growth with operator control over retention
-**Depends on**: Phase 48, Phase 52
-**Requirements**: VIS-05, VIS-06, SRCH-06, SRCH-07, SRCH-08, SRCH-09, SRCH-10
-**Success Criteria** (what must be TRUE):
-  1. Dashboard shows a Scheduling Health panel with aggregate fired/skipped/failed counts and per-definition health indicators; time window is switchable (24h / 7d / 30d)
-  2. The Scheduling Health panel detects missed fires (expected cron fires vs actual execution records); definitions with missed fires show a red health indicator
-  3. Operator can save a job configuration as a named reusable template (without signing state); loading a template pre-populates the guided form with all fields editable before submission
-  4. Admin can configure a global execution record retention period (default 14 days); a nightly pruning task hard-deletes expired records while skipping pinned records; pin/unpin actions are audit-logged
-  5. Operator can download all execution records for a specific job as a CSV file from the job detail drawer
-**Plans**: 6 plans
-Plans:
-- [x] 53-01-PLAN.md — Wave 0 test stubs: all 7 failing stubs for Phase 53 requirements (completed 2026-03-23)
-- [ ] 53-02-PLAN.md — DB schema: ScheduledFireLog, JobTemplate, ExecutionRecord.pinned, ScheduledJob.allow_overlap + dispatch_timeout_minutes, migration_v43.sql
-- [ ] 53-03-PLAN.md — Backend health: APScheduler fire log hooks, GET /health/scheduling, dispatch timeout sweeper (VIS-05, VIS-06)
-- [ ] 53-04-PLAN.md — Backend templates/retention/pin/export: job templates CRUD, pin/unpin, admin retention config, per-job CSV export (SRCH-06, SRCH-07, SRCH-08, SRCH-09, SRCH-10)
-- [ ] 53-05-PLAN.md — Frontend: JobDefinitions three-tab layout, HealthTab, TemplatesTab, JobDefinitionModal overlap/timeout fields
-- [ ] 53-06-PLAN.md — Frontend: Admin retention panel, Save as Template, template loading, pin toggle, CSV export + human verify
-
-### Phase 54: Bug Fix Blitz
-**Goal**: All four integration defects identified by the v12.0 audit are patched — guided-form jobs actually execute, Queue view renders live data, CSV export works, and job detail drawer shows retry state and provenance
-**Depends on**: Phase 53
-**Requirements**: JOB-01, RT-01, RT-02, VIS-02, SRCH-10, JOB-04, JOB-05
-**Gap Closure:** Closes INT-01, INT-02, INT-03, INT-04 gaps from v12.0 audit
-**Success Criteria** (what must be TRUE):
-  1. A job submitted via the guided form reaches the node with a non-empty script; execution succeeds end-to-end for Python, Bash, and PowerShell runtimes
-  2. The Queue view renders PENDING and RUNNING jobs correctly (no 404 on data fetch)
-  3. The execution CSV export from the job detail drawer returns a 200 with CSV data, not a 404
-  4. The job detail drawer displays retry attempt count, max retries, and retry-after timestamp when applicable
-  5. The job detail drawer shows the "Resubmitted from" provenance link when originating_guid is set
-**Plans**: 2 plans
-Plans:
-- [ ] 54-01-PLAN.md — Backend fix: add retry_count, max_retries, retry_after, originating_guid to list_jobs() response dict (INT-04 → JOB-04, JOB-05)
-- [ ] 54-02-PLAN.md — Frontend fixes: GuidedDispatchCard payload key (INT-01), Queue.tsx fetch URLs (INT-02), Jobs.tsx CSV export URL (INT-03) + human verify
-
-### Phase 55: Verification + Docs Cleanup
-**Goal**: Phase 48 reaches verified state (VERIFICATION.md created by gsd-verifier) and REQUIREMENTS.md accurately reflects the RT-06 design decision
-**Depends on**: Phase 54
-**Requirements**: SCHED-01, SCHED-02, SCHED-03, SCHED-04, RT-06
-**Gap Closure:** Closes verification gap for Phase 48; resolves RT-06 documentation mismatch from v12.0 audit
-**Success Criteria** (what must be TRUE):
-  1. Phase 48 has a VERIFICATION.md produced by gsd-verifier confirming SCHED-01–04 are satisfied in the actual codebase
-  2. REQUIREMENTS.md RT-06 entry reflects the planning decision to drop the python_script alias (checkbox corrected, traceability note added)
-  3. REQUIREMENTS.md coverage count is accurate
-**Plans**: 2 plans
-Plans:
-- [x] 55-01-PLAN.md — Run gsd-verifier on Phase 48; produce VERIFICATION.md confirming SCHED-01 through SCHED-04 (completed 2026-03-24)
-- [x] 55-02-PLAN.md — Update REQUIREMENTS.md: RT-06 design-decision annotation; fix coverage count; update traceability table status for all gap-closure requirements (completed 2026-03-24)
-
-### Phase 56: Integration Bug Fixes
-**Goal**: All four integration defects that survived Phase 54 are patched — guided-form jobs actually execute, Queue view renders live data, CSV export works, and job detail drawer shows retry state and provenance
-**Depends on**: Phase 55
-**Requirements**: JOB-01, RT-01, RT-02, VIS-02, SRCH-10, JOB-04, JOB-05
-**Gap Closure:** Closes INT-01, INT-02, INT-03, INT-04 gaps from v12.0 audit
-**Success Criteria** (what must be TRUE):
-  1. A job submitted via the guided form reaches the node with a non-empty script; execution succeeds end-to-end for Python, Bash, and PowerShell runtimes
-  2. The Queue view renders PENDING and RUNNING jobs correctly (no 404 on data fetch)
-  3. The execution CSV export from the job detail drawer returns a 200 with CSV data, not a 404
-  4. The job detail drawer displays retry attempt count, max retries, and retry-after timestamp when applicable
-  5. The job detail drawer shows the "Resubmitted from" provenance link when originating_guid is set
-**Plans**: 1 plan
-Plans:
-- [ ] 56-01-PLAN.md — E2E verification of INT-01–04 fixes: write test_phase56_integration.py, run Playwright against Docker stack, human checkpoint, close 7 requirements
+</details>
 
 ## Progress
 
-**Execution Order:**
-46 → 47 → 48 → 49 → 50 → 51 → 52 → 53 → 54 → 55 → 56
-Note: Phase 49 may proceed in parallel with Phase 47 (both depend only on Phase 46). Phase 50 requires both 47 and 49 complete. Phase 53 requires both 48 and 52 complete.
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 46. Tech Debt + Security + Branding | 3/3 | Complete    | 2026-03-22 |
-| 47. CE Runtime Expansion | 4/4 | Complete    | 2026-03-22 |
-| 48. Scheduled Job Signing Safety | 2/2 | Complete   | 2026-03-22 |
-| 49. Pagination, Filtering and Search | 6/6 | Complete    | 2026-03-22 |
-| 50. Guided Job Form | 3/3 | Complete    | 2026-03-23 |
-| 51. Job Detail, Resubmit and Bulk Ops | 4/4 | Complete    | 2026-03-23 |
-| 52. Queue Visibility, Node Drawer and DRAINING | 5/5 | Complete    | 2026-03-23 |
-| 53. Scheduling Health and Data Management | 6/6 | Complete    | 2026-03-23 |
-| 54. Bug Fix Blitz | 2/2 | Complete    | 2026-03-23 |
-| 55. Verification + Docs Cleanup | 2/2 | Complete    | 2026-03-24 |
-| 56. Integration Bug Fixes | 0/1 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 46. Tech Debt + Security + Branding | v12.0 | 3/3 | Complete | 2026-03-22 |
+| 47. CE Runtime Expansion | v12.0 | 4/4 | Complete | 2026-03-22 |
+| 48. Scheduled Job Signing Safety | v12.0 | 2/2 | Complete | 2026-03-22 |
+| 49. Pagination, Filtering and Search | v12.0 | 6/6 | Complete | 2026-03-22 |
+| 50. Guided Job Form | v12.0 | 3/3 | Complete | 2026-03-23 |
+| 51. Job Detail, Resubmit and Bulk Ops | v12.0 | 4/4 | Complete | 2026-03-23 |
+| 52. Queue Visibility, Node Drawer and DRAINING | v12.0 | 5/5 | Complete | 2026-03-23 |
+| 53. Scheduling Health and Data Management | v12.0 | 6/6 | Complete | 2026-03-23 |
+| 54. Bug Fix Blitz | v12.0 | 2/2 | Complete | 2026-03-23 |
+| 55. Verification + Docs Cleanup | v12.0 | 2/2 | Complete | 2026-03-24 |
+| 56. Integration Bug Fixes | v12.0 | 1/1 | Complete | 2026-03-24 |
 
 ## Archived
 
+- ✅ **v12.0 — Operator Maturity** (Phases 46–56) — shipped 2026-03-24 → `.planning/milestones/v12.0-ROADMAP.md`
 - ✅ **v11.1 — Stack Validation** (Phases 38–45) — shipped 2026-03-22 → `.planning/milestones/v11.1-ROADMAP.md`
 - ✅ **v11.0 — CE/EE Split Completion** (Phases 34–37) — shipped 2026-03-20 → `.planning/milestones/v11.0-ROADMAP.md` | phases → `v11.0-phases/`
 - ✅ **v10.0 — Axiom Commercial Release** (Phases 29–33) — shipped 2026-03-19 → `.planning/milestones/v10.0-ROADMAP.md`
