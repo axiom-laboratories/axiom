@@ -66,3 +66,7 @@ nav:
     - Contributing: developer/contributing.md
   - API Reference:
     - Overview: api-reference/index.md
+  - Quick Reference:
+    - Overview: quick-ref/index.md
+    - Course — How Axiom Works: quick-ref/course.html
+    - Operator Guide: quick-ref/operator-guide.html
