@@ -2,6 +2,7 @@ site_name: Axiom
 site_url: https://dev.master-of-puppets.work/docs/
 theme:
   name: material
+  logo: assets/logo.svg
   palette:
     scheme: slate
     primary: indigo
@@ -31,6 +32,7 @@ nav:
   - Getting Started:
     - Prerequisites: getting-started/prerequisites.md
     - Install: getting-started/install.md
+    - Running with Docker: getting-started/docker-deployment.md
     - Enroll a Node: getting-started/enroll-node.md
     - First Job: getting-started/first-job.md
   - Feature Guides:

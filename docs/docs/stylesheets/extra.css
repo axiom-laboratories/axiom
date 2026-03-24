@@ -14,3 +14,25 @@
   -webkit-mask-image: var(--md-admonition-icon--tip);
   mask-image: var(--md-admonition-icon--tip);
 }
+
+/* ============================================================
+   Axiom branding — matches dashboard visual identity
+   Font: Fira Sans (body), Fira Code (mono)
+   Primary: hsl(346.8, 77.2%, 49.8%) — dashboard crimson
+   ============================================================ */
+
+/* Google Fonts — downloaded at build time by the privacy plugin (air-gap safe) */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap');
+
+/* Font overrides */
+:root {
+  --md-text-font: "Fira Sans";
+  --md-code-font: "Fira Code";
+}
+
+/* Primary color override — crimson to match dashboard hsl(346.8, 77.2%, 49.8%) */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: hsl(346.8, 77.2%, 49.8%);
+  --md-primary-fg-color--light: hsl(346.8, 77.2%, 65%);
+  --md-primary-fg-color--dark: hsl(346.8, 77.2%, 38%);
+}
