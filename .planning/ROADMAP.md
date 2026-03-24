@@ -181,7 +181,12 @@ Plans:
   2. All "Master of Puppets" references in the course file are replaced with "Axiom"
   3. The operator guide covers v12.0 additions: new views (Queue, Scheduling Health), all three task type runtimes, guided vs Advanced dispatch modes, and DRAINING node state
   4. The course content reflects current architecture and tooling — no references to removed or renamed concepts (e.g. `python_script` task type, old UI labels)
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 60-01-PLAN.md — Relocate HTML files to docs/docs/quick-ref/ and add Quick Reference nav section
+- [ ] 60-02-PLAN.md — Rebrand course.html from Master of Puppets to Axiom; full accuracy review
+- [ ] 60-03-PLAN.md — Add Scheduling Health sub-section to Module 4 and Queue mention to Module 1
 
 ## Progress
 
@@ -201,7 +206,7 @@ Plans:
 | 57. Research — Parallel Job Swarming | 1/1 | Complete    | 2026-03-24 | - |
 | 58. Research — Organisational SSO | 1/1 | Complete    | 2026-03-24 | - |
 | 59. Documentation | 3/3 | Complete    | 2026-03-24 | - |
-| 60. Quick Reference | v13.0 | 0/TBD | Not started | - |
+| 60. Quick Reference | v13.0 | 0/3 | Not started | - |
 
 ## Archived
 
