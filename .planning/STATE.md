@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v13.0
 milestone_name: — Research & Documentation Foundation
-status: planning
-stopped_at: Defining requirements
-last_updated: "2026-03-24T15:13:39.134Z"
-last_activity: 2026-03-24 — Milestone v13.0 started
+status: roadmapped
+stopped_at: Roadmap created — ready to plan Phase 57
+last_updated: "2026-03-24T00:00:00.000Z"
+last_activity: 2026-03-24 — v13.0 roadmap created (Phases 57–60)
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -25,17 +25,26 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap complete)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-24 — Milestone v13.0 started
+Status: Ready to plan Phase 57
+Last activity: 2026-03-24 — v13.0 roadmap created
 
 Progress: [░░░░░░░░░░] 0%
+
+## Phases — v13.0
+
+| Phase | Goal | Requirements | Status |
+|-------|------|--------------|--------|
+| 57. Research — Parallel Job Swarming | Design doc enabling informed build/defer decision on fan-out swarming | SWRM-01, SWRM-02, SWRM-03 | Not started |
+| 58. Research — Organisational SSO | Design doc enabling future SSO implementation without re-doing architecture choices | SSO-01–SSO-06 | Not started |
+| 59. Documentation | Docs site accurate for v12.0, visually consistent with dashboard, Docker deployment covered | DOCS-01, DOCS-02, DOCS-03, DOCS-04 | Not started |
+| 60. Quick Reference | HTML quick-ref files relocated, rebranded, and updated for v12.0 | QREF-01, QREF-02, QREF-03, QREF-04 | Not started |
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0 (v12.0)
+- Total plans completed: 0 (v13.0)
 - Average duration: —
 - Total execution time: —
 
@@ -44,119 +53,15 @@ Progress: [░░░░░░░░░░] 0%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | — | — | — | — |
-| Phase 46-tech-debt-security-branding P03 | 5 | 2 tasks | 6 files |
-| Phase 46-tech-debt-security-branding P01 | 25min | 2 tasks | 6 files |
-| Phase 46 P02 | 3min | 2 tasks | 7 files |
-| Phase 47-ce-runtime-expansion P01 | 3min | 3 tasks | 3 files |
-| Phase 47-ce-runtime-expansion P02 | 3min | 2 tasks | 5 files |
-| Phase 47-ce-runtime-expansion P03 | 15min | 2 tasks | 1 files |
-| Phase 47-ce-runtime-expansion P04 | 5min | 2 tasks | 3 files |
-| Phase 48-scheduled-job-signing-safety P01 | 4min | 2 tasks | 2 files |
-| Phase 48 P02 | 3min | 2 tasks | 2 files |
-| Phase 49-pagination-filtering-and-search P02 | 10min | 2 tasks | 6 files |
-| Phase 49-pagination-filtering-and-search P01 | 10min | 1 tasks | 1 files |
-| Phase 49 P03 | 3min | 1 tasks | 2 files |
-| Phase 49 P04 | 3min | 2 tasks | 3 files |
-| Phase 49-pagination-filtering-and-search P06 | 2min | 1 tasks | 1 files |
-| Phase 49-pagination-filtering-and-search P05 | 8min | 1 tasks | 1 files |
-| Phase 49-pagination-filtering-and-search P06 | 5min | 2 tasks | 1 files |
-| Phase 50-guided-job-form P01 | 3min | 1 tasks | 1 files |
-| Phase 50-guided-job-form P02 | 6min | 2 tasks | 3 files |
-| Phase 50-guided-job-form P03 | 3 | 1 tasks | 2 files |
-| Phase 51-job-detail-resubmit-and-bulk-ops P01 | 3min | 3 tasks | 7 files |
-| Phase 51-job-detail-resubmit-and-bulk-ops P02 | 15min | 2 tasks | 6 files |
-| Phase 51-job-detail-resubmit-and-bulk-ops P03 | 5min | 2 tasks | 3 files |
-| Phase 51-job-detail-resubmit-and-bulk-ops P04 | 10min | 2 tasks | 3 files |
-| Phase 52 P01 | 4min | 3 tasks | 3 files |
-| Phase 52 P03 | 8min | 1 tasks | 3 files |
-| Phase 52 P02 | 12min | 2 tasks | 6 files |
-| Phase 52 P04 | 8min | 2 tasks | 4 files |
-| Phase 52-queue-visibility-node-drawer-and-draining P05 | 50min | 2 tasks | 3 files |
-| Phase 53-scheduling-health-and-data-management P01 | 5min | 2 tasks | 4 files |
-| Phase 53-scheduling-health-and-data-management P02 | 84s | 2 tasks | 2 files |
-| Phase 53-scheduling-health-and-data-management P03 | 10min | 2 tasks | 4 files |
-| Phase 53 P04 | 3min | 2 tasks | 5 files |
-| Phase 53-scheduling-health-and-data-management P05 | 8min | 2 tasks | 4 files |
-| Phase 53 P06 | 4min | 1 tasks | 3 files |
-| Phase 53 P06 | 15min | 2 tasks | 3 files |
-| Phase 54-bug-fix-blitz P02 | 3min | 2 tasks | 4 files |
-| Phase 54-bug-fix-blitz P01 | 3min | 2 tasks | 2 files |
-| Phase 54-bug-fix-blitz P02 | 10min | 3 tasks | 4 files |
-| Phase 55-verification-docs-cleanup P01 | 7min | 2 tasks | 2 files |
-| Phase 55-verification-docs-cleanup P02 | 1min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-- [Phase 45]: 4 critical patches applied inline (app.state.licence, EE expiry bypass, retriable=True, global declaration). 5 findings deferred to v12.0+ including MIN-06/07/08/WARN-08.
-- [v12.0 Roadmap]: Phase 49 (pagination/filtering) depends only on Phase 46 — can proceed in parallel with Phase 47 (runtime expansion). Phase 50 (guided form) requires both 47 and 49.
-- [v12.0 Roadmap]: Phase 53 (scheduling health + data mgmt) depends on both Phase 48 (DRAFT signing safety) and Phase 52 (queue visibility).
-- [Phase 46]: BRAND-01 rename: Blueprint=Image Recipe, Template=Node Image, Capability Matrix=Tools applied to 5 Foundry TSX files; TypeScript identifiers preserved
-- [Phase 46-tech-debt-security-branding]: DEBT-01: Two-step SELECT+DELETE replaces correlated subquery for SQLite-portable NodeStats pruning
-- [Phase 46-tech-debt-security-branding]: DEBT-03: Permission cache pre-warmed in lifespan() startup, wrapped in try/except for CE mode compatibility
-- [Phase 46-tech-debt-security-branding]: DEBT-02/04 required zero code changes — foundry_service.py cleanup and node.py sorted() were already correct
-- [Phase 46]: SEC-01 audit call placed at status determination point (before db.commit()) using sync audit() from deps.py — consistent with existing audit pattern
-- [Phase 46]: SEC-02 HMAC uses ENCRYPTION_KEY bytes directly as key material — avoids introducing a separate secret; message format binds payload to its specific job and signature record
-- [Phase 47-ce-runtime-expansion]: Temp-file mount pattern chosen over stdin for all three runtimes; python_script task_type removed entirely; RUNTIME_EXT/RUNTIME_CMD dispatch maps inline in execute_task
-- [Phase 47-ce-runtime-expansion]: python_script task_type dropped entirely — model_validator raises 422 with clear migration message (RT-06 superseded by CONTEXT.md)
-- [Phase 47-ce-runtime-expansion]: Runtime merged into payload dict (not a separate WorkResponse column) so node.py reads it from payload as before
-- [Phase 47-ce-runtime-expansion]: Runtime dropdown hidden for non-script task types; display_type ?? task_type fallback for backward compatibility with old python_script jobs; default form task_type changed from web_task to script
-- [Phase 47-ce-runtime-expansion]: Runtime derived via getattr(s_job, 'runtime', None) or 'python' in /api/dispatch — mirrors scheduler_service.py pattern; runtime injected into both payload_dict and JobCreate kwargs
-- [Phase 48]: Raw SQL used for audit_log INSERT in execute_scheduled_job — CE-safe (ORM model is EE-only, test_ce_table_count enforces audit_log not in CE Base.metadata)
-- [Phase 48]: test_draft_skip_log_message creates audit_log table via DDL in test setup — avoids altering CE schema while still verifying verbatim skip message
-- [Phase 48]: DRAFT warning modal placed as Dialog sibling in JobDefinitions.tsx rather than inside JobDefinitionModal — decoupled from full edit form lifecycle
-- [Phase 48]: ReSignDialog implemented as standalone component inside JobDefinitionList.tsx — self-contained and co-located with the rows that trigger it
-- [Phase 49-pagination-filtering-and-search]: PaginatedJobResponse defined in models.py (not job_service.py) so Plans 03 and 04 share a single import path without circular dependency risk
-- [Phase 49-pagination-filtering-and-search]: POST /jobs stamps created_by via model_copy(update={'created_by': username}) — stamped at API boundary, not service layer, to keep service testable without auth context
-- [Phase 49]: Wave 0 stub convention: pytest.fail as first body line (not after awaits) so all 13 stubs fail with 'not implemented' marker; future shapes in docstrings
-- [Phase 49]: Total count query runs before cursor filter — stable totals across pages; tags LIKE '%"tag"%' for exact JSON-quoted match
-- [Phase 49]: GET /nodes returns {items,total,page,pages} envelope; stats batch query scoped to page node IDs only to avoid loading all-nodes stats on large deployments
-- [Phase 49]: JobService.list_nodes added to service layer for testability; GET /jobs/export uses StreamingResponse generator for memory-efficient CSV streaming
-- [Phase 49]: React Query queryKey=['nodes', page] pattern — page change automatically triggers refetch without manual effect management
-- [Phase 49]: Nodes pagination: backwards-compat shim wraps bare-array response; pagination controls hidden when totalPages <= 1
-- [Phase 49]: Export CSV button rendered in both positions (chips row when active, ghost button otherwise) — always reachable without applying a filter first
-- [Phase 49]: Nodes pagination: backwards-compat shim wraps bare-array response; pagination controls hidden when totalPages <= 1
-- [Phase 50-guided-job-form]: Wave 0 stub pattern: throw new Error('not implemented') used consistently — runner reports failure not skip, matching Phase 49 decision
-- [Phase 50-guided-job-form]: GuidedDispatchCard imported from path that does not exist yet — intentional to confirm red phase before Plan 02 creates the component
-- [Phase 50-guided-job-form]: GuidedDispatchCard: targetNodeId prepended to target_tags list (not separate field) to match JobCreate model; stale sig detection via prevScriptRef; ADV placeholder for Plan 03
-- [Phase 50-guided-job-form]: Advanced mode gate: @radix-ui/react-tooltip imported directly (no ui/tooltip.tsx wrapper); pendingAdvSwitch/pendingAdvReset state controls two confirmation Dialog gates; advancedJsonError useMemo provides real-time JSON schema validation
-- [Phase 51]: it.todo() used for BULK-01 frontend stubs — vitest marks as todo not skip; @radix-ui/react-checkbox installed via npm --save (was absent from package.json)
-- [Phase 51-job-detail-resubmit-and-bulk-ops]: Bulk endpoints placed before /{guid} routes to prevent FastAPI routing ambiguity
-- [Phase 51-job-detail-resubmit-and-bulk-ops]: get_current_user override used in tests (not require_permission) since admin bypasses RBAC
-- [Phase 51-job-detail-resubmit-and-bulk-ops]: Executions endpoint changed from bare list to {records, node_health_at_execution} envelope; defensive array fallback in ExecutionLogModal ensures backward compat
-- [Phase 51-job-detail-resubmit-and-bulk-ops]: Resubmit confirm pattern is inline transform (button -> Cancel/Confirm row), not a modal
-- [Phase 51]: initialValues useEffect depends on reference identity — parent creates new object per handleEditResubmit call so effect fires correctly without deep comparison
-- [Phase 51]: Bulk action bar replaces filter bar entirely when selectionActive — preserves layout without adding a fixed bar
-- [Phase Phase 51]: Human verification approved programmatically via Playwright + API: all bulk ops and job detail drawer features confirmed working end-to-end
-- [Phase 52-01]: pytest.fail('not implemented') as first body line — consistent with Phase 49 Wave 0 stub convention so all stubs fail with FAILED marker (not ERROR or skip)
-- [Phase 52-01]: Helper factories (_make_node, _make_job) defined per-file rather than shared conftest — keeps stubs self-contained for Wave 2 implementors
-- [Phase 52-03]: get_node_detail evaluates first 100 PENDING jobs via Python loop to reuse _node_is_eligible without duplicating logic; caps result at 50
-- [Phase 52-03]: GET /nodes/{node_id}/detail placed before PATCH /nodes/{node_id} to prevent FastAPI routing ambiguity on /detail path segment
-- [Phase Phase 52]: _node_is_eligible() extracted as static method — reused in pull_work and get_dispatch_diagnosis; no eligibility logic duplication
-- [Phase Phase 52]: Job.target_node_id added to Job ORM model (was only on ScheduledJob) for dispatch diagnosis target_node_unavailable case
-- [Phase Phase 52-04]: Queue.tsx uses ['queue','active'] and ['queue','terminal',recencyWindow] React Query keys — invalidate(['queue']) prefix refreshes both at once; DRAINING badge cross-references PENDING job target_tags against draining node_ids; no setInterval/refetchInterval — WebSocket-only refresh
-- [Phase Phase 52-05]: JWT payload missing role field fixed inline (Rule 1) before human verify — getUser() parses role from token so admin drain/undrain buttons need it; all 12 UI tests confirmed passing
-- [Phase 53-01]: pytest.fail('not implemented') as first body line — consistent with Phase 49/52 Wave 0 stub convention; stubs fail with FAILED marker (not ERROR or skip)
-- [Phase 53-01]: Plain sync stubs (no async) for Wave 0 stubs — no I/O, async unnecessary; docstrings describe future test shape for Wave 1 implementors
-- [Phase 53]: ScheduledFireLog/JobTemplate placed after ExecutionRecord in db.py; allow_overlap defaults False (no regression); migration_v43.sql IF NOT EXISTS guards safe to re-run; SQLite equivalents in comments
-- [Phase 53-03]: Fire log written at top of execute_scheduled_job before skip checks — every cron attempt recorded
-- [Phase 53-03]: get_scheduling_health computes LATE/MISSED via Python CronTrigger projection rather than SQL window functions
-- [Phase 53]: SimpleNamespace used for fake User objects in tests — SQLAlchemy ORM objects cannot be instantiated via __new__ without a mapper context
-- [Phase 53]: EXEC_CSV_HEADERS defined as module-level constant in main.py — imported by test_execution_export.py for header assertion
-- [Phase 53-05]: HealthTab sparkline uses 3-bucket placeholder data derived from aggregate counts — unblocks frontend without requiring API time-series shape changes
-- [Phase 53-05]: TemplatesTab visibility toggle gated on creator_id or admin role via getUser() — consistent RBAC check without extra round-trip
-- [Phase 53-06]: Data Retention added as new Data tab in Admin.tsx tabs; Save as Template uses inline expand UI; Pin toggle uses optimistic update with revert on error; Execution records table added as new section in JobDetailPanel
-- [Phase 53-06]: Data Retention added as new Data tab in Admin.tsx tabs rather than inline section — keeps tab surface consistent
-- [Phase 53-06]: Save as Template uses inline expand UI (no modal) — simpler UX, avoids Dialog import overhead
-- [Phase 54]: INT-01: script_content key chosen to match node.py; INT-02: authenticatedFetch URL contract confirmed (no /api prefix); INT-03: CSV export uses full /api prefix (locked per CONTEXT.md)
-- [Phase 54-01]: retry_after serialised via .isoformat() at list_jobs() dict boundary; list_jobs_for_export() left unchanged (different shape)
-- [Phase 54]: INT-01: script_content key chosen to match node.py line 553; both dispatch sites in GuidedDispatchCard patched; INT-02: authenticatedFetch URL contract confirmed (no /api prefix); INT-03: CSV export uses full /api prefix (locked per CONTEXT.md)
-- [Phase 55]: Auth endpoint is /auth/login not /api/auth/token — discovered during Playwright test execution for SCHED-03
-- [Phase 55]: UI route for scheduled jobs is /scheduled-jobs (not /job-definitions which redirects to /)
-- [Phase 55]: SCHED-03 fixture: ephemeral Ed25519 keypair required — API enforces signature on job creation; all stack jobs were DRAFT
-- [Phase 55]: RT-06 counted under Phase 47/55 in traceability, attributed to Phase 47 in coverage — total stays at 44
-- [Phase 55]: REQUIREMENTS.md Pending (gap closure) recounted to 0 after RT-06 Dropped and SCHED-01–04 corrected to Phase 48
+- [v13.0 Roadmap]: All 4 phases are independent — Phases 57, 58, 59, 60 have no inter-dependencies and can execute in any order or in parallel.
+- [v13.0 Roadmap]: Phases 57 and 58 are research-only — no implementation. Output is a design document. Implementation of swarming and SSO are explicitly deferred (Out of Scope in REQUIREMENTS.md).
+- [v13.0 Roadmap]: Phase 59 (Documentation) targets the MkDocs docs site in `docs/`. DOCS-03 (branding alignment) requires reading the current dashboard visual identity before making changes.
+- [v13.0 Roadmap]: Phase 60 (Quick Reference) targets the two HTML files currently at project root (`master_of_puppets_course.html`, `master_of_puppets_operator_guide.html`). QREF-01 moves them to `quick-ref/`.
 
 ### Pending Todos
 
@@ -164,12 +69,11 @@ None.
 
 ### Blockers/Concerns
 
-- DEBT-01 through DEBT-04 and SEC-01/02 in Phase 46 are all self-contained. No stack dependency. Can start immediately.
-- Phase 47 runtime expansion requires Containerfile.node changes — rebuild of the base node image needed before runtime expansion can be validated end-to-end.
+None. All 4 phases are self-contained deliverables — documentation and design docs, no stack dependencies.
 
 ## Session Continuity
 
-Last session: 2026-03-24T09:27:51.890Z
-Stopped at: Phase 56 context gathered
-Next action: `/gsd:plan-phase 46`
-Resume file: .planning/phases/56-integration-bug-fixes/56-CONTEXT.md
+Last session: 2026-03-24
+Stopped at: v13.0 roadmap created
+Next action: `/gsd:plan-phase 57`
+Resume file: .planning/ROADMAP.md
