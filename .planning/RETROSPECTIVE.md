@@ -261,6 +261,45 @@
 - Mix of TDD phases (49, 50, 51, 52, 53), direct-implementation phases (46, 47, 48), and gap-closure phases (54, 55, 56)
 - Parallelism was higher than v11.1 (feature work); wave-based execution within phases kept each plan 30-60 min
 
+## Milestone: v13.0 — Research & Documentation Foundation
+
+**Shipped:** 2026-03-24
+**Phases:** 4 (57–60) | **Plans:** 8
+
+### What Was Built
+- Parallel job swarming design doc: fan-out vs work-queue use case analysis, pull-model race condition solution (pre-pin reservation), `swarm_records` data model sketch, external system comparison (Celery, Kubernetes Jobs, Ray), tiered build/defer recommendation with draft POST /api/jobs/swarm API shape
+- Organisational SSO design doc: OIDC protocol recommendation over SAML (5 IdPs covered), JWT bridge exchange flow with `token_version` invalidation, IdP group → MoP role mapping, Cloudflare Access integration pattern, EE plugin air-gap isolation strategy, TOTP 2FA interaction policy
+- Complete `.env.example` operator reference with grouped sections and inline generation commands for SECRET_KEY, ENCRYPTION_KEY, and API_KEY
+- Docker deployment guide covering end-to-end env var requirements for the release container
+- Axiom docs site branding: Fira Sans (code: Fira Code), crimson primary colour, geometric SVG logo — visual identity now matches the dashboard
+- Jobs and Nodes feature guides: unified `script` task type, guided form, bulk ops, Queue Monitor, DRAINING state
+- Scheduling Health section extended with fire log metrics, LATE/MISSED explanation, API endpoint reference, and retention guidance
+- Quick-reference HTML files moved to `docs/docs/quick-ref/`, rebranded to Axiom, course accuracy-reviewed for deprecated terminology, operator guide updated with Queue and Scheduling Health content
+
+### What Worked
+- All 4 phases ran fully in parallel (no dependencies between them) — the wave structure was trivial and all plans executed cleanly in one day
+- Research-only phases (57, 58) produced real design artefacts that future phases can consume directly — no architecture decisions needed to be re-made during planning
+- MkDocs `--strict` as the documentation build gate was effective — caught nav configuration issues immediately before any SUMMARY was written
+- Targeted per-occurrence HTML replacements (rather than global find-replace) prevented corruption of base64-encoded content inside the course HTML
+
+### What Was Inefficient
+- No milestone audit was run; the milestone was low-risk (no executable code) so this was fine here, but the pattern of skipping audits for "lightweight" milestones is worth flagging for future reference
+- The progress table in ROADMAP.md had malformed rows for phases 57–60 (missing Milestone column) — a minor formatting inconsistency that accumulated because these phases were added in a hurry during milestone start
+
+### Patterns Established
+- Research phases work well as a parallel pair at the start of a milestone — they can produce design docs without any other phase unblocking them, and the docs become consumable input for the next feature milestone's planning
+- HTML quick-reference files inside MkDocs work as passthrough static files — no special plugin needed, `mkdocs.yml` nav just references them by path
+
+### Key Lessons
+- A "research + docs" milestone is a legitimate way to reset between large feature milestones — it grounds the next build cycle and clears accumulated documentation debt without the complexity or risk of feature work
+- Design documents should specify API shapes and data models, not just concept descriptions — the swarming doc's draft `POST /api/jobs/swarm` shape makes it directly actionable; the SSO doc's JWT bridge spec does the same
+
+### Cost Observations
+- 4 phases, 8 plans, 1 day (2026-03-24)
+- 46 files changed, +10,962 / -69 lines
+- Pure documentation/content work; no backend or frontend code changes
+- All 4 phases executed in parallel in two waves; fastest milestone execution by plan-count ratio
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -272,3 +311,4 @@
 | v11.0 | 4 | 15 | Open-core split; Cython build pipeline as key technical risk; EE plugin via entry_points |
 | v11.1 | 8 | 27 | Adversarial validation milestone; scripted evidence per requirement; gap-closure plans serial on live infra |
 | v12.0 | 11 | 38 | Operator UX milestone; audit surfaced 4 critical integration gaps; gap-closure phases (54, 56) with E2E test file |
+| v13.0 | 4 | 8 | Research + docs reset milestone; all phases parallel; no code changes; two design docs ground next build cycle |
