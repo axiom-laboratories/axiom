@@ -217,6 +217,50 @@
 - 387 files changed; heavy on validation scripts and evidence documents
 - Validation milestone is inherently serial (phases depend on prior phase infra) — less parallelism than feature milestones
 
+## Milestone: v12.0 — Operator Maturity
+
+**Shipped:** 2026-03-24
+**Phases:** 11 (46–56) | **Plans:** 38
+
+### What Was Built
+- Multi-runtime execution: Python, Bash, and PowerShell via unified `script` task type with container temp-file mounts, Ed25519 verification, and server-authoritative `display_type` labels
+- Guided dispatch form: structured Name/Runtime/Script/Targeting/Sign form with live JSON preview; Advanced mode via one-way confirmation gate; GuidedDispatchCard initialValues for edit-then-resubmit
+- Job detail drawer: inline stdout/stderr, node health snapshot at execution time, retry countdown, resubmit + bulk actions (cancel/resubmit/delete with floating bar)
+- Live Queue view: WebSocket-driven two-section table (Active/Recent), DRAINING node badges, adjustable recency window; DRAINING state machine (drain/undrain endpoints, auto-offline transition)
+- Per-node detail drawer: running job, queued jobs, 24h history, capabilities; dispatch diagnosis callout on PENDING jobs
+- 9-axis cursor-paginated job filtering: status/runtime/task/node/tags/created-by/dates; dismissible chips; streaming CSV export; page-based node list
+- Scheduling health: ScheduledFireLog, LATE/MISSED detection, recharts sparklines in HealthTab; job templates CRUD; execution pin/unpin; admin retention config; per-job CSV export
+- Security hardening: HMAC-SHA256 on signature_payload (SEC-02), SECURITY_REJECTED audit log entries (SEC-01), scheduled job DRAFT state on stale signature (SCHED-01–04)
+- Integration fixes: script_content key alignment (INT-01), Queue URL prefix fix (INT-02), CSV export route fix (INT-03), retry/provenance fields in list_jobs (INT-04) — all 7/7 E2E tests passing
+
+### What Worked
+- Milestone audit before completion was effective — the audit surfaced 4 real integration bugs (INT-01 through INT-04) that became Phase 54/56 targets; the milestone closed cleaner than any prior feature milestone
+- Wave-based parallelism inside phases worked well for TDD phases (Wave 0 stubs → Wave 1 service → Wave 2 routes → Wave 3 frontend); kept each plan independently verifiable
+- Having a dedicated "Bug Fix Blitz" phase (54) and "Integration Bug Fixes" phase (56) explicitly for gap closure gave those fixes first-class tracking instead of buried amendment commits
+- Verification phases (55) for retroactive VERIFICATION.md gaps were worth the overhead — Phase 48 had been unverified for the entire milestone
+
+### What Was Inefficient
+- INT-01 (`script` vs `script_content` key mismatch) survived from Phase 50 through Phase 54 because guided-form jobs appeared to succeed at the API level (201 returned) but silently failed at node execution — no server-side validation of the payload key after dispatch
+- Phase 56 was essentially Phase 54 repeated — the same 4 integration gaps had to be re-fixed because Phase 54's fixes were applied to the wrong layer or didn't propagate to the E2E test stack correctly; a live-stack smoke test after Phase 54 would have caught this immediately
+- 24 human-verify items were outstanding at audit time — accumulating these across phases creates a verification debt that's hard to clear at milestone close
+- Phase 47 had 4 human-verify items deferred for "live-stack confirmation" that were never explicitly resolved in verification artifacts
+
+### Patterns Established
+- Integration bug phases (54, 56) work best when paired with a concrete E2E test file (`test_phase56_integration.py`) — the test file makes the fix criteria unambiguous and provides pass/fail evidence in one place
+- Milestone audit should be run before the final 1-2 phases, not after all phases complete — gives time to plan gap-closure phases inside the milestone rather than retrofitting
+- Retrospective VERIFICATION.md phases (like Phase 55) are cheaper when done close to the original phase; the Phase 48 case required re-reading all the code to reconstruct what had been built
+
+### Key Lessons
+- Any new dispatch path (guided form, scheduled job, resubmit) should have an E2E smoke test that confirms the script reaches the node with a non-empty payload — this would have caught INT-01 immediately
+- Do not accumulate human-verify items across phases; resolve them inline or create a dedicated verification plan within the same phase
+- A "verification pass" phase at the end of every other feature phase cluster is worth the overhead; Phase 55 cleared 4 weeks of verification debt in 2 plans
+
+### Cost Observations
+- 11 phases, 38 plans, 47 feat commits over 2 days (2026-03-22 → 2026-03-24)
+- 263 files changed, +31,143 / -17,271 lines
+- Mix of TDD phases (49, 50, 51, 52, 53), direct-implementation phases (46, 47, 48), and gap-closure phases (54, 55, 56)
+- Parallelism was higher than v11.1 (feature work); wave-based execution within phases kept each plan 30-60 min
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -227,3 +271,4 @@
 | v10.0 | 5 | 21 | Security + observability + release; audit-before-close gate caught cross-phase propagation gap |
 | v11.0 | 4 | 15 | Open-core split; Cython build pipeline as key technical risk; EE plugin via entry_points |
 | v11.1 | 8 | 27 | Adversarial validation milestone; scripted evidence per requirement; gap-closure plans serial on live infra |
+| v12.0 | 11 | 38 | Operator UX milestone; audit surfaced 4 critical integration gaps; gap-closure phases (54, 56) with E2E test file |
