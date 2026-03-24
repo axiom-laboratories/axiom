@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v13.0
 milestone_name: — Research & Documentation Foundation
 status: planning
-stopped_at: Completed 59-documentation-59-02-PLAN.md
-last_updated: "2026-03-24T18:51:00.532Z"
+stopped_at: Completed 59-documentation-59-03-PLAN.md
+last_updated: "2026-03-24T18:54:12.003Z"
 last_activity: 2026-03-24 — v13.0 roadmap created
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 58-research-organisational-sso P01 | 35 | 2 tasks | 1 files |
 | Phase 59-documentation P01 | 5 | 1 tasks | 1 files |
 | Phase 59-documentation P02 | 1m | 2 tasks | 4 files |
+| Phase 59-documentation P03 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 58-research-organisational-sso]: RBAC group re-sync on every SSO login; default viewer role; highest-role-wins; admin break-glass preserved as local-auth only; Mode A/B 2FA configurable per-deployment
 - [Phase 59-01]: DATABASE_URL left uncommented with Compose service name placeholder — SQLite is dev-only and operators must know to use Postgres in production
 - [Phase 59-documentation]: DOCS-02/DOCS-03: @import placed at bottom of extra.css; mkdocs.yml palette block unchanged — color override done via CSS custom properties only
+- [Phase 59-documentation]: Jobs and Nodes nav entries placed before Foundry in Platform Config section — core features precede advanced config
 
 ### Pending Todos
 
@@ -85,7 +87,7 @@ None. All 4 phases are self-contained deliverables — documentation and design 
 
 ## Session Continuity
 
-Last session: 2026-03-24T18:51:00.530Z
-Stopped at: Completed 59-documentation-59-02-PLAN.md
+Last session: 2026-03-24T18:54:12.001Z
+Stopped at: Completed 59-documentation-59-03-PLAN.md
 Next action: `/gsd:plan-phase 57`
 Resume file: None

@@ -121,7 +121,7 @@ Archive: `.planning/milestones/v12.0-ROADMAP.md`
 
 - [x] **Phase 57: Research — Parallel Job Swarming** — Design doc covering use case analysis, pull-model impact, and complexity/value recommendation for fan-out swarming (completed 2026-03-24)
 - [x] **Phase 58: Research — Organisational SSO** — Design doc covering protocol choice, JWT bridge, RBAC mapping, CF Access integration, air-gap isolation, and 2FA policy (completed 2026-03-24)
-- [ ] **Phase 59: Documentation** — `.env.example`, Docker deployment section, docs/wiki branding alignment with dashboard, v12.0 feature updates across existing docs
+- [x] **Phase 59: Documentation** — `.env.example`, Docker deployment section, docs/wiki branding alignment with dashboard, v12.0 feature updates across existing docs (completed 2026-03-24)
 - [ ] **Phase 60: Quick Reference** — Move HTML files to `quick-ref/`, rebrand to Axiom, update operator guide and course for v12.0 and current architecture
 
 ## Phase Details
@@ -200,7 +200,7 @@ Plans:
 | 56. Integration Bug Fixes | v12.0 | 1/1 | Complete | 2026-03-24 |
 | 57. Research — Parallel Job Swarming | 1/1 | Complete    | 2026-03-24 | - |
 | 58. Research — Organisational SSO | 1/1 | Complete    | 2026-03-24 | - |
-| 59. Documentation | 2/3 | In Progress|  | - |
+| 59. Documentation | 3/3 | Complete   | 2026-03-24 | - |
 | 60. Quick Reference | v13.0 | 0/TBD | Not started | - |
 
 ## Archived

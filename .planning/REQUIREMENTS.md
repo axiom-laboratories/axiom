@@ -25,7 +25,7 @@
 - [x] **DOCS-01**: `.env.example` created listing all required and optional env vars with descriptions for the release container
 - [x] **DOCS-02**: "Running with Docker" deployment section added to docs covering env var requirements
 - [x] **DOCS-03**: Docs/wiki branding (colours, fonts, logo) aligned with dashboard visual identity
-- [ ] **DOCS-04**: Existing docs updated for v12.0 changes (unified `script` type, guided form, DRAFT lifecycle, bulk ops, queue view, scheduling health, retention, UI label renames)
+- [x] **DOCS-04**: Existing docs updated for v12.0 changes (unified `script` type, guided form, DRAFT lifecycle, bulk ops, queue view, scheduling health, retention, UI label renames)
 
 ### Quick Reference
 
@@ -63,7 +63,7 @@
 | DOCS-01 | Phase 59 | Complete |
 | DOCS-02 | Phase 59 | Complete |
 | DOCS-03 | Phase 59 | Complete |
-| DOCS-04 | Phase 59 | Pending |
+| DOCS-04 | Phase 59 | Complete |
 | QREF-01 | Phase 60 | Pending |
 | QREF-02 | Phase 60 | Pending |
 | QREF-03 | Phase 60 | Pending |
