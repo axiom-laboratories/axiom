@@ -120,7 +120,7 @@ Archive: `.planning/milestones/v12.0-ROADMAP.md`
 **Milestone Goal:** Ground the next feature milestone in solid research while closing documentation and quick-reference gaps left by v12.0. Two research design docs (swarming architecture, organisational SSO) and two documentation deliverables (docs site refresh, quick-reference files).
 
 - [x] **Phase 57: Research — Parallel Job Swarming** — Design doc covering use case analysis, pull-model impact, and complexity/value recommendation for fan-out swarming (completed 2026-03-24)
-- [ ] **Phase 58: Research — Organisational SSO** — Design doc covering protocol choice, JWT bridge, RBAC mapping, CF Access integration, air-gap isolation, and 2FA policy
+- [x] **Phase 58: Research — Organisational SSO** — Design doc covering protocol choice, JWT bridge, RBAC mapping, CF Access integration, air-gap isolation, and 2FA policy (completed 2026-03-24)
 - [ ] **Phase 59: Documentation** — `.env.example`, Docker deployment section, docs/wiki branding alignment with dashboard, v12.0 feature updates across existing docs
 - [ ] **Phase 60: Quick Reference** — Move HTML files to `quick-ref/`, rebrand to Axiom, update operator guide and course for v12.0 and current architecture
 
@@ -194,7 +194,7 @@ Plans:
 | 55. Verification + Docs Cleanup | v12.0 | 2/2 | Complete | 2026-03-24 |
 | 56. Integration Bug Fixes | v12.0 | 1/1 | Complete | 2026-03-24 |
 | 57. Research — Parallel Job Swarming | 1/1 | Complete    | 2026-03-24 | - |
-| 58. Research — Organisational SSO | v13.0 | 0/TBD | Not started | - |
+| 58. Research — Organisational SSO | 1/1 | Complete   | 2026-03-24 | - |
 | 59. Documentation | v13.0 | 0/TBD | Not started | - |
 | 60. Quick Reference | v13.0 | 0/TBD | Not started | - |
 

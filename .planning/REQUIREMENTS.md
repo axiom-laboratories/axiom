@@ -13,12 +13,12 @@
 
 ### Research — SSO
 
-- [ ] **SSO-01**: Protocol recommendation produced (OIDC vs SAML, rationale for non-air-gapped EE deployments)
-- [ ] **SSO-02**: JWT bridge design documented (exchange flow, `token_version` interaction, SSO session invalidation)
-- [ ] **SSO-03**: RBAC group mapping design documented (IdP group → MoP role mapping, default role on first SSO login)
-- [ ] **SSO-04**: Cloudflare Access integration pattern documented (`Cf-Access-Jwt-Assertion` header trust model, security implications)
-- [ ] **SSO-05**: Air-gap isolation strategy documented (feature flag/plugin pattern, zero impact on offline deployments)
-- [ ] **SSO-06**: TOTP 2FA interaction policy documented (SSO auth + MoP TOTP for step-up actions)
+- [x] **SSO-01**: Protocol recommendation produced (OIDC vs SAML, rationale for non-air-gapped EE deployments)
+- [x] **SSO-02**: JWT bridge design documented (exchange flow, `token_version` interaction, SSO session invalidation)
+- [x] **SSO-03**: RBAC group mapping design documented (IdP group → MoP role mapping, default role on first SSO login)
+- [x] **SSO-04**: Cloudflare Access integration pattern documented (`Cf-Access-Jwt-Assertion` header trust model, security implications)
+- [x] **SSO-05**: Air-gap isolation strategy documented (feature flag/plugin pattern, zero impact on offline deployments)
+- [x] **SSO-06**: TOTP 2FA interaction policy documented (SSO auth + MoP TOTP for step-up actions)
 
 ### Documentation
 
@@ -54,12 +54,12 @@
 | SWRM-01 | Phase 57 | Complete |
 | SWRM-02 | Phase 57 | Complete |
 | SWRM-03 | Phase 57 | Complete |
-| SSO-01 | Phase 58 | Pending |
-| SSO-02 | Phase 58 | Pending |
-| SSO-03 | Phase 58 | Pending |
-| SSO-04 | Phase 58 | Pending |
-| SSO-05 | Phase 58 | Pending |
-| SSO-06 | Phase 58 | Pending |
+| SSO-01 | Phase 58 | Complete |
+| SSO-02 | Phase 58 | Complete |
+| SSO-03 | Phase 58 | Complete |
+| SSO-04 | Phase 58 | Complete |
+| SSO-05 | Phase 58 | Complete |
+| SSO-06 | Phase 58 | Complete |
 | DOCS-01 | Phase 59 | Pending |
 | DOCS-02 | Phase 59 | Pending |
 | DOCS-03 | Phase 59 | Pending |

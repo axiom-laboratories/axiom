@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v13.0
 milestone_name: — Research & Documentation Foundation
 status: planning
-stopped_at: Phase 58 context gathered
-last_updated: "2026-03-24T17:20:54.522Z"
+stopped_at: Completed 58-01-PLAN.md
+last_updated: "2026-03-24T18:00:46.829Z"
 last_activity: 2026-03-24 — v13.0 roadmap created
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 |-------|-------|-------|----------|
 | — | — | — | — |
 | Phase 57-research-parallel-job-swarming P01 | 15 | 2 tasks | 1 files |
+| Phase 58-research-organisational-sso P01 | 35 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 57-research-parallel-job-swarming]: Fan-out swarming recommended as next milestone (Tier 1, ~3 phases, 9-12 plans); work-queue pattern deferred
 - [Phase 57-research-parallel-job-swarming]: Pre-pin target_node_id at swarm creation to eliminate double-assignment race condition in pull model
 - [Phase 57-research-parallel-job-swarming]: Barrier sync via recompute_aggregate trigger on job completion; PARTIAL is a valid terminal swarm state
+- [Phase 58-research-organisational-sso]: OIDC chosen over SAML for v1 SSO: natural extension of existing RFC 8628 device flow, Authlib 1.6.x as client library, SAML deferred as future extension
+- [Phase 58-research-organisational-sso]: SSO is an EE-only plugin using axiom.ee entry_points; CE installs get 402 stubs; token_version increment on SSO logout same as password-change mechanism
+- [Phase 58-research-organisational-sso]: RBAC group re-sync on every SSO login; default viewer role; highest-role-wins; admin break-glass preserved as local-auth only; Mode A/B 2FA configurable per-deployment
 
 ### Pending Todos
 
@@ -77,7 +81,7 @@ None. All 4 phases are self-contained deliverables — documentation and design 
 
 ## Session Continuity
 
-Last session: 2026-03-24T17:20:54.521Z
-Stopped at: Phase 58 context gathered
+Last session: 2026-03-24T18:00:46.827Z
+Stopped at: Completed 58-01-PLAN.md
 Next action: `/gsd:plan-phase 57`
-Resume file: .planning/phases/58-research-organisational-sso/58-CONTEXT.md
+Resume file: None
