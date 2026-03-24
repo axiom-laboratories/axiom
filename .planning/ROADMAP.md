@@ -200,7 +200,7 @@ Plans:
 | 56. Integration Bug Fixes | v12.0 | 1/1 | Complete | 2026-03-24 |
 | 57. Research — Parallel Job Swarming | 1/1 | Complete    | 2026-03-24 | - |
 | 58. Research — Organisational SSO | 1/1 | Complete    | 2026-03-24 | - |
-| 59. Documentation | 1/3 | In Progress|  | - |
+| 59. Documentation | 2/3 | In Progress|  | - |
 | 60. Quick Reference | v13.0 | 0/TBD | Not started | - |
 
 ## Archived
