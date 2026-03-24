@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v12.0
-milestone_name: — Operator Maturity
+milestone: v13.0
+milestone_name: — Research & Documentation Foundation
 status: planning
-stopped_at: Phase 56 context gathered
-last_updated: "2026-03-24T14:57:13.947Z"
-last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
+stopped_at: Defining requirements
+last_updated: "2026-03-24T15:13:39.134Z"
+last_activity: 2026-03-24 — Milestone v13.0 started
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 38
-  completed_plans: 38
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -18,17 +18,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-22)
+See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v12.0 — Operator Maturity (Phase 46 next)
+**Current focus:** v13.0 — Research & Documentation Foundation
 
 ## Current Position
 
-Phase: 46 of 53 (Tech Debt + Security + Branding)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-24 — Milestone v13.0 started
 
 Progress: [░░░░░░░░░░] 0%
 

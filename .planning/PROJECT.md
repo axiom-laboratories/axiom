@@ -203,7 +203,17 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
-## Current State — v12.0 Complete (2026-03-24)
+## Current Milestone: v13.0 Research & Documentation Foundation
+
+**Goal:** Ground the next feature milestone in solid research while closing documentation and quick-reference gaps left by v12.0.
+
+**Target features:**
+- Research: Parallel job swarming architecture (use case analysis, pull-model impact, complexity/value recommendation)
+- Research: Organisational SSO design (OIDC/SAML protocol choice, JWT bridge, RBAC mapping, CF Access integration, air-gap isolation)
+- Docs: Runtime env vars documented, docs/wiki branding aligned with dashboard, post-v12.0 docs updated
+- Quick Reference: Standalone `quick-ref/` HTML files moved from root, rebranded to Axiom, updated for v12.0 features
+
+## Previous State — v12.0 Complete (2026-03-24)
 
 Axiom v12.0 delivered the full Operator Maturity milestone — 11 phases, 38 plans, all 44 requirements satisfied. The platform now supports Python, Bash, and PowerShell job execution via a unified `script` task type; operators use a guided dispatch form with structured inputs and live JSON preview (with Advanced mode via one-way gate). The job detail drawer shows retry state, resubmit controls, and inline stdout/stderr. Bulk operations (cancel/resubmit/delete) work across multi-select jobs. A live Queue view with WebSocket updates and per-node detail drawer with DRAINING state machine provide real-time operational visibility.
 
@@ -216,4 +226,4 @@ All integration gaps from the v12.0 audit were closed by Phase 56 (7/7 E2E integ
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG (future milestones).
 
 ---
-*Last updated: 2026-03-24 after v12.0 milestone — Operator Maturity*
+*Last updated: 2026-03-24 after v13.0 milestone start — Research & Documentation Foundation*
