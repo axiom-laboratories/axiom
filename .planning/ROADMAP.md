@@ -135,7 +135,10 @@ Archive: `.planning/milestones/v12.0-ROADMAP.md`
   2. The design doc covers pull-model impact: what breaks at scale, how backpressure would be handled, and how ordering/barrier synchronisation would work
   3. The design doc delivers a clear complexity/value trade-off recommendation with explicit next-step guidance (build now, defer, or needs further spike)
   4. A reader with no prior context on swarming can understand the proposal and the reasoning behind the recommendation
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 57-01-PLAN.md — Verify and finalise the swarming design document; human sign-off on all three requirements
 
 ### Phase 58: Research — Organisational SSO
 **Goal**: A complete design document exists that lets the team implement SSO in a future milestone without re-doing protocol or architecture choices
@@ -187,7 +190,7 @@ Archive: `.planning/milestones/v12.0-ROADMAP.md`
 | 54. Bug Fix Blitz | v12.0 | 2/2 | Complete | 2026-03-23 |
 | 55. Verification + Docs Cleanup | v12.0 | 2/2 | Complete | 2026-03-24 |
 | 56. Integration Bug Fixes | v12.0 | 1/1 | Complete | 2026-03-24 |
-| 57. Research — Parallel Job Swarming | v13.0 | 0/TBD | Not started | - |
+| 57. Research — Parallel Job Swarming | v13.0 | 0/1 | Not started | - |
 | 58. Research — Organisational SSO | v13.0 | 0/TBD | Not started | - |
 | 59. Documentation | v13.0 | 0/TBD | Not started | - |
 | 60. Quick Reference | v13.0 | 0/TBD | Not started | - |
