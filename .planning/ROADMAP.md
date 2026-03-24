@@ -11,6 +11,7 @@
 - ✅ **v11.1 — Stack Validation** — Phases 38–45 (shipped 2026-03-22)
 - ✅ **v12.0 — Operator Maturity** — Phases 46–56 (shipped 2026-03-24)
 - ✅ **v13.0 — Research & Documentation Foundation** — Phases 57–60 (shipped 2026-03-24)
+- 🚧 **v14.0 — CE/EE Cold-Start Validation** — Phases 61–65 (in progress)
 
 ## Phases
 
@@ -127,7 +128,79 @@ Archive: `.planning/milestones/v13.0-ROADMAP.md`
 
 </details>
 
+### 🚧 v14.0 — CE/EE Cold-Start Validation (In Progress)
+
+**Milestone Goal:** Validate Axiom's install and operator paths end-to-end using Gemini CLI agents as first-time users inside LXC containers, covering both CE and EE scenarios across all job runtimes. Produce a friction report with actionable findings.
+
+- [ ] **Phase 61: LXC Environment and Cold-Start Compose** — Provision LXC with Docker nesting, Gemini CLI, and a stripped Axiom compose stack verified to start cleanly
+- [ ] **Phase 62: Agent Scaffolding** — Tester GEMINI.md, checkpoint file protocol, HOME isolation, and scenario prompt scripts
+- [ ] **Phase 63: CE Cold-Start Run** — Gemini agent follows CE getting-started docs through install and all 3 job runtimes; CE FRICTION.md produced
+- [ ] **Phase 64: EE Cold-Start Run** — Gemini agent follows EE install path with pre-injected licence, verifies EE-gated features; EE FRICTION.md produced
+- [ ] **Phase 65: Friction Report Synthesis** — Merge CE+EE findings into a single deliverable with cross-edition comparison and readiness verdict
+
+## Phase Details
+
+### Phase 61: LXC Environment and Cold-Start Compose
+**Goal**: A working Axiom CE stack runs inside an LXC container, all infrastructure pitfalls resolved, Gemini CLI responds headlessly
+**Depends on**: Nothing (first phase)
+**Requirements**: ENV-01, ENV-02, ENV-03, ENV-04
+**Success Criteria** (what must be TRUE):
+  1. `provision_lxc.py` starts an Ubuntu 24.04 Incus container with Docker nesting enabled and `docker run --rm hello-world` succeeds inside it
+  2. `compose.cold-start.yaml` brings the full Axiom stack up (orchestrator, docs, 2 puppet nodes) and the dashboard is reachable at the Docker bridge IP with a valid TLS cert (Caddy SAN includes `172.17.0.1`)
+  3. `docker exec <node> which pwsh` returns a path — PowerShell is installed and available in the node container
+  4. EE test licence is generated with a 1-year expiry and stored in `mop_validation/secrets.env` under `AXIOM_EE_LICENCE_KEY`
+  5. `timeout 30 gemini -p "Say hello"` returns successfully inside the LXC — Gemini CLI headless mode is operational
+**Plans**: TBD
+
+### Phase 62: Agent Scaffolding
+**Goal**: The Gemini tester agent is correctly constrained and the checkpoint protocol is verified to work before any scenario starts
+**Depends on**: Phase 61
+**Requirements**: SCAF-01, SCAF-02, SCAF-03, SCAF-04
+**Success Criteria** (what must be TRUE):
+  1. Tester `GEMINI.md` exists at `/workspace/gemini-context/` inside the LXC and contains only docs-site access instructions with no codebase references
+  2. A complete checkpoint round-trip completes in under 60 seconds: Gemini writes `checkpoint/PROMPT.md`, `monitor_checkpoint.py` surfaces it to the host, Claude writes `RESPONSE.md` back via `incus file push`, Gemini reads and continues
+  3. Running Gemini with `HOME=/root/validation-home` prevents it from loading the repo `GEMINI.md` or any prior session history
+  4. Scenario prompt scripts exist for CE install, CE operator, EE install, and EE operator paths — each defines explicit pass/fail criteria and checkpoint trigger conditions
+**Plans**: TBD
+
+### Phase 63: CE Cold-Start Run
+**Goal**: A Gemini agent acting as a first-time user completes the CE install and operator path from scratch, producing an evidence-backed friction report
+**Depends on**: Phase 62
+**Requirements**: CE-01, CE-02, CE-03, CE-04, CE-05
+**Success Criteria** (what must be TRUE):
+  1. Gemini agent reaches a running Axiom CE stack with at least one enrolled node by following only the getting-started docs — no checkpoint steering needed for this step
+  2. Gemini agent dispatches a Python job via the guided dispatch form and confirms `COMPLETED` status with stdout captured in the job history view
+  3. Gemini agent dispatches a Bash job via the guided dispatch form and confirms `COMPLETED` status with stdout captured in the job history view
+  4. Gemini agent dispatches a PowerShell job via the guided dispatch form and confirms `COMPLETED` status with stdout captured in the job history view
+  5. `checkpoint/FRICTION.md` contains a per-step PASS/FAIL log, verbatim doc quotes for every friction point, checkpoint steering interventions disclosed, and BLOCKER/NOTABLE/MINOR classification per finding
+**Plans**: TBD
+
+### Phase 64: EE Cold-Start Run
+**Goal**: A Gemini agent completes the EE install path with licence injection and verifies EE-specific features, producing an EE friction report comparable to the CE report
+**Depends on**: Phase 63
+**Requirements**: EE-01, EE-02, EE-03, EE-04
+**Success Criteria** (what must be TRUE):
+  1. `GET /api/admin/features` returns `ee_status: loaded` and the dashboard sidebar shows the EE edition badge after the agent follows EE install docs with the pre-generated licence injected
+  2. Gemini agent dispatches Python, Bash, and PowerShell jobs via the EE operator path and confirms `COMPLETED` status with stdout captured for each runtime
+  3. Gemini agent exercises at least one EE-gated feature (execution history, attestation badge, or environment tag routing) and confirms it is accessible and functioning
+  4. EE `FRICTION.md` is produced to the same standard as CE-05, with EE-specific findings annotated separately from findings also present in the CE run
+**Plans**: TBD
+
+### Phase 65: Friction Report Synthesis
+**Goal**: CE and EE friction findings are merged into a single deliverable with cross-edition comparison, severity triage, and a verdict on first-user readiness
+**Depends on**: Phase 64
+**Requirements**: RPT-01
+**Success Criteria** (what must be TRUE):
+  1. `synthesise_friction.py` pulls both `FRICTION.md` files from their respective LXC containers and produces `mop_validation/reports/cold_start_friction_report.md`
+  2. The report contains a cross-edition comparison table showing which findings are CE-only, EE-only, or shared
+  3. Every BLOCKER and NOTABLE finding has an actionable recommendation with the specific doc section or code path that needs to change
+  4. The report ends with a binary first-user readiness verdict (READY / NOT READY) with the blocking criteria listed
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -146,6 +219,11 @@ Archive: `.planning/milestones/v13.0-ROADMAP.md`
 | 58. Research — Organisational SSO | v13.0 | 1/1 | Complete | 2026-03-24 |
 | 59. Documentation | v13.0 | 3/3 | Complete | 2026-03-24 |
 | 60. Quick Reference | v13.0 | 3/3 | Complete | 2026-03-24 |
+| 61. LXC Environment and Cold-Start Compose | v14.0 | 0/? | Not started | - |
+| 62. Agent Scaffolding | v14.0 | 0/? | Not started | - |
+| 63. CE Cold-Start Run | v14.0 | 0/? | Not started | - |
+| 64. EE Cold-Start Run | v14.0 | 0/? | Not started | - |
+| 65. Friction Report Synthesis | v14.0 | 0/? | Not started | - |
 
 ## Archived
 

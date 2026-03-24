@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
 milestone: v14.0
-milestone_name: — CE/EE Cold-Start Validation
-status: defining_requirements
-stopped_at: Milestone started — defining requirements
+milestone_name: CE/EE Cold-Start Validation
+status: ready_to_plan
+stopped_at: Roadmap created — Phase 61 ready to plan
 last_updated: "2026-03-24"
-last_activity: 2026-03-24 — Milestone v14.0 started
+last_activity: 2026-03-24 — Roadmap created for v14.0 (5 phases, 18 requirements mapped)
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Defining requirements for v14.0 CE/EE Cold-Start Validation
+**Current focus:** Phase 61 — LXC Environment and Cold-Start Compose
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-24 — Milestone v14.0 started
+Phase: 61 of 65 (LXC Environment and Cold-Start Compose)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-03-24 — Roadmap created, 18/18 v14.0 requirements mapped across 5 phases
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,13 +36,12 @@ Progress: [░░░░░░░░░░] 0%
 
 ### Decisions
 
-- [v14.0 Kickoff]: Single LXC contains full Axiom Docker stack (orchestrator + nodes) + Gemini tester agent — mirrors a real engineer eval in a VM
-- [v14.0 Kickoff]: Gemini CLI (Flash model, GEMINI_API_KEY) used as tester agents to save Claude tokens; Claude orchestrates externally via file-based checkpoint protocol
-- [v14.0 Kickoff]: Agents constrained to docs-only access (no codebase reads) to preserve cold-start validity; they write checkpoint files when blocked, Claude provides steering
-- [v14.0 Kickoff]: Playwright (Python, --no-sandbox) used for UI interaction — Lightpanda rejected due to incomplete React SPA support
-- [v14.0 Kickoff]: Two runs: CE (no licence) and EE (pre-generated Ed25519 licence); both test install path + operator path
-- [v14.0 Kickoff]: Three job types per run: Python, Bash, PowerShell
-- [v14.0 Kickoff]: GEMINI_API_KEY stored in mop_validation/secrets.env; model pinned to Flash to avoid paid tier
+- [v14.0 Kickoff]: Single LXC contains full Axiom Docker stack (orchestrator + nodes) + Gemini tester agent
+- [v14.0 Kickoff]: Gemini CLI (Flash model, GEMINI_API_KEY) used as tester; Claude orchestrates via file-based checkpoint protocol
+- [v14.0 Kickoff]: Agents constrained to docs-only access — no codebase reads; checkpoint files used when agent is blocked
+- [v14.0 Kickoff]: Two runs: CE (no licence) then EE (pre-generated Ed25519 licence); both test install + 3 runtimes
+- [v14.0 Roadmap]: Phase 61 must resolve all 8 critical infrastructure pitfalls before Phase 62 starts
+- [v14.0 Roadmap]: CE run (Phase 63) precedes EE run (Phase 64) — shared friction identified in CE need not be re-investigated
 
 ### Pending Todos
 
@@ -50,12 +49,14 @@ None.
 
 ### Blockers/Concerns
 
-- PowerShell (`pwsh`) availability in standard CE node container image needs verification before test run
-- EE licence must be pre-generated before EE run (admin_signer.py tooling available)
+- [Phase 61]: Docker-in-LXC AppArmor pivot_root behaviour on Ubuntu 24.04 kernel 6.8.x — verify `docker run --rm hello-world` succeeds before proceeding
+- [Phase 61]: Gemini CLI headless hang risk — `ripgrep` install and `GEMINI_API_KEY` env var required; verify with `timeout 30 gemini -p "Say hello"`
+- [Phase 62]: Gemini API key tier must be Tier 1 (paid) for a full CE+EE run — free tier 250 RPD is insufficient
+- [Phase 64]: `axiom-ee` wheel availability inside LXC — confirm editable install path vs devpi before Phase 64 planning
 
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Milestone v14.0 started — defining requirements
-Next action: Complete requirements definition and run roadmapper
+Stopped at: Roadmap created — ready to plan Phase 61
+Next action: Run `/gsd:plan-phase 61`
 Resume file: None
