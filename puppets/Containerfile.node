@@ -5,14 +5,17 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system deps + PowerShell Core via Microsoft APT repo
+# Install system deps + PowerShell Core via Microsoft APT repo (optional — fails gracefully if repo key rejected)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget apt-transport-https gnupg podman krb5-user iptables docker.io \
-    && wget -q "https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb" \
-    && dpkg -i packages-microsoft-prod.deb \
-    && apt-get update \
-    && apt-get install -y powershell \
-    && rm -rf /var/lib/apt/lists/* packages-microsoft-prod.deb
+    && rm -rf /var/lib/apt/lists/* \
+    && (wget -q "https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb" \
+        && dpkg -i packages-microsoft-prod.deb \
+        && apt-get update \
+        && apt-get install -y powershell \
+        && rm -f packages-microsoft-prod.deb \
+        || echo "PowerShell install skipped (SHA1 repo key rejected by Debian)") \
+    && rm -rf /var/lib/apt/lists/*
 
 # Dependencies
 COPY requirements.txt .
@@ -21,8 +24,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Node Code
 COPY environment_service/node.py .
 COPY environment_service/runtime.py .
-
-# Copy CA (Optional, if we bake it in, but ideally we curl it)
-# We'll rely on volume mount or curl in bootstrap.
 
 CMD ["python", "node.py"]

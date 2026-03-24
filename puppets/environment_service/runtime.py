@@ -63,7 +63,6 @@ class ContainerRuntime:
 
         # 3. Namespace Mapping (Podman specific)
         if self.runtime == "podman":
-            cmd.append("--userns=keep-id")
             cmd.append("--storage-driver=vfs")
             cmd.append("--cgroup-manager=cgroupfs")
             cmd.append("--events-backend=none")
