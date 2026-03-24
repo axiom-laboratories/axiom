@@ -5,16 +5,15 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system deps + PowerShell Core via Microsoft APT repo (optional — fails gracefully if repo key rejected)
+# Install system deps + PowerShell Core via direct .deb from GitHub releases
+# (The Microsoft Debian 12 apt repo uses SHA1 keys which are rejected by Debian — use direct .deb instead)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget apt-transport-https gnupg podman krb5-user iptables docker.io \
     && rm -rf /var/lib/apt/lists/* \
-    && (wget -q "https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb" \
-        && dpkg -i packages-microsoft-prod.deb \
-        && apt-get update \
-        && apt-get install -y powershell \
-        && rm -f packages-microsoft-prod.deb \
-        || echo "PowerShell install skipped (SHA1 repo key rejected by Debian)") \
+    && wget -q -O /tmp/powershell.deb \
+       "https://github.com/PowerShell/PowerShell/releases/download/v7.6.0/powershell-lts_7.6.0-1.deb_amd64.deb" \
+    && apt-get install -y /tmp/powershell.deb \
+    && rm /tmp/powershell.deb \
     && rm -rf /var/lib/apt/lists/*
 
 # Dependencies
