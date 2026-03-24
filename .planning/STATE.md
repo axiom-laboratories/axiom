@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
 status: planning
-stopped_at: Phase 61 context gathered
-last_updated: "2026-03-24T21:43:27.930Z"
+stopped_at: Completed 61-01-PLAN.md
+last_updated: "2026-03-24T22:09:45.355Z"
 last_activity: 2026-03-24 — Roadmap created, 18/18 v14.0 requirements mapped across 5 phases
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -42,6 +42,7 @@ Progress: [░░░░░░░░░░] 0%
 - [v14.0 Kickoff]: Two runs: CE (no licence) then EE (pre-generated Ed25519 licence); both test install + 3 runtimes
 - [v14.0 Roadmap]: Phase 61 must resolve all 8 critical infrastructure pitfalls before Phase 62 starts
 - [v14.0 Roadmap]: CE run (Phase 63) precedes EE run (Phase 64) — shared friction identified in CE need not be re-investigated
+- [Phase 61-lxc-environment-and-cold-start-compose]: Use raw.apparmor=pivot_root, override in incus launch for Docker-in-LXC on Ubuntu 24.04 kernel 6.8.x (Incus #791 workaround)
 
 ### Pending Todos
 
@@ -56,7 +57,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T21:43:27.928Z
-Stopped at: Phase 61 context gathered
+Last session: 2026-03-24T22:09:45.353Z
+Stopped at: Completed 61-01-PLAN.md
 Next action: Run `/gsd:plan-phase 61`
-Resume file: .planning/phases/61-lxc-environment-and-cold-start-compose/61-CONTEXT.md
+Resume file: None
