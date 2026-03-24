@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v12.0
 milestone_name: — Operator Maturity
 status: planning
-stopped_at: Phase 55 context gathered
-last_updated: "2026-03-23T22:50:34.083Z"
+stopped_at: Completed 55-01-PLAN.md
+last_updated: "2026-03-24T00:06:42.253Z"
 last_activity: 2026-03-22 — v12.0 roadmap created; 44 requirements across 8 phases
 progress:
   total_phases: 10
   completed_phases: 9
-  total_plans: 35
-  completed_plans: 35
+  total_plans: 37
+  completed_plans: 36
   percent: 0
 ---
 
@@ -82,6 +82,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 54-bug-fix-blitz P02 | 3min | 2 tasks | 4 files |
 | Phase 54-bug-fix-blitz P01 | 3min | 2 tasks | 2 files |
 | Phase 54-bug-fix-blitz P02 | 10min | 3 tasks | 4 files |
+| Phase 55-verification-docs-cleanup P01 | 7min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 54]: INT-01: script_content key chosen to match node.py; INT-02: authenticatedFetch URL contract confirmed (no /api prefix); INT-03: CSV export uses full /api prefix (locked per CONTEXT.md)
 - [Phase 54-01]: retry_after serialised via .isoformat() at list_jobs() dict boundary; list_jobs_for_export() left unchanged (different shape)
 - [Phase 54]: INT-01: script_content key chosen to match node.py line 553; both dispatch sites in GuidedDispatchCard patched; INT-02: authenticatedFetch URL contract confirmed (no /api prefix); INT-03: CSV export uses full /api prefix (locked per CONTEXT.md)
+- [Phase 55]: Auth endpoint is /auth/login not /api/auth/token — discovered during Playwright test execution for SCHED-03
+- [Phase 55]: UI route for scheduled jobs is /scheduled-jobs (not /job-definitions which redirects to /)
+- [Phase 55]: SCHED-03 fixture: ephemeral Ed25519 keypair required — API enforces signature on job creation; all stack jobs were DRAFT
 
 ### Pending Todos
 
@@ -162,7 +166,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T22:50:34.080Z
-Stopped at: Phase 55 context gathered
+Last session: 2026-03-24T00:06:42.250Z
+Stopped at: Completed 55-01-PLAN.md
 Next action: `/gsd:plan-phase 46`
-Resume file: .planning/phases/55-verification-docs-cleanup/55-CONTEXT.md
+Resume file: None
