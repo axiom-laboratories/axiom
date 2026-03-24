@@ -150,7 +150,10 @@ Archive: `.planning/milestones/v13.0-ROADMAP.md`
   3. `docker exec <node> which pwsh` returns a path — PowerShell is installed and available in the node container
   4. EE test licence is generated with a 1-year expiry and stored in `mop_validation/secrets.env` under `AXIOM_EE_LICENCE_KEY`
   5. `timeout 30 gemini -p "Say hello"` returns successfully inside the LXC — Gemini CLI headless mode is operational
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 61-01-PLAN.md — LXC provisioning script + smoke verifier (ENV-01)
+- [ ] 61-02-PLAN.md — cold-start compose + PowerShell fix (ENV-02, ENV-03)
+- [ ] 61-03-PLAN.md — EE licence generation script (ENV-04)
 
 ### Phase 62: Agent Scaffolding
 **Goal**: The Gemini tester agent is correctly constrained and the checkpoint protocol is verified to work before any scenario starts
