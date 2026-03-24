@@ -121,6 +121,16 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ CE/EE edition badge in dashboard sidebar (useLicence hook + LicenceSection in Admin) — v11.0
 - ✓ MkDocs `!!! enterprise` admonitions on 5 EE feature pages; `licensing.md` CE/EE explainer — v11.0
 
+### Validated — v13.0 Research & Documentation Foundation
+
+- ✓ Parallel job swarming design doc — use case analysis, pull-model race condition solution, tiered build/defer recommendation — v13.0
+- ✓ Organisational SSO design doc — OIDC recommendation, JWT bridge, RBAC group mapping, 5 IdP coverage, CF Access integration, EE air-gap isolation, 2FA interaction policy — v13.0
+- ✓ `.env.example` operator reference — all required and optional environment variables documented with descriptions and generation commands — v13.0
+- ✓ Docker deployment guide added to docs site covering env var requirements end-to-end — v13.0
+- ✓ Axiom branding aligned across docs site — Fira Sans fonts, crimson primary colour, geometric SVG logo matching dashboard identity — v13.0
+- ✓ Jobs and Nodes feature guides created — unified `script` type, guided form, bulk ops, Queue Monitor, DRAINING state all documented — v13.0
+- ✓ Quick-reference HTML files integrated into MkDocs under `docs/docs/quick-ref/`; root originals removed; course rebranded to Axiom; operator guide updated for v12.0 — v13.0
+
 ### Active — Future Milestones
 
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
@@ -203,27 +213,19 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
 
-## Current Milestone: v13.0 Research & Documentation Foundation
+## Current Milestone
 
-**Goal:** Ground the next feature milestone in solid research while closing documentation and quick-reference gaps left by v12.0.
+Planning next milestone. Run `/gsd:new-milestone` to begin requirements and roadmap for v14.0.
 
-**Target features:**
-- Research: Parallel job swarming architecture (use case analysis, pull-model impact, complexity/value recommendation)
-- Research: Organisational SSO design (OIDC/SAML protocol choice, JWT bridge, RBAC mapping, CF Access integration, air-gap isolation)
-- Docs: Runtime env vars documented, docs/wiki branding aligned with dashboard, post-v12.0 docs updated
-- Quick Reference: Standalone `quick-ref/` HTML files moved from root, rebranded to Axiom, updated for v12.0 features
+## Previous State — v13.0 Complete (2026-03-24)
 
-## Previous State — v12.0 Complete (2026-03-24)
+Axiom v13.0 delivered the Research & Documentation Foundation milestone — 4 phases, 8 plans, all 17 requirements satisfied. Two design documents now exist as build artefacts: a parallel job swarming architecture doc (use case analysis, pull-model race conditions, tiered build/defer recommendation) and an organisational SSO design doc (OIDC protocol choice, JWT bridge, RBAC group mapping for 5 IdPs, Cloudflare Access integration, EE air-gap isolation pattern, 2FA interaction policy). These ground the next feature milestone without requiring protocol or architecture decisions to be re-litigated.
 
-Axiom v12.0 delivered the full Operator Maturity milestone — 11 phases, 38 plans, all 44 requirements satisfied. The platform now supports Python, Bash, and PowerShell job execution via a unified `script` task type; operators use a guided dispatch form with structured inputs and live JSON preview (with Advanced mode via one-way gate). The job detail drawer shows retry state, resubmit controls, and inline stdout/stderr. Bulk operations (cancel/resubmit/delete) work across multi-select jobs. A live Queue view with WebSocket updates and per-node detail drawer with DRAINING state machine provide real-time operational visibility.
+On the documentation side: `.env.example` is now a complete operator reference with generation commands for cryptographic vars; a "Running with Docker" deployment guide was added; the docs site visual identity (Fira Sans, crimson palette, geometric SVG logo) now matches the dashboard; and existing feature guides were updated to cover v12.0 additions (unified `script` type, guided form, bulk ops, Queue Monitor, DRAINING state, Scheduling Health). The two standalone HTML quick-reference files were moved from the project root into the MkDocs tree under `docs/docs/quick-ref/`, the course was fully rebranded to Axiom, and the operator guide was updated with Queue and Scheduling Health content.
 
-Scheduling Health tracking (ScheduledFireLog, LATE/MISSED detection, fire log sparklines) makes scheduled job reliability visible. Job templates, execution retention config, and pin/unpin give operators control over data lifecycle. 9-axis cursor-paginated job filtering with CSV export makes large job histories navigable.
+**~23,500 LOC (Python + TypeScript). Stack: FastAPI + SQLAlchemy + React/Vite + Caddy + APScheduler + MkDocs Material.**
 
-All integration gaps from the v12.0 audit were closed by Phase 56 (7/7 E2E integration tests passing). Known deferred gaps from v11.1 (MIN-06/07/08, WARN-08) were addressed in Phase 46.
-
-**~23,500 LOC (Python + TypeScript). Stack: FastAPI + SQLAlchemy + React/Vite + Caddy + APScheduler.**
-
-**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG (future milestones).
+**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-24 after v13.0 milestone start — Research & Documentation Foundation*
+*Last updated: 2026-03-24 after v13.0 milestone — Research & Documentation Foundation*

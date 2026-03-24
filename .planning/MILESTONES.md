@@ -1,5 +1,14 @@
 # Milestones
 
+## v13.0 Research & Documentation Foundation (Shipped: 2026-03-24)
+
+**Phases completed:** 4 phases, 8 plans, 2 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v12.0 Operator Maturity (Shipped: 2026-03-24)
 
 **Phases completed:** 11 phases (46–56), 38 plans
