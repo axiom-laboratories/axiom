@@ -151,7 +151,10 @@ Plans:
   4. Cloudflare Access integration pattern is documented with explicit security implications of trusting the `Cf-Access-Jwt-Assertion` header
   5. Air-gap isolation strategy is documented — SSO must be a feature-flagged/plugin addition with zero impact on offline CE deployments
   6. TOTP 2FA interaction policy is defined — what happens when SSO auth is used alongside MoP TOTP step-up requirements
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 58-01-PLAN.md — Verify and finalise the SSO design document; human sign-off on all six requirements
 
 ### Phase 59: Documentation
 **Goal**: The docs site accurately reflects the v12.0 feature set, is visually consistent with the dashboard, and new operators have everything they need to run Axiom with Docker
