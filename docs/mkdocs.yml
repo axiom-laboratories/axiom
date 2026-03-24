@@ -39,6 +39,8 @@ nav:
     - Operator Tools:
       - axiom-push CLI: feature-guides/axiom-push.md
     - Platform Config:
+      - Jobs: feature-guides/jobs.md
+      - Nodes: feature-guides/nodes.md
       - Foundry: feature-guides/foundry.md
       - Job Scheduling: feature-guides/job-scheduling.md
       - RBAC: feature-guides/rbac.md
