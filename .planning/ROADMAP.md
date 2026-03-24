@@ -165,7 +165,12 @@ Plans:
   2. The docs site has a "Running with Docker" deployment section covering env var requirements end-to-end
   3. The docs site visual identity (colours, fonts, logo) matches the dashboard — no jarring brand mismatch between the two surfaces
   4. Existing docs reflect v12.0 changes: unified `script` task type, guided form, DRAFT lifecycle, bulk ops, Queue view, Scheduling Health, retention config, and UI label renames are all described accurately
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 59-01-PLAN.md — .env.example with all puppeteer env vars
+- [ ] 59-02-PLAN.md — Docker deployment page and branding alignment
+- [ ] 59-03-PLAN.md — v12.0 feature guide content
 
 ### Phase 60: Quick Reference
 **Goal**: Quick-reference HTML files are findable, branded correctly, and cover the current Axiom v12.0 feature set
@@ -195,7 +200,7 @@ Plans:
 | 56. Integration Bug Fixes | v12.0 | 1/1 | Complete | 2026-03-24 |
 | 57. Research — Parallel Job Swarming | 1/1 | Complete    | 2026-03-24 | - |
 | 58. Research — Organisational SSO | 1/1 | Complete    | 2026-03-24 | - |
-| 59. Documentation | v13.0 | 0/TBD | Not started | - |
+| 59. Documentation | v13.0 | 0/3 | Not started | - |
 | 60. Quick Reference | v13.0 | 0/TBD | Not started | - |
 
 ## Archived
