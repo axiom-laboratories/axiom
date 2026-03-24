@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Master of Puppets — How It Works Under the Hood</title>
+<title>Axiom — How It Works Under the Hood</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -610,7 +610,7 @@ body {
 <nav class="nav">
   <div class="progress-bar" id="progress-bar"></div>
   <div class="nav-inner">
-    <span class="nav-title">Master of Puppets</span>
+    <span class="nav-title">Axiom</span>
     <div class="nav-dots" id="nav-dots">
       <button class="nav-dot" title="The 20-Second Mystery" onclick="scrollToModule(0)"></button>
       <button class="nav-dot" title="Meet the Cast" onclick="scrollToModule(1)"></button>
@@ -753,7 +753,7 @@ body {
     <!-- Screen 1: Three actors -->
     <section class="screen animate-in">
       <h2 class="screen-heading">Three programs, one system</h2>
-      <p>Master of Puppets is not one program — it's three that work together. Understanding who's who is the foundation for everything else.</p>
+      <p>Axiom is not one program — it's three that work together. Understanding who's who is the foundation for everything else.</p>
 
       <div class="icon-rows animate-in stagger-children" style="margin-top:var(--space-5)">
         <div class="icon-row animate-in">
@@ -882,13 +882,13 @@ body {
         <div class="callout-icon">⚠️</div>
         <div class="callout-content">
           <span class="callout-title">The naive solution (don't do this)</span>
-          <p>You could use a shared password — every node gets the same API key. But if one node is compromised, <em>every</em> node is compromised. Master of Puppets uses something much stronger: unique certificates per node.</p>
+          <p>You could use a shared password — every node gets the same API key. But if one node is compromised, <em>every</em> node is compromised. Axiom uses something much stronger: unique certificates per node.</p>
         </div>
       </div>
 
       <div style="margin-top: var(--space-8)">
         <h3 style="font-family:var(--font-display);font-weight:600;margin-bottom:var(--space-4)">The solution: certificates issued by a private authority</h3>
-        <p>The Puppeteer server runs its own <span class="term" data-definition="A Certificate Authority (CA) is a trusted entity that issues digital identity cards (certificates) to verify that someone is who they claim to be. HTTPS websites get their certificates from public CAs like Let's Encrypt. Master of Puppets runs its own private CA just for nodes.">Certificate Authority</span> — think of it as a private passport office that only you control. Every node gets its own <span class="term" data-definition="A certificate is a digital identity card that proves who you are. It contains your public key, your name, and a signature from the Certificate Authority confirming the information is genuine.">certificate</span>. The server only trusts nodes with valid certificates it issued.</p>
+        <p>The Puppeteer server runs its own <span class="term" data-definition="A Certificate Authority (CA) is a trusted entity that issues digital identity cards (certificates) to verify that someone is who they claim to be. HTTPS websites get their certificates from public CAs like Let's Encrypt. Axiom runs its own private CA just for nodes.">Certificate Authority</span> — think of it as a private passport office that only you control. Every node gets its own <span class="term" data-definition="A certificate is a digital identity card that proves who you are. It contains your public key, your name, and a signature from the Certificate Authority confirming the information is genuine.">certificate</span>. The server only trusts nodes with valid certificates it issued.</p>
       </div>
     </section>
 
@@ -1678,7 +1678,7 @@ const m6Explanations = {
   },
   'm6q2': {
     correct: 'Correct — this is intentional! The token_version field on the User model is included in every JWT as "tv". When the password changes, token_version increments. The server rejects any JWT with an old tv value. This is how the system achieves instant, universal session invalidation without a token blocklist.',
-    wrong: 'This is actually intentional security behaviour. JWTs normally can\'t be revoked before expiry — that\'s a known weakness. Master of Puppets solves it with token_version: changing your password increments this counter, and the server rejects tokens with old version numbers.'
+    wrong: 'This is actually intentional security behaviour. JWTs normally can\'t be revoked before expiry — that\'s a known weakness. Axiom solves it with token_version: changing your password increments this counter, and the server rejects tokens with old version numbers.'
   },
   'm6q3': {
     correct: 'Exactly. The execution happens in node.py calling runtime.py. That\'s the right layer to intercept. Add "dry_run": true to the job payload, and in execute_task() check for that flag before calling runtime_engine.run(). The API and database just need to pass the flag through.',
