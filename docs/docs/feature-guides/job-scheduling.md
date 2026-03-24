@@ -145,3 +145,46 @@ Scheduled jobs use the same `DRAFT` → `ACTIVE` promotion workflow as manually 
 The Staging view lets you inspect the script content, verify the signature, and promote or reject a job definition before it goes live.
 
 See the [axiom-push guide](axiom-push.md) for the full Staging view walkthrough, including how to push a script, review it, and promote it to `ACTIVE`.
+
+---
+
+## Scheduling Health
+
+The Scheduling Health panel shows aggregate execution statistics for all job definitions over a configurable time window (1 hour, 6 hours, 24 hours, or 7 days).
+
+Access it from the **Job Definitions** view → **Scheduling Health** panel.
+
+### Health Metrics
+
+| Metric | Meaning |
+|--------|---------|
+| `fired` | Job fires that executed successfully |
+| `skipped` | Fires skipped because a previous fire was still running |
+| `failed` | Fires that resulted in a job failure |
+| `late` | Fires that started later than their scheduled time |
+| `missed` | Scheduled fires that did not occur at all (e.g. service was down) |
+
+Each definition shows a health status: `ok`, `warning`, or `error` based on its failure and missed-fire rates.
+
+### API
+
+```bash
+GET /api/health/scheduling?window=24h
+```
+
+Returns aggregate counts and per-definition rows. The `window` parameter accepts `1h`, `6h`, `24h`, or `7d`.
+
+---
+
+## Execution Retention
+
+By default, Axiom keeps 14 days of execution history. Older job execution records are pruned automatically.
+
+**To change the retention period:**
+
+1. Go to **Admin** → **Retention Settings**
+2. Set `execution_retention_days` to your desired value (minimum: 1, recommended: 30–90 for production)
+3. Click **Save**
+
+!!! warning "Pinned jobs are not pruned"
+    Individual job execution records can be pinned to prevent pruning. Use pinning for post-incident forensics or compliance evidence.
