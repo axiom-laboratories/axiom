@@ -1834,6 +1834,76 @@ code {
     </div>
   </div>
 
+  <!-- Scheduling Health -->
+  <div class="section">
+    <h3 class="section-title">Scheduling Health</h3>
+    <p class="section-body">The <strong>Health</strong> tab on the Scheduled Jobs page (<code>/job-definitions</code>) shows how reliably each definition has been firing over a selected window — 24 h, 7 d, or 30 d. It is the primary tool for catching silent scheduling failures before they impact operations. If a definition is supposed to run every hour but hasn't fired in three hours, the Health tab will surface that immediately.</p>
+
+    <table class="role-table" style="margin-top: var(--space-4)">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>What it means</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>fired</strong></td>
+          <td>Scheduler dispatched the job for this slot — expected activity</td>
+        </tr>
+        <tr>
+          <td><strong>skipped</strong></td>
+          <td>Slot intentionally skipped — job was in DRAFT status, or a previous run was still active when the fire time arrived</td>
+        </tr>
+        <tr>
+          <td><strong>late</strong></td>
+          <td>Expected fire window passed but the next scheduled fire has NOT yet elapsed — job is behind; check node availability and whether the scheduler service is running</td>
+        </tr>
+        <tr>
+          <td><strong>missed</strong></td>
+          <td>Expected fire window passed AND the next scheduled fire has also passed — this fire slot is permanently gone; investigate the cause</td>
+        </tr>
+        <tr>
+          <td><strong>failed</strong></td>
+          <td>Job was dispatched but subsequently reached FAILED status — the scheduler fired it, but execution failed on the node</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warning" style="margin-top: var(--space-5)">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <span class="callout-title">LATE vs MISSED — know the difference</span>
+        <p><strong>LATE (amber warning)</strong> — the scheduler may still catch up. The grace period is 5 minutes: a job fired within 5 minutes of its scheduled time counts as on-time. Check whether nodes are available and whether the scheduler service is running. Action is advised but not yet urgent.</p>
+        <p style="margin-top: var(--space-2)"><strong>MISSED (red error)</strong> — the window is gone and cannot be recovered. Investigate: was the scheduler stopped? Were all nodes offline or DRAINING? Was the definition in DRAFT? Each missed fire is a gap in your automation record.</p>
+      </div>
+    </div>
+
+    <div class="callout callout-info" style="margin-top: var(--space-4)">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <span class="callout-title">Health roll-up status</span>
+        <p>Each definition shows an overall health status: <strong>ok</strong> — no missed or failed events; <strong>warning</strong> — at least one late event; <strong>error</strong> — at least one missed or failed event. Use this to triage at a glance without drilling into individual fire slots.</p>
+      </div>
+    </div>
+
+    <div class="callout callout-tip" style="margin-top: var(--space-4)">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <span class="callout-title">Query scheduling health programmatically</span>
+        <p>The API endpoint <code>GET /api/health/scheduling?window=24h|7d|30d</code> returns the same health data in JSON format. Integrate it with your monitoring or alerting stack to get notified when any definition crosses into warning or error state.</p>
+      </div>
+    </div>
+
+    <div class="callout callout-warning" style="margin-top: var(--space-4)">
+      <div class="callout-icon">🗂️</div>
+      <div class="callout-content">
+        <span class="callout-title">Retention affects health window accuracy</span>
+        <p>Execution records (the <code>ScheduledFireLog</code> entries that power the Health tab) are pruned after <code>retention_days</code> — default is 14 days, configurable in <strong>Admin › Retention</strong>. If your retention setting is shorter than the selected health window (for example, 7-day retention with the 30-day window open), older fire slots will simply be absent from the data. <strong>Recommendation:</strong> set retention to at least 30 days to ensure reliable long-window health reporting.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Quiz -->
   <div class="quiz-container">
     <div class="quiz-header">Module 4 Check</div>
