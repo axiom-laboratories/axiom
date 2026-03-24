@@ -13,7 +13,7 @@
 - [x] **RT-03**: Standard node image ships with Python, Bash, and PowerShell pre-installed (`Containerfile.node`)
 - [x] **RT-04**: Backend validates `runtime` field at job creation and rejects unknown values with HTTP 422
 - [x] **RT-05**: Job list renders a `display_type` field (`script (bash)`, `script (python)`, `script (powershell)`) computed server-side — frontend never parses payload JSON
-- [ ] **RT-06**: ~~Existing `python_script` task type is retained as an alias~~ — **Dropped by design** (Phase 47 planning decision: `python_script` returns HTTP 422; operators use `script` + `runtime: python`). REQUIREMENTS.md update pending Phase 55.
+- [x] **RT-06**: ~~Existing `python_script` task type is retained as an alias~~ — **Dropped by design** (Phase 47 planning decision: `python_script` returns HTTP 422; operators use `script` + `runtime: python`). Decision recorded: Phase 55.
 - [x] **RT-07**: Operator can schedule a Bash or PowerShell job via job definitions (`ScheduledJob.runtime` field + migration SQL)
 
 ### Job Submission UX (JOB)
@@ -160,12 +160,12 @@
 | RT-03 | Phase 47 | Complete |
 | RT-04 | Phase 47 | Complete |
 | RT-05 | Phase 47 | Complete |
-| RT-06 | Phase 55 | Pending |
+| RT-06 | Phase 47/55 | Dropped |
 | RT-07 | Phase 47 | Complete |
-| SCHED-01 | Phase 55 | Complete |
-| SCHED-02 | Phase 55 | Complete |
-| SCHED-03 | Phase 55 | Complete |
-| SCHED-04 | Phase 55 | Complete |
+| SCHED-01 | Phase 48 | Complete |
+| SCHED-02 | Phase 48 | Complete |
+| SCHED-03 | Phase 48 | Complete |
+| SCHED-04 | Phase 48 | Complete |
 | SRCH-01 | Phase 49 | Complete |
 | SRCH-02 | Phase 49 | Complete |
 | SRCH-03 | Phase 49 | Complete |
@@ -195,10 +195,10 @@
 
 **Coverage:**
 - v12.0 requirements: 44 total
-- Mapped to phases: 44 (Phase 46: 7, Phase 47: 5, Phase 48: 0, Phase 49: 5, Phase 50: 1, Phase 51: 5, Phase 52: 3, Phase 53: 6, Phase 54: 7, Phase 55: 5)
-- Pending (gap closure): 12 (RT-01, RT-02, RT-06, SCHED-01–04, JOB-01, JOB-04, JOB-05, VIS-02, SRCH-10)
+- Mapped to phases: 44 (Phase 46: 7, Phase 47: 5, Phase 48: 4, Phase 49: 5, Phase 50: 2, Phase 51: 5, Phase 52: 3, Phase 53: 6, Phase 54: 7)
+- Pending (gap closure): 0
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-22*
-*Last updated: 2026-03-22 — traceability complete after roadmap creation*
+*Last updated: 2026-03-23 — Phase 55: RT-06 closed as Dropped; SCHED-01–04 marked Complete; Phase 54 traceability backfilled; coverage count recalculated*
