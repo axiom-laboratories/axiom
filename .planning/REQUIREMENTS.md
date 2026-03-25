@@ -1,0 +1,90 @@
+# Requirements: Axiom
+
+**Defined:** 2026-03-25
+**Core Value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
+
+## v14.1 Requirements
+
+Requirements for the First-User Readiness milestone. All items derive from the v14.0 cold-start friction report (`mop_validation/reports/cold_start_friction_report.md`). Every P1 item must be resolved for the READY verdict.
+
+### Code Fixes
+
+- [ ] **CODE-01**: Containerfile.node docker CLI binary fix is committed and verified (`COPY --from=docker:cli` present, `docker --version` runs in built image)
+- [ ] **CODE-02**: `/tmp:/tmp` bind mount is present in `compose.cold-start.yaml` for both puppet-node services and verified (job scripts visible to Docker socket)
+- [ ] **CODE-03**: PowerShell `.deb` download in `Containerfile.node` has `--platform linux/amd64` guard (prevents silent failure on arm64 build hosts)
+- [ ] **CODE-04**: `/api/executions` and all 7 related execution routes are CE-gated — moved to EE router with a new `ee/interfaces/executions.py` CE stub returning 402; CE mode returns 402 verified by `test_ce_smoke.py`
+
+### Documentation Fixes
+
+- [ ] **DOCS-01**: `install.md` has explicit admin password setup step (create `.env` with `ADMIN_PASSWORD=<value>`) before the `docker compose up` instruction
+- [ ] **DOCS-02**: `mkdocs.yml` has `pymdownx.tabbed: alternate_style: true` in `markdown_extensions` (enables CLI/Dashboard tab pairs across docs)
+- [ ] **DOCS-03**: `enroll-node.md` has a CLI (curl) JOIN_TOKEN generation path as a primary alternative to the dashboard GUI step
+- [ ] **DOCS-04**: `enroll-node.md` Option B compose snippet uses the correct Axiom node image (`localhost/master-of-puppets-node:latest`) instead of `python:3.12-alpine`
+- [ ] **DOCS-05**: `enroll-node.md` replaces all `EXECUTION_MODE=direct` references with `EXECUTION_MODE=docker` (direct mode removed from code)
+- [ ] **DOCS-06**: `enroll-node.md` AGENT_URL guidance corrected — removes `172.17.0.1:8001` as primary recommendation; adds `https://agent:8001` as the cold-start compose path
+- [ ] **DOCS-07**: `enroll-node.md` Option B has a Docker socket volume mount note (`/var/run/docker.sock:/var/run/docker.sock` required for `EXECUTION_MODE=docker`)
+- [ ] **DOCS-08**: `install.md` documents a pre-built compose / tarball install alternative for users without GitHub access
+- [ ] **DOCS-09**: `first-job.md` has Ed25519 signing key setup as numbered prerequisites before the dispatch step (generate keypair → register public key at `POST /signatures`)
+- [ ] **DOCS-10**: `first-job.md` has a CLI/API dispatch path (curl `POST /jobs` with signed payload) as an alternative to the guided dashboard form
+- [ ] **DOCS-11**: `first-job.md` has a pre-dispatch key registration callout making the signing prerequisite visually prominent before any dispatch attempt
+
+### EE Documentation Fixes
+
+- [ ] **EEDOC-01**: `ee-install.md` (or equivalent EE getting-started page) replaces all `/api/admin/features` references with the correct `/api/features` endpoint
+- [ ] **EEDOC-02**: `licensing.md` uses consistent `AXIOM_LICENCE_KEY` naming throughout (no `AXIOM_EE_LICENCE_KEY` infix)
+
+## Future Requirements
+
+### Next Milestones
+
+- Job dependencies — job B runs only after job A succeeds (linear then DAG)
+- Conditional triggers — run job based on outcome of previous job or external signal
+- SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials
+- DIST-02: `axiom-ce` image on Docker Hub
+- EE-08: Full `axiom-ee` stub wheel publication to PyPI
+- DIST-04: Licence issuance portal
+- DIST-05: Periodic licence re-validation
+- EE-09: OIDC/SAML SSO integration
+- EE-10: Custom RBAC roles + fine-grained permissions
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| New platform features | v14.1 is a remediation milestone only — no new capabilities |
+| Automated re-run of full cold-start Gemini test | Gemini Tier 1 paid key required; validation is manual for this milestone |
+| docker:cli air-gap mirror instructions | Complex infrastructure concern; deferred to air-gap operations guide |
+| per-node /tmp isolation (`/tmp/axiom-node-N:/tmp`) | Hardened form of the DinD fix; acceptable for homelab; deferred |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| CODE-01 | — | Pending |
+| CODE-02 | — | Pending |
+| CODE-03 | — | Pending |
+| CODE-04 | — | Pending |
+| DOCS-01 | — | Pending |
+| DOCS-02 | — | Pending |
+| DOCS-03 | — | Pending |
+| DOCS-04 | — | Pending |
+| DOCS-05 | — | Pending |
+| DOCS-06 | — | Pending |
+| DOCS-07 | — | Pending |
+| DOCS-08 | — | Pending |
+| DOCS-09 | — | Pending |
+| DOCS-10 | — | Pending |
+| DOCS-11 | — | Pending |
+| EEDOC-01 | — | Pending |
+| EEDOC-02 | — | Pending |
+
+**Coverage:**
+- v14.1 requirements: 17 total
+- Mapped to phases: 0
+- Unmapped: 17 ⚠️
+
+---
+*Requirements defined: 2026-03-25*
+*Last updated: 2026-03-25 after initial definition*
