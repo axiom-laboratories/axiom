@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
 status: verifying
-stopped_at: "Completed 63-02-PLAN.md (checkpoint: operator review of FRICTION-CE-INSTALL.md)"
-last_updated: "2026-03-25T14:03:57.258Z"
-last_activity: 2026-03-25 — Phase 62 plan 03 executed; 4 scenario scripts created, SCAF-04 20/20 checks pass, Phase 62 complete
+stopped_at: "Completed 63-02-PLAN.md — operator confirmed BLOCKER; Phase 63 halted at Plan 02; Plan 63-03 blocked pending 6 node enrollment fixes"
+last_updated: "2026-03-25T14:42:12Z"
+last_activity: 2026-03-25 — Phase 63 Plan 02 complete; FRICTION-CE-INSTALL.md captured 6 node enrollment blockers; operator BLOCKER decision halts Plan 63-03
 progress:
   total_phases: 5
   completed_phases: 2
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 62 of 65 (Agent Scaffolding)
-Plan: 03 of 03 — Complete
-Status: Phase 62 complete — all scaffolding verified
-Last activity: 2026-03-25 — Phase 62 plan 03 executed; 4 scenario scripts created, SCAF-04 20/20 checks pass, Phase 62 complete
+Phase: 63 of 65 (CE Cold-Start Run)
+Plan: 02 of 03 — Complete (Plan 03 BLOCKED by operator)
+Status: Phase 63 halted — operator confirmed BLOCKER on FRICTION-CE-INSTALL.md; node enrollment FAIL; 6 blockers must be fixed before Plan 63-03 can run
+Last activity: 2026-03-25 — Phase 63 Plan 02 complete; FRICTION-CE-INSTALL.md captured 6 node enrollment blockers; operator BLOCKER decision halts Plan 63-03
 
 Progress: [██████████] 100%
 
@@ -57,6 +57,7 @@ Progress: [██████████] 100%
 - [Phase 63-01]: reset_stack() uses docker compose up -d (not --build) — images must be pre-loaded via docker save/load before first run
 - [Phase 63-02]: FRICTION-CE-INSTALL.md verdict: FAIL — node enrollment blocked by 6 converging doc/code mismatches (EXECUTION_MODE=direct removed, wrong node image, TLS cert mismatch, admin password undiscoverable, JOIN_TOKEN GUI-only, docs path wrong)
 - [Phase 63-02]: Gemini free-tier quota insufficient for full scenario run — Tier 1 paid key required (80-120 API calls needed per scenario); verified friction via orchestrator doc-following instead
+- [Phase 63-02 Operator Decision]: BLOCKER confirmed — Phase 63 halted at Plan 02; Plan 63-03 will NOT run until 6 node enrollment blockers are resolved; fixes required: EXECUTION_MODE docs, node image docs, TLS cert/AGENT_URL, admin password setup docs, JOIN_TOKEN CLI path, docs site path reference
 
 ### Pending Todos
 
@@ -67,11 +68,12 @@ None.
 - [Phase 61]: Docker-in-LXC AppArmor pivot_root behaviour on Ubuntu 24.04 kernel 6.8.x — verify `docker run --rm hello-world` succeeds before proceeding
 - [Phase 61]: Gemini CLI headless hang risk — `ripgrep` install and `GEMINI_API_KEY` env var required; verify with `timeout 30 gemini -p "Say hello"`
 - [Phase 62]: Gemini API key tier must be Tier 1 (paid) for a full CE+EE run — free tier 250 RPD is insufficient
+- [Phase 63-HALT]: Plan 63-03 BLOCKED — 6 node enrollment blockers must be fixed: (1) docs path, (2) admin password setup, (3) JOIN_TOKEN CLI path, (4) node image in docs, (5) EXECUTION_MODE=direct removed, (6) TLS cert/AGENT_URL mismatch
 - [Phase 64]: `axiom-ee` wheel availability inside LXC — confirm editable install path vs devpi before Phase 64 planning
 
 ## Session Continuity
 
-Last session: 2026-03-25T14:03:57.257Z
-Stopped at: Completed 63-02-PLAN.md (checkpoint: operator review of FRICTION-CE-INSTALL.md)
-Next action: Begin Phase 63 (CE run) — push ce-install.md and ce-operator.md to LXC and execute
+Last session: 2026-03-25T14:42:12Z
+Stopped at: Completed 63-02-PLAN.md — BLOCKER confirmed; Phase 63 halted; Plan 63-03 blocked
+Next action: Fix 6 node enrollment blockers (see Blockers/Concerns) before resuming Phase 63-03 or proceeding to Phase 64
 Resume file: None

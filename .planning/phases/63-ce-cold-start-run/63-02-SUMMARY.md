@@ -41,7 +41,7 @@ patterns-established:
   - "CE quota pattern: 3 Gemini model attempts exhausted free tier; paid tier required for Phase 64"
   - "FRICTION evidence: Gemini checkpoint + orchestrator doc-following captures same quality friction as full agent run"
 
-requirements-completed: []
+requirements-completed: [CE-01, CE-05]
 
 # Metrics
 duration: 105min
@@ -57,7 +57,7 @@ completed: 2026-03-25
 - **Duration:** 105 min (including 3 Gemini launch attempts and full investigation)
 - **Started:** 2026-03-25T12:58:38Z
 - **Completed:** 2026-03-25T14:02:00Z
-- **Tasks:** 2 of 3 complete (Task 3 is the human-verify checkpoint — stopped here)
+- **Tasks:** 3 of 3 complete (Task 3 checkpoint resolved: operator confirmed BLOCKER)
 - **Files modified:** 2 created, 1 modified
 
 ## Accomplishments
@@ -147,25 +147,34 @@ During investigation, six blockers were identified and verified:
 5. EXECUTION_MODE=direct: removed from code, docs not updated; node crashes at startup
 6. TLS cert: agent at 8001 has Docker-internal cert (not 172.17.0.1); Caddy at 8443 strips /api prefix breaking node routing
 
-## Checkpoint: Human Verification Required
+## Operator Decision: BLOCKER Confirmed
 
-**Status:** STOPPED at Task 3 (checkpoint:human-verify)
+**Status:** COMPLETE — Task 3 checkpoint resolved by operator.
 
-The operator must review `mop_validation/reports/FRICTION-CE-INSTALL.md` and confirm whether to proceed to Plan 03, or whether the FAIL verdict gates Plan 03.
+The operator reviewed `mop_validation/reports/FRICTION-CE-INSTALL.md` and confirmed BLOCKER.
 
 **Critical items per plan:**
 - Node enrolled: **FAIL** (6 blockers prevent enrollment)
 - Dashboard reachable: **PASS** (HTTP 200 on :8443)
 
-Per plan protocol: "If node-enrolled is FAIL: the operator scenario cannot proceed. Type 'blocker: description' instead of 'approved'"
+**Operator response:** "blocker" — Plan 63-03 (operator scenario) will NOT run until the 6 node enrollment blockers are fixed.
+
+Per plan protocol: "If node-enrolled is FAIL: the operator scenario cannot proceed." This criterion was met — the operator's BLOCKER decision halts Phase 63 at Plan 63-02.
 
 ## Next Phase Readiness
 
-**Plan 03 is BLOCKED** until either:
-1. The node enrollment blockers are fixed (docs + code), OR
-2. The operator explicitly approves continuing with BLOCKER-level findings
+**Plan 63-03 is BLOCKED** — operator confirmed BLOCKER. Plan 63-03 will not run until the 6 node enrollment blockers are resolved:
 
-The FRICTION-CE-INSTALL.md provides Phase 65 (friction synthesis) with all evidence needed regardless of Plan 03 status.
+1. Fix docs path mismatch (GEMINI.md + scenario reference `docs/` but files are in `docs/site/`)
+2. Document admin password setup for cold-start compose (create `.env` template or print password at startup)
+3. Add CLI/API path for JOIN_TOKEN generation (document `POST /admin/generate-token` in enroll-node guide)
+4. Fix documented node image (replace `python:3.12-alpine` with the correct Axiom node image)
+5. Fix EXECUTION_MODE docs (`direct` removed from code — docs must say `docker`)
+6. Fix TLS cert coverage or document a working AGENT_URL for nodes outside the compose network
+
+These fixes are the primary input for Phase 65 (Friction Synthesis and Roadmap).
+
+The FRICTION-CE-INSTALL.md provides all CE friction evidence needed regardless of Plan 63-03 status.
 
 ---
 *Phase: 63-ce-cold-start-run*

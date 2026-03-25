@@ -27,7 +27,7 @@ Requirements for the CE/EE Cold-Start Validation milestone. Each maps to roadmap
 - [ ] **CE-02**: Gemini agent dispatches and verifies a Python job via the guided dispatch form; execution confirmed in job history
 - [ ] **CE-03**: Gemini agent dispatches and verifies a Bash job via the guided dispatch form; execution confirmed in job history
 - [ ] **CE-04**: Gemini agent dispatches and verifies a PowerShell job via the guided dispatch form; execution confirmed in job history
-- [ ] **CE-05**: CE `FRICTION.md` produced with verbatim doc quotes for every friction point, full step log, checkpoint steering interventions disclosed, and BLOCKER/NOTABLE/MINOR classification per finding
+- [x] **CE-05**: CE `FRICTION.md` produced with verbatim doc quotes for every friction point, full step log, checkpoint steering interventions disclosed, and BLOCKER/NOTABLE/MINOR classification per finding
 
 ### EE Validation (EE)
 
@@ -82,7 +82,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CE-02 | Phase 63 | Pending |
 | CE-03 | Phase 63 | Pending |
 | CE-04 | Phase 63 | Pending |
-| CE-05 | Phase 63 | Pending |
+| CE-05 | Phase 63 | Complete |
 | EE-01 | Phase 64 | Pending |
 | EE-02 | Phase 64 | Pending |
 | EE-03 | Phase 64 | Pending |
