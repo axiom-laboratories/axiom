@@ -1,5 +1,19 @@
 # Milestones
 
+## v14.0 CE/EE Cold-Start Validation (Shipped: 2026-03-25)
+
+**Phases completed:** 5 phases, 14 plans
+**Stats:** 178 files changed, +39,323 / -1,614 lines | ~33,600 LOC total | 2 days (2026-03-24 → 2026-03-25)
+
+**Key accomplishments:**
+- Phase 61 — LXC cold-start environment: Docker-in-LXC provisioner with AppArmor pivot_root workaround; `compose.cold-start.yaml` with hardcoded `SERVER_HOSTNAME`; PowerShell 7.6 direct .deb install; EE test licence generator with 1-year expiry
+- Phase 62 — Agent scaffolding: Tester `GEMINI.md` with docs-only first-user persona; HOME isolation (`/root/validation-home`) preventing session bleed; `monitor_checkpoint.py` file-based checkpoint protocol; CE/EE scenario scripts with per-step PASS/FAIL checklists
+- Phase 63 — CE cold-start run: 6 critical doc/code gaps identified and patched (EXECUTION_MODE, node image tag, AGENT_URL, admin password docs, JOIN_TOKEN CLI path, docs site path); all 3 runtimes (Python/Bash/PowerShell) verified to COMPLETED via orchestrator-assisted path
+- Phase 64 — EE cold-start run: EE plugin activated with injected licence; all 3 runtimes confirmed COMPLETED; Execution History EE feature verified; CE-gating gap found (`/api/executions` ungated returning HTTP 200 in CE mode)
+- Phase 65 — Friction synthesis: `synthesise_friction.py` (stdlib-only, offline); `cold_start_friction_report.md` — NOT READY verdict with 5 open product BLOCKERs, cross-edition comparison table, actionable doc/code recommendations per finding
+
+---
+
 ## v13.0 Research & Documentation Foundation (Shipped: 2026-03-24)
 
 **Phases completed:** 4 phases, 8 plans, 2 tasks

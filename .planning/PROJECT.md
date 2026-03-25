@@ -121,6 +121,19 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ CE/EE edition badge in dashboard sidebar (useLicence hook + LicenceSection in Admin) — v11.0
 - ✓ MkDocs `!!! enterprise` admonitions on 5 EE feature pages; `licensing.md` CE/EE explainer — v11.0
 
+### Validated — v14.0 CE/EE Cold-Start Validation
+
+- ✓ LXC Docker-in-LXC provisioner (`provision_coldstart_lxc.py`) with AppArmor pivot_root workaround, Gemini CLI, Playwright — v14.0
+- ✓ `compose.cold-start.yaml` cold-start stack with hardcoded `SERVER_HOSTNAME` for SAN correctness, PowerShell 7.6 direct .deb install — v14.0
+- ✓ EE test licence generator with 1-year expiry, `axiom-coldstart-test` customer ID, upserts `AXIOM_EE_LICENCE_KEY` in `secrets.env` — v14.0
+- ✓ Tester `GEMINI.md` with docs-only first-user persona, HOME isolation (`/root/validation-home`) preventing session bleed — v14.0
+- ✓ File-based checkpoint protocol (`monitor_checkpoint.py`): Gemini writes `PROMPT.md`, host operator steers via `RESPONSE.md`, 5-minute graceful timeout — v14.0
+- ✓ CE/EE scenario scripts with per-step PASS/FAIL checklists and checkpoint trigger conditions — v14.0
+- ✓ CE cold-start run: 6 critical doc/code gaps identified and patched (EXECUTION_MODE, node image tag, AGENT_URL, admin password, JOIN_TOKEN CLI path, docs site path) — v14.0
+- ✓ EE cold-start run: EE plugin activated with injected licence; all 3 runtimes (Python/Bash/PowerShell) confirmed COMPLETED; Execution History EE feature verified — v14.0
+- ✓ CE-gating gap found: `/api/executions` returns HTTP 200 in CE mode (not 402) — ungated in `main.py`; documented for next milestone — v14.0
+- ✓ `synthesise_friction.py` (stdlib-only, offline) + `cold_start_friction_report.md` — NOT READY verdict; 5 BLOCKERs; cross-edition comparison table — v14.0
+
 ### Validated — v13.0 Research & Documentation Foundation
 
 - ✓ Parallel job swarming design doc — use case analysis, pull-model race condition solution, tiered build/defer recommendation — v13.0
@@ -133,6 +146,8 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ### Active — Future Milestones
 
+- [ ] **BLOCKER from v14.0**: 5 open product BLOCKERs from `cold_start_friction_report.md` — guided form CLI access, Docker CLI docs gap, DinD /tmp mount, wrong image tag in docs, PowerShell missing in default node image; see `mop_validation/reports/cold_start_friction_report.md`
+- [ ] **BLOCKER from v14.0**: `/api/executions` ungated in CE mode (returns HTTP 200 not 402) — fix in `main.py` CE stub router
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
 - [ ] Conditional triggers — run job based on outcome of previous job or external signal
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
@@ -212,17 +227,15 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | job_run_id groups all retry attempts | Enables per-run history queries without denormalising attempt data | ✓ Good |
 | Attestation verification never raises exceptions | Verification failure is a status (attestation_verified="FAILED"), not a crash — keeps execution record regardless | ✓ Good |
 | outerjoin Job on list_executions for max_retries | ExecutionRecord has no max_retries column — join pulls it from the parent Job; NULL for orphaned records | ✓ Good |
+| `raw.apparmor=pivot_root` override for Docker-in-LXC | Ubuntu 24.04 kernel 6.8.x AppArmor policy blocks pivot_root syscall; override required for Docker nesting in Incus (issue #791) | ✓ Good |
+| HOME isolation for Gemini tester (`/root/validation-home`) | Prevents session bleed and auto-loading of developer `GEMINI.md` context between test runs | ✓ Good |
+| File-based checkpoint protocol (PROMPT.md/RESPONSE.md) | Allows orchestrator to steer blocked Gemini agent without API coupling; 5-minute graceful timeout prevents deadlock | ✓ Good |
+| Fixed-during-run BLOCKERs still count as open for verdict | BLOCKERs resolved by orchestrator intervention expose UX/doc gaps even when technically working; NOT READY verdict is correct | ✓ Good |
+| `synthesise_friction.py` uses stdlib only | No external API calls or LLM calls for synthesis — deterministic, offline-safe, reproducible output | ✓ Good |
 
-## Current Milestone: v14.0 CE/EE Cold-Start Validation
+## Previous State — v14.0 Complete (2026-03-25)
 
-**Goal:** Validate Axiom's install and operator paths end-to-end using Gemini CLI agents as first-time users inside LXC containers, covering both CE and EE scenarios across all job runtimes.
-
-**Target features:**
-- LXC-based test environment (full Axiom Docker stack + puppet nodes inside a single container)
-- Gemini CLI tester agents with docs-only access and file-based checkpoint steering
-- CE cold-start: install path + operator path (Python, Bash, PowerShell jobs)
-- EE cold-start: install path + operator path + EE-gated features (with pre-generated licence)
-- Friction report synthesising findings from both runs
+Axiom v14.0 delivered the CE/EE Cold-Start Validation milestone — 5 phases, 14 plans, 18 requirements satisfied. A Gemini CLI tester agent was used as a first-time user inside an LXC container running the full Axiom Docker stack. The CE cold-start run uncovered 6 critical doc/code gaps — all fixed mid-milestone (EXECUTION_MODE docs, node image tag, AGENT_URL format, admin password discovery, JOIN_TOKEN CLI path, docs site path). The EE run confirmed the EE plugin activates correctly with a pre-injected licence and all 3 runtimes execute to COMPLETED. The final friction report (`cold_start_friction_report.md`) delivers a NOT READY verdict with 5 open product BLOCKERs for the next milestone to address. A secondary finding — `/api/executions` ungated in CE mode — is also documented. The Gemini API free tier (20–250 RPD) was insufficient for a full autonomous run; Tier 1 paid key required for future runs.
 
 ## Previous State — v13.0 Complete (2026-03-24)
 
@@ -235,4 +248,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-24 after v14.0 milestone start — CE/EE Cold-Start Validation*
+*Last updated: 2026-03-25 after v14.0 milestone — CE/EE Cold-Start Validation*

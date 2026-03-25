@@ -300,6 +300,47 @@
 - Pure documentation/content work; no backend or frontend code changes
 - All 4 phases executed in parallel in two waves; fastest milestone execution by plan-count ratio
 
+## Milestone: v14.0 — CE/EE Cold-Start Validation
+
+**Shipped:** 2026-03-25
+**Phases:** 5 (61–65) | **Plans:** 14
+
+### What Was Built
+- LXC cold-start environment: Docker-in-LXC provisioner (`provision_coldstart_lxc.py`) with AppArmor pivot_root workaround, `compose.cold-start.yaml` with hardcoded SAN, PowerShell 7.6 direct .deb install, EE test licence generator
+- Agent scaffolding: Tester `GEMINI.md` with docs-only first-user persona; HOME isolation at `/root/validation-home`; `monitor_checkpoint.py` file-based checkpoint protocol; CE/EE scenario scripts with per-step checklists
+- CE cold-start run: 6 critical doc/code gaps found and patched mid-milestone (EXECUTION_MODE, node image tag, AGENT_URL, admin password discovery, JOIN_TOKEN CLI path, docs site path reference)
+- EE cold-start run: EE plugin activation verified with injected licence; all 3 runtimes (Python/Bash/PowerShell) confirmed to COMPLETED; Execution History EE feature verified; CE-gating gap found (`/api/executions` ungated)
+- Friction synthesis: `synthesise_friction.py` (stdlib-only, offline) + `cold_start_friction_report.md` — NOT READY verdict; 5 open product BLOCKERs; cross-edition comparison table; actionable per-finding recommendations
+
+### What Worked
+- Orchestrator-assisted fallback when Gemini hit quota limits: running the scenario manually via doc-following + API dispatch still produced valid friction evidence — the checkpoint protocol wasn't needed for the fallback, but the scenario scripts were essential
+- Pre-loading Docker images from host into LXC via `docker save | docker load` was the correct pattern — compose build contexts are not available inside the container
+- Unique FRICTION file names (FRICTION-CE-INSTALL.md, FRICTION-CE-OPERATOR.md etc.) prevented silent overwrites across 4 separate friction files
+- Fixing blockers mid-Phase-63 rather than pausing preserved context and allowed the CE operator run to proceed without context reset
+
+### What Was Inefficient
+- Phase 63 required an unplanned Plan 63-04 to fix 6 doc/code gaps before Plan 03 could run — should budget a "gap fix" sub-plan in adversarial validation phases
+- Gemini free-tier quota (20–250 RPD) hit on both CE and EE runs — free tier is not viable for any scenario requiring 80–120 API calls; a paid API key should be a prerequisite check before Phase 63 starts, not discovered mid-run
+- `confirm_ce_gating()` in Phase 64 used `docker compose restart` (doesn't re-read env vars) instead of `--force-recreate` — script bug not caught until the finding was documented in Phase 65
+- HOME isolation approach (settings.json only in `/root/validation-home`) is a workaround; a proper Gemini CLI `--no-config` flag would be cleaner
+
+### Patterns Established
+- **Adversarial validation phase budget**: Add a "gap fix" sub-plan as Plan N+1 in any phase where doc accuracy is being tested — blockers are expected, not exceptional
+- **Gemini API tier check**: Verify Tier 1 paid key is available before any scenario run phase — free tier is too restrictive for full-session tester agents
+- **Unique friction file naming**: `FRICTION-{EDITION}-{PHASE}.md` prevents silent overwrites and makes synthesis deterministic
+- **Stdlib-only synthesis**: Offline friction synthesis with no LLM calls is faster, cheaper, and reproducible — use for all report generation
+
+### Key Lessons
+- First-user doc accuracy is harder to validate than first-user functionality — the CE installation path failed on doc gaps (wrong image tag, missing EXECUTION_MODE) not code bugs
+- A Gemini agent following docs cold is a much more rigorous test than a developer running the same steps — developers skip undocumented prerequisites implicitly
+- The CE-gating gap (`/api/executions` returning 200 in CE mode) was only discovered because the EE operator path explicitly confirmed Execution History was available, then re-tested on CE
+
+### Cost Observations
+- 5 phases, 14 plans, 2 days (2026-03-24 → 2026-03-25)
+- 178 files changed, +39,323 / -1,614 lines (includes a 6MB EE wheel binary)
+- Mixed milestone: infrastructure scripting (Python), docs fixes, one backend fix, synthesis script
+- Gemini API quota limits forced orchestrator-assisted mode — cost-efficient but reduced autonomy
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -312,3 +353,4 @@
 | v11.1 | 8 | 27 | Adversarial validation milestone; scripted evidence per requirement; gap-closure plans serial on live infra |
 | v12.0 | 11 | 38 | Operator UX milestone; audit surfaced 4 critical integration gaps; gap-closure phases (54, 56) with E2E test file |
 | v13.0 | 4 | 8 | Research + docs reset milestone; all phases parallel; no code changes; two design docs ground next build cycle |
+| v14.0 | 5 | 14 | Adversarial validation milestone; Gemini-as-first-user; doc accuracy failures dominate; gap-fix sub-plan needed for doc-test phases |
