@@ -1,536 +1,393 @@
 # Architecture Research
 
-**Domain:** CE/EE Cold-Start Validation Framework — LXC + Gemini Agent + Checkpoint Protocol
-**Researched:** 2026-03-24
-**Confidence:** HIGH — all components derived from direct codebase inspection of existing LXC patterns, Docker bridge networking, and Caddy TLS cert provisioning
+**Domain:** First-user readiness fixes for Axiom job orchestration platform (v14.1)
+**Researched:** 2026-03-25
+**Confidence:** HIGH — all findings verified directly from codebase source files
 
 ---
 
-## Context Note
+## Context: What Is Being Fixed
 
-This file covers v14.0 architecture only. It supersedes the v11.1 validation architecture (LXC node provisioning, job test matrix) for the purposes of the current milestone. v14.0 adds a Gemini CLI tester agent and a file-based checkpoint protocol on top of the established LXC patterns. Where v11.1 components are reused, they are referenced, not re-documented.
+This research answers four precise integration questions for the v14.1 milestone. The existing architecture is not being redesigned — specific gaps found during the v14.0 CE/EE cold-start validation are being patched. Each section below covers one fix area: where the change lands, what surrounds it, and what constraints the fix must respect.
 
 ---
 
 ## System Overview
 
-### Full v14.0 Cold-Start Validation Stack
-
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     Host Machine (Thomas's dev box)                          │
-│                                                                               │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  Incus LXC: axiom-cold-start-ce  (Ubuntu 24.04, nesting=true)        │    │
-│  │                                                                       │    │
-│  │  ┌─────────────────────────────────────────┐  ┌──────────────────┐  │    │
-│  │  │    Docker Compose — Axiom Stack          │  │  Gemini Tester   │  │    │
-│  │  │    (compose.cold-start.yaml)             │  │  (gemini CLI)    │  │    │
-│  │  │                                          │  │                  │  │    │
-│  │  │  cert-manager (Caddy) :443 :80           │  │  GEMINI.md       │  │    │
-│  │  │    SERVER_HOSTNAME=172.17.0.1            │  │  Playwright      │  │    │
-│  │  │  agent (FastAPI)      :8001              │  │  axiom-sdk CLI   │  │    │
-│  │  │  model                :8000              │  │  requests (API)  │  │    │
-│  │  │  dashboard (React)    (via Caddy)        │  │                  │  │    │
-│  │  │  docs (MkDocs)        /docs/             │  └────────┬─────────┘  │    │
-│  │  │  db (Postgres)        :5432              │           │             │    │
-│  │  │  registry             :5000              │           │ r/w direct  │    │
-│  │  │  devpi                :3141              │           │             │    │
-│  │  │  pypi / mirror        :8080 :8081        │  ┌────────▼─────────┐  │    │
-│  │  │                                          │  │  /workspace/     │  │    │
-│  │  │  puppet-node-1                           │  │  checkpoint/     │  │    │
-│  │  │    EXECUTION_MODE=direct                 │  │  ├─ PROMPT.md    │  │    │
-│  │  │    AGENT_URL=https://172.17.0.1:8001     │  │  ├─ RESPONSE.md  │  │    │
-│  │  │    ENV_TAG=DEV                           │  │  ├─ STATUS.md    │  │    │
-│  │  │  puppet-node-2                           │  │  └─ FRICTION.md  │  │    │
-│  │  │    ENV_TAG=PROD                          │  └─────────────────┘  │    │
-│  │  │                                          │                        │    │
-│  │  └────────────── Docker bridge 172.17.0.0/16┘                       │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                               │
-│       incusbr0: 10.x.x.x/24   (LXC ↔ host bridge, NOT used by puppet nodes) │
-│                                                                               │
-│  Claude (host session)                                                        │
-│    ├── monitor_checkpoint.py  ──── incus exec / file read ──── checkpoint/  │
-│    └── synthesise_friction.py ──── merges CE+EE FRICTION.md files           │
-│                                                                               │
-│  (Separate run) axiom-cold-start-ee — identical topology + AXIOM_LICENCE_KEY │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  Operator Browser                                                    │
+│  dashboard (React/Vite -> Caddy at :443/:8443)                      │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           | HTTPS (Caddy TLS termination)
+┌──────────────────────────▼──────────────────────────────────────────┐
+│  Control Plane (puppeteer/)                                          │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  FastAPI agent service (:8001)                                │   │
+│  │  ┌────────────────────────────┐  ┌────────────────────────┐  │   │
+│  │  │  main.py  (CE routes +     │  │  ee/__init__.py         │  │   │
+│  │  │  lifespan licence gating)  │  │  _mount_ce_stubs() OR  │  │   │
+│  │  │                            │  │  load_ee_plugins()      │  │   │
+│  │  └────────────────────────────┘  └────────────────────────┘  │   │
+│  │  ┌──────────────────────────────────────────────────────┐    │   │
+│  │  │  deps.py  (get_current_user, require_permission,      │    │   │
+│  │  │            require_auth, audit, _perm_cache)           │    │   │
+│  │  └──────────────────────────────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  PostgreSQL 15 (pgdata volume)                                       │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           | mTLS (node-signed client cert)
+┌──────────────────────────▼──────────────────────────────────────────┐
+│  Puppet Nodes (puppets/)                                             │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  node.py -- polls /work/pull, executes via runtime.py         │   │
+│  │  runtime.py -- spawns `docker run` or `podman run`            │   │
+│  │  /tmp/job_<guid>.<ext> -- temp script file (bind-mounted in)  │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  Containerfile.node -- built image: localhost/axiom-node:cold-start │
+└─────────────────────────────────────────────────────────────────────┘
+                           | nginx at :80
+┌──────────────────────────▼──────────────────────────────────────────┐
+│  MkDocs docs site (docs/)                                            │
+│  Two-stage Dockerfile: builder (mkdocs build) -> nginx:alpine       │
+│  Content source: docs/docs/**/*.md + mkdocs.yml nav                 │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+---
 
-| Component | Responsibility | Lives In |
-|-----------|----------------|----------|
-| Incus LXC container | Fully isolated test environment; one per CE/EE run | Host (`incus launch`) |
-| `compose.cold-start.yaml` | Trimmed Axiom stack: no Cloudflare tunnel, no DuckDNS, `SERVER_HOSTNAME=172.17.0.1` | `puppeteer/` in LXC |
-| puppet-node-1 / puppet-node-2 | Job executors enrolled during test run; `EXECUTION_MODE=direct` | Docker containers inside LXC |
-| Gemini tester agent | Follows docs site, dispatches jobs, validates outcomes; treats Axiom as a black box | LXC process (not Docker container) |
-| checkpoint/ directory | Async comms channel: Gemini writes PROMPT.md; Claude reads and writes RESPONSE.md | `/workspace/checkpoint/` in LXC |
-| tester GEMINI.md | Scoped constraints for tester: docs-only, no source code, file comms protocol | `/workspace/gemini-context/` in LXC |
-| monitor_checkpoint.py | Host-side: polls PROMPT.md, presents to Claude, writes RESPONSE.md back | `mop_validation/cold_start/` on host |
-| synthesise_friction.py | Merges CE + EE FRICTION.md logs into final report | `mop_validation/cold_start/` on host |
-| inject_ee_licence.py | Pre-injects `AXIOM_LICENCE_KEY` into LXC `.env` before EE stack launch | `mop_validation/cold_start/` on host |
+## Fix Area 1: `/api/executions` CE-Gating
 
-## Recommended Project Structure
+### How CE/EE Gating Works
 
-```
-mop_validation/
-└── cold_start/
-    ├── provision_lxc.py          # Launch + configure CE or EE LXC container
-    ├── teardown_lxc.py           # Destroy container + clean artifacts
-    ├── inject_ee_licence.py      # Pre-inject AXIOM_LICENCE_KEY into LXC .env
-    ├── monitor_checkpoint.py     # Poll PROMPT.md, present to Claude, write RESPONSE.md
-    └── synthesise_friction.py    # Merge CE + EE FRICTION.md → cold_start_friction_report.md
+The CE/EE split operates entirely at **startup** via `lifespan()` in `main.py`. The decision tree is:
 
-# Inside each LXC container at /workspace/:
-/workspace/
-├── axiom/                         # Cloned from host bind-mount or git clone
-│   ├── puppeteer/
-│   │   ├── compose.cold-start.yaml  # New: trimmed stack (no tunnel, no ddns)
-│   │   └── .env                     # Generated per-run; CE has no licence key
-│   └── puppets/
-├── checkpoint/
-│   ├── PROMPT.md                  # Written by Gemini; Claude reads
-│   ├── RESPONSE.md                # Written by Claude; Gemini reads
-│   ├── STATUS.md                  # Gemini maintains: phase, step, blocked flag
-│   └── FRICTION.md                # Gemini appends: friction log entries
-└── gemini-context/
-    ├── GEMINI.md                  # Tester-scoped constraints
-    └── test-signing.key           # Ed25519 private key for axiom-push job signing
-```
+1. Parse `AXIOM_LICENCE_KEY` from env. If valid and unexpired, set `app.state.licence = data` and `_licence_valid = True`.
+2. If valid, call `load_ee_plugins(app, engine)` — discovers `axiom.ee` entry point, calls `plugin.register(ctx)`, mounts real EE routers.
+3. If not valid, call `_mount_ce_stubs(app)` — mounts 6 stub routers from `ee/interfaces/`. Each stub router returns a hardcoded `JSONResponse(status_code=402, ...)`.
 
-### Structure Rationale
+The stubs only cover routes they explicitly declare. There is no catch-all 402 gate; each EE route must be enumerated in an interface file.
 
-- **`cold_start/` is separate from sprint scripts:** Cold-start provisioning/monitoring is repeated per CE/EE run and is not test-logic; it belongs in its own subdirectory, not mixed with `test_playwright.py` or `test_local_stack.py`.
-- **`compose.cold-start.yaml` is a new file, not a modified production compose:** Production `compose.server.yaml` references DuckDNS tokens, Cloudflare tunnel, and ddns-updater — all of which fail inside LXC. Modifying the production compose for test purposes is an anti-pattern.
-- **`/workspace/checkpoint/` is outside the axiom repo tree:** Gemini must not confuse checkpoint files with axiom source files. Keeping them separate enforces the "docs-only, no source code" constraint.
-- **`gemini-context/GEMINI.md` is a different file from the repo GEMINI.md:** The repo GEMINI.md is developer-scoped (read code, check sister repos, run deployment scripts). The tester GEMINI.md constrains Gemini to first-time-user behaviour.
+### Where `/api/executions` Lives
 
-## Architectural Patterns
+`/api/executions` (GET list), `/api/executions/{id}` (GET single), and `/api/executions/{id}/attestation` are declared directly in `main.py` at lines 231, 296, and 339. They use `Depends(require_auth)` — standard CE auth — not EE gating. The stub router system has no interface file for executions; this path was never handed to EE.
 
-### Pattern 1: Docker Bridge as Puppet Node AGENT_URL Inside LXC
+Execution History (`ExecutionRecord` table, `GET /api/executions`) is a v10.0 feature documented as EE-only in the validated requirements. The routes are reachable on CE because they were placed in `main.py` rather than in an EE router.
 
-**What:** Puppet nodes are Docker containers launched by Docker Compose inside the LXC container. Their network namespace's gateway to the host Docker network is `172.17.0.1` (the standard Docker bridge host IP). The cert-manager's Caddy TLS certificate must include this IP as a SAN.
+### How to Add the Gate
 
-**When to use:** Always — for any puppet nodes launched as Docker containers inside an LXC container.
+There is no `require_ee_licence()` dependency in the codebase — this concept does not exist. Two patterns are available:
 
-**Trade-offs:** `172.17.0.1` is the default Docker bridge gateway and is consistent across machines unless Docker's bridge CIDR has been customised. The incusbr0 IP (`10.x.x.x`) is NOT used here — that bridge connects the LXC container to the host, not Docker containers to each other.
+**Pattern A — Move routes to EE router (recommended):** Move the three execution routes from `main.py` into an EE router file (e.g., `ee/routers/execution_router.py`), and add stub routes in a new `ee/interfaces/executions.py`. The EE router file gets mounted by the EE plugin's `register(ctx)` method; the CE stub gets mounted by `_mount_ce_stubs()`. This mirrors exactly how audit, foundry, webhooks, and the other EE features are handled.
 
-**Confirmed working:** `lxc-node-compose.yaml` uses `extra_hosts: host.docker.internal:host-gateway` which resolves to `172.17.0.1` inside Docker. The `compose.cold-start.yaml` must set `SERVER_HOSTNAME=172.17.0.1` so the cert-manager generates a Caddy cert with this IP as a SAN.
+**Pattern B — Add a request-time dependency:** Create a `require_ee_licence` FastAPI dependency that checks `request.app.state.licence is not None` and raises `HTTPException(402)` if absent. This is simpler but diverges from the established architectural pattern — the stub-router approach is cleaner because it avoids mixing CE/EE logic in `main.py`.
 
-```yaml
-# In compose.cold-start.yaml — cert-manager service
-environment:
-  - SERVER_HOSTNAME=172.17.0.1   # Caddy cert SAN includes Docker bridge IP
+Pattern A is the correct integration path because it keeps `main.py` as CE-only and all EE routes in `ee/`. It also ensures the 402 response format is consistent with all other EE stubs.
+
+### Files Affected
+
+| File | Change Type | What Changes |
+|------|-------------|--------------|
+| `puppeteer/agent_service/main.py` | Modified | Remove 3 execution routes (list, get, attestation) |
+| `puppeteer/agent_service/ee/routers/execution_router.py` | New | Real execution routes (moved from main.py, with EE auth) |
+| `puppeteer/agent_service/ee/interfaces/executions.py` | New | CE stub returning 402 for all 3 execution routes |
+| `puppeteer/agent_service/ee/__init__.py` | Modified | Import executions stub; add to `_mount_ce_stubs()` |
+
+Note: `/jobs/{guid}/executions` (per-job execution list, line 1369 in main.py) and the pin/unpin endpoints (lines 2274, 2291) and CSV export (line 2357) share the same scope problem and likely belong in EE scope as well, though the NOTABLE finding specifically calls out `GET /api/executions`.
+
+### Constraint: No Breaking Change for EE Deployments
+
+EE users currently rely on `GET /api/executions` returning 200. Moving the route to an EE router maintains that behaviour for licensed installs because `load_ee_plugins` mounts the real EE router. Route registration order matters: EE routers must be included before any possible 404 fallback, which the current plugin system already handles correctly.
+
+---
+
+## Fix Area 2: Containerfile.node — Docker CLI Install
+
+### Current State
+
+`puppets/Containerfile.node` already contains the correct Docker CE CLI install via multi-stage COPY:
+
+```dockerfile
+COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker
 ```
 
-```yaml
-# Puppet node service in compose.cold-start.yaml
-environment:
-  - AGENT_URL=https://172.17.0.1:8001
-  - EXECUTION_MODE=direct        # Docker-in-Docker: avoid nested cgroup v2 issues
-  - VERIFY_SSL=false             # Self-signed cert from Axiom Root CA
-```
+The comment in the file explains the rationale: on Debian 13 (Trixie), `docker.io` no longer ships the CLI binary — it requires `docker-cli` as a separate recommended package. Copying from `docker:cli` avoids adding the full Docker apt repo and delivers a statically linked binary.
 
-### Pattern 2: Gemini Agent Accesses Axiom Services via localhost
+This BLOCKER was fixed during the v14.0 run. The Containerfile already contains the correct fix.
 
-**What:** The Gemini tester runs as a process directly inside the LXC container (not inside any Docker container). From Gemini's perspective, Caddy (443/80), the agent (8001), and the docs site (/docs/) are all at `localhost` or `127.0.0.1`.
+### Why the `docker:cli` COPY Pattern Works
 
-**When to use:** All Gemini HTTP calls, Playwright browser navigation, `axiom-push` CLI invocations target `https://localhost:443` or `https://localhost:8001`.
+The `docker:cli` image (`docker.io/library/docker:cli`) is a minimal Alpine image containing the Docker CLI binary at `/usr/local/bin/docker`. The binary is statically linked — it carries no glibc/musl dependency and runs correctly on the `python:3.12-slim` (Debian bookworm) base. This is the Docker-official approach for DinD scenarios, avoiding the instability of Debian's `docker-ce-cli` apt package across Debian version transitions.
 
-**Trade-offs:** Caddy's TLS certificate is self-signed (Root CA generated by cert-manager at first start). Playwright must either install the Root CA into the system trust store, or the Playwright session must use `--ignore-certificate-errors`. Installing the Root CA is the cleaner approach and mirrors what a real new user would do.
+The current base image is `python:3.12-slim` (Debian 12 bookworm). The comment referencing "Debian 13 (Trixie)" is forward-looking documentation explaining why the apt approach was avoided. This distinction matters if the base image is ever bumped to a trixie-based image.
 
-**CA installation sequence (run once after stack start):**
+### Files Affected
+
+| File | Change Type | What Changes |
+|------|-------------|--------------|
+| `puppets/Containerfile.node` | Already fixed in v14.0 | No further change needed for Docker CLI |
+
+If any additional Containerfile changes are required (e.g., for PowerShell version or base image updates), rebuild:
+
 ```bash
-# Inside LXC — bootstraps trust before Playwright runs
-curl -sk http://localhost:80/system/root-ca -o /tmp/axiom-root.crt
-sudo cp /tmp/axiom-root.crt /usr/local/share/ca-certificates/axiom-root.crt
-sudo update-ca-certificates
-# Playwright then trusts the cert without --ignore-certificate-errors
+docker build -t localhost/axiom-node:cold-start -f puppets/Containerfile.node puppets/
 ```
 
-**Key confirmed from prior work:** Python Playwright requires `args=['--no-sandbox']` inside LXC. This is documented in CLAUDE.md and confirmed working in v11.1.
-
-### Pattern 3: File-Based Checkpoint Protocol
-
-**What:** Gemini writes to `checkpoint/PROMPT.md` when it needs human steering, then polls for `checkpoint/RESPONSE.md`. Claude reads the prompt via `monitor_checkpoint.py` and writes the response back. Both parties use a version counter in the file header to prevent stale reads.
-
-**When to use:** When the Gemini agent encounters a decision point it cannot resolve from the docs site alone: ambiguous instructions, missing prerequisite, blocked install step, unexpected UI behaviour.
-
-**File schema:**
-
-```
-checkpoint/PROMPT.md
----
-# PROMPT v{N}
-phase: {install_path|operator_path|ee_features}
-question: {one sentence}
-context: |
-  Last 3 actions taken (free text)
 ---
 
-checkpoint/RESPONSE.md
----
-# RESPONSE v{N}
-instruction: {what to do next — one paragraph max}
----
+## Fix Area 3: `compose.cold-start.yaml` — `/tmp:/tmp` Bind Mount
 
-checkpoint/STATUS.md
----
-phase: {current phase name}
-step: {current step number or name}
-last_action: {one sentence}
-blocked: {true|false}
----
+### Why the Mount Is Required
 
-checkpoint/FRICTION.md
----
-## FRICTION ENTRY
-phase: {install_path|operator_path|ee_features}
-observation: {what was confusing or wrong}
-severity: {BLOCKER|NOTABLE|MINOR}
-step_ref: {doc page or UI element reference}
----
+`compose.cold-start.yaml` mounts `/tmp:/tmp` into `puppet-node-1` and `puppet-node-2` (lines 120 and 142). This is required by the DinD execution model in `node.py`.
+
+`node.py` writes job scripts to a temp path inside the node container:
+
+```python
+tmp_path = f"/tmp/job_{guid}.{ext}"
+with open(tmp_path, "w") as f:
+    f.write(script)
+mounts.append(f"{tmp_path}:{tmp_path}:ro")
 ```
 
-**Polling parameters:**
-- Gemini polls `RESPONSE.md` every 15 seconds, up to 20 iterations (5-minute timeout)
-- If no response in 5 minutes, Gemini writes `STATUS.md: blocked=true` and continues with a best-effort fallback
-- Claude's `monitor_checkpoint.py` polls `PROMPT.md` every 30 seconds
+The `docker run` command spawned by `runtime.py` runs against the **host Docker daemon** via the mounted `/var/run/docker.sock`. Host Docker resolves volume paths relative to the **host filesystem**, not the container filesystem. Without `/tmp:/tmp`, the script file written inside the node container is invisible to the host daemon when it tries to bind-mount it into the job container.
 
-**Handshake protocol:**
-1. Gemini writes `PROMPT.md` with version counter `v{N}`
-2. Gemini sets `STATUS.md: blocked=true`
-3. Claude reads `PROMPT.md`, writes `RESPONSE.md` with matching header `# RESPONSE v{N}`
-4. Gemini detects version match, reads instruction, sets `STATUS.md: blocked=false`, continues
-5. Gemini archives consumed prompt: `mv checkpoint/PROMPT.md checkpoint/PROMPT.v{N}.md`
+This BLOCKER was fixed during the v14.0 run. The mount is already present in `compose.cold-start.yaml`.
 
-**Host-side read/write via incus exec:**
+### Volume Conflict Analysis
+
+`compose.cold-start.yaml` defines named volumes: `pgdata`, `certs-volume`, `caddy_data`, `caddy_config`, `node1-secrets`, `node2-secrets`. The `/tmp:/tmp` bind mount is a host bind mount, not a named volume. There is no conflict — Docker treats host bind mounts and named volumes as separate constructs at different levels.
+
+### Security Note for Production Operators
+
+The cold-start `/tmp:/tmp` mount is appropriate for local evaluation. For production nodes (the standalone `node-compose.yaml` pattern), the `/tmp:/tmp` mount is not required when the node container has direct filesystem visibility to the host paths it uses. In production, operators typically use a dedicated named volume or bind mount for script staging rather than sharing the entire `/tmp`. The docs should clarify this distinction.
+
+### Files Affected
+
+| File | Change Type | What Changes |
+|------|-------------|--------------|
+| `puppeteer/compose.cold-start.yaml` | Already fixed in v14.0 | `/tmp:/tmp` present for both node services |
+
+No further code changes are needed. A documentation note in `enroll-node.md` explaining why `/tmp:/tmp` is required in DinD setups may be worthwhile.
+
+---
+
+## Fix Area 4: MkDocs Docs — Content Structure and CLI Alternatives
+
+### MkDocs Content Structure
+
+All content files live under `docs/docs/`. The nav is declared in `docs/mkdocs.yml`. The build pipeline is:
+
+1. Builder stage: `mkdocs build --strict` (runs inside `python:3.12-slim`). The `--strict` flag means any broken link or undefined reference fails the build.
+2. Runtime stage: `nginx:alpine` serves the compiled `site/` directory.
+
+**Current nav for Getting Started** (from `docs/mkdocs.yml`):
+```yaml
+- Getting Started:
+  - Prerequisites: getting-started/prerequisites.md
+  - Install: getting-started/install.md
+  - Running with Docker: getting-started/docker-deployment.md
+  - Enroll a Node: getting-started/enroll-node.md
+  - First Job: getting-started/first-job.md
+```
+
+For v14.1 all fixes are content edits to existing files, with one exception: if a new `ee-install.md` page is created (BLOCKER: "BLOCKER: `/api/admin/features` endpoint does not exist — `docs/getting-started/ee-install.md`"), both the file and a nav entry in `mkdocs.yml` must be added, otherwise `--strict` will fail or the file will be unreachable.
+
+### Current Getting-Started File Status
+
+| File | Current State | Open Gaps |
+|------|--------------|-----------|
+| `getting-started/install.md` | Has Steps 1-4 (clone, secrets.env, start, verify) and an EE section | Admin password discovery step missing; GitHub clone assumption; cold-start path not separated |
+| `getting-started/enroll-node.md` | Has dashboard + CLI alternative, AGENT_URL table, Option A/B install | Partially patched during v14.0; verify image tag accuracy and socket mount documentation |
+| `getting-started/first-job.md` | Has keygen, dashboard registration, manual signing, dispatch | Missing CLI/API dispatch path; `axiom-push` mentioned as a tip only, no full example |
+| `getting-started/ee-install.md` | May not exist | If it exists: wrong endpoint (`/api/admin/features` vs `/api/features`); if not: entire file needed |
+
+### Adding curl/API CLI Alternatives
+
+`first-job.md` currently documents dashboard-only dispatch. The friction report BLOCKER is: "Guided form requires browser — no CLI/API dispatch path documented."
+
+The architecture supports two CLI-facing paths:
+
+**Path 1 — axiom-push CLI (simplest):**
 ```bash
-# Read PROMPT (non-destructive)
-incus exec axiom-cold-start-ce -- cat /workspace/checkpoint/PROMPT.md
-
-# Write RESPONSE
-incus file push /tmp/response.md axiom-cold-start-ce/workspace/checkpoint/RESPONSE.md
+pip install axiom-sdk
+axiom-push login https://<orchestrator>:8001
+axiom-push push hello.py --key dev-operator-key
 ```
 
-### Pattern 4: CE vs EE LXC Provisioning — Single Difference
+This is already mentioned as a tip in `first-job.md` but without a full working example. The `axiom-push` package on PyPI handles signing and submission in one command. Adding a full example requires no backend changes.
 
-**What:** CE and EE runs use identically provisioned LXC containers with one explicit difference: the EE container has `AXIOM_LICENCE_KEY` injected into the Axiom `.env` file and the `axiom-ee` package installed into the agent image before `docker compose up`.
+**Path 2 — Raw curl (explicit, shows the API surface):**
 
-**When to use:** Always run CE first. EE run depends on CE baseline being clean.
-
-**CE provisioning (complete):**
-1. `incus launch images:ubuntu/24.04 axiom-cold-start-ce -c security.nesting=true`
-2. Install Docker, docker-compose-plugin, Python 3, pip, Playwright deps, Gemini CLI
-3. Clone axiom repo to `/workspace/axiom/` (or bind-mount from host)
-4. Copy `compose.cold-start.yaml` to `/workspace/axiom/puppeteer/`
-5. Write `.env` file (no `AXIOM_LICENCE_KEY`)
-6. Drop tester context into `/workspace/gemini-context/` (GEMINI.md + test-signing.key)
-7. Create `/workspace/checkpoint/` directory with empty seed files
-8. Register `test-signing.key` public key with Axiom API (prerequisite for job dispatch)
-
-**EE provisioning — differences from CE only:**
-1. Container name: `axiom-cold-start-ee`
-2. After copying repo: `echo "AXIOM_LICENCE_KEY=${TEST_LICENCE_KEY}" >> /workspace/axiom/puppeteer/.env`
-3. Install `axiom-ee` into the agent image before stack launch:
-   - Editable install path: `pip install -e /workspace/axiom-ee/` inside the agent container at build time
-   - OR: push dev wheel to devpi inside LXC, rebuild agent image with EE wheel from devpi
-4. Tester GEMINI.md includes EE-specific test directives (check licence badge, test EE-gated routes)
-
-## Data Flow
-
-### Install Path (Gemini follows getting-started docs)
-
-```
-Gemini reads http://localhost/docs/getting-started/
-    |
-    v
-Step: generate JOIN_TOKEN
-    POST /auth/login → JWT
-    POST /admin/generate-token → JOIN_TOKEN
-    |
-    v
-Step: enroll a puppet node
-    Gemini runs installer script inside LXC (or starts Docker Compose puppet service)
-    puppet-node-1 polls GET /work/pull → enrolled via mTLS cert exchange
-    puppet-node-1 heartbeats → appears ONLINE in GET /nodes
-    |
-    v
-Gemini verifies via dashboard (Playwright) or API
-    If step matches docs exactly → no friction entry
-    If step deviates from docs → FRICTION.md entry (NOTABLE or MINOR)
-    If step is blocked → PROMPT.md entry (BLOCKER), wait for RESPONSE.md
-    |
-    v
-checkpoint/STATUS.md: install_path COMPLETE
+First, get a JWT:
+```bash
+TOKEN=$(curl -sk -X POST https://<host>:8001/auth/login \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'username=admin&password=<pass>' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 ```
 
-### Operator Path (Gemini uses the running system)
-
-```
-Gemini reads http://localhost/docs/feature-guides/
-    |
-    v
-Dispatch Python job:
-    axiom-push sign script.py --key /workspace/gemini-context/test-signing.key
-    POST /api/jobs {..., task_type="script", runtime="python"}
-    |
-    v
-Job: PENDING → ASSIGNED → IN_PROGRESS → COMPLETED
-    GET /api/executions?job_id=X → verify stdout captured
-    |
-    v
-Repeat for Bash runtime, then PowerShell runtime
-    |
-    v
-EE path additionally:
-    GET /api/licence → assert {"edition": "enterprise"}
-    Test EE-gated routes (Foundry, RBAC management, audit log queries)
-    |
-    v
-checkpoint/STATUS.md: operator_path COMPLETE
-checkpoint/FRICTION.md: all friction entries written
+Register a public key (requires a key to already be generated):
+```bash
+curl -sk -X POST https://<host>:8001/api/signatures \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "dev-key", "public_key_pem": "'"$(cat verification.key)"'"}'
 ```
 
-### Checkpoint Communication Flow
-
-```
-Gemini encounters blocker or ambiguity
-    |
-    v
-Write checkpoint/PROMPT.md (# PROMPT v{N})
-Set STATUS.md: blocked=true
-    |
-    v
-Claude host session (monitor_checkpoint.py)
-    polls every 30s → detects new PROMPT version
-    reads context + question
-    writes checkpoint/RESPONSE.md (# RESPONSE v{N})
-    |
-    v
-Gemini polls every 15s → detects matching RESPONSE version
-Reads instruction
-Archives PROMPT.v{N}.md
-Sets STATUS.md: blocked=false
-Continues test
+Dispatch a job via `POST /jobs`:
+```bash
+curl -sk -X POST https://<host>:8001/jobs \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"task_type": "script", "runtime": "python", "script_content": "print(\"hello\")", "signature": "<b64-sig>", "signature_id": "<key-id>", "target_tags": ["general"]}'
 ```
 
-### CE vs EE Divergence Report Flow
+The `POST /jobs` endpoint accepts `JobCreate` which includes `script_content`, `signature`, `signature_id`, and `target_tags`. This endpoint is in `main.py` (CE-accessible). No backend changes are required to add these docs.
 
+### Correct Features Endpoint
+
+The friction report BLOCKER documents that `GET /api/admin/features` does not exist. The correct endpoint is `GET /api/features` (unauthenticated, line 903 in `main.py`). Any docs referencing `/api/admin/features` must be updated to `/api/features`.
+
+### Impact of Adding curl Alternatives
+
+All doc changes are content-only. The underlying API supports all described operations. No backend code changes are required for the CLI documentation additions.
+
+### Files Affected for Docs Fixes
+
+| File | Change Type | What Changes |
+|------|-------------|--------------|
+| `docs/docs/getting-started/install.md` | Modified | Admin password discovery step, cold-start vs full-stack separation |
+| `docs/docs/getting-started/enroll-node.md` | Modified | Verify image tag accuracy, Docker socket mount documentation |
+| `docs/docs/getting-started/first-job.md` | Modified | Add curl/API dispatch path, add full axiom-push example |
+| `docs/docs/getting-started/ee-install.md` | New or Modified | Fix `/api/features` endpoint; create if absent |
+| `docs/mkdocs.yml` | Modified (conditional) | Add nav entry for `ee-install.md` if file is new |
+| `docs/docs/licensing.md` | Modified | Fix `AXIOM_EE_LICENCE_KEY` vs `AXIOM_LICENCE_KEY` naming inconsistency |
+
+---
+
+## Build Order for Applying Fixes
+
+The fix areas have no hard dependencies on each other, but a recommended order exists:
+
+**Step 1 — Backend code patches**
+
+Apply the `/api/executions` CE-gating fix first. Reason: if docs are published before the gate is added, CE users following the docs will see 200 responses from `/api/executions`, contradicting the EE-only framing in the docs.
+
+```bash
+docker compose -f puppeteer/compose.cold-start.yaml build agent
+docker compose -f puppeteer/compose.cold-start.yaml up -d --no-build agent
 ```
-CE run completes:
-    checkpoint/FRICTION.md (CE)
-    checkpoint/STATUS.md: COMPLETE
-    |
-    v
-EE run completes:
-    checkpoint/FRICTION.md (EE)
-    checkpoint/STATUS.md: COMPLETE
-    |
-    v
-Host-side: synthesise_friction.py
-    incus file pull axiom-cold-start-ce/workspace/checkpoint/FRICTION.md → ce_friction.md
-    incus file pull axiom-cold-start-ee/workspace/checkpoint/FRICTION.md → ee_friction.md
-    Merge: categorise CE-only, EE-only, and shared friction
-    Output: mop_validation/reports/cold_start_friction_report.md
-        Sections: install friction, operator friction, CE-vs-EE divergence, severity summary
+
+**Step 2 — Containerfile.node (if any changes needed)**
+
+If additional Containerfile changes are made, rebuild:
+```bash
+docker build -t localhost/axiom-node:cold-start -f puppets/Containerfile.node puppets/
 ```
 
-## Integration Points
+**Step 3 — Docs changes**
 
-### New Components
+Edit content files, then rebuild the docs image:
+```bash
+docker compose -f puppeteer/compose.cold-start.yaml build docs
+docker compose -f puppeteer/compose.cold-start.yaml up -d --no-build docs
+```
 
-| Component | New or Modified | Location | Communicates With |
-|-----------|----------------|----------|-------------------|
-| `compose.cold-start.yaml` | New | `puppeteer/` (in LXC) | Docker engine inside LXC |
-| `provision_lxc.py` | New | `mop_validation/cold_start/` | Incus CLI on host |
-| `teardown_lxc.py` | New | `mop_validation/cold_start/` | Incus CLI on host |
-| `inject_ee_licence.py` | New | `mop_validation/cold_start/` | `.env` file in LXC via `incus file push` |
-| `monitor_checkpoint.py` | New | `mop_validation/cold_start/` | `incus exec`, `incus file push` on host |
-| `synthesise_friction.py` | New | `mop_validation/cold_start/` | FRICTION.md files pulled from both LXC runs |
-| tester `GEMINI.md` | New | `/workspace/gemini-context/` in LXC | Gemini agent process constraint |
-| `checkpoint/` directory | New | `/workspace/checkpoint/` in LXC | Gemini (writer), Claude (reader via incus) |
-| `test-signing.key` | New (test Ed25519 keypair) | `/workspace/gemini-context/` in LXC | `axiom-push` CLI inside LXC |
+The `--strict` MkDocs flag catches broken links and undefined nav references immediately at build time.
 
-### Unchanged Components
+**Step 4 — compose.cold-start.yaml (if any changes needed)**
 
-| Component | Notes |
-|-----------|-------|
-| `compose.server.yaml` | Production compose, not used in cold-start runs |
-| `manage_node.py` | Single-node LXC skill; cold-start uses `provision_lxc.py` instead |
-| `test_local_stack.py` | Sprint regression suite; cold-start uses Gemini tester instead |
-| All Axiom API routes | Cold-start does black-box testing only; no source code changes |
-| `cert-manager/entrypoint.sh` | Already supports `SERVER_HOSTNAME` env var for SAN injection |
+Compose file changes require a stack restart:
+```bash
+docker compose -f puppeteer/compose.cold-start.yaml down
+docker compose -f puppeteer/compose.cold-start.yaml --env-file .env up -d
+```
 
-### Internal Boundaries
+---
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Gemini → Axiom API | HTTPS to `https://localhost:8001` (agent) or `https://localhost:443` (Caddy) | Root CA installed in LXC system trust store before Playwright runs |
-| Gemini → Dashboard | Playwright browser to `https://localhost:443` | `args=['--no-sandbox']` required; confirmed in CLAUDE.md |
-| Gemini → Docs site | `http://localhost:80/docs/` or `https://localhost:443/docs/` | MkDocs nginx served via Caddy reverse proxy |
-| Gemini → `axiom-push` CLI | Subprocess call; key at `/workspace/gemini-context/test-signing.key` | `axiom-push sign` then `axiom-push create` or `POST /api/jobs` |
-| Gemini → checkpoint/ | Posix file write; direct path access | Single writer (Gemini), single reader (Claude); no locking needed |
-| Claude → checkpoint/ | `incus exec axiom-cold-start-ce -- cat .../PROMPT.md` | Read; `incus file push` to write RESPONSE.md |
-| puppet nodes → agent | `AGENT_URL=https://172.17.0.1:8001` | Docker bridge host IP; `EXECUTION_MODE=direct`; `VERIFY_SSL=false` |
-| puppet nodes → job containers | Docker subprocess (EXECUTION_MODE=direct) | No nested container runtime; compatible with Docker-in-LXC |
+## Existing Deployment Impact
 
-## CE vs EE Explicit Differences
+### Fresh Deployments (no existing DB)
 
-| Dimension | CE LXC | EE LXC |
-|-----------|--------|--------|
-| Container name | `axiom-cold-start-ce` | `axiom-cold-start-ee` |
-| `.env` file | No `AXIOM_LICENCE_KEY` | `AXIOM_LICENCE_KEY=<signed_test_licence>` injected before `docker compose up` |
-| `axiom-ee` package | Not installed | Installed into agent image (editable install or devpi dev wheel) |
-| `GET /api/licence` | `{"edition": "community"}` | `{"edition": "enterprise"}` |
-| EE stub routes (7) | Return 402 | Return real data |
-| Feature flags | All false | All true |
-| Tester GEMINI.md | CE directives only | CE directives + EE feature verification section |
-| Run order | First | Second (requires clean CE baseline) |
-| Gemini first assertion | Stack is healthy and CE edition | `GET /api/licence` returns enterprise before any EE tests |
+No migration concerns. All fixes are:
+- Backend code changes with no new DB tables and no schema changes
+- Docs content changes with no code impact
+- Containerfile and compose changes that take effect on image rebuild
 
-## Suggested Build Order
+### Existing CE Deployments
 
-Order enforced by hard dependencies. Each phase must complete before the next can start, except where noted.
+Moving `/api/executions` to an EE stub changes observable behaviour: requests that previously returned 200 will return 402. This is intentional and correct. The change is not backward-compatible for CE users who were accessing execution history — they will need to upgrade to EE to continue using this feature.
 
-### Phase 1: compose.cold-start.yaml + LXC Provisioner
-**Why first:** Nothing else can be tested without a working Axiom stack inside LXC. This phase is the infrastructure foundation.
+**Data note:** Existing CE deployments may have accumulated `ExecutionRecord` rows in the database. These rows remain in the DB after the fix but are inaccessible from CE via the API. The data is not deleted; it is only gated at the API layer. This is acceptable since the feature was always intended as EE-only.
 
-**Delivers:**
-- `compose.cold-start.yaml`: no Cloudflare tunnel, no DuckDNS, no ddns-updater; `SERVER_HOSTNAME=172.17.0.1` on cert-manager; puppet nodes with `AGENT_URL=https://172.17.0.1:8001` and `EXECUTION_MODE=direct`
-- `provision_lxc.py`: launches Ubuntu 24.04 container with `security.nesting=true`, installs Docker + Python + Playwright deps + Gemini CLI, copies axiom repo, starts stack
-- `teardown_lxc.py`: destroys container cleanly
-- Verified: stack starts, Caddy serves on 443 with Docker bridge IP in SAN, agent responds on 8001, docs at /docs/
+### Existing EE Deployments
 
-**Dependency:** None. First phase.
+No impact. EE deployments load real EE routers via `load_ee_plugins()`. The CE stubs (including any new executions stub) are never mounted when a valid licence is present.
 
-### Phase 2: Gemini Tester Context + Checkpoint Protocol
-**Why second:** Gemini cannot run as a tester without a scoped GEMINI.md, a signing key, and a working checkpoint directory. The checkpoint schema must be agreed before the agent is invoked.
+---
 
-**Delivers:**
-- Tester `GEMINI.md` with constraints: docs-only, no source code, file comms protocol, severity definitions for FRICTION.md
-- `checkpoint/` directory with seed files and documented schema
-- `monitor_checkpoint.py`: host-side poller; reads PROMPT.md via `incus exec`, presents to Claude, writes RESPONSE.md via `incus file push`
-- `test-signing.key` Ed25519 keypair generated; public key registered in running stack via `POST /api/signatures`
-- Verified: Gemini can authenticate (JWT via `POST /auth/login`), navigate dashboard via Playwright, write to checkpoint/
+## Component Boundaries
 
-**Dependency:** Phase 1 (stack running for public key registration).
+| Component | Responsibility | What v14.1 Changes |
+|-----------|---------------|-------------------|
+| `main.py` | CE routes + lifespan EE gating | Remove 3 execution routes |
+| `ee/__init__.py` | Stub mount orchestration | Add executions stub to `_mount_ce_stubs()` |
+| `ee/interfaces/executions.py` | CE 402 stub for execution routes | New file |
+| `ee/routers/execution_router.py` | Real EE execution routes | New file |
+| `deps.py` | Auth dependencies (CE + EE) | No change |
+| `puppets/Containerfile.node` | Node image build | No change (already fixed in v14.0) |
+| `puppeteer/compose.cold-start.yaml` | Cold-start evaluation stack | No change (already fixed in v14.0) |
+| `docs/docs/getting-started/*.md` | First-user docs | Content edits on 3-4 files |
+| `docs/mkdocs.yml` | Doc nav | Add ee-install entry if file is new |
 
-### Phase 3: CE Cold-Start Run
-**Why third:** CE baseline must precede EE. Failures here are unambiguously CE bugs.
+---
 
-**Delivers:**
-- Install path: Gemini follows getting-started docs from scratch — generate token, enroll nodes, verify heartbeat
-- Operator path: Gemini dispatches Python, Bash, PowerShell jobs; verifies stdout captured in execution history
-- CE anti-features: all 7 EE stub routes return 402; licence badge shows "Community Edition"
-- `checkpoint/FRICTION.md` from CE run
-- `checkpoint/STATUS.md: COMPLETE`
+## Anti-Patterns to Avoid
 
-**Dependency:** Phases 1 and 2.
+### Anti-Pattern 1: Adding an Inline EE Licence Check to main.py
 
-### Phase 4: EE Cold-Start Run
-**Why fourth:** Requires clean CE baseline. Adds licence key injection and axiom-ee install.
+**What people might do:** Add `if not request.app.state.licence: raise HTTPException(402)` directly inside the existing execution route handlers in `main.py`.
 
-**Delivers:**
-- EE provisioning: `inject_ee_licence.py` writes `AXIOM_LICENCE_KEY` to `.env`; axiom-ee installed; stack restarted
-- Install path: same as CE; additional check that licence badge shows "Enterprise Edition" at first login
-- Operator path: CE jobs repeated; plus EE-gated features verified
-- `GET /api/licence` assertion is first EE check — all EE tests gate on this
-- `checkpoint/FRICTION.md` from EE run
+**Why it's wrong:** It pollutes `main.py` with EE logic, diverges from the established stub-router pattern, and the check runs even in EE mode (inefficiently). It makes the CE/EE boundary invisible to code reviewers.
 
-**Dependency:** Phase 3 (CE run complete and clean).
+**Do this instead:** Move the routes to an EE router and add a CE stub file. This is the existing pattern for all 6 other EE feature areas.
 
-### Phase 5: Friction Report Synthesis
-**Why last:** Both FRICTION.md files required. Cannot synthesise partial results.
+### Anti-Pattern 2: Forgetting to Add the Nav Entry When Creating ee-install.md
 
-**Delivers:**
-- `synthesise_friction.py`: pulls FRICTION.md from both LXC containers via `incus file pull`; categorises by phase, severity, and CE-vs-EE scope
-- `mop_validation/reports/cold_start_friction_report.md`: BLOCKER / NOTABLE / MINOR triage; install friction vs operator friction; CE-only vs EE-only vs shared
+**What people might do:** Create `docs/docs/getting-started/ee-install.md` without adding it to the `nav:` block in `mkdocs.yml`.
 
-**Dependency:** Phases 3 and 4.
+**Why it's wrong:** MkDocs with `--strict` will either fail the build (if the file is referenced from another page) or silently omit the page from navigation (if it is not). The `--strict` flag catches this at build time, but only if there is an inbound link.
 
-## Anti-Patterns
+**Do this instead:** Add the nav entry to `mkdocs.yml` at the same time as creating the file. The entry goes under `Getting Started:` after `First Job:`.
 
-### Anti-Pattern 1: Using compose.server.yaml Directly Inside LXC
+### Anti-Pattern 3: Using Raw Hex Token Instead of enhanced_token for Node Enrollment
 
-**What people do:** Copy `compose.server.yaml` unchanged into the LXC container for cold-start testing.
+**What people might do:** Use the token from `POST /api/enrollment-tokens` response for node enrollment.
 
-**Why it's wrong:** `compose.server.yaml` references `DUCKDNS_TOKEN`, `CLOUDFLARE_TUNNEL_TOKEN`, `TUNNEL_TOKEN`, and the ddns-updater and cloudflared services. These all crash or hang inside LXC where there is no external DNS or tunnel. The tunnel service will crash-loop and block `depends_on` chains. The DDNS updater will spew repeated errors.
+**Why it's wrong:** The raw token is a hex string without the embedded Root CA PEM. Node enrollment requires the base64-encoded JSON enhanced token which includes the Root CA for mTLS bootstrap.
 
-**Do this instead:** Maintain `compose.cold-start.yaml` that strips tunnel, ddns-updater, and DUCKDNS references. Add `SERVER_HOSTNAME=172.17.0.1` to cert-manager. This is a test-only file that is not a modified version of production — it is a separate configuration for a specific purpose.
+**Do this instead:** Use `POST /admin/generate-token` and extract the `enhanced_token` field from the response.
 
-### Anti-Pattern 2: Puppet Nodes Using localhost as AGENT_URL
-
-**What people do:** Set `AGENT_URL=https://localhost:8001` for puppet nodes in the cold-start compose.
-
-**Why it's wrong:** Puppet nodes are Docker containers. Their `localhost` is their own container namespace, not the LXC container's network. The Axiom agent is reachable at the Docker bridge gateway (`172.17.0.1`), not localhost.
-
-**Do this instead:** `AGENT_URL=https://172.17.0.1:8001`. Confirm `SERVER_HOSTNAME=172.17.0.1` is set in cert-manager so the Caddy TLS cert includes this IP as a SAN. Use `VERIFY_SSL=false` because the cert is self-signed.
-
-### Anti-Pattern 3: Gemini Using the Developer GEMINI.md
-
-**What people do:** Use the existing `/home/thomas/Development/master_of_puppets/GEMINI.md` as the Gemini tester's instruction file.
-
-**Why it's wrong:** The developer GEMINI.md instructs Gemini to read source code, check sister repos, and run deployment scripts. A tester should behave as a first-time user: read only the docs site, use only the UI and CLI, and log friction. Mixing developer context with tester context invalidates the cold-start simulation.
-
-**Do this instead:** Write a separate `/workspace/gemini-context/GEMINI.md` scoped to: "You are a new user of Axiom. You have access to the docs site at `http://localhost/docs/`. You do NOT have access to source code. Use the checkpoint/ directory to communicate blockers. Log all friction observations to checkpoint/FRICTION.md."
-
-### Anti-Pattern 4: Blocking Indefinitely on checkpoint/ Responses
-
-**What people do:** Gemini polls `RESPONSE.md` in an infinite loop, never timing out.
-
-**Why it's wrong:** If Claude's host session is unresponsive (sleeping, tab closed), the tester hangs indefinitely. The run never produces results. The checkpoint protocol is asynchronous and cannot assume real-time monitoring.
-
-**Do this instead:** Gemini times out after 5 minutes (20 polls at 15-second intervals). On timeout: set `STATUS.md: blocked=true`, write a best-effort fallback to `FRICTION.md` ("Unable to complete step X; blocked waiting for steering response"), and move to the next test step. The run degrades gracefully rather than hanging.
-
-### Anti-Pattern 5: Polling checkpoint/ from Host via SSH Instead of incus exec
-
-**What people do:** Install SSH in the LXC container and `ssh ubuntu@<lxc-ip>` to read/write checkpoint files.
-
-**Why it's wrong:** Requires SSH provisioning (extra step, key management). `incus exec` is a first-class Incus operation that works without any network setup; it runs commands directly in the container's process namespace. It is simpler, more reliable, and does not require the container to have a running SSH daemon.
-
-**Do this instead:** `incus exec axiom-cold-start-ce -- cat /workspace/checkpoint/PROMPT.md`. Write files via `incus file push /tmp/response.md axiom-cold-start-ce/workspace/checkpoint/RESPONSE.md`.
-
-### Anti-Pattern 6: EE Tests Before Licence Assertion
-
-**What people do:** Test EE-gated routes immediately after stack start in the EE run, before checking `GET /api/licence`.
-
-**Why it's wrong:** If the licence key is malformed, expired, or the EE public key does not match the signing key, the stack silently falls back to CE mode. All EE route tests then return 402, which looks identical to a CE run. The root cause (licence loading failure) is invisible until `GET /api/licence` is checked.
-
-**Do this instead:** The first assertion in every EE test phase must be `GET /api/licence` → `{"edition": "enterprise"}`. Gate all subsequent EE tests on this. If this assertion fails, stop the EE run and diagnose the licence injection before continuing.
-
-## Scaling Considerations
-
-This is a test harness, not a production service. Scaling means concurrent CE+EE runs, not user load.
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Sequential CE then EE (default) | One LXC at a time; one Claude session monitors; 5–8 hours total per full run |
-| Parallel CE + EE | Two LXC containers simultaneously; two checkpoint/ dirs (`-ce` and `-ee`); `monitor_checkpoint.py` watches both |
-| CI integration (future) | GitHub Actions runner with Incus; checkpoint polling in Actions step; FRICTION.md uploaded as artefact |
-
-Resource budget for two concurrent LXC containers on the host:
-- ~4GB RAM per container (Postgres 512MB + Docker stack + 2 puppet nodes)
-- ~8GB total for CE+EE parallel run
-- Incus bridge handles 2 containers with no contention
+---
 
 ## Sources
 
-- `puppeteer/compose.server.yaml` — full service topology; identifies tunnel, ddns-updater, DuckDNS services that must be stripped in cold-start variant (HIGH, direct inspection)
-- `puppeteer/cert-manager/entrypoint.sh` — `SERVER_HOSTNAME` SAN injection: `CADDY_SANS="${CADDY_SANS},${SERVER_HOSTNAME}"` already implemented; `SERVER_HOSTNAME=172.17.0.1` is sufficient (HIGH, direct inspection)
-- `puppeteer/cert-manager/Caddyfile` — reverse proxy topology including `/docs/*` → `docs:80` (HIGH, direct inspection)
-- `.agent/skills/manage-test-nodes/scripts/manage_node.py` — Incus provisioning pattern: `security.nesting=true`, Ubuntu 24.04, Docker/SSH/Python install, `incus file push` for key injection (HIGH, direct inspection)
-- `mop_validation/scripts/test_installer_lxc.py` — established `incus exec`, `incus file push`, `exec_in_container()` helpers; confirmed `INSTALLER_TIMEOUT`, wait-for-heartbeat pattern (HIGH, direct inspection)
-- `mop_validation/local_nodes/lxc-node-compose.yaml` — confirmed `host-gateway` extra_hosts, `EXECUTION_MODE=docker` for LXC-hosted nodes; cold-start uses `EXECUTION_MODE=direct` instead to avoid cgroup issues (HIGH, direct inspection)
-- `puppets/node-compose.yaml` — confirms `AGENT_URL=https://puppeteer-agent-1:8001` within Docker network; cold-start equivalent is `172.17.0.1` (HIGH, direct inspection)
-- `mop_validation/local_nodes/node_alpha/node-compose.yaml` — confirms `extra_hosts: host.docker.internal:172.17.0.1` for Docker-hosted nodes; confirmed pattern for Docker-in-Docker (HIGH, direct inspection)
-- `.planning/research/SUMMARY.md` (v11.1) — "LXC containers sit on incusbr0 bridge, not Docker bridge. AGENT_URL must be set to incusbr0-host-ip ... not 172.17.0.1 which is the Docker bridge" — this refers to LXC processes reaching the host. Puppet nodes inside Docker inside LXC still use the Docker bridge gateway. Both are correct in their respective contexts (HIGH, prior validated research)
-- `CLAUDE.md` MEMORY — "Python Playwright requires `--no-sandbox`; confirmed working in LXC"; "Auth: inject JWT via localStorage"; "localStorage key is `mop_auth_token`" (HIGH, validated in prior phases)
-- `GEMINI.md` (repo root) — developer-scoped; confirms what must NOT be in the tester-scoped version (HIGH, direct inspection)
+- `puppeteer/agent_service/main.py` — lines 71-204 (lifespan), 229-340 (execution routes), 903-919 (`/api/features` endpoint)
+- `puppeteer/agent_service/ee/__init__.py` — CE/EE dispatch mechanism (`_mount_ce_stubs`, `load_ee_plugins`)
+- `puppeteer/agent_service/ee/interfaces/*.py` — stub router pattern (audit.py as reference implementation)
+- `puppeteer/agent_service/deps.py` — auth dependency structure (`require_auth`, `require_permission`)
+- `puppets/environment_service/runtime.py` — DinD execution model
+- `puppets/environment_service/node.py` lines 551-704 — script temp file lifecycle (`/tmp/job_<guid>.<ext>`)
+- `puppets/Containerfile.node` — `COPY --from=docker:cli` pattern with rationale comment
+- `puppeteer/compose.cold-start.yaml` — `/tmp:/tmp` bind mounts (lines 120, 142), named volume definitions
+- `docs/mkdocs.yml` — nav structure, plugin list
+- `docs/docs/getting-started/*.md` — current content state of all 5 pages
+- `docs/Dockerfile` — two-stage docs build, `--strict` mkdocs flag
+- [Docker multi-stage builds](https://docs.docker.com/build/building/multi-stage/) — `COPY --from` pattern
+- [Docker on Debian](https://docs.docker.com/engine/install/debian/) — Debian trixie moby-cli removal
 
 ---
 
-*Architecture research for: Axiom v14.0 CE/EE Cold-Start Validation Framework*
-*Researched: 2026-03-24*
+*Architecture research for: Axiom v14.1 First-User Readiness fixes*
+*Researched: 2026-03-25*
