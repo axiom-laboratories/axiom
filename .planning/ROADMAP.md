@@ -12,6 +12,7 @@
 - ✅ **v12.0 — Operator Maturity** — Phases 46–56 (shipped 2026-03-24)
 - ✅ **v13.0 — Research & Documentation Foundation** — Phases 57–60 (shipped 2026-03-24)
 - ✅ **v14.0 — CE/EE Cold-Start Validation** — Phases 61–65 (shipped 2026-03-25)
+- 🚧 **v14.1 — First-User Readiness** — Phases 66–68 (in progress)
 
 ## Phases
 
@@ -141,6 +142,48 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
 
 </details>
 
+### 🚧 v14.1 — First-User Readiness (In Progress)
+
+**Milestone Goal:** Close all open product BLOCKERs from the v14.0 cold-start friction report. A first-time user following only the published docs can install Axiom, enroll a node, and dispatch a signed job to completion — on both CE and EE.
+
+- [ ] **Phase 66: Backend Code Fixes** — Verify and complete all node image and compose fixes; CE-gate all execution routes via EE stub (CODE-01 through CODE-04)
+- [ ] **Phase 67: Getting-Started Documentation** — Rewrite install.md, enroll-node.md, and first-job.md with correct commands, CLI alternatives, signing prerequisites, and tab support (DOCS-01 through DOCS-11)
+- [ ] **Phase 68: EE Documentation** — Correct EE getting-started endpoint references and resolve AXIOM_LICENCE_KEY naming inconsistency (EEDOC-01 through EEDOC-02)
+
+## Phase Details
+
+### Phase 66: Backend Code Fixes
+**Goal**: The node image builds correctly on all platforms, the DinD compose stack runs jobs without path errors, and the CE/EE API boundary for Execution History is enforced in code
+**Depends on**: Phase 65 (v14.0 complete)
+**Requirements**: CODE-01, CODE-02, CODE-03, CODE-04
+**Success Criteria** (what must be TRUE):
+  1. A freshly-built node image contains a working Docker CLI binary (`docker --version` succeeds inside the container)
+  2. A job dispatched to a node in the cold-start compose stack reaches COMPLETED — the `/tmp` bind mount allows script delivery to the Docker socket
+  3. PowerShell is present and executable in the built node image (`pwsh --version` succeeds); the build does not fail silently on arm64 hosts due to a missing platform guard
+  4. `GET /api/executions` returns HTTP 402 in CE mode; `test_ce_smoke.py` confirms all 7 execution-related routes are CE-gated
+**Plans**: TBD
+
+### Phase 67: Getting-Started Documentation
+**Goal**: A first-time user with no prior Axiom knowledge can follow install.md → enroll-node.md → first-job.md from a fresh machine and reach a dispatched, signed, COMPLETED job using either the dashboard or CLI — with zero undocumented prerequisites
+**Depends on**: Phase 66
+**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05, DOCS-06, DOCS-07, DOCS-08, DOCS-09, DOCS-10, DOCS-11
+**Success Criteria** (what must be TRUE):
+  1. A user following install.md knows exactly what value to set for `ADMIN_PASSWORD` and where to set it before running `docker compose up`; an EE section covers `AXIOM_LICENCE_KEY` injection and the docs reference a pre-built tarball for users without GitHub access
+  2. A user following enroll-node.md can generate a JOIN_TOKEN via a curl command (no browser required); the Option B compose snippet uses the correct Axiom node image, `EXECUTION_MODE=docker`, a Docker socket mount note, and `https://agent:8001` as the AGENT_URL for the cold-start compose scenario
+  3. A user following first-job.md encounters Ed25519 signing key setup as a numbered prerequisite before any dispatch step, with a visually prominent callout before the first dispatch attempt
+  4. A user following first-job.md can dispatch a signed job via curl (`POST /jobs` with base64 signature) as a documented CLI alternative to the guided dashboard form
+  5. `mkdocs build --strict` passes after all doc edits; tab syntax renders correctly across all rewritten pages
+**Plans**: TBD
+
+### Phase 68: EE Documentation
+**Goal**: EE getting-started and licensing pages accurately reflect the current API surface and use consistent environment variable naming throughout
+**Depends on**: Phase 67
+**Requirements**: EEDOC-01, EEDOC-02
+**Success Criteria** (what must be TRUE):
+  1. No reference to `/api/admin/features` appears anywhere in the EE getting-started pages; every reference uses the correct `/api/features` endpoint
+  2. `AXIOM_EE_LICENCE_KEY` does not appear in `licensing.md`; all references use `AXIOM_LICENCE_KEY` consistently
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -165,6 +208,9 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
 | 63. CE Cold-Start Run | v14.0 | 4/4 | Complete | 2026-03-25 |
 | 64. EE Cold-Start Run | v14.0 | 3/3 | Complete | 2026-03-25 |
 | 65. Friction Report Synthesis | v14.0 | 1/1 | Complete | 2026-03-25 |
+| 66. Backend Code Fixes | v14.1 | 0/TBD | Not started | - |
+| 67. Getting-Started Documentation | v14.1 | 0/TBD | Not started | - |
+| 68. EE Documentation | v14.1 | 0/TBD | Not started | - |
 
 ## Archived
 
