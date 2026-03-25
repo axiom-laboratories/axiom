@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Top face of cube -->
+  <polygon points="16,2 30,9 16,16 2,9" fill="hsl(346.8,77.2%,49.8%)" opacity="0.9"/>
+  <!-- Left face of cube -->
+  <polygon points="2,9 16,16 16,30 2,23" fill="hsl(346.8,77.2%,38%)" opacity="0.9"/>
+  <!-- Right face of cube -->
+  <polygon points="30,9 16,16 16,30 30,23" fill="hsl(346.8,77.2%,65%)" opacity="0.9"/>
+</svg>
