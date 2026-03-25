@@ -164,7 +164,11 @@ Archive: `.planning/milestones/v13.0-ROADMAP.md`
   2. A complete checkpoint round-trip completes in under 60 seconds: Gemini writes `checkpoint/PROMPT.md`, `monitor_checkpoint.py` surfaces it to the host, Claude writes `RESPONSE.md` back via `incus file push`, Gemini reads and continues
   3. Running Gemini with `HOME=/root/validation-home` prevents it from loading the repo `GEMINI.md` or any prior session history
   4. Scenario prompt scripts exist for CE install, CE operator, EE install, and EE operator paths — each defines explicit pass/fail criteria and checkpoint trigger conditions
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 62-01-PLAN.md — workspace setup + tester GEMINI.md + HOME isolation (SCAF-01, SCAF-03)
+- [ ] 62-02-PLAN.md — monitor_checkpoint.py + round-trip verification (SCAF-02)
+- [ ] 62-03-PLAN.md — CE and EE scenario prompt scripts (SCAF-04)
 
 ### Phase 63: CE Cold-Start Run
 **Goal**: A Gemini agent acting as a first-time user completes the CE install and operator path from scratch, producing an evidence-backed friction report
