@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
-status: verifying
-stopped_at: "Completed 63-02-PLAN.md — operator confirmed BLOCKER; Phase 63 halted at Plan 02; Plan 63-03 blocked pending 6 node enrollment fixes"
-last_updated: "2026-03-25T14:42:12Z"
+status: Phase 63 halted — operator confirmed BLOCKER on FRICTION-CE-INSTALL.md; node enrollment FAIL; 6 blockers must be fixed before Plan 63-03 can run
+stopped_at: Completed 63-04-PLAN.md — all 6 node enrollment blockers fixed; Plan 63-03 unblocked
+last_updated: "2026-03-25T15:02:55.476Z"
 last_activity: 2026-03-25 — Phase 63 Plan 02 complete; FRICTION-CE-INSTALL.md captured 6 node enrollment blockers; operator BLOCKER decision halts Plan 63-03
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 9
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 100
 ---
 
@@ -58,6 +58,8 @@ Progress: [██████████] 100%
 - [Phase 63-02]: FRICTION-CE-INSTALL.md verdict: FAIL — node enrollment blocked by 6 converging doc/code mismatches (EXECUTION_MODE=direct removed, wrong node image, TLS cert mismatch, admin password undiscoverable, JOIN_TOKEN GUI-only, docs path wrong)
 - [Phase 63-02]: Gemini free-tier quota insufficient for full scenario run — Tier 1 paid key required (80-120 API calls needed per scenario); verified friction via orchestrator doc-following instead
 - [Phase 63-02 Operator Decision]: BLOCKER confirmed — Phase 63 halted at Plan 02; Plan 63-03 will NOT run until 6 node enrollment blockers are resolved; fixes required: EXECUTION_MODE docs, node image docs, TLS cert/AGENT_URL, admin password setup docs, JOIN_TOKEN CLI path, docs site path reference
+- [Phase 63]: Used local mkdocs (v1.6.1) for docs rebuild — Docker mkdocs-material image lacks swagger-ui-tag plugin
+- [Phase 63]: enroll-node.md Option B Docker socket mount added alongside EXECUTION_MODE=docker change — required for docker mode
 
 ### Pending Todos
 
@@ -73,7 +75,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T14:42:12Z
-Stopped at: Completed 63-02-PLAN.md — BLOCKER confirmed; Phase 63 halted; Plan 63-03 blocked
+Last session: 2026-03-25T15:02:55.474Z
+Stopped at: Completed 63-04-PLAN.md — all 6 node enrollment blockers fixed; Plan 63-03 unblocked
 Next action: Fix 6 node enrollment blockers (see Blockers/Concerns) before resuming Phase 63-03 or proceeding to Phase 64
 Resume file: None
