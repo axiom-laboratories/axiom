@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
-status: completed
-stopped_at: Phase 62 context gathered
-last_updated: "2026-03-25T08:38:04.968Z"
-last_activity: 2026-03-24 — Phase 61 all 3 plans executed; AXIOM_EE_LICENCE_KEY generated in secrets.env
+status: in-progress
+stopped_at: Phase 62, Plan 01 complete
+last_updated: "2026-03-25T09:02:26Z"
+last_activity: 2026-03-25 — Phase 62 plan 01 executed; SCAF-01 and SCAF-03 checks pass
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_plans: 4
+  completed_plans: 4
+  percent: 40
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Phase 61 — LXC Environment and Cold-Start Compose
+**Current focus:** Phase 62 — Agent Scaffolding
 
 ## Current Position
 
-Phase: 61 of 65 (LXC Environment and Cold-Start Compose)
-Plan: 03 of 03 — Complete
-Status: Phase complete
-Last activity: 2026-03-24 — Phase 61 all 3 plans executed; AXIOM_EE_LICENCE_KEY generated in secrets.env
+Phase: 62 of 65 (Agent Scaffolding)
+Plan: 01 of 03 — Complete
+Status: In progress (2 plans remaining)
+Last activity: 2026-03-25 — Phase 62 plan 01 executed; SCAF-01 and SCAF-03 checks pass
 
-Progress: [██████████] 100%
+Progress: [████░░░░░░] 40%
 
 ## Accumulated Context
 
@@ -46,6 +46,9 @@ Progress: [██████████] 100%
 - [Phase 61]: Hardcode SERVER_HOSTNAME=172.17.0.1 in cold-start cert-manager to guarantee correct Caddy TLS SAN without evaluator config
 - [Phase 61]: PowerShell 7.6.0 LTS direct GitHub releases .deb install replaces silently-failing Microsoft Debian 12 SHA1 apt repo method
 - [Phase 61]: 1-year expiry and customer_id axiom-coldstart-test used to distinguish cold-start evaluation licences from developer test licences; AXIOM_EE_LICENCE_KEY written to secrets.env for Phase 64 compose injection
+- [Phase 62-01]: HOME isolation uses /root/validation-home with settings.json only — no GEMINI.md, no history/ directory prevents session bleed between runs
+- [Phase 62-01]: Docs delivered as static file:///workspace/docs/ snapshot pushed to LXC (167 files); Gemini reads via cat commands on HTML files
+- [Phase 62-01]: SCAF-02 and SCAF-04 verifier checks are informational placeholders — not failures, stubs for plans 62-02 and 62-03
 
 ### Pending Todos
 
@@ -60,7 +63,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T08:38:04.966Z
-Stopped at: Phase 62 context gathered
-Next action: Run `/gsd:plan-phase 61`
-Resume file: .planning/phases/62-agent-scaffolding/62-CONTEXT.md
+Last session: 2026-03-25T09:02:26Z
+Stopped at: Phase 62 Plan 01 complete — workspace scaffolding and isolation verified
+Next action: Run plan 62-02 (checkpoint round-trip monitor)
+Resume file: .planning/phases/62-agent-scaffolding/62-01-SUMMARY.md
