@@ -9,8 +9,8 @@ Requirements for the First-User Readiness milestone. All items derive from the v
 
 ### Code Fixes
 
-- [ ] **CODE-01**: Containerfile.node docker CLI binary fix is committed and verified (`COPY --from=docker:cli` present, `docker --version` runs in built image)
-- [ ] **CODE-02**: `/tmp:/tmp` bind mount is present in `compose.cold-start.yaml` for both puppet-node services and verified (job scripts visible to Docker socket)
+- [x] **CODE-01**: Containerfile.node docker CLI binary fix is committed and verified (`COPY --from=docker:cli` present, `docker --version` runs in built image)
+- [x] **CODE-02**: `/tmp:/tmp` bind mount is present in `compose.cold-start.yaml` for both puppet-node services and verified (job scripts visible to Docker socket)
 - [x] **CODE-03**: PowerShell `.deb` download in `Containerfile.node` has `--platform linux/amd64` guard (prevents silent failure on arm64 build hosts)
 - [x] **CODE-04**: `/api/executions` and all 7 related execution routes are CE-gated — moved to EE router with a new `ee/interfaces/executions.py` CE stub returning 402; CE mode returns 402 verified by `test_ce_smoke.py`
 
@@ -62,8 +62,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CODE-01 | Phase 66 | Pending |
-| CODE-02 | Phase 66 | Pending |
+| CODE-01 | Phase 66 | Complete |
+| CODE-02 | Phase 66 | Complete |
 | CODE-03 | Phase 66 | Complete |
 | CODE-04 | Phase 66 | Complete |
 | DOCS-01 | Phase 67 | Pending |
