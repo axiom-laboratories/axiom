@@ -237,7 +237,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 61. LXC Environment and Cold-Start Compose | 3/3 | Complete    | 2026-03-24 | - |
 | 62. Agent Scaffolding | 3/3 | Complete    | 2026-03-25 | - |
 | 63. CE Cold-Start Run | 3/3 | Complete    | 2026-03-25 | - |
-| 64. EE Cold-Start Run | v14.0 | 0/? | Not started | - |
+| 64. EE Cold-Start Run | 1/3 | In Progress|  | - |
 | 65. Friction Report Synthesis | v14.0 | 0/? | Not started | - |
 
 ## Archived

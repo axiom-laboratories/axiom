@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
 status: completed
-stopped_at: Phase 64 context gathered
-last_updated: "2026-03-25T17:29:47.357Z"
+stopped_at: Completed 64-01-PLAN.md
+last_updated: "2026-03-25T18:05:59.161Z"
 last_activity: 2026-03-25 — Phase 63 Plan 03 complete; all 3 runtimes verified; CE-05 BLOCKER acknowledged by operator; Phase 63 closed
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 13
+  completed_plans: 11
   percent: 100
 ---
 
@@ -63,6 +63,9 @@ Progress: [██████████] 100%
 - [Phase 63-03]: CE-05 verdict BLOCKER — CLI-only environments cannot complete operator scenario without 6 undocumented fixes; all 3 runtimes DO execute once infrastructure is configured
 - [Phase 63-03]: Orchestrator-assisted fallback used when Gemini hit max checkpoint interventions (no browser for guided form); all 3 runtimes verified via API dispatch
 - [Phase 63-03]: FRICTION-CE-OPERATOR.md: 5 BLOCKERs (guided form CLI, Docker CLI missing, DinD /tmp mount, wrong image tag, PowerShell missing) + 1 NOTABLE (Ed25519 signing undocumented) — all Phase 65 input
+- [Phase 64-01]: Preserve full canonical wheel filename in COPY — pip validates filename format, aliases cause install failure
+- [Phase 64-01]: Use --force-recreate (not restart) to propagate new JOIN_TOKEN env vars to node containers after cold reset
+- [Phase 64-01]: Add _inject_join_tokens() to reset_stack_ee: generate JOIN_TOKEN_1/2 via API, append to .env, force-recreate node services
 
 ### Pending Todos
 
@@ -78,7 +81,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T17:29:47.355Z
-Stopped at: Phase 64 context gathered
+Last session: 2026-03-25T18:05:59.159Z
+Stopped at: Completed 64-01-PLAN.md
 Next action: Proceed to Phase 64 (EE Cold-Start Run)
-Resume file: .planning/phases/64-ee-cold-start-run/64-CONTEXT.md
+Resume file: None
