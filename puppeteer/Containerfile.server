@@ -25,18 +25,13 @@ COPY requirements.txt .
 # Add asyncpg and sqlalchemy if not in requirements (I should check)
 RUN pip install --no-cache-dir -r requirements.txt asyncpg sqlalchemy
 
-# Optional: install axiom-ee compiled wheel from local devpi
+# EE wheel — pre-copied into build context for cold-start installs (no devpi required)
 # Set EE_INSTALL=1 at build time to enable: docker compose build --build-arg EE_INSTALL=1 agent
-# DEVPI_URL defaults to the compose service hostname; override for external access.
-# DEVPI_HOST must match the hostname/IP in DEVPI_URL for pip --trusted-host.
+COPY wheels/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl /tmp/axiom_ee.whl
+
 ARG EE_INSTALL=
-ARG DEVPI_URL=http://devpi:3141/root/dev/+simple/
-ARG DEVPI_HOST=devpi
 RUN if [ -n "${EE_INSTALL}" ]; then \
-    pip install --no-cache-dir \
-      --index-url "${DEVPI_URL}" \
-      --trusted-host "${DEVPI_HOST}" \
-      "axiom-ee==0.1.0"; \
+    pip install --no-cache-dir /tmp/axiom_ee.whl; \
   fi
 
 # Copy Source
