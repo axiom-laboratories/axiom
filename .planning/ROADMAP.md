@@ -212,7 +212,7 @@ Plans:
 | 63. CE Cold-Start Run | v14.0 | 4/4 | Complete | 2026-03-25 |
 | 64. EE Cold-Start Run | v14.0 | 3/3 | Complete | 2026-03-25 |
 | 65. Friction Report Synthesis | v14.0 | 1/1 | Complete | 2026-03-25 |
-| 66. Backend Code Fixes | v14.1 | 0/TBD | Not started | - |
+| 66. Backend Code Fixes | 1/3 | In Progress|  | - |
 | 67. Getting-Started Documentation | v14.1 | 0/TBD | Not started | - |
 | 68. EE Documentation | v14.1 | 0/TBD | Not started | - |
 
