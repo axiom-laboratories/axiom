@@ -19,7 +19,7 @@ Requirements for the CE/EE Cold-Start Validation milestone. Each maps to roadmap
 - [x] **SCAF-01**: Tester `GEMINI.md` (separate from the repo developer `GEMINI.md`) constrains the Gemini agent to first-user behaviour — docs site and dashboard access only, no codebase reads, no prior knowledge assumed
 - [x] **SCAF-02**: File-based checkpoint protocol implemented — Gemini writes a version-stamped `checkpoint.json` when blocked, Claude reads via `incus file pull` and writes a steering response file; 5-minute timeout with graceful degradation prevents deadlock
 - [x] **SCAF-03**: Session HOME isolation ensures each validation run starts with a fresh `HOME` directory so Gemini cannot auto-load developer context, prior session history, or repo `GEMINI.md`
-- [ ] **SCAF-04**: Scenario prompt scripts define the structured test procedure for CE install path, CE operator path, EE install path, and EE operator path — each with explicit pass/fail criteria and checkpoint trigger conditions
+- [x] **SCAF-04**: Scenario prompt scripts define the structured test procedure for CE install path, CE operator path, EE install path, and EE operator path — each with explicit pass/fail criteria and checkpoint trigger conditions
 
 ### CE Validation (CE)
 
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCAF-01 | Phase 62 | Complete |
 | SCAF-02 | Phase 62 | Complete |
 | SCAF-03 | Phase 62 | Complete |
-| SCAF-04 | Phase 62 | Pending |
+| SCAF-04 | Phase 62 | Complete |
 | CE-01 | Phase 63 | Pending |
 | CE-02 | Phase 63 | Pending |
 | CE-03 | Phase 63 | Pending |

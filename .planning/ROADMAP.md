@@ -133,7 +133,7 @@ Archive: `.planning/milestones/v13.0-ROADMAP.md`
 **Milestone Goal:** Validate Axiom's install and operator paths end-to-end using Gemini CLI agents as first-time users inside LXC containers, covering both CE and EE scenarios across all job runtimes. Produce a friction report with actionable findings.
 
 - [x] **Phase 61: LXC Environment and Cold-Start Compose** — Provision LXC with Docker nesting, Gemini CLI, and a stripped Axiom compose stack verified to start cleanly (completed 2026-03-24)
-- [ ] **Phase 62: Agent Scaffolding** — Tester GEMINI.md, checkpoint file protocol, HOME isolation, and scenario prompt scripts
+- [x] **Phase 62: Agent Scaffolding** — Tester GEMINI.md, checkpoint file protocol, HOME isolation, and scenario prompt scripts (completed 2026-03-25)
 - [ ] **Phase 63: CE Cold-Start Run** — Gemini agent follows CE getting-started docs through install and all 3 job runtimes; CE FRICTION.md produced
 - [ ] **Phase 64: EE Cold-Start Run** — Gemini agent follows EE install path with pre-injected licence, verifies EE-gated features; EE FRICTION.md produced
 - [ ] **Phase 65: Friction Report Synthesis** — Merge CE+EE findings into a single deliverable with cross-edition comparison and readiness verdict
@@ -227,7 +227,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 59. Documentation | v13.0 | 3/3 | Complete | 2026-03-24 |
 | 60. Quick Reference | v13.0 | 3/3 | Complete | 2026-03-24 |
 | 61. LXC Environment and Cold-Start Compose | 3/3 | Complete    | 2026-03-24 | - |
-| 62. Agent Scaffolding | 2/3 | In Progress|  | - |
+| 62. Agent Scaffolding | 3/3 | Complete   | 2026-03-25 | - |
 | 63. CE Cold-Start Run | v14.0 | 0/? | Not started | - |
 | 64. EE Cold-Start Run | v14.0 | 0/? | Not started | - |
 | 65. Friction Report Synthesis | v14.0 | 0/? | Not started | - |
