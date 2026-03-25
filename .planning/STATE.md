@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
 status: completed
-stopped_at: Completed 64-01-PLAN.md
-last_updated: "2026-03-25T18:05:59.161Z"
-last_activity: 2026-03-25 — Phase 63 Plan 03 complete; all 3 runtimes verified; CE-05 BLOCKER acknowledged by operator; Phase 63 closed
+stopped_at: Completed 64-02-PLAN.md
+last_updated: "2026-03-25T19:26:15Z"
+last_activity: 2026-03-25 — Phase 64 Plan 02 complete; FRICTION-EE-INSTALL.md produced; operator confirmed EE loaded (all 8 features true, edition=enterprise); gate cleared for Plan 03
 progress:
   total_phases: 5
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 63 of 65 (CE Cold-Start Run) — COMPLETE
-Plan: 03 of 03 — Complete
-Status: Phase 63 complete — CE operator scenario done; FRICTION-CE-OPERATOR.md produced; CE-05 BLOCKER verdict; Phase 64 EE run next
-Last activity: 2026-03-25 — Phase 63 Plan 03 complete; all 3 runtimes verified; CE-05 BLOCKER acknowledged by operator; Phase 63 closed
+Phase: 64 of 65 (EE Cold-Start Run) — IN PROGRESS
+Plan: 02 of 03 — Complete
+Status: Phase 64 Plan 02 complete — EE install friction report produced; operator gate cleared; Plan 03 EE operator scenario next
+Last activity: 2026-03-25 — Phase 64 Plan 02 complete; FRICTION-EE-INSTALL.md produced; operator confirmed EE loaded (all 8 features true, edition=enterprise); gate cleared for Plan 03
 
 Progress: [██████████] 100%
 
@@ -66,6 +66,8 @@ Progress: [██████████] 100%
 - [Phase 64-01]: Preserve full canonical wheel filename in COPY — pip validates filename format, aliases cause install failure
 - [Phase 64-01]: Use --force-recreate (not restart) to propagate new JOIN_TOKEN env vars to node containers after cold reset
 - [Phase 64-01]: Add _inject_join_tokens() to reset_stack_ee: generate JOIN_TOKEN_1/2 via API, append to .env, force-recreate node services
+- [Phase 64-02]: Orchestrator-assisted friction evaluation used when Gemini MODEL_CAPACITY_EXHAUSTED (free-tier quota 0) — same limitation as Phase 63; FRICTION-EE-INSTALL.md produced via orchestrator doc-following
+- [Phase 64-02]: EE operator gate confirmed via API: /api/features all 8 flags true, /api/licence edition=enterprise before Plan 03
 
 ### Pending Todos
 
@@ -81,7 +83,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T18:05:59.159Z
-Stopped at: Completed 64-01-PLAN.md
-Next action: Proceed to Phase 64 (EE Cold-Start Run)
+Last session: 2026-03-25T19:26:15Z
+Stopped at: Completed 64-02-PLAN.md
+Next action: Proceed to Phase 64 Plan 03 (EE operator scenario)
 Resume file: None
