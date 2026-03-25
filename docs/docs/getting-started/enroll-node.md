@@ -20,6 +20,37 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
 
     **Always copy the JOIN_TOKEN from the dashboard.**
 
+!!! note "CLI / headless alternative"
+    If you cannot access the dashboard (headless server, scripted setup), you can generate an enhanced token via the API. First log in to get a JWT:
+
+    ```bash
+    TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
+      -H 'Content-Type: application/x-www-form-urlencoded' \
+      -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+    ```
+
+    Then generate and retrieve the enhanced token:
+
+    ```bash
+    curl -sk -X POST https://<your-orchestrator>:8001/admin/generate-token \
+      -H "Authorization: Bearer $TOKEN" \
+      | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('enhanced_token', d.get('join_token', '')))"
+    ```
+
+    The `enhanced_token` field contains the full base64-encoded JOIN_TOKEN with the Root CA embedded.
+
+!!! warning "Admin password (cold-start installs)"
+    If you started Axiom using `compose.cold-start.yaml` without setting `ADMIN_PASSWORD` in your `.env` file, the admin account was created with a random password. You will not be able to log in.
+
+    Before starting the stack, create a `.env` file in the same directory as `compose.cold-start.yaml`:
+
+    ```bash
+    ADMIN_PASSWORD=your-chosen-password
+    ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+    ```
+
+    Then restart: `docker compose -f compose.cold-start.yaml --env-file .env down -v && docker compose -f compose.cold-start.yaml --env-file .env up -d`
+
 ---
 
 ## Step 2: Configure node connectivity
@@ -78,25 +109,46 @@ Create `node-compose.yaml` with the following content, substituting your JOIN_TO
 ```yaml
 services:
   puppet-node:
-    image: docker.io/library/python:3.12-alpine
+    image: localhost/master-of-puppets-node:latest
     environment:
       NODE_TAGS: general,linux
       JOB_IMAGE: docker.io/library/python:3.12-alpine
       AGENT_URL: https://172.17.0.1:8001
       JOIN_TOKEN: <paste-your-enhanced-token-here>
       ROOT_CA_PATH: /app/secrets/root_ca.crt
-      EXECUTION_MODE: direct
+      EXECUTION_MODE: docker
     volumes:
       - node-secrets:/app/secrets
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   node-secrets:
 ```
 
-!!! tip "EXECUTION_MODE=direct"
-    When the node container runs inside Docker (as it does here), setting `EXECUTION_MODE=direct` tells the node to execute job scripts as Python subprocesses rather than spawning nested containers.
+!!! tip "EXECUTION_MODE=docker"
+    When the node container runs inside Docker, set `EXECUTION_MODE=docker`. This tells the node to spawn job containers using the host's Docker daemon via the mounted socket (`/var/run/docker.sock`).
 
-    Without this, the node attempts to use Docker or Podman inside Docker, which runs into cgroup v2 permission issues and fails silently. Use `direct` mode for all standard deployments.
+    You must also add the Docker socket to the node's volumes:
+
+    ```yaml
+    volumes:
+      - node-secrets:/app/secrets
+      - /var/run/docker.sock:/var/run/docker.sock
+    ```
+
+    Then update your compose to mount the socket:
+
+    ```yaml
+    services:
+      puppet-node:
+        image: localhost/master-of-puppets-node:latest
+        environment:
+          ...
+          EXECUTION_MODE: docker
+        volumes:
+          - node-secrets:/app/secrets
+          - /var/run/docker.sock:/var/run/docker.sock
+    ```
 
 Then start the node:
 
