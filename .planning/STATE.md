@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v14.0
-milestone_name: — CE/EE Cold-Start Validation
-status: completed
-stopped_at: Completed 65-01 — friction report synthesis; v14.0 milestone closed
-last_updated: "2026-03-25T20:43:41.980Z"
-last_activity: 2026-03-25 — Phase 65 Plan 01 complete; cold_start_friction_report.md (274 lines, NOT READY verdict, 5 open product BLOCKERs) produced; operator approved; v14.0 milestone closed
+milestone: v14.1
+milestone_name: First-User Readiness
+status: in_progress
+stopped_at: Defining requirements
+last_updated: "2026-03-25T00:00:00.000Z"
+last_activity: 2026-03-25 — Milestone v14.1 started
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 14
-  completed_plans: 14
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone — address v14.0 BLOCKERs from cold_start_friction_report.md
+**Current focus:** v14.1 First-User Readiness — closing 12 open product BLOCKERs from cold_start_friction_report.md
 
 ## Current Position
 
-Phase: 65 of 65 (Friction Report Synthesis) — COMPLETE
-Plan: 01 of 01 — Complete
-Status: Phase 65 complete — synthesise_friction.py written and run; cold_start_friction_report.md produced and operator-approved; v14.0 milestone closed
-Last activity: 2026-03-25 — Phase 65 Plan 01 complete; cold_start_friction_report.md (274 lines, NOT READY verdict, 5 open product BLOCKERs) produced; operator approved; v14.0 milestone closed
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-25 — Milestone v14.1 started
 
 Progress: [██████████] 100%
 

@@ -144,10 +144,49 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Jobs and Nodes feature guides created — unified `script` type, guided form, bulk ops, Queue Monitor, DRAINING state all documented — v13.0
 - ✓ Quick-reference HTML files integrated into MkDocs under `docs/docs/quick-ref/`; root originals removed; course rebranded to Axiom; operator guide updated for v12.0 — v13.0
 
+## Current Milestone: v14.1 First-User Readiness
+
+**Goal:** Close all 12 open product BLOCKERs from the cold-start friction report to achieve first-user readiness for CE and EE.
+
+**Target features:**
+- Fix 12 open product BLOCKERs: docs patches (install, enroll-node, first-job, ee-install) + code patches (Containerfile.node, compose.cold-start.yaml, main.py)
+- Address 4 NOTABLE findings: signing workflow documentation, /api/executions CE-gating decision
+- Close 4 ROUGH EDGE and 1 MINOR finding
+
+### Active — v14.1 First-User Readiness
+
+- [ ] BLOCKER: Admin password setup step missing from install docs — `docs/getting-started/install.md`
+- [ ] BLOCKER: JOIN_TOKEN requires dashboard GUI — no CLI alternative documented — `docs/getting-started/enroll-node.md`
+- [ ] BLOCKER: Docs show wrong node image (`python:3.12-alpine`) — `docs/getting-started/enroll-node.md`
+- [ ] BLOCKER: `EXECUTION_MODE=direct` removed from code but still in docs — `docs/getting-started/enroll-node.md`
+- [ ] BLOCKER: TLS cert mismatch when using documented AGENT_URL (`172.17.0.1:8001`) — `docs/getting-started/enroll-node.md`
+- [ ] BLOCKER: Guided form requires browser — no CLI/API dispatch path documented — `docs/getting-started/first-job.md`
+- [ ] BLOCKER [fixed-during-run]: Docs path mismatch (`/workspace/docs/` vs `/workspace/docs/site/`) — `docs/getting-started/install.md`
+- [ ] BLOCKER [fixed-during-run]: Docker CLI missing from node image — `puppets/Containerfile.node`
+- [ ] BLOCKER [fixed-during-run]: DinD /tmp mount creates directories instead of files — `puppeteer/compose.cold-start.yaml`
+- [ ] BLOCKER [fixed-during-run]: Wrong image tag in runtime.py default — `puppets/Containerfile.node`
+- [ ] BLOCKER [fixed-during-run]: PowerShell not in cold-start node image — `puppets/Containerfile.node`
+- [ ] BLOCKER [fixed-during-run]: `/api/admin/features` endpoint does not exist — `docs/getting-started/ee-install.md`
+- [ ] NOTABLE: Ed25519 signing workflow undocumented for cold-start — `docs/getting-started/first-job.md`
+- [ ] NOTABLE: No signing key pre-registered on fresh stack — `docs/getting-started/first-job.md`
+- [ ] NOTABLE: `/api/executions` ungated in CE mode (returns HTTP 200 not 402) — `puppeteer/agent_service/main.py`
+- [ ] ROUGH EDGE: Docs assume GitHub clone available — `docs/getting-started/install.md`
+- [ ] ROUGH EDGE: Node containers in compose don't have Docker socket — `docs/getting-started/enroll-node.md` + `compose.cold-start.yaml`
+- [ ] ROUGH EDGE: No EE section in getting-started/install.md — `docs/getting-started/install.md`
+- [ ] ROUGH EDGE: AXIOM_LICENCE_KEY injection method inconsistency — `docs/getting-started/install.md`
+- [ ] MINOR: AXIOM_EE_LICENCE_KEY vs AXIOM_LICENCE_KEY naming mismatch — `docs/licensing.md`
+
 ### Active — Future Milestones
 
-- [ ] **BLOCKER from v14.0**: 5 open product BLOCKERs from `cold_start_friction_report.md` — guided form CLI access, Docker CLI docs gap, DinD /tmp mount, wrong image tag in docs, PowerShell missing in default node image; see `mop_validation/reports/cold_start_friction_report.md`
-- [ ] **BLOCKER from v14.0**: `/api/executions` ungated in CE mode (returns HTTP 200 not 402) — fix in `main.py` CE stub router
+- [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
+- [ ] Conditional triggers — run job based on outcome of previous job or external signal
+- [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
+- [ ] DIST-02: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current use)
+- [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
+- [ ] DIST-04: Licence issuance portal — web UI or automated pipeline for signed licence key delivery
+- [ ] DIST-05: Periodic licence re-validation (currently startup-only)
+- [ ] EE-09: OIDC/SAML SSO integration
+- [ ] EE-10: Custom RBAC roles + fine-grained permissions
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
 - [ ] Conditional triggers — run job based on outcome of previous job or external signal
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
@@ -248,4 +287,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-25 after v14.0 milestone — CE/EE Cold-Start Validation*
+*Last updated: 2026-03-25 after v14.1 milestone started — First-User Readiness*
