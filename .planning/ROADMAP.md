@@ -161,7 +161,11 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
   2. A job dispatched to a node in the cold-start compose stack reaches COMPLETED — the `/tmp` bind mount allows script delivery to the Docker socket
   3. PowerShell is present and executable in the built node image (`pwsh --version` succeeds); the build does not fail silently on arm64 hosts due to a missing platform guard
   4. `GET /api/executions` returns HTTP 402 in CE mode; `test_ce_smoke.py` confirms all 7 execution-related routes are CE-gated
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 66-01-PLAN.md — Containerfile.node arm64 platform guard (CODE-03)
+- [ ] 66-02-PLAN.md — CE execution stub router, EE router, test updates (CODE-04)
+- [ ] 66-03-PLAN.md — Image build verification and full test suite gate (CODE-01, CODE-02, CODE-03)
 
 ### Phase 67: Getting-Started Documentation
 **Goal**: A first-time user with no prior Axiom knowledge can follow install.md → enroll-node.md → first-job.md from a fresh machine and reach a dispatched, signed, COMPLETED job using either the dashboard or CLI — with zero undocumented prerequisites
