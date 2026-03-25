@@ -15,10 +15,17 @@ WORKDIR /app
 # (The Microsoft Debian apt repo uses SHA1 keys rejected by newer Debian — direct .deb instead.)
 # IMPORTANT: Do NOT clear apt package lists until AFTER the PowerShell .deb install —
 # the .deb requires libicu which must be resolved from live package lists.
+# ARG TARGETARCH is automatically set by BuildKit — no --build-arg needed.
+ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget apt-transport-https gnupg podman krb5-user iptables \
+    && if [ "$TARGETARCH" = "arm64" ] || [ "$TARGETARCH" = "aarch64" ]; then \
+         PWSH_ARCH=arm64; \
+       else \
+         PWSH_ARCH=amd64; \
+       fi \
     && wget -q -O /tmp/powershell.deb \
-       "https://github.com/PowerShell/PowerShell/releases/download/v7.6.0/powershell-lts_7.6.0-1.deb_amd64.deb" \
+         "https://github.com/PowerShell/PowerShell/releases/download/v7.6.0/powershell-lts_7.6.0-1.deb_${PWSH_ARCH}.deb" \
     && apt-get install -y /tmp/powershell.deb \
     && rm /tmp/powershell.deb \
     && rm -rf /var/lib/apt/lists/*
