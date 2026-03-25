@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
 status: verifying
-stopped_at: Completed 63-01-PLAN.md
-last_updated: "2026-03-25T11:17:33.825Z"
+stopped_at: "Completed 63-02-PLAN.md (checkpoint: operator review of FRICTION-CE-INSTALL.md)"
+last_updated: "2026-03-25T14:03:57.258Z"
 last_activity: 2026-03-25 — Phase 62 plan 03 executed; 4 scenario scripts created, SCAF-04 20/20 checks pass, Phase 62 complete
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 100
 ---
 
@@ -55,6 +55,8 @@ Progress: [██████████] 100%
 - [Phase 62-agent-scaffolding]: check_scaf04_scenarios() runs host-side via pathlib.Path — scenario files live in mop_validation/scenarios/ on the host, not inside the LXC
 - [Phase 63-01]: Pre-load Docker images from host into LXC via docker save | docker load — compose build contexts not available inside LXC
 - [Phase 63-01]: reset_stack() uses docker compose up -d (not --build) — images must be pre-loaded via docker save/load before first run
+- [Phase 63-02]: FRICTION-CE-INSTALL.md verdict: FAIL — node enrollment blocked by 6 converging doc/code mismatches (EXECUTION_MODE=direct removed, wrong node image, TLS cert mismatch, admin password undiscoverable, JOIN_TOKEN GUI-only, docs path wrong)
+- [Phase 63-02]: Gemini free-tier quota insufficient for full scenario run — Tier 1 paid key required (80-120 API calls needed per scenario); verified friction via orchestrator doc-following instead
 
 ### Pending Todos
 
@@ -69,7 +71,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T11:17:33.823Z
-Stopped at: Completed 63-01-PLAN.md
+Last session: 2026-03-25T14:03:57.257Z
+Stopped at: Completed 63-02-PLAN.md (checkpoint: operator review of FRICTION-CE-INSTALL.md)
 Next action: Begin Phase 63 (CE run) — push ce-install.md and ce-operator.md to LXC and execute
 Resume file: None
