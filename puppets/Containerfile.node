@@ -3,18 +3,28 @@
 
 FROM python:3.12-slim
 
+# Copy Docker CLI binary from the official Docker image.
+# On Debian 13 (Trixie), docker.io no longer ships the CLI binary — it requires
+# docker-cli as a separate recommended package. Copying from docker:cli avoids
+# adding the full Docker apt repo and is statically linked.
+COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/docker
+
 WORKDIR /app
 
-# Install system deps + PowerShell Core via direct .deb from GitHub releases
-# (The Microsoft Debian 12 apt repo uses SHA1 keys which are rejected by Debian — use direct .deb instead)
+# Install system deps + PowerShell Core via direct .deb from GitHub releases.
+# (The Microsoft Debian apt repo uses SHA1 keys rejected by newer Debian — direct .deb instead.)
+# IMPORTANT: Do NOT clear apt package lists until AFTER the PowerShell .deb install —
+# the .deb requires libicu which must be resolved from live package lists.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget apt-transport-https gnupg podman krb5-user iptables docker.io \
-    && rm -rf /var/lib/apt/lists/* \
+    curl wget apt-transport-https gnupg podman krb5-user iptables \
     && wget -q -O /tmp/powershell.deb \
        "https://github.com/PowerShell/PowerShell/releases/download/v7.6.0/powershell-lts_7.6.0-1.deb_amd64.deb" \
     && apt-get install -y /tmp/powershell.deb \
     && rm /tmp/powershell.deb \
     && rm -rf /var/lib/apt/lists/*
+
+# Required for PowerShell on Debian 13: libicu74 uses a different collation format.
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 
 # Dependencies
 COPY requirements.txt .

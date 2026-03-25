@@ -103,19 +103,21 @@ services:
 
   puppet-node-1:
     build:
-      context: ..
-      dockerfile: puppets/Containerfile.node
+      context: ../puppets
+      dockerfile: Containerfile.node
     image: localhost/axiom-node:cold-start
     environment:
       - AGENT_URL=https://agent:8001
       - JOIN_TOKEN=${JOIN_TOKEN_1:-}
       - ROOT_CA_PATH=/app/secrets/root_ca.crt
       - EXECUTION_MODE=docker
+      - JOB_IMAGE=localhost/axiom-node:cold-start
       - PYTHONUNBUFFERED=1
       - NODE_TAGS=coldstart,linux
     volumes:
       - node1-secrets:/app/secrets
       - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
     restart: unless-stopped
     depends_on:
       agent:
@@ -123,19 +125,21 @@ services:
 
   puppet-node-2:
     build:
-      context: ..
-      dockerfile: puppets/Containerfile.node
+      context: ../puppets
+      dockerfile: Containerfile.node
     image: localhost/axiom-node:cold-start
     environment:
       - AGENT_URL=https://agent:8001
       - JOIN_TOKEN=${JOIN_TOKEN_2:-}
       - ROOT_CA_PATH=/app/secrets/root_ca.crt
       - EXECUTION_MODE=docker
+      - JOB_IMAGE=localhost/axiom-node:cold-start
       - PYTHONUNBUFFERED=1
       - NODE_TAGS=coldstart,linux
     volumes:
       - node2-secrets:/app/secrets
       - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
     restart: unless-stopped
     depends_on:
       agent:
