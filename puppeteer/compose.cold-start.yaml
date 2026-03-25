@@ -5,13 +5,22 @@ version: "3"
 # A stripped-down version of compose.server.yaml for cold-start evaluation.
 # No external service credentials required (no Cloudflare tunnel, DuckDNS, or registry).
 #
-# Usage:
-#   CE run:  docker compose -f compose.cold-start.yaml up -d
-#   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml up -d
+# Quick start:
+#   1. Create a .env file with at minimum:
+#        ADMIN_PASSWORD=<choose-a-password>
+#        ENCRYPTION_KEY=<32-char-fernet-key>  # generate: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+#   2. docker compose -f compose.cold-start.yaml --env-file .env up -d
+#   3. Generate JOIN tokens from the dashboard (Admin → Join Tokens) or via API:
+#        curl -sk -X POST https://localhost:8001/admin/generate-token \
+#          -H "Authorization: Bearer <admin-jwt>" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['enhanced_token'])"
+#   4. Set JOIN_TOKEN_1 and JOIN_TOKEN_2 in your .env file and restart the node services.
 #
-# Puppet nodes require JOIN_TOKEN to enroll. Generate tokens from the dashboard
-# (Admin → Join Tokens), then set JOIN_TOKEN_1 and JOIN_TOKEN_2 in your environment
-# or in a .env file before starting the stack.
+# Usage:
+#   CE run:  docker compose -f compose.cold-start.yaml --env-file .env up -d
+#   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml --env-file .env up -d
+#
+# IMPORTANT: ADMIN_PASSWORD must be set in your .env file before first start.
+# If omitted, the admin account is created with a random password that cannot be recovered.
 #
 # Dashboard is reachable at: https://172.17.0.1:8443
 # API is reachable at:       https://172.17.0.1:8001
@@ -98,14 +107,15 @@ services:
       dockerfile: puppets/Containerfile.node
     image: localhost/axiom-node:cold-start
     environment:
-      - AGENT_URL=https://172.17.0.1:8001
+      - AGENT_URL=https://agent:8001
       - JOIN_TOKEN=${JOIN_TOKEN_1:-}
       - ROOT_CA_PATH=/app/secrets/root_ca.crt
-      - EXECUTION_MODE=direct
+      - EXECUTION_MODE=docker
       - PYTHONUNBUFFERED=1
       - NODE_TAGS=coldstart,linux
     volumes:
       - node1-secrets:/app/secrets
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     depends_on:
       agent:
@@ -117,14 +127,15 @@ services:
       dockerfile: puppets/Containerfile.node
     image: localhost/axiom-node:cold-start
     environment:
-      - AGENT_URL=https://172.17.0.1:8001
+      - AGENT_URL=https://agent:8001
       - JOIN_TOKEN=${JOIN_TOKEN_2:-}
       - ROOT_CA_PATH=/app/secrets/root_ca.crt
-      - EXECUTION_MODE=direct
+      - EXECUTION_MODE=docker
       - PYTHONUNBUFFERED=1
       - NODE_TAGS=coldstart,linux
     volumes:
       - node2-secrets:/app/secrets
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     depends_on:
       agent:
