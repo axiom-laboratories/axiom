@@ -195,7 +195,11 @@ Plans:
   2. Gemini agent dispatches Python, Bash, and PowerShell jobs via the EE operator path and confirms `COMPLETED` status with stdout captured for each runtime
   3. Gemini agent exercises at least one EE-gated feature (execution history, attestation badge, or environment tag routing) and confirms it is accessible and functioning
   4. EE `FRICTION.md` is produced to the same standard as CE-05, with EE-specific findings annotated separately from findings also present in the CE run
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 64-01-PLAN.md — EE image rebuild (local wheel), push to LXC, EE stack reset with licence key, readiness verification (EE-01)
+- [ ] 64-02-PLAN.md — ee-install Gemini scenario + operator EE-loaded gate (EE-01, EE-04)
+- [ ] 64-03-PLAN.md — ee-operator scenario (3 runtimes + Execution History) + CE-gating confirmation + FRICTION pull (EE-02, EE-03, EE-04)
 
 ### Phase 65: Friction Report Synthesis
 **Goal**: CE and EE friction findings are merged into a single deliverable with cross-edition comparison, severity triage, and a verdict on first-user readiness
