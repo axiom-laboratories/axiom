@@ -110,6 +110,17 @@ None — no external service configuration required.
 - Phase 63 (CE run) can proceed: push `ce-install.md` and `ce-operator.md` to the LXC, launch Gemini with `HOME=/root/validation-home gemini -p "$(cat ce-install.md)"`.
 - Phase 64 (EE run) follows the same pattern with the EE scenarios.
 
+## Self-Check: PASSED
+
+- ce-install.md: FOUND
+- ce-operator.md: FOUND
+- ee-install.md: FOUND
+- ee-operator.md: FOUND
+- 62-03-SUMMARY.md: FOUND
+- dec7979 (CE scenarios): FOUND in mop_validation git log
+- cc3575e (EE scenarios + verifier): FOUND in mop_validation git log
+- 00a7604 (metadata commit): FOUND in main repo git log
+
 ---
 *Phase: 62-agent-scaffolding*
 *Completed: 2026-03-25*
