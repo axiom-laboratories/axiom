@@ -15,7 +15,7 @@ async def test_ce_features_all_false():
         assert resp.status_code == 200
         flags = resp.json()
         ee_flags = ["foundry", "audit", "webhooks", "triggers", "rbac",
-                    "resource_limits", "service_principals", "api_keys"]
+                    "resource_limits", "service_principals", "api_keys", "executions"]
         for flag in ee_flags:
             assert flags.get(flag) is False, f"Expected {flag}=False in CE, got {flags.get(flag)}"
 
@@ -29,16 +29,29 @@ async def test_ce_stub_routers_return_402():
     from agent_service.ee.interfaces.foundry import blueprints_get
     from agent_service.ee.interfaces.audit import audit_log_get
     from agent_service.ee.interfaces.webhooks import webhooks_get
+    from agent_service.ee.interfaces.executions import (
+        list_executions_stub, get_execution_stub, get_execution_attestation_stub,
+        list_job_executions_stub, pin_execution_stub, unpin_execution_stub,
+        export_job_executions_stub
+    )
 
-    for handler in (blueprints_get, audit_log_get, webhooks_get):
+    for handler in (blueprints_get, audit_log_get, webhooks_get, list_executions_stub):
         resp = await handler()
         assert resp.status_code == 402, (
             f"Stub handler {handler.__name__} returned {resp.status_code}, expected 402"
         )
 
+    # Path-param stub handlers — call with dummy values
+    assert (await get_execution_stub(id=1)).status_code == 402
+    assert (await get_execution_attestation_stub(id=1)).status_code == 402
+    assert (await list_job_executions_stub(guid="test")).status_code == 402
+    assert (await pin_execution_stub(exec_id=1)).status_code == 402
+    assert (await unpin_execution_stub(exec_id=1)).status_code == 402
+    assert (await export_job_executions_stub(guid="test")).status_code == 402
+
 
 def test_ce_table_count():
-    """CE install creates exactly 13 CE tables (no EE tables)."""
+    """CE install creates exactly 15 CE tables (no EE tables)."""
     from agent_service.db import Base
     ce_tables = set(Base.metadata.tables.keys())
     # EE tables must not be present
@@ -50,4 +63,4 @@ def test_ce_table_count():
     }
     found_ee = ce_tables & ee_tables
     assert not found_ee, f"EE tables found in CE Base.metadata: {found_ee}"
-    assert len(ce_tables) == 13, f"Expected 13 CE tables, got {len(ce_tables)}: {sorted(ce_tables)}"
+    assert len(ce_tables) == 15, f"Expected 15 CE tables, got {len(ce_tables)}: {sorted(ce_tables)}"

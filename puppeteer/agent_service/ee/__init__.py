@@ -21,6 +21,7 @@ class EEContext:
     resource_limits: bool = False
     service_principals: bool = False
     api_keys: bool = False
+    executions: bool = False
 
 
 def _mount_ce_stubs(app: Any) -> None:
@@ -30,13 +31,15 @@ def _mount_ce_stubs(app: Any) -> None:
     from .interfaces.triggers import triggers_stub_router
     from .interfaces.auth_ext import auth_ext_stub_router
     from .interfaces.smelter import smelter_stub_router
+    from .interfaces.executions import execution_stub_router
     app.include_router(foundry_stub_router)
     app.include_router(audit_stub_router)
     app.include_router(webhooks_stub_router)
     app.include_router(triggers_stub_router)
     app.include_router(auth_ext_stub_router)
     app.include_router(smelter_stub_router)
-    logger.info("CE mode: mounted 6 stub routers (402 for all EE routes)")
+    app.include_router(execution_stub_router)
+    logger.info("CE mode: mounted 7 stub routers (402 for all EE routes)")
 
 
 async def load_ee_plugins(app: Any, engine: Any) -> EEContext:
