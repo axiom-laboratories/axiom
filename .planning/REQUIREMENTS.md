@@ -31,10 +31,10 @@ Requirements for the CE/EE Cold-Start Validation milestone. Each maps to roadmap
 
 ### EE Validation (EE)
 
-- [ ] **EE-01**: Gemini agent follows EE install docs with pre-generated licence injected — EE plugin installed, all EE feature flags active, licence badge visible in dashboard
-- [ ] **EE-02**: Gemini agent dispatches and verifies Python, Bash, and PowerShell jobs via EE operator path; execution confirmed in job history
-- [ ] **EE-03**: Gemini agent exercises at least one EE-gated feature beyond job dispatch (e.g. execution history, attestation badge, or environment tag routing)
-- [ ] **EE-04**: EE `FRICTION.md` produced to the same standard as CE-05, with EE-specific findings noted separately from CE-identical findings
+- [x] **EE-01**: Gemini agent follows EE install docs with pre-generated licence injected — EE plugin installed, all EE feature flags active, licence badge visible in dashboard
+- [x] **EE-02**: Gemini agent dispatches and verifies Python, Bash, and PowerShell jobs via EE operator path; execution confirmed in job history
+- [x] **EE-03**: Gemini agent exercises at least one EE-gated feature beyond job dispatch (e.g. execution history, attestation badge, or environment tag routing)
+- [x] **EE-04**: EE `FRICTION.md` produced to the same standard as CE-05, with EE-specific findings noted separately from CE-identical findings
 
 ### Reporting (RPT)
 
@@ -83,10 +83,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CE-03 | Phase 63 | Complete |
 | CE-04 | Phase 63 | Complete |
 | CE-05 | Phase 63 | Complete |
-| EE-01 | Phase 64 | Pending |
-| EE-02 | Phase 64 | Pending |
-| EE-03 | Phase 64 | Pending |
-| EE-04 | Phase 64 | Pending |
+| EE-01 | Phase 64 | Complete |
+| EE-02 | Phase 64 | Complete |
+| EE-03 | Phase 64 | Complete |
+| EE-04 | Phase 64 | Complete |
 | RPT-01 | Phase 65 | Pending |
 
 **Coverage:**

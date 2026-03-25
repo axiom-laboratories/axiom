@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
 status: completed
-stopped_at: Completed 64-02-PLAN.md
-last_updated: "2026-03-25T19:26:15Z"
-last_activity: 2026-03-25 — Phase 64 Plan 02 complete; FRICTION-EE-INSTALL.md produced; operator confirmed EE loaded (all 8 features true, edition=enterprise); gate cleared for Plan 03
+stopped_at: Completed 64-03-PLAN.md
+last_updated: "2026-03-25T19:50:00Z"
+last_activity: 2026-03-25 — Phase 64 Plan 03 complete; FRICTION-EE-OPERATOR.md produced; all 3 runtimes COMPLETED; Execution History EE feature confirmed; CE-gating finding documented as NOTABLE; operator approved Phase 64 complete
 progress:
   total_phases: 5
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 64 of 65 (EE Cold-Start Run) — IN PROGRESS
-Plan: 02 of 03 — Complete
-Status: Phase 64 Plan 02 complete — EE install friction report produced; operator gate cleared; Plan 03 EE operator scenario next
-Last activity: 2026-03-25 — Phase 64 Plan 02 complete; FRICTION-EE-INSTALL.md produced; operator confirmed EE loaded (all 8 features true, edition=enterprise); gate cleared for Plan 03
+Phase: 64 of 65 (EE Cold-Start Run) — COMPLETE
+Plan: 03 of 03 — Complete
+Status: Phase 64 complete — all 3 plans done; FRICTION-EE-INSTALL.md and FRICTION-EE-OPERATOR.md produced; operator approved
+Last activity: 2026-03-25 — Phase 64 Plan 03 complete; FRICTION-EE-OPERATOR.md produced; all 3 runtimes COMPLETED; Execution History EE feature confirmed; CE-gating finding documented as NOTABLE; operator approved Phase 64 complete
 
 Progress: [██████████] 100%
 
@@ -68,6 +68,10 @@ Progress: [██████████] 100%
 - [Phase 64-01]: Add _inject_join_tokens() to reset_stack_ee: generate JOIN_TOKEN_1/2 via API, append to .env, force-recreate node services
 - [Phase 64-02]: Orchestrator-assisted friction evaluation used when Gemini MODEL_CAPACITY_EXHAUSTED (free-tier quota 0) — same limitation as Phase 63; FRICTION-EE-INSTALL.md produced via orchestrator doc-following
 - [Phase 64-02]: EE operator gate confirmed via API: /api/features all 8 flags true, /api/licence edition=enterprise before Plan 03
+- [Phase 64-03]: CE-gating finding: /api/executions returns HTTP 200 in CE mode (not 402) — route is ungated in main.py; CE stubs do not include execution history; product decision for Phase 65
+- [Phase 64-03]: confirm_ce_gating() uses docker compose restart (not force-recreate) — env vars not re-read; script bug deferred to Phase 65
+- [Phase 64-03]: FRICTION-EE-OPERATOR.md: 2 BLOCKERs (guided form CLI carry-over, CE-gating script restart bug) + 3 NOTABLEs (/api/executions ungated, no signing key pre-registered, signing workflow undocumented) — all Phase 65 input
+- [Phase 64-03]: Operator approved Phase 64 complete: all 3 runtimes COMPLETED, Execution History EE feature confirmed accessible, CE-gating finding documented
 
 ### Pending Todos
 
@@ -83,7 +87,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T19:26:15Z
-Stopped at: Completed 64-02-PLAN.md
-Next action: Proceed to Phase 64 Plan 03 (EE operator scenario)
+Last session: 2026-03-25T19:50:00Z
+Stopped at: Completed 64-03-PLAN.md
+Next action: Proceed to Phase 65 (friction remediation — input from all 4 FRICTION files)
 Resume file: None
