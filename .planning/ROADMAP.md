@@ -180,7 +180,11 @@ Plans:
   3. Gemini agent dispatches a Bash job via the guided dispatch form and confirms `COMPLETED` status with stdout captured in the job history view
   4. Gemini agent dispatches a PowerShell job via the guided dispatch form and confirms `COMPLETED` status with stdout captured in the job history view
   5. `checkpoint/FRICTION.md` contains a per-step PASS/FAIL log, verbatim doc quotes for every friction point, checkpoint steering interventions disclosed, and BLOCKER/NOTABLE/MINOR classification per finding
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 63-01-PLAN.md — stack reset + readiness verification + run orchestration script (CE-01)
+- [ ] 63-02-PLAN.md — CE install scenario (ce-install.md) with checkpoint monitoring and operator gate (CE-01, CE-05)
+- [ ] 63-03-PLAN.md — CE operator scenario (ce-operator.md) — 3-runtime job dispatch and CE-05 acceptance gate (CE-02, CE-03, CE-04, CE-05)
 
 ### Phase 64: EE Cold-Start Run
 **Goal**: A Gemini agent completes the EE install path with licence injection and verifies EE-specific features, producing an EE friction report comparable to the CE report
@@ -228,7 +232,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 60. Quick Reference | v13.0 | 3/3 | Complete | 2026-03-24 |
 | 61. LXC Environment and Cold-Start Compose | 3/3 | Complete    | 2026-03-24 | - |
 | 62. Agent Scaffolding | 3/3 | Complete    | 2026-03-25 | - |
-| 63. CE Cold-Start Run | v14.0 | 0/? | Not started | - |
+| 63. CE Cold-Start Run | v14.0 | 0/3 | Not started | - |
 | 64. EE Cold-Start Run | v14.0 | 0/? | Not started | - |
 | 65. Friction Report Synthesis | v14.0 | 0/? | Not started | - |
 
