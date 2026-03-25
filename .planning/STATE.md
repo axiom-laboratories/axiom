@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
-status: Phase 63 halted — operator confirmed BLOCKER on FRICTION-CE-INSTALL.md; node enrollment FAIL; 6 blockers must be fixed before Plan 63-03 can run
-stopped_at: Completed 63-04-PLAN.md — all 6 node enrollment blockers fixed; Plan 63-03 unblocked
-last_updated: "2026-03-25T15:02:55.476Z"
-last_activity: 2026-03-25 — Phase 63 Plan 02 complete; FRICTION-CE-INSTALL.md captured 6 node enrollment blockers; operator BLOCKER decision halts Plan 63-03
+status: completed
+stopped_at: Completed 63-03-PLAN.md — CE operator scenario done; FRICTION-CE-OPERATOR.md produced; Phase 63 closed
+last_updated: "2026-03-25T16:39:50.921Z"
+last_activity: 2026-03-25 — Phase 63 Plan 03 complete; all 3 runtimes verified; CE-05 BLOCKER acknowledged by operator; Phase 63 closed
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 63 of 65 (CE Cold-Start Run)
-Plan: 02 of 03 — Complete (Plan 03 BLOCKED by operator)
-Status: Phase 63 halted — operator confirmed BLOCKER on FRICTION-CE-INSTALL.md; node enrollment FAIL; 6 blockers must be fixed before Plan 63-03 can run
-Last activity: 2026-03-25 — Phase 63 Plan 02 complete; FRICTION-CE-INSTALL.md captured 6 node enrollment blockers; operator BLOCKER decision halts Plan 63-03
+Phase: 63 of 65 (CE Cold-Start Run) — COMPLETE
+Plan: 03 of 03 — Complete
+Status: Phase 63 complete — CE operator scenario done; FRICTION-CE-OPERATOR.md produced; CE-05 BLOCKER verdict; Phase 64 EE run next
+Last activity: 2026-03-25 — Phase 63 Plan 03 complete; all 3 runtimes verified; CE-05 BLOCKER acknowledged by operator; Phase 63 closed
 
 Progress: [██████████] 100%
 
@@ -60,6 +60,9 @@ Progress: [██████████] 100%
 - [Phase 63-02 Operator Decision]: BLOCKER confirmed — Phase 63 halted at Plan 02; Plan 63-03 will NOT run until 6 node enrollment blockers are resolved; fixes required: EXECUTION_MODE docs, node image docs, TLS cert/AGENT_URL, admin password setup docs, JOIN_TOKEN CLI path, docs site path reference
 - [Phase 63]: Used local mkdocs (v1.6.1) for docs rebuild — Docker mkdocs-material image lacks swagger-ui-tag plugin
 - [Phase 63]: enroll-node.md Option B Docker socket mount added alongside EXECUTION_MODE=docker change — required for docker mode
+- [Phase 63-03]: CE-05 verdict BLOCKER — CLI-only environments cannot complete operator scenario without 6 undocumented fixes; all 3 runtimes DO execute once infrastructure is configured
+- [Phase 63-03]: Orchestrator-assisted fallback used when Gemini hit max checkpoint interventions (no browser for guided form); all 3 runtimes verified via API dispatch
+- [Phase 63-03]: FRICTION-CE-OPERATOR.md: 5 BLOCKERs (guided form CLI, Docker CLI missing, DinD /tmp mount, wrong image tag, PowerShell missing) + 1 NOTABLE (Ed25519 signing undocumented) — all Phase 65 input
 
 ### Pending Todos
 
@@ -70,12 +73,12 @@ None.
 - [Phase 61]: Docker-in-LXC AppArmor pivot_root behaviour on Ubuntu 24.04 kernel 6.8.x — verify `docker run --rm hello-world` succeeds before proceeding
 - [Phase 61]: Gemini CLI headless hang risk — `ripgrep` install and `GEMINI_API_KEY` env var required; verify with `timeout 30 gemini -p "Say hello"`
 - [Phase 62]: Gemini API key tier must be Tier 1 (paid) for a full CE+EE run — free tier 250 RPD is insufficient
-- [Phase 63-HALT]: Plan 63-03 BLOCKED — 6 node enrollment blockers must be fixed: (1) docs path, (2) admin password setup, (3) JOIN_TOKEN CLI path, (4) node image in docs, (5) EXECUTION_MODE=direct removed, (6) TLS cert/AGENT_URL mismatch
+- [Phase 63 RESOLVED]: All 6 node enrollment blockers fixed in Plan 63-04; Plan 63-03 ran successfully
 - [Phase 64]: `axiom-ee` wheel availability inside LXC — confirm editable install path vs devpi before Phase 64 planning
 
 ## Session Continuity
 
-Last session: 2026-03-25T15:02:55.474Z
-Stopped at: Completed 63-04-PLAN.md — all 6 node enrollment blockers fixed; Plan 63-03 unblocked
-Next action: Fix 6 node enrollment blockers (see Blockers/Concerns) before resuming Phase 63-03 or proceeding to Phase 64
+Last session: 2026-03-25T16:40:00Z
+Stopped at: Completed 63-03-PLAN.md — CE operator scenario done; FRICTION-CE-OPERATOR.md produced; Phase 63 closed
+Next action: Proceed to Phase 64 (EE Cold-Start Run)
 Resume file: None
