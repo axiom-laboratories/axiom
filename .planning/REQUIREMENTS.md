@@ -38,7 +38,7 @@ Requirements for the CE/EE Cold-Start Validation milestone. Each maps to roadmap
 
 ### Reporting (RPT)
 
-- [ ] **RPT-01**: Final friction report merges CE and EE `FRICTION.md` files into a single deliverable with cross-edition comparison, BLOCKER/NOTABLE/MINOR triage, actionable recommendations per finding, and a verdict on first-user readiness
+- [x] **RPT-01**: Final friction report merges CE and EE `FRICTION.md` files into a single deliverable with cross-edition comparison, BLOCKER/NOTABLE/MINOR triage, actionable recommendations per finding, and a verdict on first-user readiness
 
 ## Future Requirements
 
@@ -87,7 +87,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EE-02 | Phase 64 | Complete |
 | EE-03 | Phase 64 | Complete |
 | EE-04 | Phase 64 | Complete |
-| RPT-01 | Phase 65 | Pending |
+| RPT-01 | Phase 65 | Complete |
 
 **Coverage:**
 - v14.0 requirements: 18 total

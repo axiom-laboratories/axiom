@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: — CE/EE Cold-Start Validation
 status: completed
-stopped_at: Phase 65 context gathered
-last_updated: "2026-03-25T20:13:48.730Z"
+stopped_at: Completed 65-01 — friction report synthesis; v14.0 milestone closed
+last_updated: "2026-03-25T20:36:19.757Z"
 last_activity: 2026-03-25 — Phase 64 Plan 03 complete; FRICTION-EE-OPERATOR.md produced; all 3 runtimes COMPLETED; Execution History EE feature confirmed; CE-gating finding documented as NOTABLE; operator approved Phase 64 complete
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  completed_phases: 5
+  total_plans: 14
+  completed_plans: 14
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 64 of 65 (EE Cold-Start Run) — COMPLETE
-Plan: 03 of 03 — Complete
-Status: Phase 64 complete — all 3 plans done; FRICTION-EE-INSTALL.md and FRICTION-EE-OPERATOR.md produced; operator approved
-Last activity: 2026-03-25 — Phase 64 Plan 03 complete; FRICTION-EE-OPERATOR.md produced; all 3 runtimes COMPLETED; Execution History EE feature confirmed; CE-gating finding documented as NOTABLE; operator approved Phase 64 complete
+Phase: 65 of 65 (Friction Report Synthesis) — COMPLETE
+Plan: 01 of 01 — Complete
+Status: Phase 65 complete — synthesise_friction.py written and run; cold_start_friction_report.md produced and operator-approved; v14.0 milestone closed
+Last activity: 2026-03-25 — Phase 65 Plan 01 complete; cold_start_friction_report.md (274 lines, NOT READY verdict, 5 open product BLOCKERs) produced; operator approved; v14.0 milestone closed
 
 Progress: [██████████] 100%
 
@@ -72,6 +72,8 @@ Progress: [██████████] 100%
 - [Phase 64-03]: confirm_ce_gating() uses docker compose restart (not force-recreate) — env vars not re-read; script bug deferred to Phase 65
 - [Phase 64-03]: FRICTION-EE-OPERATOR.md: 2 BLOCKERs (guided form CLI carry-over, CE-gating script restart bug) + 3 NOTABLEs (/api/executions ungated, no signing key pre-registered, signing workflow undocumented) — all Phase 65 input
 - [Phase 64-03]: Operator approved Phase 64 complete: all 3 runtimes COMPLETED, Execution History EE feature confirmed accessible, CE-gating finding documented
+- [Phase 65-friction-report-synthesis]: Fixed-during-run BLOCKERs count as open for verdict — they expose UX/doc gaps even when orchestrator resolved them at runtime
+- [Phase 65-friction-report-synthesis]: synthesise_friction.py uses keyword/category mapping for Fix Target derivation — extensible for future FRICTION files
 
 ### Pending Todos
 
@@ -87,7 +89,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T20:13:48.727Z
-Stopped at: Phase 65 context gathered
-Next action: Proceed to Phase 65 (friction remediation — input from all 4 FRICTION files)
-Resume file: .planning/phases/65-friction-report-synthesis/65-CONTEXT.md
+Last session: 2026-03-25T20:36:19.755Z
+Stopped at: Completed 65-01 — friction report synthesis; v14.0 milestone closed
+Next action: v14.0 milestone complete. Next milestone to be determined by product team based on cold_start_friction_report.md findings.
+Resume file: None

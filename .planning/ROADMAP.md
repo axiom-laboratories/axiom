@@ -136,7 +136,7 @@ Archive: `.planning/milestones/v13.0-ROADMAP.md`
 - [x] **Phase 62: Agent Scaffolding** — Tester GEMINI.md, checkpoint file protocol, HOME isolation, and scenario prompt scripts (completed 2026-03-25)
 - [x] **Phase 63: CE Cold-Start Run** — Gemini agent follows CE getting-started docs through install and all 3 job runtimes; CE FRICTION.md produced (completed 2026-03-25)
 - [x] **Phase 64: EE Cold-Start Run** — Gemini agent follows EE install path with pre-injected licence, verifies EE-gated features; EE FRICTION.md produced (completed 2026-03-25)
-- [ ] **Phase 65: Friction Report Synthesis** — Merge CE+EE findings into a single deliverable with cross-edition comparison and readiness verdict
+- [x] **Phase 65: Friction Report Synthesis** — Merge CE+EE findings into a single deliverable with cross-edition comparison and readiness verdict (completed 2026-03-25)
 
 ## Phase Details
 
@@ -240,7 +240,7 @@ Phases execute in numeric order: 61 → 62 → 63 → 64 → 65
 | 62. Agent Scaffolding | 3/3 | Complete    | 2026-03-25 | - |
 | 63. CE Cold-Start Run | 3/3 | Complete    | 2026-03-25 | - |
 | 64. EE Cold-Start Run | 3/3 | Complete    | 2026-03-25 | - |
-| 65. Friction Report Synthesis | v14.0 | 0/? | Not started | - |
+| 65. Friction Report Synthesis | 1/1 | Complete   | 2026-03-25 | - |
 
 ## Archived
 
