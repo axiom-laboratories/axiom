@@ -23,7 +23,7 @@ Requirements for the CE/EE Cold-Start Validation milestone. Each maps to roadmap
 
 ### CE Validation (CE)
 
-- [ ] **CE-01**: Gemini agent follows CE getting-started docs to install Axiom CE from scratch — stack running, nodes enrolled, dashboard accessible
+- [x] **CE-01**: Gemini agent follows CE getting-started docs to install Axiom CE from scratch — stack running, nodes enrolled, dashboard accessible
 - [ ] **CE-02**: Gemini agent dispatches and verifies a Python job via the guided dispatch form; execution confirmed in job history
 - [ ] **CE-03**: Gemini agent dispatches and verifies a Bash job via the guided dispatch form; execution confirmed in job history
 - [ ] **CE-04**: Gemini agent dispatches and verifies a PowerShell job via the guided dispatch form; execution confirmed in job history
@@ -78,7 +78,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCAF-02 | Phase 62 | Complete |
 | SCAF-03 | Phase 62 | Complete |
 | SCAF-04 | Phase 62 | Complete |
-| CE-01 | Phase 63 | Pending |
+| CE-01 | Phase 63 | Complete |
 | CE-02 | Phase 63 | Pending |
 | CE-03 | Phase 63 | Pending |
 | CE-04 | Phase 63 | Pending |
