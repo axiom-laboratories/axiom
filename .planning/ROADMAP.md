@@ -210,7 +210,9 @@ Plans:
   2. The report contains a cross-edition comparison table showing which findings are CE-only, EE-only, or shared
   3. Every BLOCKER and NOTABLE finding has an actionable recommendation with the specific doc section or code path that needs to change
   4. The report ends with a binary first-user readiness verdict (READY / NOT READY) with the blocking criteria listed
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 65-01-PLAN.md — synthesise_friction.py + cold_start_friction_report.md (RPT-01)
 
 ## Progress
 
