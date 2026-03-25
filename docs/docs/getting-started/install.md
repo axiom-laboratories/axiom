@@ -76,4 +76,18 @@ All services should show `running` status. Then open `https://localhost/` in a b
 
 ---
 
+---
+
+## Enterprise Edition
+
+To enable EE features, add your licence key to `secrets.env`:
+
+```bash
+AXIOM_LICENCE_KEY=<your-licence-key>
+```
+
+The stack reads this at startup — no plugin install required. See [Licensing →](../licensing.md) for validation behaviour, expiry handling, and how to check your licence status.
+
+---
+
 **Next:** [Enroll a Node →](enroll-node.md)
