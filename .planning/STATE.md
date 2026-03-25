@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.1
 milestone_name: — First-User Readiness
 status: planning
-stopped_at: Completed 66-01-PLAN.md
-last_updated: "2026-03-25T21:56:57.972Z"
+stopped_at: Completed 66-02-PLAN.md (CE-gate execution routes)
+last_updated: "2026-03-25T22:00:33.340Z"
 last_activity: 2026-03-25 — v14.1 roadmap created; Phase 66 next
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -41,6 +41,8 @@ Progress: [░░░░░░░░░░] 0%
 - [v14.1 Roadmap]: Phase 67 sub-order: add pymdownx.tabbed to mkdocs.yml first, then install.md → enroll-node.md → first-job.md (user journey order)
 - [v14.1 Roadmap]: Phase 68 is EE-only doc cleanup (2 requirements) — kept separate from Phase 67 so CE docs land independently
 - [Phase 66-backend-code-fixes]: Single-stage ARG TARGETARCH in Containerfile.node selects correct PowerShell .deb for arm64/amd64 without multi-stage build complexity
+- [Phase 66-02]: Stub handlers with path parameters tested with dummy args rather than no-arg call in test_ce_smoke.py
+- [Phase 66-02]: executions flag added to /api/features endpoint in both CE fallback dict and EEContext ctx response
 
 ### Pending Todos
 
@@ -54,6 +56,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-25T21:56:57.970Z
-Stopped at: Completed 66-01-PLAN.md
+Last session: 2026-03-25T22:00:33.338Z
+Stopped at: Completed 66-02-PLAN.md (CE-gate execution routes)
 Resume file: None
