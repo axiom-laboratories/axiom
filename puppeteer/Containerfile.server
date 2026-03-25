@@ -27,11 +27,11 @@ RUN pip install --no-cache-dir -r requirements.txt asyncpg sqlalchemy
 
 # EE wheel — pre-copied into build context for cold-start installs (no devpi required)
 # Set EE_INSTALL=1 at build time to enable: docker compose build --build-arg EE_INSTALL=1 agent
-COPY wheels/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl /tmp/axiom_ee.whl
+COPY wheels/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl /tmp/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl
 
 ARG EE_INSTALL=
 RUN if [ -n "${EE_INSTALL}" ]; then \
-    pip install --no-cache-dir /tmp/axiom_ee.whl; \
+    pip install --no-cache-dir /tmp/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl; \
   fi
 
 # Copy Source
