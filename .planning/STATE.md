@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v14.2
 milestone_name: — Docs on GitHub Pages
-status: planning
-stopped_at: "Checkpoint: 71-02 awaiting human-verify (smoke checks + GH Pages activation)"
-last_updated: "2026-03-26T17:25:07.324Z"
-last_activity: 2026-03-26 — Roadmap created
+status: complete
+stopped_at: "Completed 71-02 — Phase 71 fully done, GH Pages live at https://axiom-laboratories.github.io/axiom/"
+last_updated: "2026-03-26T21:29:57.976Z"
+last_activity: 2026-03-26 — Phase 71 complete
 progress:
   total_phases: 1
   completed_phases: 1
   total_plans: 2
   completed_plans: 2
-  percent: 0
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Phase 71 — Deploy Docs to GitHub Pages
+**Current focus:** Milestone v14.2 complete — Docs on GitHub Pages
 
 ## Current Position
 
-Phase: 71 of 1 (Deploy Docs to GitHub Pages)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-26 — Roadmap created
+Phase: 71 of 1 (Deploy Docs to GitHub Pages) — COMPLETE
+Plan: 2 of 2 in current phase
+Status: Milestone complete
+Last activity: 2026-03-26 — Phase 71 complete, GH Pages live
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -51,11 +51,10 @@ None.
 
 ### Blockers/Concerns
 
-- Confirm exact GH Pages URL (`https://axiom-laboratories.github.io/axiom/`) before writing `site_url` in `mkdocs.yml`
-- Confirm `docs/.cache/` privacy plugin cache completeness so GH Actions deploy does not hit CDN
+None — milestone v14.2 complete. Site confirmed live at https://axiom-laboratories.github.io/axiom/
 
 ## Session Continuity
 
-Last session: 2026-03-26T17:25:07.321Z
-Stopped at: Checkpoint: 71-02 awaiting human-verify (smoke checks + GH Pages activation)
+Last session: 2026-03-26T21:29:57.975Z
+Stopped at: Completed 71-02 — Phase 71 fully done, GH Pages live at https://axiom-laboratories.github.io/axiom/
 Resume file: None

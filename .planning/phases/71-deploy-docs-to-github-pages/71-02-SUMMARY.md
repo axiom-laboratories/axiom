@@ -101,10 +101,11 @@ The automated smoke checks (run by the checkpoint) verify all artifacts are corr
 
 ## Next Phase Readiness
 
-Phase 71 implementation is complete pending human verification at the checkpoint:
-- All 7 automated smoke checks pass (no tracked site files, .nojekyll, site_url, OFFLINE_BUILD conditional, Dockerfile, both workflow files, executable script)
-- `mkdocs build --strict` should be run to confirm zero warnings before approving
-- After GH Pages is activated and the first deploy succeeds, Phase 71 is fully done
+Phase 71 is complete. Human verification confirmed:
+- All automated smoke checks passed
+- GitHub Pages activated and site confirmed live at https://axiom-laboratories.github.io/axiom/
+- Future docs changes to `docs/**` on main will auto-deploy via the docs-deploy.yml workflow
+- API schema changes require running `docs/scripts/regen_openapi.sh` then committing the updated openapi.json
 
 ---
 *Phase: 71-deploy-docs-to-github-pages*
