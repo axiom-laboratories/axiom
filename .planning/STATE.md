@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.3
 milestone_name: — Security Hardening + EE Licensing
 status: planning
-stopped_at: Phase 72 context gathered
-last_updated: "2026-03-26T22:35:27.758Z"
+stopped_at: Completed 72-01-PLAN.md (Wave 0 test scaffolds)
+last_updated: "2026-03-26T22:58:49.952Z"
 last_activity: 2026-03-26 — Roadmap created (2 phases, 13/13 requirements mapped)
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -45,6 +45,7 @@ Progress: [░░░░░░░░░░] 0%
 |-------|-------|-------|----------|
 | 72. Security Fixes | TBD | - | - |
 | 73. EE Licence System | TBD | - | - |
+| Phase 72 P01 | 22 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -56,6 +57,8 @@ Progress: [░░░░░░░░░░] 0%
 - [v14.3 pre-planning]: Licence validation must live in CE code (`licence_service.py`), not inside the EE plugin's `register()` — prevents partial route registration with no clean rollback
 - [v14.3 pre-planning]: Licence expiry must degrade to DEGRADED_CE, never crash — `sys.exit(1)` on expiry creates production outages for air-gapped operators
 - [v14.3 pre-planning]: Absent boot-log treated as "unknown" + grace fallback, not hard stop — deleted log is indistinguishable from fresh install
+- [Phase 72]: validate_path_within must be in security.py — test_vault_traversal.py imports it from there (vault_service.py Artifact import broken)
+- [Phase 72]: TDD Wave 0 pattern: auth dep-override with MagicMock for ASGI tests against require_auth routes
 
 ### Pending Todos
 
@@ -71,6 +74,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-26T22:35:27.757Z
-Stopped at: Phase 72 context gathered
-Resume file: .planning/phases/72-security-fixes/72-CONTEXT.md
+Last session: 2026-03-26T22:58:49.950Z
+Stopped at: Completed 72-01-PLAN.md (Wave 0 test scaffolds)
+Resume file: None
