@@ -1,6 +1,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0--alpha-orange.svg)](#)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Faxiom-laboratories%2Faxiom.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Faxiom-laboratories%2Faxiom?ref=badge_shield)
 
 # Axiom
 
@@ -70,3 +71,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute, the CLA, and the e
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Faxiom-laboratories%2Faxiom.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Faxiom-laboratories%2Faxiom?ref=badge_large)
