@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77.0"]
+requires = ["setuptools>=77.0", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "axiom-agent-sdk"
-version = "1.0.0-alpha"
+dynamic = ["version"]
 description = "Axiom: Secure Enterprise Automation & Orchestration"
 license = "Apache-2.0"
 authors = [
@@ -32,3 +32,6 @@ testpaths = ["puppeteer/agent_service/tests"]
 markers = [
     "ee_only: marks tests that require the axiom-ee package (skipped in CE)",
 ]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0.dev0"
