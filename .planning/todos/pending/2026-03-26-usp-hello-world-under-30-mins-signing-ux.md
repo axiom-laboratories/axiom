@@ -23,9 +23,9 @@ Rough time breakdown (today): image pull ~5m, login ~2m, signing setup ~8-10m, n
 
 The signing UX needs to be first-class to hit the 30-min USP reliably:
 
-**Option A — Dashboard keypair generation (preferred):**
-- "Generate signing key" button in Signatures view: generates Ed25519 keypair server-side (or client-side in browser), auto-registers public key, prompts download of private key file
-- Eliminates the external tool dependency entirely for the happy path
+**Option A — Dashboard keypair generation (RULED OUT):**
+- ~~"Generate signing key" button in Signatures view~~
+- **Do not implement.** If a malicious actor gains dashboard access, having the private key generated or transiently held server-side completely undermines the job signing security model — the whole point of signing is that the orchestrator never controls the private key. Dashboard access must not be sufficient to forge job signatures.
 
 **Option B — First-run demo keypair:**
 - Orchestrator ships with a pre-generated keypair for first-run/demo mode
