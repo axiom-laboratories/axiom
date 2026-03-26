@@ -60,7 +60,6 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
-      - API_KEY=${API_KEY:-master-secret-key}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PYTHONUNBUFFERED=1
@@ -127,7 +126,6 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
       - AGENT_URL=https://agent:8001 # Uses Internal HTTPS
       - ROOT_CA_PATH=ca/certs/root_ca.crt
-      - API_KEY=${API_KEY:-master-secret-key}
     # No volumes needed, baked into image
     depends_on:
       db:
