@@ -251,6 +251,15 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `mkdocs --strict` CI gate in `ci.yml` | Catches anchor errors, missing tab extensions, and broken admonitions before they reach main | ✓ Good |
 | `d['token']` not `d.get('enhanced_token', d.get('join_token', ''))` for JOIN_TOKEN extraction | `/admin/generate-token` returns `{token: ...}` only — the chained `.get()` silently returned empty string | ✓ Good |
 
+## Current Milestone: v14.2 — Docs on GitHub Pages
+
+**Goal:** Deploy the CE documentation site to GitHub Pages with automated publishing on every push to main.
+
+**Target features:**
+- Pre-committed `openapi.json` with a local regeneration script
+- GitHub Actions workflow: `mkdocs build --strict` → deploy to `gh-pages` branch
+- `mkdocs.yml` `site_url` set for correct GH Pages asset routing
+
 ## Previous State — v14.1 Complete (2026-03-26)
 
 Axiom v14.1 delivered the First-User Readiness milestone — 5 phases, 9 plans, 17/17 requirements satisfied. All 12 BLOCKERs from the v14.0 cold-start friction report are resolved. A first-time user following only the published docs can now install Axiom, enroll a node, and dispatch a signed job to completion on both CE and EE — from either the dashboard or the CLI.
@@ -274,4 +283,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-26 after v14.1 milestone — First-User Readiness*
+*Last updated: 2026-03-26 after v14.2 milestone start — Docs on GitHub Pages*

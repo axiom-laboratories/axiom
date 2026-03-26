@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v14.1
-milestone_name: — First-User Readiness
-status: completed
-stopped_at: Completed 70-01-PLAN.md
-last_updated: "2026-03-26T16:02:15.239Z"
-last_activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
+milestone: v14.2
+milestone_name: — Docs on GitHub Pages
+status: defining_requirements
+stopped_at: Milestone started
+last_updated: "2026-03-26T00:00:00.000Z"
+last_activity: 2026-03-26 — Milestone v14.2 started
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 9
-  completed_plans: 9
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,42 +21,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone — v14.1 shipped 2026-03-26
+**Current focus:** Defining requirements for v14.2 — Docs on GitHub Pages
 
 ## Current Position
 
-Phase: 67 of 68 (Getting Started Documentation)
-Plan: 3 of 3 complete
-Status: Complete
-Last activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-26 — Milestone v14.2 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
 ### Decisions
 
-- [v14.1 Roadmap]: Code before docs — CE/EE execution gating must be in place before docs describing that boundary are published
-- [v14.1 Roadmap]: Phase 66 must verify Containerfile.node and compose.cold-start.yaml fixes before any docs work; do not trust fixed-during-run changes without source confirmation
-- [v14.1 Roadmap]: Phase 67 sub-order: add pymdownx.tabbed to mkdocs.yml first, then install.md → enroll-node.md → first-job.md (user journey order)
-- [v14.1 Roadmap]: Phase 68 is EE-only doc cleanup (2 requirements) — kept separate from Phase 67 so CE docs land independently
-- [Phase 66-backend-code-fixes]: Single-stage ARG TARGETARCH in Containerfile.node selects correct PowerShell .deb for arm64/amd64 without multi-stage build complexity
-- [Phase 66-02]: Stub handlers with path parameters tested with dummy args rather than no-arg call in test_ce_smoke.py
-- [Phase 66-02]: executions flag added to /api/features endpoint in both CE fallback dict and EEContext ctx response
-- [Phase 66-backend-code-fixes]: Phase 66 gate confirmed: no source changes needed — verification-only plan proves CODE-01/02/03/04 requirements met by prior plans' artifacts
-- [Phase 67-getting-started-documentation]: CLI token path promoted to equal-weight tab; cold-start compose https://agent:8001 added as primary AGENT_URL table entry
-- [Phase 67]: Pre-dispatch danger callout placed as standalone block between Step 3 separator and Step 4 heading for maximum visual impact
-- [Phase 67]: axiom-push promoted as CLI hero command for Step 4 dispatch; CE users directed to collapsible Raw API curl fallback
-- [Phase 68-ee-documentation]: GET /api/features is the canonical EE verification endpoint — /api/admin/features must never appear in docs (EEDOC-01)
-- [Phase 68-ee-documentation]: AXIOM_LICENCE_KEY is the only correct env var name — AXIOM_EE_LICENCE_KEY does not exist (EEDOC-02)
-- [Phase 69-fix-ci-release-pipeline-version-pinning-and-semver-tags]: type=ref,event=tag chosen for Docker metadata — avoids semver validation failure on v14.0-style tags
-- [Phase 69-fix-ci-release-pipeline-version-pinning-and-semver-tags]: setuptools-scm dynamic versioning with fallback_version=0.0.0.dev0 replaces hardcoded 1.0.0-alpha in pyproject.toml
-- [Phase 70-fix-getting-started-doc-regressions]: d['token'] is the correct JOIN_TOKEN field from POST /admin/generate-token; d.get('enhanced_token',...) was silently returning empty string
-- [Phase 70-fix-getting-started-doc-regressions]: GET /api/features is unauthenticated — Bearer token acquisition block removed from install.md CLI tab
+- [v14.2 Approach]: openapi.json will be pre-committed (not regenerated in CI) — keeps GH Actions workflow light; Docker build still regenerates it at container build time
+- [v14.2 Approach]: CE repo is public → GitHub Pages free tier, no paid plan needed
+- [v14.2 Approach]: GH Actions uses only docs/requirements.txt + mkdocs build — no FastAPI app deps needed in CI
 
 ### Roadmap Evolution
 
-- Phase 69 added: Fix CI release pipeline version pinning and semver tags
+(none yet)
 
 ### Pending Todos
 
@@ -64,14 +50,4 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 66 Pitfall]: FastAPI route shadow — existing `@app.get("/api/executions")` in main.py must be removed before the CE stub can be reached; adding the stub file alone is not enough
-- [Phase 66 Pitfall]: PowerShell `.deb` in Containerfile.node is amd64-only with no platform guard — confirm `--platform linux/amd64` fix approach before touching file
-- [Phase 67 Pitfall]: MkDocs heading renames silently break anchor links — run `mkdocs build --strict` after each file; grep for existing `#anchor` cross-references before renaming
-- [67-01]: Tab syntax confirmed working: pymdownx.tabbed alternate_style: true in mkdocs.yml; === 'Label' with 4-space indented content; admonitions inside tabs work when indented 4 spaces
-- [67-01]: Cold-Start install path is minimal — only ADMIN_PASSWORD and ENCRYPTION_KEY; no SECRET_KEY/API_KEY needed for cold-start compose
-
-## Session Continuity
-
-Last session: 2026-03-26T15:41:44.156Z
-Stopped at: Completed 70-01-PLAN.md
-Resume file: None
+None.
