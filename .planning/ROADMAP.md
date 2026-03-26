@@ -221,7 +221,7 @@ Plans:
 | 65. Friction Report Synthesis | v14.0 | 1/1 | Complete | 2026-03-25 |
 | 66. Backend Code Fixes | 3/3 | Complete    | 2026-03-25 | - |
 | 67. Getting-Started Documentation | 3/3 | Complete    | 2026-03-26 | - |
-| 68. EE Documentation | 1/1 | Complete   | 2026-03-26 | - |
+| 68. EE Documentation | 1/1 | Complete    | 2026-03-26 | - |
 
 ## Archived
 
@@ -246,7 +246,7 @@ Plans:
 **Goal:** Fix the two independent CI failures so that pushing a git tag produces a successful TestPyPI upload (unique version via setuptools-scm) and a correctly-tagged Docker image (type=ref,event=tag replacing broken semver patterns)
 **Requirements**: CI-01, CI-02
 **Depends on:** Phase 68
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 69-01-PLAN.md — pyproject.toml setuptools-scm dynamic version + release.yml fetch-depth and Docker metadata tags fix (CI-01, CI-02)

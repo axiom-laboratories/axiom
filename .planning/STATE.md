@@ -4,7 +4,7 @@ milestone: v14.1
 milestone_name: — First-User Readiness
 status: completed
 stopped_at: Completed 68-01-PLAN.md
-last_updated: "2026-03-26T10:38:45.779Z"
+last_updated: "2026-03-26T10:41:11.995Z"
 last_activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
 progress:
   total_phases: 4
