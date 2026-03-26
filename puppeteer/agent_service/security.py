@@ -1,8 +1,8 @@
 import os
-import sys
 import re
 import hmac as _hmac
 import hashlib
+from pathlib import Path
 from typing import Dict, Any
 from cryptography.fernet import Fernet
 from fastapi import Header, HTTPException, Request, Depends
@@ -12,13 +12,6 @@ from sqlalchemy.future import select
 from .db import get_db, Node, AsyncSession
 
 load_dotenv()
-
-# Security CRITICAL: Fail if API_KEY is not set.
-try:
-    API_KEY = os.environ["API_KEY"]
-except KeyError:
-    print("CRITICAL: API_KEY setup variable is missing. Halting.")
-    sys.exit(1)
 
 # Encryption Key for Secrets
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode() if os.getenv("ENCRYPTION_KEY") else Fernet.generate_key()
@@ -86,7 +79,8 @@ def mask_secrets(payload: Dict) -> Dict:
 def mask_pii(data: Any) -> Any:
     """Recursively scans and masks common PII patterns (Email, SSN, etc)."""
     # Patterns
-    EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+    # SEC-04: bounded email regex to prevent ReDoS (replaces unbounded .+ quantifiers)
+    EMAIL_REGEX = r'[a-zA-Z0-9_.+-]{1,64}@[a-zA-Z0-9-]{1,63}(?:\.[a-zA-Z0-9-]{1,63})+'
     SSN_REGEX = r'\d{3}-\d{2}-\d{4}'
     
     if isinstance(data, dict):
@@ -101,11 +95,16 @@ def mask_pii(data: Any) -> Any:
         return data
     return data
 
-async def verify_api_key(x_api_key: str = Header(None)):
-    """Legacy/Service Auth via API Key."""
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return x_api_key
+def validate_path_within(base: Path, candidate: Path) -> Path:
+    """Resolve both paths and raise HTTP 400 if candidate escapes base.
+    Requires Python 3.9+ (Path.is_relative_to added in 3.9).
+    """
+    resolved_base = base.resolve()
+    resolved_candidate = candidate.resolve()
+    if not resolved_candidate.is_relative_to(resolved_base):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    return resolved_candidate
+
 
 async def verify_client_cert(request: Request):
     """Enforces mTLS: Requires a valid client certificate."""
