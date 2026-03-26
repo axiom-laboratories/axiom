@@ -2,11 +2,13 @@ import os
 import uuid
 import hashlib
 import logging
+from pathlib import Path
 from typing import List, Optional
 from fastapi import UploadFile
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import Artifact
+from ..security import validate_path_within
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,9 @@ class VaultService:
         """Stores a file in the vault and returns the DB record."""
         artifact_id = str(uuid.uuid4())
         os.makedirs(VAULT_DIR, exist_ok=True)
-        file_path = os.path.join(VAULT_DIR, artifact_id)
+        # SEC-02: validate path stays within vault dir (defense-in-depth; artifact_id is uuid4)
+        safe_path = validate_path_within(Path(VAULT_DIR), Path(VAULT_DIR) / artifact_id)
+        file_path = str(safe_path)
         
         sha256_hash = hashlib.sha256()
         size_bytes = 0
@@ -66,10 +70,13 @@ class VaultService:
         artifact = result.scalar_one_or_none()
         if not artifact:
             return False
-        
-        file_path = VaultService.get_artifact_path(artifact_id)
-        if os.path.exists(file_path):
-            os.remove(file_path)
+
+        # SEC-02: validate artifact_id resolves within vault dir before touching filesystem
+        safe_path = validate_path_within(
+            Path(VAULT_DIR), Path(VaultService.get_artifact_path(artifact_id))
+        )
+        if safe_path.exists():
+            safe_path.unlink()
         
         await db.delete(artifact)
         await db.commit()
