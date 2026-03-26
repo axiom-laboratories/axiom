@@ -1,167 +1,177 @@
 # Project Research Summary
 
-**Project:** Axiom v14.1 — First-User Readiness
-**Domain:** Self-hosted job orchestration platform — remediation milestone (docs + code fixes)
-**Researched:** 2026-03-25
+**Project:** Axiom v14.2 — Docs on GitHub Pages
+**Domain:** GitHub Pages deployment of existing MkDocs Material documentation site
+**Researched:** 2026-03-26
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Axiom v14.1 is a focused remediation milestone, not a feature release. The v14.0 CE/EE cold-start validation produced a friction report with 12 open BLOCKERs, 4 NOTABLEs, and several rough edges that prevent a first-time user from completing the getting-started flow using only the published docs. All four research areas confirm the same conclusion: the underlying platform architecture is sound and already partially fixed (Containerfile.node and compose.cold-start.yaml were patched during the v14.0 run), but the docs have not caught up to the code, and one CE/EE gating gap remains open in the backend.
+This milestone adds public GitHub Pages hosting to an MkDocs Material documentation site that already exists, builds cleanly, and passes `mkdocs build --strict` in CI. The task is not building a docs site from scratch — it is wiring a deployment path onto an already-correct static site build. The recommended approach is a new `docs-deploy.yml` GitHub Actions workflow that runs `mkdocs gh-deploy --force` on every push to `main`. This approach is simpler than the alternative `actions/deploy-pages` artifact chain, requires fewer permissions (`contents: write` vs `pages: write` + `id-token: write`), is the official MkDocs Material recommendation, and requires zero changes to `docs/requirements.txt`.
 
-The recommended approach treats this milestone as two parallel work tracks: a code track (CE stub for `/api/executions`, verifying Containerfile.node fixes) and a docs track (rewriting three getting-started guides with correct commands, CLI alternatives, and the signing walkthrough). All code work requires zero new dependencies — the CE stub pattern, FastAPI routing, and MkDocs extensions are already in place. The docs track is the larger effort by volume but the lowest technical risk. The single most impactful fix across all four research areas is restructuring `first-job.md` to surface Ed25519 signing as an explicit prerequisite rather than buried mid-flow context.
+Two configuration changes are mandatory before the first deploy: (1) `site_url` in `docs/mkdocs.yml` must be updated from the current self-hosted nginx URL (`https://dev.master-of-puppets.work/docs/`) to the GitHub Pages URL, and (2) the `offline` plugin must be made conditional via `enabled: !ENV [OFFLINE_BUILD, false]` so it does not force `use_directory_urls: false` for the hosted build. Both fixes are targeted one-liner changes but each has significant downstream impact if missed. Wrong `site_url` breaks canonical URLs, sitemaps, and 404-page asset paths. An active `offline` plugin changes the entire URL structure from `/page/` to `page.html`, breaking all existing deep links. A pre-deploy cleanup step should also remove `docs/site/` from git tracking — it is currently committed and will become a source of noisy diffs and repo bloat once GH Pages is live.
 
-The primary risk is the FastAPI route shadow problem: adding a CE stub for `/api/executions` will silently fail unless the existing `@app.get("/api/executions")` definition is removed from `main.py` first. This is counterintuitive — adding a new stub file appears to be the whole change, but the stub is never reached without the removal. A second risk is the PowerShell architecture guard — the current `amd64.deb` URL in Containerfile.node will silently break on arm64 build hosts. Both risks are well-understood and have clear prevention steps documented in the research.
+The key risk is a cluster of pitfalls that are individually easy to fix but hard to diagnose after the fact. All nine documented pitfalls are preventable by testing `mkdocs build --strict` locally against the updated config before pushing. The work is low-complexity: one new workflow file, two targeted config changes, one git-tracking cleanup, and one one-time repository settings step. No new Python dependencies are needed.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack requires no changes. All four fix areas resolve to configuration edits, content edits, and moving routes between files — zero new packages, zero new infrastructure. The relevant tooling is already in place.
+The existing stack (`mkdocs-material==9.7.5` + `mkdocs-swagger-ui-tag==0.8.0`) needs no additions to `docs/requirements.txt`. The deployment method is `mkdocs gh-deploy --force` over the more complex `actions/upload-pages-artifact` + `actions/deploy-pages` chain. The simpler approach has identical output, is the official MkDocs Material recommendation, and requires only `permissions: contents: write` rather than `pages: write` + `id-token: write`.
 
 **Core technologies:**
-- FastAPI `APIRouter` + `JSONResponse(402)`: CE stub routing — already used for 6 other EE features; new stub for executions follows identical pattern to `ee/interfaces/audit.py`
-- MkDocs Material `pymdownx.tabbed`: content tabs for CLI/dashboard alternatives — already installed as mkdocs-material transitive dependency; requires only one config line in `mkdocs.yml`
-- `docker:cli` multi-stage COPY: Docker CLI binary in node image — already in Containerfile.node; no further code change required
-- `/tmp:/tmp` host bind mount in `compose.cold-start.yaml`: DinD job script path resolution — already present in both node services from the v14.0 run
-
-The only new file required is `puppeteer/agent_service/ee/interfaces/executions.py` — a stub router using the exact same structure as the six existing interface files.
+- `mkdocs-material==9.7.5`: Site build — already pinned, no change needed
+- `mkdocs-swagger-ui-tag==0.8.0`: API reference rendering — already pinned; bundles Swagger UI statically (no CDN calls on GH Pages)
+- `actions/checkout@v4` with `fetch-depth: 0`: Required — git history is used by `mkdocs gh-deploy` for the `gh-pages` branch commit
+- `actions/setup-python@v5` with `cache: pip`: Python environment + pip dependency caching for faster repeated deploys
+- `mkdocs gh-deploy --force`: Single deploy command that handles `.nojekyll` creation, branch management, and idempotent force-push automatically
 
 ### Expected Features
 
-This milestone is defined entirely by remediation of known gaps. Every item maps directly to a friction-report finding. There is no speculative feature development.
+**Must have (table stakes — v14.2 launch blockers):**
+- Automated deploy on push to `main` — docs update automatically when content merges
+- `site_url` set to GH Pages URL — required for correct sitemap, canonical links, and asset resolution
+- `offline` plugin made conditional via `!ENV [OFFLINE_BUILD, false]` — prevents URL structure breakage on GH Pages
+- `permissions: contents: write` on the deploy workflow job — `mkdocs gh-deploy` pushes to `gh-pages` branch
+- `docs/site/` removed from git tracking — currently committed; becomes noisy drift once CI manages the build
+- `openapi.json` regeneration script for maintainers — documents the manual update process; `openapi.json` already committed to repo
+- GitHub Pages source configured in repository settings (manual, one-time operator step)
 
-**Must have (P1 — required for READY verdict):**
-- Admin password setup step in install.md before `docker compose up`
-- CLI (curl) JOIN_TOKEN path promoted as a primary alternative in enroll-node.md
-- Correct node image (`localhost/master-of-puppets-node:latest`) in Option B compose snippet
-- `EXECUTION_MODE=docker` replacing the removed `direct` mode in all doc examples
-- AGENT_URL table corrected — remove `172.17.0.1:8001` as primary recommendation; add `https://agent:8001` for cold-start compose scenario
-- Full curl dispatch path added to first-job.md (signed job POST with base64 signature)
-- Ed25519 signing key setup restructured as numbered prerequisites before the dispatch step
-- Pre-dispatch key registration callout in first-job.md
-- All Containerfile.node fixes verified in source (docker CLI binary, node image tag, PowerShell)
-- `/tmp` mount verified in compose.cold-start.yaml for both node services
-- `/api/admin/features` reference replaced with `/api/features` in EE docs
+**Should have (differentiators — v14.2 stretch or v14.3):**
+- `docs/docs/CNAME` file — only if a custom domain is chosen; prevents domain wipeout on every `gh-deploy`
+- `docs/docs/robots.txt` — explicit crawler directive with sitemap pointer
+- Deploy trigger scoped to `paths: ['docs/**', '.github/workflows/docs-deploy.yml']` — avoids redeploys on unrelated code changes
+- Protective comment in `.gitignore` explaining why `docs/.cache/` must stay committed
 
-**Should have (P2 — eliminates friction, not hard blockers):**
-- GitHub clone alternative documented for users with pre-built tarballs
-- Docker socket volume note in enroll-node.md Option B
-- `AXIOM_EE_LICENCE_KEY` naming audit in licensing.md
-- AXIOM_LICENCE_KEY injection consistency note (`.env` vs `secrets.env` context differences)
-- `/api/executions` CE-gated via EE stub (correctness gap; not a first-user blocker)
-
-**Defer:**
-- Nothing — every item in this milestone is remediation of a known BLOCKER or NOTABLE; deferring any P1 item leaves a confirmed first-user failure unresolved
+**Defer (v15+):**
+- `mike` versioned docs — adds significant branch management complexity; no use case until multiple major versions coexist
+- Google Search Console / Bing Webmaster submission — post-launch SEO step, not a code change
+- Migration to `actions/deploy-pages` artifact chain — only if GitHub deprecates branch-based Pages (no indication this is planned)
 
 ### Architecture Approach
 
-The architecture is not changing. All fix work lands in four well-bounded areas: the CE/EE stub layer (`ee/interfaces/`), the execution routes in `main.py`, the `docs/docs/getting-started/` content files, and `docs/mkdocs.yml`. The CE/EE gating mechanism operates entirely at startup: a valid licence key loads EE routers via `load_ee_plugins()`; no key mounts CE stubs via `_mount_ce_stubs()`. Adding an executions stub follows the exact same pattern as the six existing stub routers — no architectural decision is required.
+The deployment architecture is a two-branch model: `main` holds source; `gh-pages` holds built output managed exclusively by `mkdocs gh-deploy`. The new `docs-deploy.yml` workflow is kept separate from `ci.yml` to prevent deploying in-progress PR content and to scope `contents: write` only to the deploy context. The existing `ci.yml` `docs` job remains the PR validation gate — the deploy workflow fires only on push to `main`. No changes are needed to the Docker deployment path (two-stage Dockerfile with nginx). Both deployment paths remain live: GH Pages for public docs, Docker/nginx for the self-hosted internal instance.
 
-**Major components affected by v14.1:**
-1. `puppeteer/agent_service/main.py` — remove 7 execution route handlers (move responsibility to EE plugin + CE stub)
-2. `puppeteer/agent_service/ee/interfaces/executions.py` — new CE stub returning 402 for all execution paths
-3. `puppeteer/agent_service/ee/__init__.py` — register executions stub in `_mount_ce_stubs()`
-4. `docs/docs/getting-started/*.md` — content edits on install.md, enroll-node.md, first-job.md
-5. `docs/mkdocs.yml` — add `pymdownx.tabbed: alternate_style: true`
+**Major components:**
+1. `docs/mkdocs.yml` — modified: `site_url` updated to GH Pages URL; `offline` plugin made conditional
+2. `.github/workflows/docs-deploy.yml` — new: triggers on push to main, runs `mkdocs gh-deploy --force` from `working-directory: docs`
+3. `gh-pages` branch — auto-managed by `mkdocs gh-deploy`; created on first workflow run; never hand-edited
+4. `docs/docs/` source files — unchanged: all markdown, committed `openapi.json`, privacy plugin cache in `docs/.cache/`
+5. `docs/site/` — removed from git tracking: generated at deploy time; `.gitignore` updated before first deploy
 
 ### Critical Pitfalls
 
-1. **FastAPI route shadow blocks CE stub** — Adding `ee/interfaces/executions.py` is not enough. The `@app.get("/api/executions")` definitions in `main.py` register at import time and shadow any lifespan-registered stub. The routes must be removed from `main.py` before the stub can be reached. Verify with `test_ce_smoke.py` — all execution paths must return 402 in CE mode, not 200.
+1. **Wrong `site_url` (nginx URL baked into GH Pages build)** — Update `site_url` in `docs/mkdocs.yml` to the GitHub Pages URL before the first deploy. The current value (`https://dev.master-of-puppets.work/docs/`) appears in every canonical link tag and the sitemap; the 404 page loads with broken asset paths pointing to the internal nginx server.
 
-2. **PowerShell `.deb` is amd64-only with no platform guard** — Containerfile.node downloads `_amd64.deb` with no `--platform linux/amd64` guard. On arm64 hosts (Apple Silicon, Graviton), the build either fails or produces a container where PowerShell silently fails at runtime. Add `--platform linux/amd64` or an arch-conditional URL before v14.1 ships.
+2. **`offline` plugin forces `use_directory_urls: false`** — Add `enabled: !ENV [OFFLINE_BUILD, false]` to the offline plugin config. Without this, all page URLs on GitHub Pages become `page.html` instead of `page/`, breaking every existing deep link. The Dockerfile builder stage should set `OFFLINE_BUILD=true` to maintain air-gapped container behavior.
 
-3. **MkDocs heading renames break deep links silently** — When rewriting getting-started docs, renamed headings invalidate anchor-based cross-references. MkDocs does not warn about broken anchor links even with `--strict`. Grep for existing `#anchor-name` references before renaming headings; run `mkdocs build --strict` after every doc change.
+3. **`docs/site/` tracked in git** — Run `git rm -r --cached docs/site/` and add `docs/site/` to `.gitignore` before the first `gh-deploy`. Both the Dockerfile and the deploy workflow regenerate `site/` — the committed copy creates noisy diffs on every local `mkdocs build`.
 
-4. **`docker:cli` floating tag breaks air-gapped builds** — `COPY --from=docker:cli` requires pulling from Docker Hub at build time. Air-gapped operators must mirror `docker:cli` to their local registry and update the Containerfile reference. The current docs do not mention this requirement.
+4. **`working-directory: docs` missing from deploy workflow** — `mkdocs.yml` is at `docs/mkdocs.yml`, not the repo root. Every `mkdocs` command in the workflow must use `working-directory: docs`, matching the existing `ci.yml` pattern. Omitting this causes an immediate "Config file 'mkdocs.yml' does not exist" failure.
 
-5. **Separate EE doc files drift from the actual API** — The stale `/api/admin/features` reference is a direct consequence of EE content living in a separate file. All EE getting-started content should use `!!! enterprise` admonitions within shared files. Do not create separate `ee-install.md` files that accumulate stale endpoint references.
+5. **GitHub Pages source not configured in repository settings** — After the first `gh-deploy` run creates the `gh-pages` branch, an operator must manually set Settings > Pages > Source to "Deploy from a branch" -> `gh-pages` -> `/`. The site returns 404 until this one-time step is completed. Document this in the workflow file comments.
+
+---
 
 ## Implications for Roadmap
 
-All four research areas converge on a two-phase implementation. The feature dependency graph in FEATURES.md is fully mapped — there are no unresolved ordering questions.
+All four research areas converge on a minimal two-phase structure. Phase 1 is the full deployment implementation shipped atomically. Phase 2 is deferred polish that does not block the site from being live.
 
-### Phase 1: Backend Code Fixes
+### Phase 1: Foundation and Deploy
 
-**Rationale:** Code changes must land before docs are finalised. If the executions CE gate is not in place before docs are published, CE users following the EE docs will see 200 from `/api/executions`, contradicting the documented EE-only framing. Code first eliminates this contradiction and establishes the stable API surface the docs can accurately describe.
+**Rationale:** All changes are tightly interdependent and must ship together. The `site_url` change must precede the deploy workflow commit — a wrong URL baked into a live deploy is harder to recover from than never deploying with a wrong URL. The `offline` plugin fix and `docs/site/` cleanup are pre-conditions for Phase 1, not follow-ons.
 
-**Delivers:** Correct CE/EE boundary for Execution History; all code fixes verified in running stack
+**Delivers:** Live public documentation at the GitHub Pages URL, auto-deploying on every push to `main`.
 
-**Addresses:** B-05 (`/api/executions` CE gate), B-01/B-02/B-03 (Containerfile.node verification), B-04 (compose.cold-start.yaml verification)
+**Addresses:**
+- All P1 features: deploy workflow, `site_url`, `offline` plugin fix, git tracking cleanup, operator settings step
+- Pitfall avoidance: site_url (P1), offline plugin URL rewrite (P2), git bloat from `docs/site/` (P3), working-directory misconfiguration (P4), Pages source configuration (P5)
+- `.nojekyll` (Pitfall 4) handled automatically by `mkdocs gh-deploy` — no manual step needed
 
-**Avoids:** Pitfall 1 (FastAPI route shadow must be resolved in this phase); Pitfall 2 (PowerShell arch guard)
+**Implementation order within the phase:**
+1. `git rm -r --cached docs/site/` and add `docs/site/` to `.gitignore` (cleanup before any deploy)
+2. Update `site_url` in `docs/mkdocs.yml` to the GH Pages URL
+3. Add `enabled: !ENV [OFFLINE_BUILD, false]` to the offline plugin in `docs/mkdocs.yml`
+4. Run `mkdocs build --strict` locally against updated config — verify zero warnings and correct URL structure in `site/`
+5. Create `.github/workflows/docs-deploy.yml` with `fetch-depth: 0`, `working-directory: docs`, `permissions: contents: write`
+6. Add protective comment to `.gitignore` about `docs/.cache/`
+7. Open PR; CI gate validates via `ci.yml`; merge to `main` triggers first deploy
+8. Operator step: Settings > Pages > Source = `gh-pages` branch (documented in workflow comments)
 
-**Verification:** `test_ce_smoke.py` confirms 402 for all execution paths in CE mode; `docker --version` and `pwsh --version` run successfully inside a built and running node container; end-to-end job dispatch completes before phase closes
+**Avoids:** All nine documented pitfalls — site_url mismatch (P1), offline plugin URL rewrite (P2), privacy cache loss (P3), Jekyll interference via `.nojekyll` (P4, auto-handled), subdirectory misconfiguration (P5), CNAME wipeout (P6, no custom domain in v14.2 — documented), git bloat from `docs/site/` (P7), strict mode regressions (P8), Pages source not configured (P9)
 
-### Phase 2: Documentation Fixes
+### Phase 2: Polish
 
-**Rationale:** All doc fixes are independent of each other and can be parallelised, but must follow Phase 1 so the code state is stable and all curl examples can be validated against the live stack.
+**Rationale:** These are low-effort improvements that add correctness and SEO value but do not block the site from being live. Defer until Phase 1 is validated live.
 
-**Delivers:** Complete, accurate getting-started flow from fresh install through first job dispatch, for both dashboard and CLI users; zero BLOCKERs remaining from the friction report
+**Delivers:** Custom domain support readiness (CNAME file), explicit crawler directives (robots.txt), path-scoped deploy triggers.
 
-**Addresses:** All Category A fixes (A-01 through A-13), Category C fixes (C-01, C-02)
-
-**Avoids:** Pitfall 3 (heading rename anchor breakage); Pitfall 5 (EE content in separate files); UX pitfall (admin password buried)
-
-**Sub-ordering within Phase 2:**
-- Add `pymdownx.tabbed: alternate_style: true` to `mkdocs.yml` before writing tab syntax into any content page
-- install.md first — admin password setup is a prerequisite for every subsequent doc step
-- enroll-node.md second — depends on install being correct
-- first-job.md last — depends on node enrollment being documented correctly
-- Run `mkdocs build --strict` after each file to catch broken nav and anchor issues immediately
+**Implements:**
+- `docs/docs/CNAME` file (if a custom domain is chosen)
+- `docs/docs/robots.txt` with `Allow: /` and sitemap pointer
+- Deploy trigger `paths` filter to avoid unnecessary redeploys on unrelated code changes
 
 ### Phase Ordering Rationale
 
-- Code before docs: publishing docs describing CE/EE behaviour before the code enforces that boundary creates a live correctness contradiction
-- Sequential order within docs: the getting-started flow is a user journey — each page's instructions depend on the previous page being accurate
-- Verification gating inside each phase: the PITFALLS.md "looks done but isn't" checklist identifies specific runtime checks (not just build checks) — `curl` returning 402, `pwsh --version` in container, end-to-end job dispatch — these should gate phase completion, not be deferred to a final QA pass
+- Phase 1 must ship as an atomic unit: `site_url`, `offline` plugin fix, and the deploy workflow are tightly coupled — deploying any one without the others produces a broken or misleading live site.
+- Phase 2 requires Phase 1 to be live and validated — adding a custom domain or path-scoped trigger before confirming the base deploy works adds unnecessary debugging complexity.
+- `mike` versioned docs is explicitly deferred — migration from plain `gh-deploy` to `mike` cannot be done incrementally; it requires a full branch restructure. No current use case justifies the complexity.
 
 ### Research Flags
 
-Both phases have clear, fully-researched implementation paths. No additional research is required before either phase begins.
+Phases with standard, well-documented patterns (no `/gsd:research-phase` needed):
+- **Phase 1:** Fully documented in official MkDocs Material and GitHub Pages docs, corroborated by direct codebase inspection. All commands, config changes, and permission models are verified. Implementation can proceed directly.
+- **Phase 2:** All items are one-liner additions with zero ambiguity. Implementation can proceed directly.
 
-**Phase 1 (Backend):** The exact stub file contents, `ee/__init__.py` registration call, and `main.py` route lines to remove are fully specified in STACK.md. Implementation can proceed directly.
+No phases require additional research before planning.
 
-**Phase 2 (Docs):** All fix targets are mapped to specific files with line-level changes. The curl examples, signing workflow sequence, and AGENT_URL corrections are fully specified in FEATURES.md. Implementation can proceed directly.
-
-No phases require `/gsd:research-phase` — this is a narrow, well-scoped remediation milestone against a fully-inspected codebase.
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All fix areas verified against live source files; no new dependencies introduced; all implementation details confirmed at file+line level |
-| Features | HIGH | Derived from 24-finding friction report with reproduction steps; all P1 fix targets identified at file level with exact content changes specified |
-| Architecture | HIGH | CE/EE stub pattern verified across 6 existing interface files; FastAPI route registration order confirmed via source analysis of lifespan and module-level decorators |
-| Pitfalls | HIGH | Route shadow, PowerShell arch gap, and MkDocs anchor breakage all verified against actual current codebase state |
+| Stack | HIGH | Official MkDocs Material docs + direct inspection of `docs/requirements.txt`, `docs/mkdocs.yml`, `ci.yml`. No new deps required; confirmed against the deprecated v2/v3 action versions that must be avoided. |
+| Features | HIGH | MkDocs official docs + GitHub Pages official docs. MVP feature set is minimal and well-understood. Prioritization matrix is definitive. |
+| Architecture | HIGH | Direct codebase inspection confirmed all file paths, plugin behavior, and `git ls-files` state of `docs/.cache/` and `docs/site/`. Component responsibilities and data flow are fully mapped. |
+| Pitfalls | HIGH | Nine pitfalls documented from official MkDocs issue tracker, GitHub docs, and direct inspection of the existing config state. All pitfalls are specific to this codebase's actual configuration, not generic warnings. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **PowerShell `.deb` architecture fix approach:** Research confirms the risk and two valid fixes (`--platform linux/amd64` flag vs runtime arch detection). The `--platform` flag is simpler and matches the platform's stated amd64 focus. Confirm this choice at the start of Phase 1 before touching the Containerfile.
+- **GitHub Pages URL (org/repo slug):** The exact GH Pages URL (`https://<org>.github.io/<repo>/`) depends on which GitHub organization and repository name the project uses. This must be confirmed before updating `site_url`. If a custom domain is intended for v14.2 (not indicated in research), that domain should be the `site_url` value instead. Confirm the target URL with the project owner before writing `docs/mkdocs.yml`.
 
-- **`/api/executions` route scope decision:** STACK.md identifies 7 execution-related routes in `main.py` beyond the 3 called out in the NOTABLE finding — `pin`, `unpin`, and CSV export endpoints also lack CE gating. Recommend gating all 7 for consistency, but this should be confirmed before Phase 1 execution to ensure the stub file is complete on the first pass.
+- **`offline` plugin in Dockerfile after the `!ENV` change:** The Dockerfile builder stage should set `OFFLINE_BUILD=true` to maintain air-gapped behavior. Verify whether the Dockerfile currently sets this env var or relies on the plugin always being active. If the Dockerfile does not set `OFFLINE_BUILD=true` after the mkdocs.yml change, the container build will produce a non-offline build — likely acceptable since the container is served via nginx over HTTPS, but should be verified and documented.
 
-- **`ee-install.md` existence:** ARCHITECTURE.md notes this file "may not exist." If it does not exist, it must be created along with a nav entry in `mkdocs.yml`. If it exists with stale content, it needs updating. Verify file existence before Phase 2 begins to accurately size the doc work.
+- **`docs/.cache/` privacy plugin cache completeness:** The cache is currently untracked (git status shows it as untracked additions). Confirm the cache contains all required assets (Google Fonts, Mermaid, iframe-worker) so the GH Actions deploy workflow does not depend on outbound CDN access. If assets are missing, the workflow will download them from CDN on GitHub-hosted runners — which works but is non-deterministic and contradicts the air-gapped design intent.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `mop_validation/reports/cold_start_friction_report.md` — 24 concrete findings with reproduction steps; primary source for all fix targets
-- Live source: `puppeteer/agent_service/main.py`, `ee/__init__.py`, `ee/interfaces/*.py`, `deps.py` — CE/EE routing architecture
-- Live source: `puppets/Containerfile.node`, `puppeteer/compose.cold-start.yaml` — node image and DinD compose state
-- Live source: `docs/mkdocs.yml`, `docs/docs/getting-started/*.md` — current doc state
-- [MkDocs Material Content Tabs](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/) — `alternate_style: true` requirement and tab syntax confirmed
-- [Docker Hub docker:cli tags](https://hub.docker.com/_/docker/tags?name=cli) — `cli` and `27-cli` tag existence confirmed
+- [MkDocs Material — Publishing your site](https://squidfunk.github.io/mkdocs-material/publishing-your-site/) — deploy workflow pattern, `mkdocs gh-deploy` vs `actions/deploy-pages`, pip caching recommendation
+- [MkDocs Material — Offline plugin](https://squidfunk.github.io/mkdocs-material/plugins/offline/) — `use_directory_urls: false` override behavior, `!ENV` conditional pattern
+- [MkDocs Material — Privacy plugin](https://squidfunk.github.io/mkdocs-material/plugins/privacy/) — cache behavior, CDN asset inlining, air-gapped build support
+- [MkDocs — Deploying your docs](https://www.mkdocs.org/user-guide/deploying-your-docs/) — `gh-deploy` mechanics, CNAME file placement, `.nojekyll` handling
+- [GitHub Docs — Configuring a publishing source for GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) — branch vs Actions source, repo settings one-time step
+- [GitHub Changelog — Dec 2024 deprecation notice](https://github.blog/changelog/2024-12-05-deprecation-notice-github-pages-actions-to-require-artifacts-actions-v4-on-github-com/) — v3/v4 pairing requirement (relevant if `actions/deploy-pages` approach is ever adopted)
+- Direct codebase inspection: `docs/mkdocs.yml`, `docs/requirements.txt`, `docs/Dockerfile`, `.github/workflows/ci.yml`, `git ls-files docs/.cache/`, `git ls-files docs/site/`, `docs/docs/api-reference/openapi.json`
 
 ### Secondary (MEDIUM confidence)
-- [Docker official Debian install docs](https://docs.docker.com/engine/install/debian/) — `docker.io` vs `docker-ce-cli` distinction on Debian 13
-- [Docker bind mounts official docs](https://docs.docker.com/engine/storage/bind-mounts/) — host-path bind mount resolution behaviour; DinD path resolution inferred from source + friction report
+- [mkdocs-swagger-ui-tag README](https://github.com/blueswen/mkdocs-swagger-ui-tag) — `oauth2RedirectUrl` derives from `site_url`; subpath trailing slash requirement
+- [MkDocs Material — Issue #4678](https://github.com/squidfunk/mkdocs-material/issues/4678) — asset loading failures on GH Pages caused by wrong `site_url`
+- [MkDocs Material — Issue #2520](https://github.com/squidfunk/mkdocs-material/issues/2520) — `site_url` documentation gap
+- [MkDocs — Issue #1257](https://github.com/mkdocs/mkdocs/issues/1257) — `gh-deploy` removes custom domain CNAME on every push
+- [MkDocs Material — Issue #8040](https://github.com/squidfunk/mkdocs-material/issues/8040) — Privacy plugin partial replacement failures (9.6.5)
 
 ### Tertiary (LOW confidence)
-- FastAPI lifecycle route registration order — confirmed via source inspection; community references add supporting context only
+- WebSearch — offline plugin + GitHub Pages `use_directory_urls` interaction in 2025 community reports; consistent with official plugin docs
 
 ---
-*Research completed: 2026-03-25*
+
+*Research completed: 2026-03-26*
 *Ready for roadmap: yes*

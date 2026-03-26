@@ -1,26 +1,30 @@
 # Feature Research
 
-**Domain:** First-user readiness fixes — self-hosted job orchestration platform (Axiom v14.1)
-**Researched:** 2026-03-25
-**Confidence:** HIGH (derived from cold_start_friction_report.md with 24 concrete findings, direct inspection
-of current docs files, compose.cold-start.yaml, and axiom-push CLI feature guide; no speculation required)
+**Domain:** GitHub Pages deployment of MkDocs Material documentation site
+**Researched:** 2026-03-26
+**Confidence:** HIGH (MkDocs official docs + GitHub Pages official docs + Material for MkDocs publishing guide verified)
 
 ---
 
-## Context: What v14.1 Covers
+## Context: What v14.2 Is Adding
 
-v14.1 is a remediation milestone, not feature development. The cold-start friction report identified 12 open
-product BLOCKERs, 4 NOTABLEs, 4 ROUGH EDGEs, and 1 MINOR finding that prevent a first-time user from
-successfully completing the getting-started flow using only the docs.
+v14.2 is a deployment infrastructure milestone. The MkDocs site already exists, builds cleanly, and passes
+`mkdocs --strict` in CI. The goal is to publish the CE documentation to GitHub Pages with automated
+deployment on every push to `main`.
 
-The work falls into four concrete categories:
+**What already exists (do not re-implement):**
+- MkDocs Material site in `docs/` — `mkdocs.yml`, all markdown, `requirements.txt`
+- `docs/docs/api-reference/openapi.json` — pre-committed static file (already in repo)
+- Privacy plugin + offline plugin — makes site CDN-free, all assets local
+- `mkdocs --strict` CI gate in `ci.yml` — runs on every PR and push to main
+- `docs/Dockerfile` — two-stage Docker build (builder + nginx) for self-hosted container
+- `site_url: https://dev.master-of-puppets.work/docs/` — currently set to the self-hosted deployment
 
-1. **Docs patches** — update markdown files in `docs/docs/getting-started/`
-2. **Code patches** — fix `compose.cold-start.yaml`, `Containerfile.node`, and `main.py`
-3. **New content** — add CLI dispatch path and signing walkthrough to first-job.md
-4. **EE docs clarity** — EE section placement and licence key naming consistency
-
-Each fix item below is categorised, sized, and linked to the specific finding it addresses.
+**What needs to be added:**
+- A new GitHub Actions workflow that runs `mkdocs build --strict` then deploys to GitHub Pages
+- A `site_url` update in `mkdocs.yml` (or env-var override in the deploy workflow) pointing to the GH Pages URL
+- A pre-committed `openapi.json` regeneration script (for maintainers to run locally before committing)
+- (Optional) `CNAME` file in `docs/docs/` if a custom domain is used
 
 ---
 
@@ -28,328 +32,224 @@ Each fix item below is categorised, sized, and linked to the specific finding it
 
 ### Table Stakes (Users Expect These)
 
-Features a first-time user following the docs assumes will work. Missing any of these = NOT READY verdict.
+Features that any project docs site on GitHub Pages must have. Missing these = broken or invisible site.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| **Admin password set before first start** | User expects to be able to log in after `docker compose up` | LOW | install.md + compose.cold-start.yaml need a clear `.env` setup step; currently the cold-start compose creates a random password silently |
-| **CLI alternative for JOIN_TOKEN generation** | Server environments have no browser; headless setups are common for job orchestration | LOW | Already partially documented in current enroll-node.md (the curl snippet is there), but needs promotion to a primary path, not buried in a warning callout |
-| **Correct node image in Option B compose snippet** | Users copy-paste the Option B snippet verbatim; wrong image = node starts and exits immediately with no error | LOW | Docs show `python:3.12-alpine` — must be `localhost/master-of-puppets-node:latest`; one-line fix |
-| **EXECUTION_MODE=docker in Option B snippet** | `EXECUTION_MODE=direct` raises RuntimeError in current code; docs still show it | LOW | One-line fix in enroll-node.md Option B example; add explanation that `direct` mode was removed |
-| **AGENT_URL that actually works** | Users expect the documented network address to connect; TLS cert mismatch = silent node failure | LOW | `172.17.0.1:8001` fails TLS SAN validation; `https://agent:8001` works when node is in the same Compose network; update the Linux Docker row in the connectivity table |
-| **CLI/curl dispatch path in first-job.md** | CI/CD pipelines and headless deployments cannot use a browser form; first-job docs must not require the dashboard | MEDIUM | Add a Step 4b with curl POST /api/jobs example showing signed payload structure; this is the most content-heavy fix |
-| **Ed25519 signing walkthrough accessible to fresh users** | Signing is required before any job runs; fresh stack has no keys registered | MEDIUM | Add explicit sequence: (1) generate keypair with openssl or axiom-push, (2) register via API or dashboard, (3) sign and dispatch; make axiom-push the recommended path over manual openssl |
-| **No signing key pre-registered note** | Fresh stack returns `[]` from GET /signatures; first dispatch silently creates PENDING jobs that nodes SECURITY_REJECT | LOW | Add a pre-dispatch checklist callout to first-job.md: "confirm GET /signatures returns at least one entry before dispatching" |
-| **EE section in getting-started/install.md** | EE users follow the install guide first; they look for EE instructions there, not in licensing.md | LOW | Current install.md has an EE section (AXIOM_LICENCE_KEY in secrets.env); friction report found the EE-gated Execution History content was hard to find — ensure cross-link from install to licensing.md is visible |
-| **AXIOM_LICENCE_KEY naming consistency** | Env var name appears as `AXIOM_EE_LICENCE_KEY` in one scenario script; confuses users debugging licence activation | LOW | Audit all docs for `AXIOM_EE_LICENCE_KEY` and replace with the correct `AXIOM_LICENCE_KEY`; also fix licensing.md |
-| **Docker socket mounted in cold-start node services** | compose.cold-start.yaml sets `EXECUTION_MODE=docker` but node services must have `/var/run/docker.sock` to execute jobs | LOW | The current compose.cold-start.yaml already mounts `/var/run/docker.sock` and `/tmp:/tmp` on both puppet-node services (fixed during run) — verify the source file is correct and document the requirement |
-| **Docs path correct in GEMINI.md / scenario files** | Scenario file pointed to wrong path; docs unreachable from inside LXC | LOW | Already fixed during run (GEMINI.md updated) — verify fix is in source, not just applied at runtime |
+| **Automated deploy on push to main** | Docs update automatically when content changes; manual deploy is error-prone and forgotten | LOW | GitHub Actions workflow: `mkdocs gh-deploy --force` or `actions/deploy-pages`. Triggers on `push: branches: [main]` |
+| **Deploy to `gh-pages` branch** | GitHub Pages serves from a dedicated branch; project pages (not user pages) deploy to `gh-pages` | LOW | `mkdocs gh-deploy --force` handles this entirely — builds, commits, pushes. No separate action needed. |
+| **`site_url` set to GH Pages URL** | MkDocs uses `site_url` for sitemap, canonical URLs, and asset resolution. Wrong URL = broken sitemap, wrong canonical tags | LOW | Must match the actual GH Pages URL: `https://<org>.github.io/<repo>/` for project pages, or custom domain if configured. The current value (`https://dev.master-of-puppets.work/docs/`) must change. |
+| **`contents: write` permission on the workflow** | `mkdocs gh-deploy` pushes to `gh-pages` branch — requires write access | LOW | Add `permissions: contents: write` to the workflow job. Without it, the push fails with a 403. |
+| **`openapi.json` available at build time** | The `mkdocs build` step in CI needs `docs/docs/api-reference/openapi.json` to exist; without it, the swagger-ui-tag plugin fails | LOW | Already solved: `openapi.json` is committed to the repo. The GH Actions build can use it directly without regenerating. Add a local regeneration script for maintainer use. |
+| **Auto-generated 404 page** | GitHub Pages serves `404.html` automatically for missing routes — only works with a custom domain | LOW | MkDocs generates `404.html` by default. No action needed — it is included in the build output automatically. NOTE: GitHub Pages only serves the custom `404.html` when a custom domain is set; on `*.github.io` subdomains the 404 is GitHub's generic page. |
+| **Sitemap** | Search engines need a sitemap to index docs pages | LOW | MkDocs Material generates `sitemap.xml` automatically when `site_url` is set correctly. No additional config needed. |
 
-### Differentiators (What Makes the Fix Quality High)
+### Differentiators (Competitive Advantage)
 
-Fixes that go beyond "minimum acceptable" to genuinely good first-user experience.
+Features that go beyond minimum and improve the experience for readers or maintainers.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **axiom-push as the recommended signing path in first-job.md** | CLI handles signing in one command vs 3 openssl steps; reduces error surface; aligns getting-started with the product's own CLI | LOW | Current first-job.md shows manual openssl with a tip callout about axiom-push; should invert: axiom-push first, openssl as the manual fallback |
-| **Concrete curl examples with real flag names** | "Use the API" is not actionable; verbatim curl commands with correct Content-Type and Authorization headers are copy-paste runnable | LOW | The CLI dispatch path needs a full curl example showing the POST /api/jobs JSON body with script, signature, signature_key_id, and task_type fields |
-| **AGENT_URL connectivity table expanded** | Current table has 3 rows; a cold-start Docker-in-Docker user needs the `https://agent:8001` case made explicit with a note about needing the same Compose network | LOW | Add row: "Cold-start compose (puppet-node in same stack) → https://agent:8001" to the AGENT_URL table |
-| **Signing key setup as a numbered prerequisite, not buried in Step 3** | Signing is a blocker; if encountered mid-flow it halts progress; surfacing it before dispatch removes a common checkpoint failure | LOW | Restructure first-job.md: Step 1 (generate keypair), Step 2 (register public key), Step 3 (write and sign), Step 4 (dispatch) — current structure buries keypair generation inside Step 1 |
-| **axiom-push install from PyPI, not from repo clone** | Cold-start users do not have the source repo; pip install axiom-sdk is the correct path; install.md should not assume git clone | MEDIUM | axiom-sdk is published to PyPI; getting-started should show `pip install axiom-sdk` with a note about the package name vs CLI binary name |
-| **/api/executions CE-gating decision documented** | Execution History returns HTTP 200 in CE mode; the friction report flagged this; teams need clarity on whether this is intentional | LOW | CODE FIX: either add `require_ee_licence()` to `GET /api/executions` in main.py, or explicitly document that Execution History is CE-available and update EE scenario to not check for 402 |
+| **Custom domain (`CNAME` file)** | `docs.axiom.example.com` instead of `org.github.io/repo/` — more professional, stable URL for users to bookmark | LOW | Place a `CNAME` file in `docs/docs/` (the MkDocs `docs_dir`). MkDocs copies it to the build output on every deploy, preventing GitHub's auto-generated CNAME from being wiped. File contains one line: the bare domain (e.g., `docs.axiom.sh`). **Critical**: must be in `docs_dir`, not the gh-pages branch root — the branch is overwritten on every deploy. |
+| **`robots.txt`** | Tells crawlers which pages to index. MkDocs does not generate one by default — without it, crawlers use their default behaviour (index everything). For a public docs site this is fine, but explicit `Allow: /` with `Sitemap:` pointer is cleaner | LOW | Create `docs/docs/robots.txt` with `User-agent: *`, `Allow: /`, and `Sitemap: <site_url>sitemap.xml`. MkDocs copies static files from `docs_dir` to the build output. |
+| **Weekly pip cache in the deploy workflow** | Speeds up repeated workflow runs; MkDocs Material's plugins use caching | LOW | Use `cache_id=$(date --utc '+%V')` and cache `~/.cache/pip`. Material for MkDocs explicitly recommends this pattern in their publishing guide. |
+| **Deploy only on push to main (not on PRs)** | Avoids deploying unreviewed content; PRs already get the `mkdocs build --strict` CI gate | LOW | Use separate `ci.yml` (build check on PRs) vs `deploy.yml` (deploy on push to main). The existing `ci.yml` docs job already does the build check — the new workflow only needs to handle the deploy. |
+| **Strict build gate before deploy** | Prevents deploying a broken site; any MkDocs warning fails the build | LOW | Already in place via `ci.yml`. The deploy workflow should also run `mkdocs build --strict` (not just deploy) to catch any environment-specific issues in the deploy runner. |
+| **Pre-committed `openapi.json` regeneration script** | Maintainers need a clear workflow for updating the API reference when the FastAPI schema changes. Without a script they will forget the process. | LOW | A small shell script or Python script that runs `export_openapi.py` with the correct env vars and writes to `docs/docs/api-reference/openapi.json`. Commit the output. The Docker build already does this — extract the relevant `RUN` command into a `scripts/regenerate_openapi.sh`. |
+| **Docs deploy separated from CI workflow** | Cleaner separation of concerns; deploy has different permissions than test/lint; `permissions: contents: write` should not be on the main CI job | LOW | Create `.github/workflows/docs-deploy.yml` separate from `ci.yml`. `ci.yml` keeps `permissions: contents: read` (default). |
 
 ### Anti-Features (Explicitly Avoid)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Auto-generating signing keys at first start** | Removes the "no key registered" blocker silently | Masks the security model from users; auto-generated key means no one controls it; if a key is auto-generated on every fresh deploy, signing is effectively bypassed | Require explicit key setup; document it clearly in first-job.md as Step 1; never generate and auto-register silently |
-| **Making EXECUTION_MODE default to "direct"** | Simplifies node setup for Docker-in-Docker | `direct` mode was deliberately removed (raises RuntimeError); reverting it would re-introduce the nested subprocess security boundary hole | Keep `EXECUTION_MODE=docker` as the default; document it clearly |
-| **Providing an unsigned job dispatch path** | Makes getting started easier without a keypair | Completely breaks the security model — Ed25519 verification is a non-negotiable architectural constant | Improve the signing UX (axiom-push CLI) so setup is fast; do not bypass verification |
-| **Putting all CE and EE docs in separate files** | "Clear separation" seems logical | Forces users to figure out which edition they have before reading anything; shared steps must be duplicated; gets out of sync | Use tabbed sections or conditional admonitions within shared files (the current `!!! enterprise` pattern is correct) |
-| **Detailed troubleshooting before first-run steps** | Comprehensive docs are good | Cognitive overload for first-time users; troubleshooting before they've tried anything is noise | Keep getting-started guides linear and minimal; link to troubleshooting runbooks at the end |
-
----
-
-## Fix Items Enumerated
-
-### Category A: Docs Patches (markdown edits to existing files)
-
-All LOW complexity unless noted. These are text changes with no code dependency.
-
-| Fix ID | File | Finding | What to Change |
-|--------|------|---------|----------------|
-| A-01 | `docs/getting-started/install.md` | Admin password not set | Add a Step 0 or pre-start callout: create `.env` with `ADMIN_PASSWORD=<value>` before running `docker compose up`; show the two required vars (ADMIN_PASSWORD + ENCRYPTION_KEY) with generate commands |
-| A-02 | `docs/getting-started/install.md` | Docs assume GitHub clone | Add alternative for pre-built / downloaded tarball path; or make git clone conditional ("if you have the source repo") and add a note for pre-built installers |
-| A-03 | `docs/getting-started/install.md` | No EE section visible | The EE section exists but may need a clearer heading; ensure it appears before the "Next" link not after it; cross-link to licensing.md explicitly |
-| A-04 | `docs/getting-started/install.md` | AXIOM_LICENCE_KEY injection inconsistency | Standardise on `--env-file .env` pattern for cold-start compose; add a note that `secrets.env` is for compose.server.yaml, `.env` is for compose.cold-start.yaml |
-| A-05 | `docs/getting-started/enroll-node.md` | JOIN_TOKEN requires GUI | Promote the CLI alternative from a buried callout to a parallel Step 1B with equal prominence as the dashboard Step 1A |
-| A-06 | `docs/getting-started/enroll-node.md` | Wrong node image | Replace `python:3.12-alpine` with `localhost/master-of-puppets-node:latest` in Option B snippet |
-| A-07 | `docs/getting-started/enroll-node.md` | EXECUTION_MODE=direct removed | Replace `EXECUTION_MODE: direct` with `EXECUTION_MODE: docker` in Option B snippet; update the explanatory tip to explain docker socket mount is required |
-| A-08 | `docs/getting-started/enroll-node.md` | TLS cert mismatch on 172.17.0.1 | Update Linux Docker row in AGENT_URL table from `172.17.0.1:8001` to `https://agent:8001`; add a cold-start compose row; explain the SAN constraint briefly |
-| A-09 | `docs/getting-started/enroll-node.md` | Docker socket not in compose | Add a note to Option B that `/var/run/docker.sock:/var/run/docker.sock` volume must be present when EXECUTION_MODE=docker |
-| A-10 | `docs/getting-started/first-job.md` | No CLI dispatch path | Add Step 4B: curl POST /api/jobs with a complete signed job JSON payload; show how to base64-encode signature; include Content-Type and Authorization headers |
-| A-11 | `docs/getting-started/first-job.md` | Signing undocumented for cold-start | Restructure: keypair generation is Step 1, public key registration is Step 2 (both explicit); add axiom-push as the recommended tool; keep openssl as the manual alternative |
-| A-12 | `docs/getting-started/first-job.md` | No key pre-registered | Add pre-dispatch prerequisite callout: "Before dispatching any job, verify `GET /api/signatures` returns at least one key. If empty, complete Step 1–2 first." |
-| A-13 | `docs/licensing.md` | AXIOM_EE_LICENCE_KEY naming mismatch | Replace any `AXIOM_EE_LICENCE_KEY` occurrences with `AXIOM_LICENCE_KEY`; add a note clarifying the correct env var name |
-
-### Category B: Code Patches
-
-Require file edits outside `docs/`. Mostly already fixed during the v14.0 run but the source files need verification.
-
-| Fix ID | File | Finding | What to Change |
-|--------|------|---------|----------------|
-| B-01 | `puppets/Containerfile.node` | Docker CLI missing | Install `docker-ce-cli` from Docker's apt repo, not `docker.io` (Debian 13 package); current file should already have this from the during-run fix — verify |
-| B-02 | `puppets/Containerfile.node` | Wrong image tag default | Ensure node is tagged as `localhost/master-of-puppets-node:latest` in cold-start build; verify the tag instruction in Containerfile.node or compose.cold-start.yaml build block |
-| B-03 | `puppets/Containerfile.node` | PowerShell missing | Add PowerShell 7.x via direct .deb from GitHub releases + `ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`; verify this is in the current file |
-| B-04 | `puppeteer/compose.cold-start.yaml` | DinD /tmp mount missing | puppet-node-1 and puppet-node-2 must have `- /tmp:/tmp` volume mount; verify current file has it (added during run) |
-| B-05 | `puppeteer/agent_service/main.py` | /api/executions CE-gated NOTABLE | Decision required: add `require_ee_licence()` dependency to `GET /api/executions` route (lines 231–) if Execution History is EE-only; OR document CE availability and update EE test scenario |
-
-### Category C: EE-Specific Doc Gaps
-
-| Fix ID | File | Finding | What to Change |
-|--------|------|---------|----------------|
-| C-01 | `docs/getting-started/ee-install.md` (if exists) or `install.md` | /api/admin/features does not exist | Replace any reference to `GET /api/admin/features` with `GET /api/features` for EE verification steps |
-| C-02 | `docs/getting-started/install.md` | EE section structure | Ensure EE section content flows logically from CE install: "If you have a licence key, add it here — no additional install steps required" |
+| **`mike` versioned docs** | Seems like best practice for a versioned product | Requires clearing the existing `gh-pages` branch and starting over with a versioned structure; `mike delete --all` would wipe any existing non-versioned deploy. For a single-branch docs site with no intention of hosting previous versions, `mike` adds complexity without value. The milestone spec does not require version selectors. | Use standard `mkdocs gh-deploy`. If versioned docs become needed in the future, `mike` can be adopted then — but it cannot be grafted onto an existing plain `gh-deploy` branch without a migration. |
+| **`actions/deploy-pages` artifact approach** | GitHub officially recommends this for new projects | Requires switching Pages source from "gh-pages branch" to "GitHub Actions" in repo settings — a repository configuration change that is harder to document and audit. `mkdocs gh-deploy` produces identical output and is the MkDocs-idiomatic approach, explicitly recommended in MkDocs Material's publishing guide. | Stick with `mkdocs gh-deploy --force`. It is simpler, well-documented, and universally understood by MkDocs users. |
+| **Rebuilding openapi.json in the deploy workflow** | Keeps the API reference always up to date without manual commits | Requires installing ALL FastAPI dependencies in the docs workflow (adds ~2 minutes, breaks if deps conflict), importing `agent_service` which pulls in PostgreSQL drivers that need build tools. The Docker builder stage does this correctly with full dependency isolation. | Commit `openapi.json` to the repo (already done). Provide a local regeneration script for maintainers to run after API changes. This is the explicit pattern the PROJECT.md milestone spec calls out. |
+| **Deploying the nginx container to GitHub Pages** | "Use the same artifact as self-hosted" | GitHub Pages serves static files only — no nginx, no container runtime. The MkDocs `site/` directory output is what gets deployed, not the Docker image. | Build the static site with `mkdocs build` in the workflow, deploy the `site/` directory to `gh-pages`. The nginx container remains for the self-hosted `compose.server.yaml` deployment. |
+| **Privacy plugin asset downloads in CI** | Ensures all external assets are bundled | Privacy plugin downloads external fonts/scripts at build time. On GitHub Pages, the site is already CDN-free (all fonts self-hosted). Running the privacy plugin in CI with network access is redundant and slows builds. The assets are already committed to the repo via the privacy plugin cache (`.cache/plugin/privacy/`). | The privacy plugin cache in `docs/.cache/` should be committed or restored from cache between runs. Alternatively, since the site is already CDN-free, the privacy plugin's download step is a no-op on subsequent builds. |
+| **Separate docs repository** | "Cleaner separation" | Splits the docs lifecycle from the code lifecycle. When API changes, docs updates and code changes must be coordinated across two repos. PRs that change both code and docs cannot be reviewed atomically. | Deploy from the same repo. The `docs/` directory is already well-isolated. A `push: paths: ['docs/**']` filter on the deploy workflow is a sufficient trigger scoping mechanism if desired. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[A-01: Admin password setup]
-    └──required-before──> [A-05: JOIN_TOKEN CLI path]
-    └──required-before──> [A-10: CLI dispatch]
+[openapi.json in repo]
+    └──required-by──> [mkdocs build --strict in deploy workflow]
+    └──required-by──> [Swagger UI in API reference page]
 
-[A-06: Correct node image]
-    └──required-for──> [A-08: Correct AGENT_URL]
-    (both in enroll-node.md — fix together)
+[site_url updated to GH Pages URL]
+    └──required-by──> [sitemap.xml correctness]
+    └──required-by──> [canonical URL tags]
+    └──required-by──> [CNAME / custom domain routing]
 
-[A-11: Signing key setup restructure]
-    └──required-before──> [A-10: CLI dispatch path]
-    └──required-before──> [A-12: No key pre-registered callout]
+[gh-pages branch created by first deploy]
+    └──required-by──> [GitHub Pages source configured in repo settings]
 
-[B-01, B-02, B-03: Containerfile.node fixes]
-    └──required-for──> [B-04: compose.cold-start.yaml /tmp mount]
-    (all cold-start runtime fixes — fix together)
+[deploy workflow with contents: write permission]
+    └──required-by──> [mkdocs gh-deploy push to gh-pages]
 
-[B-05: /api/executions CE decision]
-    └──independent-of──> all doc patches
-    (code decision required before C-01/C-02 EE doc can be finalised)
+[CNAME file in docs/docs/]
+    └──required-by──> [custom domain routing]
+    └──required-by──> [GitHub HTTPS enforcement for custom domain]
+    (independent of all other features — only needed if custom domain is used)
 ```
 
 ### Dependency Notes
 
-- **A-01 must be done before A-05**: If the admin password step is correct, the CLI JOIN_TOKEN path in A-05
-  depends on it — the curl login example needs the correct password strategy to be in place.
-- **B-05 is a decision point, not a pure fix**: Someone must decide if Execution History is CE or EE. The
-  docs cannot be finalised for the EE section until this is decided. Recommend treating as CE (the feature
-  is implemented, CE users benefit, EE justification for gating is weak). Document this decision.
-- **Category B fixes should be verified before Category A is finalised**: If B-01/B-03 are not in the
-  current Containerfile.node, the cold-start node image won't work regardless of what the docs say.
+- **`site_url` must be updated before first deploy**: MkDocs bakes `site_url` into the sitemap and all
+  canonical link tags at build time. A wrong `site_url` persists in every page until rebuilt. If the GH
+  Pages URL is not known at the start (e.g., waiting on custom domain DNS), use the `*.github.io/repo/`
+  URL first and update when the custom domain resolves.
+- **`openapi.json` is already in the repo**: The Docker build generates it but it is also committed
+  (`docs/docs/api-reference/openapi.json` confirmed present). The deploy workflow does NOT need to regenerate
+  it — just run `mkdocs build`. The regeneration script is a maintainer tool only.
+- **Privacy plugin cache**: The `docs/.cache/` directory contains already-downloaded font assets. If this
+  cache is committed to the repo (gitignore check needed), the deploy workflow builds offline correctly.
+  If not committed, the privacy plugin will attempt to download fonts from Google on every workflow run —
+  which works but makes the build non-deterministic and slower. Check `.gitignore` for `docs/.cache/`.
+- **`mkdocs gh-deploy` overwrites gh-pages branch root**: Any files placed manually in the `gh-pages`
+  branch (e.g., via GitHub UI "Add custom domain" button) will be wiped on next deploy. The only safe
+  way to persist files (CNAME, robots.txt) is to include them in `docs/docs/` (the `docs_dir`).
 
 ---
 
 ## MVP Definition
 
-This milestone is itself an MVP — the goal is "first user can complete CE getting-started in one session
-without steering interventions." That requires ALL 12 BLOCKERs resolved and at least the 2 most-impactful
-NOTABLEs addressed.
+### Launch With (v14.2)
 
-### Required for READY Verdict (v14.1 launch criteria)
+Minimum viable deployment — what's needed to have the docs on GitHub Pages.
 
-- [ ] A-01: Admin password setup step in install.md
-- [ ] A-05: CLI JOIN_TOKEN path promoted in enroll-node.md
-- [ ] A-06: Correct node image in Option B snippet
-- [ ] A-07: EXECUTION_MODE=docker (remove `direct` reference)
-- [ ] A-08: AGENT_URL table corrected (remove 172.17.0.1 as primary recommendation)
-- [ ] A-10: curl dispatch path added to first-job.md
-- [ ] A-11: Signing key walkthrough restructured as explicit prerequisites
-- [ ] A-12: Pre-dispatch key registration callout
-- [ ] B-01, B-02, B-03: Containerfile.node fixes verified in source
-- [ ] B-04: /tmp mount verified in compose.cold-start.yaml
-- [ ] C-01: /api/admin/features reference removed (EE docs)
+- [ ] Updated `site_url` in `mkdocs.yml` pointing to GH Pages URL — required for sitemap and canonical URLs
+- [ ] `.github/workflows/docs-deploy.yml` — triggers on push to main, runs `mkdocs build --strict` then `mkdocs gh-deploy --force`
+- [ ] `permissions: contents: write` on the deploy job
+- [ ] GitHub Pages source set to `gh-pages` branch (repo settings — documented as a manual step)
+- [ ] `openapi.json` regeneration script (shell or Python) committed to `scripts/` — maintainer tool
 
-### Add After Core Fixes (nice-to-have for first-user experience)
+### Add After Validation (v14.2 stretch or v14.3)
 
-- [ ] A-02: GitHub clone alternative (useful but not blocking for users who have the repo)
-- [ ] A-03: EE section cross-link polish in install.md
-- [ ] A-04: AXIOM_LICENCE_KEY injection consistency note
-- [ ] A-09: Docker socket volume note in enroll-node.md
-- [ ] A-13: AXIOM_EE_LICENCE_KEY naming audit in licensing.md
-- [ ] C-02: EE install section content flow review
-- [ ] B-05: /api/executions CE/EE decision (needed for correctness but not a first-user blocker)
+- [ ] `docs/docs/CNAME` file — only if a custom domain is chosen; DNS setup documented as a manual step
+- [ ] `docs/docs/robots.txt` — trivial to add, improves SEO discoverability
+- [ ] Deploy trigger scoped to `paths: ['docs/**', '.github/workflows/docs-deploy.yml']` — avoids unnecessary redeploys on unrelated code changes
 
-### Defer
+### Future Consideration (v15+)
 
-- None — this milestone is all remediation of known gaps; nothing here should be deferred beyond v14.1.
+- [ ] `mike` versioned docs — only if maintaining old version docs alongside new releases becomes a need;
+  requires migration from plain `gh-deploy` and adds ongoing branch management complexity
+- [ ] Google Search Console + Bing Webmaster Tools submission — post-launch SEO step once the site is live
+  and indexed; not a code change
+- [ ] `actions/deploy-pages` migration — only if GitHub deprecates the `gh-pages` branch approach (no
+  indication this is planned)
 
 ---
 
 ## Feature Prioritization Matrix
 
-| Fix | User Value | Implementation Cost | Priority |
-|-----|------------|---------------------|----------|
-| A-01 Admin password setup | HIGH (login blocker) | LOW | P1 |
-| A-05 CLI JOIN_TOKEN path | HIGH (headless blocker) | LOW | P1 |
-| A-06 Correct node image | HIGH (node silently fails) | LOW | P1 |
-| A-07 EXECUTION_MODE=docker | HIGH (RuntimeError blocker) | LOW | P1 |
-| A-08 AGENT_URL correction | HIGH (TLS failure) | LOW | P1 |
-| A-10 curl dispatch path | HIGH (no browser = no dispatch) | MEDIUM | P1 |
-| A-11 Signing restructure | HIGH (signing is required; hidden) | MEDIUM | P1 |
-| A-12 Pre-dispatch callout | HIGH (SECURITY_REJECTED confusion) | LOW | P1 |
-| B-01 docker-ce-cli in Containerfile | HIGH (job execution fails) | LOW | P1 |
-| B-02 node image tag | HIGH (runtime.py default mismatch) | LOW | P1 |
-| B-03 PowerShell in Containerfile | HIGH (3rd runtime unavailable) | LOW | P1 |
-| B-04 /tmp mount in compose | HIGH (DinD script mount fails) | LOW | P1 |
-| C-01 /api/admin/features fix | HIGH (EE verify step fails) | LOW | P1 |
-| A-09 Docker socket note | MEDIUM (confusing but not immediately blocking) | LOW | P2 |
-| A-02 GitHub clone alternative | MEDIUM (rough edge, not a BLOCKER) | LOW | P2 |
-| A-13 AXIOM_EE_LICENCE_KEY naming | MEDIUM (confusing env var name) | LOW | P2 |
-| A-04 LICENCE_KEY injection consistency | MEDIUM (two valid methods exist) | LOW | P2 |
-| A-03 EE section cross-link | LOW (section exists, just hard to find) | LOW | P2 |
-| B-05 /api/executions CE decision | MEDIUM (correctness gap) | MEDIUM | P2 |
-| C-02 EE section flow review | LOW (polish) | LOW | P3 |
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Deploy workflow (docs-deploy.yml) | HIGH — without it, nothing is on GH Pages | LOW | P1 |
+| site_url update | HIGH — broken sitemap and canonicals without it | LOW | P1 |
+| openapi.json regeneration script | MEDIUM — maintainer DX; docs build already works | LOW | P1 |
+| CNAME file + custom domain | MEDIUM — cleaner URL, but `*.github.io` works fine | LOW | P2 |
+| robots.txt | LOW — search engines index without it; cleaner with it | LOW | P2 |
+| Path-scoped deploy trigger | LOW — saves CI minutes, not user-facing | LOW | P2 |
+| mike versioned docs | LOW — no use case until v2.x releases exist | HIGH | P3 |
+| Search Console submission | LOW — SEO benefit post-launch | LOW | P3 |
 
 **Priority key:**
-- P1: Must complete for READY verdict — blocks first-user success
-- P2: Should fix in v14.1 — eliminates friction but not a hard blocker
-- P3: Nice to have — polish; can slip to v14.2 if timeline is tight
+- P1: Must have for GH Pages to be live and correct
+- P2: Should add in v14.2 if low-effort; otherwise v14.3
+- P3: Future consideration only
 
 ---
 
-## Signing Workflow Pattern for CLI Users
+## Key Technical Constraints From Existing Setup
 
-The friction report found that the Ed25519 signing path was the most common NOTABLE gap. The correct
-pattern for a CLI-first user (no dashboard) is:
+### Privacy Plugin + Offline Plugin Interaction
 
-```
-1. Generate keypair:
-   openssl genpkey -algorithm ed25519 -out signing.key
-   openssl pkey -in signing.key -pubout -out verification.key
+The existing `mkdocs.yml` uses both `privacy` and `offline` plugins. The privacy plugin downloads external
+assets and rewrites references to point to local copies. On the first `mkdocs build` after the privacy
+plugin cache (`docs/.cache/`) is populated, subsequent builds use the cache.
 
-   -- OR (preferred) --
-   pip install axiom-sdk
-   axiom-push --generate-key
-   # Creates signing.key and verification.key in current directory
+**GH Actions implication**: If `docs/.cache/` is not committed to the repo, the privacy plugin will attempt
+outbound HTTP requests to `fonts.googleapis.com` during the CI build. This works on GitHub-hosted runners
+(they have internet access) but is non-deterministic. Check whether `docs/.cache/` is in `.gitignore`.
 
-2. Register public key via API:
-   TOKEN=$(curl -sk -X POST https://<host>:8443/auth/login \
-     -H 'Content-Type: application/x-www-form-urlencoded' \
-     -d 'username=admin&password=<password>' \
-     | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+From git status output: `docs/.cache/plugin/privacy/assets/external/` files are showing as untracked,
+which means they are NOT currently committed. The deploy workflow will need either:
+(a) internet access (GitHub-hosted runners have it — this is fine), or
+(b) the privacy plugin cache directories committed to the repo
 
-   curl -sk -X POST https://<host>:8443/api/signatures \
-     -H "Authorization: Bearer $TOKEN" \
-     -H "Content-Type: application/json" \
-     -d "{\"name\": \"my-key\", \"public_key\": \"$(cat verification.key)\"}"
+Option (a) is simpler and correct for a public GitHub Pages deployment (not air-gapped).
 
-3. Note the key_id from the response.
+### openapi.json Is Already Pre-Committed
 
-4. Sign and dispatch:
-   # Manual openssl signing:
-   openssl pkeyutl -sign -inkey signing.key -rawin -in hello.py -out hello.py.sig
-   SIG=$(base64 -w0 hello.py.sig)
-   SCRIPT=$(cat hello.py)
+Confirmed: `docs/docs/api-reference/openapi.json` exists in the repo. The Docker Dockerfile generates it
+at container build time, but it is also tracked in git. The GH Actions deploy workflow just needs to run
+`mkdocs build` — no FastAPI dependency installation required in the docs job.
 
-   curl -sk -X POST https://<host>:8443/api/jobs \
-     -H "Authorization: Bearer $TOKEN" \
-     -H "Content-Type: application/json" \
-     -d "{\"script\": \"$SCRIPT\", \"signature\": \"$SIG\", \"signature_key_id\": \"<key_id>\", \"task_type\": \"script\", \"runtime\": \"python\"}"
-
-   -- OR (preferred, handles escaping automatically) --
-   axiom-push login  # approve in browser once
-   axiom-push job push --script hello.py --key signing.key --key-id <key_id>
-```
-
-The cold-start friction report found that the server generates its own signing key at startup
-(`/app/secrets/signing.key`) but this is NOT automatically registered in the signatures table. Operators
-must generate their OWN keypair and register it. This distinction must be explicit in the docs.
-
----
-
-## CE vs EE Documentation Structure
-
-**Recommended approach (confirmed by current docs pattern):** Shared files with conditional sections.
-
-The current `!!! enterprise` admonition pattern in MkDocs Material is correct:
-- CE users see all content and understand EE admonitions mean "not available in your edition"
-- EE users see the same content without confusion
-- No duplication of shared installation steps
-- Single source of truth for both editions
-
-**What needs fixing (from friction report):**
-- EE getting-started content is split between `install.md` (licence key) and `licensing.md` (how it works)
-- A first-time EE user following install.md does not see the verification step until they navigate away
-- Fix: add a brief "Verify EE is active" section to install.md after the AXIOM_LICENCE_KEY step, showing
-  `GET /api/features` response with `"edition": "enterprise"` — do not require navigating to licensing.md
-  for the core activation verification
-
-**What to avoid:**
-- Do NOT create a separate `ee-install.md` in getting-started — this was the pattern that led to the
-  `/api/admin/features` stale reference (a separate EE doc that drifted from the actual API)
-- EE-specific getting-started content belongs in the existing files with `!!! enterprise` admonitions
-
----
-
-## curl Dispatch Path Design
-
-The CLI/API dispatch alternative for first-job.md should cover:
-
-**Minimum viable curl example** (what goes in the docs):
+The regeneration script (P1) is needed so maintainers know HOW to update it. Extract from Dockerfile:
 ```bash
-# 1. Get a token
-TOKEN=$(curl -sk -X POST https://<host>:8443/auth/login \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  -d 'username=admin&password=<password>' \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
-
-# 2. Sign the script
-openssl pkeyutl -sign -inkey signing.key -rawin -in hello.py -out hello.py.sig
-SIG=$(base64 -w0 hello.py.sig)
-
-# 3. Dispatch
-curl -sk -X POST https://<host>:8443/api/jobs \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"name\": \"hello-test\",
-    \"task_type\": \"script\",
-    \"runtime\": \"python\",
-    \"script\": \"$(cat hello.py | python3 -c 'import sys; print(sys.stdin.read().replace(chr(34),chr(92)+chr(34)).replace(chr(10),chr(92)+"n")' )\",
-    \"signature\": \"$SIG\",
-    \"signature_key_id\": \"<key_id_from_step_2>\"
-  }"
+DATABASE_URL=postgresql+asyncpg://dummy:dummy@localhost/dummy \
+ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
+API_KEY=dummy-build-key \
+PYTHONPATH=puppeteer \
+python puppeteer/scripts/export_openapi.py docs/docs/api-reference/openapi.json
 ```
 
-**Notes for the docs author:**
-- The JSON escaping of a multiline Python script in bash is fragile — the docs should acknowledge this and
-  recommend `axiom-push` for anything beyond trivial one-liners
-- The `task_type: "script"` and `runtime: "python"` fields are both required (unified script type from v12.0)
-- Port is 8443 when using Caddy (compose.cold-start.yaml) not 8001 (direct to agent)
-- The response body includes a `guid` field — show how to check status with `GET /api/jobs/{guid}`
+### `site_url` Currently Points to Self-Hosted Instance
+
+`mkdocs.yml` line 2: `site_url: https://dev.master-of-puppets.work/docs/`
+
+This must be updated to the GitHub Pages URL. For a project page under the `axiom-laboratories` org:
+`https://axiom-laboratories.github.io/master_of_puppets/` (or the repo slug, depending on the actual repo name).
+
+If the GH Pages URL is not known yet (e.g., depends on which org/repo name is used), it can be passed
+as an override: `mkdocs build --strict -e "site_url=https://..."` — but this is fragile. Better to update
+`mkdocs.yml` directly with the correct URL as part of v14.2.
+
+---
+
+## Deployment Flow (Verified Pattern)
+
+The canonical MkDocs Material + GitHub Pages flow is:
+
+```
+Push to main
+    → docs-deploy.yml triggers
+        → checkout (fetch-depth: 0 — needed for git history)
+        → pip install -r docs/requirements.txt
+        → cd docs && mkdocs build --strict      # validates site
+        → cd docs && mkdocs gh-deploy --force   # builds + commits to gh-pages + pushes
+    → GitHub detects gh-pages branch update
+        → serves static site at <org>.github.io/<repo>/
+```
+
+**`fetch-depth: 0` is important**: `mkdocs gh-deploy` uses git to commit to gh-pages. Shallow clones
+(`fetch-depth: 1`, the default) can cause issues with git operations. Use `fetch-depth: 0` in checkout.
+
+**Git config required**: The workflow needs `git config user.name` and `git config user.email` set before
+`mkdocs gh-deploy`, or the git commit in the gh-pages branch will fail. Use:
+```yaml
+- run: |
+    git config user.name "github-actions[bot]"
+    git config user.email "github-actions[bot]@users.noreply.github.com"
+```
 
 ---
 
 ## Sources
 
-- `/home/thomas/Development/mop_validation/reports/cold_start_friction_report.md` — Primary source:
-  24 concrete findings with reproduction steps and fix recommendations — HIGH confidence
-- `/home/thomas/Development/master_of_puppets/docs/docs/getting-started/install.md` — Current state
-  of install guide (partially updated) — HIGH confidence
-- `/home/thomas/Development/master_of_puppets/docs/docs/getting-started/enroll-node.md` — Current state
-  of enroll-node guide (partially updated from during-run fixes) — HIGH confidence
-- `/home/thomas/Development/master_of_puppets/docs/docs/getting-started/first-job.md` — Current state
-  of first-job guide — HIGH confidence
-- `/home/thomas/Development/master_of_puppets/docs/docs/feature-guides/axiom-push.md` — Full axiom-push
-  CLI workflow including Ed25519 setup — HIGH confidence
-- `/home/thomas/Development/master_of_puppets/puppeteer/compose.cold-start.yaml` — Current compose file
-  (includes /tmp mount and docker socket mounts from during-run fixes) — HIGH confidence
-- `/home/thomas/Development/master_of_puppets/puppeteer/agent_service/main.py` lines 231–296 — Confirms
-  /api/executions is not EE-gated — HIGH confidence
-- `/home/thomas/Development/master_of_puppets/.planning/PROJECT.md` — v14.1 milestone scope, all 20
-  open finding items — HIGH confidence
+- [Publishing your site — Material for MkDocs](https://squidfunk.github.io/mkdocs-material/publishing-your-site/) — PRIMARY: complete workflow, permissions, caching — HIGH confidence
+- [Deploying Your Docs — MkDocs](https://www.mkdocs.org/user-guide/deploying-your-docs/) — gh-pages branch strategy, CNAME file placement, 404 behavior — HIGH confidence
+- [Configuring a publishing source — GitHub Docs](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) — branch vs Actions source, repo settings — HIGH confidence
+- [Troubleshooting custom domains — GitHub Docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/troubleshooting-custom-domains-and-github-pages) — CNAME overwrite issue, HTTPS enforcement — HIGH confidence
+- [mkdocs.yml — master_of_puppets repo](docs/mkdocs.yml) — current site_url, plugins, requirements — HIGH confidence (direct inspection)
+- [ci.yml — master_of_puppets repo](.github/workflows/ci.yml) — existing docs build job — HIGH confidence (direct inspection)
+- [Dockerfile — docs/](docs/Dockerfile) — openapi.json generation command — HIGH confidence (direct inspection)
+- [jimporter/mike](https://github.com/jimporter/mike) — versioned docs tool; reviewed and ruled out for v14.2 — MEDIUM confidence
 
 ---
 
-*Feature research for: Axiom v14.1 — First-User Readiness Fixes*
-*Researched: 2026-03-25*
+*Feature research for: Axiom v14.2 — GitHub Pages deployment of MkDocs docs site*
+*Researched: 2026-03-26*
