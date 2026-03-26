@@ -177,7 +177,11 @@ Plans:
   3. A user following first-job.md encounters Ed25519 signing key setup as a numbered prerequisite before any dispatch step, with a visually prominent callout before the first dispatch attempt
   4. A user following first-job.md can dispatch a signed job via curl (`POST /jobs` with base64 signature) as a documented CLI alternative to the guided dashboard form
   5. `mkdocs build --strict` passes after all doc edits; tab syntax renders correctly across all rewritten pages
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 67-01-PLAN.md — mkdocs.yml tab extension + install.md Git Clone/GHCR Pull tab pair + Server/Cold-Start install tab pair (DOCS-01, DOCS-02, DOCS-08)
+- [ ] 67-02-PLAN.md — enroll-node.md CLI token tab, AGENT_URL table restructure, Option A/B tab pair (DOCS-03, DOCS-04, DOCS-05, DOCS-06, DOCS-07)
+- [ ] 67-03-PLAN.md — first-job.md pre-dispatch danger callout + Dashboard/CLI dispatch tab pair + full phase verification (DOCS-09, DOCS-10, DOCS-11)
 
 ### Phase 68: EE Documentation
 **Goal**: EE getting-started and licensing pages accurately reflect the current API surface and use consistent environment variable naming throughout
