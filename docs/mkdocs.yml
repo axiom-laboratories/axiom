@@ -1,5 +1,5 @@
 site_name: Axiom
-site_url: https://dev.master-of-puppets.work/docs/
+site_url: https://axiom-laboratories.github.io/axiom/
 theme:
   name: material
   logo: assets/logo.svg
@@ -14,7 +14,8 @@ plugins:
   - search
   # privacy + offline: required for air-gap / offline operation (INFRA-06) — do not remove
   - privacy
-  - offline
+  - offline:
+      enabled: !ENV [OFFLINE_BUILD, false]
   - swagger-ui-tag
 
 markdown_extensions:
