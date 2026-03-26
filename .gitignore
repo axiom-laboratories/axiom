@@ -43,3 +43,6 @@ jobs.db
 # Python build artifacts
 *.egg-info/
 .worktrees/
+
+# MkDocs generated site (build output — not tracked)
+docs/site/
