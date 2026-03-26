@@ -14,6 +14,7 @@
 - ✅ **v14.0 — CE/EE Cold-Start Validation** — Phases 61–65 (shipped 2026-03-25)
 - ✅ **v14.1 — First-User Readiness** — Phases 66–70 (shipped 2026-03-26)
 - ✅ **v14.2 — Docs on GitHub Pages** — Phase 71 (shipped 2026-03-26)
+- 🚧 **v14.3 — Security Hardening + EE Licensing** — Phases 72–73 (in progress)
 
 ## Phases
 
@@ -163,6 +164,40 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
 
 </details>
 
+### 🚧 v14.3 — Security Hardening + EE Licensing (In Progress)
+
+**Milestone Goal:** Close all CodeQL security alerts, remove the legacy API_KEY crash, and deliver a production-grade EE licence key system with Ed25519 cryptographic validation, grace-period state machine, clock-rollback detection, and air-gap-safe node limit enforcement.
+
+- [ ] **Phase 72: Security Fixes** — Close 5 CodeQL error-severity alerts (XSS, path injection x4, ReDoS), remove API_KEY hard crash and node-route dependency
+- [ ] **Phase 73: EE Licence System** — Offline licence CLI, Ed25519 signature validation at startup, grace period state machine, boot-log clock-rollback detection, extended /api/licence response, node limit enforcement at enrollment
+
+## Phase Details
+
+### Phase 72: Security Fixes
+**Goal**: Operators can deploy Axiom with zero open CodeQL error or warning alerts and without requiring an API_KEY environment variable
+**Depends on**: Nothing (Phase 71 complete)
+**Requirements**: SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06
+**Success Criteria** (what must be TRUE):
+  1. Operator submitting a crafted `user_code` query parameter to `/auth/device/approve` receives an HTML-escaped response with no reflected XSS payload execution
+  2. Operator can start Axiom with no `API_KEY` in `secrets.env` and the process boots cleanly without a crash or error log entry about the missing variable
+  3. Node-facing routes (`/api/enroll`, `/work/pull`, `/heartbeat`) continue to function correctly for enrolled nodes after `verify_api_key` dependency is removed
+  4. Operator can confirm via the GitHub Security tab that all 5 CodeQL error-severity alerts and 1 warning-severity alert show as resolved after the fixes land on `main`
+  5. A job with output containing a crafted email-like string that previously caused catastrophic regex backtracking in `mask_pii()` returns a response within normal processing time
+**Plans**: TBD
+
+### Phase 73: EE Licence System
+**Goal**: Axiom Labs can generate signed licence keys offline and EE deployments enforce cryptographic licence validity, expiry grace periods, clock-rollback detection, and node limits — all without requiring network access
+**Depends on**: Phase 72
+**Requirements**: LIC-01, LIC-02, LIC-03, LIC-04, LIC-05, LIC-06, LIC-07
+**Success Criteria** (what must be TRUE):
+  1. Axiom Labs operator runs `tools/generate_licence.py` offline and receives a base64url-encoded signed licence key that encodes customer ID, tier, node limit, feature list, expiry date, and grace days — with no network call required
+  2. An EE deployment given a licence key whose Ed25519 signature does not match the embedded public key fails to activate EE features at startup and logs a clear rejection message
+  3. An EE deployment whose licence has expired but is within `grace_days` boots successfully, activates all EE features, and emits a log warning indicating days remaining in the grace period
+  4. An EE deployment whose grace period has also ended returns HTTP 402 on all EE feature routes (matching CE stub behaviour) without crashing or logging unhandled exceptions
+  5. `GET /api/licence` returns a JSON response containing `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields readable by an operator
+  6. `POST /api/enroll` returns HTTP 402 when the number of non-OFFLINE non-REVOKED nodes already enrolled equals or exceeds the `node_limit` in the signed licence payload
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -193,6 +228,8 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
 | 69. Fix CI release pipeline version pinning and semver tags | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 71. Deploy Docs to GitHub Pages | v14.2 | 2/2 | Complete | 2026-03-26 |
+| 72. Security Fixes | v14.3 | 0/TBD | Not started | - |
+| 73. EE Licence System | v14.3 | 0/TBD | Not started | - |
 
 ## Archived
 
