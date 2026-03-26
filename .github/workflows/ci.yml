@@ -88,3 +88,22 @@ jobs:
           file: puppeteer/Containerfile.server
           push: false
           platforms: linux/amd64
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install docs dependencies
+        working-directory: docs
+        run: pip install -r requirements.txt
+
+      - name: Build docs (strict)
+        working-directory: docs
+        run: mkdocs build --strict
