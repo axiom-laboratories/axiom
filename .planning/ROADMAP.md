@@ -172,10 +172,11 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
   3. `mkdocs build --strict` run locally against the updated `mkdocs.yml` (with `OFFLINE_BUILD=true`) produces zero warnings and correct page URLs (`/page/` not `page.html`)
   4. `docs/site/` is absent from git tracking — `git status` shows no `docs/site/` files as tracked or modified
   5. Running the `openapi.json` regeneration script locally produces an updated `docs/docs/api-reference/openapi.json` that can be committed
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 71-01: TBD
+- [ ] 71-01-PLAN.md — Housekeeping + config: untrack docs/site/, add .nojekyll, update mkdocs.yml site_url and offline plugin, patch Dockerfile
+- [ ] 71-02-PLAN.md — Deploy infrastructure: docs-deploy.yml workflow and regen_openapi.sh maintenance script
 
 ## Progress
 
@@ -206,7 +207,7 @@ Plans:
 | 68. EE Documentation | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 69. Fix CI release pipeline version pinning and semver tags | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
-| 71. Deploy Docs to GitHub Pages | v14.2 | 0/? | Not started | - |
+| 71. Deploy Docs to GitHub Pages | v14.2 | 0/2 | Not started | - |
 
 ## Archived
 
