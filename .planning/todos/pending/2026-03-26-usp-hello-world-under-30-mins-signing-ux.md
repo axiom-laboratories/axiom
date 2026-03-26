@@ -1,0 +1,47 @@
+---
+created: 2026-03-26T21:32:05.519Z
+title: USP — hello world job executing in under 30 mins (CE)
+area: general
+files:
+  - puppeteer/dashboard/src/views/Signatures.tsx
+  - puppeteer/agent_service/main.py
+---
+
+## Problem
+
+Target USP: a new user with Docker installed can have a CE node enrolled and a hello world job executing in under 30 minutes. This is achievable in principle but the job signing flow is the critical blocker.
+
+Current friction points:
+1. Keypair generation lives in a sister repo (`admin_signer.py`) — no onboarding story, not documented in getting-started
+2. Signing a script requires a separate CLI tool invocation — not intuitive for first-timers
+3. "Signature verification failed" errors give no guidance on what to do next
+4. The join token → node deploy flow is clear, but signing comes before job dispatch and trips people up
+
+Rough time breakdown (today): image pull ~5m, login ~2m, signing setup ~8-10m, node deploy ~5m, dispatch ~2m = ~22-24m best case, much longer if signing goes wrong.
+
+## Solution
+
+The signing UX needs to be first-class to hit the 30-min USP reliably:
+
+**Option A — Dashboard keypair generation (preferred):**
+- "Generate signing key" button in Signatures view: generates Ed25519 keypair server-side (or client-side in browser), auto-registers public key, prompts download of private key file
+- Eliminates the external tool dependency entirely for the happy path
+
+**Option B — First-run demo keypair:**
+- Orchestrator ships with a pre-generated keypair for first-run/demo mode
+- Dashboard shows the corresponding `axiom sign hello_world.py` command ready to copy
+- User never has to understand PKI to get their first job running
+- Can be replaced with a real keypair before going to production
+
+**Option C — CLI tool ships with the stack:**
+- `axiom` CLI (or a simple Python script) bundled in the orchestrator container or available as a standalone install
+- `axiom sign script.py` — reads key from `~/.axiom/signing.key` or env var
+
+**Getting-started doc changes regardless:**
+- Add explicit signing step to the install guide with copy-paste commands
+- Link to key generation from the job dispatch UI ("Don't have a signing key yet? →")
+- Better error messages when signature verification fails
+
+## Success criteria for the USP
+
+Time a fresh install end-to-end on a clean machine. Sub-30 min with no prior knowledge of Axiom = USP confirmed.
