@@ -158,7 +158,7 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
 
 **Milestone Goal:** Deploy the CE documentation site to GitHub Pages with automated publishing on every push to main.
 
-- [ ] **Phase 71: Deploy Docs to GitHub Pages** - Config, workflow, git-tracking cleanup, and maintenance script for automated GH Pages deployment
+- [x] **Phase 71: Deploy Docs to GitHub Pages** - Config, workflow, git-tracking cleanup, and maintenance script for automated GH Pages deployment (completed 2026-03-26)
 
 ## Phase Details
 
@@ -207,7 +207,7 @@ Plans:
 | 68. EE Documentation | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 69. Fix CI release pipeline version pinning and semver tags | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
-| 71. Deploy Docs to GitHub Pages | 1/2 | In Progress|  | - |
+| 71. Deploy Docs to GitHub Pages | 2/2 | Complete   | 2026-03-26 | - |
 
 ## Archived
 

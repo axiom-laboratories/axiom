@@ -7,8 +7,8 @@
 
 ### Deployment
 
-- [ ] **DEPLOY-01**: Docs site is automatically deployed to GH Pages on every push to `main` via a new `docs-deploy.yml` workflow
-- [ ] **DEPLOY-02**: Deploy workflow is a standalone file with its own trigger and permissions, separate from `ci.yml`
+- [x] **DEPLOY-01**: Docs site is automatically deployed to GH Pages on every push to `main` via a new `docs-deploy.yml` workflow
+- [x] **DEPLOY-02**: Deploy workflow is a standalone file with its own trigger and permissions, separate from `ci.yml`
 
 ### Config
 
@@ -23,7 +23,7 @@
 
 ### Maintenance
 
-- [ ] **MAINT-01**: Local script to regenerate `openapi.json` from the FastAPI app (run locally when API schema changes, commits the updated file)
+- [x] **MAINT-01**: Local script to regenerate `openapi.json` from the FastAPI app (run locally when API schema changes, commits the updated file)
 
 ## Future Requirements
 
@@ -42,14 +42,14 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | Phase 71 | Pending |
-| DEPLOY-02 | Phase 71 | Pending |
+| DEPLOY-01 | Phase 71 | Complete |
+| DEPLOY-02 | Phase 71 | Complete |
 | CONFIG-01 | Phase 71 | Complete |
 | CONFIG-02 | Phase 71 | Complete |
 | CONFIG-03 | Phase 71 | Complete |
 | HOUSE-01 | Phase 71 | Complete |
 | HOUSE-02 | Phase 71 | Complete |
-| MAINT-01 | Phase 71 | Pending |
+| MAINT-01 | Phase 71 | Complete |
 
 **Coverage:**
 - v14.2 requirements: 8 total

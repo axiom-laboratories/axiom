@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.2
 milestone_name: — Docs on GitHub Pages
 status: planning
-stopped_at: Completed 71-deploy-docs-to-github-pages/71-01-PLAN.md
-last_updated: "2026-03-26T17:22:06.872Z"
+stopped_at: "Checkpoint: 71-02 awaiting human-verify (smoke checks + GH Pages activation)"
+last_updated: "2026-03-26T17:25:07.324Z"
 last_activity: 2026-03-26 — Roadmap created
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -42,6 +42,8 @@ Progress: [░░░░░░░░░░] 0%
 - [v14.2]: `offline` plugin made conditional via `!ENV [OFFLINE_BUILD, false]` — Dockerfile sets `OFFLINE_BUILD=true` to preserve air-gap container behaviour
 - [Phase 71-deploy-docs-to-github-pages]: docs/site/ untracked from git — 166 build output files removed from index, gitignored
 - [Phase 71-deploy-docs-to-github-pages]: OFFLINE_BUILD pattern established: offline plugin disabled for GitHub Pages, enabled via env var in Docker builds
+- [Phase 71]: Separate docs-deploy.yml from ci.yml for dedicated docs deploy workflow
+- [Phase 71]: openapi.json pre-committed; regen_openapi.sh is the local maintenance tool
 
 ### Pending Todos
 
@@ -54,6 +56,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T17:22:06.871Z
-Stopped at: Completed 71-deploy-docs-to-github-pages/71-01-PLAN.md
+Last session: 2026-03-26T17:25:07.321Z
+Stopped at: Checkpoint: 71-02 awaiting human-verify (smoke checks + GH Pages activation)
 Resume file: None
