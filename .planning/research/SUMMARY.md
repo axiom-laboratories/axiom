@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Axiom v14.2 — Docs on GitHub Pages
-**Domain:** GitHub Pages deployment of existing MkDocs Material documentation site
+**Project:** Master of Puppets — Axiom v14.3
+**Domain:** Security hardening (CodeQL fixes) + EE licence key system with air-gap support
 **Researched:** 2026-03-26
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone adds public GitHub Pages hosting to an MkDocs Material documentation site that already exists, builds cleanly, and passes `mkdocs build --strict` in CI. The task is not building a docs site from scratch — it is wiring a deployment path onto an already-correct static site build. The recommended approach is a new `docs-deploy.yml` GitHub Actions workflow that runs `mkdocs gh-deploy --force` on every push to `main`. This approach is simpler than the alternative `actions/deploy-pages` artifact chain, requires fewer permissions (`contents: write` vs `pages: write` + `id-token: write`), is the official MkDocs Material recommendation, and requires zero changes to `docs/requirements.txt`.
+This milestone addresses two independent but urgent concerns on a mature, production v14.2 codebase. The first is closing 5 CodeQL error-severity and 1 warning-severity security alerts: a reflected XSS in the device-approval OAuth page, four path injection alerts across `vault_service.py` and `main.py`, and a ReDoS-vulnerable email regex in `mask_pii()`. All six fixes require only stdlib or the `cryptography` library already in `requirements.txt` — zero new dependencies. The second concern is hardening the EE licence system for air-gapped deployments: the current CE lifespan does base64-decode and clock-expiry but does NOT verify the Ed25519 signature, meaning a customer can forge any expiry date. A new `licence_service.py` module must add full cryptographic validation, plus a hash-chained boot log for clock-rollback detection, a grace period to prevent outages on renewal delays, and a CLI keygen tool for Axiom Labs.
 
-Two configuration changes are mandatory before the first deploy: (1) `site_url` in `docs/mkdocs.yml` must be updated from the current self-hosted nginx URL (`https://dev.master-of-puppets.work/docs/`) to the GitHub Pages URL, and (2) the `offline` plugin must be made conditional via `enabled: !ENV [OFFLINE_BUILD, false]` so it does not force `use_directory_urls: false` for the hosted build. Both fixes are targeted one-liner changes but each has significant downstream impact if missed. Wrong `site_url` breaks canonical URLs, sitemaps, and 404-page asset paths. An active `offline` plugin changes the entire URL structure from `/page/` to `page.html`, breaking all existing deep links. A pre-deploy cleanup step should also remove `docs/site/` from git tracking — it is currently committed and will become a source of noisy diffs and repo bloat once GH Pages is live.
+The recommended build order is strict: CodeQL fixes first (they are independent, unblock the security alert count, and one — the API_KEY removal — eliminates an import-time crash that blocks all tests), then the licence CLI (which defines the payload schema), then the licence service (which consumes that schema), then wiring and integration tests. The key architectural decision is that licence validation must live in CE code (`licence_service.py`), not inside the EE plugin's `register()` method — placing it inside the plugin causes partial route registration before the check fires, with no clean rollback. All expiry states must degrade gracefully to CE mode, never crash, because air-gapped operators cannot renew on a midnight deadline.
 
-The key risk is a cluster of pitfalls that are individually easy to fix but hard to diagnose after the fact. All nine documented pitfalls are preventable by testing `mkdocs build --strict` locally against the updated config before pushing. The work is low-complexity: one new workflow file, two targeted config changes, one git-tracking cleanup, and one one-time repository settings step. No new Python dependencies are needed.
+The principal risks are implementation-ordering mistakes (path normalization must happen before prefix comparison, not after; licence CLI wire format must be locked before the service is built) and a known limitation of the boot-log approach (a deleted boot-log file is indistinguishable from a fresh install). Both risks have documented mitigations: strict ordering enforced by the build plan, and a grace-period fallback for absent boot-log rather than a hard stop. Overall research confidence is HIGH — all findings are grounded in direct codebase inspection of the live files, official CodeQL documentation, and the existing test suite.
 
 ---
 
@@ -19,113 +19,105 @@ The key risk is a cluster of pitfalls that are individually easy to fix but hard
 
 ### Recommended Stack
 
-The existing stack (`mkdocs-material==9.7.5` + `mkdocs-swagger-ui-tag==0.8.0`) needs no additions to `docs/requirements.txt`. The deployment method is `mkdocs gh-deploy --force` over the more complex `actions/upload-pages-artifact` + `actions/deploy-pages` chain. The simpler approach has identical output, is the official MkDocs Material recommendation, and requires only `permissions: contents: write` rather than `pages: write` + `id-token: write`.
+No new pip dependencies are required for this milestone. All six CodeQL fixes use Python stdlib (`pathlib`, `html`, `re`, `uuid`, `hashlib`, `hmac`, `json`) and the `cryptography` library already in `requirements.txt`. The only new file that touches an external library is `licence_service.py`, which uses `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey.verify()` — the same API already used by the EE plugin. See `STACK.md` for full fix-pattern rationale.
 
 **Core technologies:**
-- `mkdocs-material==9.7.5`: Site build — already pinned, no change needed
-- `mkdocs-swagger-ui-tag==0.8.0`: API reference rendering — already pinned; bundles Swagger UI statically (no CDN calls on GH Pages)
-- `actions/checkout@v4` with `fetch-depth: 0`: Required — git history is used by `mkdocs gh-deploy` for the `gh-pages` branch commit
-- `actions/setup-python@v5` with `cache: pip`: Python environment + pip dependency caching for faster repeated deploys
-- `mkdocs gh-deploy --force`: Single deploy command that handles `.nojekyll` creation, branch management, and idempotent force-push automatically
+- `pathlib.Path.resolve() + is_relative_to()` — path injection fix — CodeQL explicitly recognises `resolve()` as a normalisation step; `os.path.abspath` is not recognised
+- `html.escape()` (stdlib) — XSS fix — replaces direct f-string interpolation of `user_code` query param into HTMLResponse
+- Bounded regex (`{1,64}`, `{1,253}`, `[a-zA-Z]{2,24}`) — ReDoS fix — length guards alone do not close the CodeQL alert; the regex must be rewritten to be linear
+- `cryptography` Ed25519 — licence signature verification — already in stack; `Ed25519PublicKey.verify()` stable since cryptography 2.6 (2018)
+- `hashlib.sha256` hash chain — boot log tamper-evidence — stdlib; no HMAC key rotation risk compared to HMAC-based chaining
+- `uuid.UUID()` — vault path sanitisation — UUID format contains no path-traversal characters; validates the input semantically before `resolve()`
 
 ### Expected Features
 
-**Must have (table stakes — v14.2 launch blockers):**
-- Automated deploy on push to `main` — docs update automatically when content merges
-- `site_url` set to GH Pages URL — required for correct sitemap, canonical links, and asset resolution
-- `offline` plugin made conditional via `!ENV [OFFLINE_BUILD, false]` — prevents URL structure breakage on GH Pages
-- `permissions: contents: write` on the deploy workflow job — `mkdocs gh-deploy` pushes to `gh-pages` branch
-- `docs/site/` removed from git tracking — currently committed; becomes noisy drift once CI manages the build
-- `openapi.json` regeneration script for maintainers — documents the manual update process; `openapi.json` already committed to repo
-- GitHub Pages source configured in repository settings (manual, one-time operator step)
+**Must have — table stakes (v14.3 launch):**
+- Fix reflected XSS in device-approval page — CodeQL error-severity; `user_code` query param echoed into HTMLResponse f-string unescaped
+- Fix path injection in `vault_service.py` (lines 70-72) — artifact_id concatenated into filesystem path via `os.path.join` without `resolve()`
+- Fix path injection in `main.py` (two locations) — installer script path traversal; verify live line numbers via CodeQL before fixing (todo references lines 2457/2461 but file is now 2152 lines)
+- Fix ReDoS in `security.py:79` `mask_pii()` — polynomial backtracking on attacker-controlled job output; regex must be rewritten, length guard alone is insufficient
+- Remove legacy `API_KEY` crash — `sys.exit(1)` at import time if env var absent; no historical deployments depend on it; eliminates a production operational hazard and unblocks all tests
+- Admin key generation CLI (`tools/generate_licence.py`) — offline Ed25519 signing tool; enables all licence operations at Axiom Labs without a web service; must be built before the licence service
+- Grace period on expiry (30-day default, `grace_days` in payload) — required for air-gapped operators who cannot renew on a deadline; state machine: VALID → GRACE → DEGRADED_CE
+- HMAC-chained boot log — clock-rollback detection without network dependency; stored in `secrets/boot.log` on the already-persistent secrets volume
+- Extended `GET /api/licence` response — surfaces `status: valid/grace/expired`, `days_until_expiry`, `node_limit`, `tier`
+- Node limit enforcement at enrollment — count non-OFFLINE non-REVOKED nodes; reject at `POST /api/enroll` with HTTP 402 when limit reached
 
-**Should have (differentiators — v14.2 stretch or v14.3):**
-- `docs/docs/CNAME` file — only if a custom domain is chosen; prevents domain wipeout on every `gh-deploy`
-- `docs/docs/robots.txt` — explicit crawler directive with sitemap pointer
-- Deploy trigger scoped to `paths: ['docs/**', '.github/workflows/docs-deploy.yml']` — avoids redeploys on unrelated code changes
-- Protective comment in `.gitignore` explaining why `docs/.cache/` must stay committed
+**Should have — add in v14.x point release:**
+- Dashboard amber/red banner on grace/expired state — backend status field stable after v14.3; frontend component can follow
+- Per-licence `grace_days` operator documentation
 
-**Defer (v15+):**
-- `mike` versioned docs — adds significant branch management complexity; no use case until multiple major versions coexist
-- Google Search Console / Bing Webmaster submission — post-launch SEO step, not a code change
-- Migration to `actions/deploy-pages` artifact chain — only if GitHub deprecates branch-based Pages (no indication this is planned)
+**Defer to v15+:**
+- Licence issuance portal (web UI for generating keys) — not justified at current customer volume
+- Periodic in-process re-validation beyond the APScheduler 6-hour check
+- Per-feature tier gating (currently all-or-nothing EE)
+- Hardware fingerprinting / node locking
 
 ### Architecture Approach
 
-The deployment architecture is a two-branch model: `main` holds source; `gh-pages` holds built output managed exclusively by `mkdocs gh-deploy`. The new `docs-deploy.yml` workflow is kept separate from `ci.yml` to prevent deploying in-progress PR content and to scope `contents: write` only to the deploy context. The existing `ci.yml` `docs` job remains the PR validation gate — the deploy workflow fires only on push to `main`. No changes are needed to the Docker deployment path (two-stage Dockerfile with nginx). Both deployment paths remain live: GH Pages for public docs, Docker/nginx for the self-hosted internal instance.
+The milestone is split between targeted surgical fixes to existing files and two net-new files. The five CodeQL fixes are all in-place changes to `security.py`, `main.py`, and `vault_service.py` — no new modules, no schema changes. The EE licence system adds one new service module (`services/licence_service.py`) and one offline CLI tool (`tools/generate_licence.py`). The existing `ee/__init__.py` gate pattern and `app.state.licence` storage are kept intact; the new service replaces only the inlined lifespan block at `main.py:76-102`. No DB schema changes are required for any v14.3 feature except persisting the grace-period start timestamp in the `Config` table (one key-value write).
 
 **Major components:**
-1. `docs/mkdocs.yml` — modified: `site_url` updated to GH Pages URL; `offline` plugin made conditional
-2. `.github/workflows/docs-deploy.yml` — new: triggers on push to main, runs `mkdocs gh-deploy --force` from `working-directory: docs`
-3. `gh-pages` branch — auto-managed by `mkdocs gh-deploy`; created on first workflow run; never hand-edited
-4. `docs/docs/` source files — unchanged: all markdown, committed `openapi.json`, privacy plugin cache in `docs/.cache/`
-5. `docs/site/` — removed from git tracking: generated at deploy time; `.gitignore` updated before first deploy
+1. `security.py` (modified) — remove `API_KEY` crash and `verify_api_key`; fix `mask_pii` ReDoS regex
+2. `main.py` (modified) — escape `user_code` XSS; remove `Depends(verify_api_key)` from three node routes; replace inline licence block with `licence_service.validate()` call; verify and fix remaining path-injection alerts via live CodeQL scan
+3. `vault_service.py` (modified) — add `_safe_artifact_path()` using `pathlib.Path.resolve() + is_relative_to()`; apply to both `store_artifact` and `delete_artifact`
+4. `services/licence_service.py` (new) — `validate()` with Ed25519 verify + expiry + grace-period state machine; `LicenceResult` dataclass; boot-log read/write helpers
+5. `tools/generate_licence.py` (new) — offline admin CLI; inputs customer metadata and outputs `base64url(payload).base64url(sig)` wire format; private signing key never leaves the admin machine
 
 ### Critical Pitfalls
 
-1. **Wrong `site_url` (nginx URL baked into GH Pages build)** — Update `site_url` in `docs/mkdocs.yml` to the GitHub Pages URL before the first deploy. The current value (`https://dev.master-of-puppets.work/docs/`) appears in every canonical link tag and the sitemap; the 404 page loads with broken asset paths pointing to the internal nginx server.
+1. **Path normalization order reversal** — `Path.resolve()` must happen before the `is_relative_to()` prefix check, not after. Checking the raw string first and then resolving is the most common mistake and leaves the taint path open. CodeQL taint tracking enforces this ordering — a fix that resolves after comparison will not close the alert.
 
-2. **`offline` plugin forces `use_directory_urls: false`** — Add `enabled: !ENV [OFFLINE_BUILD, false]` to the offline plugin config. Without this, all page URLs on GitHub Pages become `page.html` instead of `page/`, breaking every existing deep link. The Dockerfile builder stage should set `OFFLINE_BUILD=true` to maintain air-gapped container behavior.
+2. **CSV XSS alert is not a false positive** — the `GET /api/jobs/export` `StreamingResponse` with `media_type="text/csv"` needs `X-Content-Type-Options: nosniff` added to the response headers. Content-sniffing browsers can reinterpret CSV as HTML if the header is absent. Adding it at the Caddy level does not satisfy CodeQL static analysis — it must be in the backend response dict.
 
-3. **`docs/site/` tracked in git** — Run `git rm -r --cached docs/site/` and add `docs/site/` to `.gitignore` before the first `gh-deploy`. Both the Dockerfile and the deploy workflow regenerate `site/` — the committed copy creates noisy diffs on every local `mkdocs build`.
+3. **API_KEY removal must be atomic** — `API_KEY` is referenced in the import-time guard, in a dependency function, and injected into three node routes. A partial removal leaves dangling references causing `NameError` at runtime. The removal must be a single commit that deletes every reference. Existing `secrets.env` files with `API_KEY` still set must boot cleanly after removal.
 
-4. **`working-directory: docs` missing from deploy workflow** — `mkdocs.yml` is at `docs/mkdocs.yml`, not the repo root. Every `mkdocs` command in the workflow must use `working-directory: docs`, matching the existing `ci.yml` pattern. Omitting this causes an immediate "Config file 'mkdocs.yml' does not exist" failure.
+4. **Licence must degrade gracefully, never crash** — setting `app.state.licence = None` on expiry causes `AttributeError` in any EE route handler that reads licence fields. The correct pattern is a sentinel `LicenceResult` object or always-present `EEContext` with all-`False` feature flags. Hard `sys.exit(1)` on expiry creates production outages for air-gapped operators.
 
-5. **GitHub Pages source not configured in repository settings** — After the first `gh-deploy` run creates the `gh-pages` branch, an operator must manually set Settings > Pages > Source to "Deploy from a branch" -> `gh-pages` -> `/`. The site returns 404 until this one-time step is completed. Document this in the workflow file comments.
+5. **Boot-log file deletion is a known bypass** — deleting `secrets/boot.log` between container restarts is indistinguishable from a fresh install. Treat absent boot-log as "unknown" and apply the grace period, not normal EE operation. Document this limitation; defer a stronger DB-backed boot counter to a future milestone.
 
 ---
 
 ## Implications for Roadmap
 
-All four research areas converge on a minimal two-phase structure. Phase 1 is the full deployment implementation shipped atomically. Phase 2 is deferred polish that does not block the site from being live.
+Based on combined research, the work decomposes into two sequential phases with a mandatory internal sub-ordering within Phase 2.
 
-### Phase 1: Foundation and Deploy
+### Phase 1: Security Fixes (CodeQL + API_KEY)
 
-**Rationale:** All changes are tightly interdependent and must ship together. The `site_url` change must precede the deploy workflow commit — a wrong URL baked into a live deploy is harder to recover from than never deploying with a wrong URL. The `offline` plugin fix and `docs/site/` cleanup are pre-conditions for Phase 1, not follow-ons.
+**Rationale:** These fixes are fully independent of each other and of the licence work. They are the highest-urgency action on the repo (CodeQL error-severity alerts) and one — the API_KEY `sys.exit(1)` — contaminates the test environment for everything downstream by requiring `API_KEY` in the environment for any test that imports `security.py`. Phase 1 must complete before Phase 2 begins.
 
-**Delivers:** Live public documentation at the GitHub Pages URL, auto-deploying on every push to `main`.
+**Delivers:** Zero open CodeQL error alerts; zero open CodeQL warning alerts; clean startup without `API_KEY` env var; `verify_node_secret` as the sole auth mechanism on the three node-facing routes.
 
-**Addresses:**
-- All P1 features: deploy workflow, `site_url`, `offline` plugin fix, git tracking cleanup, operator settings step
-- Pitfall avoidance: site_url (P1), offline plugin URL rewrite (P2), git bloat from `docs/site/` (P3), working-directory misconfiguration (P4), Pages source configuration (P5)
-- `.nojekyll` (Pitfall 4) handled automatically by `mkdocs gh-deploy` — no manual step needed
+**Addresses:** Fix XSS (device-approve), fix path injection x4 (vault + main), fix ReDoS (mask_pii), remove API_KEY crash and `verify_api_key`.
 
-**Implementation order within the phase:**
-1. `git rm -r --cached docs/site/` and add `docs/site/` to `.gitignore` (cleanup before any deploy)
-2. Update `site_url` in `docs/mkdocs.yml` to the GH Pages URL
-3. Add `enabled: !ENV [OFFLINE_BUILD, false]` to the offline plugin in `docs/mkdocs.yml`
-4. Run `mkdocs build --strict` locally against updated config — verify zero warnings and correct URL structure in `site/`
-5. Create `.github/workflows/docs-deploy.yml` with `fetch-depth: 0`, `working-directory: docs`, `permissions: contents: write`
-6. Add protective comment to `.gitignore` about `docs/.cache/`
-7. Open PR; CI gate validates via `ci.yml`; merge to `main` triggers first deploy
-8. Operator step: Settings > Pages > Source = `gh-pages` branch (documented in workflow comments)
+**Avoids:** Pitfall 1 (normalization order), Pitfall 2 (CSV nosniff), Pitfall 3 (regex rewrite not length guard), Pitfall 4 (atomic API_KEY removal).
 
-**Avoids:** All nine documented pitfalls — site_url mismatch (P1), offline plugin URL rewrite (P2), privacy cache loss (P3), Jekyll interference via `.nojekyll` (P4, auto-handled), subdirectory misconfiguration (P5), CNAME wipeout (P6, no custom domain in v14.2 — documented), git bloat from `docs/site/` (P7), strict mode regressions (P8), Pages source not configured (P9)
+**Research flag:** No deeper research needed. All patterns are fully documented in CodeQL official docs and confirmed against live source files. Implementation is mechanical substitution of known-good patterns.
 
-### Phase 2: Polish
+### Phase 2: EE Licence System
 
-**Rationale:** These are low-effort improvements that add correctness and SEO value but do not block the site from being live. Defer until Phase 1 is validated live.
+**Rationale:** Depends on Phase 1 being complete (clean test environment with no API_KEY interference). Internal build order is strict: CLI first (defines payload schema and wire format), service second (embeds public key and parses the format), lifespan wiring third (replaces `main.py:76-102`), node limit enforcement last (depends on `node_limit` field in signed payloads). These sub-steps are not independently deliverable.
 
-**Delivers:** Custom domain support readiness (CNAME file), explicit crawler directives (robots.txt), path-scoped deploy triggers.
+**Delivers:** Offline key generation capability for Axiom Labs; full Ed25519 signature verification on startup (replacing the current signature-less expiry check); clock-rollback detection via HMAC-chained boot log; grace-period state machine (VALID → GRACE → DEGRADED_CE); extended licence status in `GET /api/licence`; node limit enforcement at enrollment.
 
-**Implements:**
-- `docs/docs/CNAME` file (if a custom domain is chosen)
-- `docs/docs/robots.txt` with `Allow: /` and sitemap pointer
-- Deploy trigger `paths` filter to avoid unnecessary redeploys on unrelated code changes
+**Implements:** `tools/generate_licence.py` (CLI) → `services/licence_service.py` (validate + boot log) → `main.py` lifespan wiring → `POST /api/enroll` node-limit check.
+
+**Avoids:** Pitfall 5 (startup-only expiry — add APScheduler 6h re-check of `app.state.licence["exp"]`), Pitfall 6 (boot-log deletion — grace fallback, not hard stop, on absent log), Pitfall 7 (hard stop on expiry — DEGRADED_CE, never crash), Pitfall 9 (EE-installed-but-unlicensed AttributeError — `EEContext` always present, all-`False` flags).
+
+**Research flag:** No deeper external research needed. Core patterns are established in the codebase (`admin_signer.py` CLI shape, `test_licence.py` wire format, `ee/__init__.py` plugin gate). Internal design decisions (payload schema, boot-log storage path, grace-period start persistence in Config table) should be confirmed with the lead before implementation begins.
 
 ### Phase Ordering Rationale
 
-- Phase 1 must ship as an atomic unit: `site_url`, `offline` plugin fix, and the deploy workflow are tightly coupled — deploying any one without the others produces a broken or misleading live site.
-- Phase 2 requires Phase 1 to be live and validated — adding a custom domain or path-scoped trigger before confirming the base deploy works adds unnecessary debugging complexity.
-- `mike` versioned docs is explicitly deferred — migration from plain `gh-deploy` to `mike` cannot be done incrementally; it requires a full branch restructure. No current use case justifies the complexity.
+- CodeQL fixes must precede licence work because the API_KEY `sys.exit(1)` contaminates the test environment for any code that imports `security.py`.
+- Licence CLI must precede licence service because `licence_service.py` must embed the public key and parse the exact wire format the CLI produces — the format must be frozen before either side is coded.
+- Licence service must precede `main.py` lifespan wiring because the `LicenceResult` API must be stable before it can be called in lifespan.
+- Node limit enforcement is last because it depends on `node_limit` being a signed field in the payload, which is defined by the CLI.
 
 ### Research Flags
 
-Phases with standard, well-documented patterns (no `/gsd:research-phase` needed):
-- **Phase 1:** Fully documented in official MkDocs Material and GitHub Pages docs, corroborated by direct codebase inspection. All commands, config changes, and permission models are verified. Implementation can proceed directly.
-- **Phase 2:** All items are one-liner additions with zero ambiguity. Implementation can proceed directly.
-
-No phases require additional research before planning.
+Phases with standard patterns (no additional research needed):
+- **Phase 1 (Security Fixes):** Patterns are definitively documented in CodeQL official docs and confirmed against live source files. No ambiguity.
+- **Phase 2 (EE Licence System):** Core cryptographic and grace-period patterns are established. Internal decisions need lead confirmation, not external research.
 
 ---
 
@@ -133,45 +125,42 @@ No phases require additional research before planning.
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Official MkDocs Material docs + direct inspection of `docs/requirements.txt`, `docs/mkdocs.yml`, `ci.yml`. No new deps required; confirmed against the deprecated v2/v3 action versions that must be avoided. |
-| Features | HIGH | MkDocs official docs + GitHub Pages official docs. MVP feature set is minimal and well-understood. Prioritization matrix is definitive. |
-| Architecture | HIGH | Direct codebase inspection confirmed all file paths, plugin behavior, and `git ls-files` state of `docs/.cache/` and `docs/site/`. Component responsibilities and data flow are fully mapped. |
-| Pitfalls | HIGH | Nine pitfalls documented from official MkDocs issue tracker, GitHub docs, and direct inspection of the existing config state. All pitfalls are specific to this codebase's actual configuration, not generic warnings. |
+| Stack | HIGH | No new dependencies required. All fixes use stdlib or `cryptography` already in stack. Version compatibility confirmed (Python 3.11+; `pathlib.is_relative_to` requires 3.9+). |
+| Features | HIGH | Feature list derived from direct codebase inspection of CodeQL alerts, todo files, and EE plugin architecture. No ambiguity about in vs. out of scope for v14.3. |
+| Architecture | HIGH | Based on direct file inspection of `security.py`, `main.py`, `vault_service.py`, `ee/__init__.py`. Build order confirmed by dependency analysis. One caveat: `main.py` path-injection line numbers in the todo (2457/2461) have drifted — the file is currently 2152 lines. Must be verified via live CodeQL scan before fixing. |
+| Pitfalls | HIGH | All critical pitfalls grounded in CodeQL rule semantics, live code patterns, and the specific failure modes of the EE plugin architecture. Boot-log limitation (Pitfall 6) is honestly documented with a concrete mitigation. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **GitHub Pages URL (org/repo slug):** The exact GH Pages URL (`https://<org>.github.io/<repo>/`) depends on which GitHub organization and repository name the project uses. This must be confirmed before updating `site_url`. If a custom domain is intended for v14.2 (not indicated in research), that domain should be the `site_url` value instead. Confirm the target URL with the project owner before writing `docs/mkdocs.yml`.
-
-- **`offline` plugin in Dockerfile after the `!ENV` change:** The Dockerfile builder stage should set `OFFLINE_BUILD=true` to maintain air-gapped behavior. Verify whether the Dockerfile currently sets this env var or relies on the plugin always being active. If the Dockerfile does not set `OFFLINE_BUILD=true` after the mkdocs.yml change, the container build will produce a non-offline build — likely acceptable since the container is served via nginx over HTTPS, but should be verified and documented.
-
-- **`docs/.cache/` privacy plugin cache completeness:** The cache is currently untracked (git status shows it as untracked additions). Confirm the cache contains all required assets (Google Fonts, Mermaid, iframe-worker) so the GH Actions deploy workflow does not depend on outbound CDN access. If assets are missing, the workflow will download them from CDN on GitHub-hosted runners — which works but is non-deterministic and contradicts the air-gapped design intent.
+- **main.py path-injection line numbers have drifted** — the todo references lines 2457/2461 but the file is currently 2152 lines long. Run a fresh CodeQL scan or check the GitHub Security tab to identify the live alert locations before implementing the fix. Do not assume the todo line numbers are current.
+- **Boot-log persistence strategy** — research recommends storing the grace-period start timestamp in the `Config` DB table to survive container restarts. Confirm with the lead whether this write belongs in `licence_service.py` or `main.py` lifespan, and whether a migration SQL file is needed for existing deployments.
+- **Licence public key identity** — `licence_service.py` must embed the Ed25519 public key as a constant. Confirm this is a separate keypair from the job-signing verification key (the pitfall research explicitly warns against reusing it — a leaked job-signing key would also forge licences). If a new keypair is needed, generate it before implementation begins.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [MkDocs Material — Publishing your site](https://squidfunk.github.io/mkdocs-material/publishing-your-site/) — deploy workflow pattern, `mkdocs gh-deploy` vs `actions/deploy-pages`, pip caching recommendation
-- [MkDocs Material — Offline plugin](https://squidfunk.github.io/mkdocs-material/plugins/offline/) — `use_directory_urls: false` override behavior, `!ENV` conditional pattern
-- [MkDocs Material — Privacy plugin](https://squidfunk.github.io/mkdocs-material/plugins/privacy/) — cache behavior, CDN asset inlining, air-gapped build support
-- [MkDocs — Deploying your docs](https://www.mkdocs.org/user-guide/deploying-your-docs/) — `gh-deploy` mechanics, CNAME file placement, `.nojekyll` handling
-- [GitHub Docs — Configuring a publishing source for GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) — branch vs Actions source, repo settings one-time step
-- [GitHub Changelog — Dec 2024 deprecation notice](https://github.blog/changelog/2024-12-05-deprecation-notice-github-pages-actions-to-require-artifacts-actions-v4-on-github-com/) — v3/v4 pairing requirement (relevant if `actions/deploy-pages` approach is ever adopted)
-- Direct codebase inspection: `docs/mkdocs.yml`, `docs/requirements.txt`, `docs/Dockerfile`, `.github/workflows/ci.yml`, `git ls-files docs/.cache/`, `git ls-files docs/site/`, `docs/docs/api-reference/openapi.json`
+- Direct codebase inspection — `puppeteer/agent_service/security.py`, `main.py`, `services/vault_service.py`, `ee/__init__.py`, `tests/test_licence.py`
+- [CodeQL py/reflective-xss query help](https://codeql.github.com/codeql-query-help/python/py-reflective-xss/)
+- [CodeQL py/path-injection query help](https://codeql.github.com/codeql-query-help/python/py-path-injection/)
+- [CodeQL py/polynomial-redos query help](https://codeql.github.com/codeql-query-help/python/py-polynomial-redos/)
+- [CodeQL PR #7009 — pathlib.resolve() added to PathNormalization::Range](https://github.com/github/codeql/pull/7009)
+- [cryptography.io — Ed25519 signing docs](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/)
+- Todo files: `.planning/todos/pending/2026-03-26-fix-code-scanning-alerts-xss-path-injection-redos.md`, `-license-key-generation-and-validation-with-airgap-support.md`, `-remove-legacy-api-key-requirement.md`
 
 ### Secondary (MEDIUM confidence)
-- [mkdocs-swagger-ui-tag README](https://github.com/blueswen/mkdocs-swagger-ui-tag) — `oauth2RedirectUrl` derives from `site_url`; subpath trailing slash requirement
-- [MkDocs Material — Issue #4678](https://github.com/squidfunk/mkdocs-material/issues/4678) — asset loading failures on GH Pages caused by wrong `site_url`
-- [MkDocs Material — Issue #2520](https://github.com/squidfunk/mkdocs-material/issues/2520) — `site_url` documentation gap
-- [MkDocs — Issue #1257](https://github.com/mkdocs/mkdocs/issues/1257) — `gh-deploy` removes custom domain CNAME on every push
-- [MkDocs Material — Issue #8040](https://github.com/squidfunk/mkdocs-material/issues/8040) — Privacy plugin partial replacement failures (9.6.5)
+- [GitHub blog — How to fix a ReDoS](https://github.blog/security/how-to-fix-a-redos/) — bounded quantifiers as prevention strategy
+- [CodeQL discussion #10722 — UUID validation not in default sanitiser set](https://github.com/github/codeql/discussions/10722) — `resolve() + is_relative_to()` required as belt-and-suspenders
+- [keygen-sh Python cryptographic licence example](https://github.com/keygen-sh/example-python-cryptographic-license-files) — Ed25519-signed licence file pattern
+- [Sentinel LDK V-Clock: time-based licence protection](https://docs.sentinel.thalesgroup.com/ldk/LDKdocs/SPNL/LDK_SLnP_Guide/Appendixes/HowProtects_TimeBased.htm) — monotonic clock enforcement approach
+- [JetBrains perpetual fallback licence FAQ](https://sales.jetbrains.com/hc/en-gb/articles/207240845) — 14-day grace period as commercial standard
 
 ### Tertiary (LOW confidence)
-- WebSearch — offline plugin + GitHub Pages `use_directory_urls` interaction in 2025 community reports; consistent with official plugin docs
+- [Cython reverse engineering discussion](https://python-forum.io/thread-5093.html) — confirms Cython is obfuscation not cryptographic protection; embedded public key is extractable via `strings`
 
 ---
-
 *Research completed: 2026-03-26*
 *Ready for roadmap: yes*

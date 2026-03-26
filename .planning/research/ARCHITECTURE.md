@@ -1,402 +1,475 @@
 # Architecture Research
 
-**Domain:** GitHub Pages deployment of MkDocs docs site — v14.2 milestone
+**Domain:** Security hardening + EE licence key system for a FastAPI/React job orchestrator
 **Researched:** 2026-03-26
-**Confidence:** HIGH (MkDocs Material official docs + direct codebase inspection)
+**Confidence:** HIGH — based on direct codebase inspection of security.py, main.py, vault_service.py, ee/__init__.py
 
 ---
 
-## Standard Architecture
-
-### System Overview
+## System Overview
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                        Source (main branch)                          │
-│                                                                      │
-│  docs/docs/          docs/mkdocs.yml    docs/requirements.txt        │
-│  (markdown source)   (config)           (mkdocs-material + swagger)  │
-│                                                                      │
-│  docs/docs/api-reference/openapi.json   ← pre-committed, not         │
-│                                            generated in CI           │
+│                       Puppeteer (Control Plane)                       │
+│                                                                        │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────────┐  │
+│  │  main.py     │   │  security.py │   │  ee/__init__.py          │  │
+│  │  FastAPI app │   │  Fernet +    │   │  EEContext dataclass     │  │
+│  │  lifespan    │──▶│  HMAC +      │   │  load_ee_plugins()       │  │
+│  │  licence     │   │  node secret │   │  _mount_ce_stubs()       │  │
+│  │  bootstrap   │   │  + ReDoS fix │   └──────────────────────────┘  │
+│  └──────┬───────┘   └──────────────┘             ▲                    │
+│         │                                         │                   │
+│         │          ┌──────────────────────────────┘                   │
+│         │          │  licence_service.py (NEW)                        │
+│         ▼          │  Ed25519 verify + expiry + boot-log              │
+│  ┌───────────────────────────────────────────────────────────────┐    │
+│  │                    services/                                   │    │
+│  │  job_service   scheduler_service   vault_service (patched)    │    │
+│  │  signature_service   pki_service   foundry_service            │    │
+│  └───────────────────────────────────────────────────────────────┘    │
+│                                                                        │
+│  ┌──────────────────────────┐   ┌────────────────────────────────┐    │
+│  │  db.py (SQLAlchemy ORM)  │   │  auth.py (JWT / bcrypt)        │    │
+│  │  SQLite dev / Postgres   │   │  deps.py (permission cache)    │    │
+│  └──────────────────────────┘   └────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────┘
-                              │
-                    push to main branch
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│               .github/workflows/docs-deploy.yml (NEW)                │
-│                                                                      │
-│   1. checkout (fetch-depth: 0)                                       │
-│   2. python setup + pip install docs/requirements.txt                │
-│   3. mkdocs gh-deploy --force  (cwd: docs/)                          │
-│      └── ghp-import commits site/ → gh-pages branch                 │
-│                                                                      │
-│   permissions: contents: write                                       │
-└──────────────────────────────────────────────────────────────────────┘
-                              │
-                    ghp-import pushes to gh-pages
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                     gh-pages branch (auto-managed)                   │
-│                     docs/site/ contents committed here               │
-│                     never hand-edited                                │
-└──────────────────────────────────────────────────────────────────────┘
-                              │
-                    GitHub Pages serves
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│    https://axiom-laboratories.github.io/master_of_puppets/           │
-│    (or custom domain if CNAME added later)                           │
-└──────────────────────────────────────────────────────────────────────┘
+                        │  mTLS (client cert only — API_KEY removed)
+              ┌─────────▼──────────┐
+              │   Puppet Nodes      │
+              │   environment_service/node.py                           │
+              │   polls /work/pull  │
+              └────────────────────┘
 
-EXISTING DOCKER DEPLOYMENT (unchanged, parallel path):
-┌──────────────────────────────────────────────────────────────────────┐
-│  docs/Dockerfile (two-stage: python:3.12-slim builder → nginx:alpine)│
-│  builder stage regenerates openapi.json from FastAPI at image build  │
-│  nginx serves at /docs/ path inside compose.server.yaml stack        │
-│  site_url in mkdocs.yml will be updated → affects canonical URLs     │
-└──────────────────────────────────────────────────────────────────────┘
+tools/
+└── generate_licence.py (NEW — offline admin CLI, never runs in-process)
 ```
-
-### Component Responsibilities
-
-| Component | Responsibility | Status |
-|-----------|----------------|--------|
-| `docs/docs/` | Markdown source, committed assets, committed `openapi.json` | Existing — no change |
-| `docs/mkdocs.yml` | Build config, `site_url`, plugin declarations | Modify: update `site_url` |
-| `docs/requirements.txt` | Python deps for CI/deploy (`mkdocs-material`, `mkdocs-swagger-ui-tag`) | Existing — no change |
-| `.github/workflows/ci.yml` `docs` job | Gate: `mkdocs build --strict` on PRs and pushes | Existing — no change needed |
-| `.github/workflows/docs-deploy.yml` | Deploy: build + push to `gh-pages` on push to main | New file |
-| `gh-pages` branch | Auto-managed by `mkdocs gh-deploy`; build output only | Created by first workflow run |
 
 ---
 
-## Recommended Project Structure
+## Component Responsibilities
+
+| Component | Responsibility | Status for v14.3 |
+|-----------|----------------|------------------|
+| `main.py` lifespan | Startup orchestration: DB init, licence parse, EE load, admin bootstrap, scheduler | Modified — refactor inlined licence block to call `licence_service.validate()` |
+| `main.py` device-approve route | Serves OAuth device approval HTML page | Modified — escape `user_code` to fix XSS |
+| `main.py` node routes | `/work/pull`, `/heartbeat`, `/work/{guid}/result` | Modified — remove `Depends(verify_api_key)` from all three |
+| `security.py` | Fernet cipher, HMAC helpers, node secret verifier, PII masker | Modified — remove `API_KEY` crash + `verify_api_key`, fix ReDoS in `mask_pii` |
+| `vault_service.py` | File-based artifact store in `/app/vault/` | Modified — add `_safe_path()` confinement to fix path injection |
+| `ee/__init__.py` | EE plugin loader, CE stub mounter | Unchanged — existing gate pattern is correct |
+| `services/licence_service.py` | Ed25519 signature verify, expiry check, boot-log monotonicity | NEW |
+| `tools/generate_licence.py` | Offline admin CLI: sign JSON payload → base64url key blob | NEW |
+| `secrets/boot.log` | HMAC-signed boot timestamp, written per-startup | New artefact (not a code file) |
+
+---
+
+## Recommended Project Structure (Changes Only)
 
 ```
-.github/workflows/
-├── ci.yml                     # existing — docs build gate unchanged
-├── release.yml                # existing — GHCR + PyPI, unchanged
-└── docs-deploy.yml            # NEW — deploys to GitHub Pages on push to main
+puppeteer/
+├── agent_service/
+│   ├── main.py                    # MODIFIED: remove API_KEY import (line 44),
+│   │                              #   remove Depends(verify_api_key) × 3 (lines 1225/1234/1241),
+│   │                              #   escape user_code in device-approve HTML (lines 601/603)
+│   ├── security.py                # MODIFIED: remove API_KEY hard-crash (lines 16-21),
+│   │                              #   remove verify_api_key function (lines 104-108),
+│   │                              #   fix mask_pii ReDoS (lines 89-90)
+│   └── services/
+│       ├── vault_service.py       # MODIFIED: add _safe_path() to store_artifact + delete_artifact
+│       └── licence_service.py     # NEW: validate(), LicenceResult dataclass, boot_log helpers
 
-docs/
-├── mkdocs.yml                 # MODIFY: update site_url to GH Pages URL
-├── requirements.txt           # unchanged
-├── Dockerfile                 # unchanged (Docker deployment path)
-├── nginx.conf                 # unchanged (Docker deployment path)
-└── docs/
-    ├── api-reference/
-    │   ├── index.md           # unchanged — swagger-ui-tag reads openapi.json
-    │   └── openapi.json       # already committed — used as-is by both paths
-    └── ...                    # all other markdown unchanged
+tools/
+└── generate_licence.py            # NEW: offline Ed25519 signing CLI
 ```
 
 ### Structure Rationale
 
-- **Separate `docs-deploy.yml`:** Deployment concerns are separate from CI validation. `ci.yml` runs on PRs to validate; `docs-deploy.yml` runs only on `push: main` to deploy. This prevents deploying in-progress PR docs to production and avoids granting `contents: write` to PR workflows.
-- **`gh-pages` branch auto-managed:** `mkdocs gh-deploy` creates and maintains the branch automatically via `ghp-import`. No manual branch setup required.
-- **Pre-committed `openapi.json`:** The deploy workflow only needs `docs/requirements.txt` — no FastAPI stack, asyncpg, Fernet setup, or dummy env vars. Simpler, faster, no import-time failure risk.
+- **`security.py` for API_KEY removal first:** The crash is at module import time. Fixing `security.py` unblocks everything downstream — any test or import that touches `security.py` currently requires `API_KEY` in the environment.
+- **`services/licence_service.py` (new):** The current inlined licence block in the lifespan (main.py lines 76-102) is a structural stub — it decodes base64 and checks `exp` but does not verify the Ed25519 signature. Extracting to a service keeps the lifespan readable, enables unit tests, and separates concerns cleanly.
+- **`tools/generate_licence.py` (new):** Generation must never run inside the server process because it requires the private signing key. A standalone CLI in `tools/` mirrors the existing `admin_signer.py` pattern from `toms_home/.agents/tools/`. Output format must be agreed before `licence_service.py` is built.
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Separate Deployment Workflow (Recommended)
+### Pattern 1: Inline Startup Validation — Current State (Incomplete)
 
-**What:** A dedicated `docs-deploy.yml` file handles only the deployment step, triggered on `push: branches: [main]` only (not PRs). `ci.yml` continues to handle the `mkdocs build --strict` validation gate.
+**What:** The lifespan block in `main.py` (lines 76-102) decodes `AXIOM_LICENCE_KEY` from env, base64-decodes the first segment, parses JSON, and checks `exp > time.time()`. If the check passes, `app.state.licence` is set and `load_ee_plugins()` is called.
 
-**When to use:** Any time deployment has different trigger conditions, permissions, or side-effects than CI validation.
+**Current gap:** Only the `exp` timestamp is checked. There is no Ed25519 signature verification — a customer can forge any `exp` value and the server accepts it. The implementation satisfies the startup-gate UI requirement but not the tamper-resistance requirement.
 
-**Trade-offs:**
-- Pro: CI gate runs on PRs without accidentally deploying; deploy only fires on merged commits.
-- Pro: Permissions are scoped — `contents: write` only on the deploy workflow, not on CI matrix jobs.
-- Pro: A failed deploy does not block a PR merge (validation is the gate, not deployment).
-- Con: Two workflow files to maintain (minor, low overhead).
+**What to add in v14.3:**
+- Ed25519 signature verification before accepting the payload
+- Move logic to `licence_service.validate()` (see Pattern 2)
+- Add boot-log monotonicity check (see Pattern 3)
 
-**Example:**
-```yaml
-# .github/workflows/docs-deploy.yml
-name: Deploy Docs
+### Pattern 2: Structured Licence Validation Service (New)
 
-on:
-  push:
-    branches: [main]
+**What:** `services/licence_service.py` owns all licence concerns. Lifespan calls `licence_service.validate(key_string)` and receives a typed `LicenceResult`.
 
-permissions:
-  contents: write
+**Key format (matches existing `generate_licence.py` conventions, also used by `admin_signer.py`):**
+```
+<base64url-payload>.<base64url-signature>
+```
+Where `payload` is `json.dumps({customer_id, tier, node_limit, exp, issued_at, features})` encoded as UTF-8 bytes.
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0       # required: git history used by mkdocs for revision dates
+**Validation flow:**
+```python
+# services/licence_service.py
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: docs/requirements.txt
+@dataclass
+class LicenceResult:
+    valid: bool
+    data: dict | None
+    reason: str
 
-      - name: Install docs dependencies
-        working-directory: docs
-        run: pip install -r requirements.txt
+AXIOM_EE_PUBLIC_KEY_BYTES = b"..."  # embedded at build time, not configurable
 
-      - name: Deploy to GitHub Pages
-        working-directory: docs
-        run: mkdocs gh-deploy --force
+def validate(key_string: str) -> LicenceResult:
+    parts = key_string.strip().split(".")
+    if len(parts) != 2:
+        return LicenceResult(False, None, "malformed key")
+    payload_bytes = base64.urlsafe_b64decode(pad(parts[0]))
+    sig_bytes     = base64.urlsafe_b64decode(pad(parts[1]))
+    try:
+        verify_key = VerifyKey(AXIOM_EE_PUBLIC_KEY_BYTES)  # nacl or cryptography
+        verify_key.verify(payload_bytes, sig_bytes)
+    except BadSignatureError:
+        return LicenceResult(False, None, "signature invalid")
+    data = json.loads(payload_bytes)
+    if data.get("exp", 0) < time.time():
+        return LicenceResult(False, data, "expired")
+    boot_log.record_and_verify(datetime.utcnow())  # side effect
+    return LicenceResult(True, data, "ok")
 ```
 
-### Pattern 2: `mkdocs gh-deploy` over `actions/deploy-pages`
+**Lifespan integration (replaces lines 76-102 of main.py):**
+```python
+from .services.licence_service import licence_service
+result = licence_service.validate(os.getenv("AXIOM_LICENCE_KEY", ""))
+if result.valid:
+    app.state.licence = result.data
+    app.state.ee = await load_ee_plugins(app, engine)
+else:
+    logger.warning(f"EE licence invalid ({result.reason}) — running in CE mode")
+    ctx = EEContext()
+    _mount_ce_stubs(app)
+    app.state.ee = ctx
+```
 
-**What:** Use `mkdocs gh-deploy --force` rather than the two-step `actions/upload-pages-artifact` + `actions/deploy-pages` approach.
+### Pattern 3: HMAC-Signed Boot-Log for Air-Gap Expiry Enforcement
 
-**When to use:** MkDocs projects where simplicity is preferred and the advanced GitHub Pages environment protections are not required.
+**What:** On each startup, `licence_service` writes the current UTC time to `/app/secrets/boot.log` in a tamper-evident format. On the next startup, it reads the file, verifies the HMAC, and asserts the new time is >= the last recorded time. A clock-rollback attempt is detectable.
 
-**Trade-offs:**
-- Pro: Single command; no artifact upload/download round-trip; no GitHub Pages "environment" needed in repo settings.
-- Pro: Official MkDocs Material recommendation (HIGH confidence — squidfunk.github.io/mkdocs-material/publishing-your-site/).
-- Pro: `contents: write` is the only permission required — simpler than `pages: write` + `id-token: write`.
-- Pro: No GitHub Pages source setting change required — branch-based deployment is the default mode.
-- Con: No deployment protection rules (only matters for regulated environments).
-- Con: `gh-pages` branch appears in repo branch list.
+**Boot-log format:**
+```json
+{"boot_time": "2026-03-26T08:00:00Z", "hmac": "<sha256-hex>"}
+```
 
-### Pattern 3: Pre-committed `openapi.json`
+HMAC is `hmac.new(ENCRYPTION_KEY, boot_time_bytes, hashlib.sha256).hexdigest()` — reuses the existing `ENCRYPTION_KEY` already available as `cipher_suite`'s backing key in `security.py`.
 
-**What:** `openapi.json` is committed to `docs/docs/api-reference/openapi.json` in source control and updated locally via `puppeteer/scripts/export_openapi.py`. CI and GH Pages deploy do not regenerate it.
+**Rollback handling:** Log a warning, degrade to CE mode (do not crash). In a genuinely air-gapped deployment, the operator may have legitimately restored from backup — a hard crash would be destructive. The warning is enough to flag the anomaly for the audit log.
 
-**When to use:** When the source application's dependencies are too heavy for a docs-only CI context, or when schema changes should be a deliberate, reviewed commit.
+**Boot-log file location:** `/app/secrets/boot.log` — same directory as `cert.pem`, `key.pem`, and `ca.pem`. Already volume-mounted and persistent across container restarts.
 
-**Trade-offs:**
-- Pro: Deploy workflow needs only `docs/requirements.txt` — no FastAPI stack, no dummy env vars.
-- Pro: `openapi.json` diff is visible in PRs — schema changes are explicit and reviewable.
-- Con: `openapi.json` can drift from the actual API if the regeneration script is not run after API changes. Convention required: "regenerate `openapi.json` in the same PR as API route changes."
+**Non-air-gap behaviour:** Identical. The boot-log check is always-on and adds < 1ms to startup time.
 
-**Current state:** `openapi.json` is confirmed committed at `docs/docs/api-reference/openapi.json` (verified via `git ls-files`). The Dockerfile builder stage that regenerates it at container build time remains correct for the Docker deployment path and is unchanged.
+### Pattern 4: Path Confinement (vault_service.py Fix)
+
+**What:** Before any file operation using an `artifact_id`, resolve the full path and assert it is within `/app/vault/`.
+
+**Affected calls in `vault_service.py`:**
+- Line 21: `file_path = os.path.join(VAULT_DIR, artifact_id)` — used in `store_artifact`
+- Line 70: `file_path = VaultService.get_artifact_path(artifact_id)` — used in `delete_artifact`
+- `get_artifact_path()` itself (line 52-54): `os.path.join(VAULT_DIR, artifact_id)` returned as-is
+
+**Fix pattern:**
+```python
+from pathlib import Path
+
+_VAULT_BASE = Path(VAULT_DIR).resolve()
+
+def _safe_artifact_path(artifact_id: str) -> Path:
+    candidate = (_VAULT_BASE / artifact_id).resolve()
+    if _VAULT_BASE not in candidate.parents and candidate != _VAULT_BASE:
+        raise ValueError(f"Path traversal attempt blocked: {artifact_id!r}")
+    return candidate
+```
+
+Note: `artifact_id` is a UUID generated server-side (`str(uuid.uuid4())`), so in practice traversal is not reachable via normal use. CodeQL flags it because `file.filename` (user-supplied) is in scope in the same function. The fix satisfies the scanner and is correct defence-in-depth regardless.
+
+### Pattern 5: XSS Prevention — HTML Escaping User-Reflected Query Params
+
+**What:** `GET /auth/device/approve?user_code=...` reflects `user_code` directly into an HTML f-string at lines 601 and 603. Two injection points exist: the visible `<div class="code">` and the hidden `<input value="...">` attributes.
+
+**Fix:**
+```python
+import html as _html
+
+@app.get("/auth/device/approve", response_class=HTMLResponse)
+async def device_approve_page(user_code: str = ""):
+    safe_code = _html.escape(user_code or "(no code provided)")
+    # use {safe_code} everywhere {user_code} appears in the f-string
+```
+
+`html.escape()` is Python stdlib — no new dependency. It replaces `<`, `>`, `&`, `"`, `'` with HTML entities, preventing both tag injection and attribute-breaking.
+
+### Pattern 6: ReDoS Prevention — Bounded Regex + Length Guard
+
+**What:** `mask_pii()` in `security.py` uses an unbounded email regex on lines 89-90:
+```python
+EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+```
+The trailing `[a-zA-Z0-9-.]+` allows catastrophic backtracking on inputs like `aaaa@b.` with a long trailing string.
+
+**Fix (two-part):**
+1. Add a length pre-check before any regex call: `if len(data) > 2048: return data`
+2. Add an upper bound to the domain part: `[a-zA-Z0-9-.]{1,253}` — the max DNS name length is 253 characters, which eliminates unbounded matching.
+
+No new dependency. No behaviour change for valid inputs.
 
 ---
 
 ## Data Flow
 
-### GitHub Pages Deploy Flow
+### Licence Validation Flow (Target State)
 
 ```
-Developer merges PR to main
-        │
-        ▼
-docs-deploy.yml triggered (on: push: branches: [main])
-        │
-        ├── actions/checkout@v4 (fetch-depth: 0)
-        │
-        ├── pip install docs/requirements.txt
-        │   └── mkdocs-material==9.7.5
-        │       mkdocs-swagger-ui-tag==0.8.0
-        │
-        ├── mkdocs gh-deploy --force  (cwd: docs/)
-        │   ├── reads docs/mkdocs.yml (site_url → GH Pages URL)
-        │   ├── reads docs/docs/**/*.md
-        │   ├── reads docs/docs/api-reference/openapi.json (pre-committed)
-        │   ├── runs: privacy plugin (inlines fonts → local assets)
-        │   ├── runs: offline plugin  ← see CRITICAL NOTE below
-        │   ├── runs: swagger-ui-tag (embeds Swagger UI from openapi.json)
-        │   ├── builds site/ directory
-        │   └── ghp-import: commits site/ → gh-pages branch, force-pushes
-        │
-        └── GitHub Pages serves gh-pages branch at:
-            https://axiom-laboratories.github.io/master_of_puppets/
+Server startup (lifespan in main.py)
+    │
+    ├── init_db()
+    │
+    ├── licence_service.validate(os.getenv("AXIOM_LICENCE_KEY", ""))
+    │       │
+    │       ├── split key into payload_b64 + sig_b64
+    │       ├── base64url decode both parts
+    │       ├── Ed25519.verify(AXIOM_EE_PUBLIC_KEY, sig, payload_bytes)
+    │       │       └── BadSignatureError → return LicenceResult(valid=False, reason="signature invalid")
+    │       ├── json.parse(payload_bytes) → {customer_id, tier, exp, node_limit, features}
+    │       ├── check exp > time.time()
+    │       │       └── expired → return LicenceResult(valid=False, data=data, reason="expired")
+    │       └── boot_log.record_and_verify(now)
+    │               ├── read /app/secrets/boot.log (if exists)
+    │               ├── verify HMAC of stored timestamp
+    │               ├── assert new_time >= last_recorded_time
+    │               │       └── clock rollback → log warning, continue (degrade to CE on rollback)
+    │               └── write new timestamp + HMAC to /app/secrets/boot.log
+    │
+    ├── if result.valid:
+    │       app.state.licence = result.data
+    │       load_ee_plugins(app, engine)  → all EE routes active
+    └── else:
+            EEContext(all False)
+            _mount_ce_stubs(app)  → all EE routes return 402
 ```
 
-### openapi.json Update Flow (manual, triggered by API changes)
+### Node Authentication Flow (After API_KEY Removal)
 
 ```
-Developer modifies FastAPI routes
-        │
-        ▼
-Run locally (from project root):
-  DATABASE_URL=postgresql+asyncpg://dummy:dummy@localhost/dummy \
-  ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
-  API_KEY=dummy-build-key \
-  PYTHONPATH=puppeteer \
-  python puppeteer/scripts/export_openapi.py docs/docs/api-reference/openapi.json
-        │
-        ▼
-git add docs/docs/api-reference/openapi.json
-git commit -m "docs: regenerate openapi.json for [change description]"
-        │
-        ▼
-PR review → merge → docs-deploy.yml fires → updated schema live on GH Pages
+Node POST /work/pull
+    │
+    ├── verify_node_secret (Depends) — SOLE auth mechanism
+    │       ├── X-Node-Id header → db.execute(select(Node).where(node_id == ...))
+    │       ├── check node.status != "REVOKED" → 403 if revoked
+    │       ├── verify X-Machine-Id matches node.machine_id → 403 on mismatch
+    │       └── verify X-Node-Secret-Hash matches node.node_secret_hash → 403 on mismatch
+    │
+    └── JobService.pull_work(node_id, node_ip, db)
+
+[verify_api_key step removed — no longer present]
+```
+
+### Vault Path Confinement Flow (After Fix)
+
+```
+DELETE /api/vault/{artifact_id}
+    │
+    ├── artifact_id parameter (e.g. "a3c4e2f1-0000-...")
+    │
+    ├── _safe_artifact_path(artifact_id)
+    │       ├── candidate = Path("/app/vault/" + artifact_id).resolve()
+    │       ├── assert /app/vault is a parent of candidate
+    │       └── raise ValueError + HTTP 400 on traversal attempt
+    │
+    └── os.remove(candidate)
 ```
 
 ---
 
 ## Integration Points
 
-### Existing CI Integration
+### New vs Modified — Explicit List
 
-| Workflow | Change Required | Reason |
-|----------|----------------|--------|
-| `ci.yml` `docs` job | None | Already runs `mkdocs build --strict`; continues as PR validation gate |
-| `ci.yml` backend/frontend/docker jobs | None | Unchanged |
-| `release.yml` | None | GHCR/PyPI release workflow unchanged |
-| `docs-deploy.yml` | New file | Deploys on push to main only |
-
-### mkdocs.yml Changes Required
-
-**`site_url` must be updated.** The current value is `https://dev.master-of-puppets.work/docs/` (the self-hosted Docker deployment URL). For GitHub Pages this must be the GH Pages URL so that the sitemap, canonical link tags, and search index URLs are correct.
-
-```yaml
-# Current (self-hosted Docker deployment URL):
-site_url: https://dev.master-of-puppets.work/docs/
-
-# Required for GitHub Pages (project repo under axiom-laboratories org):
-site_url: https://axiom-laboratories.github.io/master_of_puppets/
-```
-
-**Note on the Docker deployment path:** After this change, the Docker-built docs image will embed the GH Pages URL as canonical. For the self-hosted deployment this means canonical tags point to GH Pages, not the local instance. This is acceptable — GH Pages is the canonical public URL. The self-hosted instance is an internal tool.
-
-If a custom domain is configured on GH Pages later, update `site_url` to the custom domain at that point.
-
-**`use_directory_urls` — do not change.** The default (`true`) is correct for GitHub Pages (HTTP-served). The `offline` plugin automatically sets `use_directory_urls: false` when building for local file access, but this does not affect HTTP deployments. For GH Pages, `use_directory_urls: true` gives clean `/page-name/` URLs.
-
-MEDIUM confidence caveat: the official offline plugin docs confirm it overrides `use_directory_urls`, but do not explicitly state the scope is limited to file:// access. Verify after first deploy that internal page links resolve correctly. If links break, the fix is `use_directory_urls: true` explicitly set in `mkdocs.yml` to override the plugin.
-
-### Permissions Model
-
-```yaml
-# Required permissions for docs-deploy.yml
-permissions:
-  contents: write   # mkdocs gh-deploy pushes commits to the gh-pages branch
-```
-
-No additional permissions required. The `pages: write` and `id-token: write` permissions are only needed for the `actions/deploy-pages` approach, which is not used here.
-
-**Important:** The `GITHUB_TOKEN` default permission in many repositories is `contents: read`. The explicit `permissions: contents: write` declaration in `docs-deploy.yml` is mandatory — do not rely on repository-level default permission settings.
-
-### GitHub Repository Settings (one-time manual step)
-
-After the first successful `docs-deploy.yml` run creates the `gh-pages` branch:
-1. Settings → Pages → Source: "Deploy from a branch"
-2. Branch: `gh-pages`, folder: `/` (root)
-3. Save
-
-This is a one-time operator step — it cannot be automated from within the workflow.
-
----
-
-## New vs Modified: Explicit List
-
-### New (create from scratch)
+#### New (create from scratch)
 
 | File | Purpose |
 |------|---------|
-| `.github/workflows/docs-deploy.yml` | Deploy MkDocs to GitHub Pages on push to main |
+| `puppeteer/agent_service/services/licence_service.py` | Ed25519 verify, expiry check, boot-log monotonicity, `LicenceResult` dataclass |
+| `tools/generate_licence.py` | Offline admin CLI: inputs customer metadata, outputs base64url licence key blob |
 
-### Modified (targeted change to existing file)
+#### Modified (targeted changes to existing files)
 
-| File | Change | Impact |
-|------|--------|--------|
-| `docs/mkdocs.yml` | Update `site_url` from self-hosted URL to GH Pages URL | Fixes canonical URLs, sitemap entries, search index URLs |
+| File | Change | Lines |
+|------|--------|-------|
+| `security.py` | Remove `API_KEY` import-time crash | 16-21 |
+| `security.py` | Remove `verify_api_key` function | 104-108 |
+| `security.py` | Fix `mask_pii` ReDoS — length guard + bounded domain regex | 89-90 |
+| `main.py` | Remove `verify_api_key, API_KEY` from security import | 44 |
+| `main.py` | Remove `Depends(verify_api_key)` from `pull_work` | 1225 |
+| `main.py` | Remove `Depends(verify_api_key)` from `receive_heartbeat` | 1234 |
+| `main.py` | Remove `Depends(verify_api_key)` from `report_result` | 1241 |
+| `main.py` | Escape `user_code` in device-approve HTML f-string | 601, 603 |
+| `main.py` | Replace inlined licence block with `licence_service.validate()` call | 76-102 |
+| `vault_service.py` | Add `_safe_artifact_path()` and use in `store_artifact` + `delete_artifact` | 21, 70-72 |
 
-### Unchanged (explicitly confirmed — do not touch)
+**Note on main.py line 2457/2461 from the todo:** The current `main.py` is 2152 lines. The todo's line numbers refer to a prior version. Verify the remaining path-injection alerts by running CodeQL or checking the live GitHub Security tab — do not assume the line numbers are current.
+
+#### Unchanged
 
 | File | Reason |
 |------|--------|
-| `.github/workflows/ci.yml` | `docs` job already runs `mkdocs build --strict`; no change needed |
-| `.github/workflows/release.yml` | Release workflow for GHCR/PyPI; unrelated to docs |
-| `docs/requirements.txt` | No new deps needed; `mkdocs-material` + `mkdocs-swagger-ui-tag` are sufficient |
-| `docs/Dockerfile` | Docker deployment path unchanged; builder stage continues to regenerate `openapi.json` |
-| `docs/nginx.conf` | Docker deployment nginx config unchanged |
-| `docs/docs/api-reference/openapi.json` | Already committed; used as-is by both deploy paths |
-| All markdown source files | No content changes required for GH Pages |
+| `ee/__init__.py` | Existing gate pattern is correct; licence validation stays in CE code |
+| `auth.py` | JWT mechanism unaffected |
+| `deps.py` | Permission cache unaffected |
+| `db.py` | No schema changes required |
+| `services/signature_service.py` | Ed25519 primitives already available — `licence_service.py` can import from here or use `cryptography` directly |
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `main.py` lifespan → `licence_service` | Direct sync call, returns `LicenceResult` | One call per server startup |
+| `licence_service` → `ee/__init__.py` | `result.valid` bool gates `load_ee_plugins()` — existing pattern unchanged | |
+| `licence_service` → filesystem | Reads/writes `/app/secrets/boot.log` using `_safe_path()` pattern internally | Path is server-controlled, not user input |
+| `tools/generate_licence.py` → operator | Standalone CLI, private key on operator's machine only — no server connection | Follows `admin_signer.py` model |
+| `vault_service.py` → filesystem | All artifact paths go through `_safe_artifact_path()` | Fixes CodeQL alerts 82-83 |
+
+### Where Does the Licence Key Live?
+
+**Recommendation: `AXIOM_LICENCE_KEY` environment variable in `secrets.env`.**
+
+This is already implemented (`os.getenv("AXIOM_LICENCE_KEY")`). It is consistent with all other sensitive config in the project (`SECRET_KEY`, `ENCRYPTION_KEY`, `ADMIN_PASSWORD`). For air-gapped installs, the operator copies the base64url blob into `secrets.env` manually — no network required. Survives DB wipes.
+
+Do not store in the DB `Config` table — Config is wiped during hard teardowns and is operator-mutable without a restart.
+
+### What Happens on Licence Expiry?
+
+**Recommendation: Degrade to CE feature set — do not crash.**
+
+Existing behaviour when `_licence_valid = False`: CE stubs are mounted (all EE routes return 402). Jobs keep running. Nodes keep checking in. The dashboard EE badge shows "CE". This is the correct behaviour — a hard stop would violate the reliability contract for air-gapped operators who cannot renew quickly.
 
 ---
 
-## Build Order (Phase Dependencies)
+## Build Order Recommendation
+
+The three workstreams are independent except for one constraint: **API_KEY removal must happen before any test update**, because tests currently send `X-API-Key` headers to the three node routes.
 
 ```
-Phase 1: mkdocs.yml site_url update
-    → No dependencies; safe to do first
-    → Change: single line in docs/mkdocs.yml
-    → Validation: ci.yml docs job runs mkdocs build --strict on the PR
-    → Risk: LOW — single line change
+Step 1 — CodeQL Fixes (no inter-dependencies, highest urgency)
+    ├── security.py: fix mask_pii ReDoS (length check + bounded domain regex)
+    ├── main.py: fix XSS in device-approve (html.escape on user_code)
+    ├── vault_service.py: add _safe_artifact_path(), apply to store + delete
+    └── main.py: verify remaining path-injection alerts via live CodeQL scan
+            (todo line numbers 2457/2461 have drifted — file is now 2152 lines)
 
-Phase 2: docs-deploy.yml workflow creation
-    → Depends on: Phase 1 merged (correct site_url in place before first deploy)
-    → Triggers: first deploy fires on merge to main
-    → Validation: check GH Actions run succeeds; check gh-pages branch created
-    → Risk: LOW — mkdocs gh-deploy is idempotent; --force overwrites on every run
+Step 2 — API_KEY Removal (cleanup, no new behaviour)
+    ├── security.py: remove API_KEY crash block + verify_api_key function
+    ├── main.py: remove import + 3x Depends(verify_api_key)
+    └── tests: remove X-API-Key header from any test that sets it
 
-Phase 3: GitHub repository settings (manual operator step)
-    → Depends on: Phase 2 having run successfully at least once (gh-pages branch must exist)
-    → Action: Settings → Pages → source = gh-pages branch
-    → Risk: NONE (read-only settings change, no code impact)
+Step 3 — Licence CLI (offline tool, no server deps)
+    ├── tools/generate_licence.py: Ed25519 sign JSON payload → base64url blob
+    ├── define and document the exact wire format (payload schema + encoding)
+    └── generate a test key for use in integration tests
+
+Step 4 — Licence Service (depends on Step 3 format definition)
+    ├── services/licence_service.py: validate(), LicenceResult, boot_log helpers
+    ├── embed AXIOM_EE_PUBLIC_KEY_BYTES (the verification key) as a constant
+    └── unit tests: valid key, forged key, expired key, missing key, clock rollback
+
+Step 5 — Wire and Integration Test
+    ├── main.py lifespan: replace inline block with licence_service.validate()
+    ├── run CE validation scenario (no licence key → all EE routes 402)
+    └── run EE validation scenario (valid test key → all EE routes active)
 ```
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Adding the Deploy Step to ci.yml
+### Anti-Pattern 1: Validating Licence Inside the EE Plugin
 
-**What people do:** Append `mkdocs gh-deploy` to the existing `docs` job inside `ci.yml`.
+**What people do:** Move licence validation into `axiom-ee`'s `register()` method so the EE package owns the check.
 
-**Why it's wrong:** `ci.yml` runs on PRs (not just `main` pushes). Adding deploy there would push every PR branch's docs to the `gh-pages` branch, overwriting production docs with in-progress work. PRs from forks would also fail with permission errors since fork-originated workflows cannot write to `contents`.
+**Why it's wrong:** The CE codebase must gate EE *loading* on licence validity. If validation runs inside `register()`, EE tables, routes, and services are already registered before the check — there is no clean way to un-register them on failure.
 
-**Do this instead:** New `docs-deploy.yml` with `on: push: branches: [main]` only. `ci.yml` `docs` job remains as the validation-only gate.
+**Do this instead:** Validate in `licence_service.py` (CE code). Gate `load_ee_plugins()` on the bool result. The EE plugin does not re-validate.
 
-### Anti-Pattern 2: Regenerating openapi.json in the Deploy Workflow
+### Anti-Pattern 2: Using `os.path.join` Without `.resolve()`
 
-**What people do:** Mirror the Dockerfile builder stage — install `puppeteer/requirements.txt` and run `export_openapi.py` in the deploy workflow.
+**What people do:** `os.path.join(BASE_DIR, user_input)` and consider it safe.
 
-**Why it's wrong:** Requires installing asyncpg, cryptography, FastAPI, SQLAlchemy, and related deps plus setting dummy env vars in a docs-only workflow. Adds 60-90s to deploy time. Any import-time error in `agent_service` breaks docs deployment. The pre-committed strategy is the explicit choice for this milestone.
+**Why it's wrong:** `os.path.join("/app/vault", "../../etc/passwd")` returns `"/app/vault/../../etc/passwd"` as a string. `open()` follows the traversal. Only `Path.resolve()` collapses `../` sequences.
 
-**Do this instead:** Commit `openapi.json` alongside API changes. The Dockerfile builder stage continues to regenerate it for Docker deployments. For GH Pages, the committed file is the source of truth.
+**Do this instead:** Always `Path(base / user_input).resolve()` and assert the result starts with (or equals) the resolved base before passing to any file operation.
 
-### Anti-Pattern 3: Leaving `site_url` Pointing to the Self-Hosted URL
+### Anti-Pattern 3: Generating Licences Inside the Server Process
 
-**What people do:** Leave `site_url: https://dev.master-of-puppets.work/docs/` and deploy to GH Pages without updating it.
+**What people do:** Add `POST /admin/generate-licence` so admins can create keys through the UI.
 
-**Why it's wrong:** The sitemap.xml will contain self-hosted URLs. Canonical `<link>` tags in each page's `<head>` will point to the self-hosted domain. The search index will embed self-hosted URLs. Users bookmarking pages from GH Pages will see canonical tags pointing elsewhere, confusing search engines and any internal link resolver.
+**Why it's wrong:** The private signing key would need to exist in the server environment. Any RCE or path traversal exploit could exfiltrate it, allowing licence forgery.
 
-**Do this instead:** Set `site_url` to the GitHub Pages URL before the first deploy. The Docker deployment's image will embed the GH Pages URL as canonical — acceptable since GH Pages is the authoritative public URL.
+**Do this instead:** Generation is always offline via `tools/generate_licence.py` on the admin's local machine. The server only holds the embedded public verification key.
 
-### Anti-Pattern 4: Committing `docs/site/` to the Main Branch
+### Anti-Pattern 4: Storing the Licence Key in the Database
 
-**What people do:** Run `mkdocs build` locally and commit the `docs/site/` directory to the main branch as a way to "deploy."
+**What people do:** Store `AXIOM_LICENCE_KEY` in the `Config` key-value table for runtime updatability.
 
-**Why it's wrong:** The `site/` directory is hundreds of HTML/JS/CSS files. It bloats the repo, creates pointless merge conflicts, and is meaningless in code review. `mkdocs gh-deploy` handles this correctly by committing only to the separate `gh-pages` branch.
+**Why it's wrong:** DB content is operator-mutable without audit trail. The Config table is wiped during hard teardowns. An admin could swap in a forged key via the admin UI without a server restart.
 
-**Do this instead:** Ensure `docs/site/` is in `.gitignore`. Let `mkdocs gh-deploy` manage the `gh-pages` branch exclusively. Check: the existing git status shows `docs/site` appearing to exist — verify it is gitignored before the first deploy.
+**Do this instead:** `AXIOM_LICENCE_KEY` in `secrets.env`. Read-only at startup. Cannot be changed without a restart — which triggers the boot-log check and creates an audit trail.
+
+### Anti-Pattern 5: Hard-Crashing on Expired or Missing Licence
+
+**What people do:** `sys.exit(1)` in lifespan if `AXIOM_LICENCE_KEY` is absent or expired.
+
+**Why it's wrong:** CE deployments legitimately have no licence key. Air-gapped EE customers may not be able to renew before expiry in an emergency window. A crash loop would take down production job execution.
+
+**Do this instead:** Absent/expired/invalid licence → degrade to CE feature set. Log a warning. Let the dashboard EE badge communicate the status to operators.
 
 ---
 
 ## Scaling Considerations
 
-GitHub Pages is a static file host. No server-side scaling concerns apply to the docs site. The only concern is build time:
+All v14.3 changes are single-node startup-time or request-path concerns. None affect horizontal scaling:
 
-| Docs Size | Build Time | Notes |
-|-----------|-----------|-------|
-| Current (~30 pages) | < 30s | Negligible — privacy plugin asset inlining is the slow step |
-| 200+ pages | 60-90s | Still fast for CI; worth caching pip dependencies |
-| 1000+ pages | Consider versioning (mike plugin) | Out of scope for v14.2 |
-
-GitHub Pages bandwidth: 100 GB/month soft limit. At the current docs size this is not a constraint.
+| Concern | Impact |
+|---------|--------|
+| Ed25519 licence verification | ~100 µs at startup, once. Zero per-request cost. |
+| Boot-log file write | One file write per startup. Negligible I/O. |
+| ReDoS fix | Reduces worst-case CPU under malicious input. Improves reliability. |
+| Path confinement | One `Path.resolve()` per vault operation. Negligible. |
+| API_KEY removal | Removes one unnecessary `Depends()` from three hot node routes. Minor latency improvement. |
+| XSS fix | One `html.escape()` call per device-approve page load. Negligible. |
 
 ---
 
 ## Sources
 
-- [Publishing your site - Material for MkDocs](https://squidfunk.github.io/mkdocs-material/publishing-your-site/) — HIGH confidence (official workflow recommendation)
-- [Built-in offline plugin - Material for MkDocs](https://squidfunk.github.io/mkdocs-material/plugins/offline/) — HIGH confidence (offline plugin behaviour with `use_directory_urls`)
-- [Configuration - MkDocs](https://www.mkdocs.org/user-guide/configuration/) — HIGH confidence (`site_url`, `use_directory_urls` semantics)
-- [Deploying Your Docs - MkDocs](https://www.mkdocs.org/user-guide/deploying-your-docs/) — HIGH confidence (`mkdocs gh-deploy` mechanics)
-- Direct codebase inspection: `docs/mkdocs.yml`, `docs/requirements.txt`, `docs/Dockerfile`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `docs/docs/api-reference/openapi.json` status via `git ls-files` — HIGH confidence
+- Direct codebase inspection (HIGH confidence):
+  - `puppeteer/agent_service/security.py` — API_KEY crash, verify_api_key, mask_pii regex
+  - `puppeteer/agent_service/main.py` — lifespan licence block (lines 71-102), device-approve XSS (lines 575-628), node routes with verify_api_key (lines 1224-1250)
+  - `puppeteer/agent_service/services/vault_service.py` — path injection at lines 21, 70-72
+  - `puppeteer/agent_service/ee/__init__.py` — EEContext, load_ee_plugins, _mount_ce_stubs
+- Todo files (HIGH confidence — authored from CodeQL scan output):
+  - `.planning/todos/pending/2026-03-26-fix-code-scanning-alerts-xss-path-injection-redos.md`
+  - `.planning/todos/pending/2026-03-26-license-key-generation-and-validation-with-airgap-support.md`
+  - `.planning/todos/pending/2026-03-26-remove-legacy-api-key-requirement.md`
+- Project history: `.planning/PROJECT.md` — v11.0 EE entry_points architecture, v12.0 SEC-02 HMAC pattern, v14.1 CE execution stubs, v11.1 licence startup-gating validation
+- Python stdlib: `pathlib.Path.resolve()`, `html.escape()`, `hmac.compare_digest()`, `re` module ReDoS behaviour
+- CodeQL rules: `py/reflective-xss`, `py/path-injection`, `py/polynomial-redos` — rule semantics from GitHub CodeQL documentation
 
 ---
 
-*Architecture research for: GitHub Pages deployment of MkDocs docs site (v14.2)*
+*Architecture research for: Axiom v14.3 Security Hardening + EE Licensing*
 *Researched: 2026-03-26*
