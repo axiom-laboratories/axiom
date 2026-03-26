@@ -80,23 +80,45 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
 
 ## Step 3: Start the stack
 
-```bash
-docker compose -f puppeteer/compose.server.yaml up -d
-```
+=== "Server Install"
 
-This starts: Caddy (reverse proxy + TLS), the Agent Service (API on port 8001), the Model Service (port 8000), and PostgreSQL.
+    ```bash
+    docker compose -f puppeteer/compose.server.yaml up -d
+    ```
+
+    This starts: Caddy (reverse proxy + TLS), the Agent Service (API on port 8001), the Model Service (port 8000), and PostgreSQL.
+
+=== "Cold-Start Install"
+
+    ```bash
+    docker compose -f compose.cold-start.yaml --env-file .env up -d
+    ```
+
+    This starts: Caddy (reverse proxy + TLS, port 8443), the Agent Service (port 8001), and PostgreSQL. The two built-in puppet nodes start automatically but require JOIN_TOKEN_1 and JOIN_TOKEN_2 to be set in your `.env` before they can enroll.
 
 ---
 
 ## Step 4: Verify
 
-Check that all containers are running:
+=== "Server Install"
 
-```bash
-docker compose -f puppeteer/compose.server.yaml ps
-```
+    Check that all containers are running:
 
-All services should show `running` status. Then open `https://localhost/` in a browser — you should see the dashboard login page.
+    ```bash
+    docker compose -f puppeteer/compose.server.yaml ps
+    ```
+
+    All services should show `running` status. Then open `https://localhost/` in a browser — you should see the dashboard login page.
+
+=== "Cold-Start Install"
+
+    Check that all containers are running:
+
+    ```bash
+    docker compose -f compose.cold-start.yaml ps
+    ```
+
+    All services should show `running` status. Then open `https://localhost:8443/` in a browser — you should see the dashboard login page.
 
 !!! note "TLS certificate warning"
     The Root CA is auto-generated on first start. Your browser will show a certificate warning because it does not trust the self-signed CA yet. To install the CA in your browser and system trust store:
@@ -128,6 +150,10 @@ The stack reads this at startup — no plugin install required. A valid key enab
 - `webhooks` — outbound webhook delivery on job events
 - `triggers` — event-driven job triggering
 - `audit` — persistent audit log for all security-relevant actions
+- `resource_limits` — per-job memory and CPU enforcement
+- `service_principals` — non-human machine identities for CI/CD
+- `api_keys` — long-lived API key authentication
+- `executions` — execution history and attestation log
 
 ### Verify EE is active
 
@@ -137,17 +163,10 @@ The stack reads this at startup — no plugin install required. A valid key enab
 
 === "CLI"
 
-    Acquire a token, then call `GET /api/features`:
+    Call `GET /api/features`:
 
     ```bash
-    TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
-      -H 'Content-Type: application/x-www-form-urlencoded' \
-      -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
-    ```
-
-    ```bash
-    curl -sk https://<your-orchestrator>:8001/api/features \
-      -H "Authorization: Bearer $TOKEN"
+    curl -sk https://<your-orchestrator>:8001/api/features
     ```
 
     !!! note "Expected response when EE is active"
