@@ -256,7 +256,7 @@ Plans:
 **Requirements:** DOCS-01, DOCS-03, DOCS-08
 **Depends on:** Phase 69
 **Gap Closure:** Closes integration gaps MISS-01 and FLOW-01 from v14.1 audit
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 70-01-PLAN.md — Fix token field + cold-start install steps + mkdocs strict gate (DOCS-01, DOCS-03, DOCS-08)

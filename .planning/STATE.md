@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.1
 milestone_name: — First-User Readiness
 status: completed
-stopped_at: Phase 70 context gathered
-last_updated: "2026-03-26T14:25:44.510Z"
+stopped_at: Completed 70-01-PLAN.md
+last_updated: "2026-03-26T15:41:44.158Z"
 last_activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  completed_phases: 5
+  total_plans: 9
+  completed_plans: 9
   percent: 100
 ---
 
@@ -51,6 +51,8 @@ Progress: [██████████] 100%
 - [Phase 68-ee-documentation]: AXIOM_LICENCE_KEY is the only correct env var name — AXIOM_EE_LICENCE_KEY does not exist (EEDOC-02)
 - [Phase 69-fix-ci-release-pipeline-version-pinning-and-semver-tags]: type=ref,event=tag chosen for Docker metadata — avoids semver validation failure on v14.0-style tags
 - [Phase 69-fix-ci-release-pipeline-version-pinning-and-semver-tags]: setuptools-scm dynamic versioning with fallback_version=0.0.0.dev0 replaces hardcoded 1.0.0-alpha in pyproject.toml
+- [Phase 70-fix-getting-started-doc-regressions]: d['token'] is the correct JOIN_TOKEN field from POST /admin/generate-token; d.get('enhanced_token',...) was silently returning empty string
+- [Phase 70-fix-getting-started-doc-regressions]: GET /api/features is unauthenticated — Bearer token acquisition block removed from install.md CLI tab
 
 ### Roadmap Evolution
 
@@ -70,6 +72,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T14:25:44.509Z
-Stopped at: Phase 70 context gathered
-Resume file: .planning/phases/70-fix-getting-started-doc-regressions/70-CONTEXT.md
+Last session: 2026-03-26T15:41:44.156Z
+Stopped at: Completed 70-01-PLAN.md
+Resume file: None
