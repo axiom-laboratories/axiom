@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v14.1
 milestone_name: — First-User Readiness
 status: planning
-stopped_at: Phase 67 context gathered
-last_updated: "2026-03-26T08:50:58.412Z"
+stopped_at: "Completed 67-01-PLAN.md"
+last_updated: "2026-03-26T09:28:30Z"
 last_activity: 2026-03-25 — v14.1 roadmap created; Phase 66 next
 progress:
   total_phases: 3
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 66 of 68 (Backend Code Fixes)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-25 — v14.1 roadmap created; Phase 66 next
+Phase: 67 of 68 (Getting Started Documentation)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-03-26 — 67-01 complete (pymdownx.tabbed + install.md tab pairs)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [░░░░░░░░░░] 5%
 
 ## Accumulated Context
 
@@ -54,6 +54,8 @@ None.
 - [Phase 66 Pitfall]: FastAPI route shadow — existing `@app.get("/api/executions")` in main.py must be removed before the CE stub can be reached; adding the stub file alone is not enough
 - [Phase 66 Pitfall]: PowerShell `.deb` in Containerfile.node is amd64-only with no platform guard — confirm `--platform linux/amd64` fix approach before touching file
 - [Phase 67 Pitfall]: MkDocs heading renames silently break anchor links — run `mkdocs build --strict` after each file; grep for existing `#anchor` cross-references before renaming
+- [67-01]: Tab syntax confirmed working: pymdownx.tabbed alternate_style: true in mkdocs.yml; === 'Label' with 4-space indented content; admonitions inside tabs work when indented 4 spaces
+- [67-01]: Cold-Start install path is minimal — only ADMIN_PASSWORD and ENCRYPTION_KEY; no SECRET_KEY/API_KEY needed for cold-start compose
 
 ## Session Continuity
 
