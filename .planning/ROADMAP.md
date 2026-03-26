@@ -207,7 +207,7 @@ Plans:
 | 68. EE Documentation | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 69. Fix CI release pipeline version pinning and semver tags | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
-| 71. Deploy Docs to GitHub Pages | 2/2 | Complete   | 2026-03-26 | - |
+| 71. Deploy Docs to GitHub Pages | 2/2 | Complete    | 2026-03-26 | - |
 
 ## Archived
 

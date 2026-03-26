@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v14.2
 milestone_name: — Docs on GitHub Pages
-status: complete
+status: completed
 stopped_at: "Completed 71-02 — Phase 71 fully done, GH Pages live at https://axiom-laboratories.github.io/axiom/"
-last_updated: "2026-03-26T21:29:57.976Z"
-last_activity: 2026-03-26 — Phase 71 complete
+last_updated: "2026-03-26T21:35:00.254Z"
+last_activity: 2026-03-26 — Phase 71 complete, GH Pages live
 progress:
   total_phases: 1
   completed_phases: 1
