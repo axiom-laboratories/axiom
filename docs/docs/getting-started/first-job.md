@@ -55,16 +55,52 @@ base64 -w0 hello.py.sig > hello.py.sig.b64
 
 ---
 
-## Step 4: Dispatch the job via the dashboard
+!!! danger "Register your signing key first"
+    Complete Steps 1 and 2 before attempting to dispatch. Job creation fails with a `422` error if no public key is registered or if the signature does not match the registered key.
 
-1. Go to **Jobs** in the dashboard sidebar
-2. Click **New Job**
-3. Fill in the form:
-    - **Script**: paste the full contents of `hello.py`
-    - **Signature**: paste the base64 string from `hello.py.sig.b64`
-    - **Signature Key**: select the key you registered in Step 2
-    - **Target tags**: leave blank to target any available node, or enter `general` to match the default node tag
-4. Click **Dispatch**
+## Step 4: Dispatch the job
+
+=== "Dashboard"
+
+    1. Go to **Jobs** in the dashboard sidebar
+    2. Click **New Job**
+    3. Fill in the form:
+        - **Script**: paste the full contents of `hello.py`
+        - **Signature**: paste the base64 string from `hello.py.sig.b64`
+        - **Signature Key**: select the key you registered in Step 2
+        - **Target tags**: leave blank to target any available node, or enter `general` to match the default node tag
+    4. Click **Dispatch**
+
+=== "CLI"
+
+    !!! note "axiom-push requires EE"
+        `axiom-push` is an Enterprise Edition feature. CE users should use the Raw API method below.
+
+    ```bash
+    axiom-push job push \
+      --script hello.py \
+      --key signing.key \
+      --key-id <your-key-id>
+    ```
+
+    ??? example "Raw API (curl)"
+
+        Sign the script and submit with a single curl command:
+
+        ```bash
+        SIG=$(openssl pkeyutl -sign -inkey signing.key -rawin -in hello.py | base64 -w0)
+        curl -sk -X POST https://<your-orchestrator>:8001/jobs \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{\"script_content\": \"$(cat hello.py | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')\", \"signature\": \"$SIG\", \"signature_key_id\": \"<key-id>\"}"
+        ```
+
+        Set `$TOKEN` by logging in first:
+        ```bash
+        TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
+          -H 'Content-Type: application/x-www-form-urlencoded' \
+          -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+        ```
 
 ---
 
