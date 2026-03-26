@@ -50,25 +50,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | Phase ? | Pending |
-| SEC-02 | Phase ? | Pending |
-| SEC-03 | Phase ? | Pending |
-| SEC-04 | Phase ? | Pending |
-| SEC-05 | Phase ? | Pending |
-| SEC-06 | Phase ? | Pending |
-| LIC-01 | Phase ? | Pending |
-| LIC-02 | Phase ? | Pending |
-| LIC-03 | Phase ? | Pending |
-| LIC-04 | Phase ? | Pending |
-| LIC-05 | Phase ? | Pending |
-| LIC-06 | Phase ? | Pending |
-| LIC-07 | Phase ? | Pending |
+| SEC-01 | Phase 72 | Pending |
+| SEC-02 | Phase 72 | Pending |
+| SEC-03 | Phase 72 | Pending |
+| SEC-04 | Phase 72 | Pending |
+| SEC-05 | Phase 72 | Pending |
+| SEC-06 | Phase 72 | Pending |
+| LIC-01 | Phase 73 | Pending |
+| LIC-02 | Phase 73 | Pending |
+| LIC-03 | Phase 73 | Pending |
+| LIC-04 | Phase 73 | Pending |
+| LIC-05 | Phase 73 | Pending |
+| LIC-06 | Phase 73 | Pending |
+| LIC-07 | Phase 73 | Pending |
 
 **Coverage:**
 - v14.3 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13 ⚠️
+- Mapped to phases: 13
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 — traceability filled after roadmap creation*
