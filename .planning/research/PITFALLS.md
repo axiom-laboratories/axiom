@@ -1,280 +1,204 @@
 # Pitfalls Research
 
-**Domain:** Adding GitHub Pages hosting to an existing MkDocs Material site (v14.2 — Docs on GitHub Pages)
+**Domain:** Security hardening (CodeQL XSS / path injection / ReDoS fixes) + EE licence key system (Ed25519 offline validation, air-gap expiry enforcement) in an existing FastAPI + Cython-compiled EE plugin codebase
 **Researched:** 2026-03-26
-**Confidence:** HIGH (based on direct codebase inspection of `docs/mkdocs.yml`, `docs/requirements.txt`, `docs/.cache/`, `docs/site/`, `.github/workflows/ci.yml`; supplemented by official MkDocs Material docs, known GitHub Issues, and MkDocs upstream issue tracker)
+**Confidence:** HIGH (based on direct codebase inspection of `main.py`, `vault_service.py`, `security.py`, `ee/__init__.py`, `tests/test_licence.py`; CodeQL official docs; Keygen.sh and Sentinel LDK air-gap licensing references)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: `site_url` Points to the Existing nginx Server — GitHub Pages Assets Load From the Wrong Origin
+### Pitfall 1: Path-Normalization Order Reversal (Path Injection Silently Remains)
 
 **What goes wrong:**
-`docs/mkdocs.yml` currently has `site_url: https://dev.master-of-puppets.work/docs/`. MkDocs Material uses `site_url` to construct absolute URLs for the sitemap, canonical links, and (critically) the 404.html asset references. When the same build is deployed to GitHub Pages (e.g. `https://axiom-labs.github.io/axiom/`), all absolute URLs in `404.html` still point to `dev.master-of-puppets.work`. The 404 error page will load with no CSS or JS. The sitemap.xml will list the wrong domain, harming SEO and making the Pages site invisible to crawlers as a GitHub Pages URL.
-
-Beyond the 404 page, with instant loading enabled (the Material default), the canonical `<link rel="canonical">` in every page head will point to the nginx server. Search engines will index the nginx version as canonical and treat the GitHub Pages version as a duplicate.
+The fix validates that the incoming path "looks safe" before calling `Path.resolve()` — e.g. checking that the raw user string doesn't contain `..` then resolving it. Because `resolve()` follows symlinks, a path that passes the raw check can still escape the allowed base directory through a symlink. CodeQL also continues to flag the alert because its taint-tracking requires that normalization happens before the comparison, not after.
 
 **Why it happens:**
-`site_url` is not a "current host" setting — it's a "where this build will be served" declaration. Developers copy an existing `mkdocs.yml` and only update the URL when they remember to. The CI build passes regardless because `mkdocs build --strict` does not validate whether `site_url` matches the actual deployment target.
+Developers assume that checking for `../` in the raw string is sufficient. The normalization step must come first because both `../` substitutions and symlinks are resolved by `os.path.realpath()` / `Path.resolve()`. The required pattern is: `resolved = Path(base_dir / user_input).resolve(); assert str(resolved).startswith(str(Path(base_dir).resolve()))`.
 
 **How to avoid:**
-Set `site_url` to the GitHub Pages URL before the deploy workflow runs. If the same `mkdocs.yml` is used for both the nginx Docker container and GitHub Pages, manage this with a CI environment variable override or maintain a separate `mkdocs-ghpages.yml`. The recommended single-source approach: set `site_url` to the permanent public URL (GitHub Pages URL), and update the nginx Docker build to also use that URL (or leave it empty and rely on relative paths).
-
-**Warning signs:**
-- `404.html` loads with unstyled HTML on GitHub Pages
-- Browser DevTools shows assets loading from `dev.master-of-puppets.work` on the GitHub Pages domain
-- `<link rel="canonical">` in page source points to the nginx server URL, not the Pages URL
-
-**Phase to address:**
-Phase 1 (mkdocs.yml + workflow setup). This must be resolved before the first deploy. The `site_url` change is a one-line fix but has downstream effects on the nginx Docker build if they share `mkdocs.yml`.
-
----
-
-### Pitfall 2: The `offline` Plugin Forces `use_directory_urls: false` — Breaking All Pretty URLs on GitHub Pages
-
-**What goes wrong:**
-`docs/mkdocs.yml` currently includes the `offline` plugin. The offline plugin automatically overrides `use_directory_urls` to `false` at build time. This transforms `getting-started/install/` (pretty URL) into `getting-started/install.html` (file-based URL). On GitHub Pages, all existing deep links (from the README, from other documentation, from external references built against the Docker nginx URL) break because the URL structure changes from directory-style to file-extension-style.
-
-Additionally, `use_directory_urls: false` is specifically designed for `file://` protocol access (opening HTML files directly from disk). GitHub Pages serves over `https://`, making the offline plugin's URL rewriting unnecessary and harmful. The blog pagination feature also has a known regression with `use_directory_urls: false`.
-
-**Why it happens:**
-The offline plugin is appropriate for distributing docs as a zip file to air-gapped users. It was added in v9.0 for exactly that purpose. When deploying the same source to a hosted URL, the plugin continues to apply its `file://`-friendly URL transformation even though the target is a live server.
-
-**How to avoid:**
-Disable the `offline` plugin for the GitHub Pages build. The recommended pattern from MkDocs Material docs is to use an environment variable:
-
-```yaml
-plugins:
-  - offline:
-      enabled: !ENV [OFFLINE_BUILD, false]
+In `vault_service.py` lines 70-72 and `main.py` lines 2457/2461: the `artifact_id` is a UUID generated server-side — CodeQL flags the taint because `artifact_id` comes from a DB read that was originally seeded by user input. The correct fix is to resolve the path unconditionally and compare its prefix to the absolute `VAULT_DIR`, even when you trust the ID semantically:
+```python
+resolved = Path(VAULT_DIR, artifact_id).resolve()
+if not str(resolved).startswith(str(Path(VAULT_DIR).resolve())):
+    raise HTTPException(status_code=400, detail="Invalid artifact ID")
 ```
-
-The GitHub Actions deploy workflow does not set `OFFLINE_BUILD`, so the plugin is inactive. The air-gap Docker build sets `OFFLINE_BUILD=true`.
-
-Alternatively, maintain a separate `mkdocs-ghpages.yml` that omits the `offline` plugin entirely. Either approach prevents the URL rewrite.
+Order is non-negotiable: `resolve()` then `startswith()`.
 
 **Warning signs:**
-- All page URLs on GitHub Pages end in `.html` instead of `/`
-- Navigation links from the sidebar go to `page.html` instead of `page/`
-- Links from the README or external sites pointing to `docs/getting-started/install/` return 404
-- `mkdocs build` output shows `use_directory_urls: False` in config summary even though it's not set in `mkdocs.yml`
+- The CodeQL alert survives after the fix — means normalization happened after validation
+- Tests pass because the test IDs are benign UUIDs, but the taint path still exists
+- `os.path.join(VAULT_DIR, user_input)` without a subsequent `resolve()` check is always flagged
 
-**Phase to address:**
-Phase 1 (mkdocs.yml + workflow setup). Must be resolved before the first deploy to prevent URL structure churn.
+**Phase to address:** Security fixes phase (Phase 1 of v14.3)
 
 ---
 
-### Pitfall 3: Privacy Plugin Cache Not Committed to Git — CI Downloads Fonts on Every Build, Fails in Rate-Limited or Restricted Networks
+### Pitfall 2: XSS Alert on CSV StreamingResponse Is Not a False Positive
 
 **What goes wrong:**
-The privacy plugin caches downloaded external assets (Google Fonts, Mermaid from unpkg.com, iframe-worker from unpkg.com) in `docs/.cache/plugin/privacy/`. Currently, `docs/.cache/` is tracked in git (confirmed: `git ls-files docs/.cache/` lists files). However, the root `.gitignore` does not list `docs/site/` as ignored (it is also tracked). When a GitHub Actions workflow runs `mkdocs build`, the privacy plugin checks whether the cache exists. If the cache files are present in the checkout, no network requests are made and the build is fast and air-gap safe.
-
-The risk: if a future commit adds `docs/.cache/` to `.gitignore` (a common "cleanup" instinct), the cache is no longer committed. The next CI run will attempt to download external assets from Google Fonts, fonts.gstatic.com, and unpkg.com. These may succeed on GitHub-hosted runners, but will fail if:
-- The runner has outbound network restrictions
-- unpkg.com or Google Fonts rate-limits GitHub Actions IP ranges
-- The privacy plugin bug (issue #8040, affecting 9.6.5) causes partial replacement failures
-
-The build will still pass if downloads succeed, but will silently serve CDN-hosted fonts rather than self-hosted ones, breaking the air-gap compliance guarantee.
+The `GET /api/jobs/export` endpoint returns `media_type="text/csv"` via `StreamingResponse` (main.py ~line 873). The CodeQL alert (`py/reflective-xss`) looks like a false positive because CSV is not HTML. However, older browsers and some content-sniffing proxies interpret a `text/csv` response as `text/html` if the `X-Content-Type-Options: nosniff` header is absent, creating a real reflected XSS vector. The fix is not to dismiss the alert but to add the header.
 
 **Why it happens:**
-Developers instinctively add build-time cache directories to `.gitignore`. The `.cache/` directory looks like generated content. The consequence — that the privacy plugin's self-hosted asset guarantee requires the cache to be available — is not visible from the directory name alone.
+Teams treat content-type enforcement as "browser's problem" and dismiss CSV XSS as theoretical. The `nosniff` header is required for CodeQL to stop flagging the response, and it also genuinely protects against content sniffing in IE/Edge legacy and Cloudflare-modified responses.
 
 **How to avoid:**
-Keep `docs/.cache/` committed to git (current state). Add a comment in the root `.gitignore` explicitly stating why it is NOT listed:
-
-```
-# docs/.cache is intentionally tracked — the MkDocs privacy plugin uses it
-# to self-host external assets (fonts, JS) without CDN calls at build time.
-# DO NOT add docs/.cache to .gitignore.
-```
-
-Alternatively, configure GitHub Actions to cache the `.cache/` directory using `actions/cache` and key it on `docs/requirements.txt`. This is the MkDocs Material team's recommended approach for CI when the cache is not committed.
+Add `X-Content-Type-Options: nosniff` to the `headers` dict in the `StreamingResponse`. Caddy (the TLS terminator in this stack) can also inject this globally via a `header` directive, but the backend fix is the defence-in-depth layer CodeQL can verify statically.
 
 **Warning signs:**
-- `mkdocs build` output shows "Downloading asset from fonts.googleapis.com..." during CI
-- CSS in the built site references `fonts.googleapis.com` instead of `/assets/external/`
-- A new `docs/` `.gitignore` or edit to the root `.gitignore` adds `*.cache` or `.cache/`
-- CI build time suddenly increases by 30–60 seconds (downloading fonts)
+- The alert persists after adding the correct content type — check whether `nosniff` was omitted
+- Caddy-level header injection is not visible to CodeQL static analysis and will not resolve the alert
 
-**Phase to address:**
-Phase 1 (workflow setup). Add the protective comment to `.gitignore` at the same time as the deploy workflow is created.
+**Phase to address:** Security fixes phase (Phase 1 of v14.3)
 
 ---
 
-### Pitfall 4: Jekyll Processing Interferes With Material Theme Assets on the `gh-pages` Branch
+### Pitfall 3: ReDoS Fix Breaks Legitimate API Key Format Validation
 
 **What goes wrong:**
-GitHub Pages, by default, runs Jekyll on any branch configured as the publishing source. MkDocs generates asset filenames that begin with underscores (e.g., `_assets/`, `search/search_index.json`) or are inside directories starting with underscores. Jekyll ignores files and directories prefixed with `_` and does not copy them to the served output. The built MkDocs site will appear to load (the HTML is served) but all CSS, JS, search, and image assets are missing.
-
-The fix is a `.nojekyll` file at the root of the `gh-pages` branch, which tells GitHub Pages to serve files as-is without Jekyll processing.
-
-`mkdocs gh-deploy` (the standard deployment command) automatically creates `.nojekyll` in the deployed branch. However, if a custom workflow uses `actions/upload-pages-artifact` + `actions/deploy-pages` (the modern GitHub Pages Actions approach), `.nojekyll` must be explicitly included in the artifact directory. If it is absent, Jekyll runs and strips the underscore-prefixed paths.
+The `security.py:79` pattern is an email regex applied to data that could come from an untrusted request. The naive fix is to remove the regex entirely or replace it with `re.fullmatch(r'[^@]+@[^@]+\.[^@]+', value)`, which is fast but so permissive it accepts garbage. A worse fix is adding catastrophic alternatives: `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` contains nested quantifiers that CodeQL flags as polynomial-time backtracking when the input doesn't match — specifically the `[a-zA-Z0-9-]+` inside a `.` (dot char class) at the TLD.
 
 **Why it happens:**
-The `.nojekyll` file is a non-obvious GitHub Pages requirement. It is not part of the MkDocs built site — it has to be added by the deployment step. Workflows that do `mkdocs build` then upload the `site/` directory directly (without going through `gh-deploy`) forget this file.
+The common "fix" for ReDoS is to add input length limits before the match. While length limits help, they do not eliminate polynomial backtracking; they only slow it down. CodeQL still flags the pattern unless the regex is rewritten to be linear.
 
 **How to avoid:**
-Use `mkdocs gh-deploy --force` as the deploy command — it handles `.nojekyll` automatically. If using the `actions/deploy-pages` approach, create `.nojekyll` explicitly after the build:
-
-```yaml
-- name: Build docs
-  run: mkdocs build --strict
-  working-directory: docs
-
-- name: Add .nojekyll
-  run: touch docs/site/.nojekyll
-```
-
-Then upload `docs/site/` as the Pages artifact.
+Either (a) replace the regex with a simpler non-backtracking form: `r'^[^@\s]{1,64}@[^@\s]{1,253}$'` (checks structure only, not character classes), or (b) add a length check AND use `re.fullmatch` with possessive quantifiers (Python 3.11+ `re.NOFLAG` with `(?:...)` non-capturing but still backtracking). The real prevention: do not use `PII_MASK` / `mask_pii()` on untrusted API request bodies in hot paths — reserve it for log sanitisation on structured data.
 
 **Warning signs:**
-- The deployed GitHub Pages site loads HTML but has no styling
-- Browser DevTools shows 404s for `/assets/...` paths
-- The `gh-pages` branch does not contain a `.nojekyll` file at its root
-- `search/search_index.json` 404s and search is non-functional
+- The CodeQL `py/polynomial-redos` alert persists after adding a length check — the regex itself must change
+- Performance degrades sharply when processing job names containing many `@` signs
 
-**Phase to address:**
-Phase 1 (workflow creation). Verify by inspecting the deployed `gh-pages` branch for the presence of `.nojekyll`.
+**Phase to address:** Security fixes phase (Phase 1 of v14.3)
 
 ---
 
-### Pitfall 5: `docs/` Is a Subdirectory — `gh-deploy` Must Be Run With `--config-file`, Not From the Repo Root
+### Pitfall 4: Removing API_KEY Hard-Crashes Existing CE Deployments Without Migration Path
 
 **What goes wrong:**
-`mkdocs.yml` lives at `docs/mkdocs.yml`, not at the repository root. `mkdocs gh-deploy` run from the repo root (`/`) will fail to find `mkdocs.yml` and error out. The CI workflow must either `cd docs` before running the deploy command or use `mkdocs gh-deploy --config-file docs/mkdocs.yml`. Omitting this detail is the most common first-run failure for non-root MkDocs projects.
-
-Additionally, `mkdocs.yml` has relative `docs_dir` paths. Running `mkdocs build` from the wrong working directory will cause all docs paths to resolve incorrectly, producing a valid-looking but empty or wrong site.
+`security.py:17-21` does `sys.exit(1)` if `API_KEY` is absent. v14.3 plans to remove the legacy `API_KEY` mechanism. Removing the hard-crash without a deprecation period will silently break every existing deployment that has `API_KEY` in its `secrets.env` — not because they use it, but because removing the `sys.exit(1)` guard while keeping the env-var read will cause a `KeyError` or `None` to propagate to a Fernet key derivation step. The reverse risk is equally bad: keeping the hard-crash while deprecating the feature means fresh installs that don't set `API_KEY` cannot start.
 
 **Why it happens:**
-Most MkDocs tutorials assume `mkdocs.yml` is at the repo root. Copy-pasted workflow templates do not include `working-directory: docs` steps. The existing `ci.yml` correctly uses `working-directory: docs` for the build step — the deploy workflow must replicate this.
+The removal seems simple (delete the guard), but the `API_KEY` variable is read in multiple places: the guard at import time, an injected dependency, and potentially header-check logic on node-facing routes. A partial removal leaves a dangling reference.
 
 **How to avoid:**
-In the deploy workflow, always use `working-directory: docs` for every `mkdocs` command, matching the existing `ci.yml` pattern:
-
-```yaml
-- name: Deploy to GitHub Pages
-  working-directory: docs
-  run: mkdocs gh-deploy --force
-```
+Do a full grep before removing: every reference to `API_KEY` across `main.py`, `security.py`, and any node-facing route must be audited. The removal should be a single atomic commit that removes the env-var read, the `sys.exit`, the Depends injection, and the matching test assertions together. Existing `secrets.env` files with `API_KEY` set should still boot without error (the key is just ignored).
 
 **Warning signs:**
-- `Error: Config file 'mkdocs.yml' does not exist.` in workflow logs
-- `mkdocs gh-deploy` exits 1 immediately without building
-- The `ci.yml` docs job passes but the deploy workflow fails at the same `mkdocs` step
+- `ImportError` or `NameError` at startup after partial removal
+- Node enrollment fails with a 401 because a route still tries to validate `API_KEY`
+- Tests that used to pass by injecting `API_KEY` into the test environment now error on missing setup
 
-**Phase to address:**
-Phase 1 (workflow creation). Caught immediately on first run but wastes a deploy cycle.
+**Phase to address:** Security fixes phase (Phase 1 of v14.3) — must be in same commit as all XSS/injection fixes to avoid a partial-removal window
 
 ---
 
-### Pitfall 6: CNAME File Deleted on Every Deploy — Custom Domain Reset
+### Pitfall 5: Licence Expiry Check at Startup Only — Long-Running Processes Bypass It
 
 **What goes wrong:**
-`mkdocs gh-deploy --force` completely replaces the `gh-pages` branch on every run. If a custom domain is configured in the GitHub Pages settings (which creates a `CNAME` file in the branch root), `gh-deploy` will delete it. GitHub Pages then shows "Domain removed" and falls back to `<username>.github.io/<repo>`. Any DNS CNAME records pointing to the custom domain continue working at the DNS level, but GitHub Pages no longer responds to the domain, causing a site outage after the first deploy.
+If `_parse_licence()` is called once in the `lifespan` function and the result stored in `app.state.licence`, a server that started with a valid licence and runs for 13 months never re-validates. The licence expires mid-run but EE features remain available until the next restart. For air-gapped deployments with perpetual uptime (industrial, defence), this can mean years of unlicensed operation after the key expires.
 
 **Why it happens:**
-`mkdocs gh-deploy` replaces the entire branch. Unless `CNAME` is a tracked file in the MkDocs source (`docs/docs/CNAME` or in `extra_files`), it is lost on every deploy.
+Startup-only validation is the simplest implementation and is what the v11.0 implementation established. Periodic validation requires a background task, which adds complexity and a failure mode (what if the background task crashes?).
 
 **How to avoid:**
-If a custom domain is used for GitHub Pages, add a `CNAME` file to `docs/docs/` (the MkDocs `docs_dir`) containing the bare domain. MkDocs will copy it to `site/` and `gh-deploy` will include it in the branch. Current state has no custom domain configured (v14.2 targets the default `github.io` URL), so this is not an immediate issue — but the `mkdocs.yml` `site_url` must be set to the correct `github.io` URL, not a custom domain, before the first deploy.
+Add an expiry check in a lightweight APScheduler job (already available in the stack) that runs every 6-12 hours. The check does NOT re-read from disk — it reads `app.state.licence["exp"]` and compares to `time.time()`. If expired, it sets a flag (`app.state.licence_valid = False`) and logs a warning but does NOT immediately revoke features. Feature-gating code checks `app.state.licence_valid` at request time. This separates the "is the licence structurally valid" question (startup) from the "is it still within its window" question (runtime).
 
 **Warning signs:**
-- GitHub Pages settings show "Custom domain: (none)" after a deploy that previously had a domain set
-- `https://<custom-domain>` returns the `<username>.github.io` default page instead of the docs site
-- The `gh-pages` branch has no `CNAME` file after a deploy
+- `GET /api/licence` returns `expires: 2025-01-01` while EE routes still return 200
+- No scheduled job appears in APScheduler logs for licence re-validation
 
-**Phase to address:**
-Phase 1 (workflow creation). No action needed if no custom domain is used for GH Pages — but document it in the workflow comments to prevent future operators from setting a custom domain via the GitHub UI without also adding the CNAME file.
+**Phase to address:** EE licensing phase (Phase 2 of v14.3)
 
 ---
 
-### Pitfall 7: Pre-Committed `openapi.json` and `docs/site/` Are Tracked in Git — `gh-deploy` Produces a Divergent Branch History
+### Pitfall 6: Monotonic Boot-Log Anti-Clock-Rollback Is Tamper-Evident in Theory, Trivially Bypassed in Practice
 
 **What goes wrong:**
-`docs/site/` is currently tracked in git (confirmed: `git ls-files docs/site/` returns results). `docs/docs/api-reference/openapi.json` is also committed. The `gh-pages` branch created by `mkdocs gh-deploy` is a separate orphan branch containing only the built site. The tracked `docs/site/` on `main` serves no purpose once GitHub Pages is live — it is a stale, redundant copy of the site that adds ~MB to the repository and causes confusion about which is authoritative.
-
-There is a secondary risk: if `docs/site/` stays in `main` and someone runs `mkdocs build` locally without the privacy plugin cache, the regenerated `docs/site/` may differ from what GH Pages serves (different asset paths, different cache state). `git diff` becomes noisy and PRs include spurious site changes.
+The proposed approach is to write a signed timestamp file on each startup and verify the log is monotonically increasing. In an air-gapped Docker deployment, the customer can delete the boot-log file, reset the container, and the system treats it as a fresh install — no boot history means no rollback to detect. The defence requires the log file to persist across container restarts AND to be detectable when absent.
 
 **Why it happens:**
-`docs/site/` was likely committed when the nginx Docker build was set up (the Dockerfile does a `COPY docs/ .` which includes it). There was no `.gitignore` for `docs/site/` because the docker build needed everything. GitHub Pages introduces a second deployment path where the site is built in CI, making the committed `docs/site/` redundant.
+Boot-log approaches assume persistent state outside the container. In containerised deployments (the primary target), the `/app` volume is operator-controlled. An absent log is indistinguishable from a fresh install unless absence itself triggers a penalty.
 
 **How to avoid:**
-Add `docs/site/` to the root `.gitignore` before creating the deploy workflow. The nginx Docker build regenerates `docs/site/` during its own builder stage (via `RUN mkdocs build --strict`) and does not rely on the committed copy. The `gh-deploy` workflow also regenerates it. After removing from git tracking:
+Use a two-factor approach:
+1. If no boot-log exists AND a licence is present, issue a single-use "first activation" window (e.g., 7 days), after which a boot-log entry is required to continue.
+2. The boot-log file is written to the same volume as `secrets.env` (already required for the deployment) — if the operator can delete it, they can delete their whole config. Volume deletion = intentional.
+3. For the v14.3 scope: treat absence of boot-log as "unknown" (not "permitted") and apply the grace period model instead of a hard stop — this is simpler and honest about the limitation.
 
-```bash
-git rm -r --cached docs/site/
-echo "docs/site/" >> .gitignore
-```
-
-The pre-committed `openapi.json` in `docs/docs/api-reference/` should remain tracked — it is the source file, not build output.
+An alternative that avoids the file problem entirely: embed a "not-before" counter in the licence payload itself. This is a monotonically increasing integer that must be stored in the DB (which is already persistent in this stack). The licence includes `min_boot_count: N`. The server maintains a `boot_count` in the Config table. If `boot_count < min_boot_count`, refuse to activate.
 
 **Warning signs:**
-- PRs include diffs in `docs/site/**` with no corresponding source change
-- Repository size grows by several MB per deploy cycle as old site content accumulates in git history
-- `git status` shows `docs/site/` as modified after running `mkdocs build` locally
+- Boot-log file is stored inside the container image layer, not a named volume — deleted on every container pull
+- The validation code branches on `FileNotFoundError` by continuing normally (silent bypass)
 
-**Phase to address:**
-Phase 1 (pre-deploy cleanup). Remove `docs/site/` from git tracking before the first `gh-deploy` runs. If removed after the first deploy, history retains the bloat but future commits are clean.
+**Phase to address:** EE licensing phase (Phase 2 of v14.3) — simplify to grace-period model for v14.3, document limitation
 
 ---
 
-### Pitfall 8: `mkdocs --strict` in the Deploy Workflow Fails on New Warnings Introduced by the `site_url` Change
+### Pitfall 7: Hard Stop on Expiry Breaks Air-Gapped Operators Mid-Operation
 
 **What goes wrong:**
-When `site_url` is changed from the nginx URL to the GitHub Pages URL, MkDocs may generate new warnings about absolute links that are now cross-domain, or about anchor validation mismatches if the URL structure changes (e.g., due to the `offline` plugin's `use_directory_urls` override being removed). With `--strict` in the deploy workflow, any new warning becomes a build failure that blocks the deploy.
-
-Specific known risk: `docs/docs/api-reference/index.md` contains `<swagger-ui src="openapi.json" validatorUrl="none"/>`. The `mkdocs-swagger-ui-tag` plugin (v0.8.0) embeds the Swagger UI JavaScript statically (not from CDN). However, the `validatorUrl="none"` attribute suppresses external validation calls. If any attribute or path handling in the plugin produces a warning under strict mode with the new `site_url`, the deploy blocks.
+If the expiry enforcement is a hard stop (EE features return 402 immediately on expiry), an air-gapped operator whose licence expired at 2am during a production job run has an outage. Nodes executing jobs at that moment may receive 402 responses on their next heartbeat cycle, causing jobs to stall. Scheduled jobs that fire after expiry will not dispatch.
 
 **Why it happens:**
-`--strict` is a zero-tolerance gate. It was added to the CI build job in v14.1 specifically to prevent regressions — but it also means that changes to `site_url` or plugin configuration can surface new warnings that were previously suppressed or absent.
+Hard-stop is the simplest implementation and has no ambiguity about the state. The problem is that in air-gapped environments, licence renewal is a manual process (offline file transfer) that cannot happen at midnight.
 
 **How to avoid:**
-Test the full `mkdocs build --strict` locally after making the `site_url` and plugin changes before the deploy workflow is committed. If warnings appear, resolve them before the first push. Do not lower `--strict` to unblock the deploy — fix the root cause of each warning. Common fixable warnings:
-- `WARNING - Doc file '...' contains an absolute link '...', it was left as is.` — change to a relative link
-- `WARNING - ... is not found in the documentation files` — update `nav:` or remove the reference
+Implement a grace period (14-30 days) during which EE features remain active but:
+- `GET /api/licence` returns `"status": "grace_period"` with the expiry date and days remaining
+- Dashboard shows an amber banner "Your licence expired N days ago — renew before [date] to avoid interruption"
+- After the grace period, degrade to CE mode (not a hard crash) — EE routes return 402, not 500
+
+The CE fallback is already implemented (stub routers). The state machine is: `VALID → GRACE_PERIOD → DEGRADED_CE`. Never `VALID → CRASHED`.
 
 **Warning signs:**
-- The `mkdocs build --strict` step in the deploy workflow exits non-zero after the `site_url` change
-- Warnings appear in build output that do not appear with the current `site_url`
-- The deploy workflow fails before the deploy step is even reached
+- `app.state.licence = None` is set on expiry — this causes the EE plugin's feature flags to disappear and may cause `AttributeError` if other code reads `app.state.ee_ctx.foundry` without a None-guard
+- Nodes go OFFLINE because their heartbeat route returns 402
 
-**Phase to address:**
-Phase 1 (mkdocs.yml changes). Run `mkdocs build --strict` locally against the updated config before pushing.
+**Phase to address:** EE licensing phase (Phase 2 of v14.3)
 
 ---
 
-### Pitfall 9: GitHub Pages Source Must Be Set to Deploy From `gh-pages` Branch (or GitHub Pages Environment) — Not `main`
+### Pitfall 8: Licence Public Key Embedded in Compiled Cython Wheel Is Extractable
 
 **What goes wrong:**
-After the first `gh-deploy` push, the `gh-pages` branch exists but GitHub Pages is not automatically configured to serve from it. The repository's Pages settings (Settings > Pages > Source) default to "Deploy from a branch" with `main` (or no branch selected). Until the source is manually changed to the `gh-pages` branch (or the workflow is updated to use the GitHub Pages Actions deployment environment), the site is not live despite the branch existing and the workflow succeeding.
+The `axiom-ee` package embeds the licence validation public key as a bytes literal in `ee/plugin.py` (or equivalent). Cython compiles this to a `.so` file. An attacker who obtains the `.so` can run `strings` on it or step through with a debugger to recover the public key. With the public key, they cannot forge new licences (Ed25519 remains secure), but they can confirm the validation logic and test bypasses.
 
-Additionally, if GitHub Actions workflow permissions are set to "Read" only (the default for new repositories), `git push` to `gh-pages` from the workflow fails with a `403 Permission denied` error. The workflow requires `permissions: contents: write` (for `gh-deploy` approach) or `permissions: pages: write` + `id-token: write` (for the `actions/deploy-pages` approach).
+More critically: if the public key byte string is extracted, a fork of the `.so` can replace it with an attacker-controlled key and generate their own "valid" licences. This is possible because the `.so` file is installed in a writable Python package directory.
 
 **Why it happens:**
-GitHub Pages source configuration is a one-time manual step in repository settings that is easy to forget in automation-focused workflows. The deploy workflow succeeds (branch is pushed) but the site remains dark until the setting is changed.
+All software licence validators face this attack. Cython provides obfuscation, not cryptographic protection.
 
 **How to avoid:**
-After the first successful `gh-deploy` run:
-1. Go to repository Settings > Pages > Source
-2. Set "Deploy from a branch" → `gh-pages` → `/ (root)`
-3. Save
-
-For the workflow, add explicit permissions:
-```yaml
-permissions:
-  contents: write
-```
-
-Document this as a one-time setup step in the deploy workflow file's comments.
+Accept the fundamental limitation: offline licence validation in a software-distributed validator cannot be made tamper-proof against a sufficiently motivated attacker with root access. The mitigation is raising the cost:
+1. The public key should be split across multiple constants or derived from a seed at import time (not stored as a single contiguous bytes literal)
+2. The `.so` module integrity should be checked at startup using a hash of the file itself (stored in the licence payload or in a separate manifest)
+3. For v14.3 scope: accept the limitation and document it. Do not store the private key anywhere near the validator. The goal is deterrence, not perfect enforcement.
 
 **Warning signs:**
-- Workflow reports "Push to gh-pages: success" but `https://<user>.github.io/<repo>` returns 404
-- Repository Settings > Pages shows "Source: None" or "Source: main"
-- Workflow log shows `remote: Permission denied` on the git push step
+- `_LICENCE_PUBLIC_KEY_BYTES` appears as a named module-level constant — single extraction point
+- The public key is the same as the job signing verification key — reusing it means a leaked key compromises both systems
 
-**Phase to address:**
-Phase 1 (workflow creation). The manual Pages settings step must be documented as a post-workflow-creation action, not assumed to auto-configure.
+**Phase to address:** EE licensing phase (Phase 2 of v14.3) — note limitation in design doc, defer hardening to future milestone
+
+---
+
+### Pitfall 9: Licence Absent = EE Plugin Not Loaded = `app.state.ee_ctx` May Not Exist
+
+**What goes wrong:**
+The current `load_ee_plugins()` function returns an `EEContext` and presumably stores it on `app.state`. If the licence check is added inside `load_ee_plugins()` (i.e., "don't load EE plugin if licence is invalid"), then code that reads `app.state.ee_ctx.foundry` will get `AttributeError` when the EE plugin is installed but the licence is absent, because the EE plugin was not loaded. Code that tests `hasattr(app.state, 'ee_ctx')` will behave differently in CE (no EE installed) vs. EE-installed-but-unlicensed.
+
+**Why it happens:**
+The CE/EE split was designed around "EE plugin installed vs. not installed". Adding a licence state creates a third state: "EE plugin installed, licence absent/expired". Feature-gating code needs to handle this third state explicitly.
+
+**How to avoid:**
+Load the EE plugin unconditionally (discover it via entry_points), but gate feature activation on the licence check result. The `EEContext` object always exists; its boolean fields reflect both "plugin loaded" AND "licence valid". When the licence is absent, `EEContext` fields are all `False` (same as CE mode). This means the stub routers are NOT mounted (the real EE routes are), but they return 402 because the feature flag is `False`. This requires feature-flag checking in every EE route handler, not just at plugin load time.
+
+**Warning signs:**
+- After installing `axiom-ee` with an absent `AXIOM_LICENCE_KEY`, EE routes return 500 instead of 402
+- `app.state.ee_ctx` is `None` when the EE plugin is installed but unlicensed
+
+**Phase to address:** EE licensing phase (Phase 2 of v14.3)
 
 ---
 
@@ -282,11 +206,11 @@ Phase 1 (workflow creation). The manual Pages settings step must be documented a
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Committing `docs/site/` to `main` | No setup needed for local nginx Docker build | Every `mkdocs build` run creates noisy diffs; repo bloat; two authoritative copies | Never once GH Pages is live — add to `.gitignore` |
-| Keeping `offline` plugin active for GH Pages build | No config change | All URLs change from `/page/` to `page.html`; breaks all existing deep links | Never — disable for GH Pages build |
-| Using existing `site_url` (nginx URL) for GH Pages deploy | Zero config change needed | Canonical links and 404 assets point to wrong server; dual-serving causes SEO confusion | Never — update before first deploy |
-| Skipping `--strict` in deploy workflow | Faster to set up; deploy never blocks | Regressions ship silently; `--strict` is already in CI and removing it creates inconsistency | Never — keep `--strict` in both CI and deploy |
-| Not committing `docs/.cache/` to git | Clean-looking repo | Privacy plugin downloads fonts on every CI build; fragile if CDN throttles GitHub runner IPs | Only acceptable if GitHub Actions cache (`actions/cache`) is configured as a replacement |
+| Startup-only licence validation | Zero runtime overhead, simple | Licence expiry not enforced on long-running deployments | Never for air-gap EE with 1-year licences |
+| `sys.exit(1)` on missing env var | Obvious failure mode for ops | Cannot be tested without patching `os.environ`; breaks unit tests | Only for truly non-negotiable keys like `SECRET_KEY` — not legacy `API_KEY` |
+| Embed public key as `bytes` literal | Simple | Single `strings` extraction point | Acceptable for v14.3; document limitation |
+| Hard stop on licence expiry | No ambiguity | Outage for air-gapped operators during renewal window | Never for production EE — use grace period |
+| `pathlib.Path(base).resolve()` prefix check without stripping trailing slash | Correct for most cases | `VAULT_DIR=/app/vault` prefix check passes `VAULT_DIR=/app/vault2` | Low risk but fix: use `resolved.is_relative_to(base)` (Python 3.9+) or append `/` to base before check |
 
 ---
 
@@ -294,13 +218,12 @@ Phase 1 (workflow creation). The manual Pages settings step must be documented a
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| `mkdocs gh-deploy` + non-root `mkdocs.yml` | Running from repo root without `--config-file` | Use `working-directory: docs` in the workflow step, matching `ci.yml` |
-| GitHub Pages + MkDocs `offline` plugin | Leaving plugin active in the GH Pages build | Disable with `enabled: !ENV [OFFLINE_BUILD, false]`; set `OFFLINE_BUILD=true` in Dockerfile builder only |
-| GitHub Pages + `site_url` | Keeping the nginx URL in `site_url` | Set `site_url` to the GitHub Pages URL; rebuild nginx Docker image to use the same URL or leave `site_url` empty |
-| `gh-deploy --force` + custom domain CNAME | Configuring domain via GitHub UI without adding `CNAME` to `docs/docs/` | Add `CNAME` file to `docs_dir`; `gh-deploy` will include it in every push |
-| `mkdocs-swagger-ui-tag` on GitHub Pages | Assuming CDN-hosted Swagger UI | The plugin bundles Swagger UI statically — no CDN calls; works fine on GH Pages |
-| Privacy plugin cache in CI | Adding `docs/.cache/` to `.gitignore` | Keep cache committed OR add `actions/cache` step keyed on `docs/requirements.txt` |
-| GitHub Pages write permissions | Default `GITHUB_TOKEN` is read-only | Add `permissions: contents: write` to the deploy job |
+| CodeQL path injection alert | Adding resolve() after the comparison | Resolve first, compare prefix second — order is enforced by taint tracking |
+| CodeQL XSS on StreamingResponse | Dismissing as false positive because content type is CSV | Add `X-Content-Type-Options: nosniff` to response headers — the alert is not a false positive |
+| APScheduler + licence re-validation | Scheduling the re-validation job before `app.state.licence` is populated | Schedule the job in `lifespan` after `load_ee_plugins()` has returned |
+| EE plugin entry_point + licence check | Raising exception in `register()` on licence failure (causes CE stub mount) | Return from `register()` with all feature flags `False` — stubs should NOT be re-mounted |
+| Cython .so + public key | Storing private key in `axiom-ee` repo alongside validator | Private key must be in a separate offline tool only — never in the distributed package |
+| `secrets.env` + `AXIOM_LICENCE_KEY` | Reading it with `os.environ["AXIOM_LICENCE_KEY"]` causing `sys.exit` on fresh CE installs | Use `os.getenv("AXIOM_LICENCE_KEY", "")` — absent key = CE mode, not crash |
 
 ---
 
@@ -308,8 +231,9 @@ Phase 1 (workflow creation). The manual Pages settings step must be documented a
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Privacy plugin cache not committed or cached | CI downloads Google Fonts + Mermaid + iframe-worker on every build: 30–60s per run | Commit `docs/.cache/` or use `actions/cache` in workflow | On every run if cache is absent |
-| `docs/site/` tracked in git | Every deploy cycle adds MBs to git history; clone times grow | Add `docs/site/` to `.gitignore` and remove from tracking | Noticeable after 5–10 deploys |
+| `mask_pii()` on every request body | High CPU on job dispatch with large scripts | Restrict PII masking to audit log writes only, not hot API paths | At ~100 concurrent job dispatches |
+| Re-reading `AXIOM_LICENCE_KEY` from disk on every EE route call | 10-50ms latency added to every EE API call | Cache in `app.state.licence` at startup; periodic re-validation via scheduler | First request after startup if not cached |
+| `Path.resolve()` on every file operation in vault service | Negligible at current scale | Fine for this use case | N/A for expected vault sizes |
 
 ---
 
@@ -317,8 +241,11 @@ Phase 1 (workflow creation). The manual Pages settings step must be documented a
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Dual-serving docs (nginx + GH Pages) with different `site_url` | Search engines index nginx version as canonical; GH Pages version treated as duplicate; confuses users with two URLs | Set canonical `site_url` to one target; add `robots.txt` to the other to prevent dual-indexing |
-| GitHub Pages source branch set to `main` by accident | Serves raw Markdown source (not the built site) if Pages processes it via Jekyll | Ensure source is `gh-pages` branch; verify `jekyll: false` or `.nojekyll` present |
+| Reusing the Ed25519 job-signing keypair as the licence signing keypair | A leaked job-signing key would also forge licences | Use a separate Ed25519 keypair for licence signing — stored in a separate offline tool |
+| Storing `AXIOM_LICENCE_KEY` in `.env` (committed) rather than `secrets.env` (gitignored) | Licence key leaks in git history | Document that `AXIOM_LICENCE_KEY` goes in `secrets.env` only; add to `.gitignore` check |
+| Setting `app.state.licence = None` on expiry with no None-guard in feature-flag checks | `AttributeError` crashes on EE route access after expiry | Use a sentinel object (`LicenceExpired`) or always check `app.state.licence and app.state.licence["valid"]` |
+| Grace period counter stored only in memory | Container restart resets grace period countdown — effectively extends it indefinitely | Persist the grace period start timestamp in the Config DB table |
+| Path injection fix using `werkzeug.secure_filename` on a UUID | UUIDs contain `-` which `secure_filename` may strip, returning an empty string or mangled path | Use `Path.resolve() + is_relative_to()` for UUIDs, not filename sanitisers designed for user-supplied filenames |
 
 ---
 
@@ -326,21 +253,23 @@ Phase 1 (workflow creation). The manual Pages settings step must be documented a
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| `site_url` pointing to nginx server | Users who find the GH Pages site via search or README link land on a page whose canonical URL redirects to the internal server (inaccessible externally) | Set `site_url` to the publicly accessible GH Pages URL |
-| `offline` plugin active on GH Pages | All page URLs end in `.html`; ugly, inconsistent with Material docs conventions; links from other sites using `/page/` format 404 | Disable offline plugin for hosted builds |
-| No Pages source configured after deploy | README link to GitHub Pages URL returns 404; users report docs are broken | Document the one-time manual Pages source configuration step prominently in the workflow file |
+| Hard stop on licence expiry with no warning lead-up | Sudden outage for air-gapped operators; no time to renew | Show amber dashboard banner at 30 days, red at 7 days, grace period after expiry |
+| `GET /api/licence` returning `{edition: "community"}` when EE is installed but unlicensed | Operator thinks they're in CE mode; can't diagnose why EE features aren't working | Return `{edition: "enterprise_unlicensed", reason: "licence absent|expired|invalid"}` |
+| Licence error surfaced as a 500 in EE route | Operator sees a generic error, not a licence problem | EE routes without a valid licence must return 402 with `{"detail": "EE licence required"}` |
+| No visibility of grace period countdown in dashboard | Operator doesn't know when hard cutoff is | Display grace period end date in Admin > Licence section and in `GET /api/licence` response |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **`site_url` updated:** Build succeeds — verify `site/sitemap.xml` and `site/404.html` contain the GitHub Pages URL, not the nginx URL
-- [ ] **`offline` plugin disabled for GH Pages:** Build succeeds — verify `site/getting-started/install/index.html` exists (not `site/getting-started/install.html`); confirm `use_directory_urls` is `true` in build output
-- [ ] **`.nojekyll` present in `gh-pages` branch:** Deploy succeeds — check `gh-pages` branch via `git show gh-pages:.nojekyll`; verify the deployed site shows correct CSS
-- [ ] **GitHub Pages source configured:** Workflow pushes `gh-pages` — verify `https://<user>.github.io/<repo>` returns the docs site (not 404)
-- [ ] **`docs/site/` removed from git tracking:** Add to `.gitignore` — verify `git status` after `mkdocs build` shows no `docs/site/` changes
-- [ ] **Privacy plugin cache works in CI:** Deploy workflow succeeds — check workflow logs for absence of "Downloading asset from fonts.googleapis.com" lines; verify self-hosted fonts in built CSS
-- [ ] **`mkdocs --strict` passes with new config:** All the above changes applied — run `mkdocs build --strict` locally before pushing; zero warnings
+- [ ] **Path injection fix:** CodeQL alert dismissed rather than fixed — verify the alert actually closes in the next scan, not just that tests pass
+- [ ] **XSS fix on CSV export:** `nosniff` header added to backend but also check Caddy doesn't strip it — test with `curl -I`
+- [ ] **ReDoS fix:** `mask_pii()` regex replaced but same pattern exists elsewhere in codebase — run `grep -r 'a-zA-Z0-9_\.' puppeteer/` to find copies
+- [ ] **API_KEY removal:** Guard removed from `security.py` but `API_KEY` variable still read and passed to node-route handlers — check all 3 call sites
+- [ ] **Licence expiry enforcement:** `app.state.licence` set to `None` on expiry — verify all EE route handlers have None-guard, not just the flag check
+- [ ] **Grace period:** Timer stored in memory — verify it persists across container restarts (DB-backed)
+- [ ] **Absent licence = CE mode:** EE plugin installed, no `AXIOM_LICENCE_KEY` set — verify `/api/features` returns all `false`, not 500
+- [ ] **Licence key format validation:** `_parse_licence("")` returns `None` (tested) — also verify `_parse_licence("garbage.garbage")` does not panic on base64 decode error
 
 ---
 
@@ -348,12 +277,11 @@ Phase 1 (workflow creation). The manual Pages settings step must be documented a
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Wrong `site_url` shipped to GH Pages | LOW | Update `site_url` in `mkdocs.yml`, push to `main`, workflow redeploys |
-| `offline` plugin active on GH Pages (all URLs are `.html`) | MEDIUM | Disable plugin, redeploy — all URLs change; any existing external links to `/page/` are now correct but links to `page.html` break; consider GH Pages redirect rules if external links exist |
-| Missing `.nojekyll` (site loads with no CSS) | LOW | Add `touch site/.nojekyll` step to workflow, push, redeploy |
-| GH Pages source not configured | LOW | One manual click in repository Settings > Pages; takes effect on next deploy |
-| `docs/site/` accumulated in git history | MEDIUM | `git rm -r --cached docs/site/`, add to `.gitignore`, commit; history retains old size but future commits are clean; use `git filter-repo` only if repo size is a genuine problem |
-| Privacy plugin downloads fonts in CI (cache missing) | LOW | Commit `docs/.cache/` to git or add `actions/cache` step; next run is fast again |
+| Path injection fix breaks valid UUID file access | LOW | The resolved path of a valid UUID will always be within `VAULT_DIR`; if not, fix the base path constant |
+| API_KEY removal breaks existing deployment | MEDIUM | Add `API_KEY` back as an optional no-op env var; document deprecation in changelog |
+| Licence hard stop during production run | HIGH | Restore previous container image; apply licence renewal; restart; audit which jobs were lost |
+| EE plugin not loading after licence check added to `register()` | LOW | Remove licence check from `register()`; gate at request time instead |
+| Monotonic boot-log file missing after volume remount | LOW | Apply grace period — do not hard-stop; log warning; operator renews licence to reset |
 
 ---
 
@@ -361,37 +289,34 @@ Phase 1 (workflow creation). The manual Pages settings step must be documented a
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Wrong `site_url` (nginx URL on GH Pages) | Phase 1: mkdocs.yml update | Check `site/sitemap.xml` URLs and `site/404.html` asset paths after build |
-| `offline` plugin breaks URL structure | Phase 1: mkdocs.yml update | Verify `use_directory_urls: true` in build output; check `site/` for `/page/index.html` structure |
-| `.nojekyll` missing from deployed branch | Phase 1: workflow creation | Inspect `gh-pages` branch; verify styled page loads at GH Pages URL |
-| GitHub Pages source not configured | Phase 1: workflow creation (document as manual step) | Navigate to GH Pages URL; confirm it serves the docs site |
-| `docs/site/` tracked in git | Phase 1: pre-deploy cleanup | `git ls-files docs/site/` returns nothing after cleanup |
-| Privacy plugin cache unprotected | Phase 1: `.gitignore` update | Workflow logs show no CDN download lines; `docs/.cache/` still present in checkout |
-| `docs/` subdirectory misconfiguration in workflow | Phase 1: workflow creation | Workflow uses `working-directory: docs` matching `ci.yml` pattern |
-| `--strict` failures from config changes | Phase 1: local testing gate | `mkdocs build --strict` passes locally before PR is created |
-| CNAME deleted on deploy | Not applicable for v14.2 (no custom domain) — document for future | If custom domain added: `CNAME` file present in `docs/docs/`; survives a redeploy |
+| Path normalization order (Pitfall 1) | Phase 1: Security fixes | CodeQL alert count drops from 5 to 0; unit test with `../` traversal input |
+| XSS on CSV nosniff (Pitfall 2) | Phase 1: Security fixes | `curl -I /api/jobs/export` shows `X-Content-Type-Options: nosniff`; CodeQL alert closes |
+| ReDoS regex fix regression (Pitfall 3) | Phase 1: Security fixes | CodeQL warning closes; benchmark with 10k-char `@`-heavy input shows <1ms |
+| API_KEY removal side-effects (Pitfall 4) | Phase 1: Security fixes | Fresh CE install without `API_KEY` in env starts cleanly; existing deploys with `API_KEY` still start |
+| Startup-only expiry (Pitfall 5) | Phase 2: EE licensing | APScheduler job visible in logs every 6h; `GET /api/licence` shows updated expiry status after scheduler tick |
+| Boot-log file loss bypasses anti-rollback (Pitfall 6) | Phase 2: EE licensing | Delete boot-log file between restarts; verify grace period fires, not normal operation |
+| Hard stop outage (Pitfall 7) | Phase 2: EE licensing | Set expiry to `time.time() - 1`; verify 402 responses (not 500), amber banner, CE fallback routes work |
+| Public key extraction (Pitfall 8) | Phase 2: EE licensing | Documented as accepted limitation; private key never in distributed package |
+| EE-installed-but-unlicensed state (Pitfall 9) | Phase 2: EE licensing | Install axiom-ee with no env var; verify `GET /api/features` all-false, `GET /api/licence` returns unlicensed status, EE routes return 402 not 500 |
 
 ---
 
 ## Sources
 
-- Direct codebase inspection: `docs/mkdocs.yml` (current `site_url`, plugin list including `offline` and `privacy`)
-- Direct codebase inspection: `docs/requirements.txt` (`mkdocs-material==9.7.5`, `mkdocs-swagger-ui-tag==0.8.0`)
-- Direct codebase inspection: `.github/workflows/ci.yml` (`working-directory: docs`, `mkdocs build --strict`)
-- Direct codebase inspection: `git ls-files docs/.cache/` and `git ls-files docs/site/` (both currently tracked)
-- Direct codebase inspection: `docs/docs/api-reference/index.md` (Swagger UI tag with pre-committed `openapi.json`)
-- [MkDocs Material — Publishing your site (GitHub Pages)](https://squidfunk.github.io/mkdocs-material/publishing-your-site/)
-- [MkDocs Material — Offline plugin](https://squidfunk.github.io/mkdocs-material/plugins/offline/)
-- [MkDocs Material — Privacy plugin](https://squidfunk.github.io/mkdocs-material/plugins/privacy/)
-- [MkDocs Material — Issue #4678: Problem loading assets on GitHub Pages](https://github.com/squidfunk/mkdocs-material/issues/4678)
-- [MkDocs Material — Issue #2520: site_url documentation gap](https://github.com/squidfunk/mkdocs-material/issues/2520)
-- [MkDocs Material — Issue #8040: Privacy plugin does not replace all external URLs (9.6.5)](https://github.com/squidfunk/mkdocs-material/issues/8040)
-- [MkDocs — Issue #1257: gh-deploy removes custom domain CNAME](https://github.com/mkdocs/mkdocs/issues/1257)
-- [MkDocs — Issue #1496: Document CNAME files for gh-pages custom domains](https://github.com/mkdocs/mkdocs/issues/1496)
-- [GitHub Docs — Configuring a publishing source for GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
-- [MkDocs upstream — deploying-your-docs.md](https://www.mkdocs.org/user-guide/deploying-your-docs/)
-- [MkDocs Material — offline plugin source (use_directory_urls override)](https://github.com/squidfunk/mkdocs-material/blob/master/src/plugins/offline/plugin.py)
+- [CodeQL: Uncontrolled data used in path expression (Python)](https://codeql.github.com/codeql-query-help/python/py-path-injection/) — normalize first, validate prefix second
+- [CodeQL: Polynomial regular expression used on uncontrolled data](https://codeql.github.com/codeql-query-help/python/py-polynomial-redos/) — rewrite regex, length checks alone insufficient
+- [GitHub Blog: How to fix a ReDoS](https://github.blog/security/how-to-fix-a-redos/) — atomic grouping and mutual exclusion strategies
+- [CodeQL false positive: FastAPI SSRF warning issue #17353](https://github.com/github/codeql/issues/17353) — confirms FastAPI-specific taint tracking issues
+- [Keygen.sh air-gapped activation example](https://github.com/keygen-sh/air-gapped-activation-example) — offline licence file pattern, Ed25519 + AES-GCM
+- [Gatewarden: Ed25519 licence validation with offline grace periods](https://github.com/Michael-A-Kuykendall/gatewarden) — offline grace period pattern
+- [Sentinel LDK V-Clock: time-based licence protection](https://docs.sentinel.thalesgroup.com/ldk/LDKdocs/SPNL/LDK_SLnP_Guide/Appendixes/HowProtects_TimeBased.htm) — monotonic clock enforcement approach
+- [Cython reverse engineering discussion](https://python-forum.io/thread-5093.html) — confirms Cython is obfuscation, not cryptographic protection
+- `puppeteer/agent_service/security.py` — actual ReDoS pattern at line 89-98
+- `puppeteer/agent_service/services/vault_service.py` — actual path injection pattern at lines 70-72
+- `puppeteer/agent_service/main.py` — actual XSS pattern at line 875
+- `puppeteer/agent_service/ee/__init__.py` — EE plugin loader and CE/EE state model
+- `puppeteer/agent_service/tests/test_licence.py` — existing licence test patterns and edge cases
 
 ---
-*Pitfalls research for: v14.2 — Docs on GitHub Pages (adding GH Pages to existing MkDocs Material site)*
+*Pitfalls research for: Security Hardening + EE Licensing (v14.3 milestone)*
 *Researched: 2026-03-26*
