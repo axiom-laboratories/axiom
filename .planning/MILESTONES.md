@@ -1,5 +1,14 @@
 # Milestones
 
+## v14.1 First-User Readiness (Shipped: 2026-03-26)
+
+**Phases completed:** 5 phases, 9 plans, 2 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v14.0 CE/EE Cold-Start Validation (Shipped: 2026-03-25)
 
 **Phases completed:** 5 phases, 14 plans

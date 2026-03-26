@@ -4,7 +4,7 @@ milestone: v14.1
 milestone_name: — First-User Readiness
 status: completed
 stopped_at: Completed 70-01-PLAN.md
-last_updated: "2026-03-26T15:43:59.031Z"
+last_updated: "2026-03-26T16:02:15.239Z"
 last_activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
 progress:
   total_phases: 5
@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-25)
+See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v14.1 First-User Readiness — Phase 66: Backend Code Fixes
+**Current focus:** Planning next milestone — v14.1 shipped 2026-03-26
 
 ## Current Position
 

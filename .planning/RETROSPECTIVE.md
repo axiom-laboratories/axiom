@@ -341,6 +341,44 @@
 - Mixed milestone: infrastructure scripting (Python), docs fixes, one backend fix, synthesis script
 - Gemini API quota limits forced orchestrator-assisted mode — cost-efficient but reduced autonomy
 
+## Milestone: v14.1 — First-User Readiness
+
+**Shipped:** 2026-03-26
+**Phases:** 5 (66–70) | **Plans:** 9
+
+### What Was Built
+- Backend: CE-gated all 7 execution-history routes with 402 stubs in `ee/interfaces/executions.py`; real implementations moved to EE router; PowerShell arm64 `TARGETARCH` platform guard in `Containerfile.node`
+- Getting-started docs: `install.md`, `enroll-node.md`, `first-job.md` fully rewritten with pymdownx.tabbed tab pairs, CLI alternatives for all GUI steps, admin password setup step, GHCR install path, Docker socket mount note, pre-dispatch `!!! danger` callout
+- EE docs: `/api/admin/features` purged from all EE getting-started pages; `AXIOM_EE_LICENCE_KEY` removed from `licensing.md`; full 9-key feature JSON shown verbatim
+- CI/CD: `setuptools-scm` dynamic versioning in `pyproject.toml` (no more hardcoded `1.0.0`); Docker metadata tag fixed to `type=ref,event=tag`; `mkdocs --strict` CI gate added
+- Gap closure (Phase 70): `d['token']` field extraction fixed in `enroll-node.md` CLI tab; Cold-Start install tabs added to `install.md` Steps 3–4
+
+### What Worked
+- Phase 70 gap closure was clean because the v14.1 audit (`/gsd:audit-milestone`) identified the exact two integration failures (MISS-01, FLOW-01) before completion was declared — audit-before-complete prevented a false READY verdict
+- All 17 requirements satisfied by the time auditing ran — only integration gaps (not requirement gaps) needed closure
+- Keeping CE stubs in `ee/interfaces/executions.py` rather than inline in `main.py` preserved the CE/EE boundary clearly — easier to review and test in isolation
+- Tab pair pattern (`=== "Dashboard"` / `=== "CLI"`) established in Phase 67 was immediately reusable in Phase 68 EE docs without re-litigating the syntax
+
+### What Was Inefficient
+- Phases 67–68 planned for 3+1 plans but the integration audit found Phase 70 was needed — the Phase 67 verification plan (67-03) should have included a more comprehensive CLI path end-to-end check to catch the `d['token']` regression before audit
+- Phase 69 (CI fixes) was inserted as a gap between original scope (66–68) and completion — CI pipeline correctness should be scoped into release-adjacent milestones from the start, not discovered via gaps
+
+### Patterns Established
+- **Audit before complete**: `/gsd:audit-milestone` as a hard gate before `/gsd:complete-milestone` caught two integration failures that would have shipped as doc-silent regressions
+- **`mkdocs --strict` in CI**: Any milestone touching docs should gate on `mkdocs build --strict` — catches anchor, tab, and admonition errors before they reach users
+- **CE stub pattern**: EE-gated routes follow `interfaces/<feature>.py` (stub) + `routers/<feature>_router.py` (real) + mount in `ee/__init__.py` — consistent structure enables systematic testing
+
+### Key Lessons
+- A "remediation milestone" (fixing known bugs and doc gaps) is faster than a feature milestone but requires the same verification rigor — every fix can introduce regressions
+- The `d['token']` regression in `enroll-node.md` was introduced during Phase 67 rewriting; `enroll-node.md` was freshly rewritten but the CLI tab used the wrong field name. Tab-pair rewrites need explicit API contract verification, not just content migration
+- `synthesise_friction.py` from v14.0 was reusable for v14.1 gap synthesis — stdlib-only offline tools are long-lived
+
+### Cost Observations
+- 5 phases, 9 plans, 1 day (2026-03-25 → 2026-03-26)
+- 266 files changed, +8,579 / -31,261 lines (net -22,682: large doc restructure deleted generated site files)
+- Remediation milestone: primarily docs + 1 backend change + 1 CI change — low LOC cost relative to impact
+- 59 commits; no context resets required
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -354,3 +392,4 @@
 | v12.0 | 11 | 38 | Operator UX milestone; audit surfaced 4 critical integration gaps; gap-closure phases (54, 56) with E2E test file |
 | v13.0 | 4 | 8 | Research + docs reset milestone; all phases parallel; no code changes; two design docs ground next build cycle |
 | v14.0 | 5 | 14 | Adversarial validation milestone; Gemini-as-first-user; doc accuracy failures dominate; gap-fix sub-plan needed for doc-test phases |
+| v14.1 | 5 | 9 | Remediation milestone; audit-before-complete mandatory; tab-pair pattern established; d['token'] regression shows freshly-rewritten docs need contract verification |

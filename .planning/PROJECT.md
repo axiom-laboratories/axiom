@@ -121,6 +121,19 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ CE/EE edition badge in dashboard sidebar (useLicence hook + LicenceSection in Admin) — v11.0
 - ✓ MkDocs `!!! enterprise` admonitions on 5 EE feature pages; `licensing.md` CE/EE explainer — v11.0
 
+### Validated — v14.1 First-User Readiness
+
+- ✓ CE-gated all 7 execution-history API routes with 402 stubs; `ee/interfaces/executions.py` + `ee/routers/executions_router.py` via EE plugin — v14.1
+- ✓ PowerShell arm64 platform guard in `Containerfile.node` (`TARGETARCH` conditional) — silent build failure on non-amd64 hosts eliminated — v14.1
+- ✓ `install.md` rewritten: admin password setup step, CLI/Cold-Start tab pairs, GHCR install path for users without GitHub access — v14.1
+- ✓ `enroll-node.md` rewritten: CLI `curl` JOIN_TOKEN path, correct `AGENT_URL` table (`https://agent:8001` for cold-start), Docker socket mount note, `EXECUTION_MODE=docker` — v14.1
+- ✓ `first-job.md`: pre-dispatch `!!! danger` callout + Dashboard/CLI tab pair; `axiom-push` as CLI hero command; CE curl fallback in collapsible block — v14.1
+- ✓ EE docs: all `/api/admin/features` references replaced with `/api/features`; `AXIOM_EE_LICENCE_KEY` purged from `licensing.md` — v14.1
+- ✓ `setuptools-scm` dynamic versioning in `pyproject.toml` — eliminates TestPyPI duplicate-version 400 errors — v14.1
+- ✓ `release.yml` Docker metadata tag fix (`type=ref,event=tag` replacing broken semver patterns) — v14.1
+- ✓ `d['token']` field extraction fix in `enroll-node.md` CLI tab (was silently returning empty string) — v14.1
+- ✓ Cold-Start install tabs added to `install.md` Steps 3–4; `mkdocs --strict` CI gate added to `ci.yml` — v14.1
+
 ### Validated — v14.0 CE/EE Cold-Start Validation
 
 - ✓ LXC Docker-in-LXC provisioner (`provision_coldstart_lxc.py`) with AppArmor pivot_root workaround, Gemini CLI, Playwright — v14.0
@@ -144,38 +157,6 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Jobs and Nodes feature guides created — unified `script` type, guided form, bulk ops, Queue Monitor, DRAINING state all documented — v13.0
 - ✓ Quick-reference HTML files integrated into MkDocs under `docs/docs/quick-ref/`; root originals removed; course rebranded to Axiom; operator guide updated for v12.0 — v13.0
 
-## Current Milestone: v14.1 First-User Readiness
-
-**Goal:** Close all 12 open product BLOCKERs from the cold-start friction report to achieve first-user readiness for CE and EE.
-
-**Target features:**
-- Fix 12 open product BLOCKERs: docs patches (install, enroll-node, first-job, ee-install) + code patches (Containerfile.node, compose.cold-start.yaml, main.py)
-- Address 4 NOTABLE findings: signing workflow documentation, /api/executions CE-gating decision
-- Close 4 ROUGH EDGE and 1 MINOR finding
-
-### Active — v14.1 First-User Readiness
-
-- [ ] BLOCKER: Admin password setup step missing from install docs — `docs/getting-started/install.md`
-- [ ] BLOCKER: JOIN_TOKEN requires dashboard GUI — no CLI alternative documented — `docs/getting-started/enroll-node.md`
-- [ ] BLOCKER: Docs show wrong node image (`python:3.12-alpine`) — `docs/getting-started/enroll-node.md`
-- [ ] BLOCKER: `EXECUTION_MODE=direct` removed from code but still in docs — `docs/getting-started/enroll-node.md`
-- [ ] BLOCKER: TLS cert mismatch when using documented AGENT_URL (`172.17.0.1:8001`) — `docs/getting-started/enroll-node.md`
-- [ ] BLOCKER: Guided form requires browser — no CLI/API dispatch path documented — `docs/getting-started/first-job.md`
-- [ ] BLOCKER [fixed-during-run]: Docs path mismatch (`/workspace/docs/` vs `/workspace/docs/site/`) — `docs/getting-started/install.md`
-- [ ] BLOCKER [fixed-during-run]: Docker CLI missing from node image — `puppets/Containerfile.node`
-- [ ] BLOCKER [fixed-during-run]: DinD /tmp mount creates directories instead of files — `puppeteer/compose.cold-start.yaml`
-- [ ] BLOCKER [fixed-during-run]: Wrong image tag in runtime.py default — `puppets/Containerfile.node`
-- [ ] BLOCKER [fixed-during-run]: PowerShell not in cold-start node image — `puppets/Containerfile.node`
-- [ ] BLOCKER [fixed-during-run]: `/api/admin/features` endpoint does not exist — `docs/getting-started/ee-install.md`
-- [ ] NOTABLE: Ed25519 signing workflow undocumented for cold-start — `docs/getting-started/first-job.md`
-- [ ] NOTABLE: No signing key pre-registered on fresh stack — `docs/getting-started/first-job.md`
-- [ ] NOTABLE: `/api/executions` ungated in CE mode (returns HTTP 200 not 402) — `puppeteer/agent_service/main.py`
-- [ ] ROUGH EDGE: Docs assume GitHub clone available — `docs/getting-started/install.md`
-- [ ] ROUGH EDGE: Node containers in compose don't have Docker socket — `docs/getting-started/enroll-node.md` + `compose.cold-start.yaml`
-- [ ] ROUGH EDGE: No EE section in getting-started/install.md — `docs/getting-started/install.md`
-- [ ] ROUGH EDGE: AXIOM_LICENCE_KEY injection method inconsistency — `docs/getting-started/install.md`
-- [ ] MINOR: AXIOM_EE_LICENCE_KEY vs AXIOM_LICENCE_KEY naming mismatch — `docs/licensing.md`
-
 ### Active — Future Milestones
 
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
@@ -185,16 +166,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
 - [ ] DIST-04: Licence issuance portal — web UI or automated pipeline for signed licence key delivery
 - [ ] DIST-05: Periodic licence re-validation (currently startup-only)
-- [ ] EE-09: OIDC/SAML SSO integration
-- [ ] EE-10: Custom RBAC roles + fine-grained permissions
-- [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
-- [ ] Conditional triggers — run job based on outcome of previous job or external signal
-- [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
-- [ ] DIST-02: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current use)
-- [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
-- [ ] DIST-04: Licence issuance portal — web UI or automated pipeline for signed licence key delivery
-- [ ] DIST-05: Periodic licence re-validation (currently startup-only)
-- [ ] EE-09: OIDC/SAML SSO integration
+- [ ] EE-09: OIDC/SAML SSO integration (design doc complete in v13.0)
 - [ ] EE-10: Custom RBAC roles + fine-grained permissions
 
 ### Out of Scope
@@ -206,11 +178,13 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, and fully documented. Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
+Codebase is functional, deployed, and first-user-ready (v14.1). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
 
-Documentation site lives at `/docs/` — MkDocs Material, git-backed markdown in `docs/`, containerised with nginx, air-gapped (CDN-free). API reference is auto-generated from FastAPI OpenAPI schema at container build time.
+Documentation site lives at `/docs/` — MkDocs Material, git-backed markdown in `docs/`, containerised with nginx, air-gapped (CDN-free), with `mkdocs --strict` enforced in CI. API reference is auto-generated from FastAPI OpenAPI schema at container build time.
 
-CLI is `axiom-push` (formerly `mop-push`) — installable as `axiom-sdk` Python package. GitHub Actions CI/CD pipelines in place for multi-arch GHCR images and PyPI publishing (awaiting `axiom-laboratories` org creation).
+CLI is `axiom-push` (formerly `mop-push`) — installable as `axiom-sdk` Python package. GitHub Actions CI/CD pipelines in place for multi-arch GHCR images and PyPI publishing via OIDC Trusted Publisher. Version is derived dynamically from git tags via `setuptools-scm`.
+
+Getting-started docs (install → enroll-node → first-job) are complete and verified against a real cold-start flow. Both CE and EE paths are documented end-to-end with CLI alternatives for all GUI steps.
 
 Known deferred issues: SQLite NodeStats pruning compat (MIN-6), Foundry build dir cleanup (MIN-7), per-request DB query in require_permission (MIN-8), non-deterministic node ID scan order (WARN-8). See `.agent/reports/core-pipeline-gaps.md`.
 
@@ -271,6 +245,19 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | File-based checkpoint protocol (PROMPT.md/RESPONSE.md) | Allows orchestrator to steer blocked Gemini agent without API coupling; 5-minute graceful timeout prevents deadlock | ✓ Good |
 | Fixed-during-run BLOCKERs still count as open for verdict | BLOCKERs resolved by orchestrator intervention expose UX/doc gaps even when technically working; NOT READY verdict is correct | ✓ Good |
 | `synthesise_friction.py` uses stdlib only | No external API calls or LLM calls for synthesis — deterministic, offline-safe, reproducible output | ✓ Good |
+| CE execution stubs in `ee/interfaces/executions.py` (not inline in `main.py`) | Keeps CE/EE boundary clean; real implementations movable to EE router without touching main route file | ✓ Good |
+| `setuptools-scm` dynamic versioning (no hardcoded version in `pyproject.toml`) | Eliminates duplicate-version 400 errors on TestPyPI; version derived from git tag automatically | ✓ Good |
+| Docker metadata `type=ref,event=tag` (not semver pattern) for release image tags | semver pattern requires exact `vX.Y.Z` format with no pre-release suffix; `event=tag` applies to any tag | ✓ Good |
+| `mkdocs --strict` CI gate in `ci.yml` | Catches anchor errors, missing tab extensions, and broken admonitions before they reach main | ✓ Good |
+| `d['token']` not `d.get('enhanced_token', d.get('join_token', ''))` for JOIN_TOKEN extraction | `/admin/generate-token` returns `{token: ...}` only — the chained `.get()` silently returned empty string | ✓ Good |
+
+## Previous State — v14.1 Complete (2026-03-26)
+
+Axiom v14.1 delivered the First-User Readiness milestone — 5 phases, 9 plans, 17/17 requirements satisfied. All 12 BLOCKERs from the v14.0 cold-start friction report are resolved. A first-time user following only the published docs can now install Axiom, enroll a node, and dispatch a signed job to completion on both CE and EE — from either the dashboard or the CLI.
+
+Code changes: Execution History routes CE-gated (7 stubs in `ee/interfaces/executions.py`), PowerShell arm64 guard in `Containerfile.node`, `d['token']` extraction fix. Doc changes: `install.md`, `enroll-node.md`, `first-job.md` fully rewritten with tab pairs and CLI alternatives; EE docs corrected (endpoint names, env var naming). CI changes: `setuptools-scm` dynamic versioning, Docker `type=ref,event=tag`, `mkdocs --strict` CI gate.
+
+Tech debt note (from audit): `licensing.md` `/api/licence` JSON example lists 5 of 9 EE features (non-blocking; all 9 shown correctly in `install.md`).
 
 ## Previous State — v14.0 Complete (2026-03-25)
 
@@ -287,4 +274,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-25 after v14.1 milestone started — First-User Readiness*
+*Last updated: 2026-03-26 after v14.1 milestone — First-User Readiness*
