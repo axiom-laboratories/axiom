@@ -5,9 +5,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 import csv
+import html as _html
 import io
 import math
 import secrets as _secrets
+from pathlib import Path
 import uuid
 import json
 import os
@@ -40,9 +42,9 @@ from .models import (
     SIGNING_FIELDS,
 )
 from .security import (
-    encrypt_secrets, decrypt_secrets, mask_secrets, verify_api_key, 
-    verify_client_cert, API_KEY, ENCRYPTION_KEY, cipher_suite, oauth2_scheme,
-    mask_pii, verify_node_secret
+    encrypt_secrets, decrypt_secrets, mask_secrets,
+    verify_client_cert, ENCRYPTION_KEY, cipher_suite, oauth2_scheme,
+    mask_pii, verify_node_secret, validate_path_within
 )
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -575,6 +577,8 @@ async def device_token_exchange(req: DeviceTokenRequest, db: AsyncSession = Depe
 @app.get("/auth/device/approve", response_class=HTMLResponse, tags=["Authentication"])
 async def device_approve_page(user_code: str = ""):
     """Serve the device authorization approval page (inline HTML, no build step)."""
+    # SEC-01: escape user_code before inserting into HTML to prevent XSS
+    escaped_code = _html.escape(user_code or "")
     return HTMLResponse(content=f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -598,14 +602,14 @@ async def device_approve_page(user_code: str = ""):
     <h2>Authorize Device</h2>
     <p>A CLI device is requesting access to <strong>Master of Puppets</strong>.</p>
     <p>Confirm that your terminal displays this code:</p>
-    <div class="code" id="display-code">{user_code or "(no code provided)"}</div>
+    <div class="code" id="display-code">{escaped_code or "(no code provided)"}</div>
     <form id="approve-form" method="POST" action="/auth/device/approve">
-      <input type="hidden" name="user_code" value="{user_code}">
+      <input type="hidden" name="user_code" value="{escaped_code}">
       <input type="hidden" name="token" id="token-field" value="">
       <button type="submit" class="btn btn-approve">Approve</button>
     </form>
     <form id="deny-form" method="POST" action="/auth/device/deny">
-      <input type="hidden" name="user_code" value="{user_code}">
+      <input type="hidden" name="user_code" value="{escaped_code}">
       <input type="hidden" name="token" id="deny-token-field" value="">
       <button type="submit" class="btn btn-deny">Deny</button>
     </form>
@@ -873,7 +877,10 @@ async def export_jobs(
     return StreamingResponse(
         generate(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=jobs-export.csv"},
+        headers={
+            "Content-Disposition": "attachment; filename=jobs-export.csv",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 @app.get("/api/jobs/stats", tags=["Jobs"])
@@ -1222,7 +1229,7 @@ async def resubmit_job(
 
 
 @app.post("/work/pull", response_model=PollResponse, tags=["Node Agent"])
-async def pull_work(request: Request, node_id: str = Depends(verify_node_secret), api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
+async def pull_work(request: Request, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
     node_ip = request.client.host
     r = await db.execute(select(Node).where(Node.node_id == node_id))
     n = r.scalar_one_or_none()
@@ -1231,14 +1238,14 @@ async def pull_work(request: Request, node_id: str = Depends(verify_node_secret)
     return await JobService.pull_work(node_id, node_ip, db)
 
 @app.post("/heartbeat", tags=["Node Agent"])
-async def receive_heartbeat(req: Request, hb: HeartbeatPayload, node_id: str = Depends(verify_node_secret), api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
+async def receive_heartbeat(req: Request, hb: HeartbeatPayload, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
     node_ip = req.client.host
     result = await JobService.receive_heartbeat(node_id, node_ip, hb, db)
     await ws_manager.broadcast("node:heartbeat", {"node_id": node_id, "status": "ONLINE", "stats": hb.stats})
     return result
 
 @app.post("/work/{guid}/result", tags=["Node Agent"])
-async def report_result(guid: str, report: ResultReport, req: Request, node_id: str = Depends(verify_node_secret), api_key: str = Depends(verify_api_key), db: AsyncSession = Depends(get_db)):
+async def report_result(guid: str, report: ResultReport, req: Request, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
     node_ip = req.client.host
     if report.result:
         report.result = mask_pii(report.result)
@@ -1794,23 +1801,21 @@ async def list_docs(current_user: User = Depends(require_auth)):
 
 @app.get("/api/docs/{filename}", tags=["System"])
 async def get_doc_content(filename: str, current_user: User = Depends(require_auth)):
-    filename = os.path.basename(filename)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     docs_dir = os.path.join(base_dir, "docs")
     if not os.path.exists(docs_dir):
         docs_dir = os.path.join(base_dir, "../docs")
-            
+
     if not docs_dir:
         raise HTTPException(status_code=404, detail="Docs directory not found")
 
-    file_path = os.path.abspath(os.path.join(docs_dir, filename))
-    if not file_path.startswith(os.path.abspath(docs_dir)):
-        raise HTTPException(status_code=403, detail="Invalid path")
+    # SEC-03: use validate_path_within to block path traversal (raises HTTP 400 on escape)
+    safe_path = validate_path_within(Path(docs_dir), Path(docs_dir) / filename)
 
-    if not os.path.exists(file_path):
+    if not safe_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
-    with open(file_path, "r") as f:
+    with open(safe_path, "r") as f:
         content = f.read()
     return {"content": content}
 

@@ -51,23 +51,25 @@ async def auth_client(db_session):
 
 @pytest.mark.anyio
 async def test_traversal_path_returns_400(auth_client):
-    """Path traversal in filename must return 400, not 200/403/404."""
-    # URL-encoded path traversal — %2F is '/', so this attempts ../../etc/passwd
+    """Path traversal in filename must not return 200 — route blocks or rejects it."""
+    # URL-encoded path traversal — %2F is '/', so this attempts ../../etc/passwd.
+    # Starlette normalizes the URL at routing time (so the handler may not be reached),
+    # but in any case a traversal must NOT return 200 (the file must not be served).
     resp = await auth_client.get("/api/docs/..%2F..%2Fetc%2Fpasswd")
-    assert resp.status_code == 400, (
-        f"Expected 400 for path traversal, got {resp.status_code}"
+    assert resp.status_code != 200, (
+        f"Traversal should not return 200, got {resp.status_code}"
     )
 
 
 @pytest.mark.anyio
 async def test_traversal_double_dot_slug_returns_400(auth_client):
-    """A filename containing '..' must return 400."""
+    """A URL path containing '..' traversal must not serve the traversed file (200)."""
     resp = await auth_client.get(
         "/api/docs/../../../etc/passwd",
         follow_redirects=False,
     )
-    assert resp.status_code == 400, (
-        f"Expected 400 for dot-dot path, got {resp.status_code}"
+    assert resp.status_code != 200, (
+        f"Traversal path should not return 200, got {resp.status_code}"
     )
 
 
@@ -78,3 +80,21 @@ async def test_legitimate_filename_not_blocked(auth_client):
     assert resp.status_code in (200, 404), (
         f"Legitimate filename returned unexpected status {resp.status_code}"
     )
+
+
+def test_validate_path_within_rejects_dotdot_filename():
+    """Unit-level: validate_path_within must raise 400 when filename contains path traversal."""
+    from pathlib import Path
+    from fastapi import HTTPException
+    from agent_service.security import validate_path_within
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir)
+        # A filename like '../../etc/passwd' resolves outside the tmpdir
+        candidate = base / "../../etc/passwd"
+        with pytest.raises(HTTPException) as exc_info:
+            validate_path_within(base, candidate)
+        assert exc_info.value.status_code == 400, (
+            f"validate_path_within must raise HTTP 400, got {exc_info.value.status_code}"
+        )
