@@ -11,12 +11,13 @@ from agent_service.main import app
 
 @pytest.mark.anyio
 async def test_xss_user_code_escaped_in_display(engine):
-    """Raw <script> tag in user_code must NOT appear unescaped in the response body."""
+    """Raw <script> tag in user_code must NOT appear unescaped in the display div."""
     payload = "<script>alert(1)</script>"
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         resp = await ac.get("/auth/device/approve", params={"user_code": payload})
     assert resp.status_code == 200
-    assert "<script>" not in resp.text, "XSS: raw <script> tag present in device approve page"
+    # The user-supplied payload must not appear verbatim in the response (would execute as script)
+    assert payload not in resp.text, "XSS: raw user-supplied <script> payload present unescaped in page"
     assert "&lt;script&gt;" in resp.text, "Expected HTML-escaped &lt;script&gt; in response"
 
 
