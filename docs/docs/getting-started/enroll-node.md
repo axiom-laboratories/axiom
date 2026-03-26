@@ -6,22 +6,25 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
 
 ## Step 1: Generate an enrollment token
 
-1. In the dashboard, go to **Nodes**
-2. Click **Generate Token**
-3. Click **Copy JOIN_TOKEN** — this copies the enhanced token (base64-encoded JSON with the Root CA embedded)
+=== "Dashboard"
 
-!!! warning "Use the dashboard Copy button"
-    The raw API endpoint `POST /api/enrollment-tokens` returns only the token hex string. The **enhanced JOIN_TOKEN** — which includes the Root CA for mTLS bootstrap — is only available via the dashboard **Copy JOIN_TOKEN** button.
+    1. In the dashboard, go to **Nodes**
+    2. Click **Generate Token**
+    3. Click **Copy JOIN_TOKEN** — this copies the enhanced token (base64-encoded JSON with the Root CA embedded)
 
-    If you give the node the raw hex string, you will see the node failing with a TLS error rather than the expected log line:
-    ```
-    Detected Enhanced Token. Bootstrapping Trust...
-    ```
+    !!! warning "Use the dashboard Copy button"
+        The raw API endpoint `POST /api/enrollment-tokens` returns only the token hex string. The **enhanced JOIN_TOKEN** — which includes the Root CA for mTLS bootstrap — is only available via the dashboard **Copy JOIN_TOKEN** button.
 
-    **Always copy the JOIN_TOKEN from the dashboard.**
+        If you give the node the raw hex string, you will see the node failing with a TLS error rather than the expected log line:
+        ```
+        Detected Enhanced Token. Bootstrapping Trust...
+        ```
 
-!!! note "CLI / headless alternative"
-    If you cannot access the dashboard (headless server, scripted setup), you can generate an enhanced token via the API. First log in to get a JWT:
+        **Always copy the JOIN_TOKEN from the dashboard.**
+
+=== "CLI"
+
+    Log in to get a JWT:
 
     ```bash
     TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
@@ -55,15 +58,16 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
 
 ## Step 2: Configure node connectivity
 
-Choose the `AGENT_URL` value that matches your deployment topology:
+Choose the `AGENT_URL` value that matches your deployment scenario:
 
 | Scenario | AGENT_URL |
 |----------|-----------|
+| Cold-start compose (node in same compose network) | `https://agent:8001` |
+| Server compose, node on same host | `https://puppeteer-agent-1:8001` |
+| Remote host / separate machine | `https://<hostname-or-ip>:8001` |
 | Docker Desktop (Mac or Windows) | `https://host.docker.internal:8001` |
-| Linux Docker (bridge network) | `https://172.17.0.1:8001` |
-| Same Docker Compose network as puppeteer | `https://puppeteer-agent-1:8001` |
 
-If `172.17.0.1` is not the correct gateway on your Linux host, find the right address with:
+If your node is on a custom Linux bridge network, find the gateway with:
 
 ```bash
 ip route | awk '/default/ {print $3}'
