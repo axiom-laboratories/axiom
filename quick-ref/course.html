@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axiom — How It Works Under the Hood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-bg:             #FAF7F2;
+  --color-bg-warm:        #F5F0E8;
+  --color-bg-code:        #1E1E2E;
+  --color-text:           #2C2A28;
+  --color-text-secondary: #6B6560;
+  --color-text-muted:     #9E9790;
+  --color-border:         #E5DFD6;
+  --color-border-light:   #EEEBE5;
+  --color-surface:        #FFFFFF;
+  --color-surface-warm:   #FDF9F3;
+  --color-accent:         #2A7B9B;
+  --color-accent-hover:   #1F6A87;
+  --color-accent-light:   #E4F2F7;
+  --color-accent-muted:   #5B9DB5;
+  --color-success:        #2D8B55;
+  --color-success-light:  #E8F5EE;
+  --color-error:          #C93B3B;
+  --color-error-light:    #FDE8E8;
+  --color-info:           #2A7B9B;
+  --color-info-light:     #E4F2F7;
+  --color-actor-1:        #D94F30;
+  --color-actor-2:        #2A7B9B;
+  --color-actor-3:        #7B6DAA;
+  --color-actor-4:        #D4A843;
+  --color-actor-5:        #2D8B55;
+  --font-display:  'Bricolage Grotesque', Georgia, serif;
+  --font-body:     'DM Sans', -apple-system, sans-serif;
+  --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --text-5xl:  3rem;
+  --text-6xl:  3.75rem;
+  --leading-tight:  1.15;
+  --leading-snug:   1.3;
+  --leading-normal: 1.6;
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --content-width:      800px;
+  --content-width-wide: 1000px;
+  --nav-height:         50px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-full: 9999px;
+  --shadow-sm:  0 1px 2px rgba(44,42,40,0.05);
+  --shadow-md:  0 4px 12px rgba(44,42,40,0.08);
+  --shadow-lg:  0 8px 24px rgba(44,42,40,0.1);
+  --ease-out:    cubic-bezier(0.16,1,0.3,1);
+  --ease-in-out: cubic-bezier(0.65,0,0.35,1);
+  --duration-fast:   150ms;
+  --duration-normal: 300ms;
+  --duration-slow:   500ms;
+  --stagger-delay:   120ms;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+
+html {
+  scroll-snap-type: y proximity;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(42,123,155,0.03) 0%, transparent 50%);
+  line-height: var(--leading-normal);
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: var(--radius-full); }
+
+/* === NAV === */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--nav-height);
+  background: rgba(250,247,242,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border-light);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+.progress-bar {
+  height: 3px;
+  background: var(--color-accent);
+  width: 0%;
+  transition: width 0.1s linear;
+  border-radius: 0 2px 2px 0;
+}
+.nav-inner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+}
+.nav-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+.nav-dots {
+  display: flex;
+  gap: var(--space-3);
+}
+.nav-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  position: relative;
+}
+.nav-dot[title]::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-code);
+  color: #CDD6F4;
+  font-size: var(--text-xs);
+  font-family: var(--font-body);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast);
+}
+.nav-dot:hover::after { opacity: 1; }
+.nav-dot.active { border-color: var(--color-accent); background: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-light); }
+.nav-dot.visited { background: var(--color-accent); border-color: var(--color-accent); }
+
+/* === MODULES === */
+.module {
+  min-height: 100dvh;
+  min-height: 100vh;
+  scroll-snap-align: start;
+  padding: var(--space-16) var(--space-6);
+  padding-top: calc(var(--nav-height) + var(--space-12));
+}
+.module-content {
+  max-width: var(--content-width);
+  margin: 0 auto;
+}
+.module-content-wide {
+  max-width: var(--content-width-wide);
+  margin: 0 auto;
+}
+
+.module-header { margin-bottom: var(--space-10); }
+.module-number {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-6xl);
+  color: var(--color-accent);
+  opacity: 0.15;
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
+.module-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-4xl);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+}
+.module-subtitle {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-snug);
+}
+.screen { margin-bottom: var(--space-12); }
+.screen-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-2xl);
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-snug);
+}
+.screen p { font-size: var(--text-base); color: var(--color-text-secondary); margin-bottom: var(--space-4); line-height: var(--leading-normal); }
+.screen p:last-child { margin-bottom: 0; }
+
+/* === ANIMATIONS === */
+.animate-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--duration-slow) var(--ease-out), transform var(--duration-slow) var(--ease-out);
+}
+.animate-in.visible { opacity: 1; transform: translateY(0); }
+.stagger-children > .animate-in {
+  transition-delay: calc(var(--stagger-index, 0) * var(--stagger-delay));
+}
+
+/* === ICON ROWS === */
+.icon-rows { display: flex; flex-direction: column; gap: var(--space-4); }
+.icon-row {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.icon-row p { margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+.icon-circle {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; flex-shrink: 0;
+}
+
+/* === STEP CARDS === */
+.step-cards { display: flex; flex-direction: column; gap: var(--space-3); }
+.step-card {
+  display: flex; align-items: flex-start; gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+.step-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--color-accent);
+  color: white; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  flex-shrink: 0; font-size: var(--text-sm);
+}
+.step-body p { margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+.step-body strong { color: var(--color-text); font-size: var(--text-base); }
+
+/* === PATTERN CARDS === */
+.pattern-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+.pattern-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal);
+}
+.pattern-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.pattern-icon { font-size: 1.5rem; margin-bottom: var(--space-3); }
+.pattern-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); margin-bottom: var(--space-2); }
+.pattern-desc { color: var(--color-text-secondary); font-size: var(--text-sm); line-height: var(--leading-normal); }
+
+/* === FLOW DIAGRAM === */
+.flow-steps {
+  display: flex; align-items: center; gap: var(--space-3);
+  flex-wrap: wrap; margin: var(--space-6) 0;
+}
+.flow-step {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--color-surface); border-radius: var(--radius-md);
+  padding: var(--space-4); box-shadow: var(--shadow-sm);
+  min-width: 120px; text-align: center;
+  transition: box-shadow var(--duration-fast);
+}
+.flow-step.active-step { box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-md); }
+.flow-step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--color-accent); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--text-xs);
+  margin-bottom: var(--space-2);
+}
+.flow-step p { font-size: var(--text-sm); color: var(--color-text-secondary); margin: 0; }
+.flow-step strong { font-size: var(--text-sm); color: var(--color-text); }
+.flow-arrow { font-size: 1.25rem; color: var(--color-accent); flex-shrink: 0; }
+.flow-label-box {
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-accent-muted);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  min-height: 44px;
+}
+.flow-controls { display: flex; gap: var(--space-3); margin-top: var(--space-4); flex-wrap: wrap; }
+
+/* === CODE TRANSLATION === */
+.translation-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  margin: var(--space-6) 0;
+}
+.translation-code {
+  background: var(--color-bg-code);
+  color: #CDD6F4;
+  padding: var(--space-6);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  position: relative;
+  overflow-x: hidden;
+}
+.translation-code pre, .translation-code code {
+  white-space: pre-wrap; word-break: break-word; overflow-x: hidden;
+}
+.translation-english {
+  background: var(--color-surface-warm);
+  padding: var(--space-6);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  border-left: 3px solid var(--color-accent);
+}
+.translation-label {
+  position: absolute; top: var(--space-2); right: var(--space-3);
+  font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.5;
+  font-family: var(--font-mono);
+}
+.translation-english .translation-label {
+  position: static; display: block; margin-bottom: var(--space-3); opacity: 0.5;
+  font-family: var(--font-mono); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+.tl { margin-bottom: var(--space-3); color: var(--color-text-secondary); font-size: var(--text-sm); }
+.tl:last-child { margin-bottom: 0; }
+.tl strong { color: var(--color-accent); }
+
+/* Syntax highlighting */
+.code-keyword  { color: #CBA6F7; }
+.code-string   { color: #A6E3A1; }
+.code-function { color: #89B4FA; }
+.code-comment  { color: #6C7086; }
+.code-number   { color: #FAB387; }
+.code-property { color: #F9E2AF; }
+.code-operator { color: #94E2D5; }
+
+/* === CALLOUT BOXES === */
+.callout {
+  display: flex; gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  margin: var(--space-6) 0;
+}
+.callout-accent { background: var(--color-accent-light); border-left: 4px solid var(--color-accent); }
+.callout-warning { background: var(--color-error-light); border-left: 4px solid var(--color-error); }
+.callout-success { background: var(--color-success-light); border-left: 4px solid var(--color-success); }
+.callout-icon { font-size: 1.25rem; flex-shrink: 0; }
+.callout-title { font-weight: 600; color: var(--color-text); margin-bottom: var(--space-1); display: block; }
+.callout p { margin: 0; font-size: var(--text-sm); color: var(--color-text-secondary); }
+
+/* === FILE TREE === */
+.file-tree { font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); box-shadow: var(--shadow-sm); }
+.ft-folder, .ft-file { padding: var(--space-2) var(--space-3); border-left: 2px solid var(--color-border-light); margin-left: var(--space-4); }
+.ft-root { margin-left: 0; border-left: none; }
+.ft-folder > .ft-name { color: var(--color-accent); font-weight: 600; }
+.ft-folder > .ft-name::before { content: '📁 '; }
+.ft-file > .ft-name::before { content: '📄 '; }
+.ft-desc { color: var(--color-text-secondary); font-family: var(--font-body); margin-left: var(--space-2); font-size: var(--text-xs); }
+.ft-children { margin-left: var(--space-4); }
+
+/* === BADGE LIST === */
+.badge-list { display: flex; flex-direction: column; gap: var(--space-2); margin: var(--space-4) 0; }
+.badge-item {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  transition: border-color var(--duration-fast);
+}
+.badge-item:hover { border-color: var(--color-accent-muted); }
+.badge-code {
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  background: var(--color-bg-code); color: #CBA6F7;
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space: nowrap;
+}
+.badge-desc { color: var(--color-text-secondary); font-size: var(--text-sm); }
+
+/* === GROUP CHAT === */
+.chat-window {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  margin: var(--space-6) 0;
+}
+.chat-header {
+  background: var(--color-accent);
+  color: white;
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+.chat-messages {
+  padding: var(--space-5);
+  min-height: 240px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.chat-message { display: flex; gap: var(--space-3); }
+.chat-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: var(--text-xs);
+  flex-shrink: 0; font-family: var(--font-display);
+}
+.chat-bubble { flex: 1; }
+.chat-sender { font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px; }
+.chat-bubble p { font-size: var(--text-sm); color: var(--color-text); background: var(--color-bg); padding: var(--space-2) var(--space-3); border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md); margin: 0; display: inline-block; }
+.chat-typing { display: none; align-items: center; gap: var(--space-3); padding: 0 var(--space-5) var(--space-3); }
+.chat-typing-dots { display: flex; gap: 4px; }
+.typing-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted); animation: typingBounce 1.4s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce { 0%,60%,100% { transform:translateY(0); } 30% { transform:translateY(-6px); } }
+.chat-controls { display:flex; gap:var(--space-3); padding:var(--space-3) var(--space-5); border-top:1px solid var(--color-border-light); align-items:center; flex-wrap:wrap; }
+.chat-progress { font-size:var(--text-xs); color:var(--color-text-muted); margin-left:auto; }
+
+/* === QUIZ === */
+.quiz-container { margin: var(--space-6) 0; }
+.quiz-q { margin-bottom: var(--space-6); }
+.quiz-question {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+}
+.scenario-box {
+  background: var(--color-accent-light);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+.scenario-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-accent); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+.quiz-options { display: flex; flex-direction: column; gap: var(--space-2); }
+.quiz-option {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  cursor: pointer; width: 100%; text-align: left;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+  font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-text);
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--color-accent-muted); }
+.quiz-option.selected { border-color: var(--color-accent); background: var(--color-accent-light); }
+.quiz-option.correct { border-color: var(--color-success); background: var(--color-success-light); }
+.quiz-option.incorrect { border-color: var(--color-error); background: var(--color-error-light); }
+.quiz-option-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--color-border); transition: all var(--duration-fast); flex-shrink: 0; }
+.quiz-option.selected .quiz-option-radio { border-color: var(--color-accent); background: var(--color-accent); box-shadow: inset 0 0 0 3px white; }
+.quiz-feedback {
+  max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height var(--duration-normal), opacity var(--duration-normal);
+  border-radius: var(--radius-sm); font-size: var(--text-sm);
+}
+.quiz-feedback.show { max-height: 150px; opacity: 1; padding: var(--space-3); margin-top: var(--space-2); }
+.quiz-feedback.success { background: var(--color-success-light); color: var(--color-success); }
+.quiz-feedback.error { background: var(--color-error-light); color: var(--color-error); }
+.btn {
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-sm);
+  border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500;
+  transition: background var(--duration-fast);
+}
+.btn-primary { background: var(--color-accent); color: white; }
+.btn-primary:hover { background: var(--color-accent-hover); }
+.btn-secondary { background: var(--color-border); color: var(--color-text); }
+.btn-secondary:hover { background: var(--color-border-light); }
+.quiz-actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
+
+/* === ARCHITECTURE DIAGRAM === */
+.arch-diagram {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  margin: var(--space-6) 0;
+}
+.arch-zones { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4); }
+.arch-zone {
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.arch-zone-label { font-family: var(--font-display); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: var(--space-3); }
+.arch-component {
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color var(--duration-fast), transform var(--duration-fast);
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+.arch-component:hover { border-color: var(--color-accent); transform: scale(1.02); }
+.arch-component.active-comp { border-color: var(--color-accent); background: var(--color-accent-light); }
+.arch-desc {
+  background: var(--color-accent-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  min-height: 52px;
+  border-left: 3px solid var(--color-accent);
+}
+
+/* === TERMS === */
+.term {
+  border-bottom: 1.5px dashed var(--color-accent-muted);
+  cursor: pointer;
+}
+.term:hover, .term.active { border-bottom-color: var(--color-accent); color: var(--color-accent); }
+.term-tooltip {
+  position: fixed;
+  background: var(--color-bg-code); color: #CDD6F4;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  line-height: var(--leading-normal);
+  width: max(200px, min(300px, 80vw));
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+  z-index: 10000;
+}
+.term-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-bg-code);
+}
+.term-tooltip.visible { opacity: 1; }
+.term-tooltip.flip::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--color-bg-code); }
+
+/* === DIVIDER === */
+.section-divider { border: none; border-top: 1px solid var(--color-border-light); margin: var(--space-10) 0; }
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  :root { --text-4xl: 1.875rem; --text-5xl: 2.25rem; --text-6xl: 3rem; }
+  .translation-block { grid-template-columns: 1fr; }
+  .translation-english { border-left: none; border-top: 3px solid var(--color-accent); }
+  .arch-zones { grid-template-columns: 1fr; }
+  .pattern-cards { grid-template-columns: 1fr 1fr; }
+  .flow-steps { flex-direction: column; }
+  .flow-arrow { transform: rotate(90deg); }
+}
+@media (max-width: 480px) {
+  :root { --text-4xl: 1.5rem; --text-5xl: 1.875rem; --text-6xl: 2.25rem; }
+  .module { padding: var(--space-8) var(--space-4); padding-top: calc(var(--nav-height) + var(--space-8)); }
+  .pattern-cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <div class="progress-bar" id="progress-bar"></div>
+  <div class="nav-inner">
+    <span class="nav-title">Axiom</span>
+    <div class="nav-dots" id="nav-dots">
+      <button class="nav-dot" title="The 20-Second Mystery" onclick="scrollToModule(0)"></button>
+      <button class="nav-dot" title="Meet the Cast" onclick="scrollToModule(1)"></button>
+      <button class="nav-dot" title="The Secret Handshake" onclick="scrollToModule(2)"></button>
+      <button class="nav-dot" title="The Job Relay" onclick="scrollToModule(3)"></button>
+      <button class="nav-dot" title="Three Locks" onclick="scrollToModule(4)"></button>
+      <button class="nav-dot" title="What You Know Now" onclick="scrollToModule(5)"></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 01 — THE 20-SECOND MYSTERY
+══════════════════════════════════════════════ -->
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">The 20-Second Mystery</h1>
+      <p class="module-subtitle">You typed a Python script, clicked Dispatch, and minutes later it ran on a machine somewhere else. Here's every step of what just happened.</p>
+    </header>
+
+    <!-- Screen 1: The Journey -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">A script's journey across the network</h2>
+      <p>Imagine you just dispatched a job from the dashboard. Before you even finish your coffee, the script has traveled through five distinct systems. Click <strong>Next Step</strong> to trace the path.</p>
+
+      <div style="margin: var(--space-6) 0;">
+        <div class="flow-steps" id="journey-steps">
+          <div class="flow-step" id="fstep-0">
+            <div class="flow-step-num">1</div>
+            <strong>You</strong>
+            <p>Dashboard</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" id="fstep-1">
+            <div class="flow-step-num">2</div>
+            <strong>API</strong>
+            <p>Puppeteer</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" id="fstep-2">
+            <div class="flow-step-num">3</div>
+            <strong>Database</strong>
+            <p>PostgreSQL</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" id="fstep-3">
+            <div class="flow-step-num">4</div>
+            <strong>Node</strong>
+            <p>Polls & picks up</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" id="fstep-4">
+            <div class="flow-step-num">5</div>
+            <strong>Container</strong>
+            <p>Runs script</p>
+          </div>
+        </div>
+        <div class="flow-label-box" id="journey-label">Click "Next Step" to begin tracing the journey.</div>
+        <div class="flow-controls">
+          <button class="btn btn-primary" onclick="journeyNext()">Next Step</button>
+          <button class="btn btn-secondary" onclick="journeyReset()">Restart</button>
+          <span style="font-size:var(--text-xs);color:var(--color-text-muted);align-self:center;" id="journey-progress">Step 0 / 5</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 2: The Pull Model -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Why nodes call home — not the other way around</h2>
+      <p>Here's something clever: the <span class="term" data-definition="The Puppeteer is the server-side control plane — it holds all jobs, nodes, and state. It never reaches out to nodes directly.">Puppeteer server</span> never pushes work to nodes. The nodes <em>poll</em> (repeatedly ask) for work. This is called the <strong>pull model</strong>, and it's a deliberate choice.</p>
+
+      <div class="step-cards animate-in stagger-children" style="margin-top:var(--space-6)">
+        <div class="step-card animate-in">
+          <div class="step-num">✓</div>
+          <div class="step-body">
+            <strong>Nodes can live behind firewalls</strong>
+            <p>Since nodes initiate all connections, there's no need to poke holes in firewalls or expose ports. A node on your home laptop can talk to a Puppeteer server in the cloud.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-num">✓</div>
+          <div class="step-body">
+            <strong>Nodes can go offline gracefully</strong>
+            <p>If a node disconnects, no work is lost — jobs just wait in the database. When the node comes back, it picks up from where it left off.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-num">✓</div>
+          <div class="step-body">
+            <strong>The server doesn't need to know node IPs</strong>
+            <p>Nodes identify themselves by a certificate — a cryptographic identity card. IP addresses can change; certificates stay the same.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: Tech Stack -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The four technologies that power this</h2>
+
+      <div class="pattern-cards animate-in stagger-children">
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon">⚡</div>
+          <h4 class="pattern-title">FastAPI</h4>
+          <p class="pattern-desc">The <span class="term" data-definition="A backend framework is the engine that powers the server — it handles incoming requests, talks to the database, and sends responses. FastAPI is a Python framework known for speed and automatic documentation.">backend framework</span> that handles every API request — from dispatching jobs to enrolling new nodes.</p>
+        </div>
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon">⚛️</div>
+          <h4 class="pattern-title">React</h4>
+          <p class="pattern-desc">The <span class="term" data-definition="A frontend framework builds the visual interface that users interact with in the browser. React lets you build UIs that update in real time without refreshing the page.">frontend framework</span> for the dashboard — the window you use to manage everything.</p>
+        </div>
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+          <div class="pattern-icon">🗄️</div>
+          <h4 class="pattern-title">PostgreSQL</h4>
+          <p class="pattern-desc">The <span class="term" data-definition="A database stores data permanently — jobs, nodes, users, audit logs. PostgreSQL is a relational database, meaning data is organized into tables with rows and columns, like a very powerful spreadsheet.">database</span> that stores everything: jobs, nodes, users, audit logs. SQLite is used locally for development.</p>
+        </div>
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+          <div class="pattern-icon">🔒</div>
+          <h4 class="pattern-title">mTLS + Ed25519</h4>
+          <p class="pattern-desc">Two cryptographic systems: one for verifying node identity, one for verifying that scripts haven't been tampered with. More on this in Module 5.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 02 — MEET THE CAST
+══════════════════════════════════════════════ -->
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">Meet the Cast</h1>
+      <p class="module-subtitle">Three separate programs, each with a distinct role — like a three-act play where every character has exactly one job.</p>
+    </header>
+
+    <!-- Screen 1: Three actors -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Three programs, one system</h2>
+      <p>Axiom is not one program — it's three that work together. Understanding who's who is the foundation for everything else.</p>
+
+      <div class="icon-rows animate-in stagger-children" style="margin-top:var(--space-5)">
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-2)">🖥️</div>
+          <div>
+            <strong>Puppeteer — the control plane</strong>
+            <p>The FastAPI server. Owns all state: jobs, nodes, users, certificates. The brain of the operation. Lives in <code style="font-family:var(--font-mono);font-size:var(--text-xs);background:var(--color-bg-code);color:#CBA6F7;padding:2px 6px;border-radius:4px">puppeteer/agent_service/</code></p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-1)">📊</div>
+          <div>
+            <strong>Dashboard — your window in</strong>
+            <p>The React app. Renders job queues, node status, charts, and forms. Talks exclusively to the Puppeteer API via <span class="term" data-definition="An authenticated fetch is a network request that includes a login token so the server knows who you are. Without the token, the server rejects the request.">authenticated fetch</span> calls. Lives in <code style="font-family:var(--font-mono);font-size:var(--text-xs);background:var(--color-bg-code);color:#CBA6F7;padding:2px 6px;border-radius:4px">puppeteer/dashboard/</code></p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-4)">🤖</div>
+          <div>
+            <strong>Puppet Node — the worker</strong>
+            <p>The Python agent that runs on any machine you want to control. Polls for jobs, verifies signatures, executes scripts in containers, reports results. Lives in <code style="font-family:var(--font-mono);font-size:var(--text-xs);background:var(--color-bg-code);color:#CBA6F7;padding:2px 6px;border-radius:4px">puppets/environment_service/</code></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-accent" style="margin-top:var(--space-6)">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <span class="callout-title">Separation of concerns</span>
+          <p>Splitting a system into components that each have one job is one of the most important patterns in software engineering. When something breaks, you immediately know <em>which component to look in</em> — and you can change one without breaking the others.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 2: File Tree -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The files that matter most</h2>
+      <p>You don't need to memorize every file. But knowing <em>where things live</em> lets you tell your AI coding assistant exactly what to change.</p>
+
+      <div class="file-tree animate-in" style="margin-top:var(--space-5)">
+        <div class="ft-root">
+          <span class="ft-name" style="color:var(--color-accent);font-weight:700">📂 puppeteer/agent_service/</span>
+          <div class="ft-children">
+            <div class="ft-file"><span class="ft-name">main.py</span><span class="ft-desc">Every API route — the entry point for all requests</span></div>
+            <div class="ft-file"><span class="ft-name">db.py</span><span class="ft-desc">Database table definitions (Job, Node, User, etc.)</span></div>
+            <div class="ft-file"><span class="ft-name">auth.py</span><span class="ft-desc">JWT creation and verification — handles logins</span></div>
+            <div class="ft-file"><span class="ft-name">pki.py</span><span class="ft-desc">Certificate Authority — issues certs to new nodes</span></div>
+            <div class="ft-folder">
+              <span class="ft-name">services/</span>
+              <div class="ft-children">
+                <div class="ft-file"><span class="ft-name">job_service.py</span><span class="ft-desc">Job assignment, node selection, capability matching</span></div>
+                <div class="ft-file"><span class="ft-name">scheduler_service.py</span><span class="ft-desc">Cron-based scheduled job definitions</span></div>
+                <div class="ft-file"><span class="ft-name">foundry_service.py</span><span class="ft-desc">Builds custom Docker images for nodes</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ft-root" style="margin-top:var(--space-3)">
+          <span class="ft-name" style="color:var(--color-actor-4);font-weight:700">📂 puppets/environment_service/</span>
+          <div class="ft-children">
+            <div class="ft-file"><span class="ft-name">node.py</span><span class="ft-desc">The entire puppet agent — enrolls, polls, executes, reports</span></div>
+            <div class="ft-file"><span class="ft-name">runtime.py</span><span class="ft-desc">Runs scripts inside Docker or Podman containers</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: JWT Code Translation -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">How the server proves you're logged in</h2>
+      <p>When you log in, the server creates a <span class="term" data-definition="A JWT (JSON Web Token) is a compact, tamper-proof ticket the server gives you after login. It contains your user ID and expiry time, digitally signed so nobody can fake it. You send it with every request to prove who you are.">JWT</span> (a digital ticket) and sends it to your browser. Every subsequent request includes that ticket. Here's the code that creates it:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">auth.py</span>
+          <pre><code><span class="code-keyword">def</span> <span class="code-function">create_access_token</span>(data: <span class="code-function">dict</span>, expires_delta=<span class="code-keyword">None</span>):
+    to_encode = data.<span class="code-function">copy</span>()
+    <span class="code-keyword">if</span> expires_delta:
+        expire = <span class="code-function">datetime.now</span>(UTC) + expires_delta
+    <span class="code-keyword">else</span>:
+        expire = <span class="code-function">datetime.now</span>(UTC) + <span class="code-function">timedelta</span>(minutes=<span class="code-number">15</span>)
+    to_encode.<span class="code-function">update</span>({<span class="code-string">"exp"</span>: expire})
+    encoded_jwt = jwt.<span class="code-function">encode</span>(
+        to_encode, SECRET_KEY, algorithm=ALGORITHM
+    )
+    <span class="code-keyword">return</span> encoded_jwt</code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">Plain English</span>
+          <p class="tl">Take a dictionary of user info (like username and role) and make a copy of it.</p>
+          <p class="tl">Add an expiry time — this ticket becomes invalid after 24 hours, so stolen tokens don't work forever.</p>
+          <p class="tl">Cryptographically <strong>sign</strong> the whole bundle using a secret key only the server knows. This signature means: "I, the server, verified this and vouch for it."</p>
+          <p class="tl">Return the signed ticket — a compact string the browser stores and sends back with every request.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <span class="callout-title">Why signing matters</span>
+          <p>The server can verify any JWT just by checking the signature — <em>without</em> looking it up in the database. That's much faster than a database lookup on every request. The trade-off: you can't revoke a token until it expires (unless you increment the user's <code style="font-family:var(--font-mono)">token_version</code> field).</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 03 — THE SECRET HANDSHAKE
+══════════════════════════════════════════════ -->
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">The Secret Handshake</h1>
+      <p class="module-subtitle">Before a node can receive any work, it must prove it belongs to your network. Here's how a stranger on the internet earns trust — automatically.</p>
+    </header>
+
+    <!-- Screen 1: The Problem -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The trust problem</h2>
+      <p>Imagine you get a phone call from someone claiming to be from your bank. How do you know they're really from the bank? You need a shared secret — something only the real bank would know.</p>
+      <p>Same problem here. When a new machine connects and says "I'm a puppet node — give me work," how does the server know it's really yours and not a random intruder?</p>
+
+      <div class="callout callout-warning" style="margin-top:var(--space-6)">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <span class="callout-title">The naive solution (don't do this)</span>
+          <p>You could use a shared password — every node gets the same API key. But if one node is compromised, <em>every</em> node is compromised. Axiom uses something much stronger: unique certificates per node.</p>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--space-8)">
+        <h3 style="font-family:var(--font-display);font-weight:600;margin-bottom:var(--space-4)">The solution: certificates issued by a private authority</h3>
+        <p>The Puppeteer server runs its own <span class="term" data-definition="A Certificate Authority (CA) is a trusted entity that issues digital identity cards (certificates) to verify that someone is who they claim to be. HTTPS websites get their certificates from public CAs like Let's Encrypt. Axiom runs its own private CA just for nodes.">Certificate Authority</span> — think of it as a private passport office that only you control. Every node gets its own <span class="term" data-definition="A certificate is a digital identity card that proves who you are. It contains your public key, your name, and a signature from the Certificate Authority confirming the information is genuine.">certificate</span>. The server only trusts nodes with valid certificates it issued.</p>
+      </div>
+    </section>
+
+    <!-- Screen 2: The JOIN_TOKEN -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The JOIN_TOKEN — a hiring letter encoded as data</h2>
+      <p>A new node gets a <code style="font-family:var(--font-mono);font-size:var(--text-sm);background:var(--color-bg-code);color:#CBA6F7;padding:2px 8px;border-radius:4px">JOIN_TOKEN</code> — a string you paste into the node's environment. It looks like random characters, but it's actually a <span class="term" data-definition="Base64 is a way to encode binary data (like a certificate file) as printable text characters so it can be safely included in configuration files, URLs, or environment variables.">Base64</span>-encoded JSON document containing two things: the server's <span class="term" data-definition="A Root CA certificate is the master certificate that proves who the Certificate Authority is. Any certificate signed by this CA is trusted. Nodes use it to verify they're talking to the real server.">Root CA certificate</span>, and a one-time enrollment token.</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">node.py — bootstrap_trust()</span>
+          <pre><code>decoded_bytes = base64.<span class="code-function">b64decode</span>(top_token)
+decoded_str = decoded_bytes.<span class="code-function">decode</span>(<span class="code-string">'utf-8'</span>)
+payload = json.<span class="code-function">loads</span>(decoded_str, strict=<span class="code-keyword">False</span>)
+
+<span class="code-keyword">if</span> <span class="code-string">"t"</span> <span class="code-keyword">in</span> payload <span class="code-keyword">and</span> <span class="code-string">"ca"</span> <span class="code-keyword">in</span> payload:
+    ca_content = payload[<span class="code-string">"ca"</span>]
+    <span class="code-keyword">with</span> <span class="code-function">open</span>(<span class="code-string">"secrets/root_ca.crt"</span>, <span class="code-string">"w"</span>) <span class="code-keyword">as</span> f:
+        f.<span class="code-function">write</span>(ca_content)
+    self.join_token = payload[<span class="code-string">"t"</span>]
+    <span class="code-function">print</span>(<span class="code-string">f"✅ Trust Bootstrapped"</span>)</code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">Plain English</span>
+          <p class="tl">Decode the JOIN_TOKEN from text back into raw bytes, then parse it as a JSON document.</p>
+          <p class="tl">Check if this is an "enhanced token" containing both a CA certificate and an enrollment token.</p>
+          <p class="tl">Save the CA certificate to disk. <strong>This is the server's identity card</strong> — from now on, the node will only trust the Puppeteer server if it presents a certificate signed by this CA.</p>
+          <p class="tl">Extract the real enrollment token. The node is now ready to register.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: Enrollment Steps -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">From stranger to trusted worker in 4 steps</h2>
+
+      <div class="step-cards animate-in stagger-children">
+        <div class="step-card animate-in">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Generate a private key and CSR</strong>
+            <p>The node generates its own <span class="term" data-definition="A private key is a secret number used in cryptography. Only your private key can sign things with your identity — like a handwritten signature that can't be forged.">private key</span> and creates a <span class="term" data-definition="A CSR (Certificate Signing Request) is a formal application to a Certificate Authority. It contains your public key and your requested name, signed with your private key to prove you control it.">CSR</span> — a formal request saying "I am node-abc1234, please issue me a certificate."</p>
+          </div>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Submit CSR + enrollment token to /api/enroll</strong>
+            <p>The node sends its CSR to the server along with the enrollment token (the "hiring letter" from the JOIN_TOKEN). The server verifies the token is valid and unused.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Server signs the certificate</strong>
+            <p>The Puppeteer's Certificate Authority signs the node's CSR, creating a unique client certificate. This cert says: "I, the Puppeteer CA, vouch that this is node-abc1234." The cert is sent back to the node.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>mTLS active — all future connections are verified</strong>
+            <p>From now on, every connection the node makes presents its certificate. The server verifies it was signed by the CA — and the node verifies the server's certificate too. Both sides prove identity. This mutual verification is called <span class="term" data-definition="mTLS (mutual TLS) means both the client and server verify each other's certificates — not just the server proving itself to the browser (like HTTPS). It's how nodes prove they're trusted members of your network.">mTLS</span>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-accent" style="margin-top:var(--space-6)">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <span class="callout-title">Why this beats passwords</span>
+          <p>A stolen certificate can be <strong>revoked</strong> — the server adds it to a CRL (Certificate Revocation List) and immediately stops trusting it. No password resets needed. The node simply can't connect anymore.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 04 — THE JOB RELAY
+══════════════════════════════════════════════ -->
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">The Job Relay</h1>
+      <p class="module-subtitle">Like a relay race, a job passes through multiple hands before it's done. Each handoff has a specific protocol — and a security check.</p>
+    </header>
+
+    <!-- Screen 1: Why scripts must be signed -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Why every script needs a signature</h2>
+      <p>Nodes execute code that arrives over the network. If anyone could dispatch a job, an attacker could run <em>anything</em> on your machines. So the system requires every script to be <span class="term" data-definition="Signing a script means encrypting a fingerprint of it with your private key. Anyone with your public key can verify that fingerprint — proving the script came from you and wasn't changed in transit.">signed</span> with a private key whose public counterpart is registered in the system.</p>
+      <p>Here's the verification code that runs on the node before <em>any</em> script executes:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">node.py — execute_task()</span>
+          <pre><code><span class="code-keyword">with</span> <span class="code-function">open</span>(self.verify_key_path, <span class="code-string">"rb"</span>) <span class="code-keyword">as</span> f:
+    public_key_bytes = f.<span class="code-function">read</span>()
+    public_key = serialization.<span class="code-function">load_pem_public_key</span>(
+        public_key_bytes
+    )
+sig_bytes = base64.<span class="code-function">b64decode</span>(signature)
+public_key.<span class="code-function">verify</span>(sig_bytes, script.<span class="code-function">encode</span>(<span class="code-string">'utf-8'</span>))
+<span class="code-function">print</span>(<span class="code-string">f"✅ Signature Verified for Job {guid}"</span>)</code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">Plain English</span>
+          <p class="tl">Load the public verification key from disk. This key was fetched from the server during bootstrap — the server controls which keys are trusted.</p>
+          <p class="tl">Decode the signature that arrived with the job from text back into raw bytes.</p>
+          <p class="tl"><strong>The critical check:</strong> use the public key to verify that the signature matches the script. If even one character of the script was changed after signing, this fails. If the wrong key signed it, this fails.</p>
+          <p class="tl">Only if this passes does execution continue. Otherwise, the job is immediately rejected with a security error.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 2: Poll for Work -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The polling loop — a node's heartbeat</h2>
+      <p>Nodes poll the server every few seconds asking "any work for me?" Here's the code that does it, using the mTLS certificate for authentication:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">node.py — poll_for_work()</span>
+          <pre><code><span class="code-keyword">async with</span> httpx.<span class="code-function">AsyncClient</span>(
+    verify=VERIFY_SSL,
+    cert=(self.cert_file, self.key_file)
+) <span class="code-keyword">as</span> client:
+    headers = {
+        <span class="code-string">"X-Node-ID"</span>: self.node_id,
+        <span class="code-string">"X-Node-Secret-Hash"</span>: secret_hash,
+    }
+    resp = <span class="code-keyword">await</span> client.<span class="code-function">post</span>(
+        <span class="code-string">f"{AGENT_URL}/work/pull"</span>,
+        headers=headers,
+        timeout=<span class="code-number">10.0</span>
+    )
+    <span class="code-keyword">if</span> resp.status_code == <span class="code-number">200</span>:
+        data = resp.<span class="code-function">json</span>()
+        <span class="code-keyword">if</span> data: <span class="code-keyword">return</span> data</code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">Plain English</span>
+          <p class="tl">Open a network connection using the node's <strong>certificate and private key</strong>. This is the mTLS handshake — the server sees this cert and knows exactly which node is connecting.</p>
+          <p class="tl">Include the Node ID and a secret hash in the request headers as extra identity confirmation.</p>
+          <p class="tl">POST to <code style="font-family:var(--font-mono);color:var(--color-accent)">/work/pull</code> — the server's job-dispensing endpoint. It checks if there's any queued work that matches this node's capabilities.</p>
+          <p class="tl">If the server sends back a job (status 200 with data), return it so the node can start executing.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: Group Chat Animation -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The full conversation — watch it happen</h2>
+      <p>Here's the complete exchange between all the components when you dispatch a job. Click <strong>Next Message</strong> to see each step.</p>
+
+      <div class="chat-window animate-in">
+        <div class="chat-header">📡 Job Dispatch — Live System Conversation</div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-message" data-msg="0" data-sender="op" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-1)">YOU</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-1)">You (Dashboard)</span>
+              <p>Dispatching job: run this Python script on any node with Python 3.9+. I've signed it with my Ed25519 key.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="1" data-sender="api" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-2)">API</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-2)">Puppeteer API</span>
+              <p>Received. Validating signature against registered public keys... ✅ Signature valid. Storing job in the database as PENDING.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="2" data-sender="db" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-3)">DB</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-3)">Database</span>
+              <p>Job stored with GUID abc-123. Status: PENDING. Waiting for a matching node...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="3" data-sender="node" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-4)">NODE</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-4)">Puppet Node (node-alpha)</span>
+              <p>Polling /work/pull... (I have Python 3.11, 1 active job, 4 free slots)</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="4" data-sender="api" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-2)">API</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-2)">Puppeteer API</span>
+              <p>Found a match! node-alpha: Python 3.11 ≥ 3.9 ✅, capacity available ✅. Assigning job abc-123. Here's the script + signature.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="5" data-sender="node" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-4)">NODE</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-4)">Puppet Node (node-alpha)</span>
+              <p>Verifying signature with local public key... ✅ Verified. Writing script to /tmp/job_abc-123.py, running in container...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="6" data-sender="node" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-4)">NODE</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-4)">Puppet Node (node-alpha)</span>
+              <p>Container exited 0. Reporting result to /work/abc-123/result...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="7" data-sender="api" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-2)">API</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-2)">Puppeteer API</span>
+              <p>Result received. Status → COMPLETED. Broadcasting update over WebSocket...</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="8" data-sender="op" style="display:none">
+            <div class="chat-avatar" style="background:var(--color-actor-1)">YOU</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color:var(--color-actor-1)">You (Dashboard)</span>
+              <p>🎉 Job completed! Dashboard updated in real time via WebSocket — no refresh needed.</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat-typing" id="chat-typing" style="display:none">
+          <div class="chat-avatar" id="typing-avatar" style="background:var(--color-actor-2)">...</div>
+          <div class="chat-typing-dots">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+        <div class="chat-controls">
+          <button class="btn btn-primary" onclick="chatNext()">Next Message</button>
+          <button class="btn btn-secondary" onclick="chatAll()">Play All</button>
+          <button class="btn btn-secondary" onclick="chatReset()">Replay</button>
+          <span class="chat-progress" id="chat-progress">0 / 9 messages</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 4: Quiz -->
+    <section class="screen animate-in" id="quiz-m4">
+      <h2 class="screen-heading">Test your understanding</h2>
+
+      <div class="quiz-container">
+        <div class="quiz-q" data-correct="b">
+          <div class="scenario-box">
+            <span class="scenario-label">Scenario</span>
+            A node keeps getting assigned jobs but they all fail immediately with "Signature Verification Failed." You can confirm the node is online and connected. Where's the problem?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The JWT token has expired</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The node's public verification key is missing or out of date — it can't confirm the script was signed by a trusted key</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The database is unreachable</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The mTLS certificate has expired</span></button>
+          </div>
+          <div class="quiz-feedback" id="m4q1-feedback"></div>
+        </div>
+
+        <div class="quiz-q" data-correct="c">
+          <div class="scenario-box">
+            <span class="scenario-label">Scenario</span>
+            You want to add a "GPU acceleration" requirement to a job so it only runs on nodes with a GPU. Which parts of the system need to change?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Only the frontend — add a checkbox in the dispatch form</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Only auth.py — add a new permission</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The job's capability requirements AND the node's capability reporting — both need to know about "gpu"</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The mTLS certificate needs a GPU field added</span></button>
+          </div>
+          <div class="quiz-feedback" id="m4q2-feedback"></div>
+        </div>
+
+        <div class="quiz-q" data-correct="b">
+          <div class="scenario-box">
+            <span class="scenario-label">Scenario</span>
+            A script ran successfully on the node (exit code 0) but the Dashboard shows the job as FAILED. Based on the architecture you've learned, where would you look first?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The signature verification code</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The result reporting path — the node's call to /work/{guid}/result, or how the API processes and stores that result</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The CA certificate</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The React dashboard component</span></button>
+          </div>
+          <div class="quiz-feedback" id="m4q3-feedback"></div>
+        </div>
+
+        <div class="quiz-actions">
+          <button class="btn btn-primary" onclick="checkQuizM4()">Check Answers</button>
+          <button class="btn btn-secondary" onclick="resetQuizM4()">Try Again</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 05 — THREE LOCKS ON ONE DOOR
+══════════════════════════════════════════════ -->
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">Three Locks on One Door</h1>
+      <p class="module-subtitle">This system has three completely different security mechanisms — each solving a different problem. Using all three is why it's robust.</p>
+    </header>
+
+    <!-- Screen 1: Three Problems -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Three security problems need three different solutions</h2>
+      <p>Think of a high-security venue with three different checkpoints — not because they're paranoid, but because each checkpoint catches a different kind of threat.</p>
+
+      <div class="pattern-cards animate-in stagger-children" style="margin-top:var(--space-6)">
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon">🎫</div>
+          <h4 class="pattern-title">JWT — for humans</h4>
+          <p class="pattern-desc"><strong>Problem:</strong> Are you a logged-in user with permission to do this?<br><strong>Solution:</strong> A signed ticket you present on every browser request. Expires after 24 hours.</p>
+        </div>
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon">🪪</div>
+          <h4 class="pattern-title">mTLS — for machines</h4>
+          <p class="pattern-desc"><strong>Problem:</strong> Is this a trusted node that the Puppeteer itself enrolled?<br><strong>Solution:</strong> Mutual certificate verification — both sides prove identity before any data is exchanged.</p>
+        </div>
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+          <div class="pattern-icon">✍️</div>
+          <h4 class="pattern-title">Ed25519 — for code</h4>
+          <p class="pattern-desc"><strong>Problem:</strong> Was this script approved by someone with a registered signing key?<br><strong>Solution:</strong> Cryptographic signatures on every script. Unsigned scripts are always rejected.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent" style="margin-top:var(--space-6)">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <span class="callout-title">Defence in depth</span>
+          <p>Each layer catches different attacks. An attacker who steals a JWT still can't enroll rogue nodes (no mTLS cert). A compromised node still can't run unauthorized scripts (no signing key). Breaking one layer doesn't break the system — you'd need to break all three simultaneously.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 2: The work/pull endpoint -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">All three checks in one route</h2>
+      <p>The <code style="font-family:var(--font-mono);background:var(--color-bg-code);color:#CBA6F7;padding:2px 8px;border-radius:4px">POST /work/pull</code> endpoint that nodes call is a perfect example. It enforces multiple checks in a single line:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">main.py — /work/pull route</span>
+          <pre><code><span class="code-decorator">@app.post</span>(<span class="code-string">"/work/pull"</span>, response_model=PollResponse)
+<span class="code-keyword">async def</span> <span class="code-function">pull_work</span>(
+    request: Request,
+    node_id: str = <span class="code-function">Depends</span>(verify_node_secret),
+    api_key: str = <span class="code-function">Depends</span>(verify_api_key),
+    db: AsyncSession = <span class="code-function">Depends</span>(get_db)
+):
+    r = <span class="code-keyword">await</span> db.<span class="code-function">execute</span>(
+        <span class="code-function">select</span>(Node).<span class="code-function">where</span>(Node.node_id == node_id)
+    )
+    n = r.<span class="code-function">scalar_one_or_none</span>()
+    <span class="code-keyword">if</span> n <span class="code-keyword">and</span> n.status == <span class="code-string">"REVOKED"</span>:
+        <span class="code-keyword">raise</span> <span class="code-function">HTTPException</span>(status_code=<span class="code-number">403</span>)</code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">Plain English</span>
+          <p class="tl">This route requires three things before it will even run: <strong>verify_node_secret</strong> (checks the mTLS cert + secret hash — proves this is a real enrolled node), <strong>verify_api_key</strong> (checks the shared API key), and a database session.</p>
+          <p class="tl">FastAPI's <code style="font-family:var(--font-mono);color:var(--color-accent)">Depends()</code> system means: "before calling this function, run these checks. If any fail, return a 401 or 403 error automatically."</p>
+          <p class="tl">Even after passing the automated checks, there's a manual check: if this node was <strong>revoked</strong> (e.g., stolen hardware), it gets a 403 Forbidden — it cannot receive any work.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: Fernet secrets -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Secrets stored in the database are encrypted</h2>
+      <p>Jobs can carry <span class="term" data-definition="Secrets in this context are sensitive values like API keys, passwords, or credentials that a script needs to run. Storing them in plain text in a database is dangerous — if the DB is compromised, all secrets are exposed.">secrets</span> (like API keys) that get injected as environment variables during execution. These are stored encrypted in the database using <span class="term" data-definition="Fernet is a symmetric encryption scheme. It uses the same key to encrypt and decrypt. The key is stored in the ENCRYPTION_KEY environment variable on the server — never in the database alongside the encrypted data.">Fernet</span> encryption.</p>
+
+      <div class="badge-list animate-in">
+        <div class="badge-item">
+          <code class="badge-code">ENCRYPTION_KEY</code>
+          <span class="badge-desc">Server env var — Fernet key for secrets at rest. Never stored in the DB.</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">SECRET_KEY</code>
+          <span class="badge-desc">Server env var — JWT signing key. Change this in production.</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">JOIN_TOKEN</code>
+          <span class="badge-desc">Node env var — contains the Root CA cert + enrollment token. Generated fresh per node.</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">ADMIN_PASSWORD</code>
+          <span class="badge-desc">Only seeds the admin user on first run — DB password is the source of truth after that.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 4: Quiz -->
+    <section class="screen animate-in" id="quiz-m5">
+      <h2 class="screen-heading">Security in practice</h2>
+
+      <div class="quiz-container">
+        <div class="quiz-q" data-correct="c">
+          <div class="scenario-box">
+            <span class="scenario-label">Scenario</span>
+            An attacker gains access to a node machine and tries to execute their own malicious script by submitting it directly to /work/pull. What stops them?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The JWT — attackers can't have a valid login token</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Rate limiting — too many requests get blocked</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Ed25519 signature verification — the node rejects any script that wasn't signed with a registered private key, regardless of who submitted it</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The database — it doesn't store unsigned scripts</span></button>
+          </div>
+          <div class="quiz-feedback" id="m5q1-feedback"></div>
+        </div>
+
+        <div class="quiz-q" data-correct="b">
+          <div class="scenario-box">
+            <span class="scenario-label">Scenario</span>
+            A laptop running a puppet node gets stolen. You need to ensure the attacker can't use it to receive jobs. What do you do, and what happens?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Change the ADMIN_PASSWORD — the node will re-authenticate with the new password</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Revoke the node's certificate — the server adds it to the CRL, and the next /work/pull attempt gets a 403 REVOKED response</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Delete the node from the database — it can re-enroll with the same JOIN_TOKEN</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Rotate the ENCRYPTION_KEY — the node can't decrypt secrets anymore</span></button>
+          </div>
+          <div class="quiz-feedback" id="m5q2-feedback"></div>
+        </div>
+
+        <div class="quiz-actions">
+          <button class="btn btn-primary" onclick="checkQuizM5()">Check Answers</button>
+          <button class="btn btn-secondary" onclick="resetQuizM5()">Try Again</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     MODULE 06 — WHAT YOU KNOW NOW
+══════════════════════════════════════════════ -->
+<section class="module" id="module-6" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">06</span>
+      <h1 class="module-title">What You Know Now</h1>
+      <p class="module-subtitle">You've seen the engine room. Here's how to use that knowledge to build better, debug faster, and steer AI more precisely.</p>
+    </header>
+
+    <!-- Screen 1: Architecture map -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The full picture — click to explore</h2>
+
+      <div class="arch-diagram animate-in">
+        <div class="arch-zones">
+          <div class="arch-zone" style="background:rgba(217,79,48,0.05); border: 1px solid rgba(217,79,48,0.2)">
+            <div class="arch-zone-label" style="color:var(--color-actor-1)">🖥️ Your Browser</div>
+            <div class="arch-component" data-desc="The React dashboard — your control panel. Talks to Puppeteer over HTTPS with JWTs. Receives live updates over WebSocket. Lives in puppeteer/dashboard/src/views/" onclick="showArch(this)">
+              📊 Dashboard (React)
+            </div>
+          </div>
+          <div class="arch-zone" style="background:rgba(42,123,155,0.05); border: 1px solid rgba(42,123,155,0.2)">
+            <div class="arch-zone-label" style="color:var(--color-actor-2)">⚡ Puppeteer Server</div>
+            <div class="arch-component" data-desc="All FastAPI routes. Job dispatch, node management, user auth, WebSocket. The single entry point for all HTTP traffic. main.py" onclick="showArch(this)">
+              🔌 API (main.py)
+            </div>
+            <div class="arch-component" data-desc="Job assignment logic — matches jobs to nodes by capability, checks resource limits, handles zombie job timeouts. job_service.py" onclick="showArch(this)">
+              🧠 Job Service
+            </div>
+            <div class="arch-component" data-desc="The private Certificate Authority. Generates the Root CA on first run, signs CSRs from enrolling nodes, manages the CRL for revoked certs. pki.py" onclick="showArch(this)">
+              🔐 PKI / CA (pki.py)
+            </div>
+            <div class="arch-component" data-desc="PostgreSQL in production, SQLite locally. Stores Jobs, Nodes, Users, AuditLogs, NodeStats, Signatures. No Alembic — schema managed by SQLAlchemy create_all." onclick="showArch(this)">
+              🗄️ Database
+            </div>
+          </div>
+          <div class="arch-zone" style="background:rgba(212,168,67,0.05); border: 1px solid rgba(212,168,67,0.2)">
+            <div class="arch-zone-label" style="color:var(--color-actor-4)">🤖 Puppet Nodes</div>
+            <div class="arch-component" data-desc="The full puppet agent. Bootstraps trust from JOIN_TOKEN, enrolls via CSR, polls /work/pull with mTLS, verifies signatures, executes scripts in containers, reports results. node.py" onclick="showArch(this)">
+              🤖 Node Agent (node.py)
+            </div>
+            <div class="arch-component" data-desc="Executes scripts inside Docker or Podman containers with resource limits (--memory, --cpus). Reads EXECUTION_MODE env var. runtime.py" onclick="showArch(this)">
+              📦 Runtime (runtime.py)
+            </div>
+          </div>
+        </div>
+        <div class="arch-desc" id="arch-desc">👆 Click any component to learn what it does and where the code lives.</div>
+      </div>
+    </section>
+
+    <!-- Screen 2: Debugging guide -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">When something breaks — where to look</h2>
+
+      <div class="step-cards animate-in stagger-children">
+        <div class="step-card animate-in" style="border-left-color: var(--color-actor-1)">
+          <div class="step-num" style="background:var(--color-actor-1)">?</div>
+          <div class="step-body">
+            <strong>Job stuck as PENDING forever</strong>
+            <p>Check: Are any nodes online? Do any nodes have the capabilities the job requires? Is the node's concurrency limit full? Look at <code style="font-family:var(--font-mono)">job_service.py</code> → capability matching logic.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-actor-4)">
+          <div class="step-num" style="background:var(--color-actor-4)">?</div>
+          <div class="step-body">
+            <strong>Node won't connect / crash on startup</strong>
+            <p>Check: Is the JOIN_TOKEN correct and unmodified? Is AGENT_URL pointing to the right server? Does the secrets/ folder have a leftover .crt from a previous enrollment? Node ID is determined by scanning secrets/ for node-*.crt files.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-actor-2)">
+          <div class="step-num" style="background:var(--color-actor-2)">?</div>
+          <div class="step-body">
+            <strong>401 / 403 on API requests</strong>
+            <p>For browser requests: JWT expired (re-login) or user's token_version incremented (password was changed). For node requests: cert might be revoked, or mTLS not configured correctly.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-actor-3)">
+          <div class="step-num" style="background:var(--color-actor-3)">?</div>
+          <div class="step-body">
+            <strong>New columns not appearing after code change</strong>
+            <p>SQLAlchemy's <code style="font-family:var(--font-mono)">create_all</code> only creates tables — it won't ALTER existing ones. For existing deployments, run the migration SQL manually or drop+recreate the database.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: Final quiz -->
+    <section class="screen animate-in" id="quiz-m6">
+      <h2 class="screen-heading">Final challenge — put it all together</h2>
+
+      <div class="quiz-container">
+        <div class="quiz-q" data-correct="b">
+          <div class="scenario-box">
+            <span class="scenario-label">Build scenario</span>
+            You want to add a "cost centre" field to every job so accounting can track which team ran what. The field needs to be stored and filterable. Which parts of the system definitely need to change?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Only the frontend form — just add an input field</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>db.py (add column to Job model), models.py (add field to JobCreate/JobResponse), main.py or job_service.py (update filter logic), and a migration SQL for existing deployments</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Only auth.py — it controls what data users can see</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Only pki.py and the certificate templates</span></button>
+          </div>
+          <div class="quiz-feedback" id="m6q1-feedback"></div>
+        </div>
+
+        <div class="quiz-q" data-correct="a">
+          <div class="scenario-box">
+            <span class="scenario-label">Debugging scenario</span>
+            A user reports that after changing their password, they were immediately logged out on all devices, including their phone. Is this a bug?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>No — this is intentional. Changing your password increments token_version in the database. All existing JWTs with the old version become invalid. It's a security feature, not a bug.</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Yes — JWTs should never be invalidated before they expire. This violates the JWT spec.</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>Yes — the mTLS certificate needs to be re-issued whenever a password changes</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>It depends on whether Fernet encryption is enabled</span></button>
+          </div>
+          <div class="quiz-feedback" id="m6q2-feedback"></div>
+        </div>
+
+        <div class="quiz-q" data-correct="c">
+          <div class="scenario-box">
+            <span class="scenario-label">Architecture decision</span>
+            You want to build a "dry run" feature — show what a script would do without actually executing it. Based on the architecture, which component should be responsible for the dry run logic?
+          </div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-val="a" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The React dashboard — it can simulate the run locally in the browser</span></button>
+            <button class="quiz-option" data-val="b" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>pki.py — the certificate authority decides what runs</span></button>
+            <button class="quiz-option" data-val="c" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>node.py / runtime.py — that's where actual execution happens. Add a "dry_run" flag to the job payload that the node reads before calling runtime_engine.run()</span></button>
+            <button class="quiz-option" data-val="d" onclick="selectOpt(this)"><div class="quiz-option-radio"></div><span>The database — add a is_dry_run column and it won't execute</span></button>
+          </div>
+          <div class="quiz-feedback" id="m6q3-feedback"></div>
+        </div>
+
+        <div class="quiz-actions">
+          <button class="btn btn-primary" onclick="checkQuizM6()">Check Answers</button>
+          <button class="btn btn-secondary" onclick="resetQuizM6()">Try Again</button>
+        </div>
+      </div>
+
+      <div class="callout callout-success" style="margin-top: var(--space-10)">
+        <div class="callout-icon">🎓</div>
+        <div class="callout-content">
+          <span class="callout-title">You know this system now</span>
+          <p>Three separate programs. mTLS enrollment. JWT auth. Ed25519 script signing. The pull model. Capability matching. You can read the code, describe what each file does, spot where a bug might live, and give precise instructions to an AI coding assistant. That's exactly what this course was for.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<script>
+(function() {
+'use strict';
+
+// === SCROLL PROGRESS & NAV DOTS ===
+const progressBar = document.getElementById('progress-bar');
+const modules = document.querySelectorAll('.module');
+const navDots = document.querySelectorAll('.nav-dot');
+
+function updateProgress() {
+  const scrollTop = window.scrollY;
+  const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+  progressBar.style.width = ((scrollTop / scrollHeight) * 100) + '%';
+
+  // Update nav dots
+  let current = 0;
+  modules.forEach((m, i) => {
+    const rect = m.getBoundingClientRect();
+    if (rect.top <= 80) current = i;
+  });
+  navDots.forEach((d, i) => {
+    d.classList.toggle('visited', i < current);
+    d.classList.toggle('active', i === current);
+  });
+}
+window.addEventListener('scroll', () => requestAnimationFrame(updateProgress), { passive: true });
+updateProgress();
+
+// === SCROLL TO MODULE ===
+window.scrollToModule = function(i) {
+  modules[i].scrollIntoView({ behavior: 'smooth' });
+};
+
+// === KEYBOARD NAV ===
+let currentMod = 0;
+document.addEventListener('keydown', e => {
+  if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    currentMod = Math.min(currentMod + 1, modules.length - 1);
+    modules[currentMod].scrollIntoView({ behavior: 'smooth' });
+  }
+  if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    currentMod = Math.max(currentMod - 1, 0);
+    modules[currentMod].scrollIntoView({ behavior: 'smooth' });
+  }
+});
+
+// === SCROLL ANIMATIONS ===
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+
+document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+
+// Stagger children
+document.querySelectorAll('.stagger-children').forEach(parent => {
+  Array.from(parent.children).forEach((child, i) => {
+    child.style.setProperty('--stagger-index', i);
+  });
+});
+
+// === JOURNEY FLOW ANIMATION ===
+const journeyLabels = [
+  'Step 1 — <strong>You click Dispatch</strong> in the dashboard. The React app sends an authenticated POST request to the Puppeteer API with your script, signature, and capability requirements.',
+  'Step 2 — The <strong>Puppeteer API</strong> (FastAPI) receives the request. It validates your JWT, verifies the script signature against registered keys, and saves the job to the database as PENDING.',
+  'Step 3 — The job is stored in the <strong>database</strong> (PostgreSQL). It sits there waiting, ready to be picked up by a matching node.',
+  'Step 4 — A <strong>Puppet Node</strong> polling /work/pull gets the job assigned. The server matched the node\'s capabilities against the job\'s requirements.',
+  'Step 5 — The node writes the script to /tmp, launches a <strong>container</strong>, and executes the script inside it — isolated from the host machine. Results are reported back to the API.'
+];
+let journeyStep = 0;
+
+window.journeyNext = function() {
+  if (journeyStep >= 5) return;
+  document.querySelectorAll('.flow-step').forEach((s, i) => {
+    s.classList.toggle('active-step', i === journeyStep);
+  });
+  document.getElementById('journey-label').innerHTML = journeyLabels[journeyStep];
+  document.getElementById('journey-progress').textContent = `Step ${journeyStep + 1} / 5`;
+  journeyStep++;
+};
+
+window.journeyReset = function() {
+  journeyStep = 0;
+  document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active-step'));
+  document.getElementById('journey-label').textContent = 'Click "Next Step" to begin tracing the journey.';
+  document.getElementById('journey-progress').textContent = 'Step 0 / 5';
+};
+
+// === GROUP CHAT ===
+const chatMessages = document.querySelectorAll('#chat-messages .chat-message');
+const actorColors = {
+  op:   { initials: 'YOU', color: 'var(--color-actor-1)' },
+  api:  { initials: 'API', color: 'var(--color-actor-2)' },
+  db:   { initials: 'DB',  color: 'var(--color-actor-3)' },
+  node: { initials: 'NODE',color: 'var(--color-actor-4)' },
+};
+let chatIdx = 0;
+let chatPlaying = false;
+
+window.chatNext = function() {
+  if (chatIdx >= chatMessages.length) return;
+  const msg = chatMessages[chatIdx];
+  const sender = msg.dataset.sender;
+  const actor = actorColors[sender];
+
+  const typing = document.getElementById('chat-typing');
+  const avatar = document.getElementById('typing-avatar');
+  avatar.textContent = actor.initials;
+  avatar.style.background = actor.color;
+  typing.style.display = 'flex';
+
+  setTimeout(() => {
+    typing.style.display = 'none';
+    msg.style.display = 'flex';
+    msg.style.opacity = '0';
+    msg.style.transform = 'translateY(8px)';
+    setTimeout(() => {
+      msg.style.transition = 'opacity 0.3s, transform 0.3s';
+      msg.style.opacity = '1';
+      msg.style.transform = 'translateY(0)';
+    }, 10);
+    const container = document.getElementById('chat-messages');
+    container.scrollTop = container.scrollHeight;
+    chatIdx++;
+    document.getElementById('chat-progress').textContent = `${chatIdx} / ${chatMessages.length} messages`;
+  }, 700);
+};
+
+window.chatAll = function() {
+  if (chatPlaying) return;
+  chatPlaying = true;
+  const interval = setInterval(() => {
+    if (chatIdx >= chatMessages.length) { clearInterval(interval); chatPlaying = false; return; }
+    chatNext();
+  }, 1300);
+};
+
+window.chatReset = function() {
+  chatIdx = 0;
+  chatPlaying = false;
+  chatMessages.forEach(m => { m.style.display = 'none'; m.style.opacity = ''; m.style.transform = ''; });
+  document.getElementById('chat-typing').style.display = 'none';
+  document.getElementById('chat-progress').textContent = '0 / 9 messages';
+};
+
+// === ARCHITECTURE DIAGRAM ===
+window.showArch = function(el) {
+  document.querySelectorAll('.arch-component').forEach(c => c.classList.remove('active-comp'));
+  el.classList.add('active-comp');
+  document.getElementById('arch-desc').textContent = el.dataset.desc;
+};
+
+// === QUIZ HELPERS ===
+window.selectOpt = function(btn) {
+  const block = btn.closest('.quiz-q');
+  block.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+  btn.classList.add('selected');
+};
+
+const m4Explanations = {
+  'm4q1': {
+    correct: 'Exactly right. The verification key is fetched from the server during bootstrap and stored in secrets/verification.key. If this file is missing, corrupted, or out of date, every signature check will fail. Check node.py → fetch_verification_key().',
+    wrong: 'Not quite. The verification key in secrets/verification.key is what the node uses to validate signatures. If it\'s missing or stale, all verification fails — regardless of connectivity.'
+  },
+  'm4q2': {
+    correct: 'Exactly. Capabilities are a two-sided contract: the job declares what it needs, and the node reports what it has. Both need to agree on the same capability key ("gpu"). The job_service.py matching logic compares them.',
+    wrong: 'Not quite. Capabilities are negotiated between the job\'s requirements and the node\'s reported capabilities. Both sides need to use the same key name for matching to work.'
+  },
+  'm4q3': {
+    correct: 'Correct. The execution succeeded but the result didn\'t reach the dashboard successfully. The most likely failure points are: the node\'s call to /work/{guid}/result (network error, or the node crashed before reporting), or how job_service.py processes the ResultReport and updates the job status.',
+    wrong: 'Think about where the failure happened: execution worked (exit 0), but the status is wrong. The breakdown happened in the reporting phase — after execution but before the dashboard update.'
+  }
+};
+
+const m5Explanations = {
+  'm5q1': {
+    correct: 'Exactly. Ed25519 signature verification is a final, mandatory check that happens on the node — in node.py, in execute_task() — before any execution. The node has the public key but not the private key. Without a valid signature from a registered private key, the script is rejected. The attacker can\'t forge the signature without the private key.',
+    wrong: 'Remember: signature verification happens on the node itself, after the job arrives. The node checks the signature against its local public key. This is independent of who submitted the job or how they connected.'
+  },
+  'm5q2': {
+    correct: 'Exactly right. Revoking the node\'s certificate adds its serial number to the CRL (Certificate Revocation List). When the stolen node next calls /work/pull, the server checks the database: n.status == "REVOKED" → 403 Forbidden. The node can no longer receive work.',
+    wrong: 'The mTLS certificate system is what controls node identity. When you revoke a node through the dashboard, its cert serial is added to the RevokedCert table. The /work/pull endpoint checks this status and returns 403 if revoked.'
+  }
+};
+
+const m6Explanations = {
+  'm6q1': {
+    correct: 'Exactly right. This is a full-stack change: the database model (db.py) defines the column, the Pydantic model (models.py) exposes it in requests/responses, the service layer handles filtering, and existing databases need an ALTER TABLE migration. This is the standard pattern for any new field.',
+    wrong: 'This change touches the full stack. The database schema (db.py) needs the column, the API models (models.py) need to expose it, the service layer needs to filter on it, and existing deployed databases need a migration. Frontend-only changes won\'t persist anything.'
+  },
+  'm6q2': {
+    correct: 'Correct — this is intentional! The token_version field on the User model is included in every JWT as "tv". When the password changes, token_version increments. The server rejects any JWT with an old tv value. This is how the system achieves instant, universal session invalidation without a token blocklist.',
+    wrong: 'This is actually intentional security behaviour. JWTs normally can\'t be revoked before expiry — that\'s a known weakness. Axiom solves it with token_version: changing your password increments this counter, and the server rejects tokens with old version numbers.'
+  },
+  'm6q3': {
+    correct: 'Exactly. The execution happens in node.py calling runtime.py. That\'s the right layer to intercept. Add "dry_run": true to the job payload, and in execute_task() check for that flag before calling runtime_engine.run(). The API and database just need to pass the flag through.',
+    wrong: 'Think about where execution actually happens: node.py calls runtime.py to run the container. That\'s the execution layer. A dry run would be intercepted there — before the container is launched. The node reads the job payload and decides what to do.'
+  }
+};
+
+function runQuiz(quizId, qs, explanations) {
+  qs.forEach((qEl, idx) => {
+    const qKey = quizId + 'q' + (idx + 1);
+    const selected = qEl.querySelector('.quiz-option.selected');
+    const feedback = document.getElementById(qKey + '-feedback');
+    const correct = qEl.dataset.correct;
+    if (!selected) {
+      if (feedback) { feedback.textContent = 'Pick an answer first!'; feedback.className = 'quiz-feedback show error'; }
+      return;
+    }
+    const isCorrect = selected.dataset.val === correct;
+    if (isCorrect) {
+      selected.classList.add('correct');
+      if (feedback) { feedback.innerHTML = '<strong>✓ Correct!</strong> ' + (explanations[qKey] ? explanations[qKey].correct : ''); feedback.className = 'quiz-feedback show success'; }
+    } else {
+      selected.classList.add('incorrect');
+      const correctBtn = qEl.querySelector(`[data-val="${correct}"]`);
+      if (correctBtn) correctBtn.classList.add('correct');
+      if (feedback) { feedback.innerHTML = '<strong>Not quite.</strong> ' + (explanations[qKey] ? explanations[qKey].wrong : ''); feedback.className = 'quiz-feedback show error'; }
+    }
+    qEl.querySelectorAll('.quiz-option').forEach(o => o.disabled = true);
+  });
+}
+
+function resetQuiz(quizId, qs) {
+  qs.forEach((qEl, idx) => {
+    const qKey = quizId + 'q' + (idx + 1);
+    qEl.querySelectorAll('.quiz-option').forEach(o => {
+      o.classList.remove('selected','correct','incorrect');
+      o.disabled = false;
+    });
+    const feedback = document.getElementById(qKey + '-feedback');
+    if (feedback) { feedback.className = 'quiz-feedback'; feedback.textContent = ''; }
+  });
+}
+
+window.checkQuizM4 = function() {
+  runQuiz('m4', document.querySelectorAll('#quiz-m4 .quiz-q'), m4Explanations);
+};
+window.resetQuizM4 = function() {
+  resetQuiz('m4', document.querySelectorAll('#quiz-m4 .quiz-q'));
+};
+window.checkQuizM5 = function() {
+  runQuiz('m5', document.querySelectorAll('#quiz-m5 .quiz-q'), m5Explanations);
+};
+window.resetQuizM5 = function() {
+  resetQuiz('m5', document.querySelectorAll('#quiz-m5 .quiz-q'));
+};
+window.checkQuizM6 = function() {
+  runQuiz('m6', document.querySelectorAll('#quiz-m6 .quiz-q'), m6Explanations);
+};
+window.resetQuizM6 = function() {
+  resetQuiz('m6', document.querySelectorAll('#quiz-m6 .quiz-q'));
+};
+
+// === GLOSSARY TOOLTIPS ===
+let activeTooltip = null;
+
+function positionTooltip(term, tip) {
+  const rect = term.getBoundingClientRect();
+  const tipWidth = 300;
+  let left = rect.left + rect.width / 2 - tipWidth / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tipWidth - 8));
+  document.body.appendChild(tip);
+  const tipHeight = tip.offsetHeight;
+  if (rect.top - tipHeight - 12 < 0) {
+    tip.style.top = (rect.bottom + 8) + 'px';
+    tip.classList.add('flip');
+  } else {
+    tip.style.top = (rect.top - tipHeight - 8) + 'px';
+    tip.classList.remove('flip');
+  }
+  tip.style.left = left + 'px';
+  tip.style.width = tipWidth + 'px';
+}
+
+document.querySelectorAll('.term').forEach(term => {
+  const tip = document.createElement('span');
+  tip.className = 'term-tooltip';
+  tip.textContent = term.dataset.definition;
+
+  term.addEventListener('mouseenter', () => {
+    if (activeTooltip && activeTooltip !== tip) {
+      activeTooltip.classList.remove('visible');
+      activeTooltip.remove();
+    }
+    positionTooltip(term, tip);
+    requestAnimationFrame(() => tip.classList.add('visible'));
+    activeTooltip = tip;
+  });
+
+  term.addEventListener('mouseleave', () => {
+    tip.classList.remove('visible');
+    setTimeout(() => { if (!tip.classList.contains('visible')) tip.remove(); }, 150);
+    activeTooltip = null;
+  });
+
+  term.addEventListener('click', e => {
+    e.stopPropagation();
+    if (activeTooltip && activeTooltip !== tip) {
+      activeTooltip.classList.remove('visible');
+      activeTooltip.remove();
+    }
+    if (tip.classList.contains('visible')) {
+      tip.classList.remove('visible');
+      tip.remove();
+      activeTooltip = null;
+    } else {
+      positionTooltip(term, tip);
+      requestAnimationFrame(() => tip.classList.add('visible'));
+      activeTooltip = tip;
+    }
+  });
+});
+
+document.addEventListener('click', () => {
+  if (activeTooltip) {
+    activeTooltip.classList.remove('visible');
+    activeTooltip.remove();
+    activeTooltip = null;
+  }
+});
+
+})();
+</script>
+</body>
+</html>

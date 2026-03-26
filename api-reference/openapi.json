@@ -1,0 +1,9 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Axiom API",
+    "version": "0.1.0",
+    "description": "Full REST API for Axiom. See the running service at /openapi.json for the generated spec."
+  },
+  "paths": {}
+}

@@ -1,0 +1,3248 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/developer/architecture/">
+      
+      
+        <link rel="prev" href="../../runbooks/faq/">
+      
+      
+        <link rel="next" href="../setup-deployment/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Architecture - Axiom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="../../assets/external/fonts.googleapis.com/css.49ea35f2.css">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Axiom" class="md-header__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Axiom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Axiom" class="md-nav__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    Axiom
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prerequisites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running with Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/enroll-node/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enroll a Node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/first-job/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Feature Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operator Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/axiom-push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    axiom-push CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Config
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platform Config
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/jobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/nodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/foundry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/job-scheduling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Scheduling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth & Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/rbac-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Permission Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../licensing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/mtls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mTLS & Certificates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/rbac-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/audit-log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/air-gap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Air-Gap Operation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbooks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runbooks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/nodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/jobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/foundry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#system-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level-applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-Level Applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-modules-puppeteeragent_serviceservices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Modules (puppeteer/agent_service/services/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Modules (puppeteer/agent_service/services/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        job_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#foundry_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foundry_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scheduler_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scheduler_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pki_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pki_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signature_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        signature_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smelter_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        smelter_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vault_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alert_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        alert_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        webhook_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trigger_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trigger_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mirror_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mirror_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#staging_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        staging_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database Schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Database Schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-table-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Table Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mtls-mutual-tls-node-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mTLS — Mutual TLS Node Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ed25519-script-signing-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ed25519 Script Signing Chain
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jwt-token-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT + Token Versioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rbac-role-based-access-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RBAC — Role-Based Access Control
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fernet-encryption-at-rest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fernet Encryption at Rest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#job-execution-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job Execution Data Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#foundry-smelter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Foundry &amp; Smelter
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Foundry &amp; Smelter">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#build-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blueprint-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blueprint Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template → Image Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smelter-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smelter Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#image-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pull-model-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Model Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Quick Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/course.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Course — How Axiom Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/operator-guide.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#system-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level-applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-Level Applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-modules-puppeteeragent_serviceservices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Modules (puppeteer/agent_service/services/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Modules (puppeteer/agent_service/services/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        job_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#foundry_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        foundry_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scheduler_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scheduler_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pki_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pki_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signature_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        signature_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smelter_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        smelter_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vault_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alert_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        alert_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        webhook_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trigger_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trigger_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mirror_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mirror_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#staging_service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        staging_service
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database Schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Database Schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-table-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Table Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mtls-mutual-tls-node-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        mTLS — Mutual TLS Node Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ed25519-script-signing-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ed25519 Script Signing Chain
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jwt-token-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT + Token Versioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rbac-role-based-access-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RBAC — Role-Based Access Control
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fernet-encryption-at-rest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fernet Encryption at Rest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#job-execution-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job Execution Data Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#foundry-smelter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Foundry &amp; Smelter
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Foundry &amp; Smelter">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#build-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blueprint-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blueprint Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#template-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template → Image Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smelter-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smelter Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#image-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pull-model-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Model Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="architecture">Architecture</h1>
+<p>Axiom is a distributed job orchestration platform built around a central control plane (the <strong>Axiom Orchestrator</strong>) and any number of stateless worker agents (the <strong>Axiom Nodes</strong>). This guide is a full technical deep-dive: it covers every service, the database schema, the security model, and the data flows that make jobs run reliably across a fleet of nodes — without weakening the trust model.</p>
+<p>The platform is designed for environments where nodes cannot accept inbound connections. A <strong>pull model</strong> means every node initiates all communication outward to the orchestrator; no inbound firewall rules are ever required on a node.</p>
+<hr />
+<h2 id="system-overview">System Overview</h2>
+<pre class="mermaid"><code>graph TB
+    subgraph Puppeteer ["Axiom Orchestrator (Control Plane)"]
+        A[agent_service :8001]
+        M[model_service :8000]
+        DB[(PostgreSQL / SQLite)]
+        DASH[React Dashboard :5173]
+        DOCS[MkDocs Site :80/docs/]
+        A &lt;--&gt; DB
+        M &lt;--&gt; DB
+        DASH --&gt; A
+    end
+    subgraph Puppet ["Axiom Node (Worker)"]
+        N[environment_service/node.py]
+        R[runtime.py]
+        N --&gt; R
+    end
+    N --&gt;|"mTLS client cert · POLL /work/pull"| A
+    N --&gt;|"POST /heartbeat"| A
+    A --&gt;|"WorkResponse (signed script + limits)"| N
+    N --&gt;|"POST /work/result"| A
+    OPER([Operator]) --&gt; DASH
+    OPER --&gt; N</code></pre>
+<p>Three components run in every deployment:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Location</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Axiom Orchestrator</strong></td>
+<td><code>puppeteer/</code></td>
+<td>All state, API, scheduling, PKI, security enforcement</td>
+</tr>
+<tr>
+<td><strong>Axiom Node</strong></td>
+<td><code>puppets/environment_service/</code></td>
+<td>Stateless job executor; polls for work, runs scripts, reports results</td>
+</tr>
+<tr>
+<td><strong>React Dashboard</strong></td>
+<td><code>puppeteer/dashboard/</code></td>
+<td>Web UI for operators and admins</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="service-inventory">Service Inventory</h2>
+<p>The Axiom Orchestrator is composed of two FastAPI applications and a set of service modules that handle distinct concerns.</p>
+<h3 id="top-level-applications">Top-Level Applications</h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Port</th>
+<th>File</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>agent_service</code></td>
+<td>8001</td>
+<td><code>puppeteer/agent_service/main.py</code></td>
+<td>Primary control plane — all API routes, WebSocket, PKI, job dispatch</td>
+</tr>
+<tr>
+<td><code>model_service</code></td>
+<td>8000</td>
+<td><code>puppeteer/model_service/main.py</code></td>
+<td>APScheduler-backed cron scheduling; fires job definitions on a cron schedule</td>
+</tr>
+</tbody>
+</table>
+<p><code>agent_service</code> handles every interaction from the dashboard, nodes, and external integrations. <code>model_service</code> runs as a separate process and is responsible only for triggering scheduled jobs — it calls <code>agent_service</code> to dispatch them.</p>
+<h3 id="service-modules-puppeteeragent_serviceservices">Service Modules (<code>puppeteer/agent_service/services/</code>)</h3>
+<h4 id="job_service">job_service</h4>
+<p>The core of the job dispatch pipeline. Responsibilities:</p>
+<ul>
+<li><strong>Node selection</strong>: given a pending job, find the best available node by matching <code>target_tags</code> (JSON tag set), <code>capability_requirements</code>, and <code>memory_limit</code> against each node's <code>capabilities</code> and <code>job_memory_limit</code>. Nodes that cannot satisfy the requirements are skipped.</li>
+<li><strong>Job assignment</strong>: sets <code>Job.node_id</code>, updates status to <code>ASSIGNED</code>, and the node picks it up on the next poll.</li>
+<li><strong>Heartbeat processing</strong>: updates <code>Node.last_seen</code>, inserts a <code>NodeStats</code> row for the CPU/RAM snapshot, prunes old stats rows (keeps last 60 per node).</li>
+<li><strong>Execution records</strong>: writes an <code>ExecutionRecord</code> for every job run (stdout, stderr, exit code, timing).</li>
+</ul>
+<h4 id="foundry_service">foundry_service</h4>
+<p>Builds custom Docker images for Axiom Nodes. The build pipeline:</p>
+<ol>
+<li>Reads a <code>PuppetTemplate</code> (which references a RUNTIME blueprint and a NETWORK blueprint).</li>
+<li>Copies <code>puppets/environment_service/</code> into a temporary directory.</li>
+<li>Generates a <code>Dockerfile</code> from the <code>capability_matrix</code> injection recipes for each capability declared in the RUNTIME blueprint.</li>
+<li>Runs <code>docker build</code> via the mounted Docker socket.</li>
+<li>Optionally pushes the image to the local registry (<code>registry:5000</code>).</li>
+<li>Updates <code>PuppetTemplate.last_built_at</code> and <code>PuppetTemplate.current_image_uri</code> on success.</li>
+</ol>
+<p>A semaphore limits concurrent builds to 2. <code>smelter_service</code> validates all blueprints before the build starts.</p>
+<h4 id="scheduler_service">scheduler_service</h4>
+<p>Wraps APScheduler (<code>AsyncIOScheduler</code>) to manage cron job definitions:</p>
+<ul>
+<li>CRUD for <code>ScheduledJob</code> records.</li>
+<li>Adds/removes/reschedules APScheduler jobs when definitions change.</li>
+<li>On cron trigger, verifies the Ed25519 signature is still valid and dispatches a new <code>Job</code> via <code>job_service</code>.</li>
+<li>Stats pruning: periodically removes old <code>NodeStats</code> rows.</li>
+</ul>
+<h4 id="pki_service">pki_service</h4>
+<p>Thin lifecycle helpers wrapping <code>pki.py</code>'s <code>CertificateAuthority</code>:</p>
+<ul>
+<li><code>get_or_create_ca()</code> — initialises or loads the Root CA (RSA 4096, stored in DB <code>config</code> table).</li>
+<li><code>sign_csr()</code> — signs a node's certificate signing request.</li>
+<li><code>revoke_node()</code> — adds the node's cert serial to <code>RevokedCert</code> and regenerates the CRL.</li>
+<li><code>get_crl_pem()</code> — returns the current signed CRL.</li>
+</ul>
+<h4 id="signature_service">signature_service</h4>
+<p>Manages Ed25519 public keys used to sign job scripts:</p>
+<ul>
+<li>Stores public keys (PEM format) in the <code>signatures</code> table.</li>
+<li><code>verify_signature(public_key_id, script_bytes, signature_bytes)</code> — returns <code>True</code>/<code>False</code>.</li>
+<li>Nodes independently verify signatures before executing any script.</li>
+</ul>
+<h4 id="smelter_service">smelter_service</h4>
+<p>The security gatekeeper for Foundry builds:</p>
+<ul>
+<li>Maintains the <code>approved_ingredients</code> table — an allowlist of packages, versions, and SHA-256 hashes.</li>
+<li>Validates every package in a blueprint's <code>definition</code> against the allowlist before a build proceeds.</li>
+<li>Two enforcement modes: <strong>STRICT</strong> (build fails on any violation) and <strong>WARNING</strong> (violations logged, build continues).</li>
+<li>Integrates with <code>mirror_service</code> to confirm packages are available from the local PyPI/APT mirror.</li>
+</ul>
+<h4 id="vault_service">vault_service</h4>
+<p>Binary artifact storage for Foundry capability injection files:</p>
+<ul>
+<li>Stores arbitrary binary blobs in the <code>artifacts</code> table with a SHA-256 content hash.</li>
+<li>Used by <code>capability_matrix</code> to reference pre-built tool binaries injected into node images during build.</li>
+</ul>
+<h4 id="alert_service">alert_service</h4>
+<p>Generates internal alerts for security and operational events:</p>
+<ul>
+<li>Job failure after maximum retries.</li>
+<li>Node offline (heartbeat timeout exceeded).</li>
+<li>Script tamper detection (signature mismatch at node execution time).</li>
+<li>Writes to the <code>alerts</code> table; acknowledged by operators via the dashboard.</li>
+</ul>
+<h4 id="webhook_service">webhook_service</h4>
+<p>Outbound HMAC-signed webhook delivery:</p>
+<ul>
+<li>Reads <code>webhooks</code> table entries (URL, HMAC secret, event filter list).</li>
+<li>Signs every outbound payload with HMAC-SHA256 using the configured secret.</li>
+<li>Delivers asynchronously; retries on failure.</li>
+</ul>
+<h4 id="trigger_service">trigger_service</h4>
+<p>Inbound webhook-triggered job dispatch:</p>
+<ul>
+<li>Each <code>Trigger</code> record has a unique <code>slug</code> and a <code>secret_token</code>.</li>
+<li><code>POST /triggers/{slug}</code> validates the token and dispatches the associated job definition.</li>
+<li>Enables CI/CD pipelines and external systems to fire scheduled jobs on demand.</li>
+</ul>
+<h4 id="mirror_service">mirror_service</h4>
+<p>Local package mirror management for air-gap builds:</p>
+<ul>
+<li>Manages the <code>pypi</code> (pypiserver) and <code>mirror</code> (APT proxy) services.</li>
+<li>Tracks which packages are mirrored and whether they are current.</li>
+<li>Smelter checks mirror availability before approving a build.</li>
+</ul>
+<h4 id="staging_service">staging_service</h4>
+<p>A review gate for job definitions before they are activated:</p>
+<ul>
+<li>Job definitions can be submitted to a staging queue (<code>STAGED</code> state) rather than dispatched directly.</li>
+<li>An approver promotes a staged definition to active via a separate approval endpoint.</li>
+<li>Provides an audit trail of who approved what and when.</li>
+</ul>
+<hr />
+<h2 id="database-schema">Database Schema</h2>
+<p>The schema is managed by <code>SQLAlchemy</code>'s <code>Base.metadata.create_all</code> at startup. There is no Alembic — see the <a href="../contributing/">Contributing guide</a> for the migration pattern.</p>
+<pre class="mermaid"><code>erDiagram
+    jobs {
+        string guid PK
+        string task_type
+        string payload
+        string status
+        string node_id FK
+        string target_tags
+        string capability_requirements
+        string memory_limit
+        string cpu_limit
+        int max_retries
+        string depends_on
+    }
+    nodes {
+        string node_id PK
+        string hostname
+        string ip
+        datetime last_seen
+        string status
+        string capabilities
+        int concurrency_limit
+        string job_memory_limit
+        text client_cert_pem
+        string template_id FK
+    }
+    node_stats {
+        int id PK
+        string node_id FK
+        datetime recorded_at
+        float cpu
+        float ram
+    }
+    scheduled_jobs {
+        int id PK
+        string name
+        text script_content
+        int signature_id FK
+        string schedule_cron
+        string target_tags
+        string capability_requirements
+        bool is_active
+    }
+    signatures {
+        int id PK
+        string name
+        text public_key
+        string uploaded_by
+    }
+    users {
+        string username PK
+        string password_hash
+        string role
+        bool must_change_password
+        int token_version
+    }
+    role_permissions {
+        int id PK
+        string role
+        string permission
+    }
+    puppet_templates {
+        int id PK
+        string friendly_name
+        int runtime_blueprint_id FK
+        int network_blueprint_id FK
+        string canonical_id
+        string current_image_uri
+        datetime last_built_at
+        bool is_compliant
+    }
+    blueprints {
+        int id PK
+        string type
+        string name
+        text definition
+        string os_family
+    }
+    execution_records {
+        int id PK
+        string job_guid FK
+        string node_id FK
+        string status
+        int exit_code
+        datetime started_at
+        datetime completed_at
+        text output_log
+        bool truncated
+    }
+    audit_log {
+        int id PK
+        datetime timestamp
+        string username
+        string action
+        string resource_id
+        text detail
+    }
+
+    jobs ||--o{ execution_records : "has"
+    nodes ||--o{ node_stats : "records"
+    nodes ||--o{ jobs : "executes"
+    puppet_templates ||--|| blueprints : "runtime_blueprint"
+    puppet_templates ||--|| blueprints : "network_blueprint"
+    scheduled_jobs }o--|| signatures : "signed_by"
+    users ||--o{ audit_log : "generates"</code></pre>
+<h3 id="key-table-notes">Key Table Notes</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>jobs</code></td>
+<td><code>status</code> values: <code>PENDING</code>, <code>ASSIGNED</code>, <code>RUNNING</code>, <code>COMPLETED</code>, <code>FAILED</code>, <code>RETRYING</code>. <code>depends_on</code> is a JSON array of guids.</td>
+</tr>
+<tr>
+<td><code>nodes</code></td>
+<td><code>status</code> values: <code>ONLINE</code>, <code>OFFLINE</code>, <code>REVOKED</code>. <code>capabilities</code> is a JSON object (e.g., <code>{"python": true, "docker": true}</code>).</td>
+</tr>
+<tr>
+<td><code>node_stats</code></td>
+<td>Pruned to last 60 rows per node by <code>scheduler_service</code>. Used for sparkline charts in the dashboard.</td>
+</tr>
+<tr>
+<td><code>role_permissions</code></td>
+<td>Has a <code>UniqueConstraint(role, permission)</code>. Admin role bypasses this table entirely — it has an unconditional bypass in <code>require_permission()</code>.</td>
+</tr>
+<tr>
+<td><code>blueprints</code></td>
+<td><code>type</code> is <code>RUNTIME</code> (defines packages/tools) or <code>NETWORK</code> (defines network configuration). <code>definition</code> is a JSON object; package lists use <code>{"python": [...]}</code> dict format.</td>
+</tr>
+<tr>
+<td><code>audit_log</code></td>
+<td>All security-relevant events are written here: logins, permission changes, job dispatches, node enrollments, revocations.</td>
+</tr>
+<tr>
+<td><code>revoked_certs</code></td>
+<td>Backing store for the CRL. Checked at every <code>/work/pull</code> and <code>/api/enroll</code> request.</td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>Key-value store for system state: Root CA PEM, base image staleness markers, system settings.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="security-model">Security Model</h2>
+<p>Axiom has five layered security mechanisms. Each addresses a different threat vector.</p>
+<h3 id="mtls-mutual-tls-node-authentication">mTLS — Mutual TLS Node Authentication</h3>
+<p>Every node-to-orchestrator connection is mutually authenticated with TLS client certificates. The orchestrator operates an internal Root CA (<code>pki.py</code>). Nodes never connect over plain HTTP.</p>
+<p><strong>Enrollment flow:</strong></p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant N as Axiom Node
+    participant P as Axiom Orchestrator (agent_service)
+    participant CA as Internal Root CA
+
+    N-&gt;&gt;N: Decode JOIN_TOKEN (base64 JSON → root CA PEM)
+    N-&gt;&gt;N: Write root CA to disk (trust anchor)
+    N-&gt;&gt;N: Generate RSA keypair + CSR
+    N-&gt;&gt;P: POST /api/enroll {csr_pem, hostname, machine_id, node_secret}
+    P-&gt;&gt;CA: sign_csr(csr_pem, hostname)
+    CA--&gt;&gt;P: client_cert.pem
+    P-&gt;&gt;P: Store client_cert_pem in Node DB row
+    P--&gt;&gt;N: {client_cert, node_id}
+    N-&gt;&gt;N: Write cert + key to secrets/node-{id}.crt/.key
+    Note over N,P: All subsequent requests present the client cert (mTLS)</code></pre>
+<p><strong>Cert lifecycle:</strong></p>
+<ul>
+<li><code>JOIN_TOKEN</code> is a base64-encoded JSON object containing the Root CA PEM. It is the only credential a node needs to bootstrap.</li>
+<li>After enrollment, the node stores its cert+key in <code>secrets/node-{id}.crt</code> and <code>secrets/node-{id}.key</code>. On restart, it scans for these files and reuses the existing node ID — preventing re-enrollment churn.</li>
+<li>Revoked certs are tracked in the <code>revoked_certs</code> table. Revoked nodes receive 403 on <code>/work/pull</code> and <code>/api/enroll</code>.</li>
+<li>The current CRL is served at <code>GET /system/crl.pem</code> (no auth required — needed by TLS clients).</li>
+</ul>
+<h3 id="ed25519-script-signing-chain">Ed25519 Script Signing Chain</h3>
+<p>All job scripts must be signed with an Ed25519 private key whose corresponding public key is registered in the <code>signatures</code> table. This prevents an attacker who compromises the orchestrator database from pushing arbitrary scripts to nodes.</p>
+<p><strong>The signing chain:</strong></p>
+<pre class="mermaid"><code>flowchart LR
+    OP[Operator] --&gt;|generates keypair| KEY[Ed25519 keypair]
+    KEY --&gt;|uploads public key| SIG[signatures table]
+    KEY --&gt;|signs script locally| SIGN[signature bytes]
+    OP --&gt;|POST /jobs: script + signature| A[agent_service]
+    A --&gt;|verify signature| A
+    A --&gt;|store Job + signature_payload| DB[(DB)]
+    DB --&gt;|WorkResponse: script + signature| N[Axiom Node]
+    N --&gt;|verify signature locally| N
+    N --&gt;|refuse if invalid| X[Execution blocked]
+    N --&gt;|execute if valid| R[runtime.py]</code></pre>
+<ul>
+<li>Operators generate Ed25519 keypairs using <code>admin_signer.py</code> (or any standard tool).</li>
+<li>The public key is registered via the dashboard or <code>POST /signatures</code>.</li>
+<li>The operator signs each script offline before dispatching. The signature is stored in <code>Job.signature_payload</code>.</li>
+<li>Nodes re-verify the signature at execution time using the registered public key. If verification fails, the script is not executed and a tamper alert is generated.</li>
+</ul>
+<h3 id="jwt-token-versioning">JWT + Token Versioning</h3>
+<p>The dashboard and API use JWT bearer tokens for human user authentication.</p>
+<ul>
+<li>Tokens are signed with <code>SECRET_KEY</code> (HS256).</li>
+<li>Every token embeds a <code>tv</code> (token version) field matching <code>User.token_version</code>.</li>
+<li>On any password change, <code>token_version</code> is incremented. All previously issued tokens become invalid immediately — no revocation list or session store required.</li>
+<li>The <code>must_change_password</code> flag forces a password reset dialog on next login before any other UI is accessible.</li>
+<li>Token expiry is 24 hours by default.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Production requirement</p>
+<p>Always set <code>SECRET_KEY</code> to a cryptographically random value in production. The default is a weak development placeholder. Use <code>openssl rand -hex 32</code>.</p>
+</div>
+<h3 id="rbac-role-based-access-control">RBAC — Role-Based Access Control</h3>
+<p>Three roles exist: <code>admin</code>, <code>operator</code>, <code>viewer</code>. Permissions are stored in the <code>role_permissions</code> table and seeded at startup.</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Typical Permissions</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin</code></td>
+<td>All</td>
+<td>Bypasses all permission checks — checked inline in <code>require_permission()</code></td>
+</tr>
+<tr>
+<td><code>operator</code></td>
+<td><code>jobs:write</code>, <code>nodes:write</code>, <code>foundry:write</code>, <code>signatures:write</code></td>
+<td>Can dispatch jobs, manage nodes, manage Foundry</td>
+</tr>
+<tr>
+<td><code>viewer</code></td>
+<td><code>jobs:read</code>, <code>nodes:read</code>, <code>audit:read</code></td>
+<td>Read-only dashboard access</td>
+</tr>
+</tbody>
+</table>
+<p>Route protection pattern (from <code>main.py</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">some_route</span><span class="p">(</span><span class="n">current_user</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_permission</span><span class="p">(</span><span class="s2">&quot;jobs:write&quot;</span><span class="p">))):</span>
+    <span class="o">...</span>
+</code></pre></div>
+<p><code>require_permission()</code> is a factory that returns a FastAPI dependency. Admin users skip the DB lookup. All other users are checked against <code>role_permissions</code>.</p>
+<p>Node-facing endpoints (<code>/api/enroll</code>, <code>/work/pull</code>, <code>/heartbeat</code>, <code>/work/result</code>) are <strong>unauthenticated</strong> — they rely on mTLS client certificates only.</p>
+<h3 id="fernet-encryption-at-rest">Fernet Encryption at Rest</h3>
+<p>Sensitive job payloads and secrets stored in the database are encrypted using Fernet (AES-128-CBC with HMAC-SHA256).</p>
+<ul>
+<li>The <code>ENCRYPTION_KEY</code> environment variable must hold a valid Fernet key.</li>
+<li>Encryption and decryption are handled in <code>security.py</code> via <code>fernet_encrypt()</code> and <code>fernet_decrypt()</code>.</li>
+<li>If <code>ENCRYPTION_KEY</code> is not set, the service will auto-generate one at startup — but this key is lost on restart, making all previously encrypted data unreadable. <strong>Always set <code>ENCRYPTION_KEY</code> explicitly in production.</strong></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Generating a Fernet key</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span>
+</code></pre></div>
+</div>
+<hr />
+<h2 id="job-execution-data-flow">Job Execution Data Flow</h2>
+<p>The sequence from operator action to completed job result:</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant OP as Operator
+    participant D as Dashboard
+    participant A as agent_service
+    participant N as Axiom Node
+    participant R as runtime.py
+
+    OP-&gt;&gt;D: Dispatch job (script content + signature)
+    D-&gt;&gt;A: POST /jobs {payload, signature_payload, target_tags, capability_requirements}
+    A-&gt;&gt;A: Verify Ed25519 signature against registered public key
+    A-&gt;&gt;A: Insert Job (status=PENDING) into DB
+    loop Poll every N seconds
+        N-&gt;&gt;A: POST /work/pull (mTLS client cert)
+        A-&gt;&gt;A: Find PENDING job matching node tags + capabilities + memory
+        A--&gt;&gt;N: WorkResponse {script, signature, memory_limit, cpu_limit}
+        A-&gt;&gt;A: Update Job (status=ASSIGNED)
+    end
+    N-&gt;&gt;N: Verify Ed25519 signature (tamper check)
+    N-&gt;&gt;R: run(script, memory_limit, cpu_limit)
+    R-&gt;&gt;R: Execute in subprocess or container (based on EXECUTION_MODE)
+    R--&gt;&gt;N: {stdout, stderr, exit_code}
+    N-&gt;&gt;A: POST /work/result {guid, status, output, exit_code}
+    A-&gt;&gt;A: Update Job (status=COMPLETED or FAILED)
+    A-&gt;&gt;A: Write ExecutionRecord
+    A-&gt;&gt;D: WebSocket push (job status update)
+    D-&gt;&gt;OP: Live status update</code></pre>
+<p><strong>Key decision points in the flow:</strong></p>
+<ul>
+<li>If the node's Ed25519 verification fails, the script is not executed and a tamper alert is generated. The job is marked <code>FAILED</code>.</li>
+<li>If <code>max_retries</code> is set and the job fails, it re-enters <code>PENDING</code> and is reassigned on the next poll cycle.</li>
+<li><code>depends_on</code> (JSON array of job guids) — jobs are not dispatched until all dependencies are <code>COMPLETED</code>.</li>
+<li>Memory admission: if a node's <code>job_memory_limit</code> is lower than the job's <code>memory_limit</code>, the node is skipped during selection.</li>
+</ul>
+<hr />
+<h2 id="foundry-smelter">Foundry &amp; Smelter</h2>
+<p>Foundry builds custom Docker images for Axiom Nodes. Smelter is the security gatekeeper that validates every ingredient before a build proceeds.</p>
+<h3 id="build-pipeline">Build Pipeline</h3>
+<pre class="mermaid"><code>flowchart TD
+    BPRINT_R[RUNTIME Blueprint\ndefinition: packages + tools] --&gt; TPL[PuppetTemplate\nruntime_bp + network_bp]
+    BPRINT_N[NETWORK Blueprint\ndefinition: network config] --&gt; TPL
+    TPL --&gt; FOUNDRY[foundry_service\nbuild_template]
+    FOUNDRY --&gt; SMELTER{smelter_service\nvalidate ingredients}
+    SMELTER --&gt;|STRICT violation| FAIL[Build blocked]
+    SMELTER --&gt;|PASS or WARNING| BUILD[docker build\ntemp dir context]
+    BUILD --&gt; PUSH[Push to registry:5000]
+    PUSH --&gt; ACTIVE[Image ACTIVE\nTemplate last_built_at updated]
+    ACTIVE --&gt; NODE[Axiom Node\npulls image from registry]</code></pre>
+<h3 id="blueprint-model">Blueprint Model</h3>
+<p>Blueprints are reusable build ingredients. Two types:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Purpose</th>
+<th>Definition Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RUNTIME</code></td>
+<td>Declares packages, tools, and capabilities installed in the image</td>
+<td><code>{"python": ["requests", "boto3"], "system": ["curl"]}</code></td>
+</tr>
+<tr>
+<td><code>NETWORK</code></td>
+<td>Declares network configuration (proxy settings, DNS, etc.)</td>
+<td>JSON network config object</td>
+</tr>
+</tbody>
+</table>
+<p>Each blueprint has an <code>os_family</code> field (<code>DEBIAN</code> or <code>ALPINE</code>) that selects the appropriate injection recipe from <code>capability_matrix</code>.</p>
+<h3 id="template-image-build">Template → Image Build</h3>
+<p>A <code>PuppetTemplate</code> combines one RUNTIME blueprint and one NETWORK blueprint. When built, the orchestrator:</p>
+<ol>
+<li><code>foundry_service</code> copies <code>puppets/environment_service/</code> to a temporary directory.</li>
+<li>For each capability in the RUNTIME blueprint, the matching <code>capability_matrix</code> row provides a Dockerfile snippet (<code>injection_recipe</code>) that installs the capability.</li>
+<li>A complete <code>Dockerfile</code> is assembled and <code>docker build</code> is invoked.</li>
+<li>The resulting image is tagged and pushed to the local registry at <code>localhost:5000</code>.</li>
+</ol>
+<h3 id="smelter-enforcement">Smelter Enforcement</h3>
+<p>The <code>approved_ingredients</code> table is the security allowlist for Foundry builds. Before any build:</p>
+<ul>
+<li>Every package in every blueprint is checked against <code>approved_ingredients</code> (name, version constraint, SHA-256).</li>
+<li>In <strong>STRICT</strong> mode: any package not in the allowlist causes an immediate build failure.</li>
+<li>In <strong>WARNING</strong> mode: violations are logged and the build proceeds.</li>
+<li>The enforcement mode is set in the system <code>config</code> table.</li>
+</ul>
+<h3 id="image-lifecycle">Image Lifecycle</h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ACTIVE</code></td>
+<td>Currently built; nodes can use this image</td>
+</tr>
+<tr>
+<td><code>DEPRECATED</code></td>
+<td>Superseded by a newer build; nodes should upgrade</td>
+</tr>
+<tr>
+<td><code>REVOKED</code></td>
+<td>Security issue; nodes must not use this image</td>
+</tr>
+</tbody>
+</table>
+<p>The dashboard shows a staleness warning when the base OS image has been updated but a template has not been rebuilt since the update.</p>
+<hr />
+<h2 id="pull-model-architecture">Pull Model Architecture</h2>
+<p>All node-to-orchestrator communication is initiated by the node. This is a deliberate architectural decision.</p>
+<p><strong>Why pull, not push?</strong></p>
+<p>In a push model, the orchestrator would need to open a connection to each node to deliver work. This requires:</p>
+<ul>
+<li>The orchestrator to know the node's current IP address.</li>
+<li>Inbound firewall rules on every node to accept connections from the orchestrator.</li>
+<li>Network infrastructure that routes the orchestrator's traffic to every node (VLANs, VPNs, etc.).</li>
+</ul>
+<p>In the pull model, nodes only need outbound HTTPS connectivity to the orchestrator's address. This works:</p>
+<ul>
+<li>Behind NAT, without port forwarding.</li>
+<li>In cloud environments where nodes have no stable public IP.</li>
+<li>Across network boundaries where inbound rules are locked down.</li>
+<li>With ephemeral nodes (containers, spot instances) that come and go.</li>
+</ul>
+<p><strong>How the pull loop works:</strong></p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant N as Axiom Node
+    participant A as agent_service
+
+    loop Every POLL_INTERVAL seconds (default 5)
+        N-&gt;&gt;A: POST /work/pull (mTLS)
+        alt Job available and node matches
+            A--&gt;&gt;N: 200 WorkResponse {job details}
+            N-&gt;&gt;N: Execute job
+            N-&gt;&gt;A: POST /work/result
+        else No matching job
+            A--&gt;&gt;N: 204 No Content
+        end
+    end
+    N-&gt;&gt;A: POST /heartbeat (CPU%, RAM%, node metadata)</code></pre>
+<p><strong>Heartbeat cadence:</strong> Nodes send heartbeats independently of the work poll. If a node's <code>last_seen</code> timestamp exceeds the offline threshold (configurable), <code>job_service</code> marks the node <code>OFFLINE</code> and generates an alert. Any jobs assigned to that node are re-queued.</p>
+<p><strong>WorkResponse payload:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">WorkResponse</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">guid</span><span class="p">:</span> <span class="nb">str</span>           <span class="c1"># Job identifier</span>
+    <span class="n">task_type</span><span class="p">:</span> <span class="nb">str</span>      <span class="c1"># Informational job type label</span>
+    <span class="n">payload</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># Script content (plaintext Python)</span>
+    <span class="n">signature_payload</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># Base64-encoded Ed25519 signature</span>
+    <span class="n">memory_limit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">cpu_limit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+<p>The node receives the script content and the signature in a single response. It must verify the signature before passing the script to <code>runtime.py</code>. There is no mechanism to execute a script without a valid registered signature.</p>
+<div class="admonition note">
+<p class="admonition-title">Node identity persistence</p>
+<p>Node IDs are stable across container restarts. On startup, <code>node.py</code> scans the <code>secrets/</code> directory for an existing <code>node-{id}.crt</code> file. If found, that node ID is reused — preventing re-enrollment on every restart. The <code>secrets/</code> directory should be a persistent Docker volume in any production deployment.</p>
+</div>
+<hr />
+<h2 id="environment-variables-reference">Environment Variables Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Service</th>
+<th>Required?</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SECRET_KEY</code></td>
+<td>agent_service</td>
+<td>Recommended</td>
+<td>JWT signing key — use a strong random value</td>
+</tr>
+<tr>
+<td><code>ENCRYPTION_KEY</code></td>
+<td>agent_service</td>
+<td>Required</td>
+<td>Fernet key for secrets at rest — must be stable</td>
+</tr>
+<tr>
+<td><code>ADMIN_PASSWORD</code></td>
+<td>agent_service</td>
+<td>Recommended</td>
+<td>Initial admin password (random if unset, logged)</td>
+</tr>
+<tr>
+<td><code>API_KEY</code></td>
+<td>agent_service</td>
+<td><strong>Required</strong></td>
+<td>Shared API key — <code>sys.exit(1)</code> at import if missing</td>
+</tr>
+<tr>
+<td><code>DATABASE_URL</code></td>
+<td>agent_service, model_service</td>
+<td>Optional</td>
+<td>Defaults to SQLite (<code>jobs.db</code>). Use <code>postgresql+asyncpg://...</code> for production</td>
+</tr>
+<tr>
+<td><code>AGENT_URL</code></td>
+<td>model_service, nodes</td>
+<td>Required for nodes</td>
+<td>URL nodes use to reach agent_service (e.g., <code>https://192.168.1.10:8001</code>)</td>
+</tr>
+<tr>
+<td><code>JOIN_TOKEN</code></td>
+<td>nodes</td>
+<td>Required</td>
+<td>Base64 JSON containing Root CA PEM; generated by the dashboard</td>
+</tr>
+<tr>
+<td><code>EXECUTION_MODE</code></td>
+<td>nodes</td>
+<td>Optional</td>
+<td><code>auto</code> (default), <code>direct</code>, <code>docker</code>, or <code>podman</code>. Use <code>direct</code> inside Docker-in-Docker</td>
+</tr>
+<tr>
+<td><code>JOB_MEMORY_LIMIT</code></td>
+<td>nodes</td>
+<td>Optional</td>
+<td>Default memory limit for all jobs on this node (e.g., <code>512m</code>)</td>
+</tr>
+<tr>
+<td><code>JOB_CPU_LIMIT</code></td>
+<td>nodes</td>
+<td>Optional</td>
+<td>Default CPU limit for all jobs on this node (e.g., <code>1.0</code>)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">API_KEY is mandatory</p>
+<p><code>security.py</code> calls <code>sys.exit(1)</code> at module import time if <code>API_KEY</code> is not set. This will prevent <code>agent_service</code> from starting at all. Always set it — even for local development (<code>export API_KEY=dev-key</code> is sufficient).</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
