@@ -1,61 +1,74 @@
-# Requirements: Axiom
+# Requirements: Axiom v14.3 Security Hardening + EE Licensing
 
 **Defined:** 2026-03-26
 **Core Value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## v14.2 Requirements
+## v14.3 Requirements
 
-### Deployment
+### Security Fixes
 
-- [x] **DEPLOY-01**: Docs site is automatically deployed to GH Pages on every push to `main` via a new `docs-deploy.yml` workflow
-- [x] **DEPLOY-02**: Deploy workflow is a standalone file with its own trigger and permissions, separate from `ci.yml`
+- [ ] **SEC-01**: Operator can be confident that the device-approve OAuth page (`/auth/device/approve`) does not reflect unsanitised user input — `user_code` query parameter is HTML-escaped before rendering
+- [ ] **SEC-02**: Operator can be confident that `vault_service.py` artifact paths are safe against directory traversal — UUID validation + `Path.resolve() + is_relative_to()` guard applied to store and delete operations
+- [ ] **SEC-03**: Operator can be confident that `main.py` installer script paths are safe against directory traversal — same `resolve() + is_relative_to()` pattern applied to all flagged locations (verified via live CodeQL scan)
+- [ ] **SEC-04**: Operator can be confident that job output scanning (`mask_pii()`) cannot be exploited for ReDoS — email regex rewritten to linear bounded pattern, not just length-guarded
+- [ ] **SEC-05**: Operator can start Axiom without an `API_KEY` environment variable — import-time crash removed, `verify_api_key` dependency removed from all three node-facing routes, `API_KEY` references removed from documentation and templates
+- [ ] **SEC-06**: Operator can be confident that the CSV job export endpoint cannot be used for XSS via content-sniffing — `X-Content-Type-Options: nosniff` header present in the backend streaming response
 
-### Config
+### EE Licensing
 
-- [x] **CONFIG-01**: `site_url` in `mkdocs.yml` updated to `https://axiom-laboratories.github.io/axiom/`
-- [x] **CONFIG-02**: `offline` plugin made conditional (`!ENV [OFFLINE_BUILD, false]`) — disabled for GH Pages builds, enabled when `OFFLINE_BUILD=true`
-- [x] **CONFIG-03**: Dockerfile sets `OFFLINE_BUILD=true` in the `mkdocs build` step to preserve current air-gap container behaviour
-
-### Housekeeping
-
-- [x] **HOUSE-01**: `docs/site/` added to `.gitignore` and removed from git tracking
-- [x] **HOUSE-02**: `.nojekyll` file added to `docs/docs/` to prevent Jekyll interference on GH Pages
-
-### Maintenance
-
-- [x] **MAINT-01**: Local script to regenerate `openapi.json` from the FastAPI app (run locally when API schema changes, commits the updated file)
+- [ ] **LIC-01**: Axiom Labs operator can generate an Ed25519-signed licence key offline using `tools/generate_licence.py`, specifying customer ID, tier, node limit, feature list, expiry date, and grace days
+- [ ] **LIC-02**: Axiom EE verifies the Ed25519 cryptographic signature of the licence key at startup, rejecting any key whose signature does not match the embedded public key
+- [ ] **LIC-03**: Axiom EE transitions to a GRACE state when a valid licence expires, logging a warning and continuing EE operation for up to `grace_days` (default 30) rather than crashing or hard-stopping
+- [ ] **LIC-04**: Axiom EE transitions to DEGRADED_CE state (CE stub routes return 402) after the grace period ends, without crashing or raising unhandled exceptions in EE route handlers
+- [ ] **LIC-05**: Axiom EE detects clock rollback between container restarts via a hash-chained boot log in `secrets/boot.log` and logs a warning (strict mode: reject startup)
+- [ ] **LIC-06**: Operator can query `GET /api/licence` and receive `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields in the response
+- [ ] **LIC-07**: Axiom CE/EE rejects new node enrollment at `POST /api/enroll` with HTTP 402 when the signed `node_limit` in the licence has been reached
 
 ## Future Requirements
 
-(none identified for this milestone)
+### Deferred
+
+- Licence issuance portal (web UI for generating keys) — not justified at current customer volume
+- Per-licence grace period operator documentation updates — follows LIC-03 landing
+- Dashboard amber/red banner on GRACE/DEGRADED_CE state — backend status stable after v14.3; frontend component can follow in v14.x
+- Periodic in-process licence re-validation (APScheduler 6h re-check) — deferred to v15+
+- Hardware fingerprinting / node locking — deferred to v15+
+- Per-feature tier gating (currently all-or-nothing EE) — deferred to v15+
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Custom domain (CNAME) | github.io URL is sufficient for now |
-| Versioned docs (mike) | Adds complexity without current use case; conflicts with plain gh-deploy |
-| Zip distribution path for offline | Docker container is the sole air-gap distribution path |
-| robots.txt | Not needed for initial launch |
+| Dashboard licence banner | Backend status API lands in v14.3; UI component deferred to avoid scope creep |
+| Licence issuance web portal | No web service needed at current scale; offline CLI is sufficient |
+| Online licence validation (call-home) | Air-gapped deployments are a core use case — online checks would block them |
+| Job signing keypair reuse for licences | Critical security boundary: a leaked job-signing key must not forge licences |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | Phase 71 | Complete |
-| DEPLOY-02 | Phase 71 | Complete |
-| CONFIG-01 | Phase 71 | Complete |
-| CONFIG-02 | Phase 71 | Complete |
-| CONFIG-03 | Phase 71 | Complete |
-| HOUSE-01 | Phase 71 | Complete |
-| HOUSE-02 | Phase 71 | Complete |
-| MAINT-01 | Phase 71 | Complete |
+| SEC-01 | Phase ? | Pending |
+| SEC-02 | Phase ? | Pending |
+| SEC-03 | Phase ? | Pending |
+| SEC-04 | Phase ? | Pending |
+| SEC-05 | Phase ? | Pending |
+| SEC-06 | Phase ? | Pending |
+| LIC-01 | Phase ? | Pending |
+| LIC-02 | Phase ? | Pending |
+| LIC-03 | Phase ? | Pending |
+| LIC-04 | Phase ? | Pending |
+| LIC-05 | Phase ? | Pending |
+| LIC-06 | Phase ? | Pending |
+| LIC-07 | Phase ? | Pending |
 
 **Coverage:**
-- v14.2 requirements: 8 total
-- Mapped to phases: 8
-- Unmapped: 0 ✓
+- v14.3 requirements: 13 total
+- Mapped to phases: 0
+- Unmapped: 13 ⚠️
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 — traceability confirmed after roadmap creation*
+*Last updated: 2026-03-26 after initial definition*
