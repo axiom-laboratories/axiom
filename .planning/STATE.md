@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v14.2
 milestone_name: — Docs on GitHub Pages
-status: ready_to_plan
-stopped_at: Roadmap created — Phase 71 ready to plan
-last_updated: "2026-03-26T00:00:00.000Z"
-last_activity: 2026-03-26 — Roadmap created for v14.2
+status: planning
+stopped_at: Completed 71-deploy-docs-to-github-pages/71-01-PLAN.md
+last_updated: "2026-03-26T17:22:06.872Z"
+last_activity: 2026-03-26 — Roadmap created
 progress:
   total_phases: 1
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -40,6 +40,8 @@ Progress: [░░░░░░░░░░] 0%
 - [v14.2]: CE repo is public — GitHub Pages free tier, no paid plan needed
 - [v14.2]: `mkdocs gh-deploy --force` approach (not `actions/deploy-pages` artifact chain) — simpler, official MkDocs Material recommendation, requires only `contents: write`
 - [v14.2]: `offline` plugin made conditional via `!ENV [OFFLINE_BUILD, false]` — Dockerfile sets `OFFLINE_BUILD=true` to preserve air-gap container behaviour
+- [Phase 71-deploy-docs-to-github-pages]: docs/site/ untracked from git — 166 build output files removed from index, gitignored
+- [Phase 71-deploy-docs-to-github-pages]: OFFLINE_BUILD pattern established: offline plugin disabled for GitHub Pages, enabled via env var in Docker builds
 
 ### Pending Todos
 
@@ -52,6 +54,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26
-Stopped at: Roadmap written — Phase 71 ready for `/gsd:plan-phase 71`
+Last session: 2026-03-26T17:22:06.871Z
+Stopped at: Completed 71-deploy-docs-to-github-pages/71-01-PLAN.md
 Resume file: None

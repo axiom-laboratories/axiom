@@ -12,14 +12,14 @@
 
 ### Config
 
-- [ ] **CONFIG-01**: `site_url` in `mkdocs.yml` updated to `https://axiom-laboratories.github.io/axiom/`
-- [ ] **CONFIG-02**: `offline` plugin made conditional (`!ENV [OFFLINE_BUILD, false]`) — disabled for GH Pages builds, enabled when `OFFLINE_BUILD=true`
-- [ ] **CONFIG-03**: Dockerfile sets `OFFLINE_BUILD=true` in the `mkdocs build` step to preserve current air-gap container behaviour
+- [x] **CONFIG-01**: `site_url` in `mkdocs.yml` updated to `https://axiom-laboratories.github.io/axiom/`
+- [x] **CONFIG-02**: `offline` plugin made conditional (`!ENV [OFFLINE_BUILD, false]`) — disabled for GH Pages builds, enabled when `OFFLINE_BUILD=true`
+- [x] **CONFIG-03**: Dockerfile sets `OFFLINE_BUILD=true` in the `mkdocs build` step to preserve current air-gap container behaviour
 
 ### Housekeeping
 
-- [ ] **HOUSE-01**: `docs/site/` added to `.gitignore` and removed from git tracking
-- [ ] **HOUSE-02**: `.nojekyll` file added to `docs/docs/` to prevent Jekyll interference on GH Pages
+- [x] **HOUSE-01**: `docs/site/` added to `.gitignore` and removed from git tracking
+- [x] **HOUSE-02**: `.nojekyll` file added to `docs/docs/` to prevent Jekyll interference on GH Pages
 
 ### Maintenance
 
@@ -44,11 +44,11 @@
 |-------------|-------|--------|
 | DEPLOY-01 | Phase 71 | Pending |
 | DEPLOY-02 | Phase 71 | Pending |
-| CONFIG-01 | Phase 71 | Pending |
-| CONFIG-02 | Phase 71 | Pending |
-| CONFIG-03 | Phase 71 | Pending |
-| HOUSE-01 | Phase 71 | Pending |
-| HOUSE-02 | Phase 71 | Pending |
+| CONFIG-01 | Phase 71 | Complete |
+| CONFIG-02 | Phase 71 | Complete |
+| CONFIG-03 | Phase 71 | Complete |
+| HOUSE-01 | Phase 71 | Complete |
+| HOUSE-02 | Phase 71 | Complete |
 | MAINT-01 | Phase 71 | Pending |
 
 **Coverage:**
