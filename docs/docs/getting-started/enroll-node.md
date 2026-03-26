@@ -37,10 +37,10 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
     ```bash
     curl -sk -X POST https://<your-orchestrator>:8001/admin/generate-token \
       -H "Authorization: Bearer $TOKEN" \
-      | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('enhanced_token', d.get('join_token', '')))"
+      | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['token'])"
     ```
 
-    The `enhanced_token` field contains the full base64-encoded JOIN_TOKEN with the Root CA embedded.
+    The `token` field contains the full base64-encoded JOIN_TOKEN with the Root CA embedded.
 
 !!! warning "Admin password (cold-start installs)"
     If you started Axiom using `compose.cold-start.yaml` without setting `ADMIN_PASSWORD` in your `.env` file, the admin account was created with a random password. You will not be able to log in.

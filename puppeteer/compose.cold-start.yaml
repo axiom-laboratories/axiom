@@ -12,7 +12,7 @@ version: "3"
 #   2. docker compose -f compose.cold-start.yaml --env-file .env up -d
 #   3. Generate JOIN tokens from the dashboard (Admin → Join Tokens) or via API:
 #        curl -sk -X POST https://localhost:8001/admin/generate-token \
-#          -H "Authorization: Bearer <admin-jwt>" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['enhanced_token'])"
+#          -H "Authorization: Bearer <admin-jwt>" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['token'])"
 #   4. Set JOIN_TOKEN_1 and JOIN_TOKEN_2 in your .env file and restart the node services.
 #
 # Usage:
@@ -22,8 +22,8 @@ version: "3"
 # IMPORTANT: ADMIN_PASSWORD must be set in your .env file before first start.
 # If omitted, the admin account is created with a random password that cannot be recovered.
 #
-# Dashboard is reachable at: https://172.17.0.1:8443
-# API is reachable at:       https://172.17.0.1:8001
+# Dashboard is reachable at: https://localhost:8443
+# API is reachable at:       https://localhost:8001
 
 services:
   db:
