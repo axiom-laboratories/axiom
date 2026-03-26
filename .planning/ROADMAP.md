@@ -168,7 +168,7 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
 
 **Milestone Goal:** Close all CodeQL security alerts, remove the legacy API_KEY crash, and deliver a production-grade EE licence key system with Ed25519 cryptographic validation, grace-period state machine, clock-rollback detection, and air-gap-safe node limit enforcement.
 
-- [ ] **Phase 72: Security Fixes** — Close 5 CodeQL error-severity alerts (XSS, path injection x4, ReDoS), remove API_KEY hard crash and node-route dependency
+- [x] **Phase 72: Security Fixes** — Close 5 CodeQL error-severity alerts (XSS, path injection x4, ReDoS), remove API_KEY hard crash and node-route dependency (completed 2026-03-26)
 - [ ] **Phase 73: EE Licence System** — Offline licence CLI, Ed25519 signature validation at startup, grace period state machine, boot-log clock-rollback detection, extended /api/licence response, node limit enforcement at enrollment
 
 ## Phase Details
@@ -231,7 +231,7 @@ Plans:
 | 69. Fix CI release pipeline version pinning and semver tags | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 71. Deploy Docs to GitHub Pages | v14.2 | 2/2 | Complete | 2026-03-26 |
-| 72. Security Fixes | 1/2 | In Progress|  | - |
+| 72. Security Fixes | 2/2 | Complete   | 2026-03-26 | - |
 | 73. EE Licence System | v14.3 | 0/TBD | Not started | - |
 
 ## Archived
