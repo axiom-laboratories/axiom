@@ -243,10 +243,10 @@ Plans:
 
 ### Phase 69: Fix CI release pipeline version pinning and semver tags
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Fix the two independent CI failures so that pushing a git tag produces a successful TestPyPI upload (unique version via setuptools-scm) and a correctly-tagged Docker image (type=ref,event=tag replacing broken semver patterns)
+**Requirements**: CI-01, CI-02
 **Depends on:** Phase 68
-**Plans:** 1/1 plans complete
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 69 to break down)
+- [ ] 69-01-PLAN.md — pyproject.toml setuptools-scm dynamic version + release.yml fetch-depth and Docker metadata tags fix (CI-01, CI-02)
