@@ -69,3 +69,23 @@ The `GET /api/licence` endpoint (authenticated) returns your current licence sta
 In CE mode it returns `{"edition": "community"}`.
 
 The dashboard sidebar also shows a **CE** or **EE** badge for at-a-glance visibility.
+
+### Checking active feature flags
+
+To see which EE features are currently active, call `GET /api/features` (no authentication required):
+
+```json
+{
+  "audit": true,
+  "foundry": true,
+  "webhooks": true,
+  "triggers": true,
+  "rbac": true,
+  "resource_limits": true,
+  "service_principals": true,
+  "api_keys": true,
+  "executions": true
+}
+```
+
+In CE mode (or with an expired or missing key), all values return `false`.
