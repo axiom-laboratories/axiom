@@ -183,7 +183,10 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
   3. Node-facing routes (`/api/enroll`, `/work/pull`, `/heartbeat`) continue to function correctly for enrolled nodes after `verify_api_key` dependency is removed
   4. Operator can confirm via the GitHub Security tab that all 5 CodeQL error-severity alerts and 1 warning-severity alert show as resolved after the fixes land on `main`
   5. A job with output containing a crafted email-like string that previously caused catastrophic regex backtracking in `mask_pii()` returns a response within normal processing time
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 72-01-PLAN.md — Test scaffolds (Wave 0 RED tests for all 6 SEC requirements)
+- [ ] 72-02-PLAN.md — Security fixes (XSS, path traversal x2, ReDoS, API_KEY removal, nosniff)
 
 ### Phase 73: EE Licence System
 **Goal**: Axiom Labs can generate signed licence keys offline and EE deployments enforce cryptographic licence validity, expiry grace periods, clock-rollback detection, and node limits — all without requiring network access
