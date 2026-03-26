@@ -264,6 +264,17 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `openapi.json` pre-committed; `regen_openapi.sh` is operator tool | Avoids schema regeneration in CI (no running server); operator runs script locally and commits updated file | ✓ Good |
 | `fetch-depth: 0` in docs-deploy.yml | MkDocs Material uses git history for `git_revision_date_localized` on page footers — shallow clone produces wrong dates | ✓ Good |
 
+## Current Milestone: v14.3 Security Hardening + EE Licensing
+
+**Goal:** Close 5 CodeQL security alerts, remove the legacy API_KEY mechanism, and deliver a production-grade EE licence key system with air-gap support.
+
+**Target features:**
+- Fix 5 CodeQL error-severity alerts (XSS, path injection × 4, ReDoS) and 1 warning
+- Remove legacy `API_KEY` hard crash and redundant node-route auth
+- EE licence key generation — Ed25519-signed JSON payload (customer, tier, features, expiry)
+- EE licence validation — startup signature check + expiry enforcement
+- Air-gap expiry enforcement — monotonic boot-log or heartbeat file (no call-home required)
+
 ## Previous State — v14.2 Complete (2026-03-26)
 
 Axiom v14.2 delivered Docs on GitHub Pages — 1 phase, 2 plans, all 8 requirements satisfied. The CE documentation site is now publicly accessible at `https://axiom-laboratories.github.io/axiom/` and auto-deploys via GitHub Actions on every push to `main` that touches `docs/**`. The `docs/site/` build output (166 files) was removed from git tracking. The offline MkDocs plugin is now conditional on `OFFLINE_BUILD` so GitHub Pages builds run clean while Docker air-gap container builds retain the bundled asset behaviour. A local `regen_openapi.sh` script lets operators update `openapi.json` when the FastAPI schema changes.
@@ -291,4 +302,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-26 after v14.2 milestone — Docs on GitHub Pages*
+*Last updated: 2026-03-26 after v14.3 milestone start — Security Hardening + EE Licensing*
