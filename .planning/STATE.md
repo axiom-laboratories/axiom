@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.1
 milestone_name: — First-User Readiness
 status: completed
-stopped_at: Phase 68 context gathered
-last_updated: "2026-03-26T10:24:55.287Z"
+stopped_at: Completed 68-01-PLAN.md
+last_updated: "2026-03-26T10:38:45.779Z"
 last_activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 7
   percent: 100
 ---
 
@@ -47,6 +47,12 @@ Progress: [██████████] 100%
 - [Phase 67-getting-started-documentation]: CLI token path promoted to equal-weight tab; cold-start compose https://agent:8001 added as primary AGENT_URL table entry
 - [Phase 67]: Pre-dispatch danger callout placed as standalone block between Step 3 separator and Step 4 heading for maximum visual impact
 - [Phase 67]: axiom-push promoted as CLI hero command for Step 4 dispatch; CE users directed to collapsible Raw API curl fallback
+- [Phase 68-ee-documentation]: GET /api/features is the canonical EE verification endpoint — /api/admin/features must never appear in docs (EEDOC-01)
+- [Phase 68-ee-documentation]: AXIOM_LICENCE_KEY is the only correct env var name — AXIOM_EE_LICENCE_KEY does not exist (EEDOC-02)
+
+### Roadmap Evolution
+
+- Phase 69 added: Fix CI release pipeline version pinning and semver tags
 
 ### Pending Todos
 
@@ -62,6 +68,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T10:24:55.286Z
-Stopped at: Phase 68 context gathered
-Resume file: .planning/phases/68-ee-documentation/68-CONTEXT.md
+Last session: 2026-03-26T10:38:45.778Z
+Stopped at: Completed 68-01-PLAN.md
+Resume file: None

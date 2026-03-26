@@ -148,7 +148,7 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
 
 - [x] **Phase 66: Backend Code Fixes** — Verify and complete all node image and compose fixes; CE-gate all execution routes via EE stub (CODE-01 through CODE-04) (completed 2026-03-25)
 - [x] **Phase 67: Getting-Started Documentation** — Rewrite install.md, enroll-node.md, and first-job.md with correct commands, CLI alternatives, signing prerequisites, and tab support (DOCS-01 through DOCS-11) (completed 2026-03-26)
-- [ ] **Phase 68: EE Documentation** — Correct EE getting-started endpoint references and resolve AXIOM_LICENCE_KEY naming inconsistency (EEDOC-01 through EEDOC-02)
+- [x] **Phase 68: EE Documentation** — Correct EE getting-started endpoint references and resolve AXIOM_LICENCE_KEY naming inconsistency (EEDOC-01 through EEDOC-02) (completed 2026-03-26)
 
 ## Phase Details
 
@@ -221,7 +221,7 @@ Plans:
 | 65. Friction Report Synthesis | v14.0 | 1/1 | Complete | 2026-03-25 |
 | 66. Backend Code Fixes | 3/3 | Complete    | 2026-03-25 | - |
 | 67. Getting-Started Documentation | 3/3 | Complete    | 2026-03-26 | - |
-| 68. EE Documentation | v14.1 | 0/TBD | Not started | - |
+| 68. EE Documentation | 1/1 | Complete   | 2026-03-26 | - |
 
 ## Archived
 
@@ -246,7 +246,7 @@ Plans:
 **Goal:** [To be planned]
 **Requirements**: TBD
 **Depends on:** Phase 68
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 69 to break down)

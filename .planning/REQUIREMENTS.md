@@ -30,8 +30,8 @@ Requirements for the First-User Readiness milestone. All items derive from the v
 
 ### EE Documentation Fixes
 
-- [ ] **EEDOC-01**: `ee-install.md` (or equivalent EE getting-started page) replaces all `/api/admin/features` references with the correct `/api/features` endpoint
-- [ ] **EEDOC-02**: `licensing.md` uses consistent `AXIOM_LICENCE_KEY` naming throughout (no `AXIOM_EE_LICENCE_KEY` infix)
+- [x] **EEDOC-01**: `ee-install.md` (or equivalent EE getting-started page) replaces all `/api/admin/features` references with the correct `/api/features` endpoint
+- [x] **EEDOC-02**: `licensing.md` uses consistent `AXIOM_LICENCE_KEY` naming throughout (no `AXIOM_EE_LICENCE_KEY` infix)
 
 ## Future Requirements
 
@@ -77,8 +77,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOCS-09 | Phase 67 | Complete |
 | DOCS-10 | Phase 67 | Complete |
 | DOCS-11 | Phase 67 | Complete |
-| EEDOC-01 | Phase 68 | Pending |
-| EEDOC-02 | Phase 68 | Pending |
+| EEDOC-01 | Phase 68 | Complete |
+| EEDOC-02 | Phase 68 | Complete |
 
 **Coverage:**
 - v14.1 requirements: 17 total
