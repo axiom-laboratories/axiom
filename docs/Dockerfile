@@ -27,7 +27,7 @@ RUN DATABASE_URL=postgresql+asyncpg://dummy:dummy@localhost/dummy \
     python /tmp/export_openapi.py docs/api-reference/openapi.json
 
 # Build MkDocs site (--strict: any warning = build failure)
-RUN mkdocs build --strict
+RUN OFFLINE_BUILD=true mkdocs build --strict
 
 FROM nginx:alpine
 COPY --from=builder /docs/site /usr/share/nginx/html
