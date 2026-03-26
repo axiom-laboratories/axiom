@@ -77,88 +77,84 @@ ip route | awk '/default/ {print $3}'
 
 ## Step 3: Install the node
 
-Choose your installation method:
+=== "Option A: curl installer"
 
-### Option A: curl installer (recommended)
+    The one-liner downloads and runs the universal installer script hosted on the orchestrator:
 
-The one-liner downloads and runs the universal installer script hosted on the orchestrator:
-
-```bash
-curl -sSL https://<your-orchestrator>/installer.sh | bash -s -- --token "<JOIN_TOKEN>"
-```
-
-Replace `<your-orchestrator>` with your orchestrator's hostname or IP (e.g., `10.0.0.5:8001` or `my-orchestrator.example.com`).
-
-The installer script:
-
-- Detects Docker or Podman on your system
-- Downloads a ready-to-run `node-compose.yaml` from the orchestrator
-- Starts the node container automatically
-
-!!! tip "Getting the compose file without running it"
-    The orchestrator also serves the generated compose file directly if you want to inspect or customise it before running:
     ```bash
-    curl -sSL "https://<your-orchestrator>/api/installer/compose?token=<JOIN_TOKEN>" > node-compose.yaml
-    docker compose -f node-compose.yaml up -d
+    curl -sSL https://<your-orchestrator>/installer.sh | bash -s -- --token "<JOIN_TOKEN>"
     ```
 
----
+    Replace `<your-orchestrator>` with your orchestrator's hostname or IP (e.g., `10.0.0.5:8001` or `my-orchestrator.example.com`).
 
-### Option B: Docker Compose (power user)
+    The installer script:
 
-For full control over the configuration, create the compose file manually.
+    - Detects Docker or Podman on your system
+    - Downloads a ready-to-run `node-compose.yaml` from the orchestrator
+    - Starts the node container automatically
 
-Create `node-compose.yaml` with the following content, substituting your JOIN_TOKEN and AGENT_URL:
+    !!! tip "Getting the compose file without running it"
+        The orchestrator also serves the generated compose file directly if you want to inspect or customise it before running:
+        ```bash
+        curl -sSL "https://<your-orchestrator>/api/installer/compose?token=<JOIN_TOKEN>" > node-compose.yaml
+        docker compose -f node-compose.yaml up -d
+        ```
 
-```yaml
-services:
-  puppet-node:
-    image: localhost/master-of-puppets-node:latest
-    environment:
-      NODE_TAGS: general,linux
-      JOB_IMAGE: docker.io/library/python:3.12-alpine
-      AGENT_URL: https://172.17.0.1:8001
-      JOIN_TOKEN: <paste-your-enhanced-token-here>
-      ROOT_CA_PATH: /app/secrets/root_ca.crt
-      EXECUTION_MODE: docker
-    volumes:
-      - node-secrets:/app/secrets
-      - /var/run/docker.sock:/var/run/docker.sock
+=== "Option B: Docker Compose"
 
-volumes:
-  node-secrets:
-```
+    For full control over the configuration, create the compose file manually.
 
-!!! tip "EXECUTION_MODE=docker"
-    When the node container runs inside Docker, set `EXECUTION_MODE=docker`. This tells the node to spawn job containers using the host's Docker daemon via the mounted socket (`/var/run/docker.sock`).
-
-    You must also add the Docker socket to the node's volumes:
-
-    ```yaml
-    volumes:
-      - node-secrets:/app/secrets
-      - /var/run/docker.sock:/var/run/docker.sock
-    ```
-
-    Then update your compose to mount the socket:
+    Create `node-compose.yaml` with the following content, substituting your JOIN_TOKEN and AGENT_URL:
 
     ```yaml
     services:
       puppet-node:
         image: localhost/master-of-puppets-node:latest
         environment:
-          ...
+          NODE_TAGS: general,linux
+          JOB_IMAGE: docker.io/library/python:3.12-alpine
+          AGENT_URL: https://172.17.0.1:8001
+          JOIN_TOKEN: <paste-your-enhanced-token-here>
+          ROOT_CA_PATH: /app/secrets/root_ca.crt
           EXECUTION_MODE: docker
         volumes:
           - node-secrets:/app/secrets
           - /var/run/docker.sock:/var/run/docker.sock
+
+    volumes:
+      node-secrets:
     ```
 
-Then start the node:
+    !!! tip "EXECUTION_MODE=docker"
+        When the node container runs inside Docker, set `EXECUTION_MODE=docker`. This tells the node to spawn job containers using the host's Docker daemon via the mounted socket (`/var/run/docker.sock`).
 
-```bash
-docker compose -f node-compose.yaml up -d
-```
+        You must also add the Docker socket to the node's volumes:
+
+        ```yaml
+        volumes:
+          - node-secrets:/app/secrets
+          - /var/run/docker.sock:/var/run/docker.sock
+        ```
+
+        Then update your compose to mount the socket:
+
+        ```yaml
+        services:
+          puppet-node:
+            image: localhost/master-of-puppets-node:latest
+            environment:
+              ...
+              EXECUTION_MODE: docker
+            volumes:
+              - node-secrets:/app/secrets
+              - /var/run/docker.sock:/var/run/docker.sock
+        ```
+
+    Then start the node:
+
+    ```bash
+    docker compose -f node-compose.yaml up -d
+    ```
 
 ---
 
