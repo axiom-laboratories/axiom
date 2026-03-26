@@ -16,14 +16,14 @@ Requirements for the First-User Readiness milestone. All items derive from the v
 
 ### Documentation Fixes
 
-- [x] **DOCS-01**: `install.md` has explicit admin password setup step (create `.env` with `ADMIN_PASSWORD=<value>`) before the `docker compose up` instruction
+- [ ] **DOCS-01**: `install.md` has explicit admin password setup step (create `.env` with `ADMIN_PASSWORD=<value>`) before the `docker compose up` instruction
 - [x] **DOCS-02**: `mkdocs.yml` has `pymdownx.tabbed: alternate_style: true` in `markdown_extensions` (enables CLI/Dashboard tab pairs across docs)
-- [x] **DOCS-03**: `enroll-node.md` has a CLI (curl) JOIN_TOKEN generation path as a primary alternative to the dashboard GUI step
+- [ ] **DOCS-03**: `enroll-node.md` has a CLI (curl) JOIN_TOKEN generation path as a primary alternative to the dashboard GUI step
 - [x] **DOCS-04**: `enroll-node.md` Option B compose snippet uses the correct Axiom node image (`localhost/master-of-puppets-node:latest`) instead of `python:3.12-alpine`
 - [x] **DOCS-05**: `enroll-node.md` replaces all `EXECUTION_MODE=direct` references with `EXECUTION_MODE=docker` (direct mode removed from code)
 - [x] **DOCS-06**: `enroll-node.md` AGENT_URL guidance corrected — removes `172.17.0.1:8001` as primary recommendation; adds `https://agent:8001` as the cold-start compose path
 - [x] **DOCS-07**: `enroll-node.md` Option B has a Docker socket volume mount note (`/var/run/docker.sock:/var/run/docker.sock` required for `EXECUTION_MODE=docker`)
-- [x] **DOCS-08**: `install.md` documents a pre-built compose / tarball install alternative for users without GitHub access
+- [ ] **DOCS-08**: `install.md` documents a pre-built compose / tarball install alternative for users without GitHub access
 - [x] **DOCS-09**: `first-job.md` has Ed25519 signing key setup as numbered prerequisites before the dispatch step (generate keypair → register public key at `POST /signatures`)
 - [x] **DOCS-10**: `first-job.md` has a CLI/API dispatch path (curl `POST /jobs` with signed payload) as an alternative to the guided dashboard form
 - [x] **DOCS-11**: `first-job.md` has a pre-dispatch key registration callout making the signing prerequisite visually prominent before any dispatch attempt
@@ -66,14 +66,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CODE-02 | Phase 66 | Complete |
 | CODE-03 | Phase 66 | Complete |
 | CODE-04 | Phase 66 | Complete |
-| DOCS-01 | Phase 67 | Complete |
+| DOCS-01 | Phase 70 | Pending |
 | DOCS-02 | Phase 67 | Complete |
-| DOCS-03 | Phase 67 | Complete |
+| DOCS-03 | Phase 70 | Pending |
 | DOCS-04 | Phase 67 | Complete |
 | DOCS-05 | Phase 67 | Complete |
 | DOCS-06 | Phase 67 | Complete |
 | DOCS-07 | Phase 67 | Complete |
-| DOCS-08 | Phase 67 | Complete |
+| DOCS-08 | Phase 70 | Pending |
 | DOCS-09 | Phase 67 | Complete |
 | DOCS-10 | Phase 67 | Complete |
 | DOCS-11 | Phase 67 | Complete |
@@ -82,9 +82,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 - v14.1 requirements: 17 total
-- Mapped to phases: 17
+- Mapped to phases: 17 (3 reset to Pending — gap closure Phase 70)
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after roadmap creation — all 17 requirements mapped*
+*Last updated: 2026-03-26 after gap closure plan — DOCS-01, DOCS-03, DOCS-08 reassigned to Phase 70*

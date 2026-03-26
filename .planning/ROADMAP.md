@@ -250,3 +250,12 @@ Plans:
 
 Plans:
 - [ ] 69-01-PLAN.md — pyproject.toml setuptools-scm dynamic version + release.yml fetch-depth and Docker metadata tags fix (CI-01, CI-02)
+
+### Phase 70: Fix Getting-Started Doc Regressions
+**Goal:** A user following either the CLI or Cold-Start paths in the getting-started guides can successfully enroll a node and install Axiom — the CLI token extraction returns the correct field and the Cold-Start compose commands are present in Steps 3–4 of install.md
+**Requirements:** DOCS-01, DOCS-03, DOCS-08
+**Depends on:** Phase 69
+**Gap Closure:** Closes integration gaps MISS-01 and FLOW-01 from v14.1 audit
+
+Plans:
+- [ ] 70-01-PLAN.md — Fix token field + cold-start install steps + mkdocs strict gate (DOCS-01, DOCS-03, DOCS-08)
