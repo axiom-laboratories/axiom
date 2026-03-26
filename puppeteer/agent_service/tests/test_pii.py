@@ -1,5 +1,6 @@
 from agent_service.security import mask_pii
 import pytest
+import time
 
 def test_mask_pii_email():
     data = {"msg": "Contact me at test@example.com for info"}
@@ -24,3 +25,14 @@ def test_mask_pii_recursive():
     assert masked["users"][0]["notes"] == "SSN [SSN_REDACTED]"
     assert masked["users"][1]["email"] == "[EMAIL_REDACTED]"
     assert masked["meta"] == "no pii here"
+
+
+def test_mask_pii_redos_safety():
+    """Ensure email regex does not catastrophically backtrack on adversarial input."""
+    # Adversarial: long string that looks like it could be an email but isn't
+    # Pre-fix regex backtracks O(2^n) on this pattern
+    adversarial = "a" * 64 + "@" + "b" * 64 + "." + "c" * 64 + "@" + "d" * 500
+    start = time.perf_counter()
+    mask_pii(adversarial)
+    elapsed = time.perf_counter() - start
+    assert elapsed < 2.0, f"mask_pii took {elapsed:.2f}s on adversarial input — likely ReDoS"

@@ -1,4 +1,4 @@
-from agent_service.security import encrypt_secrets, decrypt_secrets, mask_secrets, API_KEY
+from agent_service.security import encrypt_secrets, decrypt_secrets, mask_secrets
 import os
 
 def test_mask_secrets():
