@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v14.1
 milestone_name: — First-User Readiness
-status: planning
-stopped_at: "Completed 67-01-PLAN.md"
-last_updated: "2026-03-26T09:28:30Z"
-last_activity: 2026-03-25 — v14.1 roadmap created; Phase 66 next
+status: executing
+stopped_at: Completed 67-02-PLAN.md
+last_updated: "2026-03-26T09:32:45.108Z"
+last_activity: 2026-03-26 — 67-01 complete (pymdownx.tabbed + install.md tab pairs)
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 0
+  total_plans: 6
+  completed_plans: 5
+  percent: 5
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 67 of 68 (Getting Started Documentation)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-03-26 — 67-01 complete (pymdownx.tabbed + install.md tab pairs)
+Last activity: 2026-03-26 — 67-02 complete (enroll-node.md CLI tab, AGENT_URL table, Step 3 tabs)
 
 Progress: [░░░░░░░░░░] 5%
 
@@ -44,6 +44,7 @@ Progress: [░░░░░░░░░░] 5%
 - [Phase 66-02]: Stub handlers with path parameters tested with dummy args rather than no-arg call in test_ce_smoke.py
 - [Phase 66-02]: executions flag added to /api/features endpoint in both CE fallback dict and EEContext ctx response
 - [Phase 66-backend-code-fixes]: Phase 66 gate confirmed: no source changes needed — verification-only plan proves CODE-01/02/03/04 requirements met by prior plans' artifacts
+- [Phase 67-getting-started-documentation]: CLI token path promoted to equal-weight tab; cold-start compose https://agent:8001 added as primary AGENT_URL table entry
 
 ### Pending Todos
 
@@ -59,6 +60,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T08:50:58.410Z
-Stopped at: Phase 67 context gathered
-Resume file: .planning/phases/67-getting-started-documentation/67-CONTEXT.md
+Last session: 2026-03-26T09:32:45.107Z
+Stopped at: Completed 67-02-PLAN.md
+Resume file: None
