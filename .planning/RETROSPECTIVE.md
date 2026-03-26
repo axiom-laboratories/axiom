@@ -393,3 +393,39 @@
 | v13.0 | 4 | 8 | Research + docs reset milestone; all phases parallel; no code changes; two design docs ground next build cycle |
 | v14.0 | 5 | 14 | Adversarial validation milestone; Gemini-as-first-user; doc accuracy failures dominate; gap-fix sub-plan needed for doc-test phases |
 | v14.1 | 5 | 9 | Remediation milestone; audit-before-complete mandatory; tab-pair pattern established; d['token'] regression shows freshly-rewritten docs need contract verification |
+| v14.2 | 1 | 2 | Infra milestone; single-day; human-verify checkpoint for live Pages confirmation was the only gate; OFFLINE_BUILD conditional pattern reusable for future dual-deploy configs |
+
+## Milestone: v14.2 — Docs on GitHub Pages
+
+**Shipped:** 2026-03-26
+**Phases:** 1 (Phase 71) | **Plans:** 2
+
+### What Was Built
+- Untracked 166 docs/site/ build output files; `docs/site/` gitignored
+- `.nojekyll` marker added to docs source root — prevents Jekyll interference with MkDocs underscore-prefixed assets
+- `mkdocs.yml` site_url set for GitHub Pages; offline plugin made conditional on `OFFLINE_BUILD` env var
+- `docs/Dockerfile` updated: `OFFLINE_BUILD=true` preserves air-gap container behaviour
+- `docs-deploy.yml` GitHub Actions workflow — path-filtered auto-deploy on every `docs/**` push to main
+- `docs/scripts/regen_openapi.sh` — local operator tool for refreshing pre-committed `openapi.json`
+
+### What Worked
+- Two-plan wave structure was correct: housekeeping first (71-01) unblocked the deploy workflow (71-02) — no rework
+- Human-verify checkpoint at the end of 71-02 was the right gate; the MoP-as-first-user approach (automated checks + human final confirmation) worked well for live infrastructure
+- `!ENV [OFFLINE_BUILD, false]` pattern cleanly served two deployment targets with one `mkdocs.yml` — worth reusing for any future dual-path doc builds
+
+### What Was Inefficient
+- No audit file existed for v14.2 — the milestone was small enough that audit wasn't blocking, but the missing preflight check had to be skipped manually
+
+### Patterns Established
+- `OFFLINE_BUILD` conditional for docs: disabled by default (GH Pages), `true` in Dockerfile (air-gap container) — single config, no forking
+- `.nojekyll` in MkDocs source root (not site root) — copied into built site by mkdocs, lands at GH Pages root automatically
+- `fetch-depth: 0` required in any workflow using MkDocs Material's `git_revision_date_localized` plugin
+
+### Key Lessons
+- For infra milestones touching live external services (Pages, GHCR, PyPI), the human-verify checkpoint at the final plan is the correct pattern — automate everything up to the live confirmation
+- `docs/site/` should have been gitignored when the docs container was first set up (v9.0) — build output tracking in git is a recurring problem across projects; add it to the "new docs project" checklist
+
+### Cost Observations
+- 1 phase, 2 plans, 16 commits — smallest milestone to date
+- Single-day delivery (2026-03-26)
+- Checkpoint added ~20 min for live Pages activation (GitHub UI step required)

@@ -121,6 +121,15 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ CE/EE edition badge in dashboard sidebar (useLicence hook + LicenceSection in Admin) — v11.0
 - ✓ MkDocs `!!! enterprise` admonitions on 5 EE feature pages; `licensing.md` CE/EE explainer — v11.0
 
+### Validated — v14.2 Docs on GitHub Pages
+
+- ✓ `docs/site/` untracked from git; build output gitignored — clean history for CI deploys — v14.2
+- ✓ `.nojekyll` in docs source root — prevents Jekyll stripping MkDocs underscore assets on GitHub Pages — v14.2
+- ✓ `mkdocs.yml` `site_url` set to `https://axiom-laboratories.github.io/axiom/` — correct relative URL generation — v14.2
+- ✓ Offline plugin conditional on `OFFLINE_BUILD` env var — disabled for GH Pages, enabled in Docker air-gap builds — v14.2
+- ✓ `docs-deploy.yml` GitHub Actions workflow — path-filtered auto-deploy on `docs/**` push to main, `mkdocs gh-deploy --force` — v14.2
+- ✓ `docs/scripts/regen_openapi.sh` — local operator script to regenerate `openapi.json` after API schema changes — v14.2
+
 ### Validated — v14.1 First-User Readiness
 
 - ✓ CE-gated all 7 execution-history API routes with 402 stubs; `ee/interfaces/executions.py` + `ee/routers/executions_router.py` via EE plugin — v14.1
@@ -180,7 +189,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 Codebase is functional, deployed, and first-user-ready (v14.1). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
 
-Documentation site lives at `/docs/` — MkDocs Material, git-backed markdown in `docs/`, containerised with nginx, air-gapped (CDN-free), with `mkdocs --strict` enforced in CI. API reference is auto-generated from FastAPI OpenAPI schema at container build time.
+Documentation site lives at `/docs/` (containerised, air-gapped) and is **publicly accessible at `https://axiom-laboratories.github.io/axiom/`** (GitHub Pages, auto-deployed via `docs-deploy.yml` on every `docs/**` push to `main`). MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference is auto-generated from FastAPI OpenAPI schema at container build time; `docs/scripts/regen_openapi.sh` refreshes the pre-committed snapshot locally.
 
 CLI is `axiom-push` (formerly `mop-push`) — installable as `axiom-sdk` Python package. GitHub Actions CI/CD pipelines in place for multi-arch GHCR images and PyPI publishing via OIDC Trusted Publisher. Version is derived dynamically from git tags via `setuptools-scm`.
 
@@ -250,15 +259,14 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Docker metadata `type=ref,event=tag` (not semver pattern) for release image tags | semver pattern requires exact `vX.Y.Z` format with no pre-release suffix; `event=tag` applies to any tag | ✓ Good |
 | `mkdocs --strict` CI gate in `ci.yml` | Catches anchor errors, missing tab extensions, and broken admonitions before they reach main | ✓ Good |
 | `d['token']` not `d.get('enhanced_token', d.get('join_token', ''))` for JOIN_TOKEN extraction | `/admin/generate-token` returns `{token: ...}` only — the chained `.get()` silently returned empty string | ✓ Good |
+| `!ENV [OFFLINE_BUILD, false]` pattern for offline plugin | Single config file; offline plugin off by default (GitHub Pages), on in Docker builds — no separate mkdocs config files needed | ✓ Good |
+| `.nojekyll` in docs source root (not site root) | MkDocs copies it into the built site, landing at GH Pages root — no post-build injection needed | ✓ Good |
+| `openapi.json` pre-committed; `regen_openapi.sh` is operator tool | Avoids schema regeneration in CI (no running server); operator runs script locally and commits updated file | ✓ Good |
+| `fetch-depth: 0` in docs-deploy.yml | MkDocs Material uses git history for `git_revision_date_localized` on page footers — shallow clone produces wrong dates | ✓ Good |
 
-## Current Milestone: v14.2 — Docs on GitHub Pages
+## Previous State — v14.2 Complete (2026-03-26)
 
-**Goal:** Deploy the CE documentation site to GitHub Pages with automated publishing on every push to main.
-
-**Target features:**
-- Pre-committed `openapi.json` with a local regeneration script
-- GitHub Actions workflow: `mkdocs build --strict` → deploy to `gh-pages` branch
-- `mkdocs.yml` `site_url` set for correct GH Pages asset routing
+Axiom v14.2 delivered Docs on GitHub Pages — 1 phase, 2 plans, all 8 requirements satisfied. The CE documentation site is now publicly accessible at `https://axiom-laboratories.github.io/axiom/` and auto-deploys via GitHub Actions on every push to `main` that touches `docs/**`. The `docs/site/` build output (166 files) was removed from git tracking. The offline MkDocs plugin is now conditional on `OFFLINE_BUILD` so GitHub Pages builds run clean while Docker air-gap container builds retain the bundled asset behaviour. A local `regen_openapi.sh` script lets operators update `openapi.json` when the FastAPI schema changes.
 
 ## Previous State — v14.1 Complete (2026-03-26)
 
@@ -283,4 +291,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-26 after v14.2 milestone start — Docs on GitHub Pages*
+*Last updated: 2026-03-26 after v14.2 milestone — Docs on GitHub Pages*
