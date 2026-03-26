@@ -190,7 +190,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. No reference to `/api/admin/features` appears anywhere in the EE getting-started pages; every reference uses the correct `/api/features` endpoint
   2. `AXIOM_EE_LICENCE_KEY` does not appear in `licensing.md`; all references use `AXIOM_LICENCE_KEY` consistently
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 68-01-PLAN.md — install.md EE expansion + licensing.md features append + mkdocs --strict gate
 
 ## Progress
 
@@ -237,3 +240,13 @@ Plans:
 - ✅ **v3.0 — Advanced Foundry & Hot-Upgrades** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v3.0-phases/`
 - ✅ **v2.0 — Foundry & Node Lifecycle** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v2.0-phases/`
 - ✅ **v1.0 — Production Reliability** (Phases 1–6) — shipped 2026-03-05 → `.planning/milestones/v1.0-phases/`
+
+### Phase 69: Fix CI release pipeline version pinning and semver tags
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 68
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 69 to break down)
