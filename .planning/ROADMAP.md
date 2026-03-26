@@ -13,6 +13,7 @@
 - ✅ **v13.0 — Research & Documentation Foundation** — Phases 57–60 (shipped 2026-03-24)
 - ✅ **v14.0 — CE/EE Cold-Start Validation** — Phases 61–65 (shipped 2026-03-25)
 - ✅ **v14.1 — First-User Readiness** — Phases 66–70 (shipped 2026-03-26)
+- 🚧 **v14.2 — Docs on GitHub Pages** — Phase 71 (in progress)
 
 ## Phases
 
@@ -153,6 +154,29 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
 
 </details>
 
+### 🚧 v14.2 — Docs on GitHub Pages (In Progress)
+
+**Milestone Goal:** Deploy the CE documentation site to GitHub Pages with automated publishing on every push to main.
+
+- [ ] **Phase 71: Deploy Docs to GitHub Pages** - Config, workflow, git-tracking cleanup, and maintenance script for automated GH Pages deployment
+
+## Phase Details
+
+### Phase 71: Deploy Docs to GitHub Pages
+**Goal**: The CE documentation site is live on GitHub Pages and auto-deploys on every push to main
+**Depends on**: Nothing (first phase of v14.2)
+**Requirements**: DEPLOY-01, DEPLOY-02, CONFIG-01, CONFIG-02, CONFIG-03, HOUSE-01, HOUSE-02, MAINT-01
+**Success Criteria** (what must be TRUE):
+  1. Visiting `https://axiom-laboratories.github.io/axiom/` serves the Axiom docs site with correct CSS, navigation, and asset paths
+  2. Merging a docs change to `main` triggers `docs-deploy.yml` and the updated content is live on GH Pages within the workflow run time
+  3. `mkdocs build --strict` run locally against the updated `mkdocs.yml` (with `OFFLINE_BUILD=true`) produces zero warnings and correct page URLs (`/page/` not `page.html`)
+  4. `docs/site/` is absent from git tracking — `git status` shows no `docs/site/` files as tracked or modified
+  5. Running the `openapi.json` regeneration script locally produces an updated `docs/docs/api-reference/openapi.json` that can be committed
+**Plans**: TBD
+
+Plans:
+- [ ] 71-01: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -182,6 +206,7 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
 | 68. EE Documentation | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 69. Fix CI release pipeline version pinning and semver tags | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
+| 71. Deploy Docs to GitHub Pages | v14.2 | 0/? | Not started | - |
 
 ## Archived
 
