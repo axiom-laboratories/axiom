@@ -7,12 +7,12 @@
 
 ### Security Fixes
 
-- [ ] **SEC-01**: Operator can be confident that the device-approve OAuth page (`/auth/device/approve`) does not reflect unsanitised user input — `user_code` query parameter is HTML-escaped before rendering
-- [ ] **SEC-02**: Operator can be confident that `vault_service.py` artifact paths are safe against directory traversal — UUID validation + `Path.resolve() + is_relative_to()` guard applied to store and delete operations
-- [ ] **SEC-03**: Operator can be confident that `main.py` installer script paths are safe against directory traversal — same `resolve() + is_relative_to()` pattern applied to all flagged locations (verified via live CodeQL scan)
-- [ ] **SEC-04**: Operator can be confident that job output scanning (`mask_pii()`) cannot be exploited for ReDoS — email regex rewritten to linear bounded pattern, not just length-guarded
-- [ ] **SEC-05**: Operator can start Axiom without an `API_KEY` environment variable — import-time crash removed, `verify_api_key` dependency removed from all three node-facing routes, `API_KEY` references removed from documentation and templates
-- [ ] **SEC-06**: Operator can be confident that the CSV job export endpoint cannot be used for XSS via content-sniffing — `X-Content-Type-Options: nosniff` header present in the backend streaming response
+- [x] **SEC-01**: Operator can be confident that the device-approve OAuth page (`/auth/device/approve`) does not reflect unsanitised user input — `user_code` query parameter is HTML-escaped before rendering
+- [x] **SEC-02**: Operator can be confident that `vault_service.py` artifact paths are safe against directory traversal — UUID validation + `Path.resolve() + is_relative_to()` guard applied to store and delete operations
+- [x] **SEC-03**: Operator can be confident that `main.py` installer script paths are safe against directory traversal — same `resolve() + is_relative_to()` pattern applied to all flagged locations (verified via live CodeQL scan)
+- [x] **SEC-04**: Operator can be confident that job output scanning (`mask_pii()`) cannot be exploited for ReDoS — email regex rewritten to linear bounded pattern, not just length-guarded
+- [x] **SEC-05**: Operator can start Axiom without an `API_KEY` environment variable — import-time crash removed, `verify_api_key` dependency removed from all three node-facing routes, `API_KEY` references removed from documentation and templates
+- [x] **SEC-06**: Operator can be confident that the CSV job export endpoint cannot be used for XSS via content-sniffing — `X-Content-Type-Options: nosniff` header present in the backend streaming response
 
 ### EE Licensing
 
@@ -50,12 +50,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | Phase 72 | Pending |
-| SEC-02 | Phase 72 | Pending |
-| SEC-03 | Phase 72 | Pending |
-| SEC-04 | Phase 72 | Pending |
-| SEC-05 | Phase 72 | Pending |
-| SEC-06 | Phase 72 | Pending |
+| SEC-01 | Phase 72 | Complete |
+| SEC-02 | Phase 72 | Complete |
+| SEC-03 | Phase 72 | Complete |
+| SEC-04 | Phase 72 | Complete |
+| SEC-05 | Phase 72 | Complete |
+| SEC-06 | Phase 72 | Complete |
 | LIC-01 | Phase 73 | Pending |
 | LIC-02 | Phase 73 | Pending |
 | LIC-03 | Phase 73 | Pending |

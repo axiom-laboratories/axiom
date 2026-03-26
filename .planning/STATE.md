@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.3
 milestone_name: — Security Hardening + EE Licensing
 status: planning
-stopped_at: Completed 72-01-PLAN.md (Wave 0 test scaffolds)
-last_updated: "2026-03-26T22:58:49.952Z"
+stopped_at: Completed 72-02-PLAN.md (All 6 SEC security fixes)
+last_updated: "2026-03-26T23:10:10.061Z"
 last_activity: 2026-03-26 — Roadmap created (2 phases, 13/13 requirements mapped)
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -46,6 +46,7 @@ Progress: [░░░░░░░░░░] 0%
 | 72. Security Fixes | TBD | - | - |
 | 73. EE Licence System | TBD | - | - |
 | Phase 72 P01 | 22 | 2 tasks | 6 files |
+| Phase 72 P02 | 7 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -59,6 +60,8 @@ Progress: [░░░░░░░░░░] 0%
 - [v14.3 pre-planning]: Absent boot-log treated as "unknown" + grace fallback, not hard stop — deleted log is indistinguishable from fresh install
 - [Phase 72]: validate_path_within must be in security.py — test_vault_traversal.py imports it from there (vault_service.py Artifact import broken)
 - [Phase 72]: TDD Wave 0 pattern: auth dep-override with MagicMock for ASGI tests against require_auth routes
+- [Phase 72]: html.escape() for XSS prevention; validate_path_within() uses Path.is_relative_to() for path traversal guards; API_KEY removed from security.py startup
+- [Phase 72]: XSS test assertion: 'payload not in text' not 'no script tag' — page has own JS; traversal URL tests check != 200 since Starlette normalizes at routing layer
 
 ### Pending Todos
 
@@ -74,6 +77,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-26T22:58:49.950Z
-Stopped at: Completed 72-01-PLAN.md (Wave 0 test scaffolds)
+Last session: 2026-03-26T23:10:10.059Z
+Stopped at: Completed 72-02-PLAN.md (All 6 SEC security fixes)
 Resume file: None
