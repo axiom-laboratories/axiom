@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.1
 milestone_name: — First-User Readiness
 status: executing
-stopped_at: Completed 67-02-PLAN.md
-last_updated: "2026-03-26T09:32:45.108Z"
-last_activity: 2026-03-26 — 67-01 complete (pymdownx.tabbed + install.md tab pairs)
+stopped_at: Completed 67-03-PLAN.md
+last_updated: "2026-03-26T09:35:58.440Z"
+last_activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 5
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 67 of 68 (Getting Started Documentation)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-03-26 — 67-02 complete (enroll-node.md CLI tab, AGENT_URL table, Step 3 tabs)
+Plan: 3 of 3 complete
+Status: Complete
+Last activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
 
-Progress: [░░░░░░░░░░] 5%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -45,6 +45,8 @@ Progress: [░░░░░░░░░░] 5%
 - [Phase 66-02]: executions flag added to /api/features endpoint in both CE fallback dict and EEContext ctx response
 - [Phase 66-backend-code-fixes]: Phase 66 gate confirmed: no source changes needed — verification-only plan proves CODE-01/02/03/04 requirements met by prior plans' artifacts
 - [Phase 67-getting-started-documentation]: CLI token path promoted to equal-weight tab; cold-start compose https://agent:8001 added as primary AGENT_URL table entry
+- [Phase 67]: Pre-dispatch danger callout placed as standalone block between Step 3 separator and Step 4 heading for maximum visual impact
+- [Phase 67]: axiom-push promoted as CLI hero command for Step 4 dispatch; CE users directed to collapsible Raw API curl fallback
 
 ### Pending Todos
 
@@ -60,6 +62,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T09:32:45.107Z
-Stopped at: Completed 67-02-PLAN.md
+Last session: 2026-03-26T09:35:58.438Z
+Stopped at: Completed 67-03-PLAN.md
 Resume file: None

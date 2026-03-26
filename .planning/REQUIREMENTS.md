@@ -24,9 +24,9 @@ Requirements for the First-User Readiness milestone. All items derive from the v
 - [x] **DOCS-06**: `enroll-node.md` AGENT_URL guidance corrected — removes `172.17.0.1:8001` as primary recommendation; adds `https://agent:8001` as the cold-start compose path
 - [x] **DOCS-07**: `enroll-node.md` Option B has a Docker socket volume mount note (`/var/run/docker.sock:/var/run/docker.sock` required for `EXECUTION_MODE=docker`)
 - [x] **DOCS-08**: `install.md` documents a pre-built compose / tarball install alternative for users without GitHub access
-- [ ] **DOCS-09**: `first-job.md` has Ed25519 signing key setup as numbered prerequisites before the dispatch step (generate keypair → register public key at `POST /signatures`)
-- [ ] **DOCS-10**: `first-job.md` has a CLI/API dispatch path (curl `POST /jobs` with signed payload) as an alternative to the guided dashboard form
-- [ ] **DOCS-11**: `first-job.md` has a pre-dispatch key registration callout making the signing prerequisite visually prominent before any dispatch attempt
+- [x] **DOCS-09**: `first-job.md` has Ed25519 signing key setup as numbered prerequisites before the dispatch step (generate keypair → register public key at `POST /signatures`)
+- [x] **DOCS-10**: `first-job.md` has a CLI/API dispatch path (curl `POST /jobs` with signed payload) as an alternative to the guided dashboard form
+- [x] **DOCS-11**: `first-job.md` has a pre-dispatch key registration callout making the signing prerequisite visually prominent before any dispatch attempt
 
 ### EE Documentation Fixes
 
@@ -74,9 +74,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOCS-06 | Phase 67 | Complete |
 | DOCS-07 | Phase 67 | Complete |
 | DOCS-08 | Phase 67 | Complete |
-| DOCS-09 | Phase 67 | Pending |
-| DOCS-10 | Phase 67 | Pending |
-| DOCS-11 | Phase 67 | Pending |
+| DOCS-09 | Phase 67 | Complete |
+| DOCS-10 | Phase 67 | Complete |
+| DOCS-11 | Phase 67 | Complete |
 | EEDOC-01 | Phase 68 | Pending |
 | EEDOC-02 | Phase 68 | Pending |
 

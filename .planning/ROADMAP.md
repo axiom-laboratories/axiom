@@ -147,7 +147,7 @@ Archive: `.planning/milestones/v14.0-ROADMAP.md`
 **Milestone Goal:** Close all open product BLOCKERs from the v14.0 cold-start friction report. A first-time user following only the published docs can install Axiom, enroll a node, and dispatch a signed job to completion — on both CE and EE.
 
 - [x] **Phase 66: Backend Code Fixes** — Verify and complete all node image and compose fixes; CE-gate all execution routes via EE stub (CODE-01 through CODE-04) (completed 2026-03-25)
-- [ ] **Phase 67: Getting-Started Documentation** — Rewrite install.md, enroll-node.md, and first-job.md with correct commands, CLI alternatives, signing prerequisites, and tab support (DOCS-01 through DOCS-11)
+- [x] **Phase 67: Getting-Started Documentation** — Rewrite install.md, enroll-node.md, and first-job.md with correct commands, CLI alternatives, signing prerequisites, and tab support (DOCS-01 through DOCS-11) (completed 2026-03-26)
 - [ ] **Phase 68: EE Documentation** — Correct EE getting-started endpoint references and resolve AXIOM_LICENCE_KEY naming inconsistency (EEDOC-01 through EEDOC-02)
 
 ## Phase Details
@@ -217,7 +217,7 @@ Plans:
 | 64. EE Cold-Start Run | v14.0 | 3/3 | Complete | 2026-03-25 |
 | 65. Friction Report Synthesis | v14.0 | 1/1 | Complete | 2026-03-25 |
 | 66. Backend Code Fixes | 3/3 | Complete    | 2026-03-25 | - |
-| 67. Getting-Started Documentation | 2/3 | In Progress|  | - |
+| 67. Getting-Started Documentation | 3/3 | Complete   | 2026-03-26 | - |
 | 68. EE Documentation | v14.1 | 0/TBD | Not started | - |
 
 ## Archived
