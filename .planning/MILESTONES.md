@@ -1,5 +1,14 @@
 # Milestones
 
+## v14.2 Docs on GitHub Pages (Shipped: 2026-03-26)
+
+**Phases completed:** 1 phases, 2 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v14.1 First-User Readiness (Shipped: 2026-03-26)
 
 **Phases completed:** 5 phases, 9 plans, 2 tasks

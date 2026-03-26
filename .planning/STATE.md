@@ -4,7 +4,7 @@ milestone: v14.2
 milestone_name: — Docs on GitHub Pages
 status: completed
 stopped_at: "Completed 71-02 — Phase 71 fully done, GH Pages live at https://axiom-laboratories.github.io/axiom/"
-last_updated: "2026-03-26T21:35:00.254Z"
+last_updated: "2026-03-26T21:52:52.790Z"
 last_activity: 2026-03-26 — Phase 71 complete, GH Pages live
 progress:
   total_phases: 1
