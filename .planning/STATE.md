@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v14.1
 milestone_name: — First-User Readiness
 status: completed
-stopped_at: Completed 69-01-PLAN.md
-last_updated: "2026-03-26T10:47:41.939Z"
+stopped_at: Phase 70 context gathered
+last_updated: "2026-03-26T14:25:44.510Z"
 last_activity: 2026-03-26 — 67-03 complete (first-job.md pre-dispatch callout, Dashboard/CLI tab pair for Step 4)
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 8
   completed_plans: 8
@@ -70,6 +70,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26T10:45:02.044Z
-Stopped at: Completed 69-01-PLAN.md
-Resume file: None
+Last session: 2026-03-26T14:25:44.509Z
+Stopped at: Phase 70 context gathered
+Resume file: .planning/phases/70-fix-getting-started-doc-regressions/70-CONTEXT.md
