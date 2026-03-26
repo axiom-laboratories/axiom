@@ -121,7 +121,53 @@ To enable EE features, add your licence key to `secrets.env`:
 AXIOM_LICENCE_KEY=<your-licence-key>
 ```
 
-The stack reads this at startup — no plugin install required. See [Licensing →](../licensing.md) for validation behaviour, expiry handling, and how to check your licence status.
+The stack reads this at startup — no plugin install required. A valid key enables the following features:
+
+- `foundry` — Docker image builder for custom node environments
+- `rbac` — role-based access control with per-role permission management
+- `webhooks` — outbound webhook delivery on job events
+- `triggers` — event-driven job triggering
+- `audit` — persistent audit log for all security-relevant actions
+
+### Verify EE is active
+
+=== "Dashboard"
+
+    Open the dashboard in your browser. The sidebar shows a **CE** or **EE** badge — it switches from **CE** to **EE** once the key is loaded and valid.
+
+=== "CLI"
+
+    Acquire a token, then call `GET /api/features`:
+
+    ```bash
+    TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
+      -H 'Content-Type: application/x-www-form-urlencoded' \
+      -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+    ```
+
+    ```bash
+    curl -sk https://<your-orchestrator>:8001/api/features \
+      -H "Authorization: Bearer $TOKEN"
+    ```
+
+    !!! note "Expected response when EE is active"
+        ```json
+        {
+          "audit": true,
+          "foundry": true,
+          "webhooks": true,
+          "triggers": true,
+          "rbac": true,
+          "resource_limits": true,
+          "service_principals": true,
+          "api_keys": true,
+          "executions": true
+        }
+        ```
+
+        If the key is missing or expired, all values return `false`.
+
+See [Licensing →](../licensing.md) for validation behaviour, expiry handling, and how to check your licence status.
 
 ---
 
