@@ -7,11 +7,11 @@
 
 ### Banner (Licence State Notifications)
 
-- [ ] **BNR-01**: Admin user sees amber banner when licence is in GRACE state
-- [ ] **BNR-02**: Admin user sees red banner when licence is in DEGRADED_CE state
-- [ ] **BNR-03**: Admin user can dismiss the GRACE banner (dismissal persists for the session)
-- [ ] **BNR-04**: DEGRADED_CE banner cannot be dismissed
-- [ ] **BNR-05**: Licence state banners are not visible to operator or viewer roles
+- [x] **BNR-01**: Admin user sees amber banner when licence is in GRACE state
+- [x] **BNR-02**: Admin user sees red banner when licence is in DEGRADED_CE state
+- [x] **BNR-03**: Admin user can dismiss the GRACE banner (dismissal persists for the session)
+- [x] **BNR-04**: DEGRADED_CE banner cannot be dismissed
+- [x] **BNR-05**: Licence state banners are not visible to operator or viewer roles
 
 ### CLI (axiom-push Signing UX)
 
@@ -65,11 +65,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BNR-01 | Phase 77 | Pending |
-| BNR-02 | Phase 77 | Pending |
-| BNR-03 | Phase 77 | Pending |
-| BNR-04 | Phase 77 | Pending |
-| BNR-05 | Phase 77 | Pending |
+| BNR-01 | Phase 77 | Complete |
+| BNR-02 | Phase 77 | Complete |
+| BNR-03 | Phase 77 | Complete |
+| BNR-04 | Phase 77 | Complete |
+| BNR-05 | Phase 77 | Complete |
 | CLI-01 | Phase 78 | Pending |
 | CLI-02 | Phase 78 | Pending |
 | CLI-03 | Phase 78 | Pending |
