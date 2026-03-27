@@ -75,6 +75,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock # Mount Docker socket for Foundry builds
       - ../puppets:/app/puppets:ro # Mount puppets context for builds
       - mirror-data:/app/mirror_data # Shared volume for PyPI and APT mirrors
+      - secrets-data:/app/secrets   # Persists boot.log and licence.key across restarts
+                                    # Seed licence: docker cp licence.key <agent-container>:/app/secrets/
     depends_on:
       db:
         condition: service_healthy
@@ -173,3 +175,4 @@ volumes:
   registry-data:
   mirror-data:
   devpi-data:
+  secrets-data:   # Agent secrets persistence (boot.log, licence.key)

@@ -44,5 +44,8 @@ jobs.db
 *.egg-info/
 .worktrees/
 
+# Dev artifacts
+*.bak
+
 # MkDocs generated site (build output — not tracked)
 docs/site/
