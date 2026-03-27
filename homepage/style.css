@@ -513,6 +513,33 @@ code {
   line-height: 1.55;
 }
 
+/* ----- Dual CTA section ----- */
+.dual-cta {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0;
+  align-items: start;
+}
+
+.dual-cta-divider {
+  background-color: var(--axiom-border);
+  align-self: stretch;
+  margin-inline: 2rem;
+}
+
+.dual-cta-block {
+  padding: 0.5rem 0;
+}
+
+.dual-cta-block h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.dual-cta-block .install-sub {
+  margin-bottom: 1.25rem;
+}
+
 /* ----- Coming soon badge ----- */
 .badge-coming-soon {
   background-color: rgba(210, 53, 86, 0.12);
@@ -575,5 +602,15 @@ code {
 
   .pain-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dual-cta {
+    grid-template-columns: 1fr;
+  }
+
+  .dual-cta-divider {
+    height: 1px;
+    margin: 2rem 0;
+    background-color: var(--axiom-border);
   }
 }
