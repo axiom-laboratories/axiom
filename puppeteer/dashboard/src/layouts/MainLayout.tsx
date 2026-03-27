@@ -19,6 +19,7 @@ import {
     Lock,
     ListOrdered,
     AlertTriangle,
+    X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -147,7 +148,17 @@ const MainLayout = () => {
 
     const navigate = useNavigate();
     const user = getUser();
+    const isAdmin = user?.role === 'admin';
     const initial = user?.username?.[0]?.toUpperCase() ?? '?';
+
+    const GRACE_DISMISSED_KEY = 'axiom_licence_grace_dismissed';
+    const [graceDismissed, setGraceDismissed] = useState<boolean>(
+        () => sessionStorage.getItem(GRACE_DISMISSED_KEY) === '1'
+    );
+    const handleDismissGrace = () => {
+        sessionStorage.setItem(GRACE_DISMISSED_KEY, '1');
+        setGraceDismissed(true);
+    };
 
     const handleLogout = () => {
         logout();
@@ -208,17 +219,25 @@ const MainLayout = () => {
                         </div>
                     </div>
                 </header>
-                {(licence.status === 'grace' || licence.status === 'expired') && (
-                    <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${
-                        licence.status === 'expired'
-                            ? 'bg-red-900/40 text-red-300 border-b border-red-800'
-                            : 'bg-amber-900/40 text-amber-300 border-b border-amber-800'
-                    }`}>
+                {isAdmin && licence.status === 'grace' && !graceDismissed && (
+                    <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-amber-900/40 text-amber-300 border-b border-amber-800">
                         <AlertTriangle className="h-4 w-4 shrink-0" />
-                        {licence.status === 'expired'
-                            ? 'Your EE licence has expired. The system is running in Community Edition mode.'
-                            : `Your EE licence expires in ${licence.days_until_expiry} day${licence.days_until_expiry === 1 ? '' : 's'}. Please renew.`
-                        }
+                        <span>{`Your EE licence expires in ${licence.days_until_expiry} day${licence.days_until_expiry === 1 ? '' : 's'}. Please renew.`}</span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="ml-auto h-6 w-6 text-amber-300 hover:text-amber-100 hover:bg-amber-800/50"
+                            onClick={handleDismissGrace}
+                            aria-label="Dismiss licence warning"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+                {isAdmin && licence.status === 'expired' && (
+                    <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-red-900/40 text-red-300 border-b border-red-800">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        Your EE licence has expired. The system is running in Community Edition mode.
                     </div>
                 )}
                 <main className="flex-1 p-4 lg:p-8 overflow-auto max-w-7xl mx-auto w-full">
