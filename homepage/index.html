@@ -77,24 +77,27 @@
     </div>
   </section>
 
-  <!-- Security -->
+  <!-- Pain points -->
   <section class="section">
     <div class="container">
-      <p class="section-label">Zero-trust by default</p>
-      <h2>Security without compromise</h2>
-      <div class="prose">
-        <p>
-          Every node enrolls by generating a CSR on first boot. The control plane signs a
-          short-lived client certificate against its internal Root CA. From that point forward,
-          all communication between the puppeteer and every puppet is mutually authenticated
-          with TLS — no shared secrets, no API keys passed over the wire, no trust on first use.
-        </p>
-        <p>
-          Job scripts must be signed with a registered Ed25519 key before the node will execute
-          them. The node fetches the registered public key, verifies the signature against the
-          script bytes, and refuses outright if verification fails. Bad signatures are not
-          logged and retried — they are rejected.
-        </p>
+      <p class="section-label">The problem</p>
+      <h2>SSH&nbsp;+&nbsp;crontab doesn't scale</h2>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <span class="pain-icon">🔑</span>
+          <h3>SSH key sprawl</h3>
+          <p>Keys on every server, revocation is manual, and you can't prove who ran what.</p>
+        </div>
+        <div class="pain-card">
+          <span class="pain-icon">📋</span>
+          <h3>No audit trail</h3>
+          <p>Scripts ran. You think. Cron has no log of who triggered what or whether it succeeded.</p>
+        </div>
+        <div class="pain-card">
+          <span class="pain-icon">⚠️</span>
+          <h3>Unsigned execution</h3>
+          <p>Any script that lands on a node runs. There's no verification it hasn't been tampered with.</p>
+        </div>
       </div>
     </div>
   </section>

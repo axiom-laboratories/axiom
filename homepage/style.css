@@ -481,6 +481,38 @@ code {
   margin-top: 0.75rem;
 }
 
+/* ----- Pain points grid ----- */
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.pain-card {
+  background-color: var(--axiom-surface);
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.pain-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
+.pain-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.pain-card p {
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+  line-height: 1.55;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 640px) {
   .edition-grid {
@@ -498,5 +530,9 @@ code {
 
   .section {
     padding-block: 3rem;
+  }
+
+  .pain-grid {
+    grid-template-columns: 1fr;
   }
 }
