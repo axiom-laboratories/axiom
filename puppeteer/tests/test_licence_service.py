@@ -151,7 +151,7 @@ def test_degraded_ce_state():
 # ---------------------------------------------------------------------------
 def test_clock_rollback_detection():
     """LIC-05: check_and_record_boot() detects a future timestamp in boot.log as rollback."""
-    from puppeteer.agent_service.services.licence_service import check_and_record_boot  # noqa: F401
+    from puppeteer.agent_service.services.licence_service import check_and_record_boot, LicenceStatus  # noqa: F401
     from datetime import datetime, timezone, timedelta
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -164,16 +164,33 @@ def test_clock_rollback_detection():
         boot_log.write_text(f"{future_hash} {future_ts}\n")
 
         with patch("puppeteer.agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
-            result = check_and_record_boot()
+            result = check_and_record_boot(LicenceStatus.CE)
 
         assert result is False, "Expected rollback to be detected (return False)"
 
-        # Strict mode: rollback should raise RuntimeError
+        # EE strict mode: rollback should raise RuntimeError (no env var — use LicenceStatus.VALID)
         boot_log.write_text(f"{future_hash} {future_ts}\n")
         with patch("puppeteer.agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
-            with patch.dict("os.environ", {"AXIOM_STRICT_CLOCK": "true"}, clear=False):
-                with pytest.raises(RuntimeError):
-                    check_and_record_boot()
+            with pytest.raises(RuntimeError):
+                check_and_record_boot(LicenceStatus.VALID)
+
+
+# ---------------------------------------------------------------------------
+# LIC-05b: EE strict-mode raises RuntimeError (standalone)
+# ---------------------------------------------------------------------------
+def test_check_and_record_boot_strict_ee():
+    """LIC-05: check_and_record_boot(LicenceStatus.VALID) raises RuntimeError on rollback (hardcoded EE strict)."""
+    from puppeteer.agent_service.services.licence_service import check_and_record_boot, LicenceStatus
+    from datetime import datetime, timezone, timedelta
+    import hashlib
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+        future_ts = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+        future_hash = hashlib.sha256(f"{future_ts}".encode()).hexdigest()
+        boot_log.write_text(f"{future_hash} {future_ts}\n")
+        with patch("puppeteer.agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            with pytest.raises(RuntimeError, match="Clock rollback"):
+                check_and_record_boot(LicenceStatus.VALID)
 
 
 # ---------------------------------------------------------------------------

@@ -69,3 +69,10 @@ def test_validate_path_within_allows_safe_path():
         # Should NOT raise — path is within base
         result = validate(base, candidate)
         assert result is not None
+
+
+def test_vault_service_deleted():
+    """SEC-02: vault_service.py must not exist — closed by deletion."""
+    import importlib
+    with pytest.raises((ImportError, ModuleNotFoundError)):
+        importlib.import_module("agent_service.services.vault_service")
