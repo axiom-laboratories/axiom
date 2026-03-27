@@ -199,7 +199,10 @@ Archive: `.planning/milestones/v14.3-ROADMAP.md`
   3. Admin user can dismiss the amber GRACE banner and it does not reappear for the rest of that browser session
   4. The red DEGRADED_CE banner has no dismiss control and remains visible until the licence state changes
   5. Operator and viewer users see no licence banner regardless of licence state
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 77-01-PLAN.md — Role-guard + dismiss: MainLayout banner polish
 
 ### Phase 78: CLI Signing UX
 **Goal**: A new user can generate a signing keypair and register it with the server using only the `axiom-push` CLI, with no openssl ceremony required
@@ -266,7 +269,7 @@ Archive: `.planning/milestones/v14.3-ROADMAP.md`
 | 74. Fix EE Licence Display | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 75. Secrets Volume + Dead Code Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 76. v14.3 Tech Debt Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
-| 77. Licence Banner Polish | v14.4 | 0/TBD | Not started | - |
+| 77. Licence Banner Polish | v14.4 | 0/1 | In progress | - |
 | 78. CLI Signing UX | v14.4 | 0/TBD | Not started | - |
 | 79. Install Docs Cleanup | v14.4 | 0/TBD | Not started | - |
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/TBD | Not started | - |
