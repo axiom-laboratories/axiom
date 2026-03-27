@@ -1,5 +1,5 @@
 site_name: Axiom
-site_url: https://axiom-laboratories.github.io/axiom/
+site_url: https://axiom-laboratories.github.io/axiom/docs/
 theme:
   name: material
   logo: assets/logo.svg
