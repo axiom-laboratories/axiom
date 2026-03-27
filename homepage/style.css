@@ -300,6 +300,63 @@ code {
   text-align: center;
 }
 
+/* ----- Site nav ----- */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--axiom-border);
+}
+
+.site-nav .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 0.875rem;
+}
+
+.nav-logo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--axiom-text);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-links a {
+  color: var(--axiom-text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.nav-links a:hover {
+  color: var(--axiom-text);
+}
+
+.nav-links .btn-nav-enterprise {
+  color: #fff;
+  background-color: var(--axiom-primary);
+  border-radius: var(--radius);
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.nav-links .btn-nav-enterprise:hover {
+  background-color: var(--axiom-primary-hover);
+  color: #fff;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 640px) {
   .edition-grid {
