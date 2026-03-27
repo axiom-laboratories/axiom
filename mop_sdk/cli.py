@@ -3,7 +3,12 @@ import sys
 import logging
 import webbrowser
 import os
+import socket
+from pathlib import Path
 from .auth import DeviceFlowHandler, CredentialStore
+from .client import MOPClient
+from cryptography.hazmat.primitives.asymmetric import ed25519 as ed25519_lib
+from cryptography.hazmat.primitives import serialization
 
 def main():
     parser = argparse.ArgumentParser(prog="mop-push", description="Master of Puppets (MoP) CLI")
@@ -36,6 +41,15 @@ def main():
     create_parser.add_argument("--cron", help="Cron schedule")
     create_parser.add_argument("--tags", help="Comma-separated target tags")
 
+    # key command
+    key_parser = subparsers.add_parser("key", help="Manage signing keys")
+    key_subparsers = key_parser.add_subparsers(dest="subcommand", help="Key commands")
+    generate_parser = key_subparsers.add_parser("generate", help="Generate an Ed25519 signing keypair")
+    generate_parser.add_argument("--force", action="store_true", help="Overwrite existing keys")
+
+    # init command
+    init_parser = subparsers.add_parser("init", help="Set up login, signing key, and server registration")
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -48,18 +62,119 @@ def main():
         sys.exit(0)
 
     # Prioritize URL: global arg > env > default
-    base_url = args.url or os.getenv("MOP_URL") or "http://localhost:8001"
+    base_url = args.url or os.getenv("AXIOM_URL") or "http://localhost:8001"
 
     if args.command == "login":
         do_login(base_url)
     elif args.command == "job":
         do_job(args)
+    elif args.command == "key":
+        do_key_generate(force=getattr(args, "force", False))
+    elif args.command == "init":
+        do_init(base_url)
     else:
         parser.print_help()
     sys.stdout.flush()
 
+def do_key_generate(force: bool = False) -> str:
+    """Generates an Ed25519 signing keypair in ~/.axiom/. Returns the public key PEM string."""
+    axiom_dir = Path.home() / ".axiom"
+    priv_path = axiom_dir / "signing.key"
+    pub_path = axiom_dir / "verification.key"
+
+    if priv_path.exists() and not force:
+        print("Keys already exist at ~/.axiom/signing.key. Use --force to overwrite.")
+        sys.exit(1)
+
+    axiom_dir.mkdir(parents=True, exist_ok=True)
+
+    priv = ed25519_lib.Ed25519PrivateKey.generate()
+    priv_pem = priv.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    pub_pem = priv.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+
+    priv_path.write_bytes(priv_pem)
+    os.chmod(priv_path, 0o600)
+    pub_path.write_bytes(pub_pem)
+    os.chmod(pub_path, 0o644)
+
+    pub_pem_str = pub_pem.decode("utf-8")
+    print(f"Generated keypair:\n  Private key: {priv_path}\n  Public key:  {pub_path}\n")
+    print("Public key (copy this to register with the server):")
+    print(pub_pem_str)
+    return pub_pem_str
+
+
+def do_init(base_url: str):
+    """Idempotent setup: login → key generation → register key → print usage."""
+    try:
+        # Step 1: Check credentials
+        store = CredentialStore()
+        creds = store.load()
+
+        if creds and creds.get("access_token"):
+            username = creds.get("username", "unknown")
+            print(f"Already logged in as {username} — skipping login.")
+        else:
+            do_login(base_url)
+            creds = store.load()
+            # Persist username if not already stored
+            if creds and not creds.get("username"):
+                try:
+                    client_tmp = MOPClient(base_url=creds["base_url"], verify_ssl=False)
+                    client_tmp.token = creds["access_token"]
+                    me = client_tmp.get_me()
+                    creds["username"] = me["username"]
+                    store.save(creds)
+                except Exception:
+                    pass  # username is best-effort
+
+        # Step 2: Key generation
+        axiom_dir = Path.home() / ".axiom"
+        priv_path = axiom_dir / "signing.key"
+        pub_path = axiom_dir / "verification.key"
+
+        if priv_path.exists():
+            print(f"Keys already exist — using {priv_path}")
+            pub_pem = pub_path.read_bytes().decode("utf-8")
+        else:
+            pub_pem = do_key_generate(force=False)
+
+        # Step 3: Register public key (idempotent — preflight GET first)
+        client = MOPClient.from_store(verify_ssl=False)
+        hostname = socket.gethostname()
+        username = (creds or {}).get("username", "user") if creds else "user"
+        key_name = f"{username}@{hostname}"
+
+        existing = client.list_signatures()
+        match = next((s for s in existing if s["name"] == key_name), None)
+        if match:
+            key_id = match["id"]
+            print(f"Key '{key_name}' already registered (ID: {key_id}) — skipping registration.")
+        else:
+            result = client.register_signature(name=key_name, public_key=pub_pem)
+            key_id = result["id"]
+
+        # Step 4: Print completion message
+        print(f"\nSetup complete.")
+        print(f"Key ID: {key_id}")
+        print(f"\nPush your first job:")
+        print(f"  axiom-push job push --script hello.py --key {priv_path} --key-id {key_id}")
+
+    except SystemExit:
+        raise
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+
 def do_job(args):
-    from .client import MOPClient
     from .signer import Signer
     
     try:

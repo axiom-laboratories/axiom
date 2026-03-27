@@ -178,6 +178,24 @@ class MOPClient:
         resp.raise_for_status()
         return resp.json()
 
+    def list_signatures(self) -> List[Dict]:
+        """Lists all registered public keys (signatures)."""
+        resp = self.request("GET", "/signatures")
+        resp.raise_for_status()
+        return resp.json()
+
+    def register_signature(self, name: str, public_key: str) -> Dict:
+        """Registers a public key on the server."""
+        resp = self.request("POST", "/signatures", json={"name": name, "public_key": public_key})
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_me(self) -> Dict:
+        """Returns the current authenticated user's info."""
+        resp = self.request("GET", "/auth/me")
+        resp.raise_for_status()
+        return resp.json()
+
     def fire_signal(self, name: str, payload: Optional[Dict] = None) -> Dict:
         """Fires a reactive orchestration signal."""
         resp = self.request("POST", f"/api/signals/{name}", json={"payload": payload})
