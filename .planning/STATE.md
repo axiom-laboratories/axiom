@@ -4,7 +4,7 @@ milestone: v14.3
 milestone_name: — Security Hardening + EE Licensing
 status: planning
 stopped_at: Completed 74-01-PLAN.md
-last_updated: "2026-03-27T11:55:42.021Z"
+last_updated: "2026-03-27T11:58:20.758Z"
 last_activity: 2026-03-26 — Roadmap created (2 phases, 13/13 requirements mapped)
 progress:
   total_phases: 4
