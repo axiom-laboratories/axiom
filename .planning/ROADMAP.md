@@ -199,7 +199,11 @@ Plans:
   4. An EE deployment whose grace period has also ended returns HTTP 402 on all EE feature routes (matching CE stub behaviour) without crashing or logging unhandled exceptions
   5. `GET /api/licence` returns a JSON response containing `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields readable by an operator
   6. `POST /api/enroll` returns HTTP 402 when the number of non-OFFLINE non-REVOKED nodes already enrolled equals or exceeds the `node_limit` in the signed licence payload
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 73-01-PLAN.md — RED test scaffold (7 failing tests for LIC-01 through LIC-07)
+- [ ] 73-02-PLAN.md — licence_service.py + tools/generate_licence.py (LIC-01 to LIC-05 GREEN)
+- [ ] 73-03-PLAN.md — main.py integration: lifespan, /api/licence, enroll limit, pull_work guard (LIC-06/07 GREEN)
 
 ## Progress
 
@@ -231,8 +235,8 @@ Plans:
 | 69. Fix CI release pipeline version pinning and semver tags | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 71. Deploy Docs to GitHub Pages | v14.2 | 2/2 | Complete | 2026-03-26 |
-| 72. Security Fixes | 2/2 | Complete    | 2026-03-26 | - |
-| 73. EE Licence System | v14.3 | 0/TBD | Not started | - |
+| 72. Security Fixes | v14.3 | 2/2 | Complete | 2026-03-26 |
+| 73. EE Licence System | v14.3 | 0/3 | Not started | - |
 
 ## Archived
 
