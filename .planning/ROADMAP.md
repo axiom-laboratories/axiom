@@ -236,7 +236,7 @@ Plans:
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 71. Deploy Docs to GitHub Pages | v14.2 | 2/2 | Complete | 2026-03-26 |
 | 72. Security Fixes | v14.3 | 2/2 | Complete | 2026-03-26 |
-| 73. EE Licence System | 3/3 | Complete   | 2026-03-27 | - |
+| 73. EE Licence System | 3/3 | Complete    | 2026-03-27 | - |
 
 ## Archived
 
