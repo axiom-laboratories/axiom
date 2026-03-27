@@ -1,10 +1,11 @@
 ---
 phase: 74
 slug: fix-ee-licence-display
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-27
+validated: 2026-03-27
 ---
 
 # Phase 74 — Validation Strategy
@@ -38,12 +39,12 @@ created: 2026-03-27
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 74-01-01 | 01 | 0 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/hooks` | ❌ W0 | ⬜ pending |
-| 74-01-02 | 01 | 0 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Admin.test.tsx` | ❌ W0 | ⬜ pending |
-| 74-01-03 | 01 | 0 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/layouts` | ❌ W0 | ⬜ pending |
-| 74-01-04 | 01 | 1 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/hooks` | ❌ W0 | ⬜ pending |
-| 74-01-05 | 01 | 1 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Admin.test.tsx` | ❌ W0 | ⬜ pending |
-| 74-01-06 | 01 | 1 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/layouts` | ❌ W0 | ⬜ pending |
+| 74-01-01 | 01 | 0 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/hooks/__tests__/useLicence.test.ts` | ✅ | ✅ green |
+| 74-01-02 | 01 | 0 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Admin.test.tsx` | ✅ | ✅ green |
+| 74-01-03 | 01 | 0 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/layouts/__tests__/MainLayout.test.tsx` | ✅ | ✅ green |
+| 74-01-04 | 01 | 1 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/hooks/__tests__/useLicence.test.ts` | ✅ | ✅ green |
+| 74-01-05 | 01 | 1 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/views/__tests__/Admin.test.tsx` | ✅ | ✅ green |
+| 74-01-06 | 01 | 1 | LIC-06 | unit | `cd puppeteer/dashboard && npx vitest run src/layouts/__tests__/MainLayout.test.tsx` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -51,9 +52,9 @@ created: 2026-03-27
 
 ## Wave 0 Requirements
 
-- [ ] `puppeteer/dashboard/src/hooks/__tests__/useLicence.test.ts` — stubs for LIC-06 hook mapping + `isEnterprise` computed field
-- [ ] `puppeteer/dashboard/src/views/__tests__/Admin.test.tsx` — stubs for LIC-06 LicenceSection rendering (valid/grace/expired/ce states)
-- [ ] `puppeteer/dashboard/src/layouts/__tests__/MainLayout.test.tsx` — stubs for LIC-06 EE badge and grace/expired banner
+- [x] `puppeteer/dashboard/src/hooks/__tests__/useLicence.test.ts` — stubs for LIC-06 hook mapping + `isEnterprise` computed field
+- [x] `puppeteer/dashboard/src/views/__tests__/Admin.test.tsx` — stubs for LIC-06 LicenceSection rendering (valid/grace/expired/ce states)
+- [x] `puppeteer/dashboard/src/layouts/__tests__/MainLayout.test.tsx` — stubs for LIC-06 EE badge and grace/expired banner
 
 ---
 
@@ -67,11 +68,22 @@ created: 2026-03-27
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** 2026-03-27 — 15/15 tests passing (useLicence: 4, Admin: 6, MainLayout: 5)
+
+---
+
+## Validation Audit 2026-03-27
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+| Total tests passing | 15 |
