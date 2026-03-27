@@ -513,6 +513,32 @@ code {
   line-height: 1.55;
 }
 
+/* ----- Security posture grid ----- */
+.security-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.security-card {
+  background-color: var(--axiom-bg);
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.security-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.security-card p {
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+  line-height: 1.55;
+}
+
 /* ----- Dual CTA section ----- */
 .dual-cta {
   display: grid;
@@ -551,6 +577,13 @@ code {
   text-transform: uppercase;
   padding: 0.2em 0.55em;
   border-radius: 4px;
+}
+
+/* ----- Early access badge ----- */
+.badge-early-access {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
 }
 
 /* ----- Dimmed feature list (EE coming soon) ----- */
@@ -612,5 +645,9 @@ code {
     height: 1px;
     margin: 2rem 0;
     background-color: var(--axiom-border);
+  }
+
+  .security-grid {
+    grid-template-columns: 1fr;
   }
 }
