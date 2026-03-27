@@ -1,0 +1,41 @@
+name: homepage-deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'homepage/**'
+      - '.github/workflows/homepage-deploy.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Deploy homepage to gh-pages root
+        run: |
+          # Stash the source files from main branch before switching
+          mkdir -p /tmp/homepage-deploy
+          cp homepage/index.html /tmp/homepage-deploy/index.html
+          cp homepage/style.css /tmp/homepage-deploy/style.css
+          # Switch to gh-pages and deploy
+          git fetch origin gh-pages
+          git checkout gh-pages
+          cp /tmp/homepage-deploy/index.html index.html
+          cp /tmp/homepage-deploy/style.css style.css
+          touch .nojekyll
+          git add index.html style.css .nojekyll
+          git diff --cached --quiet || git commit -m "Deploy homepage from ${{ github.sha }}"
+          git pull --rebase origin gh-pages
+          git push origin gh-pages
