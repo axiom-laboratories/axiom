@@ -226,7 +226,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Running `docker compose -f compose.cold-start.yaml up -d` starts only Axiom services — no puppet-node-1, puppet-node-2, or their associated volumes
   2. `install.md` contains no references to bundled JOIN_TOKENs, JOIN_TOKEN_1, or JOIN_TOKEN_2
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 79-01-PLAN.md — Atomic cleanup: remove bundled node services from compose, rename tabs and fix prose in install.md
 
 ### Phase 80: GitHub Pages Deploy + Marketing Homepage
 **Goal**: The project has a public marketing homepage at the GitHub Pages root that coexists with the MkDocs docs site at `/docs/` without either overwriting the other on push
@@ -275,7 +278,7 @@ Plans:
 | 76. v14.3 Tech Debt Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 77. Licence Banner Polish | 1/1 | Complete    | 2026-03-27 | - |
 | 78. CLI Signing UX | 2/2 | Complete    | 2026-03-27 | - |
-| 79. Install Docs Cleanup | v14.4 | 0/TBD | Not started | - |
+| 79. Install Docs Cleanup | v14.4 | 0/1 | Not started | - |
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/TBD | Not started | - |
 
 ## Archived
