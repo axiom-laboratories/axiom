@@ -217,6 +217,8 @@ Plans:
   2. MainLayout.tsx EE badge shows "EE" (not "CE") when a valid EE licence is loaded
   3. Expiry date renders as a human-readable date derived from `days_until_expiry`
 **Plans**: 1 plan
+Plans:
+- [ ] 74-01-PLAN.md — Fix useLicence.ts interface, update Admin.tsx and MainLayout.tsx; add grace/expired banner and status badge
 
 ### Phase 75: Secrets Volume + Dead Code Cleanup
 **Goal**: Clock-rollback detection survives container restarts; vault dead code removed; compose fully documents env vars
