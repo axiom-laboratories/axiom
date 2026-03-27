@@ -282,7 +282,7 @@ Plans:
 | 73. EE Licence System | v14.3 | 3/3 | Complete | 2026-03-27 |
 | 74. Fix EE Licence Display | 1/1 | Complete    | 2026-03-27 | — |
 | 75. Secrets Volume + Dead Code Cleanup | 1/1 | Complete    | 2026-03-27 | — |
-| 76. v14.3 Tech Debt Cleanup | 1/1 | Complete   | 2026-03-27 | — |
+| 76. v14.3 Tech Debt Cleanup | 1/1 | Complete    | 2026-03-27 | — |
 
 ## Archived
 
