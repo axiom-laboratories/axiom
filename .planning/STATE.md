@@ -4,7 +4,7 @@ milestone: v14.3
 milestone_name: — Security Hardening + EE Licensing
 status: planning
 stopped_at: "Completed 75-01-PLAN.md — awaiting checkpoint:human-verify (Task 4)"
-last_updated: "2026-03-27T13:48:51.228Z"
+last_updated: "2026-03-27T14:00:49.804Z"
 last_activity: 2026-03-26 — Roadmap created (2 phases, 13/13 requirements mapped)
 progress:
   total_phases: 4
