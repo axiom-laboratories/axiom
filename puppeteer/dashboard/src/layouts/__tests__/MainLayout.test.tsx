@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -25,9 +25,10 @@ vi.mock('../../components/NotificationBell', () => ({
     NotificationBell: () => null,
 }));
 
-// Mock getUser and logout
+// Mock getUser and logout — use vi.fn() so per-test overrides work
+const mockGetUser = vi.fn();
 vi.mock('../../auth', () => ({
-    getUser: () => ({ username: 'admin', role: 'admin' }),
+    getUser: (...args: any[]) => mockGetUser(...args),
     logout: vi.fn(),
     authenticatedFetch: vi.fn(),
 }));
@@ -44,6 +45,8 @@ const renderLayout = () =>
 describe('MainLayout EE badge and grace/expired banner', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        sessionStorage.clear();
+        mockGetUser.mockReturnValue({ username: 'admin', role: 'admin', sub: 'admin', exp: 9999999999 });
     });
 
     it('Test 11: badge shows EE with indigo classes when status is valid and isEnterprise is true', () => {
@@ -140,5 +143,83 @@ describe('MainLayout EE badge and grace/expired banner', () => {
         // Neither grace nor expired banner text should appear
         expect(screen.queryByText(/expires in/i)).toBeNull();
         expect(screen.queryByText(/licence has expired/i)).toBeNull();
+    });
+
+    it('Test 16: operator sees no banner when status is grace', () => {
+        mockGetUser.mockReturnValue({ username: 'op', role: 'operator', sub: 'op', exp: 9999999999 });
+        mockUseLicence.mockReturnValue({
+            status: 'grace',
+            tier: 'enterprise',
+            days_until_expiry: 10,
+            node_limit: 50,
+            customer_id: 'cust-2',
+            grace_days: 30,
+            isEnterprise: true,
+        });
+
+        renderLayout();
+
+        expect(screen.queryByText(/expires in/i)).toBeNull();
+    });
+
+    it('Test 17: viewer sees no banner when status is expired', () => {
+        mockGetUser.mockReturnValue({ username: 'v1', role: 'viewer', sub: 'v1', exp: 9999999999 });
+        mockUseLicence.mockReturnValue({
+            status: 'expired',
+            tier: 'enterprise',
+            days_until_expiry: -5,
+            node_limit: 50,
+            customer_id: 'cust-3',
+            grace_days: 30,
+            isEnterprise: true,
+        });
+
+        renderLayout();
+
+        expect(screen.queryByText(/licence has expired/i)).toBeNull();
+    });
+
+    it('Test 18: admin can dismiss GRACE banner and it disappears', () => {
+        mockUseLicence.mockReturnValue({
+            status: 'grace',
+            tier: 'enterprise',
+            days_until_expiry: 10,
+            node_limit: 50,
+            customer_id: 'cust-2',
+            grace_days: 30,
+            isEnterprise: true,
+        });
+
+        renderLayout();
+
+        // Banner should be visible before dismiss
+        expect(screen.getByText(/expires in 10 day/i)).toBeDefined();
+
+        // Click the dismiss button
+        const dismissBtn = screen.getByRole('button', { name: /dismiss licence warning/i });
+        fireEvent.click(dismissBtn);
+
+        // Banner should be gone after dismiss
+        expect(screen.queryByText(/expires in/i)).toBeNull();
+    });
+
+    it('Test 19: DEGRADED_CE banner has no dismiss button', () => {
+        mockUseLicence.mockReturnValue({
+            status: 'expired',
+            tier: 'enterprise',
+            days_until_expiry: -5,
+            node_limit: 50,
+            customer_id: 'cust-3',
+            grace_days: 30,
+            isEnterprise: true,
+        });
+
+        renderLayout();
+
+        // Banner should be present
+        expect(screen.getByText(/licence has expired/i)).toBeDefined();
+
+        // No dismiss button should be present
+        expect(screen.queryByRole('button', { name: /dismiss licence warning/i })).toBeNull();
     });
 });
