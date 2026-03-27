@@ -11,6 +11,10 @@
 		{
 			"name": "mop_validation",
 			"path": "../mop_validation"
+		},
+		{
+			"name": "codebase-to-course",
+			"path": "../codebase-to-course"
 		}
 	],
 	"settings": {}
