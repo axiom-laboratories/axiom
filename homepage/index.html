@@ -18,7 +18,8 @@
       <div class="nav-links">
         <a href="./docs/">Docs</a>
         <a href="https://github.com/axiom-laboratories/axiom">GitHub</a>
-        <a href="#enterprise-interest" class="btn-nav-enterprise">Enterprise</a>
+        <!-- TODO: replace GOOGLE_FORM_URL_PLACEHOLDER with real Google Form URL before launch -->
+        <a href="GOOGLE_FORM_URL_PLACEHOLDER" target="_blank" rel="noopener noreferrer" class="btn-nav-enterprise">Enterprise</a>
       </div>
     </div>
   </nav>
@@ -34,7 +35,7 @@
       </p>
       <div class="cta-group">
         <a href="./docs/getting-started/install/" class="btn btn-primary">Self-host in 30 min &rarr;</a>
-        <a href="#enterprise-interest" class="btn btn-secondary">Talk to us about Enterprise</a>
+        <a href="GOOGLE_FORM_URL_PLACEHOLDER" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Talk to us about Enterprise</a>
       </div>
     </div>
   </section>
@@ -102,6 +103,36 @@
     </div>
   </section>
 
+  <!-- Security posture -->
+  <section class="section section-alt">
+    <div class="container">
+      <p class="section-label">Enterprise-grade security</p>
+      <h2>Security that satisfies your infosec team</h2>
+      <div class="security-grid">
+        <div class="security-card">
+          <span class="pain-icon">🔏</span>
+          <h3>Cryptographic audit trail</h3>
+          <p>Every job execution is Ed25519-signed before it runs and logged with a full audit record. You know who ran what — and you can prove it.</p>
+        </div>
+        <div class="security-card">
+          <span class="pain-icon">🛡️</span>
+          <h3>Least-privilege RBAC</h3>
+          <p>Three built-in roles: admin, operator, viewer. No shared accounts. Permissions are scoped and auditable from day one.</p>
+        </div>
+        <div class="security-card">
+          <span class="pain-icon">🏢</span>
+          <h3>Air-gapped deployment</h3>
+          <p>Fully self-hosted. No telemetry, no cloud dependency, no data leaves your network. Runs on your infrastructure, under your control.</p>
+        </div>
+        <div class="security-card">
+          <span class="pain-icon">🔐</span>
+          <h3>Certificate-based node identity</h3>
+          <p>Each node holds a unique mTLS client certificate. Revocation is cryptographic — not a password reset.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- CE vs EE -->
   <section class="section section-alt">
     <div class="container">
@@ -125,20 +156,21 @@
         <div class="card card-ee">
           <div class="card-header">
             <h3>Enterprise Edition</h3>
-            <span class="badge badge-coming-soon">Coming soon</span>
+            <span class="badge badge-early-access">Early access</span>
           </div>
+          <p class="card-intro">Built with early design partners — shaped by real enterprise deployments.</p>
           <p class="card-intro">Everything in CE, plus:</p>
-          <ul class="feature-list feature-list--dimmed">
+          <ul class="feature-list">
             <li>RBAC with three roles (admin, operator, viewer)</li>
             <li>Audit log for all security-relevant actions</li>
             <li>Foundry image builder for custom node environments</li>
             <li>Execution history with cryptographic attestation</li>
             <li>Per-node resource limits (memory &amp; CPU)</li>
             <li>Node enrollment limits and fleet governance</li>
-<li>Organisation SSO readiness</li>
+            <li>SAML 2.0 / OIDC SSO integration</li>
           </ul>
           <div class="ee-interest">
-            Interested in Enterprise? <a href="#enterprise-interest">Get in touch &rarr;</a>
+            Interested in Enterprise? <a href="GOOGLE_FORM_URL_PLACEHOLDER" target="_blank" rel="noopener noreferrer">Get in touch &rarr;</a>
           </div>
         </div>
 
@@ -163,9 +195,9 @@
 
         <div class="dual-cta-block">
           <p class="section-label">Enterprise edition</p>
-          <h3>Interested in Enterprise?</h3>
-          <p class="install-sub">Tell us what you need. We'll be in touch when Enterprise Edition launches.</p>
-          <a href="#enterprise-interest" class="btn btn-primary">Register your interest &rarr;</a>
+          <h3>Get early access</h3>
+          <p class="install-sub">We're working with design partners now. Tell us about your environment.</p>
+          <a href="GOOGLE_FORM_URL_PLACEHOLDER" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Get early access &rarr;</a>
         </div>
 
       </div>
