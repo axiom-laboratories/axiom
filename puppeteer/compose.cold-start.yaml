@@ -10,10 +10,6 @@ version: "3"
 #        ADMIN_PASSWORD=<choose-a-password>
 #        ENCRYPTION_KEY=<32-char-fernet-key>  # generate: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 #   2. docker compose -f compose.cold-start.yaml --env-file .env up -d
-#   3. Generate JOIN tokens from the dashboard (Admin → Join Tokens) or via API:
-#        curl -sk -X POST https://localhost:8001/admin/generate-token \
-#          -H "Authorization: Bearer <admin-jwt>" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['token'])"
-#   4. Set JOIN_TOKEN_1 and JOIN_TOKEN_2 in your .env file and restart the node services.
 #
 # Usage:
 #   CE run:  docker compose -f compose.cold-start.yaml --env-file .env up -d
@@ -102,55 +98,10 @@ services:
       dockerfile: docs/Dockerfile
     restart: always
 
-  puppet-node-1:
-    build:
-      context: ../puppets
-      dockerfile: Containerfile.node
-    image: localhost/axiom-node:cold-start
-    environment:
-      - AGENT_URL=https://agent:8001
-      - JOIN_TOKEN=${JOIN_TOKEN_1:-}
-      - ROOT_CA_PATH=/app/secrets/root_ca.crt
-      - EXECUTION_MODE=docker
-      - JOB_IMAGE=localhost/axiom-node:cold-start
-      - PYTHONUNBUFFERED=1
-      - NODE_TAGS=coldstart,linux
-    volumes:
-      - node1-secrets:/app/secrets
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp:/tmp
-    restart: unless-stopped
-    depends_on:
-      agent:
-        condition: service_started
-
-  puppet-node-2:
-    build:
-      context: ../puppets
-      dockerfile: Containerfile.node
-    image: localhost/axiom-node:cold-start
-    environment:
-      - AGENT_URL=https://agent:8001
-      - JOIN_TOKEN=${JOIN_TOKEN_2:-}
-      - ROOT_CA_PATH=/app/secrets/root_ca.crt
-      - EXECUTION_MODE=docker
-      - JOB_IMAGE=localhost/axiom-node:cold-start
-      - PYTHONUNBUFFERED=1
-      - NODE_TAGS=coldstart,linux
-    volumes:
-      - node2-secrets:/app/secrets
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp:/tmp
-    restart: unless-stopped
-    depends_on:
-      agent:
-        condition: service_started
 
 volumes:
   pgdata:
   certs-volume:
   caddy_data:
   caddy_config:
-  node1-secrets:
-  node2-secrets:
   secrets-data:   # Agent secrets persistence (boot.log, licence.key)
