@@ -16,13 +16,13 @@
 
 ### EE Licensing
 
-- [ ] **LIC-01**: Axiom Labs operator can generate an Ed25519-signed licence key offline using `tools/generate_licence.py`, specifying customer ID, tier, node limit, feature list, expiry date, and grace days
-- [ ] **LIC-02**: Axiom EE verifies the Ed25519 cryptographic signature of the licence key at startup, rejecting any key whose signature does not match the embedded public key
-- [ ] **LIC-03**: Axiom EE transitions to a GRACE state when a valid licence expires, logging a warning and continuing EE operation for up to `grace_days` (default 30) rather than crashing or hard-stopping
-- [ ] **LIC-04**: Axiom EE transitions to DEGRADED_CE state (CE stub routes return 402) after the grace period ends, without crashing or raising unhandled exceptions in EE route handlers
-- [ ] **LIC-05**: Axiom EE detects clock rollback between container restarts via a hash-chained boot log in `secrets/boot.log` and logs a warning (strict mode: reject startup)
-- [ ] **LIC-06**: Operator can query `GET /api/licence` and receive `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields in the response
-- [ ] **LIC-07**: Axiom CE/EE rejects new node enrollment at `POST /api/enroll` with HTTP 402 when the signed `node_limit` in the licence has been reached
+- [x] **LIC-01**: Axiom Labs operator can generate an Ed25519-signed licence key offline using `tools/generate_licence.py`, specifying customer ID, tier, node limit, feature list, expiry date, and grace days
+- [x] **LIC-02**: Axiom EE verifies the Ed25519 cryptographic signature of the licence key at startup, rejecting any key whose signature does not match the embedded public key
+- [x] **LIC-03**: Axiom EE transitions to a GRACE state when a valid licence expires, logging a warning and continuing EE operation for up to `grace_days` (default 30) rather than crashing or hard-stopping
+- [x] **LIC-04**: Axiom EE transitions to DEGRADED_CE state (CE stub routes return 402) after the grace period ends, without crashing or raising unhandled exceptions in EE route handlers
+- [x] **LIC-05**: Axiom EE detects clock rollback between container restarts via a hash-chained boot log in `secrets/boot.log` and logs a warning (strict mode: reject startup)
+- [x] **LIC-06**: Operator can query `GET /api/licence` and receive `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields in the response
+- [x] **LIC-07**: Axiom CE/EE rejects new node enrollment at `POST /api/enroll` with HTTP 402 when the signed `node_limit` in the licence has been reached
 
 ## Future Requirements
 
@@ -56,13 +56,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-04 | Phase 72 | Complete |
 | SEC-05 | Phase 72 | Complete |
 | SEC-06 | Phase 72 | Complete |
-| LIC-01 | Phase 73 | Pending |
-| LIC-02 | Phase 73 | Pending |
-| LIC-03 | Phase 73 | Pending |
-| LIC-04 | Phase 73 | Pending |
-| LIC-05 | Phase 73 | Pending |
-| LIC-06 | Phase 73 | Pending |
-| LIC-07 | Phase 73 | Pending |
+| LIC-01 | Phase 73 | Complete |
+| LIC-02 | Phase 73 | Complete |
+| LIC-03 | Phase 73 | Complete |
+| LIC-04 | Phase 73 | Complete |
+| LIC-05 | Phase 73 | Complete |
+| LIC-06 | Phase 73 | Complete |
+| LIC-07 | Phase 73 | Complete |
 
 **Coverage:**
 - v14.3 requirements: 13 total
