@@ -14,7 +14,7 @@
 - ✅ **v14.0 — CE/EE Cold-Start Validation** — Phases 61–65 (shipped 2026-03-25)
 - ✅ **v14.1 — First-User Readiness** — Phases 66–70 (shipped 2026-03-26)
 - ✅ **v14.2 — Docs on GitHub Pages** — Phase 71 (shipped 2026-03-26)
-- 🚧 **v14.3 — Security Hardening + EE Licensing** — Phases 72–73 (in progress)
+- 🚧 **v14.3 — Security Hardening + EE Licensing** — Phases 72–75 (in progress)
 
 ## Phases
 
@@ -170,6 +170,8 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
 
 - [x] **Phase 72: Security Fixes** — Close 5 CodeQL error-severity alerts (XSS, path injection x4, ReDoS), remove API_KEY hard crash and node-route dependency (completed 2026-03-26)
 - [x] **Phase 73: EE Licence System** — Offline licence CLI, Ed25519 signature validation at startup, grace period state machine, boot-log clock-rollback detection, extended /api/licence response, node limit enforcement at enrollment (completed 2026-03-27)
+- [ ] **Phase 74: Fix EE Licence Display** — Align `useLicence.ts` field mapping with backend response; restore EE badge and Admin licence section
+- [ ] **Phase 75: Secrets Volume + Dead Code Cleanup** — Add `secrets-data` volume to compose so boot.log persists across restarts; remove `vault_service.py` dead code; add `AXIOM_STRICT_CLOCK` to compose; remove `main.py.bak` from git
 
 ## Phase Details
 
@@ -205,6 +207,29 @@ Plans:
 - [ ] 73-02-PLAN.md — licence_service.py + tools/generate_licence.py (LIC-01 to LIC-05 GREEN)
 - [ ] 73-03-PLAN.md — main.py integration: lifespan, /api/licence, enroll limit, pull_work guard (LIC-06/07 GREEN)
 
+### Phase 74: Fix EE Licence Display
+**Goal**: Operators with a valid EE licence see correct edition, expiry, and tier in the dashboard
+**Depends on**: Phase 73
+**Requirements**: LIC-06
+**Gap Closure**: Closes gaps from v14.3 audit
+**Success Criteria** (what must be TRUE):
+  1. Admin with a valid EE licence loads the Admin page and sees tier "enterprise" (not "Community") in the licence section
+  2. MainLayout.tsx EE badge shows "EE" (not "CE") when a valid EE licence is loaded
+  3. Expiry date renders as a human-readable date derived from `days_until_expiry`
+**Plans**: 1 plan
+
+### Phase 75: Secrets Volume + Dead Code Cleanup
+**Goal**: Clock-rollback detection survives container restarts; vault dead code removed; compose fully documents env vars
+**Depends on**: Phase 73
+**Requirements**: LIC-05, SEC-02
+**Gap Closure**: Closes gaps from v14.3 audit
+**Success Criteria** (what must be TRUE):
+  1. `docker compose down && docker compose up -d` preserves `secrets/boot.log` across the restart cycle
+  2. `vault_service.py` is removed from the codebase (or fully wired with Artifact ORM + routes); no `ImportError` on import
+  3. `main.py.bak` is no longer tracked by git
+  4. `AXIOM_STRICT_CLOCK` is present (commented) in `compose.server.yaml` agent service env block
+**Plans**: 1 plan
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -236,7 +261,9 @@ Plans:
 | 70. Fix Getting-Started Doc Regressions | v14.1 | 1/1 | Complete | 2026-03-26 |
 | 71. Deploy Docs to GitHub Pages | v14.2 | 2/2 | Complete | 2026-03-26 |
 | 72. Security Fixes | v14.3 | 2/2 | Complete | 2026-03-26 |
-| 73. EE Licence System | 3/3 | Complete    | 2026-03-27 | - |
+| 73. EE Licence System | v14.3 | 3/3 | Complete | 2026-03-27 |
+| 74. Fix EE Licence Display | v14.3 | 0/1 | Pending | — |
+| 75. Secrets Volume + Dead Code Cleanup | v14.3 | 0/1 | Pending | — |
 
 ## Archived
 

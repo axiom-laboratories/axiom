@@ -8,7 +8,7 @@
 ### Security Fixes
 
 - [x] **SEC-01**: Operator can be confident that the device-approve OAuth page (`/auth/device/approve`) does not reflect unsanitised user input — `user_code` query parameter is HTML-escaped before rendering
-- [x] **SEC-02**: Operator can be confident that `vault_service.py` artifact paths are safe against directory traversal — UUID validation + `Path.resolve() + is_relative_to()` guard applied to store and delete operations
+- [ ] **SEC-02**: Operator can be confident that `vault_service.py` artifact paths are safe against directory traversal — UUID validation + `Path.resolve() + is_relative_to()` guard applied to store and delete operations
 - [x] **SEC-03**: Operator can be confident that `main.py` installer script paths are safe against directory traversal — same `resolve() + is_relative_to()` pattern applied to all flagged locations (verified via live CodeQL scan)
 - [x] **SEC-04**: Operator can be confident that job output scanning (`mask_pii()`) cannot be exploited for ReDoS — email regex rewritten to linear bounded pattern, not just length-guarded
 - [x] **SEC-05**: Operator can start Axiom without an `API_KEY` environment variable — import-time crash removed, `verify_api_key` dependency removed from all three node-facing routes, `API_KEY` references removed from documentation and templates
@@ -20,8 +20,8 @@
 - [x] **LIC-02**: Axiom EE verifies the Ed25519 cryptographic signature of the licence key at startup, rejecting any key whose signature does not match the embedded public key
 - [x] **LIC-03**: Axiom EE transitions to a GRACE state when a valid licence expires, logging a warning and continuing EE operation for up to `grace_days` (default 30) rather than crashing or hard-stopping
 - [x] **LIC-04**: Axiom EE transitions to DEGRADED_CE state (CE stub routes return 402) after the grace period ends, without crashing or raising unhandled exceptions in EE route handlers
-- [x] **LIC-05**: Axiom EE detects clock rollback between container restarts via a hash-chained boot log in `secrets/boot.log` and logs a warning (strict mode: reject startup)
-- [x] **LIC-06**: Operator can query `GET /api/licence` and receive `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields in the response
+- [ ] **LIC-05**: Axiom EE detects clock rollback between container restarts via a hash-chained boot log in `secrets/boot.log` and logs a warning (strict mode: reject startup)
+- [ ] **LIC-06**: Operator can query `GET /api/licence` and receive `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields in the response
 - [x] **LIC-07**: Axiom CE/EE rejects new node enrollment at `POST /api/enroll` with HTTP 402 when the signed `node_limit` in the licence has been reached
 
 ## Future Requirements
@@ -51,7 +51,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SEC-01 | Phase 72 | Complete |
-| SEC-02 | Phase 72 | Complete |
+| SEC-02 | Phase 75 | Pending |
 | SEC-03 | Phase 72 | Complete |
 | SEC-04 | Phase 72 | Complete |
 | SEC-05 | Phase 72 | Complete |
@@ -60,14 +60,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIC-02 | Phase 73 | Complete |
 | LIC-03 | Phase 73 | Complete |
 | LIC-04 | Phase 73 | Complete |
-| LIC-05 | Phase 73 | Complete |
-| LIC-06 | Phase 73 | Complete |
+| LIC-05 | Phase 75 | Pending |
+| LIC-06 | Phase 74 | Pending |
 | LIC-07 | Phase 73 | Complete |
 
 **Coverage:**
 - v14.3 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0 ✓
+- Pending (gap closure): SEC-02 (Phase 75), LIC-05 (Phase 75), LIC-06 (Phase 74)
 
 ---
 *Requirements defined: 2026-03-26*
