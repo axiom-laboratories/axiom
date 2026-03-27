@@ -67,7 +67,6 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
-      - API_KEY=${API_KEY:-master-secret-key}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PYTHONUNBUFFERED=1
