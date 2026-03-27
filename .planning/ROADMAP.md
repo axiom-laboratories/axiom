@@ -305,3 +305,13 @@ Plans:
 - ✅ **v3.0 — Advanced Foundry & Hot-Upgrades** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v3.0-phases/`
 - ✅ **v2.0 — Foundry & Node Lifecycle** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v2.0-phases/`
 - ✅ **v1.0 — Production Reliability** (Phases 1–6) — shipped 2026-03-05 → `.planning/milestones/v1.0-phases/`
+
+### Phase 81: Homepage enterprise messaging — SSO narrative, compliance framing, and conversion optimisation
+
+**Goal:** The Axiom marketing homepage has a credible enterprise trust section, a working conversion path to a Google Form, and EE framing that signals early-access availability rather than vaporware
+**Requirements**: TBD
+**Depends on:** Phase 80
+**Plans:** 1 plan
+
+Plans:
+- [ ] 81-01-PLAN.md — Security posture section, EE card update, CTA anchor fixes, and early-access badge
