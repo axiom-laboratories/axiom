@@ -172,7 +172,7 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
 - [x] **Phase 73: EE Licence System** — Offline licence CLI, Ed25519 signature validation at startup, grace period state machine, boot-log clock-rollback detection, extended /api/licence response, node limit enforcement at enrollment (completed 2026-03-27)
 - [x] **Phase 74: Fix EE Licence Display** — Align `useLicence.ts` field mapping with backend response; restore EE badge and Admin licence section (completed 2026-03-27)
 - [x] **Phase 75: Secrets Volume + Dead Code Cleanup** — Add `secrets-data` volume to compose so boot.log persists across restarts; remove `vault_service.py` dead code; add `AXIOM_STRICT_CLOCK` to compose; remove `main.py.bak` from git (completed 2026-03-27)
-- [ ] **Phase 76: v14.3 Tech Debt Cleanup** — Fix stale CI tests in test_licence.py (wrong response shape + renamed app state key), remove dead API_KEY env var from compose.cold-start.yaml, delete orphaned vault_service __pycache__ bytecode
+- [x] **Phase 76: v14.3 Tech Debt Cleanup** — Fix stale CI tests in test_licence.py (wrong response shape + renamed app state key), remove dead API_KEY env var from compose.cold-start.yaml, delete orphaned vault_service __pycache__ bytecode (completed 2026-03-27)
 
 ## Phase Details
 
@@ -282,7 +282,7 @@ Plans:
 | 73. EE Licence System | v14.3 | 3/3 | Complete | 2026-03-27 |
 | 74. Fix EE Licence Display | 1/1 | Complete    | 2026-03-27 | — |
 | 75. Secrets Volume + Dead Code Cleanup | 1/1 | Complete    | 2026-03-27 | — |
-| 76. v14.3 Tech Debt Cleanup | v14.3 | 0/1 | Pending | — |
+| 76. v14.3 Tech Debt Cleanup | 1/1 | Complete   | 2026-03-27 | — |
 
 ## Archived
 
