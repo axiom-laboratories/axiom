@@ -172,6 +172,7 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
 - [x] **Phase 73: EE Licence System** — Offline licence CLI, Ed25519 signature validation at startup, grace period state machine, boot-log clock-rollback detection, extended /api/licence response, node limit enforcement at enrollment (completed 2026-03-27)
 - [x] **Phase 74: Fix EE Licence Display** — Align `useLicence.ts` field mapping with backend response; restore EE badge and Admin licence section (completed 2026-03-27)
 - [x] **Phase 75: Secrets Volume + Dead Code Cleanup** — Add `secrets-data` volume to compose so boot.log persists across restarts; remove `vault_service.py` dead code; add `AXIOM_STRICT_CLOCK` to compose; remove `main.py.bak` from git (completed 2026-03-27)
+- [ ] **Phase 76: v14.3 Tech Debt Cleanup** — Fix stale CI tests in test_licence.py (wrong response shape + renamed app state key), remove dead API_KEY env var from compose.cold-start.yaml, delete orphaned vault_service __pycache__ bytecode
 
 ## Phase Details
 
@@ -234,6 +235,19 @@ Plans:
 Plans:
 - [ ] 75-01-PLAN.md — RED tests (LIC-05 strict mode + SEC-02 vault sentinel) + licence_service refactor + vault deletion + compose volumes + git cleanup
 
+### Phase 76: v14.3 Tech Debt Cleanup
+**Goal**: All tech debt items identified by the v14.3 audit are resolved — CI tests pass against current API shape, compose files contain no misleading dead env vars, and no orphaned bytecode lingers from deleted source files
+**Depends on**: Phase 75
+**Requirements**: None (tech debt, no new requirements)
+**Tech Debt Closure**: Closes all 3 items from v14.3 audit
+**Success Criteria** (what must be TRUE):
+  1. `pytest puppeteer/agent_service/tests/test_licence.py` passes with zero failures — `test_licence_endpoint_community` and `test_licence_endpoint_enterprise` assert the current response shape (`status`, `tier`, `days_until_expiry`, `node_limit`, `customer_id`, `grace_days`) and reference `app.state.licence_state`
+  2. `compose.cold-start.yaml` contains no `API_KEY` line in the agent service environment block
+  3. `puppeteer/agent_service/services/__pycache__/vault_service.cpython-312.pyc` does not exist on disk
+**Plans**: 1 plan
+Plans:
+- [ ] 76-01-PLAN.md — Fix test_licence.py endpoint tests, remove API_KEY from compose.cold-start.yaml, delete stale .pyc
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -268,6 +282,7 @@ Plans:
 | 73. EE Licence System | v14.3 | 3/3 | Complete | 2026-03-27 |
 | 74. Fix EE Licence Display | 1/1 | Complete    | 2026-03-27 | — |
 | 75. Secrets Volume + Dead Code Cleanup | 1/1 | Complete    | 2026-03-27 | — |
+| 76. v14.3 Tech Debt Cleanup | v14.3 | 0/1 | Pending | — |
 
 ## Archived
 
