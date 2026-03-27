@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: completed
-stopped_at: Phase 79 context gathered
-last_updated: "2026-03-27T19:59:36.417Z"
+stopped_at: Completed 79-install-docs-cleanup-01-PLAN.md
+last_updated: "2026-03-27T20:19:48.164Z"
 last_activity: "2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path"
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 3
+  total_plans: 4
+  completed_plans: 4
   percent: 25
 ---
 
@@ -50,6 +50,7 @@ Progress: [██░░░░░░░░] 25%
 | Phase 77 P01 | 2 | 2 tasks | 2 files |
 | Phase 78-cli-signing-ux P01 | 35 | 3 tasks | 5 files |
 | Phase 78-cli-signing-ux P02 | ~2h | 2 tasks | 1 file |
+| Phase 79-install-docs-cleanup P01 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Progress: [██░░░░░░░░] 25%
 - [Phase 78-02]: axiom-push init describes all 3 auto-steps inline — no separate key ceremony in Quick Start
 - [Phase 78-02]: axiom-push key generate in ??? tip block — accessible but not promoted as primary path
 - [Phase 78-02]: openssl ceremony demoted to Manual Setup — preserved for CE users and advanced operators
+- [Phase 79-install-docs-cleanup]: compose.cold-start.yaml trimmed to 5 core services only — puppet nodes require separate JOIN token flow not appropriate for Quick Start
+- [Phase 79-install-docs-cleanup]: Tab label renamed from 'Cold-Start Install' to 'Quick Start' across Steps 2, 3, 4 — aligns with user mental model for a first-run compose
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T19:59:36.414Z
-Stopped at: Phase 79 context gathered
-Resume file: .planning/phases/79-install-docs-cleanup/79-CONTEXT.md
+Last session: 2026-03-27T20:19:48.161Z
+Stopped at: Completed 79-install-docs-cleanup-01-PLAN.md
+Resume file: None

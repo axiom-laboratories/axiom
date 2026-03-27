@@ -184,7 +184,7 @@ Archive: `.planning/milestones/v14.3-ROADMAP.md`
 
 - [x] **Phase 77: Licence Banner Polish** — Admin-visible amber/red banner with session-scoped dismiss, role guard, and DEGRADED_CE non-dismissible variant (completed 2026-03-27)
 - [x] **Phase 78: CLI Signing UX** — Fix `AXIOM_URL` env var, add `key generate` and `init` subcommands, update signing docs (completed 2026-03-27)
-- [ ] **Phase 79: Install Docs Cleanup** — Remove bundled test nodes from cold-start compose and update install.md atomically
+- [x] **Phase 79: Install Docs Cleanup** — Remove bundled test nodes from cold-start compose and update install.md atomically (completed 2026-03-27)
 - [ ] **Phase 80: GitHub Pages Deploy + Marketing Homepage** — Fix docs deploy workflow to `/docs/` subdirectory, then add marketing homepage to repo root
 
 ## Phase Details
@@ -278,7 +278,7 @@ Plans:
 | 76. v14.3 Tech Debt Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 77. Licence Banner Polish | 1/1 | Complete    | 2026-03-27 | - |
 | 78. CLI Signing UX | 2/2 | Complete    | 2026-03-27 | - |
-| 79. Install Docs Cleanup | v14.4 | 0/1 | Not started | - |
+| 79. Install Docs Cleanup | 1/1 | Complete   | 2026-03-27 | - |
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/TBD | Not started | - |
 
 ## Archived

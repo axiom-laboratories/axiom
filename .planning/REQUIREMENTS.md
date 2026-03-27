@@ -22,8 +22,8 @@
 
 ### Install (Golden Path Docs)
 
-- [ ] **INST-01**: `compose.cold-start.yaml` does not include bundled test nodes (puppet-node-1, puppet-node-2)
-- [ ] **INST-02**: `install.md` does not reference bundled node JOIN_TOKENs (atomic with INST-01)
+- [x] **INST-01**: `compose.cold-start.yaml` does not include bundled test nodes (puppet-node-1, puppet-node-2)
+- [x] **INST-02**: `install.md` does not reference bundled node JOIN_TOKENs (atomic with INST-01)
 
 ### Marketing (GitHub Pages)
 
@@ -74,8 +74,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-02 | Phase 78 | Complete |
 | CLI-03 | Phase 78 | Complete |
 | CLI-04 | Phase 78 | Complete |
-| INST-01 | Phase 79 | Pending |
-| INST-02 | Phase 79 | Pending |
+| INST-01 | Phase 79 | Complete |
+| INST-02 | Phase 79 | Complete |
 | MKTG-01 | Phase 80 | Pending |
 | MKTG-02 | Phase 80 | Pending |
 
