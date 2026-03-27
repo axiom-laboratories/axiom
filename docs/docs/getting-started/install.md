@@ -56,7 +56,7 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
     !!! warning "ADMIN_PASSWORD is first-start only"
         `ADMIN_PASSWORD` is only read when the admin user does not yet exist in the database. After the first start, changing this value in `secrets.env` has **no effect**. Use the dashboard **Users** page to change the admin password on existing deployments.
 
-=== "Cold-Start Install"
+=== "Quick Start"
 
     Create a `.env` file in the same directory as `compose.cold-start.yaml`:
 
@@ -88,13 +88,13 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
 
     This starts: Caddy (reverse proxy + TLS), the Agent Service (API on port 8001), the Model Service (port 8000), and PostgreSQL.
 
-=== "Cold-Start Install"
+=== "Quick Start"
 
     ```bash
     docker compose -f compose.cold-start.yaml --env-file .env up -d
     ```
 
-    This starts: Caddy (reverse proxy + TLS, port 8443), the Agent Service (port 8001), and PostgreSQL. The two built-in puppet nodes start automatically but require JOIN_TOKEN_1 and JOIN_TOKEN_2 to be set in your `.env` before they can enroll.
+    This starts: Caddy (reverse proxy + TLS, port 8443), the Agent Service (port 8001), and PostgreSQL.
 
 ---
 
@@ -110,7 +110,7 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
 
     All services should show `running` status. Then open `https://localhost/` in a browser — you should see the dashboard login page.
 
-=== "Cold-Start Install"
+=== "Quick Start"
 
     Check that all containers are running:
 
