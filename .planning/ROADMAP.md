@@ -213,7 +213,11 @@ Plans:
   2. Running `axiom-push key generate` produces a local Ed25519 keypair without requiring openssl or any external tool
   3. Running `axiom-push init` completes login, key generation, and public key registration in a single interactive flow
   4. `first-job.md` presents `axiom-push init` as the primary getting-started path with `key generate` documented as the standalone alternative
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 78-01-PLAN.md — CLI implementation: AXIOM_URL fix, key generate, init flow (mop_sdk/)
+- [ ] 78-02-PLAN.md — Doc restructure: first-job.md with axiom-push init as primary path
 
 ### Phase 79: Install Docs Cleanup
 **Goal**: A new user following `install.md` starts a clean Axiom stack with no phantom node services or stale JOIN_TOKEN references
