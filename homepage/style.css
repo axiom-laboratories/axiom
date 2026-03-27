@@ -305,9 +305,15 @@ code {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: rgba(13, 17, 23, 0.92);
-  backdrop-filter: blur(8px);
+  background-color: rgba(13, 17, 23, 0.97);
   border-bottom: 1px solid var(--axiom-border);
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .site-nav {
+    backdrop-filter: blur(8px);
+    background-color: rgba(13, 17, 23, 0.92);
+  }
 }
 
 .site-nav .container {
@@ -355,6 +361,13 @@ code {
 .nav-links .btn-nav-enterprise:hover {
   background-color: var(--axiom-primary-hover);
   color: #fff;
+}
+
+.nav-links a:focus-visible,
+.nav-links .btn-nav-enterprise:focus-visible {
+  outline: 2px solid var(--axiom-primary);
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 
 /* ----- Responsive ----- */
