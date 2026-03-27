@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: completed
-stopped_at: Phase 81 context gathered
-last_updated: "2026-03-27T23:08:39.007Z"
+stopped_at: Phase 81-01 tasks complete — awaiting human-verify checkpoint (Task 3)
+last_updated: "2026-03-27T23:21:30.552Z"
 last_activity: "2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path"
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 5
+  total_plans: 7
+  completed_plans: 7
   percent: 25
 ---
 
@@ -53,6 +53,7 @@ Progress: [██░░░░░░░░] 25%
 | Phase 79-install-docs-cleanup P01 | 1min | 2 tasks | 2 files |
 | Phase 80 P01 | 1min | 2 tasks | 2 files |
 | Phase 80 P02 | 2 | 2 tasks | 3 files |
+| Phase 81 P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Progress: [██░░░░░░░░] 25%
 - [Phase 80]: site_url in mkdocs.yml updated to /axiom/docs/ to match new canonical path after subtree deploy
 - [Phase 80]: Stash homepage files to /tmp before git checkout gh-pages — avoids working-tree wipe on branch switch
 - [Phase 80]: homepage-deploy scoped to homepage/** only — never writes to docs/ preserving MkDocs coexistence
+- [Phase 81]: Security cards use var(--axiom-bg) not --axiom-surface for contrast against section-alt background
+- [Phase 81]: GOOGLE_FORM_URL_PLACEHOLDER sentinel used instead of empty href so broken enterprise links are visible before launch
 
 ### Roadmap Evolution
 
@@ -93,6 +96,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T23:08:39.005Z
-Stopped at: Phase 81 context gathered
-Resume file: .planning/phases/81-homepage-enterprise-messaging-sso-narrative-compliance-framing-and-conversion-optimisation/81-CONTEXT.md
+Last session: 2026-03-27T23:21:30.550Z
+Stopped at: Phase 81-01 tasks complete — awaiting human-verify checkpoint (Task 3)
+Resume file: None

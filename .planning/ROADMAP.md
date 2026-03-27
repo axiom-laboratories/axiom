@@ -311,7 +311,7 @@ Plans:
 **Goal:** The Axiom marketing homepage has a credible enterprise trust section, a working conversion path to a Google Form, and EE framing that signals early-access availability rather than vaporware
 **Requirements**: TBD
 **Depends on:** Phase 80
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 81-01-PLAN.md — Security posture section, EE card update, CTA anchor fixes, and early-access badge
