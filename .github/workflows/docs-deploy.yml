@@ -41,6 +41,10 @@ jobs:
       - name: Install docs dependencies
         run: pip install -r docs/requirements.txt
 
-      - name: Deploy to GitHub Pages
+      - name: Build docs
         working-directory: docs
-        run: mkdocs gh-deploy --force
+        run: mkdocs build
+
+      - name: Deploy docs to gh-pages/docs/
+        working-directory: docs
+        run: ghp-import -n -p -f -x docs site
