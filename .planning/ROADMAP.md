@@ -170,7 +170,7 @@ Archive: `.planning/milestones/v14.2-ROADMAP.md`
 
 - [x] **Phase 72: Security Fixes** — Close 5 CodeQL error-severity alerts (XSS, path injection x4, ReDoS), remove API_KEY hard crash and node-route dependency (completed 2026-03-26)
 - [x] **Phase 73: EE Licence System** — Offline licence CLI, Ed25519 signature validation at startup, grace period state machine, boot-log clock-rollback detection, extended /api/licence response, node limit enforcement at enrollment (completed 2026-03-27)
-- [ ] **Phase 74: Fix EE Licence Display** — Align `useLicence.ts` field mapping with backend response; restore EE badge and Admin licence section
+- [x] **Phase 74: Fix EE Licence Display** — Align `useLicence.ts` field mapping with backend response; restore EE badge and Admin licence section (completed 2026-03-27)
 - [ ] **Phase 75: Secrets Volume + Dead Code Cleanup** — Add `secrets-data` volume to compose so boot.log persists across restarts; remove `vault_service.py` dead code; add `AXIOM_STRICT_CLOCK` to compose; remove `main.py.bak` from git
 
 ## Phase Details
@@ -264,7 +264,7 @@ Plans:
 | 71. Deploy Docs to GitHub Pages | v14.2 | 2/2 | Complete | 2026-03-26 |
 | 72. Security Fixes | v14.3 | 2/2 | Complete | 2026-03-26 |
 | 73. EE Licence System | v14.3 | 3/3 | Complete | 2026-03-27 |
-| 74. Fix EE Licence Display | v14.3 | 0/1 | Pending | — |
+| 74. Fix EE Licence Display | 1/1 | Complete   | 2026-03-27 | — |
 | 75. Secrets Volume + Dead Code Cleanup | v14.3 | 0/1 | Pending | — |
 
 ## Archived
