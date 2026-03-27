@@ -165,21 +165,21 @@ def _compute_hash(prev_hash_hex: str, iso_ts: str) -> str:
     return hashlib.sha256(f"{prev_hash_hex}{iso_ts}".encode()).hexdigest()
 
 
-def check_and_record_boot() -> bool:
+def check_and_record_boot(licence_status: LicenceStatus = LicenceStatus.CE) -> bool:
     """
     Append a new timestamped entry to the hash-chained boot log.
 
     Returns True if no rollback is detected, False if the last entry has a
     timestamp in the future (indicating clock rollback).
 
-    When AXIOM_STRICT_CLOCK=true, raises RuntimeError instead of returning
-    False on rollback detection.
+    For EE licences (VALID, GRACE, EXPIRED), raises RuntimeError on rollback.
+    For CE mode, logs a warning only.
 
     Boot log format: one line per boot, each line = '<sha256_hex> <ISO8601_timestamp>'.
     Genesis (absent or empty file): creates the first entry.
     Truncation: keeps last 1000 lines to prevent unbounded growth.
     """
-    strict_clock = os.getenv("AXIOM_STRICT_CLOCK", "").strip().lower() == "true"
+    strict_clock = licence_status != LicenceStatus.CE
     now_ts = datetime.now(timezone.utc).isoformat()
 
     BOOT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)

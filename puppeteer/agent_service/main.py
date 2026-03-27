@@ -75,14 +75,15 @@ limiter = Limiter(key_func=get_remote_address)
 async def lifespan(app: FastAPI):
     # Startup logic
     await init_db()
-    # Clock rollback detection + boot log (before licence validation)
-    _rollback_ok = check_and_record_boot()
-    if not _rollback_ok:
-        logger.warning("Clock rollback detected — check system time")
 
-    # Licence validation
+    # Load licence first (check_and_record_boot now needs it)
     licence_state = load_licence()
     app.state.licence_state = licence_state
+
+    # Clock rollback detection — strict for EE, warning-only for CE
+    _rollback_ok = check_and_record_boot(licence_state.status)
+    if not _rollback_ok:
+        logger.warning("Clock rollback detected — check system time")
 
     # Load EE plugins only if licence is valid or in grace period
     from .ee import load_ee_plugins, EEContext, _mount_ce_stubs
