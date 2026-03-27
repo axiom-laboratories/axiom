@@ -239,7 +239,11 @@ Plans:
   1. Pushing a docs change triggers `docs-deploy.yml` and the rendered MkDocs output appears at `axiom-laboratories.github.io/axiom/docs/` without touching the homepage
   2. Pushing a homepage change triggers `homepage-deploy.yml` and the updated `index.html` appears at `axiom-laboratories.github.io/axiom/` without touching the docs subdirectory
   3. A visitor to `axiom-laboratories.github.io/axiom/` sees a marketing page with hero copy, security positioning, CE/EE comparison, and a link to the docs
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 80-01-PLAN.md — Docs deploy fix: ghp-import prefix mode + site_url update
+- [ ] 80-02-PLAN.md — Marketing homepage: source files + homepage-deploy workflow
 
 ## Progress
 
@@ -279,7 +283,7 @@ Plans:
 | 77. Licence Banner Polish | 1/1 | Complete    | 2026-03-27 | - |
 | 78. CLI Signing UX | 2/2 | Complete    | 2026-03-27 | - |
 | 79. Install Docs Cleanup | 1/1 | Complete    | 2026-03-27 | - |
-| 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/TBD | Not started | - |
+| 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/2 | Not started | - |
 
 ## Archived
 
