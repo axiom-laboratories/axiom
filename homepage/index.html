@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axiom — Distributed job execution you can trust</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <p class="section-label">Open-source orchestration</p>
+      <h1>Distributed job execution<br>you can trust</h1>
+      <p class="hero-sub">
+        Nodes poll out — no inbound firewall rules required. Every connection is
+        mTLS-verified and every script is Ed25519-signed before it runs.
+      </p>
+      <div class="cta-group">
+        <a href="./docs/" class="btn btn-primary">Read the docs</a>
+        <a href="https://github.com/axiom-laboratories/axiom" class="btn btn-secondary">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security -->
+  <section class="section">
+    <div class="container">
+      <p class="section-label">Zero-trust by default</p>
+      <h2>Security without compromise</h2>
+      <div class="prose">
+        <p>
+          Every node enrolls by generating a CSR on first boot. The control plane signs a
+          short-lived client certificate against its internal Root CA. From that point forward,
+          all communication between the puppeteer and every puppet is mutually authenticated
+          with TLS — no shared secrets, no API keys passed over the wire, no trust on first use.
+        </p>
+        <p>
+          Job scripts must be signed with a registered Ed25519 key before the node will execute
+          them. The node fetches the registered public key, verifies the signature against the
+          script bytes, and refuses outright if verification fails. Bad signatures are not
+          logged and retried — they are rejected.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CE vs EE -->
+  <section class="section section-alt">
+    <div class="container">
+      <p class="section-label">Editions</p>
+      <h2>Community &amp; Enterprise</h2>
+      <div class="edition-grid">
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Community Edition</h3>
+            <span class="badge badge-free">Free — Apache 2.0</span>
+          </div>
+          <ul class="feature-list">
+            <li>Job execution (Python, Bash, PowerShell)</li>
+            <li>Node management with mTLS enrollment</li>
+            <li>RBAC with three roles (admin, operator, viewer)</li>
+            <li>Ed25519 job signing + pre-execution verification</li>
+            <li>Audit log for all security-relevant actions</li>
+            <li>Cron scheduling with capability targeting</li>
+            <li>Foundry image builder for custom node environments</li>
+          </ul>
+        </div>
+
+        <div class="card card-ee">
+          <div class="card-header">
+            <h3>Enterprise Edition</h3>
+            <span class="badge badge-ee">Commercial licence</span>
+          </div>
+          <p class="card-intro">Everything in CE, plus:</p>
+          <ul class="feature-list">
+            <li>Execution history with cryptographic attestation</li>
+            <li>Per-node resource limits (memory &amp; CPU)</li>
+            <li>Node enrollment limits and fleet governance</li>
+            <li>Grace period licence lifecycle management</li>
+            <li>Ed25519 offline licence validation</li>
+            <li>Organisation SSO readiness</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Install -->
+  <section class="section">
+    <div class="container install-section">
+      <p class="section-label">Get started</p>
+      <h2>Cold-start in under 30 minutes</h2>
+      <p class="install-sub">Full stack, no cloud account required.</p>
+      <pre><code>docker compose -f compose.cold-start.yaml up -d</code></pre>
+      <a href="./docs/getting-started/install/" class="text-link">Get started &rarr;</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Axiom Laboratories. Apache 2.0 for Community Edition.</p>
+    </div>
+  </footer>
+
+</body>
+</html>
