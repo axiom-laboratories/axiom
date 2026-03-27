@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: Go-to-Market Polish
-status: defining_requirements
-stopped_at: —
+status: ready_to_plan
+stopped_at: Roadmap created — Phase 77 ready to plan
 last_updated: "2026-03-27T00:00:00.000Z"
-last_activity: 2026-03-27 — Milestone v14.4 started
+last_activity: 2026-03-27 — v14.4 roadmap created (phases 77–80)
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v14.4 — Go-to-Market Polish
+**Current focus:** v14.4 — Go-to-Market Polish (Phase 77: Licence Banner Polish)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-27 — Milestone v14.4 started
+Phase: 77 of 80 (Licence Banner Polish)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-03-27 — v14.4 roadmap created (phases 77–80)
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -43,61 +43,31 @@ Progress: [██████████] 100%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 72. Security Fixes | TBD | - | - |
-| 73. EE Licence System | TBD | - | - |
-| Phase 72 P01 | 22 | 2 tasks | 6 files |
-| Phase 72 P02 | 7 | 3 tasks | 6 files |
-| Phase 73 P01 | 2 | 1 tasks | 1 files |
-| Phase 73 P02 | 4 | 2 tasks | 3 files |
-| Phase 73 P03 | 5min | 2 tasks | 1 files |
-| Phase 74 P01 | 3m8s | 2 tasks | 6 files |
-| Phase 75 P01 | 3m | 3 tasks | 9 files |
-| Phase 76-v14.3-tech-debt-cleanup P01 | 8min | 3 tasks | 2 files |
+| 77. Licence Banner Polish | TBD | - | - |
+| 78. CLI Signing UX | TBD | - | - |
+| 79. Install Docs Cleanup | TBD | - | - |
+| 80. GitHub Pages + Homepage | TBD | - | - |
 
 ## Accumulated Context
 
 ### Decisions
 
-- [v14.2]: `openapi.json` pre-committed (not regenerated in CI) — Docker build still regenerates at container build time
-- [v14.2]: `mkdocs gh-deploy --force` approach — simpler, official MkDocs Material recommendation
-- [v14.2]: `offline` plugin conditional via `!ENV [OFFLINE_BUILD, false]` — Dockerfile sets `OFFLINE_BUILD=true`
-- [v14.3 pre-planning]: Licence validation must live in CE code (`licence_service.py`), not inside the EE plugin's `register()` — prevents partial route registration with no clean rollback
-- [v14.3 pre-planning]: Licence expiry must degrade to DEGRADED_CE, never crash — `sys.exit(1)` on expiry creates production outages for air-gapped operators
-- [v14.3 pre-planning]: Absent boot-log treated as "unknown" + grace fallback, not hard stop — deleted log is indistinguishable from fresh install
-- [Phase 72]: validate_path_within must be in security.py — test_vault_traversal.py imports it from there (vault_service.py Artifact import broken)
-- [Phase 72]: TDD Wave 0 pattern: auth dep-override with MagicMock for ASGI tests against require_auth routes
-- [Phase 72]: html.escape() for XSS prevention; validate_path_within() uses Path.is_relative_to() for path traversal guards; API_KEY removed from security.py startup
-- [Phase 72]: XSS test assertion: 'payload not in text' not 'no script tag' — page has own JS; traversal URL tests check != 200 since Starlette normalizes at routing layer
-- [Phase 73]: Import path for licence_service is puppeteer.agent_service.services.licence_service — consistent with existing service module pattern
-- [Phase 73]: TDD Wave 0 RED tests: function-scope imports ensure ModuleNotFoundError is the failure signal, not import-time crash at collection
-- [Phase 73]: pytest run from repo root (not puppeteer/) for licence tests — test_licence_service.py uses puppeteer.agent_service.* import path requiring parent dir in sys.path
-- [Phase 73]: tools/licence_signing.key gitignored (correct) — private key must not be committed; operators run --generate-keypair during bootstrap
-- [Phase 73]: Node limit guard placed before token validation in enroll_node() — test spec expects 402 even when token mock returns None; guard fires first for correct 402/403 ordering
-- [Phase 73]: DEGRADED_CE pull_work guard returns PollResponse(job=None) silently — not HTTPException — nodes stay connected and heartbeating per LIC-04 spec
-- [Phase 74]: isEnterprise computed as status !== 'ce' — valid/grace/expired all count as EE-licenced
-- [Phase 74]: STATUS_BADGE/STATUS_LABEL lookup maps in Admin.tsx LicenceSection for clean status rendering
-- [Phase 74]: Grace/expired banner placed between header and main in MainLayout.tsx
-- [Phase 75]: check_and_record_boot() takes licence_status parameter; CE warns only, EE (VALID/GRACE/EXPIRED) raises RuntimeError on rollback — removes AXIOM_STRICT_CLOCK env var bypass vector
-- [Phase 75]: main.py lifespan reordered: load_licence() first, then check_and_record_boot(licence_state.status) — clock hardening tied to licence tier at boot
-- [Phase 75]: secrets-data named Docker volume mounts at /app/secrets on agent — boot.log survives compose down/up cycles
-- [Phase 75]: vault_service.py deleted (dead code — Artifact not in db.py, caused ImportError on any import)
-- [Phase 76-01]: EE endpoint tests correctly skip on glibc host — musllinux EE wheel incompatible locally; tests will run in CI where EE wheel installs into Docker container
-- [Phase 76-01]: 9 pre-existing test failures (test_job_service, test_models, test_sec01/02) and 6 collection errors confirmed pre-existing before Phase 76; out of scope
+- [v14.2]: `mkdocs gh-deploy --force` used for docs — BUT v14.4 Phase 80 must switch to `ghp-import --dest-dir docs` to coexist with homepage at root
+- [v14.3 Phase 74]: Grace/expired banner placed between header and main in MainLayout.tsx — banner component exists at lines 211-223; Phase 77 polishes it (dismiss + admin-only guard)
+- [v14.4 roadmap]: Phase 80 depends on Phase 78 (signing UX) and Phase 79 (install docs) completing first — homepage cannot honestly claim "30-minute setup" until those land
+- [v14.4 roadmap]: `mkdocs gh-deploy --force` has no `--dest-dir` flag (confirmed MkDocs 1.6.1) — Phase 80 must use `ghp-import --dest-dir docs` or `peaceiris/actions-gh-pages@v4`
 
 ### Pending Todos
 
-- Fix golden path install docs (remove bundled nodes from `compose.cold-start.yaml`)
-- Marketing homepage on GitHub Pages
-- USP: hello world under 30 mins (signing UX)
-- Dashboard amber/red banner on GRACE/DEGRADED_CE state (deferred from v14.3 — backend API lands first)
+None carried forward.
 
 ### Blockers/Concerns
 
-- main.py path-injection line numbers in the todo have drifted (todo references 2457/2461 but file is currently ~2152 lines) — run live CodeQL scan or check GitHub Security tab to find actual alert locations before implementing SEC-03
-- Licence public key identity: `licence_service.py` needs a separate Ed25519 keypair from the job-signing key — confirm keypair exists or generate before Phase 73 begins
+- Phase 80: Verify `ghp-import --dest-dir` flag availability in the mkdocs transitive install before implementing (`ghp-import --help`). Fallback: `peaceiris/actions-gh-pages@v4` with `destination_dir` + `keep_files: true`.
+- Phase 80: Audit hardcoded absolute doc links in README, dashboard sidebar, and other files before changing `mkdocs.yml` `site_url` from `/axiom/` to `/axiom/docs/` — broken canonical links will cause 404s.
 
 ## Session Continuity
 
-Last session: 2026-03-27T14:33:34.596Z
-Stopped at: Completed 76-01-PLAN.md
+Last session: 2026-03-27
+Stopped at: Roadmap created — ready to plan Phase 77
 Resume file: None

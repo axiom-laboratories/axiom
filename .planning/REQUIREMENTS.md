@@ -65,25 +65,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BNR-01 | — | Pending |
-| BNR-02 | — | Pending |
-| BNR-03 | — | Pending |
-| BNR-04 | — | Pending |
-| BNR-05 | — | Pending |
-| CLI-01 | — | Pending |
-| CLI-02 | — | Pending |
-| CLI-03 | — | Pending |
-| CLI-04 | — | Pending |
-| INST-01 | — | Pending |
-| INST-02 | — | Pending |
-| MKTG-01 | — | Pending |
-| MKTG-02 | — | Pending |
+| BNR-01 | Phase 77 | Pending |
+| BNR-02 | Phase 77 | Pending |
+| BNR-03 | Phase 77 | Pending |
+| BNR-04 | Phase 77 | Pending |
+| BNR-05 | Phase 77 | Pending |
+| CLI-01 | Phase 78 | Pending |
+| CLI-02 | Phase 78 | Pending |
+| CLI-03 | Phase 78 | Pending |
+| CLI-04 | Phase 78 | Pending |
+| INST-01 | Phase 79 | Pending |
+| INST-02 | Phase 79 | Pending |
+| MKTG-01 | Phase 80 | Pending |
+| MKTG-02 | Phase 80 | Pending |
 
 **Coverage:**
 - v14.4 requirements: 13 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 13 ⚠️
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 — initial definition*
+*Last updated: 2026-03-27 — traceability mapped to phases 77–80*

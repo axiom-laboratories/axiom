@@ -15,6 +15,7 @@
 - ✅ **v14.1 — First-User Readiness** — Phases 66–70 (shipped 2026-03-26)
 - ✅ **v14.2 — Docs on GitHub Pages** — Phase 71 (shipped 2026-03-26)
 - ✅ **v14.3 — Security Hardening + EE Licensing** — Phases 72–76 (shipped 2026-03-27)
+- 🚧 **v14.4 — Go-to-Market Polish** — Phases 77–80 (in progress)
 
 ## Phases
 
@@ -177,6 +178,59 @@ Archive: `.planning/milestones/v14.3-ROADMAP.md`
 
 </details>
 
+### 🚧 v14.4 — Go-to-Market Polish (In Progress)
+
+**Milestone Goal:** Remove the three biggest first-user friction points (licence UX, signing ceremony, install docs) and establish an external conversion surface (marketing homepage on GitHub Pages).
+
+- [ ] **Phase 77: Licence Banner Polish** — Admin-visible amber/red banner with session-scoped dismiss, role guard, and DEGRADED_CE non-dismissible variant
+- [ ] **Phase 78: CLI Signing UX** — Fix `AXIOM_URL` env var, add `key generate` and `init` subcommands, update signing docs
+- [ ] **Phase 79: Install Docs Cleanup** — Remove bundled test nodes from cold-start compose and update install.md atomically
+- [ ] **Phase 80: GitHub Pages Deploy + Marketing Homepage** — Fix docs deploy workflow to `/docs/` subdirectory, then add marketing homepage to repo root
+
+## Phase Details
+
+### Phase 77: Licence Banner Polish
+**Goal**: Admin users can see and act on licence state warnings without other roles being distracted by unactionable alerts
+**Depends on**: Nothing (banner component already exists in MainLayout.tsx)
+**Requirements**: BNR-01, BNR-02, BNR-03, BNR-04, BNR-05
+**Success Criteria** (what must be TRUE):
+  1. Admin user visiting any dashboard page sees an amber banner when the licence is in GRACE state
+  2. Admin user visiting any dashboard page sees a red banner when the licence is in DEGRADED_CE state
+  3. Admin user can dismiss the amber GRACE banner and it does not reappear for the rest of that browser session
+  4. The red DEGRADED_CE banner has no dismiss control and remains visible until the licence state changes
+  5. Operator and viewer users see no licence banner regardless of licence state
+**Plans**: TBD
+
+### Phase 78: CLI Signing UX
+**Goal**: A new user can generate a signing keypair and register it with the server using only the `axiom-push` CLI, with no openssl ceremony required
+**Depends on**: Nothing (CLI changes are additive, no backend API changes needed)
+**Requirements**: CLI-01, CLI-02, CLI-03, CLI-04
+**Success Criteria** (what must be TRUE):
+  1. Running `axiom-push` with `AXIOM_URL` set connects to the correct server (the `MOP_URL` silent mismatch is fixed)
+  2. Running `axiom-push key generate` produces a local Ed25519 keypair without requiring openssl or any external tool
+  3. Running `axiom-push init` completes login, key generation, and public key registration in a single interactive flow
+  4. `first-job.md` presents `axiom-push init` as the primary getting-started path with `key generate` documented as the standalone alternative
+**Plans**: TBD
+
+### Phase 79: Install Docs Cleanup
+**Goal**: A new user following `install.md` starts a clean Axiom stack with no phantom node services or stale JOIN_TOKEN references
+**Depends on**: Nothing (pure YAML deletion + doc prose update, no code changes)
+**Requirements**: INST-01, INST-02
+**Success Criteria** (what must be TRUE):
+  1. Running `docker compose -f compose.cold-start.yaml up -d` starts only Axiom services — no puppet-node-1, puppet-node-2, or their associated volumes
+  2. `install.md` contains no references to bundled JOIN_TOKENs, JOIN_TOKEN_1, or JOIN_TOKEN_2
+**Plans**: TBD
+
+### Phase 80: GitHub Pages Deploy + Marketing Homepage
+**Goal**: The project has a public marketing homepage at the GitHub Pages root that coexists with the MkDocs docs site at `/docs/` without either overwriting the other on push
+**Depends on**: Phase 78 (homepage can honestly claim a sub-30-minute setup path only after signing UX is fixed), Phase 79 (homepage install instructions must match the clean compose)
+**Requirements**: MKTG-01, MKTG-02
+**Success Criteria** (what must be TRUE):
+  1. Pushing a docs change triggers `docs-deploy.yml` and the rendered MkDocs output appears at `axiom-laboratories.github.io/axiom/docs/` without touching the homepage
+  2. Pushing a homepage change triggers `homepage-deploy.yml` and the updated `index.html` appears at `axiom-laboratories.github.io/axiom/` without touching the docs subdirectory
+  3. A visitor to `axiom-laboratories.github.io/axiom/` sees a marketing page with hero copy, security positioning, CE/EE comparison, and a link to the docs
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -212,6 +266,10 @@ Archive: `.planning/milestones/v14.3-ROADMAP.md`
 | 74. Fix EE Licence Display | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 75. Secrets Volume + Dead Code Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 76. v14.3 Tech Debt Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
+| 77. Licence Banner Polish | v14.4 | 0/TBD | Not started | - |
+| 78. CLI Signing UX | v14.4 | 0/TBD | Not started | - |
+| 79. Install Docs Cleanup | v14.4 | 0/TBD | Not started | - |
+| 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/TBD | Not started | - |
 
 ## Archived
 
