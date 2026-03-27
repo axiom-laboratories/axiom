@@ -1,0 +1,2374 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/runbooks/jobs/">
+      
+      
+        <link rel="prev" href="../nodes/">
+      
+      
+        <link rel="next" href="../foundry/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Job Execution - Axiom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="../../assets/external/fonts.googleapis.com/css.49ea35f2.css">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#job-execution-troubleshooting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Axiom" class="md-header__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Axiom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Job Execution
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Axiom" class="md-nav__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    Axiom
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prerequisites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running with Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/enroll-node/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enroll a Node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/first-job/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Feature Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operator Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/axiom-push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    axiom-push CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Config
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platform Config
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/jobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/nodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/foundry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/job-scheduling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Scheduling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth & Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/rbac-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Permission Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../licensing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/mtls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mTLS & Certificates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/rbac-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/audit-log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/air-gap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Air-Gap Operation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbooks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runbooks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Execution
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dispatch-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dispatch Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job-stuck-in-queued-pending-indefinitely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job stuck in Queued / PENDING indefinitely
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-blocked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is BLOCKED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-cancelled-upstream-dependency-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is CANCELLED — upstream dependency failed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-dead_letter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is DEAD_LETTER
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-zombie_reaped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is ZOMBIE_REAPED
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signing-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signing Errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Signing Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#security_rejected-signature-verification-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SECURITY_REJECTED — Signature Verification FAILED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security_rejected-verification-key-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SECURITY_REJECTED — Verification Key missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security_rejected-missing-script-or-signature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SECURITY_REJECTED — Missing script or signature
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#timeout-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timeout Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Timeout Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job-reaped-after-30-minutes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job reaped after ~30 minutes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-stays-assigned-indefinitely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job stays ASSIGNED indefinitely
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../foundry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/setup-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Quick Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/course.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Course — How Axiom Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/operator-guide.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dispatch-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dispatch Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job-stuck-in-queued-pending-indefinitely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job stuck in Queued / PENDING indefinitely
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-blocked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is BLOCKED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-cancelled-upstream-dependency-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is CANCELLED — upstream dependency failed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-dead_letter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is DEAD_LETTER
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-status-is-zombie_reaped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job status is ZOMBIE_REAPED
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signing-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signing Errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Signing Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#security_rejected-signature-verification-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SECURITY_REJECTED — Signature Verification FAILED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security_rejected-verification-key-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SECURITY_REJECTED — Verification Key missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security_rejected-missing-script-or-signature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SECURITY_REJECTED — Missing script or signature
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#timeout-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timeout Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Timeout Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job-reaped-after-30-minutes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job reaped after ~30 minutes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-stays-assigned-indefinitely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job stays ASSIGNED indefinitely
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="job-execution-troubleshooting">Job Execution Troubleshooting</h1>
+<p>This runbook covers failures that occur from job submission through execution and result reporting. Use it when a job is stuck, rejected, or disappears from the queue — match the dashboard status badge or log line you observe to the symptom below and follow the recovery steps.</p>
+<h2 id="quick-reference">Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Job stuck in <code>PENDING</code> or <code>QUEUED</code> indefinitely</td>
+<td><a href="#job-stuck-in-queued-pending-indefinitely">Job stuck in Queued / PENDING indefinitely</a></td>
+</tr>
+<tr>
+<td>Job status is <code>BLOCKED</code></td>
+<td><a href="#job-status-is-blocked">Job status is BLOCKED</a></td>
+</tr>
+<tr>
+<td>Job status is <code>CANCELLED</code> with "cancelled because upstream failed"</td>
+<td><a href="#job-status-is-cancelled-upstream-dependency-failed">Job status is CANCELLED — upstream dependency failed</a></td>
+</tr>
+<tr>
+<td>Job status is <code>DEAD_LETTER</code></td>
+<td><a href="#job-status-is-dead_letter">Job status is DEAD_LETTER</a></td>
+</tr>
+<tr>
+<td>Job status is <code>ZOMBIE_REAPED</code></td>
+<td><a href="#job-status-is-zombie_reaped">Job status is ZOMBIE_REAPED</a></td>
+</tr>
+<tr>
+<td>Job status is <code>SECURITY_REJECTED</code> — Signature Verification FAILED</td>
+<td><a href="#security_rejected-signature-verification-failed">SECURITY_REJECTED — Signature Verification FAILED</a></td>
+</tr>
+<tr>
+<td>Job status is <code>SECURITY_REJECTED</code> — Verification Key missing</td>
+<td><a href="#security_rejected-verification-key-missing">SECURITY_REJECTED — Verification Key missing</a></td>
+</tr>
+<tr>
+<td>Job status is <code>SECURITY_REJECTED</code> — Missing script or signature</td>
+<td><a href="#security_rejected-missing-script-or-signature">SECURITY_REJECTED — Missing script or signature</a></td>
+</tr>
+<tr>
+<td>Job moves from <code>ASSIGNED</code> to <code>FAILED</code> or <code>ZOMBIE_REAPED</code> after ~30 minutes</td>
+<td><a href="#job-reaped-after-30-minutes">Job reaped after ~30 minutes</a></td>
+</tr>
+<tr>
+<td>Node never reports job result — job stays <code>ASSIGNED</code> indefinitely</td>
+<td><a href="#job-stays-assigned-indefinitely">Job stays ASSIGNED indefinitely</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="dispatch-failures">Dispatch Failures</h2>
+<h3 id="job-stuck-in-queued-pending-indefinitely">Job stuck in Queued / PENDING indefinitely</h3>
+<p>The orchestrator found no node with matching tags, required capabilities, and sufficient memory budget. Jobs remain <code>PENDING</code> until a matching node checks in — they are never dropped silently.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Open <strong>Jobs</strong> view and note the job's <code>capability_requirements</code> and <code>target_tags</code>.</li>
+<li>Open <strong>Nodes</strong> view and confirm at least one node with <code>Online</code> status has the required capabilities. Select a node and check its capabilities panel.</li>
+<li>If no node qualifies, either reduce the job's requirements or enroll a node with the needed capabilities.</li>
+<li>If the job has a <code>memory_limit</code> set, check that at least one online node has sufficient free memory headroom — nodes with insufficient memory are skipped by the selection loop.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>Watch the job status in the <strong>Jobs</strong> view. After a matching node checks in (within its next poll interval), the status should change from <code>PENDING</code> to <code>ASSIGNED</code>.</p>
+<p>Expected: job status badge transitions to <code>ASSIGNED</code> within 30 seconds of a matching node coming online.</p>
+<p>If the issue persists after a node with matching capabilities is Online, check orchestrator logs for node selection output — look for lines indicating why each candidate node was skipped.</p>
+<hr />
+<h3 id="job-status-is-blocked">Job status is BLOCKED</h3>
+<p>The job has a <code>depends_on</code> dependency that has not yet reached <code>COMPLETED</code> status. <code>BLOCKED</code> is expected behaviour — the job will unblock automatically when its dependency completes.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Open the <strong>Jobs</strong> view and identify the dependency job listed under <code>depends_on</code>.</li>
+<li>Check the dependency job's current status.</li>
+<li>If it is <code>RUNNING</code> or <code>ASSIGNED</code>: no action needed — wait for it to complete.</li>
+<li>If it is <code>FAILED</code> or <code>DEAD_LETTER</code>: the dependent job will be <code>CANCELLED</code> (see <a href="#job-status-is-cancelled-upstream-dependency-failed">Job status is CANCELLED</a>). Investigate the dependency failure first.</li>
+<li>If it is <code>PENDING</code> or <code>QUEUED</code>: the dependency itself may be blocked — repeat this process for it.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>Observe the dependency job reaching <code>COMPLETED</code>. The dependent job should automatically move to <code>QUEUED</code> within one poll cycle.</p>
+<p>If the dependent job remains <code>BLOCKED</code> after the dependency has <code>COMPLETED</code>, check orchestrator logs for errors in the dependency resolution loop.</p>
+<hr />
+<h3 id="job-status-is-cancelled-upstream-dependency-failed">Job status is CANCELLED — upstream dependency failed</h3>
+<p>The upstream dependency job failed, and the orchestrator propagated cancellation to all downstream dependents. The following log line appears in the orchestrator logs:</p>
+<div class="highlight"><pre><span></span><code>🚫 Job &lt;guid&gt; cancelled because upstream &lt;guid&gt; failed
+</code></pre></div>
+<p>The dependent job cannot be recovered in place — it must be resubmitted once the underlying problem is fixed.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Identify the upstream dependency job (the second <code>&lt;guid&gt;</code> in the log line above).</li>
+<li>Open the upstream job's execution record and check its output for the failure reason.</li>
+<li>Fix the root cause of the upstream failure (script error, missing resource, or signing problem).</li>
+<li>Resubmit the upstream job. If it completes successfully, resubmit the originally-cancelled downstream job.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>Resubmit both jobs and confirm the upstream job reaches <code>COMPLETED</code>. The downstream job should then reach <code>COMPLETED</code> (or <code>ASSIGNED</code>) without being <code>CANCELLED</code>.</p>
+<p>If the issue persists, check that the <code>depends_on</code> chain is correct and that the upstream job's fix addresses the original failure cause.</p>
+<hr />
+<h3 id="job-status-is-dead_letter">Job status is DEAD_LETTER</h3>
+<p>The job failed on every retry attempt up to its <code>max_retries</code> limit. The orchestrator marks it <code>DEAD_LETTER</code> and creates an alert. The following log line appears in the orchestrator logs:</p>
+<div class="highlight"><pre><span></span><code>Job &lt;guid&gt; exhausted all &lt;N&gt; retries and failed terminally.
+</code></pre></div>
+<div class="admonition danger">
+<p class="admonition-title">DEAD_LETTER jobs cannot be retried</p>
+<p>A job in <code>DEAD_LETTER</code> status is permanently terminal. You cannot retry it — you must fix the underlying issue and submit a new job.</p>
+</div>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Open the job's execution record in the <strong>Jobs</strong> view and read the output or error message from the final attempt.</li>
+<li>Identify the root cause: script error, missing dependency, resource constraint, or signing problem.</li>
+<li>Fix the underlying issue in your script or job configuration.</li>
+<li>Submit a new job with the corrected script (re-signed via <code>axiom-push</code> if the script was changed).</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>The new job should progress past <code>QUEUED</code> to <code>COMPLETED</code> without reaching <code>FAILED</code>.</p>
+<p>If the new job also fails, compare its output with the original — look for environment differences, node capability gaps, or persistent resource constraints.</p>
+<hr />
+<h3 id="job-status-is-zombie_reaped">Job status is ZOMBIE_REAPED</h3>
+<p>The job was <code>ASSIGNED</code> to a node, but the node stopped sending execution updates (crash, OOM kill, or network partition). The zombie reaper reclaims the job after <code>zombie_timeout_minutes</code> elapses (default: 30 minutes, configurable via <strong>Admin → Configuration</strong>).</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Check whether the assigned node is still <code>Online</code> in the <strong>Nodes</strong> view.</li>
+<li>If the node went <code>Offline</code>, run <code>docker logs &lt;node-container&gt;</code> to check for OOM kill messages or runtime errors.</li>
+<li>If the node was OOM killed, increase the node's <code>job_memory_limit</code> or reduce the job's <code>memory_limit</code>.</li>
+<li>If retries remain, the reaped job is automatically returned to <code>QUEUED</code> for reassignment. If retries are exhausted, it moves to <code>FAILED</code> — resubmit a new job.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>Confirm the node returns to <code>Online</code> status. If retries remain, watch the job move back to <code>ASSIGNED</code> on the next healthy node.</p>
+<p>If the node keeps crashing on the same job, the job's memory or CPU requirements likely exceed what the node can provide — adjust limits before resubmitting.</p>
+<hr />
+<h2 id="signing-errors">Signing Errors</h2>
+<h3 id="security_rejected-signature-verification-failed">SECURITY_REJECTED — Signature Verification FAILED</h3>
+<p>The node verified the job's signature against the registered Ed25519 public key and the check failed. Either the script was signed with a different key than the one registered in <strong>Signatures</strong>, or the script content was modified after signing. The following log line appears in the node's container output:</p>
+<div class="highlight"><pre><span></span><code>[node-abc12345] ❌ Signature Verification FAILED for Job &lt;guid&gt;: &lt;exception detail&gt;
+</code></pre></div>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Check which Ed25519 key was used to sign the script. The <code>axiom-push</code> tool shows the key fingerprint at signing time.</li>
+<li>Open <strong>Signatures</strong> in the dashboard and confirm the matching public key is registered.</li>
+<li>If the key is missing, register it: see <a href="../../feature-guides/axiom-push/#ed25519-key-setup">Ed25519 Key Setup</a>.</li>
+<li>If the script was modified after signing, re-sign it with <code>axiom-push</code> and resubmit.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Do not manually edit signed scripts</p>
+<p>Any modification to a script after signing — including whitespace changes — invalidates the signature. Always re-sign after any edit.</p>
+</div>
+<p><strong>Verify it worked:</strong></p>
+<p>Resubmit the job and confirm it reaches <code>ASSIGNED</code> rather than <code>SECURITY_REJECTED</code>. Check the node logs for the absence of the <code>❌ Signature Verification FAILED</code> line.</p>
+<p>If the issue persists, confirm the public key in <strong>Signatures</strong> is the exact hex or PEM of the key that signed the script — a key registered under the wrong name is a common cause of repeat failures.</p>
+<hr />
+<h3 id="security_rejected-verification-key-missing">SECURITY_REJECTED — Verification Key missing</h3>
+<p>The node could not fetch the verification public key from the orchestrator's <code>/verification-key</code> endpoint at startup — usually a transient connectivity issue or the node started before the orchestrator was ready. The following log line appears in the node's container output:</p>
+<div class="highlight"><pre><span></span><code>[node-abc12345] ❌ CRITICAL: Verification Key missing. Cannot verify signature.
+</code></pre></div>
+<p>Until the verification key is loaded, the node rejects every job with <code>SECURITY_REJECTED</code>.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Restart the node container. On restart, the node re-fetches the verification key from the orchestrator.</li>
+<li>If the error persists after restart, confirm the orchestrator is reachable at <code>AGENT_URL</code> from within the node's network. Run <code>docker exec &lt;node-container&gt; curl -k &lt;AGENT_URL&gt;/api/verification-key</code> to test connectivity.</li>
+<li>If the orchestrator is unreachable, check <code>AGENT_URL</code> in the node's environment variables and verify no firewall or DNS issue blocks the connection.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>Check the node startup logs for <code>[node-abc12345] 🔑 Verification Key updated.</code> — this line confirms the key was fetched successfully.</p>
+<p>If the verification key line is missing and the CRITICAL error persists, the orchestrator endpoint may be unhealthy — check orchestrator logs for startup errors.</p>
+<hr />
+<h3 id="security_rejected-missing-script-or-signature">SECURITY_REJECTED — Missing script or signature</h3>
+<p>The job payload reached the node without a <code>signature</code> field. This happens when a job is submitted directly via the API without using <code>axiom-push</code>, or when the signing step was skipped. The node returns the following string in the execution result:</p>
+<div class="highlight"><pre><span></span><code>Missing script or signature
+</code></pre></div>
+<div class="admonition danger">
+<p class="admonition-title">Bypassing signing is not supported</p>
+<p>Signature verification is enforced at the node before any script executes. There is no configuration flag to disable it. Every job must be signed with a registered Ed25519 key.</p>
+</div>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Resubmit the job using <code>axiom-push</code>, which handles signing automatically. See <a href="../../feature-guides/axiom-push/#ed25519-key-setup">Ed25519 Key Setup</a> for setup instructions.</li>
+<li>If submitting via the API directly, ensure the job payload includes a valid <code>signature</code> field. The signature must cover the exact script content and be produced by a key registered in <strong>Signatures</strong>.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>Resubmit via <code>axiom-push</code> and confirm the job reaches <code>ASSIGNED</code> (or <code>COMPLETED</code>) without <code>SECURITY_REJECTED</code> status.</p>
+<p>If the issue persists, confirm that <code>axiom-push</code> is configured with a key whose public half is registered in the dashboard <strong>Signatures</strong> view.</p>
+<hr />
+<h2 id="timeout-patterns">Timeout Patterns</h2>
+<h3 id="job-reaped-after-30-minutes">Job reaped after ~30 minutes</h3>
+<p>The zombie reaper fires after <code>zombie_timeout_minutes</code> elapses (default: 30 minutes). This is the effective operator-visible timeout for job execution. If the executing node stopped reporting progress within this window — whether due to a crash, OOM kill, or network partition — the orchestrator reclaims the job and marks it <code>ZOMBIE_REAPED</code> or <code>FAILED</code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">The 30-minute limit is configurable</p>
+<p>To increase the timeout for long-running jobs, go to <strong>Admin → Configuration</strong> and set <code>zombie_timeout_minutes</code> to a higher value. This applies globally to all jobs.</p>
+</div>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>If the job genuinely requires more than 30 minutes to complete, increase <code>zombie_timeout_minutes</code> via <strong>Admin → Configuration</strong>.</li>
+<li>If the node crashed mid-execution, run <code>docker logs &lt;node-container&gt;</code> to check for OOM messages or unhandled exceptions.</li>
+<li>If the node was OOM killed, increase the node's <code>job_memory_limit</code> or reduce the job's <code>memory_limit</code>.</li>
+<li>Once the node is stable and the timeout is adjusted, resubmit the job (if retries are exhausted) or let the queue reassign it (if retries remain).</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>Watch the resubmitted job progress through <code>ASSIGNED</code> → <code>RUNNING</code> → <code>COMPLETED</code> without being reaped again.</p>
+<p>If the job is still being reaped after raising the timeout, the node may be crashing for a reason unrelated to timeout — check node logs for fatal errors during script execution.</p>
+<hr />
+<h3 id="job-stays-assigned-indefinitely">Job stays ASSIGNED indefinitely</h3>
+<p>The node container was OOM killed (memory limit hit) or suffered a network partition. The heartbeat stops, but the zombie reaper has not yet fired — the job appears stuck in <code>ASSIGNED</code> with no progress.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Open the <strong>Nodes</strong> view and check whether the assigned node is <code>Online</code> or <code>Offline</code>. An OOM-killed node typically goes <code>Offline</code> within a few seconds of the kill.</li>
+<li>Run <code>docker stats &lt;node-container&gt;</code> to check current memory usage against the container's limit. If the container is gone, check <code>docker inspect</code> for the last exit code — exit code <code>137</code> indicates OOM kill.</li>
+<li>Increase <code>job_memory_limit</code> on the node template or reduce the job's <code>memory_limit</code>.</li>
+<li>The zombie reaper will reclaim the job within <code>zombie_timeout_minutes</code> (default: 30 minutes) and return it to <code>QUEUED</code> if retries remain.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<p>After the zombie reaper fires, confirm the job moves back to <code>QUEUED</code> and is successfully reassigned to a node with adequate memory. Watch for <code>COMPLETED</code> status on the next execution.</p>
+<p>If the job is repeatedly stuck in <code>ASSIGNED</code> across multiple nodes, the script itself may be consuming unbounded memory — profile the script and add explicit memory limits.</p>
+<hr />
+<h2 id="see-also">See Also</h2>
+<ul>
+<li><a href="../../feature-guides/axiom-push/">axiom-push: Signing and publishing jobs</a></li>
+<li><a href="../../feature-guides/axiom-push/#ed25519-key-setup">Ed25519 Key Setup</a></li>
+<li><a href="../faq/">FAQ</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

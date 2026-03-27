@@ -1,0 +1,2377 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/runbooks/nodes/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../jobs/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Node Troubleshooting - Axiom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="../../assets/external/fonts.googleapis.com/css.49ea35f2.css">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#node-troubleshooting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Axiom" class="md-header__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Axiom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Node Troubleshooting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Axiom" class="md-nav__button md-logo" aria-label="Axiom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    Axiom
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prerequisites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running with Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/enroll-node/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enroll a Node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/first-job/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Feature Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operator Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/axiom-push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    axiom-push CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform Config
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platform Config
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/jobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/nodes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/foundry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/job-scheduling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Scheduling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OAuth & Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feature-guides/rbac-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Permission Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../licensing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/mtls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mTLS & Certificates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/rbac-hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/audit-log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/air-gap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Air-Gap Operation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbooks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runbooks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enrollment-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrollment Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Enrollment Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-container-exits-immediately-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node container exits immediately at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enrollment-failed-connection-refused" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrollment Failed: Connection refused
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enrollment-failed-ssl-verification-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrollment Failed: SSL verification failed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-payload-missing-t-or-ca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token payload missing t or ca
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-appears-as-a-duplicate-in-the-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node appears as a duplicate in the dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#heartbeat-loss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heartbeat Loss
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Heartbeat Loss">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-goes-offline-after-container-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node goes Offline after container restart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-stays-offline-after-cert-rotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node stays Offline after cert rotation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-shows-tampered-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node shows TAMPERED status
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#certificate-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certificate Errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Certificate Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-gets-http-403-and-stops-receiving-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node gets HTTP 403 and stops receiving jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-receives-concurrency-0-and-processes-no-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node receives concurrency 0 and processes no jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../jobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../foundry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foundry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/setup-deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Quick Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/course.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Course — How Axiom Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-ref/operator-guide.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enrollment-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrollment Failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Enrollment Failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-container-exits-immediately-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node container exits immediately at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enrollment-failed-connection-refused" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrollment Failed: Connection refused
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enrollment-failed-ssl-verification-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrollment Failed: SSL verification failed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-payload-missing-t-or-ca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token payload missing t or ca
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-appears-as-a-duplicate-in-the-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node appears as a duplicate in the dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#heartbeat-loss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heartbeat Loss
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Heartbeat Loss">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-goes-offline-after-container-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node goes Offline after container restart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-stays-offline-after-cert-rotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node stays Offline after cert rotation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-shows-tampered-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node shows TAMPERED status
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#certificate-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certificate Errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Certificate Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-gets-http-403-and-stops-receiving-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node gets HTTP 403 and stops receiving jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-receives-concurrency-0-and-processes-no-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node receives concurrency 0 and processes no jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="node-troubleshooting">Node Troubleshooting</h1>
+<p>This guide helps operators diagnose and recover from node failures. Find the symptom that matches what you observe in the dashboard or container logs, then follow the numbered recovery steps.</p>
+<div class="admonition tip">
+<p class="admonition-title">A healthy startup looks like this</p>
+<p>If you're unsure whether a node enrolled correctly, compare your container logs against this reference sequence:</p>
+<div class="highlight"><pre><span></span><code>🚀 Environment Node Started (1)
+🔒 Secure Mode Active. Trust Root: /app/secrets/root_ca.crt
+[node-abc12345] 📜 Detected Enhanced Token. Bootstrapping Trust...
+[node-abc12345] No identity found. Enrolling with Server...
+[node-abc12345] ✅ Enrollment Successful! Certificate Saved.
+[node-abc12345] 💓 Heartbeat Thread Started
+[node-abc12345] Starting Work Loop...
+</code></pre></div>
+<p>If you do not see <code>Enrollment Successful!</code> followed by <code>Heartbeat Thread Started</code>, the node did not complete enrollment.</p>
+</div>
+<h2 id="quick-reference">Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Container exits immediately at startup</td>
+<td><a href="#node-container-exits-immediately-at-startup">Node container exits immediately at startup</a></td>
+</tr>
+<tr>
+<td>Enrollment Failed: Connection refused</td>
+<td><a href="#enrollment-failed-connection-refused">Enrollment Failed: Connection refused</a></td>
+</tr>
+<tr>
+<td>Enrollment Failed: SSL CERTIFICATE_VERIFY_FAILED</td>
+<td><a href="#enrollment-failed-ssl-verification-failed">Enrollment Failed: SSL verification failed</a></td>
+</tr>
+<tr>
+<td>Token payload missing 't' or 'ca'</td>
+<td><a href="#token-payload-missing-t-or-ca">Token payload missing t or ca</a></td>
+</tr>
+<tr>
+<td>Node appears as duplicate entry in Nodes view</td>
+<td><a href="#node-appears-as-a-duplicate-in-the-dashboard">Node appears as a duplicate in the dashboard</a></td>
+</tr>
+<tr>
+<td>Node goes Offline after container restart</td>
+<td><a href="#node-goes-offline-after-container-restart">Node goes Offline after container restart</a></td>
+</tr>
+<tr>
+<td>Node stays Offline after cert rotation</td>
+<td><a href="#node-stays-offline-after-cert-rotation">Node stays Offline after cert rotation</a></td>
+</tr>
+<tr>
+<td>Node shows TAMPERED status</td>
+<td><a href="#node-shows-tampered-status">Node shows TAMPERED status</a></td>
+</tr>
+<tr>
+<td>Node gets HTTP 403 on work/pull and stops receiving jobs</td>
+<td><a href="#node-gets-http-403-and-stops-receiving-jobs">Node gets HTTP 403 and stops receiving jobs</a></td>
+</tr>
+<tr>
+<td>Node receives concurrency_limit: 0 and processes no jobs</td>
+<td><a href="#node-receives-concurrency-0-and-processes-no-jobs">Node receives concurrency 0 and processes no jobs</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="enrollment-failures">Enrollment Failures</h2>
+<p>Enrollment failures happen during node startup, before the heartbeat thread starts. Check <code>docker logs &lt;container-name&gt;</code> immediately after starting the container — the failure reason is logged on the last few lines.</p>
+<h3 id="node-container-exits-immediately-at-startup">Node container exits immediately at startup</h3>
+<p>The node process failed before completing enrollment. The three most common causes are a malformed <code>JOIN_TOKEN</code>, an unreachable orchestrator, or stale certificate files from a previous enrollment in the <code>secrets/</code> volume. The node logs the specific failure reason as <code>❌ Enrollment Failed: &lt;exception&gt;</code> before exiting.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Run <code>docker logs &lt;container-name&gt;</code> and read the last 10 lines — the exact error will identify which cause applies.</li>
+<li>If the log shows <code>Connection refused</code>, see <a href="#enrollment-failed-connection-refused">Enrollment Failed: Connection refused</a>.</li>
+<li>If the log shows <code>SSL: CERTIFICATE_VERIFY_FAILED</code>, see <a href="#enrollment-failed-ssl-verification-failed">Enrollment Failed: SSL verification failed</a>.</li>
+<li>If the log shows <code>Token payload missing 't' or 'ca'</code>, see <a href="#token-payload-missing-t-or-ca">Token payload missing t or ca</a>.</li>
+<li>If the <code>secrets/</code> volume contains old <code>node-*.crt</code> and <code>node-*.key</code> files from a prior deployment, stop the container, delete those files from the volume, and restart.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-15
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] Starting Work Loop...</code> (with no <code>❌ Enrollment Failed</code> line above it).</p>
+<p>If the issue persists after these steps, run <code>docker logs &lt;container-name&gt; --follow</code> during the next restart attempt to capture the full error sequence and open an issue with the output.</p>
+<hr />
+<h3 id="enrollment-failed-connection-refused">Enrollment Failed: Connection refused</h3>
+<p>The node cannot reach the orchestrator because <code>AGENT_URL</code> points to the wrong host or port. The enrollment request is refused at the TCP level before any TLS handshake occurs.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Check the <code>AGENT_URL</code> environment variable in your node's compose file or environment — it must point to the orchestrator host and port (default <code>8001</code>), e.g., <code>https://host.docker.internal:8001</code>.</li>
+<li>Confirm the orchestrator container is running: <code>docker ps | grep puppeteer-agent</code>.</li>
+<li>If running nodes inside Docker (Docker-in-Docker), verify <code>extra_hosts: host.docker.internal:172.17.0.1</code> is set so the node container can reach the host network.</li>
+<li>Test connectivity from inside the node container: <code>docker exec &lt;container-name&gt; curl -k &lt;AGENT_URL&gt;/health</code>.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;Enrollment&quot;</span>
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] ✅ Enrollment Successful! Certificate Saved.</code></p>
+<p>If the issue persists after these steps, confirm that no firewall rule is blocking the port and that the orchestrator is listening on <code>0.0.0.0</code> (not just <code>127.0.0.1</code>).</p>
+<hr />
+<h3 id="enrollment-failed-ssl-verification-failed">Enrollment Failed: SSL verification failed</h3>
+<p>The Root CA PEM embedded in the <code>JOIN_TOKEN</code> does not match the TLS certificate the orchestrator is currently presenting. This mismatch means the node cannot verify the server's identity and refuses to connect.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Regenerate the <code>JOIN_TOKEN</code> from the dashboard: <strong>Admin → Nodes → Generate Join Token</strong>.</li>
+<li>Copy the new token exactly — including any leading/trailing characters that are part of the token — and replace the <code>JOIN_TOKEN</code> environment variable in your node's compose or environment config.</li>
+<li>Stop and remove the existing node container, then start a fresh container with the updated token.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Do not regenerate tokens from a cached browser page</p>
+<p>If the orchestrator's TLS certificate was recently changed (e.g., Caddy renewed it), old join tokens carry the old CA. Always generate a fresh token after any TLS configuration change.</p>
+</div>
+<p>For background on how the orchestrator's Root CA relates to the <code>JOIN_TOKEN</code>, see <a href="../../security/mtls/#the-join_token">mTLS guide → The JOIN_TOKEN</a>.</p>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;Enrollment&quot;</span>
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] ✅ Enrollment Successful! Certificate Saved.</code></p>
+<p>If the issue persists after these steps, verify that the orchestrator's TLS certificate was not changed between token generation and node startup.</p>
+<hr />
+<h3 id="token-payload-missing-t-or-ca">Token payload missing t or ca</h3>
+<p>The <code>JOIN_TOKEN</code> is a legacy or malformed token. The Enhanced Token format is base64-encoded JSON with two keys: <code>t</code> (the actual token) and <code>ca</code> (the Root CA PEM). Any other format, including plain tokens from older versions, produces this error.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Regenerate the token from the dashboard: <strong>Admin → Nodes → Generate Join Token</strong>.</li>
+<li>Copy the token exactly as displayed — do not truncate, URL-encode, or add any whitespace.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Token corruption is invisible</p>
+<p>Even a trailing newline or extra space in the <code>JOIN_TOKEN</code> environment variable will corrupt the base64 decoding and produce this error. Shell variables set with <code>export JOIN_TOKEN=$(echo "...")</code> may append a newline. Use <code>JOIN_TOKEN=&lt;value&gt;</code> without command substitution when setting it directly.</p>
+</div>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;Enhanced Token&quot;</span>
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] 📜 Detected Enhanced Token. Bootstrapping Trust...</code></p>
+<p>If the issue persists after these steps, verify the token value by decoding it manually: <code>echo "&lt;JOIN_TOKEN&gt;" | base64 -d</code> should produce a JSON object with <code>t</code> and <code>ca</code> keys.</p>
+<hr />
+<h3 id="node-appears-as-a-duplicate-in-the-dashboard">Node appears as a duplicate in the dashboard</h3>
+<p>The <code>secrets/</code> volume was recreated or the <code>node-*.crt</code> and <code>node-*.key</code> files were deleted. When the node restarts without those files, <code>_load_or_generate_node_id()</code> generates a new UUID, the node enrolls with the orchestrator as a brand-new node, and the old entry remains in the Nodes view as an Offline entry.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Identify the current active node — it will be the one showing Online or a recent heartbeat timestamp in the Nodes view.</li>
+<li>Delete the old Offline entry from the dashboard: <strong>Nodes → [old node row] → Delete</strong>.</li>
+<li>To prevent this in future: mount the <code>secrets/</code> directory on persistent storage so cert files survive container restarts.</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Both entries are safe to have</p>
+<p>The duplicate entry does not affect job dispatch or security. The old node is simply Offline with a stale entry. Deleting it is cosmetic — no jobs are lost.</p>
+</div>
+<p>For more on node identity persistence, see <a href="../faq/#why-does-my-node-appear-multiple-times-in-the-nodes-view">FAQ → Why does my node appear multiple times in the dashboard?</a>.</p>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;identity&quot;</span>
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] No identity found. Enrolling with Server...</code> (for a fresh enrollment) or <code>[node-abc12345] Loaded existing identity: node-abc12345</code> (if cert files are present and reused).</p>
+<p>If the issue persists after these steps, check that the <code>secrets/</code> directory is properly mounted and that the node process has write access to it.</p>
+<hr />
+<h2 id="heartbeat-loss">Heartbeat Loss</h2>
+<p>Heartbeat loss means the node was enrolled and running, but the orchestrator is no longer receiving regular heartbeats from it. The node status transitions to Offline after the heartbeat interval expires.</p>
+<h3 id="node-goes-offline-after-container-restart">Node goes Offline after container restart</h3>
+<p>The heartbeat thread cannot locate the node's certificate files after a container restart. The thread loops waiting for the cert files — if the <code>secrets/</code> volume is slow to mount or was not preserved between restarts, the thread never progresses and no heartbeat is sent.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Inspect the node container logs: <code>docker logs &lt;container-name&gt; | grep Heartbeat</code> — look for repeated <code>[Heartbeat] Failed: &lt;exception&gt;</code> lines.</li>
+<li>Verify the <code>secrets/</code> volume is mounted and accessible: <code>docker exec &lt;container-name&gt; ls /app/secrets/</code> — you should see <code>node-*.crt</code> and <code>node-*.key</code> files.</li>
+<li>If the cert files are missing (volume was lost or not mounted), re-enroll: stop the container, ensure the <code>secrets/</code> path in your compose file points to persistent storage, and restart.</li>
+<li>If cert files are present but the heartbeat still fails, check that the orchestrator is reachable from within the node container: <code>docker exec &lt;container-name&gt; curl -k &lt;AGENT_URL&gt;/health</code>.</li>
+</ol>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;Heartbeat Thread Started&quot;</span>
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] 💓 Heartbeat Thread Started</code></p>
+<p>If the issue persists after these steps, check orchestrator logs for any rejection of the heartbeat request.</p>
+<hr />
+<h3 id="node-stays-offline-after-cert-rotation">Node stays Offline after cert rotation</h3>
+<p>After rotating the node's certificate, the old revoked certificate is still present in the <code>secrets/</code> volume. When the node restarts, <code>_load_or_generate_node_id()</code> finds the existing <code>node-*.crt</code> file and reuses the old (now revoked) certificate. The orchestrator's <code>/work/pull</code> endpoint returns 403 for revoked certs, so the node never receives jobs and eventually shows as Offline.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Stop the node container.</li>
+<li>Delete the old certificate files from the <code>secrets/</code> volume: remove <code>node-*.crt</code> and <code>node-*.key</code>.</li>
+<li>Generate a new <code>JOIN_TOKEN</code> from the dashboard: <strong>Admin → Nodes → Generate Join Token</strong>.</li>
+<li>Update the <code>JOIN_TOKEN</code> environment variable with the new token.</li>
+<li>Start the node container — it will enroll fresh and receive a new certificate.</li>
+</ol>
+<p>For the full certificate rotation procedure, see <a href="../../security/mtls/#certificate-rotation">mTLS guide → Certificate Rotation</a>.</p>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;Enrollment|Heartbeat Thread&quot;</span>
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] ✅ Enrollment Successful! Certificate Saved.</code> followed by <code>[node-abc12345] 💓 Heartbeat Thread Started</code>.</p>
+<p>If the issue persists after these steps, confirm that the <code>secrets/</code> directory was fully cleared before restart — both <code>.crt</code> and <code>.key</code> files must be removed.</p>
+<hr />
+<h3 id="node-shows-tampered-status">Node shows TAMPERED status</h3>
+<p>The zero-trust capability guard in the orchestrator detected that the node reported a capability not present in the <code>expected_capabilities</code> recorded at enrollment time. This indicates the container environment changed after the image was built — for example, a tool was installed inside the running container, or a package version changed between container rebuilds.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Investigate what changed in the node's environment: <code>docker exec &lt;container-name&gt; pip list</code> or equivalent to compare the current environment against the template's declared capabilities.</li>
+<li>If the new capability is legitimate (deliberate change), rebuild the template via the Foundry view to capture the updated capability set, then redeploy the node from the rebuilt image.</li>
+<li>If the tamper flag was triggered in error (e.g., a transient detection issue), clear it from the dashboard: <strong>Nodes → [node] → Clear Tamper</strong>.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Do not clear tamper without investigating</p>
+<p>The TAMPERED status is a security signal. Clearing it without understanding the cause masks a potential supply-chain or container escape issue. Always confirm what changed before clearing.</p>
+</div>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>ps<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>&lt;container-name&gt;
+</code></pre></div>
+<p>Expected output: the node container is running, and the Nodes view in the dashboard shows the node's status badge as Online (not TAMPERED).</p>
+<p>If the issue persists after these steps, review the orchestrator logs for <code>🚨 TAMPER DETECTED on node &lt;id&gt;</code> and compare the capability list in the log entry against the expected capabilities in the template.</p>
+<hr />
+<h2 id="certificate-errors">Certificate Errors</h2>
+<p>Certificate errors occur after successful enrollment. The node has a valid client certificate but the certificate has been revoked or the associated node template has entered a blocked lifecycle state.</p>
+<h3 id="node-gets-http-403-and-stops-receiving-jobs">Node gets HTTP 403 and stops receiving jobs</h3>
+<p>The node's client certificate has been revoked in the orchestrator's <code>RevokedCert</code> table. The <code>/work/pull</code> endpoint checks the certificate serial number against this table and returns 403 for any match, regardless of whether the certificate is otherwise valid.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Confirm the revocation: check the dashboard <strong>Nodes</strong> view — a revoked node typically shows a Revoked badge or no heartbeat activity.</li>
+<li>If the revocation was intentional: the node must be re-enrolled. Stop the container, delete <code>secrets/node-*.crt</code> and <code>secrets/node-*.key</code>, generate a new <code>JOIN_TOKEN</code>, and restart.</li>
+<li>The new enrollment produces a fresh certificate with a new serial number that is not in the <code>RevokedCert</code> table.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Certificate revocation is permanent and cannot be undone</p>
+<p>Once a certificate serial number is added to the <code>RevokedCert</code> table, it cannot be removed. There is no "un-revoke" operation. If the revocation was accidental, the only path forward is a fresh enrollment with a new certificate. Before revoking a node, confirm the node identity in the Nodes view to avoid revoking the wrong node.</p>
+</div>
+<p>For the full revocation procedure and CRL details, see <a href="../../security/mtls/#certificate-revocation">mTLS guide → Certificate Revocation</a>.</p>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;Enrollment Successful|Work Loop&quot;</span>
+</code></pre></div>
+<p>Expected output: <code>[node-abc12345] ✅ Enrollment Successful! Certificate Saved.</code> followed by <code>[node-abc12345] Starting Work Loop...</code></p>
+<p>If the issue persists after these steps, verify the <code>secrets/</code> directory was fully cleared of old cert files before restarting.</p>
+<hr />
+<h3 id="node-receives-concurrency-0-and-processes-no-jobs">Node receives concurrency 0 and processes no jobs</h3>
+<p>The orchestrator is sending <code>concurrency_limit: 0</code> in the node's configuration response. This is a deliberate soft-block — the orchestrator halts job dispatch to a node without returning a hard 403 error. It occurs when the node's associated template is in a REVOKED lifecycle state, or when the node itself has TAMPERED status.</p>
+<p><strong>Recovery steps:</strong></p>
+<ol>
+<li>Check the node's template lifecycle state: go to the <strong>Templates</strong> tab in the Foundry view and find the template associated with this node. If the template shows a REVOKED status, the node will not receive jobs.</li>
+<li>If the template is REVOKED: rebuild the template with a valid configuration, or assign the node a different active template.</li>
+<li>If the template is not REVOKED: check whether the node has TAMPERED status in the Nodes view and resolve it using the steps in <a href="#node-shows-tampered-status">Node shows TAMPERED status</a>.</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Check both template status and node status</p>
+<p>A node can receive <code>concurrency_limit: 0</code> from either condition independently. The Nodes view shows node-level status (including TAMPERED). The Foundry Templates view shows template-level lifecycle state. Check both.</p>
+</div>
+<p><strong>Verify it worked:</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>&lt;container-name&gt;<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;concurrency\|work loop\|job&quot;</span>
+</code></pre></div>
+<p>Expected output: the node logs show job assignments being received and processed, with no <code>concurrency_limit: 0</code> in the work response.</p>
+<p>If the issue persists after these steps, check the orchestrator logs for the specific condition causing the zero concurrency response — it will indicate whether the cause is template lifecycle state or node tamper status.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
