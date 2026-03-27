@@ -81,6 +81,8 @@ services:
       - certs-volume:/app/global_certs:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ../puppets:/app/puppets:ro
+      - secrets-data:/app/secrets   # Persists boot.log and licence.key across restarts
+                                    # EE: Seed licence: docker cp licence.key <agent-container>:/app/secrets/
     depends_on:
       db:
         condition: service_healthy
@@ -152,3 +154,4 @@ volumes:
   caddy_config:
   node1-secrets:
   node2-secrets:
+  secrets-data:   # Agent secrets persistence (boot.log, licence.key)
