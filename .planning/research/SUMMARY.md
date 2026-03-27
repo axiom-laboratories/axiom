@@ -1,166 +1,192 @@
 # Project Research Summary
 
-**Project:** Master of Puppets — Axiom v14.3
-**Domain:** Security hardening (CodeQL fixes) + EE licence key system with air-gap support
-**Researched:** 2026-03-26
+**Project:** Axiom v14.4 — Go-to-Market Polish
+**Domain:** Developer tool GTM: marketing homepage, licence UX, install friction reduction, CLI onboarding
+**Researched:** 2026-03-27
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone addresses two independent but urgent concerns on a mature, production v14.2 codebase. The first is closing 5 CodeQL error-severity and 1 warning-severity security alerts: a reflected XSS in the device-approval OAuth page, four path injection alerts across `vault_service.py` and `main.py`, and a ReDoS-vulnerable email regex in `mask_pii()`. All six fixes require only stdlib or the `cryptography` library already in `requirements.txt` — zero new dependencies. The second concern is hardening the EE licence system for air-gapped deployments: the current CE lifespan does base64-decode and clock-expiry but does NOT verify the Ed25519 signature, meaning a customer can forge any expiry date. A new `licence_service.py` module must add full cryptographic validation, plus a hash-chained boot log for clock-rollback detection, a grace period to prevent outages on renewal delays, and a CLI keygen tool for Axiom Labs.
+This milestone polishes the go-to-market surface of a fully functional job orchestration platform (Axiom). The backend, dashboard, CLI, and documentation infrastructure are all in production at v14.3. The work is entirely about reducing first-user friction and establishing a conversion surface — not building net-new features. Research confirmed that all four target areas (marketing homepage, licence state banner, compose cleanup, signing UX) can be addressed with additive or subtractive changes to existing files. No new backend APIs, no new frontend libraries, and no new pip packages are required for any of the four work streams.
 
-The recommended build order is strict: CodeQL fixes first (they are independent, unblock the security alert count, and one — the API_KEY removal — eliminates an import-time crash that blocks all tests), then the licence CLI (which defines the payload schema), then the licence service (which consumes that schema), then wiring and integration tests. The key architectural decision is that licence validation must live in CE code (`licence_service.py`), not inside the EE plugin's `register()` method — placing it inside the plugin causes partial route registration before the check fires, with no clean rollback. All expiry states must degrade gracefully to CE mode, never crash, because air-gapped operators cannot renew on a midnight deadline.
+The recommended approach is to treat the four sub-domains as largely independent parallel tracks with one hard dependency chain: the compose cleanup and signing UX improvement must land before the install docs are rewritten, and the install docs must be accurate before the marketing homepage makes specific claims (e.g., "up and running in 30 minutes"). The licence banner is the lowest-risk item with zero blocking dependencies and is already 80% implemented in `MainLayout.tsx` — it needs smoke testing and a session-scoped dismiss pattern more than it needs new code.
 
-The principal risks are implementation-ordering mistakes (path normalization must happen before prefix comparison, not after; licence CLI wire format must be locked before the service is built) and a known limitation of the boot-log approach (a deleted boot-log file is indistinguishable from a fresh install). Both risks have documented mitigations: strict ordering enforced by the build plan, and a grace-period fallback for absent boot-log rather than a hard stop. Overall research confidence is HIGH — all findings are grounded in direct codebase inspection of the live files, official CodeQL documentation, and the existing test suite.
-
----
+The primary risk in this milestone is deployment workflow interference: two separate GitHub Actions workflows writing to the same `gh-pages` branch can silently overwrite each other's output. The safe solution is `ghp-import --dest-dir docs` for the MkDocs workflow (scoping it to the `/docs/` subtree) and a separate homepage workflow targeting the branch root. The `peaceiris/actions-gh-pages@v4` action with `keep_files: true` is the cleanest mechanism. All other risks (orphan Docker volumes, banner shown to non-admin roles, CLI backward compatibility) are well-understood and have clear, low-effort mitigations.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new pip dependencies are required for this milestone. All six CodeQL fixes use Python stdlib (`pathlib`, `html`, `re`, `uuid`, `hashlib`, `hmac`, `json`) and the `cryptography` library already in `requirements.txt`. The only new file that touches an external library is `licence_service.py`, which uses `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey.verify()` — the same API already used by the EE plugin. See `STACK.md` for full fix-pattern rationale.
+The existing stack (FastAPI + React/Vite + Tailwind + shadcn/ui + `cryptography` lib) requires no additions for this milestone. The only new tooling is `peaceiris/actions-gh-pages@v4` (a GitHub Actions workflow action, not a local dependency) for the split-deploy pattern. `ghp-import` is already a transitive dependency of MkDocs. The marketing homepage should be plain HTML with the Tailwind CDN play script — no bundler, no framework, zero CI build time.
 
 **Core technologies:**
-- `pathlib.Path.resolve() + is_relative_to()` — path injection fix — CodeQL explicitly recognises `resolve()` as a normalisation step; `os.path.abspath` is not recognised
-- `html.escape()` (stdlib) — XSS fix — replaces direct f-string interpolation of `user_code` query param into HTMLResponse
-- Bounded regex (`{1,64}`, `{1,253}`, `[a-zA-Z]{2,24}`) — ReDoS fix — length guards alone do not close the CodeQL alert; the regex must be rewritten to be linear
-- `cryptography` Ed25519 — licence signature verification — already in stack; `Ed25519PublicKey.verify()` stable since cryptography 2.6 (2018)
-- `hashlib.sha256` hash chain — boot log tamper-evidence — stdlib; no HMAC key rotation risk compared to HMAC-based chaining
-- `uuid.UUID()` — vault path sanitisation — UUID format contains no path-traversal characters; validates the input semantically before `resolve()`
+- `peaceiris/actions-gh-pages@v4`: Split GitHub Pages deploy with `destination_dir` + `keep_files: true` — the only clean way to coexist a marketing homepage at `/` and docs at `/docs/` in the same branch without manual branch surgery
+- `ghp-import` (already installed as mkdocs transitive dep): Direct subdirectory deploy alternative to the peaceiris action; `--dest-dir docs` scopes MkDocs output to `/docs/` on the branch
+- Tailwind CDN (play.tailwindcss.com): Marketing homepage styling via `<script>` tag — zero build step, consistent with dashboard visual language; switch to bundled Tailwind only if homepage grows beyond one page
+- `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey`: CLI key generation — already in `pyproject.toml`; eliminates the openssl ceremony for new users
+- `sessionStorage`: Session-scoped banner dismiss state — correct choice over `localStorage` because licence expiry warnings should reappear each new login session
+
+**Critical version/compatibility notes:**
+- `mkdocs gh-deploy` (MkDocs 1.6.1) has NO `--dest-dir` flag — confirmed by direct CLI invocation. Must use `ghp-import` directly or `peaceiris/actions-gh-pages@v4`.
+- Web Crypto Ed25519 (`subtle.generateKey`) requires Chrome 113+/Firefox 130+/Safari 17+ — viable for a future dashboard-based signing flow but defer to v2; the CLI `axiom-push key generate` is the P1 fix for this milestone.
 
 ### Expected Features
 
-**Must have — table stakes (v14.3 launch):**
-- Fix reflected XSS in device-approval page — CodeQL error-severity; `user_code` query param echoed into HTMLResponse f-string unescaped
-- Fix path injection in `vault_service.py` (lines 70-72) — artifact_id concatenated into filesystem path via `os.path.join` without `resolve()`
-- Fix path injection in `main.py` (two locations) — installer script path traversal; verify live line numbers via CodeQL before fixing (todo references lines 2457/2461 but file is now 2152 lines)
-- Fix ReDoS in `security.py:79` `mask_pii()` — polynomial backtracking on attacker-controlled job output; regex must be rewritten, length guard alone is insufficient
-- Remove legacy `API_KEY` crash — `sys.exit(1)` at import time if env var absent; no historical deployments depend on it; eliminates a production operational hazard and unblocks all tests
-- Admin key generation CLI (`tools/generate_licence.py`) — offline Ed25519 signing tool; enables all licence operations at Axiom Labs without a web service; must be built before the licence service
-- Grace period on expiry (30-day default, `grace_days` in payload) — required for air-gapped operators who cannot renew on a deadline; state machine: VALID → GRACE → DEGRADED_CE
-- HMAC-chained boot log — clock-rollback detection without network dependency; stored in `secrets/boot.log` on the already-persistent secrets volume
-- Extended `GET /api/licence` response — surfaces `status: valid/grace/expired`, `days_until_expiry`, `node_limit`, `tier`
-- Node limit enforcement at enrollment — count non-OFFLINE non-REVOKED nodes; reject at `POST /api/enroll` with HTTP 402 when limit reached
+**Must have (table stakes — this milestone):**
+- Licence state banner (amber GRACE, red EXPIRED/DEGRADED_CE) — backend ready, banner code already in `MainLayout.tsx` lines 211-223; needs smoke test, admin-only role guard, and session-scoped dismiss UX
+- `axiom-push key generate` subcommand — removes the openssl ceremony that blocks new users at step 3 of the signing flow; uses `cryptography` lib already in `pyproject.toml`
+- `MOP_URL` → `AXIOM_URL` env var fix in `cli.py` line 51 — one-line change; silently breaks all users following the published docs verbatim
+- Clean `compose.cold-start.yaml` — remove `puppet-node-1`, `puppet-node-2`, `node1-secrets`, `node2-secrets` services and volume declarations in one atomic commit
+- Updated install docs (`install.md`, `enroll-node.md`) matching the node-free cold start — must ship in same PR as compose change
+- Marketing homepage — static `index.html` on GitHub Pages with hero, security positioning, CE/EE comparison table, GitHub stars badge, docs link; unblocked only after clean install path is verified
 
-**Should have — add in v14.x point release:**
-- Dashboard amber/red banner on grace/expired state — backend status field stable after v14.3; frontend component can follow
-- Per-licence `grace_days` operator documentation
+**Should have (add when P1 items are stable):**
+- `axiom-push status` command — "am I set up correctly?" health check; reduces first-user support noise
+- `axiom-push sign-and-push` combined command — daily-use convenience wrapper over existing sign + push
+- Troubleshooting accordion in install docs — populate based on observed post-launch first-user failures
+- Empty-state guidance panel on the Nodes page when zero nodes are enrolled
 
-**Defer to v15+:**
-- Licence issuance portal (web UI for generating keys) — not justified at current customer volume
-- Periodic in-process re-validation beyond the APScheduler 6-hour check
-- Per-feature tier gating (currently all-or-nothing EE)
-- Hardware fingerprinting / node locking
+**Defer (v2+):**
+- OS keychain credential storage in `axiom-push`
+- Animated terminal demo on marketing homepage
+- Video walkthrough
+- Homepage testimonials section (only when 2+ real attributed quotes exist)
+- Browser-based signing via Web Crypto API in the dashboard
 
 ### Architecture Approach
 
-The milestone is split between targeted surgical fixes to existing files and two net-new files. The five CodeQL fixes are all in-place changes to `security.py`, `main.py`, and `vault_service.py` — no new modules, no schema changes. The EE licence system adds one new service module (`services/licence_service.py`) and one offline CLI tool (`tools/generate_licence.py`). The existing `ee/__init__.py` gate pattern and `app.state.licence` storage are kept intact; the new service replaces only the inlined lifespan block at `main.py:76-102`. No DB schema changes are required for any v14.3 feature except persisting the grace-period start timestamp in the `Config` table (one key-value write).
+All four work streams operate on existing files with no new components crossing service boundaries. The most structurally significant change is the GitHub Pages deploy split: a new `homepage/` source directory, a new `homepage-deploy.yml` workflow, and modifying `docs-deploy.yml` to use `ghp-import --dest-dir docs` instead of `mkdocs gh-deploy --force`. The `mkdocs.yml` `site_url` must be updated to match the new subdirectory location to avoid broken canonical links and sitemap URLs.
 
-**Major components:**
-1. `security.py` (modified) — remove `API_KEY` crash and `verify_api_key`; fix `mask_pii` ReDoS regex
-2. `main.py` (modified) — escape `user_code` XSS; remove `Depends(verify_api_key)` from three node routes; replace inline licence block with `licence_service.validate()` call; verify and fix remaining path-injection alerts via live CodeQL scan
-3. `vault_service.py` (modified) — add `_safe_artifact_path()` using `pathlib.Path.resolve() + is_relative_to()`; apply to both `store_artifact` and `delete_artifact`
-4. `services/licence_service.py` (new) — `validate()` with Ed25519 verify + expiry + grace-period state machine; `LicenceResult` dataclass; boot-log read/write helpers
-5. `tools/generate_licence.py` (new) — offline admin CLI; inputs customer metadata and outputs `base64url(payload).base64url(sig)` wire format; private signing key never leaves the admin machine
+**Major components and their changes:**
+
+1. `homepage/index.html` (NEW) — static marketing page; deployed to `gh-pages` root by `homepage-deploy.yml`
+2. `.github/workflows/homepage-deploy.yml` (NEW) — triggers on `homepage/**` path changes; pushes to `gh-pages` root
+3. `.github/workflows/docs-deploy.yml` (MODIFIED) — replace `mkdocs gh-deploy --force` with `ghp-import --dest-dir docs docs/site`
+4. `docs/mkdocs.yml` `site_url` (MODIFIED) — update to `https://axiom-laboratories.github.io/axiom/docs/`
+5. `MainLayout.tsx` lines 211-223 (ALREADY DONE) — banner exists; add dismiss button, `sessionStorage` keyed to `licence.status`, and `currentUser.role === 'admin'` guard
+6. `compose.cold-start.yaml` (MODIFIED) — delete `puppet-node-1`, `puppet-node-2`, and their volume declarations
+7. `mop_sdk/cli.py` + `mop_sdk/signer.py` (MODIFIED) — add `key generate` subcommand calling a new `Signer.generate_keypair()` method; fix `MOP_URL` → `AXIOM_URL` env var
+8. `docs/getting-started/first-job.md` + `docs/feature-guides/axiom-push.md` (MODIFIED) — promote CLI tab, fix env var reference, add key generation step
 
 ### Critical Pitfalls
 
-1. **Path normalization order reversal** — `Path.resolve()` must happen before the `is_relative_to()` prefix check, not after. Checking the raw string first and then resolving is the most common mistake and leaves the taint path open. CodeQL taint tracking enforces this ordering — a fix that resolves after comparison will not close the alert.
+1. **`mkdocs gh-deploy --force` wipes marketing homepage on every docs push** — switch to `ghp-import --dest-dir docs` for the MkDocs workflow so it scopes output to the `/docs/` subtree only; homepage workflow targets branch root separately. The `--force` flag replaces the entire `gh-pages` branch root with no subdirectory option.
 
-2. **CSV XSS alert is not a false positive** — the `GET /api/jobs/export` `StreamingResponse` with `media_type="text/csv"` needs `X-Content-Type-Options: nosniff` added to the response headers. Content-sniffing browsers can reinterpret CSV as HTML if the header is absent. Adding it at the Caddy level does not satisfy CodeQL static analysis — it must be in the backend response dict.
+2. **`.nojekyll` not propagated when two workflows write to the same branch** — the homepage workflow must include `.nojekyll` in its output (or use the `--no-jekyll` flag); GitHub Pages Jekyll suppression is a branch-level flag, not per-directory. A second deploy step can overwrite the root `.nojekyll` placed by the first.
 
-3. **API_KEY removal must be atomic** — `API_KEY` is referenced in the import-time guard, in a dependency function, and injected into three node routes. A partial removal leaves dangling references causing `NameError` at runtime. The removal must be a single commit that deletes every reference. Existing `secrets.env` files with `API_KEY` still set must boot cleanly after removal.
+3. **Licence banner shown to non-admin roles causes banner blindness** — gate banner render on `currentUser.role === 'admin'`; viewers cannot renew the licence and will start ignoring all banners if they see an unactionable red alert on every page load.
 
-4. **Licence must degrade gracefully, never crash** — setting `app.state.licence = None` on expiry causes `AttributeError` in any EE route handler that reads licence fields. The correct pattern is a sentinel `LicenceResult` object or always-present `EEContext` with all-`False` feature flags. Hard `sys.exit(1)` on expiry creates production outages for air-gapped operators.
+4. **Orphan Docker volumes after node service removal** — remove `node1-secrets`/`node2-secrets` from both `services:` and `volumes:` blocks in the same commit; include `docker compose down --remove-orphans && docker volume rm` instructions in release notes. `--remove-orphans` stops the containers but does NOT remove volumes.
 
-5. **Boot-log file deletion is a known bypass** — deleting `secrets/boot.log` between container restarts is indistinguishable from a fresh install. Treat absent boot-log as "unknown" and apply the grace period, not normal EE operation. Document this limitation; defer a stronger DB-backed boot counter to a future milestone.
+5. **Signing UX changes must be strictly additive** — new `axiom-push key generate` must not remove or rename any existing subcommands; `mop_validation/scripts/run_signed_job.py` must continue to work unchanged. Removing a CLI subcommand without a deprecation cycle is a semver-breaking change.
 
----
+6. **Banner stacking — GRACE + other notifications visible simultaneously** — implement a single banner slot in `MainLayout.tsx` with priority ordering (DEGRADED_CE > GRACE > contextual warnings); GRACE should be session-dismissible, DEGRADED_CE should not be. Multiple simultaneous banners lead to operators ignoring all of them.
 
 ## Implications for Roadmap
 
-Based on combined research, the work decomposes into two sequential phases with a mandatory internal sub-ordering within Phase 2.
+The dependency graph from FEATURES.md, confirmed by ARCHITECTURE.md and PITFALLS.md, suggests four parallel initial phases collapsing into one final phase:
 
-### Phase 1: Security Fixes (CodeQL + API_KEY)
+### Phase 1: Licence Banner Polish
+**Rationale:** Zero blocking dependencies. Backend is ready, component is 80% implemented. Delivers immediate operator value on any running instance. Lowest-risk item in the milestone — a banner rendering bug fails safe (banner just doesn't show; no functionality blocked).
+**Delivers:** Dismissible amber/red licence state banner; admin-only role guard; `sessionStorage` dismiss keyed to `licence.status`; deep-link CTA to Admin > Licence; DEGRADED_CE as a non-dismissible red variant; single-banner-slot priority ordering in `MainLayout.tsx`.
+**Addresses:** Sub-Domain B table stakes + differentiators from FEATURES.md.
+**Avoids:** Pitfall 4 (non-admin banner noise) and Pitfall 6 (banner stacking).
+**Research flag:** Skip. Pattern is well-documented; component already exists. Begin with a smoke test against a GRACE-state licence — if it renders correctly, scope may shrink to adding dismiss + role guard only.
 
-**Rationale:** These fixes are fully independent of each other and of the licence work. They are the highest-urgency action on the repo (CodeQL error-severity alerts) and one — the API_KEY `sys.exit(1)` — contaminates the test environment for everything downstream by requiring `API_KEY` in the environment for any test that imports `security.py`. Phase 1 must complete before Phase 2 begins.
+### Phase 2: Compose Cleanup (atomic with doc update)
+**Rationale:** Lowest-risk code change in the milestone — pure YAML deletion. Must ship atomically with the corresponding doc updates to avoid a window where compose is fixed but docs still reference dead JOIN_TOKEN env vars.
+**Delivers:** `compose.cold-start.yaml` without bundled test nodes; updated `install.md` and `enroll-node.md` removing JOIN_TOKEN_1/2 references; `.env.example` cleaned up; migration/upgrade instructions for existing evaluators.
+**Addresses:** Sub-Domain C table stakes from FEATURES.md.
+**Avoids:** Pitfall 5 (orphan volumes) and Pitfall 7 (stale JOIN_TOKEN docs).
+**Research flag:** Skip. Changes are purely subtractive and well-understood.
 
-**Delivers:** Zero open CodeQL error alerts; zero open CodeQL warning alerts; clean startup without `API_KEY` env var; `verify_node_secret` as the sole auth mechanism on the three node-facing routes.
+### Phase 3: axiom-push CLI Signing UX
+**Rationale:** The install docs rewrite (Phase 2 extension) and the marketing homepage "30-minute" claim both depend on this working. The `MOP_URL` env var fix is a one-liner that should ship in the same PR to prevent compounding the existing silent failure mode.
+**Delivers:** `axiom-push key generate` subcommand (new `Signer.generate_keypair()` method in `signer.py`); `MOP_URL` → `AXIOM_URL` env var fix in `cli.py`; updated `first-job.md` with CLI tab promoted to primary; updated `axiom-push.md` adding key generation step.
+**Addresses:** Sub-Domain D table stakes from FEATURES.md; P1 items from the Feature Prioritization Matrix.
+**Avoids:** Pitfall 8 (backward compatibility — additive only) and Pitfall 9 (private key never transmitted to server).
+**Research flag:** Skip. `cryptography` lib API is stable; CLI extension pattern is established in the existing codebase.
 
-**Addresses:** Fix XSS (device-approve), fix path injection x4 (vault + main), fix ReDoS (mask_pii), remove API_KEY crash and `verify_api_key`.
+### Phase 4: GitHub Pages Deploy Split
+**Rationale:** Technical prerequisite for the marketing homepage. Can run in parallel with Phases 1-3 since it only touches the CI workflow and `mkdocs.yml`. Must be validated (MkDocs docs render correctly at the new `/docs/` subdirectory URL) before the homepage goes live.
+**Delivers:** Modified `docs-deploy.yml` using `ghp-import --dest-dir docs`; updated `mkdocs.yml` `site_url`; new `homepage-deploy.yml` workflow stub; verified docs rendering at `...github.io/axiom/docs/`.
+**Addresses:** Stack recommendation from STACK.md; Architecture Pattern 1 from ARCHITECTURE.md.
+**Avoids:** Pitfall 1 (CNAME wipe by gh-deploy), Pitfall 2 (URL collision), and Pitfall 3 (.nojekyll propagation).
+**Research flag:** Low-effort verification spike recommended before implementation: run `ghp-import --help` in the docs virtualenv to confirm the `--dest-dir` flag is available in the transitively-installed version. Fallback to `peaceiris/actions-gh-pages@v4` is fully documented and ready.
 
-**Avoids:** Pitfall 1 (normalization order), Pitfall 2 (CSV nosniff), Pitfall 3 (regex rewrite not length guard), Pitfall 4 (atomic API_KEY removal).
-
-**Research flag:** No deeper research needed. All patterns are fully documented in CodeQL official docs and confirmed against live source files. Implementation is mechanical substitution of known-good patterns.
-
-### Phase 2: EE Licence System
-
-**Rationale:** Depends on Phase 1 being complete (clean test environment with no API_KEY interference). Internal build order is strict: CLI first (defines payload schema and wire format), service second (embeds public key and parses the format), lifespan wiring third (replaces `main.py:76-102`), node limit enforcement last (depends on `node_limit` field in signed payloads). These sub-steps are not independently deliverable.
-
-**Delivers:** Offline key generation capability for Axiom Labs; full Ed25519 signature verification on startup (replacing the current signature-less expiry check); clock-rollback detection via HMAC-chained boot log; grace-period state machine (VALID → GRACE → DEGRADED_CE); extended licence status in `GET /api/licence`; node limit enforcement at enrollment.
-
-**Implements:** `tools/generate_licence.py` (CLI) → `services/licence_service.py` (validate + boot log) → `main.py` lifespan wiring → `POST /api/enroll` node-limit check.
-
-**Avoids:** Pitfall 5 (startup-only expiry — add APScheduler 6h re-check of `app.state.licence["exp"]`), Pitfall 6 (boot-log deletion — grace fallback, not hard stop, on absent log), Pitfall 7 (hard stop on expiry — DEGRADED_CE, never crash), Pitfall 9 (EE-installed-but-unlicensed AttributeError — `EEContext` always present, all-`False` flags).
-
-**Research flag:** No deeper external research needed. Core patterns are established in the codebase (`admin_signer.py` CLI shape, `test_licence.py` wire format, `ee/__init__.py` plugin gate). Internal design decisions (payload schema, boot-log storage path, grace-period start persistence in Config table) should be confirmed with the lead before implementation begins.
+### Phase 5: Marketing Homepage
+**Rationale:** External-facing deliverable unblocked only after Phase 3 (CLI in place, enabling honest "30-minute" claim) and Phase 4 (deploy infrastructure validated). All other phases enable this one.
+**Delivers:** `homepage/index.html` with hero, above-fold value prop, security positioning block ("Scripts never run unsigned. Nodes never expose ports."), CE/EE comparison table, GitHub stars badge, architecture overview, docs link; deployed to `gh-pages` root via `homepage-deploy.yml`.
+**Addresses:** Sub-Domain A table stakes + differentiators from FEATURES.md.
+**Avoids:** Anti-features flagged in FEATURES.md — no animated demos, no testimonials, no auto-pulled README, no more than 6 sections.
+**Research flag:** Skip. Static HTML + Tailwind CDN is a well-established pattern. No framework decisions needed.
 
 ### Phase Ordering Rationale
 
-- CodeQL fixes must precede licence work because the API_KEY `sys.exit(1)` contaminates the test environment for any code that imports `security.py`.
-- Licence CLI must precede licence service because `licence_service.py` must embed the public key and parse the exact wire format the CLI produces — the format must be frozen before either side is coded.
-- Licence service must precede `main.py` lifespan wiring because the `LicenceResult` API must be stable before it can be called in lifespan.
-- Node limit enforcement is last because it depends on `node_limit` being a signed field in the payload, which is defined by the CLI.
+- **Phases 1, 2, 3, and 4 are independent and can run in parallel** — they share no code dependencies with each other. Assign to parallel tracks or sequence based on implementer availability.
+- **Phase 5 depends on Phases 3 and 4 being complete and validated** — do not publish "up and running in 30 minutes" until the path works end-to-end; do not deploy the homepage until the subdirectory docs deploy is confirmed stable.
+- **Phase 2 compose change and doc update must be a single atomic PR** — enforces no-stale-docs rule; prevents a JOIN_TOKEN doc/code mismatch window.
+- **Phase 3 CLI fix ships before the docs reference the new command** — if docs update is part of Phase 2, the `MOP_URL` fix and `key generate` command must exist first, or the doc update must be deferred to Phase 3's PR.
 
 ### Research Flags
 
-Phases with standard patterns (no additional research needed):
-- **Phase 1 (Security Fixes):** Patterns are definitively documented in CodeQL official docs and confirmed against live source files. No ambiguity.
-- **Phase 2 (EE Licence System):** Core cryptographic and grace-period patterns are established. Internal decisions need lead confirmation, not external research.
+Phases needing a verification spike during planning:
+- **Phase 4:** Confirm `ghp-import --dest-dir` flag availability in the mkdocs transitive install with `pip show ghp-import && ghp-import --help`. If the flag is absent in the pinned version, use `peaceiris/actions-gh-pages@v4` instead (documented in STACK.md, HIGH confidence).
 
----
+Phases with well-established patterns (skip research-phase):
+- **Phase 1:** Existing React component, existing hook, sessionStorage pattern — all well-documented, no unknowns.
+- **Phase 2:** Pure YAML deletion and prose doc update — no integration risk.
+- **Phase 3:** `cryptography` Ed25519 API is stable; CLI argparse extension pattern mirrors existing subcommands.
+- **Phase 5:** Single-page static HTML with Tailwind CDN — no moving parts.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | No new dependencies required. All fixes use stdlib or `cryptography` already in stack. Version compatibility confirmed (Python 3.11+; `pathlib.is_relative_to` requires 3.9+). |
-| Features | HIGH | Feature list derived from direct codebase inspection of CodeQL alerts, todo files, and EE plugin architecture. No ambiguity about in vs. out of scope for v14.3. |
-| Architecture | HIGH | Based on direct file inspection of `security.py`, `main.py`, `vault_service.py`, `ee/__init__.py`. Build order confirmed by dependency analysis. One caveat: `main.py` path-injection line numbers in the todo (2457/2461) have drifted — the file is currently 2152 lines. Must be verified via live CodeQL scan before fixing. |
-| Pitfalls | HIGH | All critical pitfalls grounded in CodeQL rule semantics, live code patterns, and the specific failure modes of the EE plugin architecture. Boot-log limitation (Pitfall 6) is honestly documented with a concrete mitigation. |
+| Stack | HIGH | All findings verified against live codebase + official docs. `peaceiris/actions-gh-pages@v4` is the de-facto standard GH Pages action (100k+ stars, used in mkdocs-material's own CI). Zero new pip packages required. |
+| Features | HIGH (banner, compose, CLI) / MEDIUM (homepage) | Banner/compose/CLI findings grounded in live codebase analysis. Homepage section ordering and content informed by devtool landing page research (single secondary source); structure is conventional enough that MEDIUM confidence is not a risk. |
+| Architecture | HIGH | All component boundaries verified by reading live source files. One MEDIUM-confidence item: `ghp-import --dest-dir` flag availability — easily resolved with a one-line CLI check before implementation starts. |
+| Pitfalls | HIGH | Critical pitfalls (CNAME wipe, orphan volumes, `MOP_URL` mismatch, banner shown to non-admins) corroborated by official GitHub docs, docker/compose issue tracker, and direct inspection of live source files. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **main.py path-injection line numbers have drifted** — the todo references lines 2457/2461 but the file is currently 2152 lines long. Run a fresh CodeQL scan or check the GitHub Security tab to identify the live alert locations before implementing the fix. Do not assume the todo line numbers are current.
-- **Boot-log persistence strategy** — research recommends storing the grace-period start timestamp in the `Config` DB table to survive container restarts. Confirm with the lead whether this write belongs in `licence_service.py` or `main.py` lifespan, and whether a migration SQL file is needed for existing deployments.
-- **Licence public key identity** — `licence_service.py` must embed the Ed25519 public key as a constant. Confirm this is a separate keypair from the job-signing verification key (the pitfall research explicitly warns against reusing it — a leaked job-signing key would also forge licences). If a new keypair is needed, generate it before implementation begins.
-
----
+- **`ghp-import --dest-dir` flag availability:** Verify with `ghp-import --help` in the docs virtualenv before committing to this approach in Phase 4. If unavailable, switch to `peaceiris/actions-gh-pages@v4` — fully documented fallback.
+- **Banner smoke test against GRACE state:** The banner code exists but has not been validated against a live GRACE-state licence. Phase 1 should begin with this verification step. If the banner renders correctly, the scope may shrink to adding dismiss logic and the admin role guard only.
+- **`axiom-push` version in CI/CD pipelines:** Before Phase 3 ships, confirm whether `mop_validation/scripts/run_signed_job.py` calls `axiom-push` subcommands directly as subprocess (requires backward compat check) or via the Python SDK API (less brittle). PITFALLS.md flags this as a high-cost recovery if broken.
+- **`mkdocs.yml` internal link impact:** Changing `site_url` from `/axiom/` to `/axiom/docs/` will cause any hardcoded absolute doc links in the README, dashboard sidebar, and other files to return 404. Audit these before Phase 4 ships.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase inspection — `puppeteer/agent_service/security.py`, `main.py`, `services/vault_service.py`, `ee/__init__.py`, `tests/test_licence.py`
-- [CodeQL py/reflective-xss query help](https://codeql.github.com/codeql-query-help/python/py-reflective-xss/)
-- [CodeQL py/path-injection query help](https://codeql.github.com/codeql-query-help/python/py-path-injection/)
-- [CodeQL py/polynomial-redos query help](https://codeql.github.com/codeql-query-help/python/py-polynomial-redos/)
-- [CodeQL PR #7009 — pathlib.resolve() added to PathNormalization::Range](https://github.com/github/codeql/pull/7009)
-- [cryptography.io — Ed25519 signing docs](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/)
-- Todo files: `.planning/todos/pending/2026-03-26-fix-code-scanning-alerts-xss-path-injection-redos.md`, `-license-key-generation-and-validation-with-airgap-support.md`, `-remove-legacy-api-key-requirement.md`
+- Live codebase: `puppeteer/dashboard/src/layouts/MainLayout.tsx` (banner at lines 211-223)
+- Live codebase: `puppeteer/dashboard/src/hooks/useLicence.ts`
+- Live codebase: `puppeteer/compose.cold-start.yaml`
+- Live codebase: `mop_sdk/cli.py` (env var at line 51: `MOP_URL`)
+- Live codebase: `mop_sdk/signer.py`
+- Live codebase: `.github/workflows/docs-deploy.yml`
+- Live codebase: `docs/mkdocs.yml` (`site_url: https://axiom-laboratories.github.io/axiom/`)
+- `mkdocs gh-deploy --help` (MkDocs 1.6.1) — confirmed no `--dest-dir` flag
+- [peaceiris/actions-gh-pages README](https://github.com/peaceiris/actions-gh-pages) — `destination_dir` and `keep_files: true` flags
+- [cryptography.io Ed25519 docs](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/) — `Ed25519PrivateKey.generate()` API
+- [MDN sessionStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage)
+- [GitHub Docs: Troubleshooting custom domains and GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/troubleshooting-custom-domains-and-github-pages)
+- [docker/compose: --remove-orphans does not remove volumes](https://github.com/docker/compose/issues/9718)
+- [Carbon Design System: Notification Pattern](https://carbondesignsystem.com/patterns/notification-pattern/)
 
 ### Secondary (MEDIUM confidence)
-- [GitHub blog — How to fix a ReDoS](https://github.blog/security/how-to-fix-a-redos/) — bounded quantifiers as prevention strategy
-- [CodeQL discussion #10722 — UUID validation not in default sanitiser set](https://github.com/github/codeql/discussions/10722) — `resolve() + is_relative_to()` required as belt-and-suspenders
-- [keygen-sh Python cryptographic licence example](https://github.com/keygen-sh/example-python-cryptographic-license-files) — Ed25519-signed licence file pattern
-- [Sentinel LDK V-Clock: time-based licence protection](https://docs.sentinel.thalesgroup.com/ldk/LDKdocs/SPNL/LDK_SLnP_Guide/Appendixes/HowProtects_TimeBased.htm) — monotonic clock enforcement approach
-- [JetBrains perpetual fallback licence FAQ](https://sales.jetbrains.com/hc/en-gb/articles/207240845) — 14-day grace period as commercial standard
+- [mkdocs/mkdocs issue #2534](https://github.com/mkdocs/mkdocs/issues/2534) — `ghp-import -x` subdirectory flag workaround; community-confirmed
+- [MkDocs with existing GitHub Pages discussion #3402](https://github.com/mkdocs/mkdocs/discussions/3402) — subdirectory deploy patterns
+- [shadcn/ui Banner component](https://www.shadcn.ui/components/layout/banner) — controlled visibility + sessionStorage persistence pattern
+- Evil Martians: "We studied 100 dev tool landing pages — here's what actually works in 2025" — homepage structure recommendations (hero + security positioning + CE/EE table)
+- Lucas F. Costa: "UX patterns for CLI tools" — `init` as the standard onboarding entry point pattern
+- [LogRocket: Avoiding banner blindness in UX](https://blog.logrocket.com/ux-design/avoiding-banner-blindness-designing-attention/)
+- `mop_validation/cold_start_friction_report.md` — first-user signing friction baseline (5-step flow identified as blocker)
 
 ### Tertiary (LOW confidence)
-- [Cython reverse engineering discussion](https://python-forum.io/thread-5093.html) — confirms Cython is obfuscation not cryptographic protection; embedded public key is extractable via `strings`
+- Docker Compose project-name prefix behaviour on volume names — prefix may vary based on `COMPOSE_PROJECT_NAME` setting; verify exact `docker volume rm` command against the live stack before documenting it in release notes.
 
 ---
-*Research completed: 2026-03-26*
+*Research completed: 2026-03-27*
 *Ready for roadmap: yes*

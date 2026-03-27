@@ -1,475 +1,402 @@
 # Architecture Research
 
-**Domain:** Security hardening + EE licence key system for a FastAPI/React job orchestrator
-**Researched:** 2026-03-26
-**Confidence:** HIGH — based on direct codebase inspection of security.py, main.py, vault_service.py, ee/__init__.py
+**Domain:** Go-to-market polish for existing Axiom orchestration platform
+**Researched:** 2026-03-27
+**Confidence:** HIGH (all findings verified against live codebase)
 
 ---
 
-## System Overview
+## Standard Architecture
+
+### System Overview — v14.4 Feature Integration
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                       Puppeteer (Control Plane)                       │
-│                                                                        │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────────┐  │
-│  │  main.py     │   │  security.py │   │  ee/__init__.py          │  │
-│  │  FastAPI app │   │  Fernet +    │   │  EEContext dataclass     │  │
-│  │  lifespan    │──▶│  HMAC +      │   │  load_ee_plugins()       │  │
-│  │  licence     │   │  node secret │   │  _mount_ce_stubs()       │  │
-│  │  bootstrap   │   │  + ReDoS fix │   └──────────────────────────┘  │
-│  └──────┬───────┘   └──────────────┘             ▲                    │
-│         │                                         │                   │
-│         │          ┌──────────────────────────────┘                   │
-│         │          │  licence_service.py (NEW)                        │
-│         ▼          │  Ed25519 verify + expiry + boot-log              │
-│  ┌───────────────────────────────────────────────────────────────┐    │
-│  │                    services/                                   │    │
-│  │  job_service   scheduler_service   vault_service (patched)    │    │
-│  │  signature_service   pki_service   foundry_service            │    │
-│  └───────────────────────────────────────────────────────────────┘    │
-│                                                                        │
-│  ┌──────────────────────────┐   ┌────────────────────────────────┐    │
-│  │  db.py (SQLAlchemy ORM)  │   │  auth.py (JWT / bcrypt)        │    │
-│  │  SQLite dev / Postgres   │   │  deps.py (permission cache)    │    │
-│  └──────────────────────────┘   └────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────────────┘
-                        │  mTLS (client cert only — API_KEY removed)
-              ┌─────────▼──────────┐
-              │   Puppet Nodes      │
-              │   environment_service/node.py                           │
-              │   polls /work/pull  │
-              └────────────────────┘
+GitHub Pages (axiom-laboratories.github.io/axiom/)
+  ├── / (root)           <- NEW: Marketing homepage (plain HTML/CSS)
+  └── /docs/             <- EXISTING: MkDocs Material site (gh-deploy target)
+       ├── /docs/index.html
+       └── /docs/...
 
-tools/
-└── generate_licence.py (NEW — offline admin CLI, never runs in-process)
+Axiom Dashboard (React/Vite)
+  ├── MainLayout.tsx
+  │   ├── <header>
+  │   │   └── sticky top-0 z-10
+  │   ├── <LicenceBanner>  <- ALREADY EXISTS (lines 211-223 in MainLayout.tsx)
+  │   └── <main>
+  │       └── <Outlet />
+  └── hooks/useLicence.ts  <- ALREADY EXISTS, returns LicenceInfo
+
+compose.cold-start.yaml (Axiom evaluation stack)
+  ├── db (postgres)
+  ├── cert-manager (Caddy)
+  ├── agent (FastAPI)
+  ├── dashboard (React)
+  ├── docs (MkDocs container)
+  ├── puppet-node-1       <- REMOVE: bundled test node
+  └── puppet-node-2       <- REMOVE: bundled test node
+
+axiom-push CLI (mop_sdk/cli.py)
+  ├── login               -> OAuth device flow (needs AXIOM_URL env var)
+  ├── job push            -> --script, --key (path), --key-id (required)
+  └── job create          -> --script, --key (path), --key-id (required)
 ```
+
+### Component Responsibilities
+
+| Component | Responsibility | Integration Touch |
+|-----------|----------------|-------------------|
+| GitHub Pages root `/` | Marketing landing page | NEW: separate workflow or manual deploy |
+| GitHub Pages `/docs/` | MkDocs Material documentation site | MODIFIED: mkdocs `site_url` adjusted |
+| `MainLayout.tsx` | App shell wrapping all dashboard views | ALREADY DONE: banner at lines 211-223 |
+| `useLicence.ts` | Polls `GET /api/licence`, exposes `LicenceInfo` | NO CHANGE NEEDED |
+| `compose.cold-start.yaml` | Cold-start evaluation stack | MODIFIED: remove `puppet-node-1/2` services + volumes |
+| `mop_sdk/cli.py` | axiom-push CLI entry point | MODIFIED: add `generate-keypair` subcommand |
+| `docs/getting-started/first-job.md` | First-job walkthrough | MODIFIED: promote CLI path, reduce openssl ceremony |
 
 ---
 
-## Component Responsibilities
-
-| Component | Responsibility | Status for v14.3 |
-|-----------|----------------|------------------|
-| `main.py` lifespan | Startup orchestration: DB init, licence parse, EE load, admin bootstrap, scheduler | Modified — refactor inlined licence block to call `licence_service.validate()` |
-| `main.py` device-approve route | Serves OAuth device approval HTML page | Modified — escape `user_code` to fix XSS |
-| `main.py` node routes | `/work/pull`, `/heartbeat`, `/work/{guid}/result` | Modified — remove `Depends(verify_api_key)` from all three |
-| `security.py` | Fernet cipher, HMAC helpers, node secret verifier, PII masker | Modified — remove `API_KEY` crash + `verify_api_key`, fix ReDoS in `mask_pii` |
-| `vault_service.py` | File-based artifact store in `/app/vault/` | Modified — add `_safe_path()` confinement to fix path injection |
-| `ee/__init__.py` | EE plugin loader, CE stub mounter | Unchanged — existing gate pattern is correct |
-| `services/licence_service.py` | Ed25519 signature verify, expiry check, boot-log monotonicity | NEW |
-| `tools/generate_licence.py` | Offline admin CLI: sign JSON payload → base64url key blob | NEW |
-| `secrets/boot.log` | HMAC-signed boot timestamp, written per-startup | New artefact (not a code file) |
-
----
-
-## Recommended Project Structure (Changes Only)
+## Recommended Project Structure
 
 ```
-puppeteer/
-├── agent_service/
-│   ├── main.py                    # MODIFIED: remove API_KEY import (line 44),
-│   │                              #   remove Depends(verify_api_key) × 3 (lines 1225/1234/1241),
-│   │                              #   escape user_code in device-approve HTML (lines 601/603)
-│   ├── security.py                # MODIFIED: remove API_KEY hard-crash (lines 16-21),
-│   │                              #   remove verify_api_key function (lines 104-108),
-│   │                              #   fix mask_pii ReDoS (lines 89-90)
-│   └── services/
-│       ├── vault_service.py       # MODIFIED: add _safe_path() to store_artifact + delete_artifact
-│       └── licence_service.py     # NEW: validate(), LicenceResult dataclass, boot_log helpers
-
-tools/
-└── generate_licence.py            # NEW: offline Ed25519 signing CLI
+(repo root)
+├── docs/                    # MkDocs project (existing)
+│   ├── mkdocs.yml           # MODIFIED: site_url -> /axiom/docs/ if using subdirectory
+│   ├── docs/                # Source markdown
+│   └── ...
+├── homepage/                # NEW: marketing homepage source
+│   ├── index.html           # Static HTML
+│   ├── assets/              # CSS, images, logo.svg
+│   └── ...
+├── .github/workflows/
+│   ├── docs-deploy.yml      # EXISTING: modified to use ghp-import --dest-dir
+│   └── homepage-deploy.yml  # NEW: deploys homepage to gh-pages root
+├── puppeteer/
+│   ├── compose.cold-start.yaml  # MODIFIED: bundled nodes removed
+│   └── ...
+└── mop_sdk/
+    ├── cli.py               # MODIFIED: add key generate command
+    └── signer.py            # MODIFIED: add generate_keypair() static method
 ```
 
 ### Structure Rationale
 
-- **`security.py` for API_KEY removal first:** The crash is at module import time. Fixing `security.py` unblocks everything downstream — any test or import that touches `security.py` currently requires `API_KEY` in the environment.
-- **`services/licence_service.py` (new):** The current inlined licence block in the lifespan (main.py lines 76-102) is a structural stub — it decodes base64 and checks `exp` but does not verify the Ed25519 signature. Extracting to a service keeps the lifespan readable, enables unit tests, and separates concerns cleanly.
-- **`tools/generate_licence.py` (new):** Generation must never run inside the server process because it requires the private signing key. A standalone CLI in `tools/` mirrors the existing `admin_signer.py` pattern from `toms_home/.agents/tools/`. Output format must be agreed before `licence_service.py` is built.
+- **homepage/**: Isolated from `docs/` so the two GitHub Actions workflows operate independently without conflicting paths. Static HTML avoids any build tool dependency.
+- **Two-workflow GitHub Actions**: Each workflow commits only to its own path in `gh-pages` branch; neither clobbers the other's output.
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Inline Startup Validation — Current State (Incomplete)
+### Pattern 1: Two-Workflow GitHub Pages Coexistence
 
-**What:** The lifespan block in `main.py` (lines 76-102) decodes `AXIOM_LICENCE_KEY` from env, base64-decodes the first segment, parses JSON, and checks `exp > time.time()`. If the check passes, `app.state.licence` is set and `load_ee_plugins()` is called.
+**What:** Marketing homepage lives at `gh-pages` branch root (`/`); MkDocs docs live at `gh-pages:/docs/`. Two separate GitHub Actions workflows manage them. Neither overwrites the other because each uses `ghp-import` with different destination scopes.
 
-**Current gap:** Only the `exp` timestamp is checked. There is no Ed25519 signature verification — a customer can forge any `exp` value and the server accepts it. The implementation satisfies the startup-gate UI requirement but not the tamper-resistance requirement.
+**When to use:** Any repo publishing two distinct sites (landing + docs) to the same GitHub Pages domain.
 
-**What to add in v14.3:**
-- Ed25519 signature verification before accepting the payload
-- Move logic to `licence_service.validate()` (see Pattern 2)
-- Add boot-log monotonicity check (see Pattern 3)
+**Trade-offs:** `mkdocs gh-deploy --force` by default overwrites the entire `gh-pages` branch. Must switch to `ghp-import` directly to scope the docs deployment to a subdirectory.
 
-### Pattern 2: Structured Licence Validation Service (New)
+**Verified constraint (HIGH confidence):** `mkdocs gh-deploy` (MkDocs 1.6.1 installed locally) has NO `--dest-dir` flag. Running `mkdocs gh-deploy --help` confirms only: `-d/--site-dir` (local build output, not remote destination), `--force`, `--remote-branch`, `--remote-name`. The `--force` push replaces the entire branch root with no subdirectory option.
 
-**What:** `services/licence_service.py` owns all licence concerns. Lifespan calls `licence_service.validate(key_string)` and receives a typed `LicenceResult`.
+**Implementation — use `ghp-import` directly:**
 
-**Key format (matches existing `generate_licence.py` conventions, also used by `admin_signer.py`):**
-```
-<base64url-payload>.<base64url-signature>
-```
-Where `payload` is `json.dumps({customer_id, tier, node_limit, exp, issued_at, features})` encoded as UTF-8 bytes.
+```yaml
+# .github/workflows/docs-deploy.yml  (MODIFIED)
+- name: Build MkDocs
+  working-directory: docs
+  run: mkdocs build --strict
 
-**Validation flow:**
-```python
-# services/licence_service.py
-
-@dataclass
-class LicenceResult:
-    valid: bool
-    data: dict | None
-    reason: str
-
-AXIOM_EE_PUBLIC_KEY_BYTES = b"..."  # embedded at build time, not configurable
-
-def validate(key_string: str) -> LicenceResult:
-    parts = key_string.strip().split(".")
-    if len(parts) != 2:
-        return LicenceResult(False, None, "malformed key")
-    payload_bytes = base64.urlsafe_b64decode(pad(parts[0]))
-    sig_bytes     = base64.urlsafe_b64decode(pad(parts[1]))
-    try:
-        verify_key = VerifyKey(AXIOM_EE_PUBLIC_KEY_BYTES)  # nacl or cryptography
-        verify_key.verify(payload_bytes, sig_bytes)
-    except BadSignatureError:
-        return LicenceResult(False, None, "signature invalid")
-    data = json.loads(payload_bytes)
-    if data.get("exp", 0) < time.time():
-        return LicenceResult(False, data, "expired")
-    boot_log.record_and_verify(datetime.utcnow())  # side effect
-    return LicenceResult(True, data, "ok")
+- name: Deploy docs to /docs/ subtree only
+  run: |
+    pip install ghp-import
+    ghp-import --no-jekyll --push --force --dest-dir docs docs/site
 ```
 
-**Lifespan integration (replaces lines 76-102 of main.py):**
-```python
-from .services.licence_service import licence_service
-result = licence_service.validate(os.getenv("AXIOM_LICENCE_KEY", ""))
-if result.valid:
-    app.state.licence = result.data
-    app.state.ee = await load_ee_plugins(app, engine)
-else:
-    logger.warning(f"EE licence invalid ({result.reason}) — running in CE mode")
-    ctx = EEContext()
-    _mount_ce_stubs(app)
-    app.state.ee = ctx
+`ghp-import --dest-dir docs` deploys only to the `/docs/` directory inside `gh-pages`, leaving the root (marketing homepage) untouched.
+
+```yaml
+# .github/workflows/homepage-deploy.yml  (NEW)
+on:
+  push:
+    branches: [main]
+    paths: ['homepage/**']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy homepage to gh-pages root
+        run: |
+          pip install ghp-import
+          ghp-import --no-jekyll --push --force homepage/
 ```
 
-### Pattern 3: HMAC-Signed Boot-Log for Air-Gap Expiry Enforcement
+Both workflows use `ghp-import`. The docs workflow targets `--dest-dir docs`; the homepage workflow targets root (no `--dest-dir`). Execution order does not matter since each is scoped to a different path.
 
-**What:** On each startup, `licence_service` writes the current UTC time to `/app/secrets/boot.log` in a tamper-evident format. On the next startup, it reads the file, verifies the HMAC, and asserts the new time is >= the last recorded time. A clock-rollback attempt is detectable.
+**mkdocs.yml `site_url` must be updated to match:**
+```yaml
+site_url: https://axiom-laboratories.github.io/axiom/docs/
+```
+Without this change, MkDocs generates incorrect relative URLs (e.g., canonical links, sitemap) assuming the site is at `/axiom/` root.
 
-**Boot-log format:**
-```json
-{"boot_time": "2026-03-26T08:00:00Z", "hmac": "<sha256-hex>"}
+---
+
+### Pattern 2: Licence Banner Already Implemented
+
+**What:** The licence banner is already present in `MainLayout.tsx` at lines 211-223. It renders conditionally on `licence.status === 'grace' || licence.status === 'expired'`, inserting a full-width amber/red bar between the sticky `<header>` and `<main>`.
+
+**Confirmed implementation (HIGH confidence, from live source):**
+
+```tsx
+// MainLayout.tsx lines 211-223 — already in production
+{(licence.status === 'grace' || licence.status === 'expired') && (
+    <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${
+        licence.status === 'expired'
+            ? 'bg-red-900/40 text-red-300 border-b border-red-800'
+            : 'bg-amber-900/40 text-amber-300 border-b border-amber-800'
+    }`}>
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        {licence.status === 'expired'
+            ? 'Your EE licence has expired. The system is running in Community Edition mode.'
+            : `Your EE licence expires in ${licence.days_until_expiry} day${licence.days_until_expiry === 1 ? '' : 's'}. Please renew.`
+        }
+    </div>
+)}
 ```
 
-HMAC is `hmac.new(ENCRYPTION_KEY, boot_time_bytes, hashlib.sha256).hexdigest()` — reuses the existing `ENCRYPTION_KEY` already available as `cipher_suite`'s backing key in `security.py`.
+**Action required:** Validate against a running GRACE-state licence. The banner code is implemented — the v14.4 task is complete unless smoke testing reveals a rendering issue.
 
-**Rollback handling:** Log a warning, degrade to CE mode (do not crash). In a genuinely air-gapped deployment, the operator may have legitimately restored from backup — a hard crash would be destructive. The warning is enough to flag the anomaly for the audit log.
+**useLicence.ts data flow:**
 
-**Boot-log file location:** `/app/secrets/boot.log` — same directory as `cert.pem`, `key.pem`, and `ca.pem`. Already volume-mounted and persistent across container restarts.
-
-**Non-air-gap behaviour:** Identical. The boot-log check is always-on and adds < 1ms to startup time.
-
-### Pattern 4: Path Confinement (vault_service.py Fix)
-
-**What:** Before any file operation using an `artifact_id`, resolve the full path and assert it is within `/app/vault/`.
-
-**Affected calls in `vault_service.py`:**
-- Line 21: `file_path = os.path.join(VAULT_DIR, artifact_id)` — used in `store_artifact`
-- Line 70: `file_path = VaultService.get_artifact_path(artifact_id)` — used in `delete_artifact`
-- `get_artifact_path()` itself (line 52-54): `os.path.join(VAULT_DIR, artifact_id)` returned as-is
-
-**Fix pattern:**
-```python
-from pathlib import Path
-
-_VAULT_BASE = Path(VAULT_DIR).resolve()
-
-def _safe_artifact_path(artifact_id: str) -> Path:
-    candidate = (_VAULT_BASE / artifact_id).resolve()
-    if _VAULT_BASE not in candidate.parents and candidate != _VAULT_BASE:
-        raise ValueError(f"Path traversal attempt blocked: {artifact_id!r}")
-    return candidate
+```
+GET /api/licence (5-min stale, no retry on failure)
+    |
+LicenceInfo { status, tier, days_until_expiry, node_limit, customer_id, grace_days }
+    | (computed)
+isEnterprise = status !== 'ce'
+    |
+MainLayout:
+  - sidebar badge: CE / EE (coloured by status — lines 135-143)
+  - banner: shown on grace | expired (lines 211-223)
+Admin.tsx:
+  - LicenceSection: detailed display
 ```
 
-Note: `artifact_id` is a UUID generated server-side (`str(uuid.uuid4())`), so in practice traversal is not reachable via normal use. CodeQL flags it because `file.filename` (user-supplied) is in scope in the same function. The fix satisfies the scanner and is correct defence-in-depth regardless.
+No state management changes needed. If a `DEGRADED_CE` status is added to the backend state machine in a future milestone, adding it to the banner means: (1) extend `LicenceInfo.status` type in `useLicence.ts`, and (2) add a branch to the banner JSX.
 
-### Pattern 5: XSS Prevention — HTML Escaping User-Reflected Query Params
+---
 
-**What:** `GET /auth/device/approve?user_code=...` reflects `user_code` directly into an HTML f-string at lines 601 and 603. Two injection points exist: the visible `<div class="code">` and the hidden `<input value="...">` attributes.
+### Pattern 3: compose.cold-start.yaml Node Removal
 
-**Fix:**
-```python
-import html as _html
+**What:** Remove `puppet-node-1` and `puppet-node-2` services and their named volumes. The evaluation stack becomes infrastructure-only (db, cert-manager, agent, dashboard, docs). Users enroll nodes manually following `enroll-node.md`.
 
-@app.get("/auth/device/approve", response_class=HTMLResponse)
-async def device_approve_page(user_code: str = ""):
-    safe_code = _html.escape(user_code or "(no code provided)")
-    # use {safe_code} everywhere {user_code} appears in the f-string
+**Why bundled nodes are a problem:** They require `JOIN_TOKEN_1`/`JOIN_TOKEN_2` env vars before first stack start — a bootstrap deadlock. The tokens can only be generated after the stack is running. Empty tokens (`JOIN_TOKEN_1:-`) cause both node containers to crash-loop with enrollment failures, polluting `docker compose logs` output and misleading evaluators into thinking the stack is broken.
+
+**Minimal changes (exact lines to remove from compose.cold-start.yaml):**
+
+```
+Remove services:
+  puppet-node-1: (lines 105-126, inclusive)
+  puppet-node-2: (lines 127-148, inclusive)
+
+Remove from volumes block (lines 154-155):
+  node1-secrets:
+  node2-secrets:
+
+Update header comment (lines 13-14):
+  Remove steps 3 and 4 referencing JOIN_TOKEN_1/JOIN_TOKEN_2.
+  Replace with: "3. Follow docs/getting-started/enroll-node.md to enroll your first node."
 ```
 
-`html.escape()` is Python stdlib — no new dependency. It replaces `<`, `>`, `&`, `"`, `'` with HTML entities, preventing both tag injection and attribute-breaking.
+No other compose changes required. The `secrets-data` volume for `boot.log`/`licence.key` stays. The `AXIOM_LICENCE_KEY` env passthrough in the `agent` service stays. The `depends_on` chain (db -> cert-manager -> agent) is unaffected.
 
-### Pattern 6: ReDoS Prevention — Bounded Regex + Length Guard
+---
 
-**What:** `mask_pii()` in `security.py` uses an unbounded email regex on lines 89-90:
-```python
-EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+### Pattern 4: axiom-push First-Job Friction Reduction
+
+**What:** Reduce the number of distinct commands and manual steps between "I have axiom-push installed" and "my first job ran successfully."
+
+**Current CLI friction points (HIGH confidence, from mop_sdk/cli.py and signer.py source):**
+
+1. **No `key generate` command** — user must use raw `openssl genpkey` + `openssl pkey` commands. The CLI has `login`, `job push`, `job create` but no key generation subcommand. `mop_sdk/signer.py` has `load_private_key()` and `sign_payload()` but no `generate_keypair()` method.
+
+2. **`--key` requires a file path** — private key must exist on disk before running any `job` subcommand. No stdin or env var alternative.
+
+3. **`--key-id` is required with no lookup helper** — user must manually retrieve the UUID of the registered public key from the dashboard. There is no `axiom-push key register` or `axiom-push key list` command.
+
+4. **`MOP_URL` vs `AXIOM_URL` inconsistency** — `cli.py` line 51 reads `os.getenv("MOP_URL")`. The docs (`axiom-push.md`) say `export AXIOM_URL=https://your-host`. This mismatch means the env var silently does nothing for users following the documentation.
+
+**Minimal changes to reduce time-to-first-job:**
+
 ```
-The trailing `[a-zA-Z0-9-.]+` allows catastrophic backtracking on inputs like `aaaa@b.` with a long trailing string.
+Priority 1 (cli.py + signer.py):
+  Add `axiom-push key generate` subcommand
+  - Calls Signer.generate_keypair() (new method in signer.py)
+  - Uses cryptography lib Ed25519PrivateKey.generate() — already a dependency
+  - Writes signing.key + verification.key to current directory (or --output-dir)
+  - Prints next-step instructions: "Upload verification.key to Signatures in the dashboard"
+  - Eliminates openssl dependency entirely for new users
 
-**Fix (two-part):**
-1. Add a length pre-check before any regex call: `if len(data) > 2048: return data`
-2. Add an upper bound to the domain part: `[a-zA-Z0-9-.]{1,253}` — the max DNS name length is 253 characters, which eliminates unbounded matching.
+Priority 2 (cli.py):
+  Fix env var: os.getenv("MOP_URL") -> os.getenv("AXIOM_URL")
+  - One-line change, unblocks users following the docs verbatim
 
-No new dependency. No behaviour change for valid inputs.
+Priority 3 (docs):
+  first-job.md: reorder steps to put CLI tab first
+  - Move CLI tab to primary position in Step 3 (sign) and Step 4 (dispatch)
+  - CE curl path moves to collapsible block (already a pattern in the file)
+  - Add "Step 0: Install axiom-push" before Step 1
+  axiom-push.md: add key generation step to the documented workflow
+```
+
+**Data flow for reduced-friction path (post-changes):**
+
+```
+axiom-push key generate
+    -> writes signing.key + verification.key to ./
+
+[Manual: Dashboard -> Signatures -> Add -> paste verification.key -> note Key ID]
+
+axiom-push login
+    -> OAuth device flow -> saves token to ~/.axiom/credentials.json
+
+axiom-push job push --script hello.py --key signing.key --key-id <uuid>
+    -> loads key -> signs script -> POST /jobs -> prints job ID
+```
+
+The manual Signatures step cannot be eliminated without adding a `key register` CLI command (a larger change). For v14.4, the priority is removing the openssl ceremony and fixing the env var.
 
 ---
 
 ## Data Flow
 
-### Licence Validation Flow (Target State)
+### Licence Banner Flow
 
 ```
-Server startup (lifespan in main.py)
-    │
-    ├── init_db()
-    │
-    ├── licence_service.validate(os.getenv("AXIOM_LICENCE_KEY", ""))
-    │       │
-    │       ├── split key into payload_b64 + sig_b64
-    │       ├── base64url decode both parts
-    │       ├── Ed25519.verify(AXIOM_EE_PUBLIC_KEY, sig, payload_bytes)
-    │       │       └── BadSignatureError → return LicenceResult(valid=False, reason="signature invalid")
-    │       ├── json.parse(payload_bytes) → {customer_id, tier, exp, node_limit, features}
-    │       ├── check exp > time.time()
-    │       │       └── expired → return LicenceResult(valid=False, data=data, reason="expired")
-    │       └── boot_log.record_and_verify(now)
-    │               ├── read /app/secrets/boot.log (if exists)
-    │               ├── verify HMAC of stored timestamp
-    │               ├── assert new_time >= last_recorded_time
-    │               │       └── clock rollback → log warning, continue (degrade to CE on rollback)
-    │               └── write new timestamp + HMAC to /app/secrets/boot.log
-    │
-    ├── if result.valid:
-    │       app.state.licence = result.data
-    │       load_ee_plugins(app, engine)  → all EE routes active
-    └── else:
-            EEContext(all False)
-            _mount_ce_stubs(app)  → all EE routes return 402
+App mount
+    |
+useLicence() -> GET /api/licence (React Query, 5min stale, retry: false)
+    |
+MainLayout render
+    |
+licence.status === 'grace'   -> amber banner (days_until_expiry countdown)
+licence.status === 'expired' -> red banner (CE fallback message)
+licence.status === 'valid'   -> no banner
+licence.status === 'ce'      -> no banner (CE badge in sidebar only)
 ```
 
-### Node Authentication Flow (After API_KEY Removal)
+### GitHub Pages Deploy Flow (proposed)
 
 ```
-Node POST /work/pull
-    │
-    ├── verify_node_secret (Depends) — SOLE auth mechanism
-    │       ├── X-Node-Id header → db.execute(select(Node).where(node_id == ...))
-    │       ├── check node.status != "REVOKED" → 403 if revoked
-    │       ├── verify X-Machine-Id matches node.machine_id → 403 on mismatch
-    │       └── verify X-Node-Secret-Hash matches node.node_secret_hash → 403 on mismatch
-    │
-    └── JobService.pull_work(node_id, node_ip, db)
+Push to main (docs/** changed)
+    |
+docs-deploy.yml
+    -> mkdocs build --strict (working-directory: docs)
+    -> ghp-import --no-jekyll --push --force --dest-dir docs docs/site
+    -> gh-pages branch: /docs/** updated, root untouched
 
-[verify_api_key step removed — no longer present]
-```
-
-### Vault Path Confinement Flow (After Fix)
-
-```
-DELETE /api/vault/{artifact_id}
-    │
-    ├── artifact_id parameter (e.g. "a3c4e2f1-0000-...")
-    │
-    ├── _safe_artifact_path(artifact_id)
-    │       ├── candidate = Path("/app/vault/" + artifact_id).resolve()
-    │       ├── assert /app/vault is a parent of candidate
-    │       └── raise ValueError + HTTP 400 on traversal attempt
-    │
-    └── os.remove(candidate)
+Push to main (homepage/** changed)
+    |
+homepage-deploy.yml (NEW)
+    -> ghp-import --no-jekyll --push --force homepage/
+    -> gh-pages branch: root index.html, assets/ updated, /docs/ untouched
 ```
 
 ---
 
 ## Integration Points
 
-### New vs Modified — Explicit List
+### New vs Modified Components
 
-#### New (create from scratch)
-
-| File | Purpose |
-|------|---------|
-| `puppeteer/agent_service/services/licence_service.py` | Ed25519 verify, expiry check, boot-log monotonicity, `LicenceResult` dataclass |
-| `tools/generate_licence.py` | Offline admin CLI: inputs customer metadata, outputs base64url licence key blob |
-
-#### Modified (targeted changes to existing files)
-
-| File | Change | Lines |
-|------|--------|-------|
-| `security.py` | Remove `API_KEY` import-time crash | 16-21 |
-| `security.py` | Remove `verify_api_key` function | 104-108 |
-| `security.py` | Fix `mask_pii` ReDoS — length guard + bounded domain regex | 89-90 |
-| `main.py` | Remove `verify_api_key, API_KEY` from security import | 44 |
-| `main.py` | Remove `Depends(verify_api_key)` from `pull_work` | 1225 |
-| `main.py` | Remove `Depends(verify_api_key)` from `receive_heartbeat` | 1234 |
-| `main.py` | Remove `Depends(verify_api_key)` from `report_result` | 1241 |
-| `main.py` | Escape `user_code` in device-approve HTML f-string | 601, 603 |
-| `main.py` | Replace inlined licence block with `licence_service.validate()` call | 76-102 |
-| `vault_service.py` | Add `_safe_artifact_path()` and use in `store_artifact` + `delete_artifact` | 21, 70-72 |
-
-**Note on main.py line 2457/2461 from the todo:** The current `main.py` is 2152 lines. The todo's line numbers refer to a prior version. Verify the remaining path-injection alerts by running CodeQL or checking the live GitHub Security tab — do not assume the line numbers are current.
-
-#### Unchanged
-
-| File | Reason |
-|------|--------|
-| `ee/__init__.py` | Existing gate pattern is correct; licence validation stays in CE code |
-| `auth.py` | JWT mechanism unaffected |
-| `deps.py` | Permission cache unaffected |
-| `db.py` | No schema changes required |
-| `services/signature_service.py` | Ed25519 primitives already available — `licence_service.py` can import from here or use `cryptography` directly |
+| Component | Status | Change |
+|-----------|--------|--------|
+| `homepage/index.html` | NEW | Marketing landing page (standalone HTML) |
+| `homepage-deploy.yml` | NEW | GitHub Actions workflow for homepage |
+| `docs-deploy.yml` | MODIFIED | Switch from `mkdocs gh-deploy --force` to `ghp-import --dest-dir docs` |
+| `docs/mkdocs.yml` `site_url` | MODIFIED | Update to `.../axiom/docs/` if using subdirectory deploy |
+| `MainLayout.tsx` lines 211-223 | ALREADY DONE | Banner implemented — validate only |
+| `useLicence.ts` | NO CHANGE | Hook is complete |
+| `compose.cold-start.yaml` | MODIFIED | Remove puppet-node-1, puppet-node-2, node1-secrets, node2-secrets |
+| `mop_sdk/cli.py` | MODIFIED | Add `key generate` subcommand; fix `MOP_URL` -> `AXIOM_URL` |
+| `mop_sdk/signer.py` | MODIFIED | Add `generate_keypair()` static method |
+| `docs/getting-started/first-job.md` | MODIFIED | Reorder steps, promote CLI tab, fix env var name |
+| `docs/feature-guides/axiom-push.md` | MODIFIED | Add key generation step to documented workflow |
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| `main.py` lifespan → `licence_service` | Direct sync call, returns `LicenceResult` | One call per server startup |
-| `licence_service` → `ee/__init__.py` | `result.valid` bool gates `load_ee_plugins()` — existing pattern unchanged | |
-| `licence_service` → filesystem | Reads/writes `/app/secrets/boot.log` using `_safe_path()` pattern internally | Path is server-controlled, not user input |
-| `tools/generate_licence.py` → operator | Standalone CLI, private key on operator's machine only — no server connection | Follows `admin_signer.py` model |
-| `vault_service.py` → filesystem | All artifact paths go through `_safe_artifact_path()` | Fixes CodeQL alerts 82-83 |
-
-### Where Does the Licence Key Live?
-
-**Recommendation: `AXIOM_LICENCE_KEY` environment variable in `secrets.env`.**
-
-This is already implemented (`os.getenv("AXIOM_LICENCE_KEY")`). It is consistent with all other sensitive config in the project (`SECRET_KEY`, `ENCRYPTION_KEY`, `ADMIN_PASSWORD`). For air-gapped installs, the operator copies the base64url blob into `secrets.env` manually — no network required. Survives DB wipes.
-
-Do not store in the DB `Config` table — Config is wiped during hard teardowns and is operator-mutable without a restart.
-
-### What Happens on Licence Expiry?
-
-**Recommendation: Degrade to CE feature set — do not crash.**
-
-Existing behaviour when `_licence_valid = False`: CE stubs are mounted (all EE routes return 402). Jobs keep running. Nodes keep checking in. The dashboard EE badge shows "CE". This is the correct behaviour — a hard stop would violate the reliability contract for air-gapped operators who cannot renew quickly.
+| `useLicence` <-> `MainLayout` | React hook in component tree | Already wired at line 41 in MainLayout.tsx |
+| `MainLayout` banner <-> `Admin.tsx` LicenceSection | Both consume `useLicence()` independently | No shared state; both update when React Query cache refreshes |
+| `homepage/` <-> `docs/` on gh-pages | `ghp-import` path scoping | Each workflow owns its path; no interference |
+| `axiom-push key generate` <-> dashboard Signatures | Manual out-of-band step | No API automation for v14.4 |
 
 ---
 
-## Build Order Recommendation
+## Build Order
 
-The three workstreams are independent except for one constraint: **API_KEY removal must happen before any test update**, because tests currently send `X-API-Key` headers to the three node routes.
+Dependencies determine the order. Items with no cross-dependency can be done in parallel.
 
-```
-Step 1 — CodeQL Fixes (no inter-dependencies, highest urgency)
-    ├── security.py: fix mask_pii ReDoS (length check + bounded domain regex)
-    ├── main.py: fix XSS in device-approve (html.escape on user_code)
-    ├── vault_service.py: add _safe_artifact_path(), apply to store + delete
-    └── main.py: verify remaining path-injection alerts via live CodeQL scan
-            (todo line numbers 2457/2461 have drifted — file is now 2152 lines)
-
-Step 2 — API_KEY Removal (cleanup, no new behaviour)
-    ├── security.py: remove API_KEY crash block + verify_api_key function
-    ├── main.py: remove import + 3x Depends(verify_api_key)
-    └── tests: remove X-API-Key header from any test that sets it
-
-Step 3 — Licence CLI (offline tool, no server deps)
-    ├── tools/generate_licence.py: Ed25519 sign JSON payload → base64url blob
-    ├── define and document the exact wire format (payload schema + encoding)
-    └── generate a test key for use in integration tests
-
-Step 4 — Licence Service (depends on Step 3 format definition)
-    ├── services/licence_service.py: validate(), LicenceResult, boot_log helpers
-    ├── embed AXIOM_EE_PUBLIC_KEY_BYTES (the verification key) as a constant
-    └── unit tests: valid key, forged key, expired key, missing key, clock rollback
-
-Step 5 — Wire and Integration Test
-    ├── main.py lifespan: replace inline block with licence_service.validate()
-    ├── run CE validation scenario (no licence key → all EE routes 402)
-    └── run EE validation scenario (valid test key → all EE routes active)
-```
+1. **compose.cold-start.yaml cleanup** — zero-risk, no code dependencies, immediately unblocks clean install documentation
+2. **Licence banner smoke test** — verify existing code against GRACE licence state; close the task if it renders correctly; diagnose if it doesn't
+3. **axiom-push CLI: fix MOP_URL -> AXIOM_URL** — one-line change, no test impact, unblocks users following docs
+4. **axiom-push CLI: add `key generate` subcommand** — requires signer.py extension; test with `axiom-push key generate && axiom-push job push --key signing.key ...`
+5. **first-job.md and axiom-push.md docs update** — depends on (3) and (4) being done; reorder steps, fix env var, promote CLI tab
+6. **docs-deploy.yml: switch to ghp-import --dest-dir docs** — can be done in parallel with (1)-(5); must be in place before homepage goes live
+7. **Marketing homepage HTML** — depends on (6) validated; final deliverable
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Validating Licence Inside the EE Plugin
+### Anti-Pattern 1: Running `mkdocs gh-deploy --force` with a root homepage
 
-**What people do:** Move licence validation into `axiom-ee`'s `register()` method so the EE package owns the check.
+**What people do:** Add a marketing homepage to the repo root and run the existing `mkdocs gh-deploy --force` workflow unchanged.
+**Why it's wrong:** `gh-deploy --force` replaces the entire `gh-pages` branch with MkDocs output. The marketing homepage is deleted on every docs push.
+**Do this instead:** Switch to `ghp-import --dest-dir docs` for the MkDocs workflow so it only writes to `/docs/` on the branch.
 
-**Why it's wrong:** The CE codebase must gate EE *loading* on licence validity. If validation runs inside `register()`, EE tables, routes, and services are already registered before the check — there is no clean way to un-register them on failure.
+### Anti-Pattern 2: Keying the banner on undocumented status values
 
-**Do this instead:** Validate in `licence_service.py` (CE code). Gate `load_ee_plugins()` on the bool result. The EE plugin does not re-validate.
+**What people do:** Add a `DEGRADED_CE` branch to the banner before confirming the backend emits that value.
+**Why it's wrong:** The `GET /api/licence` response (v14.3) emits only `status: 'valid' | 'grace' | 'expired' | 'ce'`. A dead branch causes confusion and TypeScript type drift.
+**Do this instead:** Validate against the live `GET /api/licence` response. If `DEGRADED_CE` is needed, extend both `licence_service.py` and `useLicence.ts` LicenceInfo type simultaneously.
 
-### Anti-Pattern 2: Using `os.path.join` Without `.resolve()`
+### Anti-Pattern 3: Bundling test nodes in an evaluation compose file
 
-**What people do:** `os.path.join(BASE_DIR, user_input)` and consider it safe.
+**What people do:** Include pre-wired test nodes in `compose.cold-start.yaml` to give evaluators "something to see."
+**Why it's wrong:** The nodes require JOIN tokens that can only be generated after the stack is running — a bootstrap deadlock. Empty tokens cause crash-loop restarts that flood `docker compose logs` and make evaluators think the stack is broken.
+**Do this instead:** Remove bundled nodes. Document the manual enroll flow. Evaluators can follow `enroll-node.md` immediately after the core stack is up.
 
-**Why it's wrong:** `os.path.join("/app/vault", "../../etc/passwd")` returns `"/app/vault/../../etc/passwd"` as a string. `open()` follows the traversal. Only `Path.resolve()` collapses `../` sequences.
+### Anti-Pattern 4: Adding a CLI subcommand without fixing the env var mismatch first
 
-**Do this instead:** Always `Path(base / user_input).resolve()` and assert the result starts with (or equals) the resolved base before passing to any file operation.
-
-### Anti-Pattern 3: Generating Licences Inside the Server Process
-
-**What people do:** Add `POST /admin/generate-licence` so admins can create keys through the UI.
-
-**Why it's wrong:** The private signing key would need to exist in the server environment. Any RCE or path traversal exploit could exfiltrate it, allowing licence forgery.
-
-**Do this instead:** Generation is always offline via `tools/generate_licence.py` on the admin's local machine. The server only holds the embedded public verification key.
-
-### Anti-Pattern 4: Storing the Licence Key in the Database
-
-**What people do:** Store `AXIOM_LICENCE_KEY` in the `Config` key-value table for runtime updatability.
-
-**Why it's wrong:** DB content is operator-mutable without audit trail. The Config table is wiped during hard teardowns. An admin could swap in a forged key via the admin UI without a server restart.
-
-**Do this instead:** `AXIOM_LICENCE_KEY` in `secrets.env`. Read-only at startup. Cannot be changed without a restart — which triggers the boot-log check and creates an audit trail.
-
-### Anti-Pattern 5: Hard-Crashing on Expired or Missing Licence
-
-**What people do:** `sys.exit(1)` in lifespan if `AXIOM_LICENCE_KEY` is absent or expired.
-
-**Why it's wrong:** CE deployments legitimately have no licence key. Air-gapped EE customers may not be able to renew before expiry in an emergency window. A crash loop would take down production job execution.
-
-**Do this instead:** Absent/expired/invalid licence → degrade to CE feature set. Log a warning. Let the dashboard EE badge communicate the status to operators.
+**What people do:** Add `key generate` to the CLI while leaving `MOP_URL` in `cli.py` line 51.
+**Why it's wrong:** The env var mismatch means documentation-following users cannot set the server URL without using `--url`, making the login flow harder than it should be. New subcommands compound the confusion.
+**Do this instead:** Fix `MOP_URL` -> `AXIOM_URL` in the same PR that adds `key generate`.
 
 ---
 
 ## Scaling Considerations
 
-All v14.3 changes are single-node startup-time or request-path concerns. None affect horizontal scaling:
-
-| Concern | Impact |
-|---------|--------|
-| Ed25519 licence verification | ~100 µs at startup, once. Zero per-request cost. |
-| Boot-log file write | One file write per startup. Negligible I/O. |
-| ReDoS fix | Reduces worst-case CPU under malicious input. Improves reliability. |
-| Path confinement | One `Path.resolve()` per vault operation. Negligible. |
-| API_KEY removal | Removes one unnecessary `Depends()` from three hot node routes. Minor latency improvement. |
-| XSS fix | One `html.escape()` call per device-approve page load. Negligible. |
+These features are purely user-experience concerns (deploy workflow, UI banner, compose cleanup, CLI command). No runtime scaling changes required. Not applicable.
 
 ---
 
 ## Sources
 
-- Direct codebase inspection (HIGH confidence):
-  - `puppeteer/agent_service/security.py` — API_KEY crash, verify_api_key, mask_pii regex
-  - `puppeteer/agent_service/main.py` — lifespan licence block (lines 71-102), device-approve XSS (lines 575-628), node routes with verify_api_key (lines 1224-1250)
-  - `puppeteer/agent_service/services/vault_service.py` — path injection at lines 21, 70-72
-  - `puppeteer/agent_service/ee/__init__.py` — EEContext, load_ee_plugins, _mount_ce_stubs
-- Todo files (HIGH confidence — authored from CodeQL scan output):
-  - `.planning/todos/pending/2026-03-26-fix-code-scanning-alerts-xss-path-injection-redos.md`
-  - `.planning/todos/pending/2026-03-26-license-key-generation-and-validation-with-airgap-support.md`
-  - `.planning/todos/pending/2026-03-26-remove-legacy-api-key-requirement.md`
-- Project history: `.planning/PROJECT.md` — v11.0 EE entry_points architecture, v12.0 SEC-02 HMAC pattern, v14.1 CE execution stubs, v11.1 licence startup-gating validation
-- Python stdlib: `pathlib.Path.resolve()`, `html.escape()`, `hmac.compare_digest()`, `re` module ReDoS behaviour
-- CodeQL rules: `py/reflective-xss`, `py/path-injection`, `py/polynomial-redos` — rule semantics from GitHub CodeQL documentation
+- Live codebase: `puppeteer/dashboard/src/layouts/MainLayout.tsx` (banner at lines 211-223)
+- Live codebase: `puppeteer/dashboard/src/hooks/useLicence.ts`
+- Live codebase: `puppeteer/compose.cold-start.yaml`
+- Live codebase: `mop_sdk/cli.py` (env var at line 51: `MOP_URL`)
+- Live codebase: `mop_sdk/signer.py`
+- Live codebase: `docs/docs/getting-started/first-job.md`
+- Live codebase: `.github/workflows/docs-deploy.yml`
+- Live codebase: `docs/mkdocs.yml` (`site_url: https://axiom-laboratories.github.io/axiom/`)
+- `mkdocs gh-deploy --help` (MkDocs 1.6.1 installed) — confirmed no `--dest-dir` flag (HIGH confidence)
+- [MkDocs deploying docs](https://www.mkdocs.org/user-guide/deploying-your-docs/) — MEDIUM confidence
+- [MkDocs with existing GitHub Pages discussion](https://github.com/mkdocs/mkdocs/discussions/3402) — MEDIUM confidence
 
 ---
-
-*Architecture research for: Axiom v14.3 Security Hardening + EE Licensing*
-*Researched: 2026-03-26*
+*Architecture research for: Axiom v14.4 go-to-market polish*
+*Researched: 2026-03-27*

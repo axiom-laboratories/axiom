@@ -1,204 +1,230 @@
 # Pitfalls Research
 
-**Domain:** Security hardening (CodeQL XSS / path injection / ReDoS fixes) + EE licence key system (Ed25519 offline validation, air-gap expiry enforcement) in an existing FastAPI + Cython-compiled EE plugin codebase
-**Researched:** 2026-03-26
-**Confidence:** HIGH (based on direct codebase inspection of `main.py`, `vault_service.py`, `security.py`, `ee/__init__.py`, `tests/test_licence.py`; CodeQL official docs; Keygen.sh and Sentinel LDK air-gap licensing references)
+**Domain:** Go-to-market polish on an existing developer tool / job scheduler — marketing homepage on GitHub Pages alongside MkDocs docs, licence state banner (GRACE / DEGRADED_CE), Docker Compose test-node removal, and signing UX reduction
+**Researched:** 2026-03-27
+**Confidence:** HIGH (GitHub Pages behaviour from official docs + confirmed community issues; banner UX from Carbon Design System and LogRocket; Docker Compose orphan behaviour from docker/compose issue tracker; signing UX from first-user cold-start friction report in this repo)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Path-Normalization Order Reversal (Path Injection Silently Remains)
+### Pitfall 1: CNAME File Wiped on Every `gh-deploy` Run
 
 **What goes wrong:**
-The fix validates that the incoming path "looks safe" before calling `Path.resolve()` — e.g. checking that the raw user string doesn't contain `..` then resolving it. Because `resolve()` follows symlinks, a path that passes the raw check can still escape the allowed base directory through a symlink. CodeQL also continues to flag the alert because its taint-tracking requires that normalization happens before the comparison, not after.
+`mkdocs gh-deploy --force` rebuilds the `gh-pages` branch from scratch. If the marketing homepage lives in the same `gh-pages` branch and sets a custom domain via a `CNAME` file, that file is silently deleted every time the docs deploy workflow runs. The custom domain field in GitHub Pages settings resets, Pages falls back to the default `axiom-laboratories.github.io` URL, and external links to the marketing site break.
 
 **Why it happens:**
-Developers assume that checking for `../` in the raw string is sufficient. The normalization step must come first because both `../` substitutions and symlinks are resolved by `os.path.realpath()` / `Path.resolve()`. The required pattern is: `resolved = Path(base_dir / user_input).resolve(); assert str(resolved).startswith(str(Path(base_dir).resolve()))`.
+`mkdocs gh-deploy` deletes and recreates the `gh-pages` branch root with the built docs tree. Unless `CNAME` is placed inside the MkDocs `docs/` source directory (so it gets copied into `site/` on build), it never makes it into the deployed tree. Developers set the custom domain once through the GitHub UI, see it work, then lose it on the next deploy without understanding why.
 
 **How to avoid:**
-In `vault_service.py` lines 70-72 and `main.py` lines 2457/2461: the `artifact_id` is a UUID generated server-side — CodeQL flags the taint because `artifact_id` comes from a DB read that was originally seeded by user input. The correct fix is to resolve the path unconditionally and compare its prefix to the absolute `VAULT_DIR`, even when you trust the ID semantically:
-```python
-resolved = Path(VAULT_DIR, artifact_id).resolve()
-if not str(resolved).startswith(str(Path(VAULT_DIR).resolve())):
-    raise HTTPException(status_code=400, detail="Invalid artifact ID")
+Place a `CNAME` file directly in `docs/docs/` (the MkDocs `docs_dir`) with the custom domain. MkDocs copies it verbatim into `site/` and `gh-deploy` will push it. Alternatively, if marketing and docs share different subdirectories under the same Pages site (no custom domain), CNAME is irrelevant — but you must then set `site_url` correctly in `mkdocs.yml` so all generated URLs use the subdirectory prefix.
+
+The marketing homepage should live in the same source repo, in a directory like `homepage/`, and the `docs-deploy.yml` GitHub Actions workflow must copy the built homepage into `site/` (or a parallel `homepage/` directory) before running `gh-deploy`. Alternatively, use a separate `homepage-deploy.yml` that deploys to a different target path or branch than `gh-pages`.
+
+**Warning signs:**
+- GitHub Pages custom domain disappears after merging a docs PR
+- `curl -I https://axiom-laboratories.github.io/axiom/` returns 200 but marketing root returns 404
+- CI logs show `mkdocs gh-deploy --force` running without copying `CNAME`
+
+**Phase to address:** Phase 1 — GitHub Pages marketing homepage
+
+---
+
+### Pitfall 2: Subdirectory vs Root-Level URL Collision Between Marketing and Docs
+
+**What goes wrong:**
+Axiom's existing docs are deployed to `https://axiom-laboratories.github.io/axiom/` (a project-level Pages subdirectory). A new marketing homepage placed at root (`/`) of the same `gh-pages` branch will conflict with the `index.html` that MkDocs generates at `site/index.html` and places at the subdirectory root. If the marketing page is deployed as `site/index.html` (the repo root), they do not conflict — but if someone naively puts `index.html` in the MkDocs `docs/` directory thinking it will become the homepage, MkDocs overwrites it with its own generated index.
+
+Conversely: if the marketing homepage is meant to be at `https://axiom-laboratories.github.io/axiom/` (same URL as docs), there is no clean separation — both will try to own that `index.html`.
+
+**Why it happens:**
+The distinction between a user/org Pages site (`username.github.io`) and a project Pages site (`username.github.io/repo`) is easy to conflate. The marketing homepage should be at the org-level URL (`axiom-laboratories.github.io`) while docs live at the project-level (`axiom-laboratories.github.io/axiom`). This requires the marketing homepage to deploy to the `axiom-laboratories.github.io` org repository (a separate repo), not into `axiom-laboratories.github.io/axiom`.
+
+If the marketing homepage must live in the same repository, it should deploy to a `gh-pages` path that does not collide with the MkDocs-generated `index.html`. The cleanest split: marketing deploys to `gh-pages` root, MkDocs deploys to `gh-pages/docs/` sub-path, and `mkdocs.yml` sets `site_url: https://axiom-laboratories.github.io/axiom/docs/`.
+
+**How to avoid:**
+Decide on the URL ownership before writing any deployment workflow:
+- Option A (recommended): Marketing homepage → `axiom-laboratories.github.io` (org repo). Docs → `axiom-laboratories.github.io/axiom/` (project repo, existing). No collision, independent deploy cycles.
+- Option B: Marketing homepage → `axiom-laboratories.github.io/axiom/` root, docs → `axiom-laboratories.github.io/axiom/docs/`. Requires `mkdocs.yml` `site_url` update and all internal links in docs to use `/axiom/docs/` prefix. Risk: breaks any existing bookmarks to docs pages.
+
+Never put the marketing homepage in the `docs/docs/` source directory expecting MkDocs to pass it through unmolested — MkDocs will generate its own `index.html` from the `nav` configuration.
+
+**Warning signs:**
+- `mkdocs build --strict` fails because a manually placed `index.html` in `docs/` conflicts with the generated one
+- The docs welcome page shows marketing content after a mistaken commit
+- `404` on `/axiom/` after the marketing homepage deploy overwrites the MkDocs `index.html`
+
+**Phase to address:** Phase 1 — GitHub Pages marketing homepage
+
+---
+
+### Pitfall 3: `.nojekyll` Not Propagated Into Marketing Homepage Build Output
+
+**What goes wrong:**
+Axiom already has `.nojekyll` in the MkDocs source root (validated in v14.2) so GitHub Pages does not strip MkDocs underscore-prefixed assets. However, the marketing homepage is a separate static build. If that build deploys to the same `gh-pages` branch in a separate GitHub Actions step, and that step does not also place `.nojekyll` in the output, GitHub Pages Jekyll processing is not toggled per-directory — it is a branch-level flag. The risk: the second deploy step may overwrite or not include the root `.nojekyll`, causing Jekyll to strip `_assets/` directories from the marketing homepage.
+
+**Why it happens:**
+GitHub Pages applies Jekyll to the entire published branch. `.nojekyll` in the branch root suppresses Jekyll globally. If the marketing homepage deploy step uses a tool like `JamesIves/github-pages-deploy-action` pointed at a subfolder, that action by default performs a "clean" deploy that replaces the target folder's contents — it does not preserve files it did not write, including root-level `.nojekyll`.
+
+**How to avoid:**
+The `docs-deploy.yml` workflow already uses `mkdocs gh-deploy --force`. The marketing homepage deploy step should either:
+1. Also include a `.nojekyll` file in its output directory, and
+2. Use `--no-clobber` / `clean: false` if using `JamesIves/github-pages-deploy-action` for the marketing homepage, so it does not delete files written by the MkDocs step.
+
+The safest pattern: run both builds in the same workflow job, combine outputs into a single directory, then deploy once.
+
+**Warning signs:**
+- Marketing homepage CSS/JS (in `_assets/` or `_next/`) returns 404 on GitHub Pages while working locally
+- `_assets/` directory is present in the local build but absent in the deployed branch
+
+**Phase to address:** Phase 1 — GitHub Pages marketing homepage
+
+---
+
+### Pitfall 4: Licence Banner Shown to Operators Who Cannot Act on It
+
+**What goes wrong:**
+The licence state banner (amber for GRACE, red for DEGRADED_CE) is displayed to all authenticated users including `viewer` role. Viewers cannot renew the licence — they have no access to Admin pages. Showing a persistent amber banner to a viewer role every login creates noise, degrades trust in the UI, and trains operators to dismiss banners. When a genuinely critical banner appears (e.g., node cert near expiry) it will be ignored.
+
+**Why it happens:**
+Banners are usually implemented as "show if condition X" without restricting by role. The GRACE state is operationally important to the admin but irrelevant and confusing to a viewer. Banner implementations often read from a global app context (e.g., `useLicence()` hook returning licence state) and render without a role check.
+
+**How to avoid:**
+Gate the GRACE and DEGRADED_CE banners on `user.role === 'admin'`. Operators (`operator` role) may also benefit from a softer notification ("Your administrator should check the licence status") but should not see the same actionable admin banner. The banner should link directly to Admin > Licence for admin users. For viewers: suppress entirely.
+
+**Warning signs:**
+- `useLicence()` hook used in `MainLayout.tsx` without a `currentUser.role` guard
+- The banner links to `/admin/licence` which viewers cannot access — a 403 redirect on click
+
+**Phase to address:** Phase 2 — licence state banner
+
+---
+
+### Pitfall 5: Banner Stacking — Licence Banner + Other Banners Competing for Attention
+
+**What goes wrong:**
+The dashboard already has notification patterns: DRAFT scheduled job warnings, inline error toasts, the `must_change_password` force-change modal. Adding a persistent licence banner at the top of every page creates a second always-visible banner that competes with contextual notifications. When a GRACE banner is displayed at the same time as a DRAFT job warning, operators read neither. Banner blindness sets in within days of deployment.
+
+**Why it happens:**
+Each feature team adds their own banner in isolation. The GRACE banner is added to `MainLayout.tsx`, the DRAFT warning is added to `JobDefinitions.tsx`, and no coordination prevents simultaneous display.
+
+**How to avoid:**
+Implement a single banner slot in `MainLayout.tsx` with priority ordering: `must_change_password` modal beats all; DEGRADED_CE banner (red) beats GRACE banner; GRACE banner beats contextual warnings. Only the highest-priority item renders. Do not stack banners. The GRACE banner should be dismissible per session (stored in `sessionStorage`) — it does not need to be shown on every page load once the operator has acknowledged it, as long as it reappears on a new session.
+
+Additionally: the DEGRADED_CE state is more urgent than GRACE. DEGRADED_CE should be non-dismissible (EE features are actively broken) while GRACE should be dismissible.
+
+**Warning signs:**
+- Multiple `<div className="banner ...">` elements visible simultaneously in the DOM
+- Operator feedback: "I stopped reading the top of the page"
+
+**Phase to address:** Phase 2 — licence state banner
+
+---
+
+### Pitfall 6: Removing `puppet-node-1` / `puppet-node-2` From `compose.cold-start.yaml` Creates Orphan Volumes
+
+**What goes wrong:**
+The current `compose.cold-start.yaml` declares two named volumes: `node1-secrets` and `node2-secrets`. These are attached to `puppet-node-1` and `puppet-node-2`. When those services are removed from the file, existing users who run `docker compose -f compose.cold-start.yaml up -d` after pulling the update will see:
+
 ```
-Order is non-negotiable: `resolve()` then `startswith()`.
+WARN[0000] Found orphan containers (axiom-puppet-node-1, axiom-puppet-node-2)
+```
+
+The containers are stopped and orphaned, but the named volumes `node1-secrets` and `node2-secrets` remain on disk consuming space. More importantly: if the services are re-added later (e.g., in a rollback), Docker Compose will reattach to the existing volumes with old node certificates — causing the nodes to attempt enrollment with stale certs against a new PKI, failing silently with mTLS errors.
+
+**Why it happens:**
+Docker Compose volume lifecycle is separate from service lifecycle. Removing a service from the compose file does not remove its volumes. This is by design (to protect data), but it creates confusion when test nodes are removed as part of a simplification exercise.
+
+**How to avoid:**
+Add a migration note to the release's `CHANGELOG.md` and `install.md` instructing users upgrading from a previous cold-start setup to run:
+
+```bash
+docker compose -f compose.cold-start.yaml down --remove-orphans
+docker volume rm axiom_node1-secrets axiom_node2-secrets 2>/dev/null || true
+```
+
+Also: remove the `node1-secrets` and `node2-secrets` entries from the `volumes:` block at the bottom of `compose.cold-start.yaml` in the same commit as the service removal. Leaving dangling volume declarations with no associated service is valid YAML that Compose will silently create empty volumes for on next `up`, wasting space.
+
+The volume names use Docker Compose project-name prefixing (`axiom_node1-secrets` if `COMPOSE_PROJECT_NAME=axiom`). Document the exact `docker volume rm` command based on the actual project name in use.
 
 **Warning signs:**
-- The CodeQL alert survives after the fix — means normalization happened after validation
-- Tests pass because the test IDs are benign UUIDs, but the taint path still exists
-- `os.path.join(VAULT_DIR, user_input)` without a subsequent `resolve()` check is always flagged
+- `docker volume ls` shows `axiom_node1-secrets` and `axiom_node2-secrets` after removing the services
+- Users report "duplicate node" errors after restoring the services from a rollback
+- CI cold-start tests fail because orphan containers from a previous run hold port bindings
 
-**Phase to address:** Security fixes phase (Phase 1 of v14.3)
+**Phase to address:** Phase 3 — compose.cold-start.yaml cleanup
 
 ---
 
-### Pitfall 2: XSS Alert on CSV StreamingResponse Is Not a False Positive
+### Pitfall 7: JOIN_TOKEN Instructions Become Confusing Without Demo Nodes
 
 **What goes wrong:**
-The `GET /api/jobs/export` endpoint returns `media_type="text/csv"` via `StreamingResponse` (main.py ~line 873). The CodeQL alert (`py/reflective-xss`) looks like a false positive because CSV is not HTML. However, older browsers and some content-sniffing proxies interpret a `text/csv` response as `text/html` if the `X-Content-Type-Options: nosniff` header is absent, creating a real reflected XSS vector. The fix is not to dismiss the alert but to add the header.
+The current `compose.cold-start.yaml` includes two bundled nodes with `JOIN_TOKEN_1` and `JOIN_TOKEN_2` variables. The install documentation tells users to "set JOIN_TOKEN_1 and JOIN_TOKEN_2 in your .env file." When those nodes are removed, that instruction is dead. First-time users following any version of the install docs that still references JOIN_TOKEN variables will be confused when those variables have no effect — or worse, will set them and wonder why no node appears.
+
+The existing `install.md` already has tab-pair (CLI / Cold-Start) layouts. The cold-start tab will need updating to remove JOIN_TOKEN_1/JOIN_TOKEN_2 references and replace with "you must deploy a node separately using `enroll-node.md`". If the docs update does not land in the same PR as the compose change, there is a window where the compose is fixed but the docs are stale.
 
 **Why it happens:**
-Teams treat content-type enforcement as "browser's problem" and dismiss CSV XSS as theoretical. The `nosniff` header is required for CodeQL to stop flagging the response, and it also genuinely protects against content sniffing in IE/Edge legacy and Cloudflare-modified responses.
+Compose changes and documentation updates are often separate tasks. The compose file is code; the docs are prose. They go in different PRs or get assigned to different milestones.
 
 **How to avoid:**
-Add `X-Content-Type-Options: nosniff` to the `headers` dict in the `StreamingResponse`. Caddy (the TLS terminator in this stack) can also inject this globally via a `header` directive, but the backend fix is the defence-in-depth layer CodeQL can verify statically.
+Treat the compose change and the install.md / enroll-node.md documentation update as a single atomic phase. Enforce this with a checklist in the PR description. The `install.md` cold-start tab should be updated to explicitly state that no nodes are included and link to `enroll-node.md`. The `.env.example` should remove the `JOIN_TOKEN_1` and `JOIN_TOKEN_2` example lines in the same commit.
 
 **Warning signs:**
-- The alert persists after adding the correct content type — check whether `nosniff` was omitted
-- Caddy-level header injection is not visible to CodeQL static analysis and will not resolve the alert
+- `install.md` still references `JOIN_TOKEN_1` after the compose change is merged
+- `.env.example` still has `# JOIN_TOKEN_1=` placeholder lines
+- The cold-start smoke test tries to set `JOIN_TOKEN_1` in `.env` and reports a 200 but no node appears in the dashboard
 
-**Phase to address:** Security fixes phase (Phase 1 of v14.3)
+**Phase to address:** Phase 3 — compose.cold-start.yaml cleanup
 
 ---
 
-### Pitfall 3: ReDoS Fix Breaks Legitimate API Key Format Validation
+### Pitfall 8: Signing UX Shortcut Breaks Existing Automation Scripts
 
 **What goes wrong:**
-The `security.py:79` pattern is an email regex applied to data that could come from an untrusted request. The naive fix is to remove the regex entirely or replace it with `re.fullmatch(r'[^@]+@[^@]+\.[^@]+', value)`, which is fast but so permissive it accepts garbage. A worse fix is adding catastrophic alternatives: `[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+` contains nested quantifiers that CodeQL flags as polynomial-time backtracking when the input doesn't match — specifically the `[a-zA-Z0-9-]+` inside a `.` (dot char class) at the TLD.
+The current `axiom-push` CLI workflow requires explicit steps: generate key, register public key, sign script, submit. If the UX improvement introduces a new flag like `--auto-sign` or a new `axiom-push dispatch` subcommand that combines signing + dispatch, existing CI scripts that call `axiom-push sign` then `axiom-push submit` as separate steps will either get an error (command removed) or silently create duplicate dispatch calls (command now does both steps, old script does the second step again).
+
+Similarly, if the dashboard guided dispatch form's step count or step names change, existing user documentation screenshots or runbooks pointing users to "Step 3: Paste your signature" become stale and confusing.
 
 **Why it happens:**
-The common "fix" for ReDoS is to add input length limits before the match. While length limits help, they do not eliminate polynomial backtracking; they only slow it down. CodeQL still flags the pattern unless the regex is rewritten to be linear.
+UX simplification changes often remove steps that were previously required. When the removed step was previously invoked as a distinct CLI command or a named form field, anything referencing that step by name breaks.
 
 **How to avoid:**
-Either (a) replace the regex with a simpler non-backtracking form: `r'^[^@\s]{1,64}@[^@\s]{1,253}$'` (checks structure only, not character classes), or (b) add a length check AND use `re.fullmatch` with possessive quantifiers (Python 3.11+ `re.NOFLAG` with `(?:...)` non-capturing but still backtracking). The real prevention: do not use `PII_MASK` / `mask_pii()` on untrusted API request bodies in hot paths — reserve it for log sanitisation on structured data.
+Any new combined command must be additive, not replacement. The old sequence (`sign` then `submit`) must continue to work unchanged. The new shortcut (`dispatch --auto-sign`) is an alternative, not a replacement. The CLI help text should show both paths.
+
+For the dashboard guided form: if form steps are consolidated (e.g., signing happens automatically on "Submit" rather than a separate "Sign" step), ensure the `axiom-push` CLI equivalent path uses the same behaviour so CLI and dashboard are not diverged in their mental model.
+
+Specifically: the `axiom-push` CLI is installed on user machines and in CI pipelines. Breaking a subcommand signature is a semver-breaking change requiring a major version bump. Do not remove or rename existing subcommands without a deprecation cycle.
 
 **Warning signs:**
-- The CodeQL `py/polynomial-redos` alert persists after adding a length check — the regex itself must change
-- Performance degrades sharply when processing job names containing many `@` signs
+- A test in `mop_validation/scripts/` calls `axiom-push sign` or `axiom-push submit` as a subprocess and fails after the UX change
+- `axiom-push --help` output no longer includes a subcommand that the docs still reference
+- Dashboard guided form loses the "Script" field in a step consolidation — existing users can't find it
 
-**Phase to address:** Security fixes phase (Phase 1 of v14.3)
+**Phase to address:** Phase 4 — signing UX improvement
 
 ---
 
-### Pitfall 4: Removing API_KEY Hard-Crashes Existing CE Deployments Without Migration Path
+### Pitfall 9: Auto-Signing Shortcut Exposes Private Key Path to Dashboard or API
 
 **What goes wrong:**
-`security.py:17-21` does `sys.exit(1)` if `API_KEY` is absent. v14.3 plans to remove the legacy `API_KEY` mechanism. Removing the hard-crash without a deprecation period will silently break every existing deployment that has `API_KEY` in its `secrets.env` — not because they use it, but because removing the `sys.exit(1)` guard while keeping the env-var read will cause a `KeyError` or `None` to propagate to a Fernet key derivation step. The reverse risk is equally bad: keeping the hard-crash while deprecating the feature means fresh installs that don't set `API_KEY` cannot start.
+A signing UX improvement that reduces friction by accepting "sign on my behalf" or "remember my key" functionality must never move private key material to the server. If the dashboard provides a "one-click sign" feature by prompting for a private key file path or having the user paste a private key, that private key travels over HTTPS to the server where it could be logged, stored in the DB, or leaked in an audit log entry.
+
+The existing design (`axiom-push` CLI) is correct: the private key never leaves the operator's machine. The signature is computed locally and only the signature bytes + payload are transmitted. Any UX simplification must preserve this boundary.
 
 **Why it happens:**
-The removal seems simple (delete the guard), but the `API_KEY` variable is read in multiple places: the guard at import time, an injected dependency, and potentially header-check logic on node-facing routes. A partial removal leaves a dangling reference.
+"Reduce steps to first signed job" can be misinterpreted as "allow the server to sign on the user's behalf" rather than "make the local signing workflow faster." A naive implementation of a "quick sign" button in the dashboard might prompt for a private key upload.
 
 **How to avoid:**
-Do a full grep before removing: every reference to `API_KEY` across `main.py`, `security.py`, and any node-facing route must be audited. The removal should be a single atomic commit that removes the env-var read, the `sys.exit`, the Depends injection, and the matching test assertions together. Existing `secrets.env` files with `API_KEY` set should still boot without error (the key is just ignored).
+The UX simplification should target the CLI workflow (reducing commands from 4 to 2, e.g., `axiom-push dispatch script.py`) and the dashboard workflow (make the signature paste box more prominent, add copy-paste hints from CLI output). The dashboard should never handle private key material. If a browser-based signing flow is considered (WebCrypto API), the key must be generated in-browser and never transmitted — this is out of scope for this milestone.
+
+Document the security boundary explicitly in the signing UX PR description.
 
 **Warning signs:**
-- `ImportError` or `NameError` at startup after partial removal
-- Node enrollment fails with a 401 because a route still tries to validate `API_KEY`
-- Tests that used to pass by injecting `API_KEY` into the test environment now error on missing setup
+- A new API endpoint accepts a `private_key` field in any request body
+- The dashboard guided form adds a file upload for `.key` files
+- `axiom-push` generates a keypair on a remote server rather than locally
 
-**Phase to address:** Security fixes phase (Phase 1 of v14.3) — must be in same commit as all XSS/injection fixes to avoid a partial-removal window
-
----
-
-### Pitfall 5: Licence Expiry Check at Startup Only — Long-Running Processes Bypass It
-
-**What goes wrong:**
-If `_parse_licence()` is called once in the `lifespan` function and the result stored in `app.state.licence`, a server that started with a valid licence and runs for 13 months never re-validates. The licence expires mid-run but EE features remain available until the next restart. For air-gapped deployments with perpetual uptime (industrial, defence), this can mean years of unlicensed operation after the key expires.
-
-**Why it happens:**
-Startup-only validation is the simplest implementation and is what the v11.0 implementation established. Periodic validation requires a background task, which adds complexity and a failure mode (what if the background task crashes?).
-
-**How to avoid:**
-Add an expiry check in a lightweight APScheduler job (already available in the stack) that runs every 6-12 hours. The check does NOT re-read from disk — it reads `app.state.licence["exp"]` and compares to `time.time()`. If expired, it sets a flag (`app.state.licence_valid = False`) and logs a warning but does NOT immediately revoke features. Feature-gating code checks `app.state.licence_valid` at request time. This separates the "is the licence structurally valid" question (startup) from the "is it still within its window" question (runtime).
-
-**Warning signs:**
-- `GET /api/licence` returns `expires: 2025-01-01` while EE routes still return 200
-- No scheduled job appears in APScheduler logs for licence re-validation
-
-**Phase to address:** EE licensing phase (Phase 2 of v14.3)
-
----
-
-### Pitfall 6: Monotonic Boot-Log Anti-Clock-Rollback Is Tamper-Evident in Theory, Trivially Bypassed in Practice
-
-**What goes wrong:**
-The proposed approach is to write a signed timestamp file on each startup and verify the log is monotonically increasing. In an air-gapped Docker deployment, the customer can delete the boot-log file, reset the container, and the system treats it as a fresh install — no boot history means no rollback to detect. The defence requires the log file to persist across container restarts AND to be detectable when absent.
-
-**Why it happens:**
-Boot-log approaches assume persistent state outside the container. In containerised deployments (the primary target), the `/app` volume is operator-controlled. An absent log is indistinguishable from a fresh install unless absence itself triggers a penalty.
-
-**How to avoid:**
-Use a two-factor approach:
-1. If no boot-log exists AND a licence is present, issue a single-use "first activation" window (e.g., 7 days), after which a boot-log entry is required to continue.
-2. The boot-log file is written to the same volume as `secrets.env` (already required for the deployment) — if the operator can delete it, they can delete their whole config. Volume deletion = intentional.
-3. For the v14.3 scope: treat absence of boot-log as "unknown" (not "permitted") and apply the grace period model instead of a hard stop — this is simpler and honest about the limitation.
-
-An alternative that avoids the file problem entirely: embed a "not-before" counter in the licence payload itself. This is a monotonically increasing integer that must be stored in the DB (which is already persistent in this stack). The licence includes `min_boot_count: N`. The server maintains a `boot_count` in the Config table. If `boot_count < min_boot_count`, refuse to activate.
-
-**Warning signs:**
-- Boot-log file is stored inside the container image layer, not a named volume — deleted on every container pull
-- The validation code branches on `FileNotFoundError` by continuing normally (silent bypass)
-
-**Phase to address:** EE licensing phase (Phase 2 of v14.3) — simplify to grace-period model for v14.3, document limitation
-
----
-
-### Pitfall 7: Hard Stop on Expiry Breaks Air-Gapped Operators Mid-Operation
-
-**What goes wrong:**
-If the expiry enforcement is a hard stop (EE features return 402 immediately on expiry), an air-gapped operator whose licence expired at 2am during a production job run has an outage. Nodes executing jobs at that moment may receive 402 responses on their next heartbeat cycle, causing jobs to stall. Scheduled jobs that fire after expiry will not dispatch.
-
-**Why it happens:**
-Hard-stop is the simplest implementation and has no ambiguity about the state. The problem is that in air-gapped environments, licence renewal is a manual process (offline file transfer) that cannot happen at midnight.
-
-**How to avoid:**
-Implement a grace period (14-30 days) during which EE features remain active but:
-- `GET /api/licence` returns `"status": "grace_period"` with the expiry date and days remaining
-- Dashboard shows an amber banner "Your licence expired N days ago — renew before [date] to avoid interruption"
-- After the grace period, degrade to CE mode (not a hard crash) — EE routes return 402, not 500
-
-The CE fallback is already implemented (stub routers). The state machine is: `VALID → GRACE_PERIOD → DEGRADED_CE`. Never `VALID → CRASHED`.
-
-**Warning signs:**
-- `app.state.licence = None` is set on expiry — this causes the EE plugin's feature flags to disappear and may cause `AttributeError` if other code reads `app.state.ee_ctx.foundry` without a None-guard
-- Nodes go OFFLINE because their heartbeat route returns 402
-
-**Phase to address:** EE licensing phase (Phase 2 of v14.3)
-
----
-
-### Pitfall 8: Licence Public Key Embedded in Compiled Cython Wheel Is Extractable
-
-**What goes wrong:**
-The `axiom-ee` package embeds the licence validation public key as a bytes literal in `ee/plugin.py` (or equivalent). Cython compiles this to a `.so` file. An attacker who obtains the `.so` can run `strings` on it or step through with a debugger to recover the public key. With the public key, they cannot forge new licences (Ed25519 remains secure), but they can confirm the validation logic and test bypasses.
-
-More critically: if the public key byte string is extracted, a fork of the `.so` can replace it with an attacker-controlled key and generate their own "valid" licences. This is possible because the `.so` file is installed in a writable Python package directory.
-
-**Why it happens:**
-All software licence validators face this attack. Cython provides obfuscation, not cryptographic protection.
-
-**How to avoid:**
-Accept the fundamental limitation: offline licence validation in a software-distributed validator cannot be made tamper-proof against a sufficiently motivated attacker with root access. The mitigation is raising the cost:
-1. The public key should be split across multiple constants or derived from a seed at import time (not stored as a single contiguous bytes literal)
-2. The `.so` module integrity should be checked at startup using a hash of the file itself (stored in the licence payload or in a separate manifest)
-3. For v14.3 scope: accept the limitation and document it. Do not store the private key anywhere near the validator. The goal is deterrence, not perfect enforcement.
-
-**Warning signs:**
-- `_LICENCE_PUBLIC_KEY_BYTES` appears as a named module-level constant — single extraction point
-- The public key is the same as the job signing verification key — reusing it means a leaked key compromises both systems
-
-**Phase to address:** EE licensing phase (Phase 2 of v14.3) — note limitation in design doc, defer hardening to future milestone
-
----
-
-### Pitfall 9: Licence Absent = EE Plugin Not Loaded = `app.state.ee_ctx` May Not Exist
-
-**What goes wrong:**
-The current `load_ee_plugins()` function returns an `EEContext` and presumably stores it on `app.state`. If the licence check is added inside `load_ee_plugins()` (i.e., "don't load EE plugin if licence is invalid"), then code that reads `app.state.ee_ctx.foundry` will get `AttributeError` when the EE plugin is installed but the licence is absent, because the EE plugin was not loaded. Code that tests `hasattr(app.state, 'ee_ctx')` will behave differently in CE (no EE installed) vs. EE-installed-but-unlicensed.
-
-**Why it happens:**
-The CE/EE split was designed around "EE plugin installed vs. not installed". Adding a licence state creates a third state: "EE plugin installed, licence absent/expired". Feature-gating code needs to handle this third state explicitly.
-
-**How to avoid:**
-Load the EE plugin unconditionally (discover it via entry_points), but gate feature activation on the licence check result. The `EEContext` object always exists; its boolean fields reflect both "plugin loaded" AND "licence valid". When the licence is absent, `EEContext` fields are all `False` (same as CE mode). This means the stub routers are NOT mounted (the real EE routes are), but they return 402 because the feature flag is `False`. This requires feature-flag checking in every EE route handler, not just at plugin load time.
-
-**Warning signs:**
-- After installing `axiom-ee` with an absent `AXIOM_LICENCE_KEY`, EE routes return 500 instead of 402
-- `app.state.ee_ctx` is `None` when the EE plugin is installed but unlicensed
-
-**Phase to address:** EE licensing phase (Phase 2 of v14.3)
+**Phase to address:** Phase 4 — signing UX improvement
 
 ---
 
@@ -206,11 +232,11 @@ Load the EE plugin unconditionally (discover it via entry_points), but gate feat
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Startup-only licence validation | Zero runtime overhead, simple | Licence expiry not enforced on long-running deployments | Never for air-gap EE with 1-year licences |
-| `sys.exit(1)` on missing env var | Obvious failure mode for ops | Cannot be tested without patching `os.environ`; breaks unit tests | Only for truly non-negotiable keys like `SECRET_KEY` — not legacy `API_KEY` |
-| Embed public key as `bytes` literal | Simple | Single `strings` extraction point | Acceptable for v14.3; document limitation |
-| Hard stop on licence expiry | No ambiguity | Outage for air-gapped operators during renewal window | Never for production EE — use grace period |
-| `pathlib.Path(base).resolve()` prefix check without stripping trailing slash | Correct for most cases | `VAULT_DIR=/app/vault` prefix check passes `VAULT_DIR=/app/vault2` | Low risk but fix: use `resolved.is_relative_to(base)` (Python 3.9+) or append `/` to base before check |
+| Deploy marketing homepage inline in MkDocs `docs/docs/` | Single workflow, no extra repo | MkDocs overwrites `index.html`; homepage assets mix with doc assets | Never — use a separate directory or org repo |
+| Show GRACE banner to all roles | Simpler rendering logic | Viewer-role banner blindness; confusing UX for non-admins | Never |
+| Leave `node1-secrets` / `node2-secrets` volumes in `volumes:` block after removing services | No Compose error | Compose silently creates empty volumes on next `up`; upgrade notes become misleading | Never — remove in same commit as service removal |
+| Add `axiom-push dispatch-and-sign` as alias that calls old sign+submit sequence | Fast UX win | CLI surface grows; two mental models coexist; docs must cover both | Acceptable short-term if old commands are preserved |
+| Dismissible GRACE banner stored in `localStorage` (persists across sessions) | User only sees it once | Operator forgets about expiring licence; misses renewal window | Never — use `sessionStorage` so it reappears each new session |
 
 ---
 
@@ -218,12 +244,12 @@ Load the EE plugin unconditionally (discover it via entry_points), but gate feat
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| CodeQL path injection alert | Adding resolve() after the comparison | Resolve first, compare prefix second — order is enforced by taint tracking |
-| CodeQL XSS on StreamingResponse | Dismissing as false positive because content type is CSV | Add `X-Content-Type-Options: nosniff` to response headers — the alert is not a false positive |
-| APScheduler + licence re-validation | Scheduling the re-validation job before `app.state.licence` is populated | Schedule the job in `lifespan` after `load_ee_plugins()` has returned |
-| EE plugin entry_point + licence check | Raising exception in `register()` on licence failure (causes CE stub mount) | Return from `register()` with all feature flags `False` — stubs should NOT be re-mounted |
-| Cython .so + public key | Storing private key in `axiom-ee` repo alongside validator | Private key must be in a separate offline tool only — never in the distributed package |
-| `secrets.env` + `AXIOM_LICENCE_KEY` | Reading it with `os.environ["AXIOM_LICENCE_KEY"]` causing `sys.exit` on fresh CE installs | Use `os.getenv("AXIOM_LICENCE_KEY", "")` — absent key = CE mode, not crash |
+| GitHub Pages + MkDocs `gh-deploy` | CNAME not in MkDocs source | Place `CNAME` in `docs/docs/` so it's copied into `site/` on every build |
+| GitHub Pages + two deploy steps | Second step clobbers `.nojekyll` from first | Run both builds in same job, merge outputs, deploy once with `.nojekyll` in root |
+| `useLicence()` hook in React | Returning licence state to all components without role check | Guard banner render on `currentUser.role === 'admin'`; viewers see nothing |
+| Docker Compose volumes block | Leaving declared volumes with no associated service | Remove volume declaration in same commit as service removal |
+| `axiom-push` CLI versioning | Removing subcommand without deprecation | Mark old subcommand as deprecated in `--help`, keep it functional for at least one minor version cycle |
+| Dashboard signing UX | Adding "quick sign" that transmits private key | Signing must remain local; only signature bytes go to server |
 
 ---
 
@@ -231,9 +257,9 @@ Load the EE plugin unconditionally (discover it via entry_points), but gate feat
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `mask_pii()` on every request body | High CPU on job dispatch with large scripts | Restrict PII masking to audit log writes only, not hot API paths | At ~100 concurrent job dispatches |
-| Re-reading `AXIOM_LICENCE_KEY` from disk on every EE route call | 10-50ms latency added to every EE API call | Cache in `app.state.licence` at startup; periodic re-validation via scheduler | First request after startup if not cached |
-| `Path.resolve()` on every file operation in vault service | Negligible at current scale | Fine for this use case | N/A for expected vault sizes |
+| Licence state polled from API on every page render | 50-100ms added to every navigation, excessive `/api/licence` calls | Cache in React context (`useLicence()`) with a 5-minute TTL; do not re-fetch on every mount | Immediately visible in browser network tab |
+| Marketing homepage bundle includes MkDocs Material theme assets | Page weight bloat, doubled asset downloads | Keep marketing homepage as plain HTML/CSS or a separate lightweight build; do not import MkDocs theme CSS | Any visitor with slow connection |
+| `docs-deploy.yml` rebuilds entire MkDocs site on every push to `main` including non-doc changes | Slow CI, wasted GitHub Actions minutes | Path filter on `docs/**` — already implemented in v14.2; marketing homepage deploy should use its own path filter on `homepage/**` | Every push to main without path filter |
 
 ---
 
@@ -241,11 +267,9 @@ Load the EE plugin unconditionally (discover it via entry_points), but gate feat
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Reusing the Ed25519 job-signing keypair as the licence signing keypair | A leaked job-signing key would also forge licences | Use a separate Ed25519 keypair for licence signing — stored in a separate offline tool |
-| Storing `AXIOM_LICENCE_KEY` in `.env` (committed) rather than `secrets.env` (gitignored) | Licence key leaks in git history | Document that `AXIOM_LICENCE_KEY` goes in `secrets.env` only; add to `.gitignore` check |
-| Setting `app.state.licence = None` on expiry with no None-guard in feature-flag checks | `AttributeError` crashes on EE route access after expiry | Use a sentinel object (`LicenceExpired`) or always check `app.state.licence and app.state.licence["valid"]` |
-| Grace period counter stored only in memory | Container restart resets grace period countdown — effectively extends it indefinitely | Persist the grace period start timestamp in the Config DB table |
-| Path injection fix using `werkzeug.secure_filename` on a UUID | UUIDs contain `-` which `secure_filename` may strip, returning an empty string or mangled path | Use `Path.resolve() + is_relative_to()` for UUIDs, not filename sanitisers designed for user-supplied filenames |
+| Marketing homepage form ("get early access") posts to the Axiom API | User email/data collected via unintended endpoint; CORS misconfiguration | Marketing forms must use a third-party form service (Formspark, Formspree) or a dedicated marketing backend — never the Axiom agent service |
+| GRACE/DEGRADED_CE banner renders licence expiry date from client-side JWT decode | Expiry visible in JWT; easy to forge client-side if JWT validation is weak | Render from `GET /api/licence` response, not decoded JWT fields |
+| Removing bundled test nodes exposes `JOIN_TOKEN_1` / `JOIN_TOKEN_2` env vars as unused in compose | No direct security risk, but stale env var examples in docs may mislead users into generating unnecessary tokens | Remove from `.env.example` in same PR |
 
 ---
 
@@ -253,23 +277,26 @@ Load the EE plugin unconditionally (discover it via entry_points), but gate feat
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Hard stop on licence expiry with no warning lead-up | Sudden outage for air-gapped operators; no time to renew | Show amber dashboard banner at 30 days, red at 7 days, grace period after expiry |
-| `GET /api/licence` returning `{edition: "community"}` when EE is installed but unlicensed | Operator thinks they're in CE mode; can't diagnose why EE features aren't working | Return `{edition: "enterprise_unlicensed", reason: "licence absent|expired|invalid"}` |
-| Licence error surfaced as a 500 in EE route | Operator sees a generic error, not a licence problem | EE routes without a valid licence must return 402 with `{"detail": "EE licence required"}` |
-| No visibility of grace period countdown in dashboard | Operator doesn't know when hard cutoff is | Display grace period end date in Admin > Licence section and in `GET /api/licence` response |
+| GRACE banner shows "expires in X days" without a CTA link | Admin sees the warning but doesn't know where to renew | Banner includes "View licence details" link to Admin > Licence section |
+| DEGRADED_CE banner blocks access to the dashboard with a full-page overlay | Operators in degraded mode cannot investigate what happened | DEGRADED_CE is a top-bar banner, not a modal or page blocker — operators must still be able to view jobs and nodes |
+| Signing UX adds a "copy command" button that copies the wrong CLI version | Users paste an `axiom-push` command that doesn't match their installed version | Copy buttons should show the canonical command without a pinned version; link to docs for version-specific variants |
+| Removing demo nodes leaves the "Nodes" page empty with no guidance | First-time user installs cold-start, sees zero nodes, thinks the install failed | When Nodes list is empty, show an empty-state panel with a link to "Enroll your first node" guide |
+| Marketing homepage does not link back to the docs site | Users find the homepage but cannot discover documentation | Every page of the marketing homepage has a prominent "Documentation" link pointing to the GitHub Pages docs URL |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Path injection fix:** CodeQL alert dismissed rather than fixed — verify the alert actually closes in the next scan, not just that tests pass
-- [ ] **XSS fix on CSV export:** `nosniff` header added to backend but also check Caddy doesn't strip it — test with `curl -I`
-- [ ] **ReDoS fix:** `mask_pii()` regex replaced but same pattern exists elsewhere in codebase — run `grep -r 'a-zA-Z0-9_\.' puppeteer/` to find copies
-- [ ] **API_KEY removal:** Guard removed from `security.py` but `API_KEY` variable still read and passed to node-route handlers — check all 3 call sites
-- [ ] **Licence expiry enforcement:** `app.state.licence` set to `None` on expiry — verify all EE route handlers have None-guard, not just the flag check
-- [ ] **Grace period:** Timer stored in memory — verify it persists across container restarts (DB-backed)
-- [ ] **Absent licence = CE mode:** EE plugin installed, no `AXIOM_LICENCE_KEY` set — verify `/api/features` returns all `false`, not 500
-- [ ] **Licence key format validation:** `_parse_licence("")` returns `None` (tested) — also verify `_parse_licence("garbage.garbage")` does not panic on base64 decode error
+- [ ] **Marketing homepage deploy:** CNAME file present in `site/` after `mkdocs gh-deploy` runs — verify with `git show gh-pages:CNAME`
+- [ ] **Marketing homepage deploy:** `.nojekyll` present at `gh-pages` branch root after both deploy steps run — verify with `git show gh-pages:.nojekyll`
+- [ ] **Licence banner — GRACE:** Banner visible when `app.state.licence_status == "GRACE"` in a logged-in admin session only — verify by checking `localStorage` for `mop_auth_token` with an admin JWT and a viewer JWT
+- [ ] **Licence banner — DEGRADED_CE:** Banner is non-dismissible and links to Admin > Licence — verify banner persists across page navigation in the same session
+- [ ] **Licence banner — CE mode:** No banner shown when `app.state.licence_status == "CE"` — verify no banner element present in DOM on fresh CE install
+- [ ] **Compose node removal:** `node1-secrets` and `node2-secrets` removed from both `services:` and `volumes:` blocks — verify with `grep -c "node1-secrets" puppeteer/compose.cold-start.yaml` returning 0
+- [ ] **Compose node removal:** `install.md` and `enroll-node.md` cold-start tabs contain no references to `JOIN_TOKEN_1` or `JOIN_TOKEN_2` — verify with `grep -r "JOIN_TOKEN_1" docs/`
+- [ ] **Signing UX:** Existing `axiom-push sign` + `axiom-push submit` two-step flow still works unchanged — verify by running `mop_validation/scripts/run_signed_job.py` without modification
+- [ ] **Signing UX:** No API endpoint accepts a `private_key` field — verify with `grep -r "private_key" puppeteer/agent_service/`
+- [ ] **Empty nodes state:** Nodes page shows an enroll-guidance empty state when zero nodes are enrolled — verify by wiping the DB and loading the Nodes view
 
 ---
 
@@ -277,11 +304,11 @@ Load the EE plugin unconditionally (discover it via entry_points), but gate feat
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Path injection fix breaks valid UUID file access | LOW | The resolved path of a valid UUID will always be within `VAULT_DIR`; if not, fix the base path constant |
-| API_KEY removal breaks existing deployment | MEDIUM | Add `API_KEY` back as an optional no-op env var; document deprecation in changelog |
-| Licence hard stop during production run | HIGH | Restore previous container image; apply licence renewal; restart; audit which jobs were lost |
-| EE plugin not loading after licence check added to `register()` | LOW | Remove licence check from `register()`; gate at request time instead |
-| Monotonic boot-log file missing after volume remount | LOW | Apply grace period — do not hard-stop; log warning; operator renews licence to reset |
+| CNAME wiped by gh-deploy | LOW | Add `CNAME` file to `docs/docs/`; re-run `docs-deploy.yml` workflow; custom domain reappears within minutes |
+| Marketing homepage URL collision with docs index | MEDIUM | Update `mkdocs.yml` `site_url` to new path; rebuild and redeploy docs; update any external links in README |
+| Orphan volumes after node removal | LOW | `docker compose down --remove-orphans && docker volume rm axiom_node1-secrets axiom_node2-secrets`; user data in those volumes is only test node certs — no production data |
+| GRACE banner shown to all roles causing user complaints | LOW | Add `currentUser.role === 'admin'` guard to banner render condition; no backend change needed |
+| `axiom-push` subcommand broken by UX change | HIGH | Restore the old subcommand as a deprecated alias; release a patch version; update CHANGELOG |
 
 ---
 
@@ -289,34 +316,36 @@ Load the EE plugin unconditionally (discover it via entry_points), but gate feat
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Path normalization order (Pitfall 1) | Phase 1: Security fixes | CodeQL alert count drops from 5 to 0; unit test with `../` traversal input |
-| XSS on CSV nosniff (Pitfall 2) | Phase 1: Security fixes | `curl -I /api/jobs/export` shows `X-Content-Type-Options: nosniff`; CodeQL alert closes |
-| ReDoS regex fix regression (Pitfall 3) | Phase 1: Security fixes | CodeQL warning closes; benchmark with 10k-char `@`-heavy input shows <1ms |
-| API_KEY removal side-effects (Pitfall 4) | Phase 1: Security fixes | Fresh CE install without `API_KEY` in env starts cleanly; existing deploys with `API_KEY` still start |
-| Startup-only expiry (Pitfall 5) | Phase 2: EE licensing | APScheduler job visible in logs every 6h; `GET /api/licence` shows updated expiry status after scheduler tick |
-| Boot-log file loss bypasses anti-rollback (Pitfall 6) | Phase 2: EE licensing | Delete boot-log file between restarts; verify grace period fires, not normal operation |
-| Hard stop outage (Pitfall 7) | Phase 2: EE licensing | Set expiry to `time.time() - 1`; verify 402 responses (not 500), amber banner, CE fallback routes work |
-| Public key extraction (Pitfall 8) | Phase 2: EE licensing | Documented as accepted limitation; private key never in distributed package |
-| EE-installed-but-unlicensed state (Pitfall 9) | Phase 2: EE licensing | Install axiom-ee with no env var; verify `GET /api/features` all-false, `GET /api/licence` returns unlicensed status, EE routes return 402 not 500 |
+| CNAME wiped by gh-deploy (Pitfall 1) | Phase 1: Marketing homepage | `git show gh-pages:CNAME` returns the correct domain after CI deploy |
+| URL collision marketing vs docs (Pitfall 2) | Phase 1: Marketing homepage | Both `/axiom-labs.io/` and `/axiom-labs.io/axiom/` return 200; neither 404s the other |
+| `.nojekyll` not propagated (Pitfall 3) | Phase 1: Marketing homepage | `git show gh-pages:.nojekyll` exists; marketing CSS/JS assets load without 404 |
+| Banner shown to non-admin roles (Pitfall 4) | Phase 2: Licence banner | Login as `viewer` role; verify no licence banner in DOM |
+| Banner stacking (Pitfall 5) | Phase 2: Licence banner | Simulate GRACE state + DRAFT job warning simultaneously; only one banner renders |
+| Orphan volumes on node removal (Pitfall 6) | Phase 3: Compose cleanup | `docker volume ls` shows no `axiom_node1-secrets` after running upgraded compose |
+| JOIN_TOKEN docs staleness (Pitfall 7) | Phase 3: Compose cleanup | `grep -r "JOIN_TOKEN_1" docs/` returns zero results |
+| Signing UX breaks existing automation (Pitfall 8) | Phase 4: Signing UX | Run existing `mop_validation/scripts/run_signed_job.py` unchanged; job completes COMPLETED |
+| Private key transmitted to server (Pitfall 9) | Phase 4: Signing UX | Code review confirms no API endpoint accepts private key material; security checklist item in PR |
 
 ---
 
 ## Sources
 
-- [CodeQL: Uncontrolled data used in path expression (Python)](https://codeql.github.com/codeql-query-help/python/py-path-injection/) — normalize first, validate prefix second
-- [CodeQL: Polynomial regular expression used on uncontrolled data](https://codeql.github.com/codeql-query-help/python/py-polynomial-redos/) — rewrite regex, length checks alone insufficient
-- [GitHub Blog: How to fix a ReDoS](https://github.blog/security/how-to-fix-a-redos/) — atomic grouping and mutual exclusion strategies
-- [CodeQL false positive: FastAPI SSRF warning issue #17353](https://github.com/github/codeql/issues/17353) — confirms FastAPI-specific taint tracking issues
-- [Keygen.sh air-gapped activation example](https://github.com/keygen-sh/air-gapped-activation-example) — offline licence file pattern, Ed25519 + AES-GCM
-- [Gatewarden: Ed25519 licence validation with offline grace periods](https://github.com/Michael-A-Kuykendall/gatewarden) — offline grace period pattern
-- [Sentinel LDK V-Clock: time-based licence protection](https://docs.sentinel.thalesgroup.com/ldk/LDKdocs/SPNL/LDK_SLnP_Guide/Appendixes/HowProtects_TimeBased.htm) — monotonic clock enforcement approach
-- [Cython reverse engineering discussion](https://python-forum.io/thread-5093.html) — confirms Cython is obfuscation, not cryptographic protection
-- `puppeteer/agent_service/security.py` — actual ReDoS pattern at line 89-98
-- `puppeteer/agent_service/services/vault_service.py` — actual path injection pattern at lines 70-72
-- `puppeteer/agent_service/main.py` — actual XSS pattern at line 875
-- `puppeteer/agent_service/ee/__init__.py` — EE plugin loader and CE/EE state model
-- `puppeteer/agent_service/tests/test_licence.py` — existing licence test patterns and edge cases
+- [GitHub Docs: Troubleshooting custom domains and GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/troubleshooting-custom-domains-and-github-pages) — CNAME uniqueness constraint and domain revert behaviour
+- [GitHub community discussion: Custom domain deleted after Pages workflow push](https://github.com/orgs/community/discussions/159544) — confirmed CNAME deletion by gh-deploy
+- [GitHub issue: gh-pages package deletes CNAME on deploy](https://github.com/tschaub/gh-pages/issues/213) — root cause of CNAME wipe pattern
+- [GitHub community discussion: Sub-directory routing 404](https://github.com/orgs/community/discussions/22296) — project Pages subdirectory path behaviour
+- [GitHub issue: User/org pages CNAME affects all project pages URLs](https://github.com/isaacs/github/issues/547) — org-level custom domain impacts project Pages routing
+- [Carbon Design System: Notification Pattern](https://carbondesignsystem.com/patterns/notification-pattern/) — one banner at a time; confine notifications to relevant workflow scope
+- [LogRocket: Avoiding banner blindness in UX](https://blog.logrocket.com/ux-design/avoiding-banner-blindness-designing-attention/) — banner fatigue and dismissal behaviour
+- [Medium: Banner Blindness in UX](https://medium.com/design-bootcamp/banner-blindness-in-ux-68f4d1e7dd74) — volume and persistence as fatigue drivers
+- [Medium: Docker Compose orphan containers](https://medium.com/@almatins/how-to-resolve-docker-compose-warning-warn0000-found-orphan-containers-container-name-for-33f7de678d54) — orphan container + volume lifecycle on service removal
+- [docker/compose GitHub: --remove-orphans does not remove volumes](https://github.com/docker/compose/issues/9718) — confirmed volumes persist independently
+- [docker/compose: resource naming breaking change with dash vs underscore](https://docs.docker.com/reference/cli/docker/compose/up/) — project name prefix on volume names
+- `puppeteer/compose.cold-start.yaml` — confirmed `puppet-node-1`, `puppet-node-2`, `node1-secrets`, `node2-secrets` present in current file
+- `docs/docs/install.md` — JOIN_TOKEN_1 / JOIN_TOKEN_2 reference in cold-start install tab (requires update)
+- `.planning/PROJECT.md` v14.0/v14.1/v14.2 validated items — existing Pages deploy, .nojekyll, offline plugin, CNAME context
+- `mop_validation/cold_start_friction_report.md` — first-user signing friction baseline (5-step signing flow identified as BLOCKER)
 
 ---
-*Pitfalls research for: Security Hardening + EE Licensing (v14.3 milestone)*
-*Researched: 2026-03-26*
+*Pitfalls research for: Go-to-market polish milestone (marketing homepage, licence banner, compose cleanup, signing UX)*
+*Researched: 2026-03-27*

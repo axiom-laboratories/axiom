@@ -1,136 +1,207 @@
 # Feature Research
 
-**Domain:** Security hardening + EE licence key system for an existing production job scheduler
-**Researched:** 2026-03-26
-**Confidence:** HIGH — all findings grounded in codebase inspection + verified patterns
+**Domain:** Go-to-market polish — developer tool marketing homepage, licence state notifications, install documentation, CLI signing UX
+**Researched:** 2026-03-27
+**Confidence:** HIGH (homepage/banner patterns) / MEDIUM (CLI UX specifics)
 
 ---
 
-## Context: What Already Exists
+## Scope
 
-This is a subsequent milestone on a mature application (v14.2). The research question is NOT
-"what should this product have?" but "what exactly needs to be built for v14.3?". The existing
-relevant foundations are:
-
-- Ed25519 licence wire format already established: `base64url(json_payload).base64url(sig)`
-- `ee.plugin._parse_licence()` in the private `axiom-ee` repo handles full cryptographic verification
-- CE-side fast-path in `main.py:75-92` decodes the payload and checks `exp > time.time()` — no
-  signature verification in the CE codebase (correctly delegated to the EE plugin)
-- `AXIOM_LICENCE_KEY` env var is the delivery mechanism (already wired into `compose.server.yaml`)
-- 5 CodeQL error alerts + 1 warning are confirmed open and in production backend code
-- `API_KEY` is a legacy import-time crash with no historical deployments to protect
+This milestone adds four go-to-market features to Axiom. They are treated as four distinct sub-domains below, each with its own table stakes, differentiators, and anti-features. A combined dependency map and MVP definition follow.
 
 ---
 
-## Feature Landscape
+## Sub-Domain A: Marketing Homepage (GitHub Pages, standalone)
 
-### Table Stakes (Must Fix — Blocking Production Hardening)
+The product already has a MkDocs docs site at `axiom-laboratories.github.io/axiom/`. The marketing homepage is a **separate static page** — a conversion surface, not documentation. Its job is to answer "what is this and why should I try it?" in under 60 seconds.
+
+### Table Stakes
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Fix reflected XSS (main.py ~line 600 region) | CodeQL error-severity; `user_code` query param echoed unescaped into `HTMLResponse` f-string at `/auth/device/approve`. Browsers execute injected scripts. | LOW | Use `markupsafe.escape(user_code)` before interpolating into the HTML template. The approval form also has `value="{user_code}"` in a hidden input — both locations need escaping. |
-| Fix path injection x4 (vault_service.py:71-72, main.py two locations) | CodeQL error-severity; user-controlled `artifact_id` is concatenated into a filesystem path via `os.path.join(VAULT_DIR, artifact_id)` without validation. Attacker can traverse outside `/app/vault/`. | LOW | Pattern: `resolved = (Path(VAULT_DIR) / artifact_id).resolve(); assert resolved.is_relative_to(Path(VAULT_DIR).resolve())`. Both vault paths and the main.py installer paths need this guard. |
-| Fix ReDoS (security.py:79) | CodeQL warning; `EMAIL_REGEX` in `mask_pii()` contains nested quantifier groups — polynomial backtracking on untrusted input. `mask_pii()` is called on job output which is fully attacker-controlled. | LOW | Add `if len(data) > 1000: return data` pre-check, or replace with non-backtracking regex `r'[^\s@]+@[^\s@]+\.[^\s@]+'`. The SSN regex is safe (fixed-length). |
-| Remove legacy API_KEY crash | `security.py:16-21` does `os.environ["API_KEY"]` and `sys.exit(1)` — process exits silently at import time if env var is missing. No historical deployments depend on it. Node auth is covered by mTLS; human/machine auth is covered by JWT + service principal API keys. | LOW | Remove the `sys.exit(1)` block and `verify_api_key` dependency from the three node-facing routes (`pull_work`, `receive_heartbeat`, `report_result`). Remove from `.env` examples and docs. |
+| Hero section: headline + one-line description + primary CTA | Every devtool homepage has one. Missing = no anchor for the eye. | LOW | CTA must be specific: "Get started in 5 minutes" not "Learn more". Secondary CTA to GitHub repo. |
+| Above-the-fold value proposition | Developers decide in ~8s whether to keep reading. | LOW | Must answer: what it is, who it's for, key benefit. E.g. "Axiom — secure job orchestration for hostile environments." |
+| GitHub stars badge / usage signal | Social proof for OSS. Missing = project feels dead. | LOW | Use `shields.io` badge or GitHub API widget. Even a low number is better than nothing. |
+| Link to documentation | Developers will not try a tool without docs. | LOW | Single prominent link to existing MkDocs site. |
+| Feature highlights (3–5 items) | Answers "what can it do?". Problem-oriented, not feature-list. | LOW | Format: icon + short title + one sentence. Focus on security model, pull architecture, signing. |
+| Architecture/how-it-works diagram | Distributed systems tool — topology is not obvious. | MEDIUM | Single Mermaid-style or SVG diagram showing orchestrator + nodes + pull flow. |
 
-### Differentiators (New Value — EE Licence System Improvements)
+### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Admin key generation tooling | Axiom Labs can generate signed licence keys offline without a web service. Delivers a `--generate-licence` subcommand or standalone script. Output is the `base64url(payload).base64url(sig)` wire format. | MEDIUM | Wire format already proven in test suite. The private `AXIOM_LICENCE_SIGNING_KEY` (Ed25519 private key, never distributed) lives on the key-issuer machine. Payload fields: `customer_id`, `tier` (ce/ee), `node_limit`, `exp` (Unix timestamp), `issued_at`, `grace_days`, `features: [...]`. |
-| Boot log / monotonic timestamp file | Writes a chained timestamp to `secrets/boot.log` on every startup. Each entry contains the boot time and an HMAC of the previous entry. On load, validates that timestamps are monotonically non-decreasing (within configurable tolerance). Clock rollback beyond the tolerance is flagged. | MEDIUM | This is the air-gap expiry enforcement mechanism. Without it, a customer can freeze their clock to prevent expiry. The boot log is HMAC-chained using `ENCRYPTION_KEY` (already present in security.py) so tampering invalidates the chain. Does not require network access. |
-| Grace period on expiry | When `exp < time.time()` but within `grace_days * 86400` seconds of expiry, licence transitions to a grace state: EE features remain active, a warning is logged on startup, and the licence endpoint returns `status: grace`. After the grace window, hard CE fallback. | MEDIUM | Addresses the core operator concern: air-gapped customers cannot phone home for renewal, so a hard cutoff mid-operation is unacceptable. 30-day grace is conventional in enterprise software. The grace period is embedded in the licence payload so Axiom Labs can issue shorter-grace keys for specific customers. |
-| Licence status in GET /api/licence | Extend the existing endpoint to return `status: valid/grace/expired`, `days_until_expiry` (negative during grace), `node_limit`, `tier`. Frontend Admin page already shows a licence section; it should surface these fields. | LOW | Endpoint and `app.state.licence` already exist. Pure addition, no schema changes needed. |
-| Node limit enforcement | When `node_limit` is set in the licence payload, refuse enrollment at `POST /api/enroll` when the count of non-OFFLINE non-REVOKED nodes meets the limit. Return HTTP 402. | LOW | Depends on key generation tooling including `node_limit` in the payload. The enroll route already has auth checks; adding a count query is a single DB addition. |
+| "Security-first" positioning block | Axiom's core differentiator is structural security (mTLS, Ed25519, container isolation). This is rare in homelab/OSS schedulers. | LOW | Dedicate a section to: "Scripts never run unsigned. Nodes never expose ports. Your private key never leaves your machine." Three concrete claims. |
+| CE vs EE comparison table | Sets expectation for enterprise buyers. Signals commercial maturity. | LOW | Simple table: feature rows, CE checkmark/dash, EE checkmark. Link to licensing.md. |
+| 30-minute quick-start callout | Reduces perceived barrier. "Up and running in 30 minutes" is a concrete promise. | LOW | Ties directly to the getting-started doc. Must be honest — only add if the doc genuinely supports this. |
+| Changelog/release signal | Signals active project. Reduces "is this abandoned?" fear. | LOW | Latest release badge from GitHub, or a one-line "latest release" note. |
 
-### Anti-Features (Explicitly Out of Scope for This Milestone)
+### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Online licence validation / call-home | Simpler expiry enforcement than a boot log | Breaks air-gapped deployments — a core Axiom use case. Fail-open is insecure; fail-closed locks out legitimate users in isolated networks. | Boot log + grace period achieves the same fraud-deterrence goal without network dependency. |
-| Licence revocation via CRL / OCSP | Real-time licence cancellation | Requires network access. Not needed at current customer scale — trust relationships are direct. | Manual reissuance: issue a replacement key with a past `exp`. |
-| Licence issuance portal (DIST-04) | Web UI for generating keys | Out of scope for this milestone. Customer volume does not justify a portal yet. | CLI keygen tool included in this milestone. |
-| Periodic licence re-validation (DIST-05) | Catch clock manipulation between boots | Adds complexity without meaningfully improving security over the boot log approach. A determined attacker can freeze the clock between restarts. | Boot log checks on every startup. |
-| Hardware fingerprinting / node locking | Prevents copying the licence to another machine | Complex, fragile (hardware changes break legitimate installations), misaligned with homelab + enterprise internal target market. | `node_limit` field limits blast radius without hardware locking. |
-| Removing Ed25519 signature from licence format | Simpler distribution | Without a signature, any customer could forge a payload with arbitrary features and expiry. The embedded public key in the compiled wheel is the single trust anchor. | Keep the current format. |
+| Auto-pulled GitHub README as homepage | Minimal effort, keeps docs in sync | README is for contributors, not prospects. Different audience, different framing. | Maintain separate `index.html` — 100 lines max. |
+| Animated terminal demo | Looks impressive, signals sophistication | High maintenance (breaks on API changes), slow to load, often misleads about real UX | Static screenshot of dashboard + one-line install command |
+| Full feature documentation embedded on homepage | "Comprehensive" feels thorough | Kills conversion. Readers leave before reaching CTA. | Keep homepage to 6 sections max. Link to docs for depth. |
+| Testimonials section (if no real testimonials exist) | Social proof pattern | Fake or placeholder quotes destroy credibility with developers | Omit entirely until there are 2–3 real quotes from identifiable users |
+
+---
+
+## Sub-Domain B: Licence State Notification Banner
+
+The backend already returns `VALID / GRACE / EXPIRED / DEGRADED_CE` via `GET /api/licence`. The dashboard has an EE badge in the sidebar. What is missing is a **top-of-dashboard banner** that communicates urgency to the operator when action is required.
+
+### Table Stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Amber banner for GRACE state | Industry standard: warn before it breaks. Missing = operator discovers expiry only when features stop. | LOW | Amber/yellow. Persistent until dismissed. Shows days remaining. Includes "Renew licence" link. |
+| Red banner for EXPIRED / DEGRADED_CE state | Critical state — EE features silently degraded. Must be unmissable. | LOW | Red. Non-dismissible (or re-appears on every page load). CTA: "Contact sales" or "Upgrade". |
+| Days remaining in GRACE displayed in banner | Operators need to know urgency. "Licence expiring" is not enough. | LOW | Pull `expires_at` from licence API response and compute days. |
+| Banner calls the existing `GET /api/licence` endpoint | Backend is ready. Frontend just needs to read and display. | LOW | Use existing `useLicence` hook already wired to the Admin page. |
+| No banner for VALID state | Showing an "all good" banner is noise. | LOW | Conditional render: only show when state is not VALID. |
+
+### Differentiators
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Role-aware banner (admin-only) | Viewers/operators can't act on licence renewal. Showing them an alarm they can't fix is noise. | LOW | Check `current_user.role === 'admin'` before rendering banner. Viewer/operator sees nothing. |
+| Deep-link CTA from banner | Reduces friction to action. "View licence details" takes admin straight to the Admin page licence section. | LOW | `href="/admin#licence"` — existing Admin.tsx already has a LicenceSection. |
+| DEGRADED_CE-specific messaging | CE means EE features are silently off, not "expired". Different message than EXPIRED. | LOW | "Running in Community Edition mode — Enterprise features disabled." vs "Licence expired — renew to restore features." |
+
+### Anti-Features
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Modal dialog for licence expiry | High visibility | Blocks the entire UI. Operators can't work. Enterprise tools that do this get disabled in `localStorage`. | Banner at top of page. Persistent but non-blocking. |
+| Countdown timer (live ticking clock) | Urgency | Anxiety-inducing. Distracts from actual work. | "X days remaining" static text, refreshed on page load. |
+| Banner on every route including login page | Maximum visibility | Shows to all users, even those who cannot act. Causes support tickets from confused users. | Only render inside the authenticated layout, check admin role. |
+
+---
+
+## Sub-Domain C: Golden Path Install Docs
+
+The existing `compose.cold-start.yaml` bundles pre-configured test nodes (`node_alpha`, `node_beta`, `node_gamma`) in the same compose file. First users start all of them, see nodes they did not create, and do not know what is real vs. example infrastructure. The goal is a clean first-user path: "start the server, then manually add your first node."
+
+### Table Stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Separate compose file for orchestrator-only cold start | Users expect "run this to get the server" without mystery pre-enrolled nodes. | LOW | New or updated `compose.cold-start.yaml` containing only: agent, model, postgres, caddy, docs. No test nodes. |
+| Test nodes moved to a clearly-labelled optional override | Test nodes are useful for development — they should not disappear, just stop being default | LOW | `compose.test-nodes.yaml` as an optional extend or separate file. Comment in compose: "Test infrastructure — not needed for production." |
+| Step-by-step getting-started doc matching the clean compose | Docs must match what the user actually runs. | MEDIUM | Update `install.md` + `enroll-node.md` to reflect the node-free cold start. Steps: 1) start server, 2) log in, 3) get JOIN_TOKEN, 4) start your own node. |
+| Prerequisite callout at top of install doc | Users need to know what they need before they start. Missing = halfway-done installs. | LOW | Callout block: Docker Engine 24+, docker compose plugin, 2 GB RAM, port 443/8001 open. |
+| Expected-state checkpoints after each step | Users need to know when a step is done. "It should look like X." | LOW | After each step: "You should see: [screenshot or terminal output snippet]". |
+
+### Differentiators
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| "30-minute badge" — honest time estimate per section | Sets expectation. Reduces abandonment from uncertainty. | LOW | Section headers: "Step 1: Start the server (~5 min)", "Step 2: Enroll your first node (~10 min)". Only add if accurate. |
+| Troubleshooting accordion in install doc | Installs fail. Embedded troubleshooting reduces support burden. | MEDIUM | 3–5 common failures: "Caddy 502", "Node won't enroll", "Admin password mismatch". Each: symptom → cause → fix. |
+| Copy-paste command blocks with no modifications needed | Zero-edit install is the gold standard. | MEDIUM | Replace all `<YOUR_HOSTNAME>` placeholders with `localhost` defaults. Let users override in `.env`, not by editing the compose file. |
+
+### Anti-Features
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Single compose file for everything (server + nodes) | "One command" is appealing | Conflates orchestrator and node. Nodes are on different machines in real deployments. Teaches wrong mental model. | Two files. Document that nodes run `node-compose.yaml` on a separate machine (or same for dev). |
+| Wizard/installer script | Reduces friction further | Adds a maintenance surface. Script goes out of date. Compose + .env is already declarative. | Well-commented `.env.example` with sensible defaults. |
+| Video walkthrough as primary onboarding path | High engagement for learners | Videos go stale on every UI change. Cannot be searched or copy-pasted from. | Text + screenshots. Link to video from docs if one exists, but not as the only path. |
+
+---
+
+## Sub-Domain D: Hello-World Signing UX (axiom-push CLI)
+
+The current flow requires: `pip install axiom-push` → `axiom-push login` (OAuth device flow) → `axiom-push key generate` → upload public key in dashboard → `axiom-push sign my_script.py` → `axiom-push push my_script.py`. This is 5+ distinct operations. First users abandon at step 3.
+
+### Table Stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| `axiom-push init` — single onboarding command | CLI tools that require manual multi-step setup before first use fail. `init` is the standard pattern (cf. `git init`, `npm init`, `gh auth login`). | MEDIUM | Chains: login (OAuth device flow) → key generation → uploads public key to server → prints confirmation. Interactive prompts for server URL and key name. |
+| Server URL prompted interactively on first run | Users don't know to pass `--server` on first use. | LOW | `axiom-push init` prompts "Server URL [https://localhost:443]:" with a sensible default. Saves to `~/.axiom/config.json`. |
+| Key already-registered check before generating | Users who run `init` twice should not get duplicate key errors. | LOW | Check existing key on server before generating. If registered: "Key already registered — skipping." |
+| Actionable error messages for auth failures | Expired JWT, wrong server URL, 401 — these must tell the user what to do next, not just print a status code. | LOW | "Authentication failed. Your session may have expired. Run `axiom-push login` to re-authenticate." |
+| `axiom-push sign-and-push` (combined command) | After init, the repetitive sign+push is the daily-use pattern. A combined command reduces friction. | LOW | Thin wrapper: runs `sign` then `push`. Accepts same args as `push`. |
+
+### Differentiators
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| `axiom-push status` — health check command | Shows: logged-in as X, server Y, key registered (yes/no), licence state. Answers "am I set up correctly?" in one command. | LOW | High value for support/debugging. Reduces "why isn't it working?" tickets. |
+| Progress indicators during sign+push | Large scripts can be slow. Silent tools feel broken. | LOW | Use `rich` (already likely a dep) or plain stderr progress. "Signing... done. Pushing... done." |
+| Config file at `~/.axiom/config.json` with documented format | Enables scripting and CI/CD use. | LOW | Document schema in CLI `--help` output and in docs. Fields: `server_url`, `key_id`, `token_path`. |
+| `--dry-run` flag on push | CI/CD pipelines need to validate without executing. | LOW | Validate signature and server reachability but do not submit job. |
+
+### Anti-Features
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Auto-generate and auto-upload key without user consent | "Zero config" | Private key generated silently with no user awareness violates principle of least surprise for a security tool. | Interactive prompt: "Generate a new signing key? [Y/n]". One prompt. Not five. |
+| Separate `login`, `keygen`, `upload-key`, `sign`, `push` commands as the documented "getting started" | Granular control | Too many steps for first use. Users abandon. | Keep all sub-commands, but document `init` and `sign-and-push` as the happy path. Advanced users discover the rest. |
+| Keychain/OS credential store integration in v1 | Looks like polish | Platform-specific bugs, complex to test, adds dependencies. | Store token in `~/.axiom/token` (600 permissions). Document clearly. Keychain integration is a v2 item. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Fix API_KEY crash]
-    (standalone — no dependencies, removes blocking crash)
+[Marketing Homepage]
+    requires existing --> [MkDocs docs site at github.io] (already built — v14.2)
+    blocks on        --> [30-min install path] (Sub-Domain C must be complete first)
+    references       --> [CE vs EE table] (licence system already built — v14.3)
 
-[Fix XSS — device_approve_page]
-    (standalone — markupsafe.escape is already a transitive dep via Starlette/Jinja2)
+[Licence Banner]
+    requires         --> [GET /api/licence endpoint] (already built — v14.3)
+    requires         --> [useLicence hook] (already built — used in Admin.tsx)
+    requires         --> [authenticated layout wrapper] (already built — MainLayout.tsx)
+    enhances         --> [Admin LicenceSection deep-link] (already exists)
+    no blockers      --> can ship independently
 
-[Fix path injection — vault_service + main.py]
-    (standalone — pathlib is stdlib)
+[Clean Install Docs]
+    blocks           --> [Marketing Homepage 30-min claim] (cannot make the claim until the path is real)
+    requires         --> [compose.cold-start.yaml refactor] (code change, not just docs)
+    requires         --> [axiom-push init] (Sub-Domain D, for the CLI tab in install docs)
 
-[Fix ReDoS — security.py mask_pii]
-    (standalone — inline regex change or length guard)
-
-[Admin key generation tooling]
-    └──defines payload fields──> [Boot log / monotonic timestamp file] (uses ENCRYPTION_KEY)
-    └──defines payload fields──> [Grace period on expiry]
-    └──defines payload fields──> [Licence status in GET /api/licence] (tier, node_limit)
-    └──defines payload fields──> [Node limit enforcement]
-
-[Grace period on expiry]
-    └──requires updated status──> [Licence status in GET /api/licence]
-
-[Boot log / monotonic timestamp file]
-    └──uses existing──> ENCRYPTION_KEY (already in security.py — HMAC chaining)
+[axiom-push init / sign-and-push]
+    requires         --> [OAuth device flow] (already built — v8.0)
+    requires         --> [key upload API] (already built)
+    blocks           --> [Clean Install Docs CLI tab] (can't document a command that doesn't exist)
 ```
 
 ### Dependency Notes
 
-- **All CodeQL fixes are independent.** They can be implemented in any order and do not touch
-  the licence system or each other's code paths. Prioritise first — they unblock the security
-  alert count on the repo.
-- **API_KEY removal is independent** but eliminates a startup crash risk for the entire service,
-  not just a specific feature. Do it alongside or before the CodeQL fixes.
-- **Key generation tooling must be built before** grace period, boot log, and node limit can be
-  fully tested, because those features depend on payload fields (`grace_days`, `node_limit`)
-  that must be signed at issuance time. Existing keys without these fields must be handled
-  gracefully (default `grace_days=30`, no node limit).
-- **Boot log uses ENCRYPTION_KEY** (already required by `security.py`). No new secrets
-  infrastructure needed.
-- **Grace period requires the licence endpoint update** to surface the warning state in the
-  dashboard — otherwise operators have no visibility into impending expiry.
+- **Licence banner has zero blocking dependencies.** It can be built and shipped independently of everything else. It is the lowest-risk item in this milestone.
+- **axiom-push init must land before the install docs rewrite.** The CLI tab in `enroll-node.md` documents `axiom-push init` — the command must exist before the docs reference it.
+- **Clean install docs must land before the marketing homepage 30-min claim.** Do not add "up and running in 30 minutes" to the homepage until the actual path is verified to take 30 minutes.
+- **Phase ordering implied:** Licence banner (parallel, unblocked) → axiom-push CLI → install docs → marketing homepage.
 
 ---
 
 ## MVP Definition
 
-### Launch With (v14.3 — this milestone)
+### Launch With (v1 — this milestone)
 
-- [ ] Fix reflected XSS in device approval page — CodeQL error, unacceptable to ship open
-- [ ] Fix path injection in vault_service.py (both lines) — arbitrary file deletion/read risk
-- [ ] Fix path injection in main.py (both lines) — installer script traversal
-- [ ] Fix ReDoS in security.py mask_pii — polynomial backtrack on attacker-controlled job output
-- [ ] Remove legacy API_KEY crash — silent startup failure is a production operational hazard
-- [ ] Admin key generation CLI — enables all licence operations at Axiom Labs
-- [ ] Grace period on expiry (30 days default, `grace_days` in payload) — required for air-gap
-- [ ] Boot log / monotonic timestamp — clock-rollback detection without network dependency
-- [ ] Licence status extended in GET /api/licence — operators see valid/grace/expired + days
-- [ ] Node limit enforcement at enrollment — basic commercial licence boundary
+- [ ] **Licence state banner** — amber (GRACE) and red (EXPIRED/DEGRADED_CE), admin-only, persistent, with days-remaining and deep-link CTA. Backend is ready; this is a pure frontend task.
+- [ ] **axiom-push init command** — chains login + keygen + key upload into one interactive command. Reduces first-user abandonment at the most critical funnel step.
+- [ ] **sign-and-push combined command** — thin daily-use wrapper. Trivial to implement once `init` exists.
+- [ ] **Clean compose.cold-start.yaml** — test nodes removed or separated. Single most confusing thing for first users today.
+- [ ] **Docs rewrite matching clean compose** — `install.md` and `enroll-node.md` updated to match the new node-free cold start. Includes prerequisite callout and expected-state checkpoints.
+- [ ] **Marketing homepage** — static `index.html` on GitHub Pages (separate from `/docs/`). Hero, security positioning, CE/EE table, link to docs. Unblocked only after clean install path exists.
 
-### Add After Validation (v14.x)
+### Add After Validation (v1.x)
 
-- [ ] Dashboard licence banner on grace/expired state — needs frontend component work beyond
-  the endpoint change; ship as a follow-up once the backend status field is stable
-- [ ] Customer-specific grace period in payload — `grace_days` field already in keygen tool
-  for v14.3; documenting operator workflows for variable grace is a docs task
-- [ ] Licence expiry webhook notification — needs notification system (not yet built)
+- [ ] **axiom-push status command** — useful but not blocking first-use. Add when support questions reveal "am I set up?" confusion.
+- [ ] **Troubleshooting accordion in install docs** — add based on actual first-user failure modes observed after launch.
+- [ ] **Changelog/release signal on homepage** — add once release cadence is established and signals "active project".
 
-### Future Consideration (v15+)
+### Future Consideration (v2+)
 
-- [ ] Licence issuance portal (DIST-04) — web UI when customer volume justifies it
-- [ ] Periodic in-process re-validation (DIST-05) — only needed if boot-log gap proves exploited
-- [ ] Licence-scoped per-feature flags by tier — currently all-or-nothing EE; per-feature gating
-  requires more payload fields and more EE plugin wiring
+- [ ] **OS keychain credential storage in axiom-push** — complex, platform-specific. Plain file with 600 permissions is sufficient for v1.
+- [ ] **Animated terminal demo on homepage** — high maintenance. Only if a stable, auto-updating mechanism exists.
+- [ ] **Video walkthrough** — high production cost. Deferred until content is stable.
+- [ ] **Testimonials section on homepage** — only when 2–3 real, attributed quotes exist.
 
 ---
 
@@ -138,191 +209,45 @@ relevant foundations are:
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Fix XSS (device_approve_page) | HIGH — security alert | LOW | P1 |
-| Fix path injection x4 | HIGH — security alert | LOW | P1 |
-| Fix ReDoS (security.py) | MEDIUM — warning severity, DoS vector | LOW | P1 |
-| Remove API_KEY crash | HIGH — operational stability | LOW | P1 |
-| Admin key generation CLI | HIGH — enables all licensing | MEDIUM | P1 |
-| Grace period on expiry | HIGH — air-gap operator requirement | MEDIUM | P1 |
-| Boot log / clock-rollback detection | MEDIUM — fraud deterrence | MEDIUM | P1 |
-| Licence status in GET /api/licence | MEDIUM — operator visibility | LOW | P1 |
-| Node limit enforcement | MEDIUM — commercial boundary | LOW | P2 |
-| Dashboard grace/expired banner | MEDIUM — visibility UX | LOW | P2 |
+| Licence state banner (amber/red) | HIGH | LOW — backend ready, pure frontend | P1 |
+| axiom-push init | HIGH — removes biggest abandonment point | MEDIUM — chains 3 existing operations | P1 |
+| sign-and-push combined command | MEDIUM — daily-use convenience | LOW — thin wrapper | P1 |
+| Clean compose.cold-start.yaml (no test nodes) | HIGH — eliminates first-user confusion | LOW — restructure one file | P1 |
+| Docs rewrite (install + enroll-node) | HIGH — must match new compose | MEDIUM — rewrite, not edit | P1 |
+| Marketing homepage | HIGH — acquisition surface | MEDIUM — static HTML/CSS, 6 sections | P2 |
+| axiom-push status | MEDIUM — debugging aid | LOW | P2 |
+| Troubleshooting accordion in install docs | MEDIUM — reduces abandonment | MEDIUM — need real failure data first | P2 |
+| Homepage changelog signal | LOW | LOW | P3 |
+| Homepage testimonials | HIGH (if real) / LOW (if fake) | LOW | P3 |
 
 **Priority key:**
-- P1: Must have for v14.3 launch
-- P2: Should have, add in v14.x point release
-- P3: Nice to have, v15+ consideration
-
----
-
-## Implementation Notes by Feature
-
-### XSS Fix (main.py — device_approve_page)
-
-The vulnerability is the `HTMLResponse` f-string where `user_code` (a GET query parameter) is
-interpolated directly into HTML. Two injection points in the same function:
-1. `<div class="code" id="display-code">{user_code or "(no code provided)"}</div>`
-2. `<input type="hidden" name="user_code" value="{user_code}">`
-
-Fix: `from markupsafe import escape` and apply `escape(user_code)` at both sites. `markupsafe`
-is already a transitive dependency (Starlette pulls in Jinja2 which requires markupsafe).
-
-### Path Injection Fix (vault_service.py + main.py)
-
-**vault_service.py:52-54** — `get_artifact_path(artifact_id)` does
-`os.path.join(VAULT_DIR, artifact_id)`. Since `artifact_id` is a UUID generated server-side in
-`store_artifact`, the real-world risk is low — but CodeQL correctly flags the function signature
-as accepting any string. The delete path (`delete_artifact`) calls this function with the
-database-stored ID, which is also fine in practice, but the type signature is the problem.
-
-Fix: resolve and assert relative to base using `pathlib`:
-```python
-base = Path(VAULT_DIR).resolve()
-candidate = (base / artifact_id).resolve()
-if not candidate.is_relative_to(base):
-    raise ValueError(f"Invalid artifact path: {artifact_id}")
-```
-`Path.is_relative_to()` is Python 3.9+. The codebase targets 3.11+, so this is safe.
-
-**main.py two locations** — installer script reads use user-controlled path components.
-Apply the same pattern with the appropriate base directory.
-
-### ReDoS Fix (security.py:79 — mask_pii EMAIL_REGEX)
-
-Current regex: `r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'`
-
-The trailing `[a-zA-Z0-9-.]+` has character-class overlap with the middle group on inputs that
-lack an `@`, allowing polynomial backtracking when the regex engine tries all combinations.
-
-Two approaches (either resolves the alert):
-1. **Length guard**: `if len(data) > 1000: return data` before the `re.sub` calls — fast, no
-   regex change, defensible (job output over 1000 chars won't be PII-masked, acceptable tradeoff)
-2. **Non-backtracking regex**: `r'[^\s@]+@[^\s@]+\.[^\s@]+'` — negated character classes
-   cannot backtrack into each other, eliminating the polynomial behaviour
-
-Approach 2 is preferred: it is semantically equivalent for the email masking use case and
-does not silently skip masking on long strings.
-
-### Licence Key Generation Tooling
-
-Wire format (established): `base64url_nopad(json_payload).base64url_nopad(ed25519_sig)`
-
-Payload schema for v14.3 (backwards-compatible addition of `grace_days` and `node_limit`):
-```json
-{
-  "customer_id": "acme-corp",
-  "tier": "ee",
-  "node_limit": 50,
-  "exp": 1785532800,
-  "issued_at": 1753996800,
-  "grace_days": 30,
-  "features": ["foundry", "audit", "webhooks", "triggers", "rbac",
-               "resource_limits", "service_principals", "api_keys", "executions"]
-}
-```
-
-Existing keys without `grace_days` or `node_limit` must be handled by the validator with
-sensible defaults (`grace_days=30`, no node limit). This is backwards-compatible.
-
-Tool location options (in order of preference):
-1. New `generate_licence.py` script in the private `axiom-ee` repo alongside `ee/plugin.py` —
-   keeps the signing private key in the same trusted context as the verification public key
-2. Add `--generate-licence` subcommand to `toms_home/.agents/tools/admin_signer.py` — simpler
-   but mixes job-signing and licence-signing tooling in one script
-
-Preferred: option 1. The private key material for licence signing is separate from the job
-signing key material and should live separately.
-
-### Boot Log / Monotonic Timestamp
-
-Location: `secrets/boot.log` (JSON Lines format, one entry per startup).
-
-Entry format:
-```json
-{"t": 1753996800, "hmac": "sha256hex_of_this_entry_content_chained_to_prev"}
-```
-
-On startup:
-1. Read all existing entries, verify each entry's HMAC using `ENCRYPTION_KEY`
-2. Verify that each `t` is >= the previous `t` minus `CLOCK_TOLERANCE_SECS` (default: 120s,
-   accounts for NTP corrections and container restart timing variance)
-3. If chain HMAC is broken: EE features disabled regardless of `LICENCE_STRICT_CLOCK` setting —
-   this indicates log tampering, not legitimate clock variance
-4. If timestamps go backward beyond tolerance AND `LICENCE_STRICT_CLOCK=true`: refuse EE,
-   log critical warning. If `LICENCE_STRICT_CLOCK=false` (default): log warning only
-5. Append a new entry with the current timestamp and computed HMAC
-6. Prune the log to the last 100 entries
-
-The HMAC uses `ENCRYPTION_KEY` (Fernet key, already present). An attacker who can write to the
-`secrets/` volume but does not know `ENCRYPTION_KEY` cannot forge valid chain entries.
-
-Key design decisions:
-- **Default: warn only on clock rollback.** NTP corrections, hypervisor migrations, and container
-  restarts legitimately cause small backward jumps. `LICENCE_STRICT_CLOCK=true` enables hard
-  rejection for high-security deployments.
-- **The log is not a substitute for a network time source.** It detects deliberate large rollbacks
-  (e.g. setting the clock back 1 year to bypass expiry) while tolerating operational drift.
-- **File location**: `secrets/` is already a mounted volume and contains sensitive material.
-  Using it for the boot log is consistent with existing practice.
-
-### Grace Period Logic
-
-The expiry check in the EE plugin's `register()` changes from binary to three-state:
-
-```
-exp > now                                          VALID   — all EE features active
-exp <= now AND exp + (grace_days * 86400) > now    GRACE   — EE active, warning on startup
-exp + (grace_days * 86400) <= now                  EXPIRED — CE fallback, EE stubs mounted
-```
-
-`grace_days` from the licence payload; default 30 if field absent (backwards compat).
-
-`app.state.licence` gets an additional `licence_status` field: `"valid"`, `"grace"`, or
-`"expired"`. The `GET /api/licence` endpoint surfaces this plus `days_until_expiry` (negative
-number during grace period, e.g. `-5` means 5 days past expiry but still within grace window).
+- P1: Must have for this milestone — directly unblocks first-user success
+- P2: Should have — add when P1 items are stable
+- P3: Nice to have — future consideration
 
 ---
 
 ## Competitor Feature Analysis
 
-| Feature | HashiCorp Vault Enterprise | JetBrains IDEs | Axiom Approach |
-|---------|----------------------------|----------------|----------------|
-| Licence format | Signed JWT | Signed binary blob | Ed25519-signed JSON (same security, simpler) |
-| Air-gap expiry | Grace period + manual check | Ignores clock (trusts OS) | Grace period + HMAC-chained boot log |
-| Clock tampering | NTP-based, not boot log | Not enforced | Boot log with configurable tolerance |
-| Node limits | Per-cluster count at API layer | Per-machine activation | Count at enrollment + payload field |
-| Revocation | Online CRL | Serial denylist (online) | Manual reissuance (sufficient at current scale) |
-| Key delivery | Licence file or env var | File download | Env var (already implemented) |
-
-The boot log approach is more tamper-resistant than JetBrains (which trusts the OS clock) and
-more air-gap-friendly than HashiCorp (which requires network for some validation paths). The
-trade-off is that a determined attacker with `ENCRYPTION_KEY` access can forge log entries —
-but at that point they have already compromised the application's entire secret material.
+| Feature | Temporal (job scheduler) | Rundeck | Our Approach |
+|---------|--------------------------|---------|--------------|
+| Marketing homepage | Polished site, feature matrix, pricing | Enterprise marketing site, demo CTA | Minimal static page on GitHub Pages — honest, fast, security-focused |
+| Licence banner | N/A (OSS) | Trial expiry modal (blocks UI) | Non-blocking top banner, admin-only, role-gated |
+| Install docs | Single Docker command, no test infra bundled | Complex installer | Two-file compose (server / node separate), .env defaults, no bundled test nodes |
+| CLI signing UX | No signing concept | No signing concept | `axiom-push init` as single onboarding command, `sign-and-push` for daily use |
 
 ---
 
 ## Sources
 
-- Codebase direct inspection (HIGH confidence):
-  - `puppeteer/agent_service/security.py` — API_KEY crash, ReDoS regex
-  - `puppeteer/agent_service/main.py` — XSS in HTMLResponse, path injection, licence fast-path
-  - `puppeteer/agent_service/services/vault_service.py` — path injection in artifact handling
-  - `puppeteer/agent_service/tests/test_licence.py` — wire format confirmation
-  - `puppeteer/agent_service/ee/__init__.py` — EE plugin loading architecture
-- CodeQL query documentation: `py/reflective-xss`, `py/path-injection`, `py/polynomial-redos`
-  (MEDIUM confidence — confirmed by codebase context)
-- pathlib path traversal prevention pattern (HIGH confidence):
-  [Python pathlib docs](https://docs.python.org/3/library/pathlib.html),
-  [Preventing Directory Traversal in Python](https://salvatoresecurity.com/preventing-directory-traversal-vulnerabilities-in-python/)
-- Air-gapped licence patterns (MEDIUM confidence):
-  [Keygen offline cryptography docs](https://keygen.sh/docs/api/cryptography/),
-  [LicenseSpring air-gap docs](https://docs.licensespring.com/product-configuration/license-policies/air-gapped-license-policies),
-  [hoop.dev air-gap licensing](https://hoop.dev/blog/air-gapped-software-licensing-how-to-securely-license-without-internet-access/)
-- markupsafe XSS escaping: FastAPI/Starlette transitive dep, standard pattern (HIGH confidence)
-- Todo files in `.planning/todos/pending/`: direct specification of the three work items
+- Evil Martians: "We studied 100 dev tool landing pages — here's what actually works in 2025" — https://evilmartians.com/chronicles/we-studied-100-devtool-landing-pages-here-is-what-actually-works-in-2025
+- Lucas F. Costa: "UX patterns for CLI tools" — https://www.lucasfcosta.com/blog/ux-patterns-cli-tools
+- Notification banner severity patterns (Astro UX DS) — https://www.astrouxds.com/components/notification-banner/
+- Smashing Magazine: "Design Guidelines For Better Notifications UX" (2025) — https://www.smashingmagazine.com/2025/07/design-guidelines-better-notifications-ux/
+- Docker Compose official quickstart — https://docs.docker.com/compose/gettingstarted/
+- Postman Onboarding Teardown: "7 UX Moves Every Dev Tool Should Copy" — https://www.candu.ai/blog/postman-onboarding-ux-lessons
+- Project context: `.planning/PROJECT.md` (v14.3 validated features)
 
 ---
-
-*Feature research for: Axiom v14.3 — Security Hardening + EE Licensing*
-*Researched: 2026-03-26*
+*Feature research for: Axiom go-to-market polish milestone*
+*Researched: 2026-03-27*
