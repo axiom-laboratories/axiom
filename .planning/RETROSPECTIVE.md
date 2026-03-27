@@ -379,6 +379,45 @@
 - Remediation milestone: primarily docs + 1 backend change + 1 CI change — low LOC cost relative to impact
 - 59 commits; no context resets required
 
+## Milestone: v14.3 — Security Hardening + EE Licensing
+
+**Shipped:** 2026-03-27
+**Phases:** 5 (72–76) | **Plans:** 8
+
+### What Was Built
+- Phase 72 — Security hardening: `html.escape()` for XSS on device-approve, `validate_path_within()` path traversal guard (vault + docs), bounded email regex for ReDoS, API_KEY hard crash removed, `nosniff` header on CSV export; 18 security tests GREEN
+- Phase 73 — EE licence system: `licence_service.py` with EdDSA JWT validation, VALID/GRACE/EXPIRED/CE state machine, hash-chained boot-log clock-rollback detection; `tools/generate_licence.py` offline CLI; `/api/licence` endpoint, `enroll_node` node-limit 402, DEGRADED_CE `pull_work` guard
+- Phase 74 — Dashboard alignment: `useLicence.ts` rewritten to match actual backend response; EE badge colour states, grace/expired banner, Admin licence section with status badge and expiry date; 15 frontend tests GREEN
+- Phase 75 — Operational hardening: `secrets-data` named volume for persistent `boot.log`; `vault_service.py` dead code deleted; `check_and_record_boot(licence_status)` ties enforcement to licence tier; `main.py.bak` removed
+- Phase 76 — Tech debt closure: stale `test_licence.py` endpoint tests updated; dead `API_KEY` removed from `compose.cold-start.yaml`; orphaned `vault_service.cpython-312.pyc` deleted
+
+### What Worked
+- TDD RED→GREEN pattern executed cleanly — Phase 72 Wave 0 scaffold (6 security tests RED) turned GREEN in 7 minutes; Phase 73 7 RED tests turned GREEN in 9 minutes combined; consistency across phases shows the pattern is repeatable
+- Audit before completion (`v14.3-MILESTONE-AUDIT.md`) correctly flagged the 3 tech debt items that became Phase 76 — the audit-first workflow is paying off
+- Licence validation placed in CE code from the start (not EE plugin) prevented the architectural trap of circular import at plugin load time — pre-planning decision note in STATE.md saved a false start
+- `validate_path_within()` placed in `security.py` rather than `vault_service.py` — the Phase 72 RED phase discovered the broken `Artifact` import early, before any implementation was written; auto-fix at RED phase is the right time to catch this
+
+### What Was Inefficient
+- Phase 74 could have been merged into Phase 73 — the `useLicence.ts` misalignment was predictable given the backend `/api/licence` shape was being defined in Phase 73; a "wire frontend while backend lands" wave would have caught it sooner
+- Phase 76 (tech debt closure) is recurring pattern across milestones — should be a standing wave-4 sub-plan in any milestone with a prior audit, not a separate phase
+- `vault_service.py` dead code (broken `Artifact` import) had been present since Phase 72 RED scaffolding — should have been deleted in Phase 72, not deferred to Phase 75
+
+### Patterns Established
+- `check_and_record_boot(licence_status)` — parameter-driven enforcement instead of env bypass var; CE warns, EE enforces; clean separation without AXIOM_STRICT_CLOCK leak
+- `validate_path_within(base, candidate)` in `security.py` — canonical cross-route path safety helper; tested directly in unit tests when route-level testing is blocked by broken imports
+- EdDSA JWT for offline licence keys — PyJWT OKP key type; `verify_exp=False` with manual grace arithmetic; hardcoded public key constant (operators cannot rotate without code change)
+- `secrets-data` named Docker volume pattern for non-secret operational files that must survive container restarts (boot.log, licence.key)
+
+### Key Lessons
+- Security milestones benefit from Wave 0 being purely test scaffolds (RED) — it documents all security properties before any fix is written, and the RED phase is where broken deps surface without blocking anything
+- Frontend alignment phases (Phase 74) should be in-milestone sub-tasks, not their own phases — the backend API contract should drive the frontend interface at plan-write time
+- Audit findings → tech debt phases: the 3 audit items in Phase 76 were small (< 1 hour each) — bundle them into the milestone's final wave rather than a standalone phase
+
+### Cost Observations
+- 5 phases, 8 plans, ~50 min total execution time
+- 2-day delivery (2026-03-26 → 2026-03-27)
+- TDD discipline: all 6 security tests RED first, then GREEN; all 7 licence tests RED first, then GREEN — consistent across both phases
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -394,6 +433,7 @@
 | v14.0 | 5 | 14 | Adversarial validation milestone; Gemini-as-first-user; doc accuracy failures dominate; gap-fix sub-plan needed for doc-test phases |
 | v14.1 | 5 | 9 | Remediation milestone; audit-before-complete mandatory; tab-pair pattern established; d['token'] regression shows freshly-rewritten docs need contract verification |
 | v14.2 | 1 | 2 | Infra milestone; single-day; human-verify checkpoint for live Pages confirmation was the only gate; OFFLINE_BUILD conditional pattern reusable for future dual-deploy configs |
+| v14.3 | 5 | 8 | Security + EE licensing; TDD RED→GREEN; audit-before-complete caught 3 tech debt items; frontend alignment phase predictable from backend API shape |
 
 ## Milestone: v14.2 — Docs on GitHub Pages
 
