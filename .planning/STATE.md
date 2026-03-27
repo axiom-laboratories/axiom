@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.3
 milestone_name: — Security Hardening + EE Licensing
 status: planning
-stopped_at: Phase 74 context gathered
-last_updated: "2026-03-27T11:38:00.247Z"
+stopped_at: Completed 74-01-PLAN.md
+last_updated: "2026-03-27T11:55:42.021Z"
 last_activity: 2026-03-26 — Roadmap created (2 phases, 13/13 requirements mapped)
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 73 P01 | 2 | 1 tasks | 1 files |
 | Phase 73 P02 | 4 | 2 tasks | 3 files |
 | Phase 73 P03 | 5min | 2 tasks | 1 files |
+| Phase 74 P01 | 3m8s | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 73]: tools/licence_signing.key gitignored (correct) — private key must not be committed; operators run --generate-keypair during bootstrap
 - [Phase 73]: Node limit guard placed before token validation in enroll_node() — test spec expects 402 even when token mock returns None; guard fires first for correct 402/403 ordering
 - [Phase 73]: DEGRADED_CE pull_work guard returns PollResponse(job=None) silently — not HTTPException — nodes stay connected and heartbeating per LIC-04 spec
+- [Phase 74]: isEnterprise computed as status !== 'ce' — valid/grace/expired all count as EE-licenced
+- [Phase 74]: STATUS_BADGE/STATUS_LABEL lookup maps in Admin.tsx LicenceSection for clean status rendering
+- [Phase 74]: Grace/expired banner placed between header and main in MainLayout.tsx
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-27T11:38:00.245Z
-Stopped at: Phase 74 context gathered
-Resume file: .planning/phases/74-fix-ee-licence-display/74-CONTEXT.md
+Last session: 2026-03-27T11:55:42.019Z
+Stopped at: Completed 74-01-PLAN.md
+Resume file: None

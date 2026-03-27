@@ -21,7 +21,7 @@
 - [x] **LIC-03**: Axiom EE transitions to a GRACE state when a valid licence expires, logging a warning and continuing EE operation for up to `grace_days` (default 30) rather than crashing or hard-stopping
 - [x] **LIC-04**: Axiom EE transitions to DEGRADED_CE state (CE stub routes return 402) after the grace period ends, without crashing or raising unhandled exceptions in EE route handlers
 - [ ] **LIC-05**: Axiom EE detects clock rollback between container restarts via a hash-chained boot log in `secrets/boot.log` and logs a warning (strict mode: reject startup)
-- [ ] **LIC-06**: Operator can query `GET /api/licence` and receive `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields in the response
+- [x] **LIC-06**: Operator can query `GET /api/licence` and receive `status` (valid/grace/expired), `days_until_expiry`, `node_limit`, and `tier` fields in the response
 - [x] **LIC-07**: Axiom CE/EE rejects new node enrollment at `POST /api/enroll` with HTTP 402 when the signed `node_limit` in the licence has been reached
 
 ## Future Requirements
@@ -61,7 +61,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIC-03 | Phase 73 | Complete |
 | LIC-04 | Phase 73 | Complete |
 | LIC-05 | Phase 75 | Pending |
-| LIC-06 | Phase 74 | Pending |
+| LIC-06 | Phase 74 | Complete |
 | LIC-07 | Phase 73 | Complete |
 
 **Coverage:**
