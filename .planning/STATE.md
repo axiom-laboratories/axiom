@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v14.3
-milestone_name: Security Hardening + EE Licensing
-status: complete
-stopped_at: Milestone archived
-last_updated: "2026-03-27T15:30:00.000Z"
-last_activity: 2026-03-27 — v14.3 milestone archived
+milestone: v14.4
+milestone_name: Go-to-Market Polish
+status: defining_requirements
+stopped_at: —
+last_updated: "2026-03-27T00:00:00.000Z"
+last_activity: 2026-03-27 — Milestone v14.4 started
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,13 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone — run `/gsd:new-milestone`
+**Current focus:** v14.4 — Go-to-Market Polish
 
 ## Current Position
 
-Milestone v14.3 complete — all 5 phases (72–76), 8 plans, 13/13 requirements delivered.
-Status: Archived — ready for next milestone.
-Last activity: 2026-03-27 — Milestone archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-27 — Milestone v14.4 started
 
 Progress: [██████████] 100%
 

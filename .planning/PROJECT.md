@@ -180,6 +180,13 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ `secrets-data` named Docker volume — `boot.log` and `licence.key` persist across `compose down/up` cycles — v14.3
 - ✓ Dashboard EE badge, grace/expired banner, Admin licence section aligned to backend response shape — v14.3
 
+### Active — v14.4
+
+- [ ] Marketing homepage on GitHub Pages (standalone landing page separate from /docs/)
+- [ ] Dashboard amber/red banner on GRACE/DEGRADED_CE (backend API in v14.3; frontend deferred)
+- [ ] Fix golden path install docs — remove bundled nodes from `compose.cold-start.yaml`
+- [ ] Hello-world under 30 mins — signing UX improvement (reduce operator friction at first job dispatch)
+
 ### Active — Future Milestones
 
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
@@ -191,7 +198,6 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - [ ] DIST-05: Periodic licence re-validation (currently startup-only; APScheduler 6h re-check deferred to v15+)
 - [ ] EE-09: OIDC/SAML SSO integration (design doc complete in v13.0)
 - [ ] EE-10: Custom RBAC roles + fine-grained permissions
-- [ ] Dashboard GRACE/DEGRADED_CE amber/red banner (backend API landed in v14.3; frontend component deferred)
 
 ### Out of Scope
 
@@ -288,6 +294,16 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `DEGRADED_CE pull_work` returns `PollResponse(job=None)` silently | HTTPException would disconnect nodes; silent empty response keeps nodes heartbeating while CE features are degraded | ✓ Good |
 | `secrets-data` named volume (not bind mount) for boot.log | Named volumes survive `compose down` without operator needing to specify a host path; correct semantics for secrets that must outlive container lifecycle | ✓ Good |
 
+## Current Milestone: v14.4 Go-to-Market Polish
+
+**Goal:** Remove the remaining friction between a fresh install and a confident first impression — marketing page, licence UX completeness, docs accuracy, and signing onboarding speed.
+
+**Target features:**
+- Marketing homepage on GitHub Pages (standalone landing page separate from /docs/)
+- Dashboard amber/red banner on GRACE/DEGRADED_CE (backend API landed in v14.3; frontend component deferred)
+- Fix golden path install docs (remove bundled nodes from `compose.cold-start.yaml`)
+- Hello-world under 30 mins — signing UX improvement (reduce operator friction at first job dispatch)
+
 ## Previous State — v14.3 Complete (2026-03-27)
 
 Axiom v14.3 delivered Security Hardening + EE Licensing — 5 phases, 8 plans, all 13/13 requirements satisfied. All 6 CodeQL alerts (XSS, path traversal ×4, ReDoS, API_KEY crash, nosniff) are resolved. The EE licence system is fully operational: offline JWT key generation, startup signature validation, VALID/GRACE/EXPIRED/CE state machine, hash-chained boot-log clock-rollback detection (EE enforces, CE warns), node-limit enforcement at enrollment, and a `secrets-data` Docker volume so boot.log persists across restarts. The frontend licence display is aligned to the backend response — EE badge, Admin licence section, and grace/expired banner all work correctly. Three audit tech debt items (stale tests, dead env var, orphaned bytecode) were also closed.
@@ -319,4 +335,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-27 after v14.3 milestone — Security Hardening + EE Licensing*
+*Last updated: 2026-03-27 after v14.4 milestone start — Go-to-Market Polish*
