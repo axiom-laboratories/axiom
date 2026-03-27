@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: planning
-stopped_at: Completed 78-01-PLAN.md
-last_updated: "2026-03-27T18:04:14.499Z"
-last_activity: 2026-03-27 — v14.4 roadmap created (phases 77–80)
+stopped_at: Completed 78-02-PLAN.md
+last_updated: "2026-03-27T18:35:13Z"
+last_activity: 2026-03-27 — Phase 78 Plan 02 completed (first-job.md restructure)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 2
-  percent: 0
+  total_plans: 4
+  completed_plans: 3
+  percent: 25
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 
 ## Current Position
 
-Phase: 77 of 80 (Licence Banner Polish)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-27 — v14.4 roadmap created (phases 77–80)
+Phase: 78 of 80 (CLI Signing UX)
+Plan: 02 of 02 complete
+Status: Phase 78 complete — ready for Phase 79
+Last activity: 2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [░░░░░░░░░░] 0%
 | 80. GitHub Pages + Homepage | TBD | - | - |
 | Phase 77 P01 | 2 | 2 tasks | 2 files |
 | Phase 78-cli-signing-ux P01 | 35 | 3 tasks | 5 files |
+| Phase 78-cli-signing-ux P02 | ~2h | 2 tasks | 1 file |
 
 ## Accumulated Context
 
@@ -63,6 +64,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 77]: sessionStorage key axiom_licence_grace_dismissed stored in named constant in component body
 - [Phase 78]: MOPClient imported at module level in cli.py for test-patchability (mop_sdk.cli.MOPClient)
 - [Phase 78]: AXIOM_URL replaces MOP_URL entirely in cli.py — no fallback kept to avoid confusion
+- [Phase 78-02]: Quick Start leads with AXIOM_URL export as first user-facing line — sets context before any command
+- [Phase 78-02]: axiom-push init describes all 3 auto-steps inline — no separate key ceremony in Quick Start
+- [Phase 78-02]: axiom-push key generate in ??? tip block — accessible but not promoted as primary path
+- [Phase 78-02]: openssl ceremony demoted to Manual Setup — preserved for CE users and advanced operators
 
 ### Pending Todos
 
@@ -75,6 +80,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T18:04:14.497Z
-Stopped at: Completed 78-01-PLAN.md
+Last session: 2026-03-27T18:35:13Z
+Stopped at: Completed 78-02-PLAN.md
 Resume file: None
