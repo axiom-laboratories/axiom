@@ -264,7 +264,7 @@ Plans:
 | 71. Deploy Docs to GitHub Pages | v14.2 | 2/2 | Complete | 2026-03-26 |
 | 72. Security Fixes | v14.3 | 2/2 | Complete | 2026-03-26 |
 | 73. EE Licence System | v14.3 | 3/3 | Complete | 2026-03-27 |
-| 74. Fix EE Licence Display | 1/1 | Complete   | 2026-03-27 | — |
+| 74. Fix EE Licence Display | 1/1 | Complete    | 2026-03-27 | — |
 | 75. Secrets Volume + Dead Code Cleanup | v14.3 | 0/1 | Pending | — |
 
 ## Archived
