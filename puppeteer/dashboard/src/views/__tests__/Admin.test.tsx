@@ -87,7 +87,9 @@ describe('Admin LicenceSection', () => {
 
         renderWithProviders(<Admin />);
 
-        expect(screen.getByText('Community')).toBeDefined();
+        // Both Edition and Status rows show Community for CE
+        const communityElements = screen.getAllByText('Community');
+        expect(communityElements.length).toBeGreaterThanOrEqual(1);
         // Node limit row should be hidden
         expect(screen.queryByText('Node limit')).toBeNull();
         // CE upgrade hint should be visible

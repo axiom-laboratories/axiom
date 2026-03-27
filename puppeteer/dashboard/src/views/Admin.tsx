@@ -74,9 +74,36 @@ import { useLicence } from '../hooks/useLicence';
 
 // --- Sub-components for Admin ---
 
+function formatExpiryDate(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+const STATUS_BADGE: Record<string, string> = {
+    valid:   'bg-emerald-500/20 text-emerald-400',
+    grace:   'bg-amber-500/20 text-amber-400',
+    expired: 'bg-red-500/20 text-red-400',
+    ce:      'bg-zinc-700/50 text-zinc-400',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+    valid: 'Active', grace: 'Grace Period', expired: 'Expired', ce: 'Community',
+};
+
 const LicenceSection = () => {
     const licence = useLicence();
-    const isEnterprise = licence.edition === 'enterprise';
+    const { isEnterprise, status, tier, days_until_expiry, node_limit, customer_id } = licence;
+
+    const expiryValue = status === 'expired'
+        ? 'Expired'
+        : formatExpiryDate(days_until_expiry);
+
+    const expiryClass = status === 'expired'
+        ? 'text-red-400'
+        : days_until_expiry < 30
+        ? 'text-amber-400'
+        : 'text-white';
 
     return (
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
@@ -92,32 +119,30 @@ const LicenceSection = () => {
                         {isEnterprise ? 'Enterprise' : 'Community'}
                     </span>
                 </div>
-                {isEnterprise && licence.customer_id && (
+                <div className="flex items-center justify-between">
+                    <span className="text-sm text-zinc-400">Status</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${STATUS_BADGE[status] ?? STATUS_BADGE.ce}`}>
+                        {STATUS_LABEL[status] ?? status}
+                    </span>
+                </div>
+                {isEnterprise && customer_id && (
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-zinc-400">Customer</span>
-                        <span className="text-sm text-white font-mono">{licence.customer_id}</span>
+                        <span className="text-sm text-white font-mono">{customer_id}</span>
                     </div>
                 )}
-                {isEnterprise && licence.expires && (
+                {isEnterprise && (
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-zinc-400">Expires</span>
-                        <span className="text-sm text-white">
-                            {new Date(licence.expires).toLocaleDateString(undefined, {
-                                year: 'numeric', month: 'long', day: 'numeric'
-                            })}
+                        <span className={`text-sm ${expiryClass}`}>
+                            {expiryValue}
                         </span>
                     </div>
                 )}
-                {isEnterprise && licence.features && licence.features.length > 0 && (
-                    <div>
-                        <span className="text-sm text-zinc-400 block mb-2">Features</span>
-                        <div className="flex flex-wrap gap-1.5">
-                            {licence.features.map(f => (
-                                <span key={f} className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-xs font-mono">
-                                    {f}
-                                </span>
-                            ))}
-                        </div>
+                {isEnterprise && node_limit > 0 && (
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-zinc-400">Node limit</span>
+                        <span className="text-sm text-white">{node_limit}</span>
                     </div>
                 )}
                 {!isEnterprise && (

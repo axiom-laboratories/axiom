@@ -18,6 +18,7 @@ import {
     BookOpen,
     Lock,
     ListOrdered,
+    AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -132,11 +133,12 @@ const MainLayout = () => {
                         v1.2.0 • Online
                     </div>
                     <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
-                        licence.edition === 'enterprise'
-                            ? 'bg-indigo-500/20 text-indigo-400'
-                            : 'bg-zinc-700/50 text-zinc-400'
+                        licence.status === 'expired' ? 'bg-red-500/20 text-red-400'
+                        : licence.status === 'grace'  ? 'bg-amber-500/20 text-amber-400'
+                        : licence.isEnterprise        ? 'bg-indigo-500/20 text-indigo-400'
+                        :                               'bg-zinc-700/50 text-zinc-400'
                     }`}>
-                        {licence.edition === 'enterprise' ? 'EE' : 'CE'}
+                        {licence.isEnterprise ? 'EE' : 'CE'}
                     </span>
                 </div>
             </div>
@@ -206,6 +208,19 @@ const MainLayout = () => {
                         </div>
                     </div>
                 </header>
+                {(licence.status === 'grace' || licence.status === 'expired') && (
+                    <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${
+                        licence.status === 'expired'
+                            ? 'bg-red-900/40 text-red-300 border-b border-red-800'
+                            : 'bg-amber-900/40 text-amber-300 border-b border-amber-800'
+                    }`}>
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        {licence.status === 'expired'
+                            ? 'Your EE licence has expired. The system is running in Community Edition mode.'
+                            : `Your EE licence expires in ${licence.days_until_expiry} day${licence.days_until_expiry === 1 ? '' : 's'}. Please renew.`
+                        }
+                    </div>
+                )}
                 <main className="flex-1 p-4 lg:p-8 overflow-auto max-w-7xl mx-auto w-full">
                     <Outlet />
                 </main>
