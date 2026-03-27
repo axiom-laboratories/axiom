@@ -1228,6 +1228,12 @@ async def resubmit_job(
 
 @app.post("/work/pull", response_model=PollResponse, tags=["Node Agent"])
 async def pull_work(request: Request, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
+    # LIC-04: DEGRADED_CE — return empty work, nodes stay enrolled and heartbeating
+    _ls = getattr(request.app.state, "licence_state", None)
+    if _ls and _ls.status == LicenceStatus.EXPIRED:
+        from .models import WorkConfig
+        return PollResponse(job=None, config=WorkConfig())
+
     node_ip = request.client.host
     r = await db.execute(select(Node).where(Node.node_id == node_id))
     n = r.scalar_one_or_none()
@@ -1469,16 +1475,31 @@ async def register_node(req: RegisterRequest, db: AsyncSession = Depends(get_db)
 @app.post("/api/enroll", response_model=RegisterResponse, tags=["Node Agent"])
 async def enroll_node(req: EnrollmentRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Public endpoint for secure node enrollment using a one-time token."""
+    # LIC-07: Node limit enforcement (checked before token validation to return correct status code)
+    _ls = getattr(request.app.state, "licence_state", None)
+    _node_limit = _ls.node_limit if _ls else 0
+    if _node_limit > 0:
+        from sqlalchemy import text as _sql_text
+        _count_result = await db.execute(
+            _sql_text("SELECT count(*) FROM nodes WHERE status NOT IN ('OFFLINE', 'REVOKED')")
+        )
+        _active_count = _count_result.scalar() or 0
+        if _active_count >= _node_limit:
+            raise HTTPException(
+                status_code=402,
+                detail="Node limit reached — upgrade your licence at axiom.sh/renew"
+            )
+
     # 1. Verify Token
     result = await db.execute(select(Token).where(Token.token == req.token, Token.used == False))
     token_entry = result.scalar_one_or_none()
-    
+
     if not token_entry:
          raise HTTPException(status_code=403, detail="Invalid or Expired Enrollment Token")
 
     # 2. Invalidate Token immediately
     token_entry.used = True
-    
+
     try:
         # 3. Sign CSR
         signed_cert = pki_service.sign_csr(req.csr_pem, req.hostname)
