@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: completed
-stopped_at: Completed 80-02-PLAN.md
-last_updated: "2026-03-27T21:22:26.846Z"
+stopped_at: Phase 81 context gathered
+last_updated: "2026-03-27T23:08:39.007Z"
 last_activity: "2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 6
   completed_plans: 6
@@ -78,6 +78,10 @@ Progress: [██░░░░░░░░] 25%
 - [Phase 80]: Stash homepage files to /tmp before git checkout gh-pages — avoids working-tree wipe on branch switch
 - [Phase 80]: homepage-deploy scoped to homepage/** only — never writes to docs/ preserving MkDocs coexistence
 
+### Roadmap Evolution
+
+- Phase 81 added: Homepage enterprise messaging — SSO narrative, compliance framing, and conversion optimisation
+
 ### Pending Todos
 
 None carried forward.
@@ -89,6 +93,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T21:20:04.338Z
-Stopped at: Completed 80-02-PLAN.md
-Resume file: None
+Last session: 2026-03-27T23:08:39.005Z
+Stopped at: Phase 81 context gathered
+Resume file: .planning/phases/81-homepage-enterprise-messaging-sso-narrative-compliance-framing-and-conversion-optimisation/81-CONTEXT.md
