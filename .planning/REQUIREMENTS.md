@@ -28,7 +28,7 @@
 ### Marketing (GitHub Pages)
 
 - [x] **MKTG-01**: `docs-deploy.yml` deploys MkDocs output to `/docs/` subdirectory so the repo root is available for the homepage
-- [ ] **MKTG-02**: Marketing homepage (`index.html`) is deployed to the root of GitHub Pages at `axiom-laboratories.github.io/axiom/`
+- [x] **MKTG-02**: Marketing homepage (`index.html`) is deployed to the root of GitHub Pages at `axiom-laboratories.github.io/axiom/`
 
 ## Future Requirements
 
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INST-01 | Phase 79 | Complete |
 | INST-02 | Phase 79 | Complete |
 | MKTG-01 | Phase 80 | Complete |
-| MKTG-02 | Phase 80 | Pending |
+| MKTG-02 | Phase 80 | Complete |
 
 **Coverage:**
 - v14.4 requirements: 13 total
