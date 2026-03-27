@@ -393,7 +393,7 @@ code {
   gap: 1.5rem;
   margin-bottom: 1rem;
   border-bottom: 1px solid var(--axiom-border);
-  padding-bottom: 0.75rem;
+  padding-bottom: 0;
 }
 
 .mockup-tab {
@@ -406,8 +406,9 @@ code {
   color: var(--axiom-text);
   font-weight: 600;
   border-bottom: 2px solid var(--axiom-primary);
-  padding-bottom: 0.1rem;
-  margin-bottom: -0.85rem;
+  padding-bottom: 0.5rem;
+  position: relative;
+  bottom: -1px;
 }
 
 .mockup-node-row {
@@ -468,6 +469,10 @@ code {
 
 .node-cpu strong {
   color: var(--axiom-text);
+}
+
+.node-cpu--offline {
+  color: var(--axiom-text-faint);
 }
 
 .mockup-caption {
