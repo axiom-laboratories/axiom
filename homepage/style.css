@@ -513,6 +513,47 @@ code {
   line-height: 1.55;
 }
 
+/* ----- Coming soon badge ----- */
+.badge-coming-soon {
+  background-color: rgba(210, 53, 86, 0.12);
+  color: var(--axiom-primary);
+  border: 1px solid rgba(210, 53, 86, 0.35);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+}
+
+/* ----- Dimmed feature list (EE coming soon) ----- */
+.feature-list--dimmed li {
+  color: var(--axiom-text-faint);
+}
+
+.feature-list--dimmed li::before {
+  color: var(--axiom-text-faint);
+}
+
+/* ----- EE interest link ----- */
+.ee-interest {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--axiom-border);
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+}
+
+.ee-interest a {
+  color: var(--axiom-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ee-interest a:hover {
+  text-decoration: underline;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 640px) {
   .edition-grid {
