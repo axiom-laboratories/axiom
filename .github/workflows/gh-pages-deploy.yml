@@ -52,10 +52,12 @@ jobs:
 
       - name: Deploy homepage to gh-pages root
         run: |
+          cp homepage/index.html /tmp/homepage-index.html
+          cp homepage/style.css /tmp/homepage-style.css
           git fetch origin gh-pages
           git checkout gh-pages
-          cp homepage/index.html index.html
-          cp homepage/style.css style.css
+          cp /tmp/homepage-index.html index.html
+          cp /tmp/homepage-style.css style.css
           touch .nojekyll
           git add index.html style.css .nojekyll
           git diff --cached --quiet || git commit -m "Deploy homepage and docs from ${{ github.sha }}"
