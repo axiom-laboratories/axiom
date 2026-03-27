@@ -65,6 +65,7 @@ from .services.signature_service import SignatureService
 from .services.scheduler_service import scheduler_service
 from .services.pki_service import pki_service
 from .services.alert_service import AlertService
+from .services.licence_service import load_licence, check_and_record_boot, LicenceState, LicenceStatus
 
 load_dotenv()
 
@@ -74,31 +75,22 @@ limiter = Limiter(key_func=get_remote_address)
 async def lifespan(app: FastAPI):
     # Startup logic
     await init_db()
-    # Parse AXIOM_LICENCE_KEY — must happen before load_ee_plugins to gate EE loading
-    import base64 as _b64, json as _json, time as _time
-    _licence_key = os.getenv("AXIOM_LICENCE_KEY", "")
-    _licence_valid = False
-    if _licence_key:
-        try:
-            _payload_b64 = _licence_key.split(".")[0]
-            _payload_b64 += "=" * (4 - len(_payload_b64) % 4)
-            _licence_data = _json.loads(_b64.urlsafe_b64decode(_payload_b64))
-            _exp = _licence_data.get("exp", 0)
-            if _exp > _time.time():
-                app.state.licence = _licence_data
-                _licence_valid = True
-                logger.info(f"Licence loaded: customer={_licence_data.get('customer_id')}, exp={_exp}")
-            else:
-                logger.warning(f"AXIOM_LICENCE_KEY is expired (exp={_exp}) — running in CE mode")
-        except Exception as _e:
-            logger.warning(f"Could not parse AXIOM_LICENCE_KEY: {_e}")
-    # Load EE plugins only if licence is valid; otherwise mount CE stubs
+    # Clock rollback detection + boot log (before licence validation)
+    _rollback_ok = check_and_record_boot()
+    if not _rollback_ok:
+        logger.warning("Clock rollback detected — check system time")
+
+    # Licence validation
+    licence_state = load_licence()
+    app.state.licence_state = licence_state
+
+    # Load EE plugins only if licence is valid or in grace period
     from .ee import load_ee_plugins, EEContext, _mount_ce_stubs
     from .db import engine
-    if _licence_valid:
+    if licence_state.is_ee_active:
         app.state.ee = await load_ee_plugins(app, engine)
     else:
-        logger.info("No valid licence — loading CE stubs")
+        logger.info(f"Licence state={licence_state.status} — loading CE stubs")
         ctx = EEContext()
         _mount_ce_stubs(app)
         app.state.ee = ctx
@@ -778,20 +770,26 @@ async def get_features(request: Request):
     }
 
 @app.get("/api/licence", tags=["System"])
-async def get_licence(request: Request, current_user: User = Depends(require_auth)):
-    """Return licence metadata. Admin only."""
-    if getattr(current_user, "role", None) != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    licence = getattr(request.app.state, 'licence', None)
-    if licence is None:
-        return {"edition": "community"}
-    from datetime import datetime, timezone
-    exp_dt = datetime.fromtimestamp(licence['exp'], tz=timezone.utc).isoformat()
+async def get_licence_status(request: Request, current_user: User = Depends(require_auth)):
+    """Returns current licence status. Requires authentication."""
+    ls: Optional[LicenceState] = getattr(request.app.state, "licence_state", None)
+    if ls is None:
+        # CE mode — no licence loaded
+        return {
+            "status": "ce",
+            "days_until_expiry": 0,
+            "node_limit": 0,
+            "tier": "ce",
+            "customer_id": None,
+            "grace_days": 0,
+        }
     return {
-        "edition": "enterprise",
-        "customer_id": licence.get("customer_id"),
-        "expires": exp_dt,
-        "features": licence.get("features", []),
+        "status": ls.status.value if hasattr(ls.status, "value") else str(ls.status),
+        "days_until_expiry": ls.days_until_expiry,
+        "node_limit": ls.node_limit,
+        "tier": ls.tier,
+        "customer_id": ls.customer_id,
+        "grace_days": ls.grace_days,
     }
 
 
