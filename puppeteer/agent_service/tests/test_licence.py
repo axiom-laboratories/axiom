@@ -3,9 +3,9 @@
 Tests _parse_licence() in ee/plugin.py and the GET /api/licence endpoint in main.py.
 Uses pytest.importorskip to skip all tests if axiom-ee is not installed.
 """
-import time
 import json
 import base64
+import time
 import pytest
 from httpx import AsyncClient, ASGITransport
 
@@ -139,7 +139,7 @@ def test_absent_key_ce_mode():
 
 @pytest.mark.asyncio
 async def test_licence_endpoint_community():
-    """GET /api/licence returns {edition: 'community'} when no licence loaded on app.state."""
+    """GET /api/licence returns the 6-field CE response when no licence_state is loaded on app.state."""
     from unittest.mock import MagicMock
     from agent_service.main import app
     from agent_service.deps import require_auth
@@ -154,26 +154,32 @@ async def test_licence_endpoint_community():
         return fake_user
 
     app.dependency_overrides[require_auth] = override_require_auth
-    # Ensure no licence on state
-    if hasattr(app.state, "licence"):
-        del app.state.licence
+    # Ensure no licence_state on state (Phase 75 renamed app.state.licence → app.state.licence_state)
+    if hasattr(app.state, "licence_state"):
+        del app.state.licence_state
 
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/api/licence")
             assert resp.status_code == 200
             data = resp.json()
-            assert data == {"edition": "community"}
+            assert data["status"] == "ce"
+            assert data["tier"] == "ce"
+            assert data["days_until_expiry"] == 0
+            assert data["node_limit"] == 0
+            assert data["customer_id"] is None
+            assert data["grace_days"] == 0
     finally:
         app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
 async def test_licence_endpoint_enterprise():
-    """GET /api/licence returns enterprise info when app.state.licence is set."""
+    """GET /api/licence returns the 6-field EE response when app.state.licence_state is set."""
     from unittest.mock import MagicMock
     from agent_service.main import app
     from agent_service.deps import require_auth
+    from agent_service.services.licence_service import LicenceState, LicenceStatus
 
     fake_user = MagicMock()
     fake_user.username = "test-admin"
@@ -183,27 +189,32 @@ async def test_licence_endpoint_enterprise():
         return fake_user
 
     app.dependency_overrides[require_auth] = override_require_auth
-    # Set a mock licence on app.state
-    exp_time = int(time.time()) + 3600
-    app.state.licence = {
-        "customer_id": "test-co",
-        "exp": exp_time,
-        "features": ["foundry", "audit"],
-    }
+    # Set a real LicenceState dataclass instance on app.state.licence_state
+    # (Phase 75 renamed app.state.licence → app.state.licence_state; endpoint uses attribute access)
+    app.state.licence_state = LicenceState(
+        status=LicenceStatus.VALID,
+        tier="enterprise",
+        customer_id="test-co",
+        node_limit=10,
+        grace_days=30,
+        days_until_expiry=365,
+        features=["foundry", "audit"],
+        is_ee_active=True,
+    )
 
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/api/licence")
             assert resp.status_code == 200
             data = resp.json()
-            assert data["edition"] == "enterprise"
+            assert data["status"] == "valid"
+            assert data["tier"] == "enterprise"
             assert data["customer_id"] == "test-co"
-            assert data["features"] == ["foundry", "audit"]
-            assert "expires" in data
-            # expires should be an ISO datetime string
-            assert "T" in data["expires"], f"Expected ISO datetime, got: {data['expires']}"
+            assert data["node_limit"] == 10
+            assert data["grace_days"] == 30
+            assert data["days_until_expiry"] == 365
     finally:
         app.dependency_overrides.clear()
-        # Clean up: remove licence from state
-        if hasattr(app.state, "licence"):
-            del app.state.licence
+        # Clean up: remove licence_state from app.state
+        if hasattr(app.state, "licence_state"):
+            del app.state.licence_state
