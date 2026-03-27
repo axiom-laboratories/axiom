@@ -1,0 +1,321 @@
+/* =========================================================
+   Axiom Marketing Homepage — Dark slate + crimson theme
+   Matches MkDocs Material slate palette in docs/
+   ========================================================= */
+
+/* ----- Custom Properties ----- */
+:root {
+  --axiom-primary: hsl(346.8, 77.2%, 49.8%);
+  --axiom-primary-hover: hsl(346.8, 77.2%, 42%);
+  --axiom-bg: #0d1117;
+  --axiom-surface: #161b22;
+  --axiom-border: #30363d;
+  --axiom-text: #e6edf3;
+  --axiom-text-muted: #8b949e;
+  --axiom-text-faint: #484f58;
+
+  --font-body: "Fira Sans", system-ui, sans-serif;
+  --font-mono: "Fira Code", "Courier New", monospace;
+
+  --radius: 8px;
+  --max-width: 960px;
+}
+
+/* ----- Reset ----- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ----- Base ----- */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--axiom-bg);
+  color: var(--axiom-text);
+  line-height: 1.6;
+  font-size: 1rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ----- Container ----- */
+.container {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+/* ----- Section label (small caps eyebrow) ----- */
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--axiom-primary);
+  margin-bottom: 0.75rem;
+}
+
+/* ----- Headings ----- */
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  color: var(--axiom-text);
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* ----- Hero ----- */
+.hero {
+  padding-block: 6rem 5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--axiom-border);
+}
+
+.hero-sub {
+  font-size: 1.125rem;
+  color: var(--axiom-text-muted);
+  max-width: 600px;
+  margin-inline: auto;
+  margin-bottom: 2.5rem;
+}
+
+/* ----- CTA group ----- */
+.cta-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ----- Buttons ----- */
+.btn {
+  display: inline-block;
+  padding: 0.65rem 1.5rem;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary {
+  background-color: var(--axiom-primary);
+  color: #fff;
+  border: 2px solid var(--axiom-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--axiom-primary-hover);
+  border-color: var(--axiom-primary-hover);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--axiom-text);
+  border: 2px solid var(--axiom-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--axiom-text-muted);
+  color: var(--axiom-text);
+}
+
+/* ----- Sections ----- */
+.section {
+  padding-block: 4rem;
+  border-bottom: 1px solid var(--axiom-border);
+}
+
+.section-alt {
+  background-color: var(--axiom-surface);
+}
+
+/* ----- Prose ----- */
+.prose p {
+  color: var(--axiom-text-muted);
+  max-width: 680px;
+  margin-bottom: 1rem;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* ----- Edition grid ----- */
+.edition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* ----- Cards ----- */
+.card {
+  background-color: var(--axiom-bg);
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+}
+
+.card-ee {
+  border-color: var(--axiom-primary);
+}
+
+.card-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.card-intro {
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+  margin-bottom: 1rem;
+}
+
+/* ----- Badges ----- */
+.badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+}
+
+.badge-free {
+  background-color: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+  border: 1px solid rgba(46, 160, 67, 0.4);
+}
+
+.badge-ee {
+  background-color: rgba(210, 53, 86, 0.15);
+  color: var(--axiom-primary);
+  border: 1px solid rgba(210, 53, 86, 0.4);
+}
+
+/* ----- Feature list ----- */
+.feature-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feature-list li {
+  font-size: 0.9375rem;
+  color: var(--axiom-text-muted);
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.feature-list li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: var(--axiom-primary);
+  font-weight: 600;
+}
+
+/* ----- Install section ----- */
+.install-section {
+  text-align: center;
+}
+
+.install-sub {
+  color: var(--axiom-text-muted);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+pre {
+  display: inline-block;
+  background-color: #0d1117;
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  color: var(--axiom-text);
+  white-space: pre;
+}
+
+/* ----- Text link ----- */
+.text-link {
+  display: inline-block;
+  color: var(--axiom-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  transition: color 0.15s ease;
+}
+
+.text-link:hover {
+  color: var(--axiom-primary-hover);
+  text-decoration: underline;
+}
+
+/* ----- Footer ----- */
+.footer {
+  padding-block: 2rem;
+}
+
+.footer p {
+  color: var(--axiom-text-faint);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 640px) {
+  .edition-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding-block: 4rem 3rem;
+  }
+
+  .cta-group {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .section {
+    padding-block: 3rem;
+  }
+}
