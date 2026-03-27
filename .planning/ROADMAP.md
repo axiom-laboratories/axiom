@@ -231,6 +231,8 @@ Plans:
   3. `main.py.bak` is no longer tracked by git
   4. `AXIOM_STRICT_CLOCK` is present (commented) in `compose.server.yaml` agent service env block
 **Plans**: 1 plan
+Plans:
+- [ ] 75-01-PLAN.md — RED tests (LIC-05 strict mode + SEC-02 vault sentinel) + licence_service refactor + vault deletion + compose volumes + git cleanup
 
 ## Progress
 
