@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: planning
-stopped_at: Phase 78 context gathered
-last_updated: "2026-03-27T17:22:46.412Z"
+stopped_at: Completed 78-01-PLAN.md
+last_updated: "2026-03-27T18:04:14.499Z"
 last_activity: 2026-03-27 — v14.4 roadmap created (phases 77–80)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 3
+  completed_plans: 2
   percent: 0
 ---
 
@@ -48,6 +48,7 @@ Progress: [░░░░░░░░░░] 0%
 | 79. Install Docs Cleanup | TBD | - | - |
 | 80. GitHub Pages + Homepage | TBD | - | - |
 | Phase 77 P01 | 2 | 2 tasks | 2 files |
+| Phase 78-cli-signing-ux P01 | 35 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 77]: Two independent banner branches for GRACE and DEGRADED_CE prevent graceDismissed state cross-contamination
 - [Phase 77]: isAdmin derived from existing user constant — no second getUser() call per render
 - [Phase 77]: sessionStorage key axiom_licence_grace_dismissed stored in named constant in component body
+- [Phase 78]: MOPClient imported at module level in cli.py for test-patchability (mop_sdk.cli.MOPClient)
+- [Phase 78]: AXIOM_URL replaces MOP_URL entirely in cli.py — no fallback kept to avoid confusion
 
 ### Pending Todos
 
@@ -72,6 +75,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T17:22:46.409Z
-Stopped at: Phase 78 context gathered
-Resume file: .planning/phases/78-cli-signing-ux/78-CONTEXT.md
+Last session: 2026-03-27T18:04:14.497Z
+Stopped at: Completed 78-01-PLAN.md
+Resume file: None

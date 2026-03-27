@@ -15,9 +15,9 @@
 
 ### CLI (axiom-push Signing UX)
 
-- [ ] **CLI-01**: `axiom-push` reads `AXIOM_URL` env var for server address (fixes silent MOP_URL mismatch)
-- [ ] **CLI-02**: User can generate an Ed25519 keypair locally with `axiom-push key generate`
-- [ ] **CLI-03**: User can complete login, key generation, and public key registration with `axiom-push init`
+- [x] **CLI-01**: `axiom-push` reads `AXIOM_URL` env var for server address (fixes silent MOP_URL mismatch)
+- [x] **CLI-02**: User can generate an Ed25519 keypair locally with `axiom-push key generate`
+- [x] **CLI-03**: User can complete login, key generation, and public key registration with `axiom-push init`
 - [ ] **CLI-04**: `first-job.md` documents the `axiom-push init` / `key generate` flow as the primary path
 
 ### Install (Golden Path Docs)
@@ -70,9 +70,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BNR-03 | Phase 77 | Complete |
 | BNR-04 | Phase 77 | Complete |
 | BNR-05 | Phase 77 | Complete |
-| CLI-01 | Phase 78 | Pending |
-| CLI-02 | Phase 78 | Pending |
-| CLI-03 | Phase 78 | Pending |
+| CLI-01 | Phase 78 | Complete |
+| CLI-02 | Phase 78 | Complete |
+| CLI-03 | Phase 78 | Complete |
 | CLI-04 | Phase 78 | Pending |
 | INST-01 | Phase 79 | Pending |
 | INST-02 | Phase 79 | Pending |
