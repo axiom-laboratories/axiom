@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: planning
-stopped_at: Completed 77-01-PLAN.md
-last_updated: "2026-03-27T16:28:27.670Z"
+stopped_at: Phase 78 context gathered
+last_updated: "2026-03-27T17:22:46.412Z"
 last_activity: 2026-03-27 — v14.4 roadmap created (phases 77–80)
 progress:
   total_phases: 4
@@ -72,6 +72,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T16:26:04.498Z
-Stopped at: Completed 77-01-PLAN.md
-Resume file: None
+Last session: 2026-03-27T17:22:46.409Z
+Stopped at: Phase 78 context gathered
+Resume file: .planning/phases/78-cli-signing-ux/78-CONTEXT.md
