@@ -300,6 +300,287 @@ code {
   text-align: center;
 }
 
+/* ----- Site nav ----- */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: rgba(13, 17, 23, 0.97);
+  border-bottom: 1px solid var(--axiom-border);
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .site-nav {
+    backdrop-filter: blur(8px);
+    background-color: rgba(13, 17, 23, 0.92);
+  }
+}
+
+.site-nav .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 0.875rem;
+}
+
+.nav-logo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--axiom-text);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-links a {
+  color: var(--axiom-text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.nav-links a:hover {
+  color: var(--axiom-text);
+}
+
+.nav-links .btn-nav-enterprise {
+  color: #fff;
+  background-color: var(--axiom-primary);
+  border-radius: var(--radius);
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.nav-links .btn-nav-enterprise:hover {
+  background-color: var(--axiom-primary-hover);
+  color: #fff;
+}
+
+.nav-links a:focus-visible,
+.nav-links .btn-nav-enterprise:focus-visible {
+  outline: 2px solid var(--axiom-primary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ----- Dashboard mockup ----- */
+.mockup-section {
+  padding-block: 3rem;
+  border-bottom: 1px solid var(--axiom-border);
+  text-align: center;
+}
+
+.mockup-panel {
+  display: inline-block;
+  text-align: left;
+  background-color: var(--axiom-surface);
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  max-width: 680px;
+  width: 100%;
+}
+
+.mockup-panel-tabs {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--axiom-border);
+  padding-bottom: 0;
+}
+
+.mockup-tab {
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+  font-weight: 500;
+}
+
+.mockup-tab--active {
+  color: var(--axiom-text);
+  font-weight: 600;
+  border-bottom: 2px solid var(--axiom-primary);
+  padding-bottom: 0.5rem;
+  position: relative;
+  bottom: -1px;
+}
+
+.mockup-node-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--axiom-border);
+  font-size: 0.875rem;
+}
+
+.mockup-node-row:last-child {
+  border-bottom: none;
+}
+
+.node-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.node-status--online  { background-color: #3fb950; }
+.node-status--offline { background-color: var(--axiom-primary); }
+
+.node-name {
+  color: var(--axiom-text);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
+.node-name--offline {
+  color: var(--axiom-text-muted);
+}
+
+.node-caps {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.node-cap-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  background-color: var(--axiom-bg);
+  border: 1px solid var(--axiom-border);
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+  color: var(--axiom-text-muted);
+}
+
+.node-cpu {
+  font-size: 0.8rem;
+  color: var(--axiom-text-muted);
+  white-space: nowrap;
+}
+
+.node-cpu strong {
+  color: var(--axiom-text);
+}
+
+.node-cpu--offline {
+  color: var(--axiom-text-faint);
+}
+
+.mockup-caption {
+  font-size: 0.8rem;
+  color: var(--axiom-text-faint);
+  margin-top: 0.75rem;
+}
+
+/* ----- Pain points grid ----- */
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.pain-card {
+  background-color: var(--axiom-surface);
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.pain-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
+.pain-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.pain-card p {
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+  line-height: 1.55;
+}
+
+/* ----- Dual CTA section ----- */
+.dual-cta {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0;
+  align-items: start;
+}
+
+.dual-cta-divider {
+  background-color: var(--axiom-border);
+  align-self: stretch;
+  margin-inline: 2rem;
+}
+
+.dual-cta-block {
+  padding: 0.5rem 0;
+}
+
+.dual-cta-block h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.dual-cta-block .install-sub {
+  margin-bottom: 1.25rem;
+}
+
+/* ----- Coming soon badge ----- */
+.badge-coming-soon {
+  background-color: rgba(210, 53, 86, 0.12);
+  color: var(--axiom-primary);
+  border: 1px solid rgba(210, 53, 86, 0.35);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+}
+
+/* ----- Dimmed feature list (EE coming soon) ----- */
+.feature-list--dimmed li {
+  color: var(--axiom-text-faint);
+}
+
+.feature-list--dimmed li::before {
+  color: var(--axiom-text-faint);
+}
+
+/* ----- EE interest link ----- */
+.ee-interest {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--axiom-border);
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+}
+
+.ee-interest a {
+  color: var(--axiom-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ee-interest a:hover {
+  text-decoration: underline;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 640px) {
   .edition-grid {
@@ -317,5 +598,19 @@ code {
 
   .section {
     padding-block: 3rem;
+  }
+
+  .pain-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dual-cta {
+    grid-template-columns: 1fr;
+  }
+
+  .dual-cta-divider {
+    height: 1px;
+    margin: 2rem 0;
+    background-color: var(--axiom-border);
   }
 }

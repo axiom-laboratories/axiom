@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Axiom — Distributed job execution you can trust</title>
+  <title>Axiom — Secure script orchestration for DevOps teams</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -11,40 +11,93 @@
 </head>
 <body>
 
+  <!-- Nav -->
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="nav-logo">⬡ Axiom</a>
+      <div class="nav-links">
+        <a href="./docs/">Docs</a>
+        <a href="https://github.com/axiom-laboratories/axiom">GitHub</a>
+        <a href="#enterprise-interest" class="btn-nav-enterprise">Enterprise</a>
+      </div>
+    </div>
+  </nav>
+
   <!-- Hero -->
   <section class="hero">
     <div class="container">
       <p class="section-label">Open-source orchestration</p>
-      <h1>Distributed job execution<br>you can trust</h1>
+      <h1>You have scripts running on<br>dozens of servers. Are they safe?</h1>
       <p class="hero-sub">
-        Nodes poll out — no inbound firewall rules required. Every connection is
-        mTLS-verified and every script is Ed25519-signed before it runs.
+        Axiom replaces SSH&nbsp;+&nbsp;crontab sprawl with a pull-model orchestrator —
+        every node mTLS-verified, every script Ed25519-signed before it runs.
       </p>
       <div class="cta-group">
-        <a href="./docs/" class="btn btn-primary">Read the docs</a>
-        <a href="https://github.com/axiom-laboratories/axiom" class="btn btn-secondary">View on GitHub</a>
+        <a href="./docs/getting-started/install/" class="btn btn-primary">Self-host in 30 min &rarr;</a>
+        <a href="#enterprise-interest" class="btn btn-secondary">Talk to us about Enterprise</a>
       </div>
     </div>
   </section>
 
-  <!-- Security -->
+  <!-- Dashboard mockup -->
+  <section class="mockup-section">
+    <div class="container">
+      <div class="mockup-panel">
+        <div class="mockup-panel-tabs">
+          <span class="mockup-tab mockup-tab--active">Nodes</span>
+          <span class="mockup-tab">Jobs</span>
+          <span class="mockup-tab">Audit log</span>
+        </div>
+        <div class="mockup-node-row">
+          <span class="node-status node-status--online"></span>
+          <span class="node-name">node-alpha</span>
+          <div class="node-caps">
+            <span class="node-cap-tag">python</span>
+            <span class="node-cap-tag">bash</span>
+          </div>
+          <span class="node-cpu">CPU <strong>23%</strong></span>
+        </div>
+        <div class="mockup-node-row">
+          <span class="node-status node-status--online"></span>
+          <span class="node-name">node-beta</span>
+          <div class="node-caps">
+            <span class="node-cap-tag">python</span>
+            <span class="node-cap-tag">powershell</span>
+          </div>
+          <span class="node-cpu">CPU <strong>61%</strong></span>
+        </div>
+        <div class="mockup-node-row">
+          <span class="node-status node-status--offline"></span>
+          <span class="node-name node-name--offline">node-gamma</span>
+          <div class="node-caps"></div>
+          <span class="node-cpu node-cpu--offline">offline · 4h ago</span>
+        </div>
+      </div>
+      <p class="mockup-caption">Real dashboard — no mock data in prod</p>
+    </div>
+  </section>
+
+  <!-- Pain points -->
   <section class="section">
     <div class="container">
-      <p class="section-label">Zero-trust by default</p>
-      <h2>Security without compromise</h2>
-      <div class="prose">
-        <p>
-          Every node enrolls by generating a CSR on first boot. The control plane signs a
-          short-lived client certificate against its internal Root CA. From that point forward,
-          all communication between the puppeteer and every puppet is mutually authenticated
-          with TLS — no shared secrets, no API keys passed over the wire, no trust on first use.
-        </p>
-        <p>
-          Job scripts must be signed with a registered Ed25519 key before the node will execute
-          them. The node fetches the registered public key, verifies the signature against the
-          script bytes, and refuses outright if verification fails. Bad signatures are not
-          logged and retried — they are rejected.
-        </p>
+      <p class="section-label">The problem</p>
+      <h2>SSH&nbsp;+&nbsp;crontab doesn't scale</h2>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <span class="pain-icon">🔑</span>
+          <h3>SSH key sprawl</h3>
+          <p>Keys on every server, revocation is manual, and you can't prove who ran what.</p>
+        </div>
+        <div class="pain-card">
+          <span class="pain-icon">📋</span>
+          <h3>No audit trail</h3>
+          <p>Scripts ran. You think. Cron has no log of who triggered what or whether it succeeded.</p>
+        </div>
+        <div class="pain-card">
+          <span class="pain-icon">⚠️</span>
+          <h3>Unsigned execution</h3>
+          <p>Any script that lands on a node runs. There's no verification it hasn't been tampered with.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -75,10 +128,10 @@
         <div class="card card-ee">
           <div class="card-header">
             <h3>Enterprise Edition</h3>
-            <span class="badge badge-ee">Commercial licence</span>
+            <span class="badge badge-coming-soon">Coming soon</span>
           </div>
           <p class="card-intro">Everything in CE, plus:</p>
-          <ul class="feature-list">
+          <ul class="feature-list feature-list--dimmed">
             <li>Execution history with cryptographic attestation</li>
             <li>Per-node resource limits (memory &amp; CPU)</li>
             <li>Node enrollment limits and fleet governance</li>
@@ -86,27 +139,45 @@
             <li>Ed25519 offline licence validation</li>
             <li>Organisation SSO readiness</li>
           </ul>
+          <div class="ee-interest">
+            Interested in Enterprise? <a href="#enterprise-interest">Get in touch &rarr;</a>
+          </div>
         </div>
 
       </div>
     </div>
   </section>
 
-  <!-- Quick Install -->
-  <section class="section">
-    <div class="container install-section">
-      <p class="section-label">Get started</p>
-      <h2>Cold-start in under 30 minutes</h2>
-      <p class="install-sub">Full stack, no cloud account required.</p>
-      <pre><code>docker compose -f compose.cold-start.yaml up -d</code></pre>
-      <a href="./docs/getting-started/install/" class="text-link">Get started &rarr;</a>
+  <!-- Dual CTA -->
+  <section class="section" id="enterprise-interest">
+    <div class="container">
+      <div class="dual-cta">
+
+        <div class="dual-cta-block">
+          <p class="section-label">Get started</p>
+          <h3>Cold-start in under 30 minutes</h3>
+          <p class="install-sub">Full stack, no cloud account required.</p>
+          <pre><code>docker compose -f compose.cold-start.yaml up -d</code></pre>
+          <a href="./docs/getting-started/install/" class="text-link">Read the install guide &rarr;</a>
+        </div>
+
+        <div class="dual-cta-divider" aria-hidden="true"></div>
+
+        <div class="dual-cta-block">
+          <p class="section-label">Enterprise edition</p>
+          <h3>Interested in Enterprise?</h3>
+          <p class="install-sub">Tell us what you need. We'll be in touch when Enterprise Edition launches.</p>
+          <a href="#enterprise-interest" class="btn btn-primary">Register your interest &rarr;</a>
+        </div>
+
+      </div>
     </div>
   </section>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
-      <p>&copy; 2025 Axiom Laboratories. Apache 2.0 for Community Edition.</p>
+      <p>&copy; 2026 Axiom Laboratories. Apache 2.0 for Community Edition.</p>
     </div>
   </footer>
 
