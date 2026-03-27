@@ -1,11 +1,12 @@
-name: docs-deploy
+name: gh-pages-deploy
 
 on:
   push:
     branches: [main]
     paths:
       - 'docs/**'
-      - '.github/workflows/docs-deploy.yml'
+      - 'homepage/**'
+      - '.github/workflows/gh-pages-deploy.yml'
 
 permissions:
   contents: write
@@ -48,3 +49,14 @@ jobs:
       - name: Deploy docs to gh-pages/docs/
         working-directory: docs
         run: ghp-import -n -p -f -x docs site
+
+      - name: Deploy homepage to gh-pages root
+        run: |
+          git fetch origin gh-pages
+          git checkout gh-pages
+          cp homepage/index.html index.html
+          cp homepage/style.css style.css
+          touch .nojekyll
+          git add index.html style.css .nojekyll
+          git diff --cached --quiet || git commit -m "Deploy homepage and docs from ${{ github.sha }}"
+          git push origin gh-pages
