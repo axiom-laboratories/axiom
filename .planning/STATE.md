@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.3
 milestone_name: — Security Hardening + EE Licensing
 status: planning
-stopped_at: Phase 75 context gathered
-last_updated: "2026-03-27T13:16:58.052Z"
+stopped_at: "Completed 75-01-PLAN.md — awaiting checkpoint:human-verify (Task 4)"
+last_updated: "2026-03-27T13:48:51.228Z"
 last_activity: 2026-03-26 — Roadmap created (2 phases, 13/13 requirements mapped)
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 4
+  total_plans: 7
+  completed_plans: 7
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 73 P02 | 4 | 2 tasks | 3 files |
 | Phase 73 P03 | 5min | 2 tasks | 1 files |
 | Phase 74 P01 | 3m8s | 2 tasks | 6 files |
+| Phase 75 P01 | 3m | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 74]: isEnterprise computed as status !== 'ce' — valid/grace/expired all count as EE-licenced
 - [Phase 74]: STATUS_BADGE/STATUS_LABEL lookup maps in Admin.tsx LicenceSection for clean status rendering
 - [Phase 74]: Grace/expired banner placed between header and main in MainLayout.tsx
+- [Phase 75]: check_and_record_boot() takes licence_status parameter; CE warns only, EE (VALID/GRACE/EXPIRED) raises RuntimeError on rollback — removes AXIOM_STRICT_CLOCK env var bypass vector
+- [Phase 75]: main.py lifespan reordered: load_licence() first, then check_and_record_boot(licence_state.status) — clock hardening tied to licence tier at boot
+- [Phase 75]: secrets-data named Docker volume mounts at /app/secrets on agent — boot.log survives compose down/up cycles
+- [Phase 75]: vault_service.py deleted (dead code — Artifact not in db.py, caused ImportError on any import)
 
 ### Pending Todos
 
@@ -90,6 +95,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-27T13:16:58.050Z
-Stopped at: Phase 75 context gathered
-Resume file: .planning/phases/75-secrets-volume-dead-code-cleanup/75-CONTEXT.md
+Last session: 2026-03-27T13:48:51.226Z
+Stopped at: Completed 75-01-PLAN.md — awaiting checkpoint:human-verify (Task 4)
+Resume file: None
