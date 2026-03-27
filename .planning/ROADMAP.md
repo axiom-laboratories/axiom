@@ -269,7 +269,7 @@ Plans:
 | 74. Fix EE Licence Display | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 75. Secrets Volume + Dead Code Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 76. v14.3 Tech Debt Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
-| 77. Licence Banner Polish | 1/1 | Complete   | 2026-03-27 | - |
+| 77. Licence Banner Polish | 1/1 | Complete    | 2026-03-27 | - |
 | 78. CLI Signing UX | v14.4 | 0/TBD | Not started | - |
 | 79. Install Docs Cleanup | v14.4 | 0/TBD | Not started | - |
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/TBD | Not started | - |
