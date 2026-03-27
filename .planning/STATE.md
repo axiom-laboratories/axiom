@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: completed
-stopped_at: Phase 80 context gathered
-last_updated: "2026-03-27T21:00:34.853Z"
+stopped_at: Completed 80-01-PLAN.md
+last_updated: "2026-03-27T21:19:05.403Z"
 last_activity: "2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
   percent: 25
 ---
 
@@ -51,6 +51,7 @@ Progress: [██░░░░░░░░] 25%
 | Phase 78-cli-signing-ux P01 | 35 | 3 tasks | 5 files |
 | Phase 78-cli-signing-ux P02 | ~2h | 2 tasks | 1 file |
 | Phase 79-install-docs-cleanup P01 | 1min | 2 tasks | 2 files |
+| Phase 80 P01 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Progress: [██░░░░░░░░] 25%
 - [Phase 78-02]: openssl ceremony demoted to Manual Setup — preserved for CE users and advanced operators
 - [Phase 79-install-docs-cleanup]: compose.cold-start.yaml trimmed to 5 core services only — puppet nodes require separate JOIN token flow not appropriate for Quick Start
 - [Phase 79-install-docs-cleanup]: Tab label renamed from 'Cold-Start Install' to 'Quick Start' across Steps 2, 3, 4 — aligns with user mental model for a first-run compose
+- [Phase 80]: Use ghp-import -n -p -f -x docs site instead of mkdocs gh-deploy --force to restrict docs deploy to docs/ subtree only
+- [Phase 80]: site_url in mkdocs.yml updated to /axiom/docs/ to match new canonical path after subtree deploy
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T21:00:34.850Z
-Stopped at: Phase 80 context gathered
-Resume file: .planning/phases/80-github-pages-deploy-marketing-homepage/80-CONTEXT.md
+Last session: 2026-03-27T21:19:05.401Z
+Stopped at: Completed 80-01-PLAN.md
+Resume file: None

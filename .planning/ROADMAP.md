@@ -283,7 +283,7 @@ Plans:
 | 77. Licence Banner Polish | 1/1 | Complete    | 2026-03-27 | - |
 | 78. CLI Signing UX | 2/2 | Complete    | 2026-03-27 | - |
 | 79. Install Docs Cleanup | 1/1 | Complete    | 2026-03-27 | - |
-| 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 0/2 | Not started | - |
+| 80. GitHub Pages Deploy + Marketing Homepage | 1/2 | In Progress|  | - |
 
 ## Archived
 
