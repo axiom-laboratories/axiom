@@ -370,6 +370,112 @@ code {
   border-radius: 3px;
 }
 
+/* ----- Dashboard mockup ----- */
+.mockup-section {
+  padding-block: 3rem;
+  border-bottom: 1px solid var(--axiom-border);
+  text-align: center;
+}
+
+.mockup-panel {
+  display: inline-block;
+  text-align: left;
+  background-color: var(--axiom-surface);
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  max-width: 680px;
+  width: 100%;
+}
+
+.mockup-panel-tabs {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--axiom-border);
+  padding-bottom: 0.75rem;
+}
+
+.mockup-tab {
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+  font-weight: 500;
+}
+
+.mockup-tab--active {
+  color: var(--axiom-text);
+  font-weight: 600;
+  border-bottom: 2px solid var(--axiom-primary);
+  padding-bottom: 0.1rem;
+  margin-bottom: -0.85rem;
+}
+
+.mockup-node-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--axiom-border);
+  font-size: 0.875rem;
+}
+
+.mockup-node-row:last-child {
+  border-bottom: none;
+}
+
+.node-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.node-status--online  { background-color: #3fb950; }
+.node-status--offline { background-color: var(--axiom-primary); }
+
+.node-name {
+  color: var(--axiom-text);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
+.node-name--offline {
+  color: var(--axiom-text-muted);
+}
+
+.node-caps {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.node-cap-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  background-color: var(--axiom-bg);
+  border: 1px solid var(--axiom-border);
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+  color: var(--axiom-text-muted);
+}
+
+.node-cpu {
+  font-size: 0.8rem;
+  color: var(--axiom-text-muted);
+  white-space: nowrap;
+}
+
+.node-cpu strong {
+  color: var(--axiom-text);
+}
+
+.mockup-caption {
+  font-size: 0.8rem;
+  color: var(--axiom-text-faint);
+  margin-top: 0.75rem;
+}
+
 /* ----- Responsive ----- */
 @media (max-width: 640px) {
   .edition-grid {
