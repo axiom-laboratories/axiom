@@ -1,5 +1,20 @@
 # Milestones
 
+## v14.3 Security Hardening + EE Licensing (Shipped: 2026-03-27)
+
+**Phases completed:** 5 phases (72–76), 8 plans
+**Stats:** 60 files changed, +7,383 / -688 lines | 2 days (2026-03-26 → 2026-03-27)
+**Git range:** `9ae0e18` → `5d4c217`
+
+**Key accomplishments:**
+- Phase 72 — Security fixes: All 6 CodeQL alerts resolved — XSS escaping on device-approve endpoint, `validate_path_within()` path traversal guards, bounded email regex to eliminate ReDoS, API_KEY hard crash removed, `X-Content-Type-Options: nosniff` on CSV export; 18 security tests GREEN
+- Phase 73 — EE licence system: `licence_service.py` with EdDSA JWT validation, VALID/GRACE/EXPIRED/CE state machine, hash-chained boot-log clock-rollback detection; `tools/generate_licence.py` offline key generator CLI; `/api/licence` endpoint, `enroll_node` node-limit 402 guard, DEGRADED_CE `pull_work` guard; all 7 LIC tests GREEN
+- Phase 74 — EE licence display: `useLicence.ts` rewritten to match actual backend response; EE badge and grace/expired banner in MainLayout; Admin licence section with status badge and expiry date; 15 frontend tests GREEN
+- Phase 75 — Secrets volume + dead code: `secrets-data` named Docker volume so `boot.log` persists across restarts; `vault_service.py` deleted (dead code); `check_and_record_boot()` takes `licence_status` so EE enforces rollback detection while CE warns only; `main.py.bak` removed from git
+- Phase 76 — Tech debt closure: `test_licence.py` updated to current 6-field response shape; dead `API_KEY` removed from `compose.cold-start.yaml`; orphaned `vault_service.cpython-312.pyc` deleted
+
+---
+
 ## v14.2 Docs on GitHub Pages (Shipped: 2026-03-26)
 
 **Phases completed:** 1 phases, 2 plans, 0 tasks

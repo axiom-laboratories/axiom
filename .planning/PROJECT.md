@@ -166,6 +166,20 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Jobs and Nodes feature guides created — unified `script` type, guided form, bulk ops, Queue Monitor, DRAINING state all documented — v13.0
 - ✓ Quick-reference HTML files integrated into MkDocs under `docs/docs/quick-ref/`; root originals removed; course rebranded to Axiom; operator guide updated for v12.0 — v13.0
 
+### Validated — v14.3 Security Hardening + EE Licensing
+
+- ✓ `html.escape()` on OAuth device-approve `user_code` — XSS reflected injection eliminated (SEC-01) — v14.3
+- ✓ `validate_path_within()` helper in `security.py` — path traversal guards for vault artifact paths and docs download route (SEC-02, SEC-03) — v14.3
+- ✓ Bounded email regex `{1,64}` / `{1,63}` quantifiers in `mask_pii()` — catastrophic ReDoS eliminated (SEC-04) — v14.3
+- ✓ API_KEY hard crash removed — server boots cleanly with no API_KEY env var; `verify_api_key` removed from all node-facing routes (SEC-05) — v14.3
+- ✓ `X-Content-Type-Options: nosniff` on CSV export — content-sniffing XSS vector closed (SEC-06) — v14.3
+- ✓ `tools/generate_licence.py` offline CLI — Ed25519-signed JWT keys with customer ID, tier, node limit, expiry, grace days; no network call required (LIC-01) — v14.3
+- ✓ `licence_service.py` EdDSA JWT verification — VALID/GRACE/EXPIRED/CE state machine; invalid signatures fall to CE; grace period arithmetic; `GET /api/licence` returns 6-field response (LIC-02, LIC-03, LIC-04, LIC-06) — v14.3
+- ✓ Hash-chained `secrets/boot.log` clock-rollback detection — EE raises on rollback; CE warns only; `check_and_record_boot(licence_status)` parameter-driven (LIC-05) — v14.3
+- ✓ `POST /api/enroll` HTTP 402 when active node count ≥ `node_limit` — air-gap-safe node limit enforcement (LIC-07) — v14.3
+- ✓ `secrets-data` named Docker volume — `boot.log` and `licence.key` persist across `compose down/up` cycles — v14.3
+- ✓ Dashboard EE badge, grace/expired banner, Admin licence section aligned to backend response shape — v14.3
+
 ### Active — Future Milestones
 
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
@@ -174,9 +188,10 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - [ ] DIST-02: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current use)
 - [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
 - [ ] DIST-04: Licence issuance portal — web UI or automated pipeline for signed licence key delivery
-- [ ] DIST-05: Periodic licence re-validation (currently startup-only)
+- [ ] DIST-05: Periodic licence re-validation (currently startup-only; APScheduler 6h re-check deferred to v15+)
 - [ ] EE-09: OIDC/SAML SSO integration (design doc complete in v13.0)
 - [ ] EE-10: Custom RBAC roles + fine-grained permissions
+- [ ] Dashboard GRACE/DEGRADED_CE amber/red banner (backend API landed in v14.3; frontend component deferred)
 
 ### Out of Scope
 
@@ -187,13 +202,15 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, and first-user-ready (v14.1). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
+Codebase is functional, deployed, security-hardened, and commercially ready (v14.3). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
 
 Documentation site lives at `/docs/` (containerised, air-gapped) and is **publicly accessible at `https://axiom-laboratories.github.io/axiom/`** (GitHub Pages, auto-deployed via `docs-deploy.yml` on every `docs/**` push to `main`). MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference is auto-generated from FastAPI OpenAPI schema at container build time; `docs/scripts/regen_openapi.sh` refreshes the pre-committed snapshot locally.
 
 CLI is `axiom-push` (formerly `mop-push`) — installable as `axiom-sdk` Python package. GitHub Actions CI/CD pipelines in place for multi-arch GHCR images and PyPI publishing via OIDC Trusted Publisher. Version is derived dynamically from git tags via `setuptools-scm`.
 
 Getting-started docs (install → enroll-node → first-job) are complete and verified against a real cold-start flow. Both CE and EE paths are documented end-to-end with CLI alternatives for all GUI steps.
+
+EE licence system is fully operational: `tools/generate_licence.py` generates signed keys offline; `licence_service.py` validates at startup; grace period and DEGRADED_CE state machine are enforced. `secrets/boot.log` clock-rollback detection is hardened to use licence status (EE enforces, CE warns). All 6 CodeQL alerts closed.
 
 Known deferred issues: SQLite NodeStats pruning compat (MIN-6), Foundry build dir cleanup (MIN-7), per-request DB query in require_permission (MIN-8), non-deterministic node ID scan order (WARN-8). See `.agent/reports/core-pipeline-gaps.md`.
 
@@ -263,17 +280,17 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `.nojekyll` in docs source root (not site root) | MkDocs copies it into the built site, landing at GH Pages root — no post-build injection needed | ✓ Good |
 | `openapi.json` pre-committed; `regen_openapi.sh` is operator tool | Avoids schema regeneration in CI (no running server); operator runs script locally and commits updated file | ✓ Good |
 | `fetch-depth: 0` in docs-deploy.yml | MkDocs Material uses git history for `git_revision_date_localized` on page footers — shallow clone produces wrong dates | ✓ Good |
+| `validate_path_within()` in `security.py` (not vault_service.py) | vault_service.py had broken Artifact import — placing helper in security.py makes it importable across all routes without introducing the broken import | ✓ Good |
+| EdDSA JWT for licence keys (not RSA) | Ed25519 keys are small, fast, and standard for offline signing; PyJWT supports OKP keys directly | ✓ Good |
+| `licence_service.py` in CE code (not EE plugin) | Licence validation must run before EE plugin loads — CE must be able to decide whether to activate EE; placing in EE plugin creates circular dependency | ✓ Good |
+| `check_and_record_boot(licence_status)` parameter approach | Removes `AXIOM_STRICT_CLOCK` env bypass; ties enforcement directly to licence tier — EE always enforces, CE always warns; no escape hatch needed for air-gapped ops | ✓ Good |
+| Node limit guard before token validation in `enroll_node()` | 402 must fire before 403 so limit is checked even for expired tokens; also prevents consuming a token when limit is already hit | ✓ Good |
+| `DEGRADED_CE pull_work` returns `PollResponse(job=None)` silently | HTTPException would disconnect nodes; silent empty response keeps nodes heartbeating while CE features are degraded | ✓ Good |
+| `secrets-data` named volume (not bind mount) for boot.log | Named volumes survive `compose down` without operator needing to specify a host path; correct semantics for secrets that must outlive container lifecycle | ✓ Good |
 
-## Current Milestone: v14.3 Security Hardening + EE Licensing
+## Previous State — v14.3 Complete (2026-03-27)
 
-**Goal:** Close 5 CodeQL security alerts, remove the legacy API_KEY mechanism, and deliver a production-grade EE licence key system with air-gap support.
-
-**Target features:**
-- Fix 5 CodeQL error-severity alerts (XSS, path injection × 4, ReDoS) and 1 warning
-- Remove legacy `API_KEY` hard crash and redundant node-route auth
-- EE licence key generation — Ed25519-signed JSON payload (customer, tier, features, expiry)
-- EE licence validation — startup signature check + expiry enforcement
-- Air-gap expiry enforcement — monotonic boot-log or heartbeat file (no call-home required)
+Axiom v14.3 delivered Security Hardening + EE Licensing — 5 phases, 8 plans, all 13/13 requirements satisfied. All 6 CodeQL alerts (XSS, path traversal ×4, ReDoS, API_KEY crash, nosniff) are resolved. The EE licence system is fully operational: offline JWT key generation, startup signature validation, VALID/GRACE/EXPIRED/CE state machine, hash-chained boot-log clock-rollback detection (EE enforces, CE warns), node-limit enforcement at enrollment, and a `secrets-data` Docker volume so boot.log persists across restarts. The frontend licence display is aligned to the backend response — EE badge, Admin licence section, and grace/expired banner all work correctly. Three audit tech debt items (stale tests, dead env var, orphaned bytecode) were also closed.
 
 ## Previous State — v14.2 Complete (2026-03-26)
 
@@ -302,4 +319,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-26 after v14.3 milestone start — Security Hardening + EE Licensing*
+*Last updated: 2026-03-27 after v14.3 milestone — Security Hardening + EE Licensing*
