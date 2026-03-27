@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v14.3
 milestone_name: — Security Hardening + EE Licensing
 status: planning
-stopped_at: Completed 73-02-PLAN.md
-last_updated: "2026-03-27T08:23:51.697Z"
+stopped_at: Completed 73-03-PLAN.md
+last_updated: "2026-03-27T08:30:20.616Z"
 last_activity: 2026-03-26 — Roadmap created (2 phases, 13/13 requirements mapped)
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -49,6 +49,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 72 P02 | 7 | 3 tasks | 6 files |
 | Phase 73 P01 | 2 | 1 tasks | 1 files |
 | Phase 73 P02 | 4 | 2 tasks | 3 files |
+| Phase 73 P03 | 5min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 73]: TDD Wave 0 RED tests: function-scope imports ensure ModuleNotFoundError is the failure signal, not import-time crash at collection
 - [Phase 73]: pytest run from repo root (not puppeteer/) for licence tests — test_licence_service.py uses puppeteer.agent_service.* import path requiring parent dir in sys.path
 - [Phase 73]: tools/licence_signing.key gitignored (correct) — private key must not be committed; operators run --generate-keypair during bootstrap
+- [Phase 73]: Node limit guard placed before token validation in enroll_node() — test spec expects 402 even when token mock returns None; guard fires first for correct 402/403 ordering
+- [Phase 73]: DEGRADED_CE pull_work guard returns PollResponse(job=None) silently — not HTTPException — nodes stay connected and heartbeating per LIC-04 spec
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-27T08:23:51.695Z
-Stopped at: Completed 73-02-PLAN.md
+Last session: 2026-03-27T08:30:20.614Z
+Stopped at: Completed 73-03-PLAN.md
 Resume file: None
