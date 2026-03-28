@@ -214,7 +214,10 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
   3. The public repo contains no Ed25519 private key material — the CI guard rejects any commit with `-----BEGIN PRIVATE KEY-----` content
   4. Operator can use `--no-remote` flag to write the audit record to a local file instead of committing to GitHub (air-gapped workflow)
   5. Running `issue_licence.py` without an explicit `--key` path fails with a clear error — no silent default path inside the repo
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 82-01-PLAN.md — Private repo scaffold: keypair rotation, issue_licence.py, list_licences.py
+- [ ] 82-02-PLAN.md — Public repo cleanup: new public key in licence_service.py, gitleaks CI guard
 
 ### Phase 83: Node Validation Job Library
 **Goal**: Operators have a signed, runbook-backed job corpus to verify any node works correctly end-to-end across all runtimes and constraint types
@@ -300,7 +303,7 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
 | 79. Install Docs Cleanup | v14.4 | 1/1 | Complete | 2026-03-27 |
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 2/2 | Complete | 2026-03-27 |
 | 81. Homepage Enterprise Messaging | v14.4 | 1/1 | Complete | 2026-03-28 |
-| 82. Licence Tooling | v15.0 | 0/TBD | Not started | - |
+| 82. Licence Tooling | v15.0 | 0/2 | Not started | - |
 | 83. Node Validation Job Library | v15.0 | 0/TBD | Not started | - |
 | 84. Package Repo Operator Docs | v15.0 | 0/TBD | Not started | - |
 | 85. Screenshot Capture | v15.0 | 0/TBD | Not started | - |
