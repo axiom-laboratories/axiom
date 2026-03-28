@@ -12,6 +12,17 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
+## Current Milestone: v15.0 — Operator Readiness
+
+**Goal:** Close the gap between a technically functional platform and one operators can confidently hand to a first customer — secure licence tooling, a validated node job library, package repo documentation, dashboard screenshots, and docs accuracy checks.
+
+**Target features:**
+- Licence generation tooling migrated to private repo with audit trail and CI key-leak guard
+- Node validation job library (bash/Python/PWSH + volume/network/resource limit tests)
+- Custom package repo operator runbook (devpi/APT/PWSH) with validation jobs
+- Playwright screenshot capture seeded with demo data for docs and marketing page
+- Docs accuracy validation script (OpenAPI + CLI flag cross-reference, CI-wirable)
+
 ## Requirements
 
 ### Validated

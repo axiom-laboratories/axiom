@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v14.4
-milestone_name: — Go-to-Market Polish
-status: completed
-stopped_at: Completed 81-01-PLAN.md — homepage enterprise messaging, SSO narrative, and conversion optimisation
-last_updated: "2026-03-28T08:55:28.619Z"
-last_activity: "2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path"
+milestone: v15.0
+milestone_name: — Operator Readiness
+status: planning
+stopped_at: —
+last_updated: "2026-03-28T17:45:00.000Z"
+last_activity: "2026-03-28 — Milestone v15.0 started: requirements defined, roadmap pending"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -25,11 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 ## Current Position
 
-Milestone v14.4 complete — all 5 phases, 7 plans shipped.
-Status: Archived. Ready for `/gsd:new-milestone`.
-Last activity: 2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path
+Phase: Not started (defining roadmap)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-28 — Milestone v15.0 started
 
-Progress: [██░░░░░░░░] 25%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
