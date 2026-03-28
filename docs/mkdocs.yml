@@ -63,6 +63,7 @@ nav:
     - Job Execution: runbooks/jobs.md
     - Foundry: runbooks/foundry.md
     - FAQ: runbooks/faq.md
+    - Node Validation: runbooks/node-validation.md
   - Developer:
     - Architecture: developer/architecture.md
     - Setup & Deployment: developer/setup-deployment.md

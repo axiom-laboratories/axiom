@@ -11,6 +11,7 @@ what you are seeing, not the internal component name.
 | [Job Execution](jobs.md) | A job is stuck in Queued, SECURITY_REJECTED, or DEAD_LETTER |
 | [Foundry](foundry.md) | A template build fails, Smelt-Check rejects an image, or registry push fails |
 | [FAQ](faq.md) | You hit a known misconfiguration or have an operational how-to question |
+| [Node Validation](node-validation.md) | You want to verify a node handles all runtimes and constraints correctly |
 
 ---
 
