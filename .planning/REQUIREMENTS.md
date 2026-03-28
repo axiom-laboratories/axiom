@@ -15,9 +15,9 @@
 
 ### Node Validation Jobs
 
-- [ ] **JOB-01**: Operator can dispatch a signed bash reference job and verify it executes successfully on a bash-capable node
-- [ ] **JOB-02**: Operator can dispatch a signed Python reference job and verify it executes successfully on a Python-capable node
-- [ ] **JOB-03**: Operator can dispatch a signed PowerShell reference job and verify it executes successfully on a PWSH-capable node
+- [x] **JOB-01**: Operator can dispatch a signed bash reference job and verify it executes successfully on a bash-capable node
+- [x] **JOB-02**: Operator can dispatch a signed Python reference job and verify it executes successfully on a Python-capable node
+- [x] **JOB-03**: Operator can dispatch a signed PowerShell reference job and verify it executes successfully on a PWSH-capable node
 - [ ] **JOB-04**: A signed volume mapping validation job verifies files written inside the container persist at the expected host-side mount path
 - [ ] **JOB-05**: A signed network filtering validation job verifies that allowed hosts are reachable and blocked hosts are not
 - [ ] **JOB-06**: A signed memory-hog job is killed (OOM) rather than completing when it exceeds its node memory limit
@@ -75,9 +75,9 @@
 | LIC-03 | Phase 82 | Complete |
 | LIC-04 | Phase 82 | Complete |
 | LIC-05 | Phase 82 | Complete |
-| JOB-01 | Phase 83 | Pending |
-| JOB-02 | Phase 83 | Pending |
-| JOB-03 | Phase 83 | Pending |
+| JOB-01 | Phase 83 | Complete |
+| JOB-02 | Phase 83 | Complete |
+| JOB-03 | Phase 83 | Complete |
 | JOB-04 | Phase 83 | Pending |
 | JOB-05 | Phase 83 | Pending |
 | JOB-06 | Phase 83 | Pending |
