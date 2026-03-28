@@ -308,7 +308,7 @@ Plans:
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 2/2 | Complete | 2026-03-27 |
 | 81. Homepage Enterprise Messaging | v14.4 | 1/1 | Complete | 2026-03-28 |
 | 82. Licence Tooling | 2/2 | Complete    | 2026-03-28 | - |
-| 83. Node Validation Job Library | 1/3 | In Progress|  | - |
+| 83. Node Validation Job Library | 2/3 | In Progress|  | - |
 | 84. Package Repo Operator Docs | v15.0 | 0/TBD | Not started | - |
 | 85. Screenshot Capture | v15.0 | 0/TBD | Not started | - |
 | 86. Docs Accuracy Validation | v15.0 | 0/TBD | Not started | - |

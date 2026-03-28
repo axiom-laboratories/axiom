@@ -18,10 +18,10 @@
 - [x] **JOB-01**: Operator can dispatch a signed bash reference job and verify it executes successfully on a bash-capable node
 - [x] **JOB-02**: Operator can dispatch a signed Python reference job and verify it executes successfully on a Python-capable node
 - [x] **JOB-03**: Operator can dispatch a signed PowerShell reference job and verify it executes successfully on a PWSH-capable node
-- [ ] **JOB-04**: A signed volume mapping validation job verifies files written inside the container persist at the expected host-side mount path
-- [ ] **JOB-05**: A signed network filtering validation job verifies that allowed hosts are reachable and blocked hosts are not
-- [ ] **JOB-06**: A signed memory-hog job is killed (OOM) rather than completing when it exceeds its node memory limit
-- [ ] **JOB-07**: A signed CPU-spin job is throttled or killed when it exceeds its node CPU limit
+- [x] **JOB-04**: A signed volume mapping validation job verifies files written inside the container persist at the expected host-side mount path
+- [x] **JOB-05**: A signed network filtering validation job verifies that allowed hosts are reachable and blocked hosts are not
+- [x] **JOB-06**: A signed memory-hog job is killed (OOM) rather than completing when it exceeds its node memory limit
+- [x] **JOB-07**: A signed CPU-spin job is throttled or killed when it exceeds its node CPU limit
 
 ### Package Repo Docs
 
@@ -78,10 +78,10 @@
 | JOB-01 | Phase 83 | Complete |
 | JOB-02 | Phase 83 | Complete |
 | JOB-03 | Phase 83 | Complete |
-| JOB-04 | Phase 83 | Pending |
-| JOB-05 | Phase 83 | Pending |
-| JOB-06 | Phase 83 | Pending |
-| JOB-07 | Phase 83 | Pending |
+| JOB-04 | Phase 83 | Complete |
+| JOB-05 | Phase 83 | Complete |
+| JOB-06 | Phase 83 | Complete |
+| JOB-07 | Phase 83 | Complete |
 | PKG-01 | Phase 84 | Pending |
 | PKG-02 | Phase 84 | Pending |
 | PKG-03 | Phase 84 | Pending |
