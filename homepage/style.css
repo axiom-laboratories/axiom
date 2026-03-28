@@ -566,6 +566,11 @@ code {
   margin-bottom: 1.25rem;
 }
 
+.dual-cta-block pre {
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
 /* ----- Coming soon badge ----- */
 .badge-coming-soon {
   background-color: rgba(210, 53, 86, 0.12);
