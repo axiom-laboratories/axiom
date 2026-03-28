@@ -229,7 +229,11 @@ Plans:
   3. The network filtering validation job confirms allowed hosts return a response and blocked hosts time out, without leaving residual iptables state on the node
   4. The memory-hog job is killed (OOM or FAILED) rather than completing when dispatched to a node with a memory limit lower than the job's allocation
   5. The CPU-spin job is throttled or killed when dispatched to a node with a CPU limit enforced at the container runtime level
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 83-01-PLAN.md — Test scaffold + Bash/Python/PowerShell hello-world reference jobs
+- [ ] 83-02-PLAN.md — Validation scripts (volume, network, memory, CPU) + manifest.yaml
+- [ ] 83-03-PLAN.md — Community catalog README + MkDocs runbook + navigation
 
 ### Phase 84: Package Repo Operator Docs
 **Goal**: Operators can configure a local package mirror for PyPI, APT, or PowerShell modules and validate it using a signed job
