@@ -1,207 +1,325 @@
 # Feature Research
 
-**Domain:** Go-to-market polish — developer tool marketing homepage, licence state notifications, install documentation, CLI signing UX
-**Researched:** 2026-03-27
-**Confidence:** HIGH (homepage/banner patterns) / MEDIUM (CLI UX specifics)
+**Domain:** Operator Readiness — Enterprise job orchestration platform (Axiom v15.0)
+**Researched:** 2026-03-28
+**Confidence:** HIGH (existing system well-understood; new features are well-trodden patterns)
 
 ---
 
 ## Scope
 
-This milestone adds four go-to-market features to Axiom. They are treated as four distinct sub-domains below, each with its own table stakes, differentiators, and anti-features. A combined dependency map and MVP definition follow.
+Five capability areas for v15.0. Each is analysed independently: what operators expect, what differentiates, what to avoid, and what "done" looks like for an operator in production.
 
 ---
 
-## Sub-Domain A: Marketing Homepage (GitHub Pages, standalone)
+## Capability 1: Licence Generation Tooling
 
-The product already has a MkDocs docs site at `axiom-laboratories.github.io/axiom/`. The marketing homepage is a **separate static page** — a conversion surface, not documentation. Its job is to answer "what is this and why should I try it?" in under 60 seconds.
+**Context:** `tools/generate_licence.py` already exists and generates Ed25519-signed JWT licences offline. The gap is record-keeping (no audit trail of what was issued to whom) and delivery workflow. The v15.0 work adds a record store in a private GitHub repo (`axiom-laboratories/axiom-licences`).
 
 ### Table Stakes
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Hero section: headline + one-line description + primary CTA | Every devtool homepage has one. Missing = no anchor for the eye. | LOW | CTA must be specific: "Get started in 5 minutes" not "Learn more". Secondary CTA to GitHub repo. |
-| Above-the-fold value proposition | Developers decide in ~8s whether to keep reading. | LOW | Must answer: what it is, who it's for, key benefit. E.g. "Axiom — secure job orchestration for hostile environments." |
-| GitHub stars badge / usage signal | Social proof for OSS. Missing = project feels dead. | LOW | Use `shields.io` badge or GitHub API widget. Even a low number is better than nothing. |
-| Link to documentation | Developers will not try a tool without docs. | LOW | Single prominent link to existing MkDocs site. |
-| Feature highlights (3–5 items) | Answers "what can it do?". Problem-oriented, not feature-list. | LOW | Format: icon + short title + one sentence. Focus on security model, pull architecture, signing. |
-| Architecture/how-it-works diagram | Distributed systems tool — topology is not obvious. | MEDIUM | Single Mermaid-style or SVG diagram showing orchestrator + nodes + pull flow. |
+| Offline signing (no network at issue time) | Air-gap customer environments cannot phone home to validate | LOW | Already exists in `generate_licence.py` |
+| Human-readable summary on stderr | Operator needs to confirm payload fields before sending to customer | LOW | Already exists |
+| Customer ID, expiry, node limit, tier in payload | Standard licence metadata for support and billing queries | LOW | Already exists |
+| Persistent record that a licence was issued | Support needs to know what tier and expiry was given to which customer | LOW | Currently missing — the gap this feature closes |
+| Idempotent record writes | Re-running the tool for the same customer must not create duplicate records | LOW | Design choice: filename keyed on `licence_id` (UUID) prevents collisions |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| "Security-first" positioning block | Axiom's core differentiator is structural security (mTLS, Ed25519, container isolation). This is rare in homelab/OSS schedulers. | LOW | Dedicate a section to: "Scripts never run unsigned. Nodes never expose ports. Your private key never leaves your machine." Three concrete claims. |
-| CE vs EE comparison table | Sets expectation for enterprise buyers. Signals commercial maturity. | LOW | Simple table: feature rows, CE checkmark/dash, EE checkmark. Link to licensing.md. |
-| 30-minute quick-start callout | Reduces perceived barrier. "Up and running in 30 minutes" is a concrete promise. | LOW | Ties directly to the getting-started doc. Must be honest — only add if the doc genuinely supports this. |
-| Changelog/release signal | Signals active project. Reduces "is this abandoned?" fear. | LOW | Latest release badge from GitHub, or a one-line "latest release" note. |
+| Git-backed licence ledger | Immutable, auditable history via `git log`; no separate database needed | LOW | Private GitHub repo as record store; one JSON file per licence |
+| Filename keyed on `{customer_id}-{licence_id}.json` | Each issued licence has a UUID in its filename; no collisions; easy grep | LOW | UUID already generated in JWT payload |
+| Index file auto-updated | `index.json` listing all issued licences lets support query without reading every file | MEDIUM | Must be written atomically with the individual record file |
+| JWT to stdout, record written separately | Composable: `AXIOM_LICENCE_KEY=$(python tools/generate_licence.py ...)` pipes naturally | LOW | Keeps the existing stdout contract intact |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Auto-pulled GitHub README as homepage | Minimal effort, keeps docs in sync | README is for contributors, not prospects. Different audience, different framing. | Maintain separate `index.html` — 100 lines max. |
-| Animated terminal demo | Looks impressive, signals sophistication | High maintenance (breaks on API changes), slow to load, often misleads about real UX | Static screenshot of dashboard + one-line install command |
-| Full feature documentation embedded on homepage | "Comprehensive" feels thorough | Kills conversion. Readers leave before reaching CTA. | Keep homepage to 6 sections max. Link to docs for depth. |
-| Testimonials section (if no real testimonials exist) | Social proof pattern | Fake or placeholder quotes destroy credibility with developers | Omit entirely until there are 2–3 real quotes from identifiable users |
+| Web UI for licence issuance (portal) | "Portal sounds professional" | Adds a service to maintain, a new auth layer, and a deployment dependency for a low-frequency operation | CLI + private git repo covers 100% of the use case at this scale |
+| Licence revocation endpoint on production server | Operators want instant revocation | Requires runtime network calls in the licence validator, breaking air-gap safety | Grace period + short expiry cycle; do not issue licences longer than 1 year |
+| Encrypted ledger files | "Secure the records" | The private repo IS the access control; encrypting within it adds no meaningful security and complicates `git log` readability | Private GitHub repo with CODEOWNERS is sufficient |
+
+### What "Done" Looks Like for an Operator
+
+1. Run `python tools/generate_licence.py --key ... --customer-id ACME ...`
+2. JWT printed to stdout; copy into customer delivery email or secrets manager entry
+3. A JSON record file written to a local checkout of `axiom-laboratories/axiom-licences`, committed and pushed
+4. `git log` on the private repo shows full history: who issued what to whom and when
+5. `index.json` in the repo has a one-line entry per licence for quick lookup by support
+
+### Existing Axiom Dependencies
+
+- `tools/generate_licence.py` — core signing logic, already functional
+- `tools/licence_signing.key` — private key already generated
+- `puppeteer/agent_service/services/licence_service.py` — validation side, no changes needed for this feature
 
 ---
 
-## Sub-Domain B: Licence State Notification Banner
+## Capability 2: Docs Accuracy Validation
 
-The backend already returns `VALID / GRACE / EXPIRED / DEGRADED_CE` via `GET /api/licence`. The dashboard has an EE badge in the sidebar. What is missing is a **top-of-dashboard banner** that communicates urgency to the operator when action is required.
+**Context:** The MkDocs site was written to match the v14.x system. As the system evolves, docs drift. This feature adds automated checks that catch drift before it reaches users, following the pattern established by `mop_validation/scripts/synthesise_friction.py`.
 
 ### Table Stakes
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Amber banner for GRACE state | Industry standard: warn before it breaks. Missing = operator discovers expiry only when features stop. | LOW | Amber/yellow. Persistent until dismissed. Shows days remaining. Includes "Renew licence" link. |
-| Red banner for EXPIRED / DEGRADED_CE state | Critical state — EE features silently degraded. Must be unmissable. | LOW | Red. Non-dismissible (or re-appears on every page load). CTA: "Contact sales" or "Upgrade". |
-| Days remaining in GRACE displayed in banner | Operators need to know urgency. "Licence expiring" is not enough. | LOW | Pull `expires_at` from licence API response and compute days. |
-| Banner calls the existing `GET /api/licence` endpoint | Backend is ready. Frontend just needs to read and display. | LOW | Use existing `useLicence` hook already wired to the Admin page. |
-| No banner for VALID state | Showing an "all good" banner is noise. | LOW | Conditional render: only show when state is not VALID. |
+| API endpoint reachability checks | Docs claim specific endpoints exist — validate they return the expected status code | MEDIUM | Requires a running stack; `requests`-based spot checks against live system |
+| CLI flag consistency check | `axiom-push --help` output cross-referenced against what docs claim the flags are | LOW | Run CLI help, parse output, compare key flags mentioned in feature guides |
+| Env var name accuracy check | Docs claim `AXIOM_LICENCE_KEY`, `SECRET_KEY`, etc. — verify names match `main.py` and `.env.example` | LOW | Static analysis: grep source for env var reads; compare to docs mentions |
+| Structured pass/fail report output | Operator needs actionable output, not a wall of text | LOW | Follow `synthesise_friction.py` pattern: per-check PASS/WARN/FAIL with specific mismatch detail |
+| Exit code non-zero on FAIL items | Allows CI integration without parsing output | LOW | `sys.exit(1)` if any FAIL items; `sys.exit(0)` for WARN-only or all-PASS |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Role-aware banner (admin-only) | Viewers/operators can't act on licence renewal. Showing them an alarm they can't fix is noise. | LOW | Check `current_user.role === 'admin'` before rendering banner. Viewer/operator sees nothing. |
-| Deep-link CTA from banner | Reduces friction to action. "View licence details" takes admin straight to the Admin page licence section. | LOW | `href="/admin#licence"` — existing Admin.tsx already has a LicenceSection. |
-| DEGRADED_CE-specific messaging | CE means EE features are silently off, not "expired". Different message than EXPIRED. | LOW | "Running in Community Edition mode — Enterprise features disabled." vs "Licence expired — renew to restore features." |
+| OpenAPI schema cross-check | Compare `openapi.json` (generated at build time) against API paths mentioned in docs markdown | MEDIUM | Catches renamed or removed endpoints before they reach users |
+| HTTP status code validation for CE/EE split | EE routes should return 402 on CE install; docs should reflect this | MEDIUM | Particularly valuable given the CE/EE gating added in v11.0–14.x |
+| CI gate in `docs-deploy.yml` | Blocks `mkdocs gh-deploy` if any FAIL items; fast feedback loop | MEDIUM | Add as a job step before the deploy step in the existing workflow |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Modal dialog for licence expiry | High visibility | Blocks the entire UI. Operators can't work. Enterprise tools that do this get disabled in `localStorage`. | Banner at top of page. Persistent but non-blocking. |
-| Countdown timer (live ticking clock) | Urgency | Anxiety-inducing. Distracts from actual work. | "X days remaining" static text, refreshed on page load. |
-| Banner on every route including login page | Maximum visibility | Shows to all users, even those who cannot act. Causes support tickets from confused users. | Only render inside the authenticated layout, check admin role. |
+| Full E2E docs walkthrough automation | "Test the docs are correct by following them" | Requires a full LXC environment; very slow; duplicates what cold-start testing already does | Targeted spot-checks against a running stack; cold-start tests are the full E2E |
+| Screenshot diffing as accuracy proxy | "If the screenshots match, the docs are accurate" | Screenshots drift on every UI change even when docs content is correct; high false-positive rate | Structural checks (API endpoints, env var names, CLI flags) are more stable signals |
+| Auto-generate prose docs from code comments | "Eliminate drift by generating docs" | Loses operator-friendly narrative; API reference is already auto-generated from OpenAPI | Keep narrative docs human-authored; auto-generate only API reference (already done) |
+
+### What "Done" Looks Like for an Operator
+
+1. Run `python scripts/validate_docs.py --url https://localhost:8443` against a live stack
+2. Script checks: API endpoints in docs are reachable with expected status codes, CLI flags match docs claims, env var names in docs match source
+3. Output is a markdown or JSON report: PASS / WARN / FAIL per check with the specific mismatch described
+4. FAIL items are actionable: "Docs claim `GET /api/executions` returns 200 — returns 402 in CE install (expected; verify docs say so)"
+5. CI job in `docs-deploy.yml` runs this before publishing; blocks deploy on any FAIL
+
+### Existing Axiom Dependencies
+
+- `docs/docs/` — source docs to validate against
+- `puppeteer/agent_service/main.py` — source of truth for API routes and env var usage
+- `docs/scripts/regen_openapi.sh` — already generates `openapi.json`; validation compares docs against this schema
+- Running Docker stack — required for live endpoint checks
+- `mop_validation/scripts/synthesise_friction.py` — pattern to follow for structured reporting
+- `.github/workflows/docs-deploy.yml` — location for CI gate addition
 
 ---
 
-## Sub-Domain C: Golden Path Install Docs
+## Capability 3: Screenshot Capture
 
-The existing `compose.cold-start.yaml` bundles pre-configured test nodes (`node_alpha`, `node_beta`, `node_gamma`) in the same compose file. First users start all of them, see nodes they did not create, and do not know what is real vs. example infrastructure. The goal is a clean first-user path: "start the server, then manually add your first node."
+**Context:** The marketing homepage and MkDocs feature guides have no screenshots. Screenshots are table stakes for product documentation — their absence signals immaturity. This feature adds a Playwright-based script capturing current dashboard state into `docs/docs/assets/screenshots/`.
 
 ### Table Stakes
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Separate compose file for orchestrator-only cold start | Users expect "run this to get the server" without mystery pre-enrolled nodes. | LOW | New or updated `compose.cold-start.yaml` containing only: agent, model, postgres, caddy, docs. No test nodes. |
-| Test nodes moved to a clearly-labelled optional override | Test nodes are useful for development — they should not disappear, just stop being default | LOW | `compose.test-nodes.yaml` as an optional extend or separate file. Comment in compose: "Test infrastructure — not needed for production." |
-| Step-by-step getting-started doc matching the clean compose | Docs must match what the user actually runs. | MEDIUM | Update `install.md` + `enroll-node.md` to reflect the node-free cold start. Steps: 1) start server, 2) log in, 3) get JOIN_TOKEN, 4) start your own node. |
-| Prerequisite callout at top of install doc | Users need to know what they need before they start. Missing = halfway-done installs. | LOW | Callout block: Docker Engine 24+, docker compose plugin, 2 GB RAM, port 443/8001 open. |
-| Expected-state checkpoints after each step | Users need to know when a step is done. "It should look like X." | LOW | After each step: "You should see: [screenshot or terminal output snippet]". |
+| Screenshots covering each major dashboard view | Users expect to see what the product looks like before deploying it | MEDIUM | Jobs, Nodes, Queue, Foundry/Wizard, Scheduling/Health, Audit Log, Admin — 7–10 views |
+| Authenticated captures | Dashboard requires JWT; screenshots must inject auth before navigating | MEDIUM | Pattern established in `mop_validation/scripts/test_playwright.py`: localStorage JWT injection |
+| Deterministic filenames | `jobs-overview.png` not `screenshot-2026-03-28T14-32-11.png` — stable so docs can reference them | LOW | Name by view slug, never by timestamp |
+| Sufficient resolution for retina displays | Blurry screenshots in docs signal low quality | LOW | `deviceScaleFactor: 2`, viewport 1440px wide |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| "30-minute badge" — honest time estimate per section | Sets expectation. Reduces abandonment from uncertainty. | LOW | Section headers: "Step 1: Start the server (~5 min)", "Step 2: Enroll your first node (~10 min)". Only add if accurate. |
-| Troubleshooting accordion in install doc | Installs fail. Embedded troubleshooting reduces support burden. | MEDIUM | 3–5 common failures: "Caddy 502", "Node won't enroll", "Admin password mismatch". Each: symptom → cause → fix. |
-| Copy-paste command blocks with no modifications needed | Zero-edit install is the gold standard. | MEDIUM | Replace all `<YOUR_HOSTNAME>` placeholders with `localhost` defaults. Let users override in `.env`, not by editing the compose file. |
+| Seeded demo data before capture | Screenshots show realistic content (3+ nodes, live jobs, audit entries) not empty state | MEDIUM | Setup fixtures: enroll nodes, dispatch jobs, wait for COMPLETED status before capturing |
+| Configurable via env vars | `AXIOM_URL`, `AXIOM_ADMIN_PASSWORD` — runnable on any stack without editing the script | LOW | Follows pattern of other validation scripts in this codebase |
+| Marketing-specific crop helper | Homepage hero section needs a specific viewport crop of the dashboard | LOW | Separate function per screenshot target; marketing crops are post-processing annotations |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Single compose file for everything (server + nodes) | "One command" is appealing | Conflates orchestrator and node. Nodes are on different machines in real deployments. Teaches wrong mental model. | Two files. Document that nodes run `node-compose.yaml` on a separate machine (or same for dev). |
-| Wizard/installer script | Reduces friction further | Adds a maintenance surface. Script goes out of date. Compose + .env is already declarative. | Well-commented `.env.example` with sensible defaults. |
-| Video walkthrough as primary onboarding path | High engagement for learners | Videos go stale on every UI change. Cannot be searched or copy-pasted from. | Text + screenshots. Link to video from docs if one exists, but not as the only path. |
+| Screenshots captured in CI on every push | "Always up to date" | CI Playwright runs are slow; screenshots change on every minor UI tweak causing large binary diffs in git history | Run screenshot capture manually as part of release prep; commit the results |
+| Video walkthroughs generated from Playwright | "More engaging than screenshots" | Exponentially more storage; high maintenance; out of scope for docs | Static screenshots suffice for v15.0 docs |
+| Screenshot diffing as regression test | "Detect visual regressions" | vitest already tests component behaviour; visual regression requires a dedicated tool (Percy, Chromatic) | Not in scope; keep screenshots as documentation artefacts only |
+
+### What "Done" Looks Like for an Operator
+
+1. Run `python scripts/capture_screenshots.py --url https://localhost:8443 --admin-password ...`
+2. Script seeds demo data, waits for nodes to show ONLINE and jobs to show COMPLETED, then captures 8–10 views
+3. Images saved to `docs/docs/assets/screenshots/` with stable names
+4. Operator reviews and commits alongside docs updates
+5. Feature guides reference images with relative paths: `![Jobs view](../assets/screenshots/jobs-overview.png)`
+6. Marketing homepage `<img>` tags point to the same directory
+
+### Existing Axiom Dependencies
+
+- Running Docker stack with at least one enrolled node
+- JWT auth + localStorage injection pattern from `mop_validation/scripts/test_playwright.py`
+- `CLAUDE.md` Playwright constraints: `--no-sandbox`, form-encoded API login, localStorage key `mop_auth_token`
+- `docs/docs/assets/` — exists; needs `screenshots/` subdirectory
 
 ---
 
-## Sub-Domain D: Hello-World Signing UX (axiom-push CLI)
+## Capability 4: Node Validation Job Library
 
-The current flow requires: `pip install axiom-push` → `axiom-push login` (OAuth device flow) → `axiom-push key generate` → upload public key in dashboard → `axiom-push sign my_script.py` → `axiom-push push my_script.py`. This is 5+ distinct operations. First users abandon at step 3.
+**Context:** Operators deploying new nodes need to verify the node is working correctly end-to-end: runtime executes, volumes map, network filtering works, resource limits are respected. Currently there are no reference jobs. This feature provides a library of pre-signed reference jobs covering each runtime and capability, with an operator runbook.
 
 ### Table Stakes
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| `axiom-push init` — single onboarding command | CLI tools that require manual multi-step setup before first use fail. `init` is the standard pattern (cf. `git init`, `npm init`, `gh auth login`). | MEDIUM | Chains: login (OAuth device flow) → key generation → uploads public key to server → prints confirmation. Interactive prompts for server URL and key name. |
-| Server URL prompted interactively on first run | Users don't know to pass `--server` on first use. | LOW | `axiom-push init` prompts "Server URL [https://localhost:443]:" with a sensible default. Saves to `~/.axiom/config.json`. |
-| Key already-registered check before generating | Users who run `init` twice should not get duplicate key errors. | LOW | Check existing key on server before generating. If registered: "Key already registered — skipping." |
-| Actionable error messages for auth failures | Expired JWT, wrong server URL, 401 — these must tell the user what to do next, not just print a status code. | LOW | "Authentication failed. Your session may have expired. Run `axiom-push login` to re-authenticate." |
-| `axiom-push sign-and-push` (combined command) | After init, the repetitive sign+push is the daily-use pattern. A combined command reduces friction. | LOW | Thin wrapper: runs `sign` then `push`. Accepts same args as `push`. |
+| Hello-world job for each runtime (Python, Bash, PowerShell) | Confirms the runtime is installed and the execution pipeline works end-to-end | LOW | Simple stdout `"hello from {runtime}"` + exit 0; one script per runtime |
+| Exit-code failure job | Confirms FAILED state is captured correctly | LOW | `exit 1` / `sys.exit(1)` — exercises failure path without needing a bad script |
+| Stdout and stderr capture validation job | Confirms both streams appear in the execution record | LOW | Write distinct strings to stdout and stderr; operator verifies both in dashboard |
+| Jobs must be pre-signed | All library jobs need accompanying Ed25519 signatures to be dispatchable | MEDIUM | Run `axiom-push push` for each script at library creation time; store `.sig` file alongside script |
+| Jobs are self-describing | Each job prints its purpose and expected output as the first line | LOW | `# Validation: python-hello` as a comment + print statement saying what to verify |
 
 ### Differentiators
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| `axiom-push status` — health check command | Shows: logged-in as X, server Y, key registered (yes/no), licence state. Answers "am I set up correctly?" in one command. | LOW | High value for support/debugging. Reduces "why isn't it working?" tickets. |
-| Progress indicators during sign+push | Large scripts can be slow. Silent tools feel broken. | LOW | Use `rich` (already likely a dep) or plain stderr progress. "Signing... done. Pushing... done." |
-| Config file at `~/.axiom/config.json` with documented format | Enables scripting and CI/CD use. | LOW | Document schema in CLI `--help` output and in docs. Fields: `server_url`, `key_id`, `token_path`. |
-| `--dry-run` flag on push | CI/CD pipelines need to validate without executing. | LOW | Validate signature and server reachability but do not submit job. |
+| Volume mapping verification job | Confirms an operator-specified volume path is writable and readable inside the container | MEDIUM | Write a temp file to a mounted path; read it back; clean up |
+| Network connectivity test job | Confirms the node's network policy allows expected traffic (DNS resolution, outbound HTTPS) | MEDIUM | `requests.get("https://example.com")` or `curl`; capture HTTP status; exit 0 on 200 |
+| Runbook in docs | `docs/docs/runbooks/node-validation.md` walks through dispatching each job and interpreting output | LOW | Documents expected output per job so operator knows what pass looks like |
+| Jobs organised by category | `validation-jobs/runtime/`, `validation-jobs/network/`, `validation-jobs/storage/` | LOW | Directory structure makes the library navigable as it grows |
 
 ### Anti-Features
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Auto-generate and auto-upload key without user consent | "Zero config" | Private key generated silently with no user awareness violates principle of least surprise for a security tool. | Interactive prompt: "Generate a new signing key? [Y/n]". One prompt. Not five. |
-| Separate `login`, `keygen`, `upload-key`, `sign`, `push` commands as the documented "getting started" | Granular control | Too many steps for first use. Users abandon. | Keep all sub-commands, but document `init` and `sign-and-push` as the happy path. Advanced users discover the rest. |
-| Keychain/OS credential store integration in v1 | Looks like polish | Platform-specific bugs, complex to test, adds dependencies. | Store token in `~/.axiom/token` (600 permissions). Document clearly. Keychain integration is a v2 item. |
+| Automated orchestration of all validation jobs via management script | "Run all validations with one command" | Requires knowing which node to target, waiting for results, interpreting them — significant scope creep for v15.0 | Provide runbook and individual signed scripts; operator dispatches them in sequence |
+| Jobs that modify persistent system state | "Test real operations" | Validation jobs may run in production environments; persistent side effects are unacceptable | Read-only or fully ephemeral operations only (write to `/tmp`, not to volumes; clean up after) |
+| Resource limit verification job in v15.0 core | "Validates node limits are enforced" | Memory limit enforcement varies between Docker and Podman, and between cgroup v1/v2; high risk of false failures | Defer to v15.x; document as known gap in runbook |
+
+### What "Done" Looks Like for an Operator
+
+1. After deploying a new node, operator opens `docs/docs/runbooks/node-validation.md`
+2. Runbook lists 6–8 jobs: Python/Bash/PowerShell hello, exit failure, stdout+stderr, volume write, network check
+3. Each job in `validation-jobs/` has a `.sig` file alongside it; operator dispatches with `axiom-push push <script>`
+4. Runbook documents expected output for each job; operator confirms COMPLETED + output matches
+5. Entire validation suite can be done in under 30 minutes for a new node
+
+### Existing Axiom Dependencies
+
+- `axiom-push push` CLI — must be installed and configured to dispatch signed jobs
+- `puppets/environment_service/runtime.py` — execution path being validated
+- Ed25519 signing keypair at `~/.axiom/` — needed to sign library jobs at library creation time
+- `puppeteer/agent_service/services/job_service.py` — job admission, capability matching, node selection
+- v11.1 job test matrix (8 scenarios) — prior art for test coverage; library jobs are user-facing artefacts, not internal test infrastructure
+
+---
+
+## Capability 5: Custom Package Repo Operator Docs and Validation
+
+**Context:** Axiom v7.0 shipped Package Repository Mirroring (local PyPI + APT sidecars, auto-sync, air-gapped upload, pip.conf/sources.list injection). The gap is comprehensive operator documentation and a validation job that confirms the mirror is reachable from a node before jobs depend on it.
+
+### Table Stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Step-by-step mirror setup guide | "Ships with mirroring" is not enough; operators need exact configuration steps | MEDIUM | Cover: PyPI via bandersnatch, APT via apt-mirror; each as a standalone section |
+| pip.conf and sources.list injection documentation | How to configure nodes to use the mirror by default vs. per-job override | LOW | Docs-only; injection mechanism already exists in the platform |
+| Air-gap upload procedure docs | How to transfer packages from internet-connected machine to air-gapped mirror | MEDIUM | Documents existing upload feature; adds a worked example with exact commands |
+| Storage sizing guidance | Full PyPI is 20+ TB — operators need to know scoped mirroring is the right pattern | LOW | Recommend curated package lists rather than full mirrors; bandersnatch `allowlist` config |
+| Mirror connectivity validation job | A signed reference job that installs a package from the local mirror; exits 0 on success | MEDIUM | Reuses validation job library pattern from Capability 4; one job per mirror type |
+
+### Differentiators
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Scoped mirror strategy guide | Most operators don't need all of PyPI; a curated list of 50–100 packages covers most jobs | LOW | Bandersnatch `allowlist` config is straightforward; documenting it prevents the "20 TB problem" |
+| Error message improvement when mirror is unreachable | Nodes get descriptive failures instead of silent hangs when configured mirror is down | MEDIUM | Code change: timeout + descriptive error in package install step within job execution |
+| PWSH module mirror guide (optional/advanced) | PowerShell Gallery mirroring is under-documented in the ecosystem; covering it differentiates for Windows-heavy environments | HIGH | PSResourceGet / NuGet-compatible proxy; limited tooling; mark as advanced/experimental |
+
+### Anti-Features
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Full PyPI mirror as a default sidecar config | "Works out of the box" | 20+ TB storage makes this impractical as a default; would mislead operators into believing full mirroring is standard | Document scoped mirror: list the packages your jobs need, mirror only those |
+| Mirror management UI in the dashboard | "Centralised control" | The sidecars (bandersnatch, apt-mirror) have their own management interfaces; wrapping them in Axiom adds enormous scope for marginal value | Document use of upstream tools; Axiom's role is connection injection and validation |
+| Automatic CVE re-scanning after mirror update | "Keep mirror clean" | Smelter already does CVE scanning at image-build time, which is the right chokepoint | Reference Smelter CVE enforcement as the defence-in-depth story; do not duplicate scanning |
+
+### What "Done" Looks Like for an Operator
+
+1. `docs/docs/feature-guides/package-repos.md` exists with complete setup guide for PyPI (bandersnatch) and APT (apt-mirror)
+2. Guide covers: install and configure the sidecar, configure Axiom to inject `pip.conf` on nodes, test connectivity
+3. Operator dispatches `validation-jobs/packages/pypi-mirror-check.py` to a node; it installs a known package from the local mirror and exits 0
+4. Air-gap upload procedure documented with exact commands: `bandersnatch mirror`, transfer, sidecar ingestion
+5. When the mirror is unreachable, the execution record shows: "pip install failed: mirror at http://mirror:3141/simple returned connection refused" — not a silent timeout
+
+### Existing Axiom Dependencies
+
+- Package Repository Mirroring sidecars (v7.0) — already in `compose.server.yaml`
+- Smelter CVE scanning (v7.0) — downstream consumer of mirror packages; docs should reference it
+- Foundry pip.conf/sources.list injection (v7.0) — the mechanism documented by this feature
+- `docs/docs/feature-guides/` — location for new `package-repos.md`
+- Validation job library (Capability 4) — mirror check jobs reuse this infrastructure and signing pattern
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Marketing Homepage]
-    requires existing --> [MkDocs docs site at github.io] (already built — v14.2)
-    blocks on        --> [30-min install path] (Sub-Domain C must be complete first)
-    references       --> [CE vs EE table] (licence system already built — v14.3)
+[Capability 1: Licence Record Store]
+    extends     --> existing tools/generate_licence.py
+    requires    --> private GitHub repo axiom-laboratories/axiom-licences (external setup)
+    no blockers --> can build independently
 
-[Licence Banner]
-    requires         --> [GET /api/licence endpoint] (already built — v14.3)
-    requires         --> [useLicence hook] (already built — used in Admin.tsx)
-    requires         --> [authenticated layout wrapper] (already built — MainLayout.tsx)
-    enhances         --> [Admin LicenceSection deep-link] (already exists)
-    no blockers      --> can ship independently
+[Capability 2: Docs Accuracy Validation]
+    reads       --> docs/docs/ (MkDocs source)
+    queries     --> running Docker stack (live endpoint checks)
+    references  --> openapi.json (from docs/scripts/regen_openapi.sh)
+    follows     --> mop_validation/scripts/synthesise_friction.py pattern
+    writes to   --> .github/workflows/docs-deploy.yml (CI gate)
 
-[Clean Install Docs]
-    blocks           --> [Marketing Homepage 30-min claim] (cannot make the claim until the path is real)
-    requires         --> [compose.cold-start.yaml refactor] (code change, not just docs)
-    requires         --> [axiom-push init] (Sub-Domain D, for the CLI tab in install docs)
+[Capability 3: Screenshot Capture]
+    requires    --> running Docker stack with enrolled node
+    uses        --> Playwright JWT auth pattern from mop_validation/
+    writes to   --> docs/docs/assets/screenshots/
+    enhances    --> Capability 2 (screenshots in validated docs)
 
-[axiom-push init / sign-and-push]
-    requires         --> [OAuth device flow] (already built — v8.0)
-    requires         --> [key upload API] (already built)
-    blocks           --> [Clean Install Docs CLI tab] (can't document a command that doesn't exist)
+[Capability 4: Validation Job Library]
+    requires    --> axiom-push CLI installed and configured
+    requires    --> Ed25519 keypair at ~/.axiom/
+    requires    --> running Docker stack with enrolled test node
+    documents in --> docs/docs/runbooks/node-validation.md (new file)
+
+[Capability 5: Package Repo Docs + Validation]
+    documents   --> existing mirror sidecars (v7.0)
+    reuses      --> Capability 4 validation job pattern and signing infrastructure
+    writes to   --> docs/docs/feature-guides/package-repos.md (new file)
+
+[Capability 4] ──enables──> [Capability 5 mirror validation job]
+[Capability 3] ──provides assets for──> [Capability 2 validated docs]
 ```
 
 ### Dependency Notes
 
-- **Licence banner has zero blocking dependencies.** It can be built and shipped independently of everything else. It is the lowest-risk item in this milestone.
-- **axiom-push init must land before the install docs rewrite.** The CLI tab in `enroll-node.md` documents `axiom-push init` — the command must exist before the docs reference it.
-- **Clean install docs must land before the marketing homepage 30-min claim.** Do not add "up and running in 30 minutes" to the homepage until the actual path is verified to take 30 minutes.
-- **Phase ordering implied:** Licence banner (parallel, unblocked) → axiom-push CLI → install docs → marketing homepage.
+- **Capability 1 is fully independent.** No runtime dependencies on other v15.0 features; can be built first or in parallel.
+- **Capability 4 should precede Capability 5.** The PyPI mirror validation job reuses the validation job library signing pattern; Capability 5 should not define a separate job format.
+- **Capabilities 2 and 3 are loosely coupled.** Screenshots improve docs quality but docs accuracy validation does not require screenshots to function.
+- **All five capabilities can be parallelised** after the initial design decisions are made; none has a hard sequential dependency on another within v15.0.
 
 ---
 
 ## MVP Definition
 
-### Launch With (v1 — this milestone)
+### Launch With (v15.0)
 
-- [ ] **Licence state banner** — amber (GRACE) and red (EXPIRED/DEGRADED_CE), admin-only, persistent, with days-remaining and deep-link CTA. Backend is ready; this is a pure frontend task.
-- [ ] **axiom-push init command** — chains login + keygen + key upload into one interactive command. Reduces first-user abandonment at the most critical funnel step.
-- [ ] **sign-and-push combined command** — thin daily-use wrapper. Trivial to implement once `init` exists.
-- [ ] **Clean compose.cold-start.yaml** — test nodes removed or separated. Single most confusing thing for first users today.
-- [ ] **Docs rewrite matching clean compose** — `install.md` and `enroll-node.md` updated to match the new node-free cold start. Includes prerequisite callout and expected-state checkpoints.
-- [ ] **Marketing homepage** — static `index.html` on GitHub Pages (separate from `/docs/`). Hero, security positioning, CE/EE table, link to docs. Unblocked only after clean install path exists.
+All five capabilities are in scope. Listed in recommended build order.
 
-### Add After Validation (v1.x)
+- [ ] Capability 1: Licence record store — `generate_licence.py` extended with `--record-to <path>`; writes JSON record file; README documents commit-to-private-repo workflow
+- [ ] Capability 4: Validation job library — 6–8 signed reference jobs covering Python/Bash/PowerShell hello, exit failure, stdout+stderr, volume write, network check; runbook in docs
+- [ ] Capability 5: Package repo operator guide — `package-repos.md` covering PyPI + APT mirror setup, pip.conf injection, air-gap procedure, connectivity validation job (depends on Capability 4 pattern)
+- [ ] Capability 3: Screenshot capture script — captures 8–10 key views with seeded demo data; images committed to `docs/docs/assets/screenshots/`
+- [ ] Capability 2: Docs accuracy validation script — checks endpoints, CLI flags, env var names against live stack; produces PASS/FAIL report; optionally gated in CI
 
-- [ ] **axiom-push status command** — useful but not blocking first-use. Add when support questions reveal "am I set up?" confusion.
-- [ ] **Troubleshooting accordion in install docs** — add based on actual first-user failure modes observed after launch.
-- [ ] **Changelog/release signal on homepage** — add once release cadence is established and signals "active project".
+### Add After Validation (v15.x)
 
-### Future Consideration (v2+)
+- [ ] CI gate in `docs-deploy.yml` — blocks deploy on FAIL items from Capability 2 script
+- [ ] Resource limit validation job — add to Capability 4 library once cgroup v2 behaviour is characterised across Docker and Podman
+- [ ] PWSH module mirror guide — add to Capability 5 once PSResourceGet/NuGet proxy tooling matures
 
-- [ ] **OS keychain credential storage in axiom-push** — complex, platform-specific. Plain file with 600 permissions is sufficient for v1.
-- [ ] **Animated terminal demo on homepage** — high maintenance. Only if a stable, auto-updating mechanism exists.
-- [ ] **Video walkthrough** — high production cost. Deferred until content is stable.
-- [ ] **Testimonials section on homepage** — only when 2–3 real, attributed quotes exist.
+### Future Consideration (v16+)
+
+- [ ] Licence issuance portal (DIST-04) — web UI for self-service licence delivery; replaces CLI + git workflow at scale
+- [ ] Periodic licence re-validation (DIST-05) — APScheduler 6h re-check; currently startup-only
+- [ ] Automated validation job orchestration — management script that dispatches all library jobs and reports aggregate results
 
 ---
 
@@ -209,45 +327,42 @@ The current flow requires: `pip install axiom-push` → `axiom-push login` (OAut
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Licence state banner (amber/red) | HIGH | LOW — backend ready, pure frontend | P1 |
-| axiom-push init | HIGH — removes biggest abandonment point | MEDIUM — chains 3 existing operations | P1 |
-| sign-and-push combined command | MEDIUM — daily-use convenience | LOW — thin wrapper | P1 |
-| Clean compose.cold-start.yaml (no test nodes) | HIGH — eliminates first-user confusion | LOW — restructure one file | P1 |
-| Docs rewrite (install + enroll-node) | HIGH — must match new compose | MEDIUM — rewrite, not edit | P1 |
-| Marketing homepage | HIGH — acquisition surface | MEDIUM — static HTML/CSS, 6 sections | P2 |
-| axiom-push status | MEDIUM — debugging aid | LOW | P2 |
-| Troubleshooting accordion in install docs | MEDIUM — reduces abandonment | MEDIUM — need real failure data first | P2 |
-| Homepage changelog signal | LOW | LOW | P3 |
-| Homepage testimonials | HIGH (if real) / LOW (if fake) | LOW | P3 |
+| Validation job library | HIGH — unblocks node operator verification post-deployment | MEDIUM | P1 |
+| Package repo operator docs | HIGH — existing v7.0 feature is undocumented for operators | MEDIUM | P1 |
+| Screenshot capture | MEDIUM — improves docs credibility and marketing surface | MEDIUM | P1 |
+| Docs accuracy validation | MEDIUM — prevents regression; saves support time at scale | MEDIUM | P1 |
+| Licence record store | MEDIUM — operational hygiene for EE customer management | LOW | P1 |
 
-**Priority key:**
-- P1: Must have for this milestone — directly unblocks first-user success
-- P2: Should have — add when P1 items are stable
-- P3: Nice to have — future consideration
+All five are P1. Implementation costs are MEDIUM or below because:
+- All underlying platform features already exist (mirror sidecars, axiom-push, generate_licence.py)
+- Each deliverable is a script or docs page, not a new service
+- The Playwright and Python scripting patterns are established in this codebase
 
 ---
 
 ## Competitor Feature Analysis
 
-| Feature | Temporal (job scheduler) | Rundeck | Our Approach |
-|---------|--------------------------|---------|--------------|
-| Marketing homepage | Polished site, feature matrix, pricing | Enterprise marketing site, demo CTA | Minimal static page on GitHub Pages — honest, fast, security-focused |
-| Licence banner | N/A (OSS) | Trial expiry modal (blocks UI) | Non-blocking top banner, admin-only, role-gated |
-| Install docs | Single Docker command, no test infra bundled | Complex installer | Two-file compose (server / node separate), .env defaults, no bundled test nodes |
-| CLI signing UX | No signing concept | No signing concept | `axiom-push init` as single onboarding command, `sign-and-push` for daily use |
+| Feature | HashiCorp Nomad / Rundeck | Temporal / Airflow | Axiom v15.0 Approach |
+|---------|---------------------------|---------------------|----------------------|
+| Licence management | SaaS portal + email delivery | N/A (open source) | Offline CLI + git ledger — air-gap safe by design |
+| Docs validation | Rarely automated; docs drift is industry-wide | No | Structured spot-check script; friction report format |
+| Dashboard screenshots in docs | Manually maintained; visibly stale in most projects | Code-focused docs only | Playwright capture script; semi-automated on release |
+| Node validation jobs | Not provided; operators write their own | Example DAGs in docs | Pre-signed reference jobs with runbook; lower operator barrier |
+| Package repo docs | Minimal; assumes operator knows bandersnatch | No | Step-by-step guide with validation job; covers air-gap scoped mirror pattern |
 
 ---
 
 ## Sources
 
-- Evil Martians: "We studied 100 dev tool landing pages — here's what actually works in 2025" — https://evilmartians.com/chronicles/we-studied-100-devtool-landing-pages-here-is-what-actually-works-in-2025
-- Lucas F. Costa: "UX patterns for CLI tools" — https://www.lucasfcosta.com/blog/ux-patterns-cli-tools
-- Notification banner severity patterns (Astro UX DS) — https://www.astrouxds.com/components/notification-banner/
-- Smashing Magazine: "Design Guidelines For Better Notifications UX" (2025) — https://www.smashingmagazine.com/2025/07/design-guidelines-better-notifications-ux/
-- Docker Compose official quickstart — https://docs.docker.com/compose/gettingstarted/
-- Postman Onboarding Teardown: "7 UX Moves Every Dev Tool Should Copy" — https://www.candu.ai/blog/postman-onboarding-ux-lessons
-- Project context: `.planning/PROJECT.md` (v14.3 validated features)
+- [Keygen offline licensing docs](https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/) — Ed25519 as the default offline licence signing scheme; confidence HIGH
+- [Keyforge offline licensing blog](https://keyforge.dev/blog/how-to-offline-licensing) — JWT-based offline licence patterns; confidence MEDIUM
+- [Playwright screenshots official docs](https://playwright.dev/docs/screenshots) — `page.screenshot` options, `deviceScaleFactor`; confidence HIGH
+- [Playwright docs screenshot automation (Medium, 2026)](https://medium.com/@admin_11488/using-playwright-to-automatically-generate-screenshots-for-documentation-2153b8bf045c) — deterministic filename and CI pattern; confidence MEDIUM
+- [Espejo Docker-based PyPI + APT mirror (GitHub)](https://github.com/mmguero/espejo) — practical air-gap mirror setup reference; confidence HIGH
+- [PyPI mirror storage sizing (Python Discuss, 2024)](https://discuss.python.org/t/how-do-i-locally-host-a-pypi-repository-on-an-air-gapped-server/60704) — scoped mirror strategy rationale; confidence HIGH
+- Axiom codebase: `tools/generate_licence.py`, `mop_validation/scripts/test_playwright.py`, `mop_validation/scripts/synthesise_friction.py`, `.planning/PROJECT.md` — HIGH confidence (primary source)
 
 ---
-*Feature research for: Axiom go-to-market polish milestone*
-*Researched: 2026-03-27*
+
+*Feature research for: Axiom v15.0 Operator Readiness*
+*Researched: 2026-03-28*
