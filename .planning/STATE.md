@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
 status: planning
-stopped_at: "Completed 82-01-PLAN.md: axiom-licenses scaffold, issue_licence.py, list_licences.py"
-last_updated: "2026-03-28T20:21:46.177Z"
+stopped_at: "Completed 82-02-PLAN.md: licence key rotation, generate_licence.py removal, gitleaks CI guard"
+last_updated: "2026-03-28T20:26:50.647Z"
 last_activity: 2026-03-28 — Roadmap created for v15.0
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -49,6 +49,7 @@ Progress: [░░░░░░░░░░] 0%
 | 85. Screenshot Capture | TBD | - | - |
 | 86. Docs Accuracy Validation | TBD | - | - |
 | Phase 82-licence-tooling P01 | 3 | 3 tasks | 9 files |
+| Phase 82 P02 | 12 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 82-01]: Public key PEM captured from keypair generation: MCowBQYDK2VwAyEA4ceile+Eh85kcTaQuI+CZS3qlHX8f+kYYReW7x3heVk= — must be used in licence_service.py (Plan 02 Task 1)
 - [Phase 82-01]: list_licences.py sorts ascending by expiry (soonest first) — more operationally useful for renewal tracking despite plan text saying descending
 - [Phase 82-01]: keys/licence.key excluded from git via .gitignore *.key rule — private key must only exist in the private axiom-licenses repo
+- [Phase 82-02]: New Ed25519 public key MCowBQYDK2VwAyEA4ceile+Eh85kcTaQuI+CZS3qlHX8f+kYYReW7x3heVk= embedded in licence_service.py; tools/generate_licence.py removed from public repo
+- [Phase 82-02]: gitleaks [[allowlists]] double-bracket syntax required for v8.25.0+; secret-scan CI job added with full history fetch
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T20:21:46.176Z
-Stopped at: Completed 82-01-PLAN.md: axiom-licenses scaffold, issue_licence.py, list_licences.py
+Last session: 2026-03-28T20:26:50.645Z
+Stopped at: Completed 82-02-PLAN.md: licence key rotation, generate_licence.py removal, gitleaks CI guard
 Resume file: None
