@@ -4,7 +4,7 @@ milestone: v15.0
 milestone_name: — Operator Readiness
 status: planning
 stopped_at: "Completed 82-02-PLAN.md: licence key rotation, generate_licence.py removal, gitleaks CI guard"
-last_updated: "2026-03-28T20:26:50.647Z"
+last_updated: "2026-03-28T20:30:13.934Z"
 last_activity: 2026-03-28 — Roadmap created for v15.0
 progress:
   total_phases: 5

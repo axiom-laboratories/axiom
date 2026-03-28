@@ -303,7 +303,7 @@ Plans:
 | 79. Install Docs Cleanup | v14.4 | 1/1 | Complete | 2026-03-27 |
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 2/2 | Complete | 2026-03-27 |
 | 81. Homepage Enterprise Messaging | v14.4 | 1/1 | Complete | 2026-03-28 |
-| 82. Licence Tooling | 2/2 | Complete   | 2026-03-28 | - |
+| 82. Licence Tooling | 2/2 | Complete    | 2026-03-28 | - |
 | 83. Node Validation Job Library | v15.0 | 0/TBD | Not started | - |
 | 84. Package Repo Operator Docs | v15.0 | 0/TBD | Not started | - |
 | 85. Screenshot Capture | v15.0 | 0/TBD | Not started | - |
