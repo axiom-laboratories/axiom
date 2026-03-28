@@ -1,0 +1,12 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+# Allowlists — values that are known non-secrets used in CI
+# Uses [[allowlists]] plural array syntax (required since gitleaks v8.25.0)
+[[allowlists]]
+description = "Known CI dummy values — not real secrets"
+regexTarget = "match"
+regexes = [
+  '''ci-dummy-key''',
+  '''AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=''',
+]
