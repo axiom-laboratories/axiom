@@ -7,11 +7,11 @@
 
 ### Licence Tooling
 
-- [ ] **LIC-01**: Operator can migrate the licence signing private key out of the public repo into a private `axiom-licences` repo, with key rotation if needed
+- [x] **LIC-01**: Operator can migrate the licence signing private key out of the public repo into a private `axiom-licences` repo, with key rotation if needed
 - [ ] **LIC-02**: CI guard prevents PEM private key content from being committed to the public repo
-- [ ] **LIC-03**: Operator can run `issue_licence.py --customer X --tier EE --nodes N --expiry YYYY-MM-DD` to generate a base64 licence blob offline
-- [ ] **LIC-04**: Each issued licence is recorded as a YAML file in `axiom-licences/licences/issued/` and committed as an audit trail
-- [ ] **LIC-05**: `issue_licence.py` supports `--no-remote` flag for air-gapped operators (writes record to local file instead of GitHub)
+- [x] **LIC-03**: Operator can run `issue_licence.py --customer X --tier EE --nodes N --expiry YYYY-MM-DD` to generate a base64 licence blob offline
+- [x] **LIC-04**: Each issued licence is recorded as a YAML file in `axiom-licences/licences/issued/` and committed as an audit trail
+- [x] **LIC-05**: `issue_licence.py` supports `--no-remote` flag for air-gapped operators (writes record to local file instead of GitHub)
 
 ### Node Validation Jobs
 
@@ -70,11 +70,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LIC-01 | Phase 82 | Pending |
+| LIC-01 | Phase 82 | Complete |
 | LIC-02 | Phase 82 | Pending |
-| LIC-03 | Phase 82 | Pending |
-| LIC-04 | Phase 82 | Pending |
-| LIC-05 | Phase 82 | Pending |
+| LIC-03 | Phase 82 | Complete |
+| LIC-04 | Phase 82 | Complete |
+| LIC-05 | Phase 82 | Complete |
 | JOB-01 | Phase 83 | Pending |
 | JOB-02 | Phase 83 | Pending |
 | JOB-03 | Phase 83 | Pending |
