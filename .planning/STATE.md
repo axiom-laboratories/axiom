@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v15.0
-milestone_name: — Operator Readiness
+milestone_name: Operator Readiness
 status: planning
-stopped_at: —
-last_updated: "2026-03-28T17:45:00.000Z"
-last_activity: "2026-03-28 — Milestone v15.0 started: requirements defined, roadmap pending"
+stopped_at: roadmap created
+last_updated: "2026-03-28T18:00:00.000Z"
+last_activity: "2026-03-28 — v15.0 roadmap created: 5 phases (82–86), 22 requirements mapped"
 progress:
   total_phases: 5
-  completed_phases: 5
-  total_plans: 7
-  completed_plans: 7
-  percent: 25
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone — v14.4 shipped
+**Current focus:** v15.0 — Operator Readiness — Phase 82: Licence Tooling
 
 ## Current Position
 
-Phase: Not started (defining roadmap)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-28 — Milestone v15.0 started
+Phase: 82 of 86 (Licence Tooling)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-03-28 — Roadmap created for v15.0
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -43,61 +43,38 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 77. Licence Banner Polish | TBD | - | - |
-| 78. CLI Signing UX | TBD | - | - |
-| 79. Install Docs Cleanup | TBD | - | - |
-| 80. GitHub Pages + Homepage | TBD | - | - |
-| Phase 77 P01 | 2 | 2 tasks | 2 files |
-| Phase 78-cli-signing-ux P01 | 35 | 3 tasks | 5 files |
-| Phase 78-cli-signing-ux P02 | ~2h | 2 tasks | 1 file |
-| Phase 79-install-docs-cleanup P01 | 1min | 2 tasks | 2 files |
-| Phase 80 P01 | 1min | 2 tasks | 2 files |
-| Phase 80 P02 | 2 | 2 tasks | 3 files |
-| Phase 81 P01 | 2 | 2 tasks | 2 files |
-| Phase 81 P01 | 3min | 3 tasks | 2 files |
+| 82. Licence Tooling | TBD | - | - |
+| 83. Node Validation Job Library | TBD | - | - |
+| 84. Package Repo Operator Docs | TBD | - | - |
+| 85. Screenshot Capture | TBD | - | - |
+| 86. Docs Accuracy Validation | TBD | - | - |
 
 ## Accumulated Context
 
 ### Decisions
 
-- [v14.2]: `mkdocs gh-deploy --force` used for docs — BUT v14.4 Phase 80 must switch to `ghp-import --dest-dir docs` to coexist with homepage at root
-- [v14.3 Phase 74]: Grace/expired banner placed between header and main in MainLayout.tsx — banner component exists at lines 211-223; Phase 77 polishes it (dismiss + admin-only guard)
-- [v14.4 roadmap]: Phase 80 depends on Phase 78 (signing UX) and Phase 79 (install docs) completing first — homepage cannot honestly claim "30-minute setup" until those land
-- [v14.4 roadmap]: `mkdocs gh-deploy --force` has no `--dest-dir` flag (confirmed MkDocs 1.6.1) — Phase 80 must use `ghp-import --dest-dir docs` or `peaceiris/actions-gh-pages@v4`
-- [Phase 77]: Two independent banner branches for GRACE and DEGRADED_CE prevent graceDismissed state cross-contamination
-- [Phase 77]: isAdmin derived from existing user constant — no second getUser() call per render
-- [Phase 77]: sessionStorage key axiom_licence_grace_dismissed stored in named constant in component body
-- [Phase 78]: MOPClient imported at module level in cli.py for test-patchability (mop_sdk.cli.MOPClient)
-- [Phase 78]: AXIOM_URL replaces MOP_URL entirely in cli.py — no fallback kept to avoid confusion
-- [Phase 78-02]: Quick Start leads with AXIOM_URL export as first user-facing line — sets context before any command
-- [Phase 78-02]: axiom-push init describes all 3 auto-steps inline — no separate key ceremony in Quick Start
-- [Phase 78-02]: axiom-push key generate in ??? tip block — accessible but not promoted as primary path
-- [Phase 78-02]: openssl ceremony demoted to Manual Setup — preserved for CE users and advanced operators
-- [Phase 79-install-docs-cleanup]: compose.cold-start.yaml trimmed to 5 core services only — puppet nodes require separate JOIN token flow not appropriate for Quick Start
-- [Phase 79-install-docs-cleanup]: Tab label renamed from 'Cold-Start Install' to 'Quick Start' across Steps 2, 3, 4 — aligns with user mental model for a first-run compose
-- [Phase 80]: Use ghp-import -n -p -f -x docs site instead of mkdocs gh-deploy --force to restrict docs deploy to docs/ subtree only
-- [Phase 80]: site_url in mkdocs.yml updated to /axiom/docs/ to match new canonical path after subtree deploy
-- [Phase 80]: Stash homepage files to /tmp before git checkout gh-pages — avoids working-tree wipe on branch switch
-- [Phase 80]: homepage-deploy scoped to homepage/** only — never writes to docs/ preserving MkDocs coexistence
-- [Phase 81]: Security cards use var(--axiom-bg) not --axiom-surface for contrast against section-alt background
-- [Phase 81]: GOOGLE_FORM_URL_PLACEHOLDER sentinel used instead of empty href so broken enterprise links are visible before launch
-- [Phase Phase 81]: CE code snippet spacing: .dual-cta-block pre scoped to display:block so margin-bottom works in inline formatting context
-
-### Roadmap Evolution
-
-- Phase 81 added: Homepage enterprise messaging — SSO narrative, compliance framing, and conversion optimisation
+- [v15.0 roadmap]: Ed25519 private key must move to private `axiom-laboratories/axiom-licences` repo — public repo retains only the verification public key hardcoded in `licence_service.py`
+- [v15.0 roadmap]: `issue_licence.py` must require explicit `--key` path with no default — silent default inside the repo is the primary security gap to close in Phase 82
+- [v15.0 roadmap]: Resource limit jobs (JOB-06, JOB-07) included in Phase 83 but must gate on `resource_limits_supported` capability flag — cgroup v2 enforcement is unreliable on LXC nodes
+- [v15.0 roadmap]: Network validation job must use Docker-native `--network=none` isolation only — no direct iptables manipulation to avoid residual node-global state (research pitfall 6)
+- [v15.0 roadmap]: Phase 84 (Package Repo Docs) depends on Phase 83 — the pip mirror validation job is a corpus member and must use the signing infrastructure established in Phase 83
+- [v15.0 roadmap]: Screenshot capture is not a CI gate — it is an operator step on release prep; CI integration deferred to v15.x
+- [v15.0 roadmap]: Docs validation uses static OpenAPI snapshot (`docs/docs/api-reference/openapi.json`) — no live stack required, consistent with CLAUDE.md "never use local dev servers" rule
+- [v15.0 roadmap]: Phase 84 requires a 15-minute pre-execution devpi verification session — confirm Caddy-proxied URL, index names, and port before writing runbook prose (research flag)
 
 ### Pending Todos
 
-None carried forward.
+None.
 
 ### Blockers/Concerns
 
-- Phase 80: Verify `ghp-import --dest-dir` flag availability in the mkdocs transitive install before implementing (`ghp-import --help`). Fallback: `peaceiris/actions-gh-pages@v4` with `destination_dir` + `keep_files: true`.
-- Phase 80: Audit hardcoded absolute doc links in README, dashboard sidebar, and other files before changing `mkdocs.yml` `site_url` from `/axiom/` to `/axiom/docs/` — broken canonical links will cause 404s.
+- [Phase 82]: Key rotation design decision required before execution — when the signing keypair rotates, previously issued licences signed with the old key become invalid unless a transition window is defined. Parallel public keys vs. re-signing all issued licences must be decided at plan time.
+- [Phase 82]: `axiom-push init` signing workflow in CI requires a service principal token injected as a secret — exact mechanism must be defined before Phase 83 `sign_corpus.py` is built.
+- [Phase 83]: JOB-06 and JOB-07 (resource limit jobs) require cgroup v2 support on the test node — LXC nodes with `EXECUTION_MODE=direct` will not enforce `--memory`/`--cpus` flags. Gate on capability detection.
+- [Phase 84]: Verify live devpi Caddy-proxied URL, index name, and auth config before writing runbook. Risk: documenting wrong URL (research pitfall 8).
 
 ## Session Continuity
 
-Last session: 2026-03-28T08:21:03.605Z
-Stopped at: Completed 81-01-PLAN.md — homepage enterprise messaging, SSO narrative, and conversion optimisation
+Last session: 2026-03-28
+Stopped at: Roadmap created — Phase 82 ready to plan
 Resume file: None

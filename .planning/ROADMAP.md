@@ -16,6 +16,7 @@
 - ✅ **v14.2 — Docs on GitHub Pages** — Phase 71 (shipped 2026-03-26)
 - ✅ **v14.3 — Security Hardening + EE Licensing** — Phases 72–76 (shipped 2026-03-27)
 - ✅ **v14.4 — Go-to-Market Polish** — Phases 77–81 (shipped 2026-03-28)
+- 🚧 **v15.0 — Operator Readiness** — Phases 82–86 (in progress)
 
 ## Phases
 
@@ -191,6 +192,74 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
 
 </details>
 
+### 🚧 v15.0 — Operator Readiness (Phases 82–86)
+
+**Milestone Goal:** Close the gap between a technically functional platform and one that operators can confidently deploy in production — with a secure licence issuance workflow, a validated node job library, package repo runbooks, dashboard screenshots in docs and marketing, and a CI-wirable docs accuracy script.
+
+- [ ] **Phase 82: Licence Tooling** — Key migration to private repo, CI guard against committed keys, `issue_licence.py` CLI, YAML audit ledger, `--no-remote` flag
+- [ ] **Phase 83: Node Validation Job Library** — Signed Bash/Python/PowerShell reference jobs, volume + network + resource limit validation jobs, runbook, job manifest
+- [ ] **Phase 84: Package Repo Operator Docs** — devpi/APT/PWSH mirror runbooks, pip mirror validation job added to corpus
+- [ ] **Phase 85: Screenshot Capture** — Playwright seeded-data capture script, 8+ view screenshots committed to docs and marketing
+- [ ] **Phase 86: Docs Accuracy Validation** — OpenAPI/CLI cross-reference script, PASS/WARN/FAIL output with file+line refs, CI integration
+
+## Phase Details
+
+### Phase 82: Licence Tooling
+**Goal**: The licence signing private key is out of the public repo and operators can issue, audit, and rotate licences safely
+**Depends on**: Phase 81 (v14.4 complete)
+**Requirements**: LIC-01, LIC-02, LIC-03, LIC-04, LIC-05
+**Success Criteria** (what must be TRUE):
+  1. Operator can run `issue_licence.py --customer X --tier EE --nodes N --expiry YYYY-MM-DD` against a private `axiom-licences` repo and receive a valid base64 licence blob
+  2. Each issued licence produces a committed YAML record in `axiom-licences/licences/issued/` with `jti`, `customer_id`, `tier`, `node_limit`, `expiry`, and `issued_by` fields
+  3. The public repo contains no Ed25519 private key material — the CI guard rejects any commit with `-----BEGIN PRIVATE KEY-----` content
+  4. Operator can use `--no-remote` flag to write the audit record to a local file instead of committing to GitHub (air-gapped workflow)
+  5. Running `issue_licence.py` without an explicit `--key` path fails with a clear error — no silent default path inside the repo
+**Plans**: TBD
+
+### Phase 83: Node Validation Job Library
+**Goal**: Operators have a signed, runbook-backed job corpus to verify any node works correctly end-to-end across all runtimes and constraint types
+**Depends on**: Phase 82
+**Requirements**: JOB-01, JOB-02, JOB-03, JOB-04, JOB-05, JOB-06, JOB-07
+**Success Criteria** (what must be TRUE):
+  1. Operator can dispatch each of the Bash, Python, and PowerShell reference jobs and see them reach COMPLETED status on a capable node
+  2. The volume mapping validation job confirms files written inside the container are readable at the expected host-side mount path after job completion
+  3. The network filtering validation job confirms allowed hosts return a response and blocked hosts time out, without leaving residual iptables state on the node
+  4. The memory-hog job is killed (OOM or FAILED) rather than completing when dispatched to a node with a memory limit lower than the job's allocation
+  5. The CPU-spin job is throttled or killed when dispatched to a node with a CPU limit enforced at the container runtime level
+**Plans**: TBD
+
+### Phase 84: Package Repo Operator Docs
+**Goal**: Operators can configure a local package mirror for PyPI, APT, or PowerShell modules and validate it using a signed job
+**Depends on**: Phase 83
+**Requirements**: PKG-01, PKG-02, PKG-03, PKG-04
+**Success Criteria** (what must be TRUE):
+  1. Operator can follow the devpi runbook to configure a Blueprint's `pip.conf` to resolve from an internal mirror and verify a pip install succeeds without hitting the public internet
+  2. Operator can follow the APT mirror guidance to configure `apt-cacher-ng` as a sidecar and confirm packages resolve through it during a Foundry node build
+  3. Operator can follow the PWSH mirror guidance to install a module from a BaGet/PSGallery mirror inside a job script
+  4. The signed pip-mirror validation job reports PASS when the internal mirror is active and FAIL when it is not reachable, giving operators a dispatch-ready smoke test
+**Plans**: TBD
+
+### Phase 85: Screenshot Capture
+**Goal**: The docs and marketing homepage show real, populated dashboard screenshots that reflect actual platform state
+**Depends on**: Phase 83
+**Requirements**: SCR-01, SCR-02, SCR-03
+**Success Criteria** (what must be TRUE):
+  1. Operator can run `capture_screenshots.py` against a live Docker stack and receive 8+ named PNG files at 1440×900 without manual intervention or timing failures
+  2. Every captured screenshot shows seeded demo data (at least one enrolled node, completed jobs, visible audit entries) — no empty-state or spinner captures
+  3. Screenshots are committed to `docs/docs/assets/screenshots/` and rendered on the getting-started and feature docs pages
+  4. Screenshots are committed to `homepage/assets/screenshots/` and displayed in the marketing homepage
+**Plans**: TBD
+
+### Phase 86: Docs Accuracy Validation
+**Goal**: A CI-wirable script flags any docs that reference API routes, CLI commands, or env vars that no longer exist in the codebase
+**Depends on**: Phase 85
+**Requirements**: DOC-01, DOC-02, DOC-03
+**Success Criteria** (what must be TRUE):
+  1. Running `validate_docs.py` against the committed `openapi.json` snapshot produces a PASS/WARN/FAIL result per documented API route, with the specific docs file and line number on any FAIL
+  2. The script flags any `axiom-push <subcommand>` mentioned in docs that is not registered in `mop_sdk/cli.py`, and any env var names in docs that do not match the codebase
+  3. The script exits with code 1 on any FAIL result, making it usable as a CI gate
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -231,6 +300,11 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
 | 79. Install Docs Cleanup | v14.4 | 1/1 | Complete | 2026-03-27 |
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 2/2 | Complete | 2026-03-27 |
 | 81. Homepage Enterprise Messaging | v14.4 | 1/1 | Complete | 2026-03-28 |
+| 82. Licence Tooling | v15.0 | 0/TBD | Not started | - |
+| 83. Node Validation Job Library | v15.0 | 0/TBD | Not started | - |
+| 84. Package Repo Operator Docs | v15.0 | 0/TBD | Not started | - |
+| 85. Screenshot Capture | v15.0 | 0/TBD | Not started | - |
+| 86. Docs Accuracy Validation | v15.0 | 0/TBD | Not started | - |
 
 ## Archived
 
@@ -247,18 +321,3 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
 - ✅ **v8.0 — mop-push CLI & Job Staging** (Phases 17–19) — shipped 2026-03-15 → `.planning/milestones/v8.0-ROADMAP.md`
 - ✅ **v7.0 — Advanced Foundry & Smelter** (Phases 11–15) — shipped 2026-03-16 → `.planning/milestones/v7.0-ROADMAP.md`
 - ✅ **v6.0 — Remote Environment Validation** (Phases 6–10) — shipped 2026-03-06/09 → `.planning/milestones/v6.0-phases/`
-- ✅ **v5.0 — Notifications & Webhooks** (Phases 1–3) — shipped 2026-03-06 → `.planning/milestones/v5.0-phases/`
-- ✅ **v4.0 — Automation & Integration** (Phases 1–3) — shipped 2026-03-06 → `.planning/milestones/v4.0-phases/`
-- ✅ **v3.0 — Advanced Foundry & Hot-Upgrades** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v3.0-phases/`
-- ✅ **v2.0 — Foundry & Node Lifecycle** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v2.0-phases/`
-- ✅ **v1.0 — Production Reliability** (Phases 1–6) — shipped 2026-03-05 → `.planning/milestones/v1.0-phases/`
-
-### Phase 81: Homepage enterprise messaging — SSO narrative, compliance framing, and conversion optimisation
-
-**Goal:** The Axiom marketing homepage has a credible enterprise trust section, a working conversion path to a Google Form, and EE framing that signals early-access availability rather than vaporware
-**Requirements**: TBD
-**Depends on:** Phase 80
-**Plans:** 1/1 plans complete
-
-Plans:
-- [ ] 81-01-PLAN.md — Security posture section, EE card update, CTA anchor fixes, and early-access badge
