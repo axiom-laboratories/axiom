@@ -418,6 +418,43 @@
 - 2-day delivery (2026-03-26 → 2026-03-27)
 - TDD discipline: all 6 security tests RED first, then GREEN; all 7 licence tests RED first, then GREEN — consistent across both phases
 
+## Milestone: v14.4 — Go-to-Market Polish
+
+**Shipped:** 2026-03-28
+**Phases:** 5 (77–81) | **Plans:** 7
+
+### What Was Built
+- Role-gated licence banner: amber GRACE (sessionStorage dismiss) + red DEGRADED_CE (non-dismissible), hidden from operator/viewer roles (Phase 77)
+- `axiom-push init` + `key generate` — zero-ceremony Ed25519 keypair and registration flow; credentials migrated from `~/.mop/` to `~/.axiom/` with backward-compat; `AXIOM_URL` fixes silent MOP_URL mismatch (Phase 78)
+- `first-job.md` restructured: `axiom-push init` as primary path, openssl ceremony demoted to Manual Setup collapsible (Phase 78)
+- `compose.cold-start.yaml` trimmed to 5 core services; all JOIN_TOKEN and bundled-node refs purged from `install.md` (Phase 79)
+- GitHub Pages: MkDocs at `/docs/` via ghp-import subtree; marketing homepage at root via scoped homepage-deploy job; both in single `gh-pages-deploy.yml` (Phase 80)
+- Marketing homepage: security posture grid (4 cards), SAML/OIDC early-access EE card, enterprise CTAs with form placeholder sentinel (Phase 81)
+
+### What Worked
+- Audit-before-complete workflow: the `tech_debt` status (not `gaps_found`) confirmed all 13 requirements satisfied, giving clean signal to proceed — no last-minute remediation phases needed
+- Fixing tech debt found in audit (3 items: CLI prog name, error message, migration fallback) before tagging is the right habit — 5-minute fix, not a full gap-closure phase
+- Phase 81 (homepage enterprise messaging) added mid-milestone as Phase 80 dependency with clean scope definition — insert-phase workflow handled it without disrupting prior phases
+- `GOOGLE_FORM_URL_PLACEHOLDER` sentinel pattern: broken enterprise links are grep-able and visible before launch rather than silently pointing nowhere
+
+### What Was Inefficient
+- Phase 80 `site_url` change (`/axiom/` → `/axiom/docs/`) required auditing hardcoded absolute links — should have been a prerequisite check before the plan rather than discovered during execution
+- `ghp-import --dest-dir` vs `mkdocs gh-deploy --force` confusion required extra research; the constraint (no `--dest-dir` in `mkdocs gh-deploy`) should have been confirmed in the discuss-phase step
+
+### Patterns Established
+- `ghp-import --dest-dir docs` is the correct pattern for MkDocs coexisting with other content on GitHub Pages — document in future docs deploy phases
+- Enterprise CTA placeholder sentinel (`GOOGLE_FORM_URL_PLACEHOLDER`) — use for any unconfirmed external URL; easier to audit than empty `href="#"`
+- Tech debt found in audit that takes < 15 min to fix: fix before tagging, no phase needed; tech debt taking longer: create gap-closure phase
+
+### Key Lessons
+- Go-to-market milestones (homepage, UX polish, docs) are less predictable than feature milestones — scope expands naturally as Phase 80 homepage led directly to Phase 81 messaging improvements
+- `from_store()` migration edge case (missing `base_url` in old credential files) is the kind of thing that never appears in tests but breaks real users — worth catching in audit tech debt review
+
+### Cost Observations
+- 5 phases, 7 plans, 2-day delivery (2026-03-27 → 2026-03-28)
+- Tech debt cleanup post-audit: 3 items, all 1-liners, committed in single pass — clean close
+- Phase 81 added as a scope extension after Phase 80 revealed the homepage needed enterprise messaging — planned and executed same session
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -434,6 +471,7 @@
 | v14.1 | 5 | 9 | Remediation milestone; audit-before-complete mandatory; tab-pair pattern established; d['token'] regression shows freshly-rewritten docs need contract verification |
 | v14.2 | 1 | 2 | Infra milestone; single-day; human-verify checkpoint for live Pages confirmation was the only gate; OFFLINE_BUILD conditional pattern reusable for future dual-deploy configs |
 | v14.3 | 5 | 8 | Security + EE licensing; TDD RED→GREEN; audit-before-complete caught 3 tech debt items; frontend alignment phase predictable from backend API shape |
+| v14.4 | 5 | 7 | Go-to-market milestone; tech debt found post-audit cleaned before close; ghp-import subtree pattern solves docs/homepage coexistence on GitHub Pages |
 
 ## Milestone: v14.2 — Docs on GitHub Pages
 

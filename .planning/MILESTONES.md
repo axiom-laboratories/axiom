@@ -1,5 +1,14 @@
 # Milestones
 
+## v14.4 Go-to-Market Polish (Shipped: 2026-03-28)
+
+**Phases completed:** 5 phases, 7 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v14.3 Security Hardening + EE Licensing (Shipped: 2026-03-27)
 
 **Phases completed:** 5 phases (72–76), 8 plans

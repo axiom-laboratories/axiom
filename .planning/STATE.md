@@ -4,7 +4,7 @@ milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: completed
 stopped_at: Completed 81-01-PLAN.md — homepage enterprise messaging, SSO narrative, and conversion optimisation
-last_updated: "2026-03-28T08:23:11.177Z"
+last_updated: "2026-03-28T08:55:28.619Z"
 last_activity: "2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path"
 progress:
   total_phases: 5
@@ -18,16 +18,15 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-27)
+See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v14.4 — Go-to-Market Polish (Phase 77: Licence Banner Polish)
+**Current focus:** Planning next milestone — v14.4 shipped
 
 ## Current Position
 
-Phase: 78 of 80 (CLI Signing UX)
-Plan: 02 of 02 complete
-Status: Phase 78 complete — ready for Phase 79
+Milestone v14.4 complete — all 5 phases, 7 plans shipped.
+Status: Archived. Ready for `/gsd:new-milestone`.
 Last activity: 2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path
 
 Progress: [██░░░░░░░░] 25%
