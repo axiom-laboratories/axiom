@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
 status: planning
-stopped_at: Completed 83-02-PLAN.md
-last_updated: "2026-03-28T21:03:35.320Z"
+stopped_at: Completed 83-03-PLAN.md
+last_updated: "2026-03-28T21:08:16.240Z"
 last_activity: 2026-03-28 — Roadmap created for v15.0
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 82 P02 | 12 | 2 tasks | 4 files |
 | Phase 83 P01 | 2 | 2 tasks | 4 files |
 | Phase 83 P02 | 3 | 2 tasks | 5 files |
+| Phase 83 P03 | 8 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 83]: Wave 0 TDD pattern established: test scaffold committed before scripts exist, tests fail cleanly with pytest.fail() + helpful message
 - [Phase 83]: resource_limits_supported capability guard: scripts exit 1 (safe abort) when capability absent, with descriptive message
 - [Phase 83]: manifest.yaml required_capabilities values quoted as strings ('1.0') because job_service.py uses packaging.version.Version for comparison
+- [Phase 83-03]: README uses awesome-list style with per-job H3 subsections — welcoming to community contributors
+- [Phase 83-03]: Runbook includes inversion-logic explanation for validation-memory-hog (FAILED = working correctly)
 
 ### Pending Todos
 
@@ -88,6 +91,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T21:03:35.317Z
-Stopped at: Completed 83-02-PLAN.md
+Last session: 2026-03-28T21:08:16.238Z
+Stopped at: Completed 83-03-PLAN.md
 Resume file: None

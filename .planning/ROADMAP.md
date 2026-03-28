@@ -197,7 +197,7 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
 **Milestone Goal:** Close the gap between a technically functional platform and one that operators can confidently deploy in production — with a secure licence issuance workflow, a validated node job library, package repo runbooks, dashboard screenshots in docs and marketing, and a CI-wirable docs accuracy script.
 
 - [x] **Phase 82: Licence Tooling** — Key migration to private repo, CI guard against committed keys, `issue_licence.py` CLI, YAML audit ledger, `--no-remote` flag (completed 2026-03-28)
-- [ ] **Phase 83: Node Validation Job Library** — Signed Bash/Python/PowerShell reference jobs, volume + network + resource limit validation jobs, runbook, job manifest
+- [x] **Phase 83: Node Validation Job Library** — Signed Bash/Python/PowerShell reference jobs, volume + network + resource limit validation jobs, runbook, job manifest (completed 2026-03-28)
 - [ ] **Phase 84: Package Repo Operator Docs** — devpi/APT/PWSH mirror runbooks, pip mirror validation job added to corpus
 - [ ] **Phase 85: Screenshot Capture** — Playwright seeded-data capture script, 8+ view screenshots committed to docs and marketing
 - [ ] **Phase 86: Docs Accuracy Validation** — OpenAPI/CLI cross-reference script, PASS/WARN/FAIL output with file+line refs, CI integration
@@ -308,7 +308,7 @@ Plans:
 | 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 2/2 | Complete | 2026-03-27 |
 | 81. Homepage Enterprise Messaging | v14.4 | 1/1 | Complete | 2026-03-28 |
 | 82. Licence Tooling | 2/2 | Complete    | 2026-03-28 | - |
-| 83. Node Validation Job Library | 2/3 | In Progress|  | - |
+| 83. Node Validation Job Library | 3/3 | Complete   | 2026-03-28 | - |
 | 84. Package Repo Operator Docs | v15.0 | 0/TBD | Not started | - |
 | 85. Screenshot Capture | v15.0 | 0/TBD | Not started | - |
 | 86. Docs Accuracy Validation | v15.0 | 0/TBD | Not started | - |
