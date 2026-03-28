@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v14.4
 milestone_name: — Go-to-Market Polish
 status: completed
-stopped_at: Phase 81-01 tasks complete — awaiting human-verify checkpoint (Task 3)
-last_updated: "2026-03-27T23:21:30.552Z"
+stopped_at: Completed 81-01-PLAN.md — homepage enterprise messaging, SSO narrative, and conversion optimisation
+last_updated: "2026-03-28T08:21:03.608Z"
 last_activity: "2026-03-27 — Phase 78-02 complete: first-job.md restructured with axiom-push init as primary path"
 progress:
   total_phases: 5
@@ -54,6 +54,7 @@ Progress: [██░░░░░░░░] 25%
 | Phase 80 P01 | 1min | 2 tasks | 2 files |
 | Phase 80 P02 | 2 | 2 tasks | 3 files |
 | Phase 81 P01 | 2 | 2 tasks | 2 files |
+| Phase 81 P01 | 3min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,7 @@ Progress: [██░░░░░░░░] 25%
 - [Phase 80]: homepage-deploy scoped to homepage/** only — never writes to docs/ preserving MkDocs coexistence
 - [Phase 81]: Security cards use var(--axiom-bg) not --axiom-surface for contrast against section-alt background
 - [Phase 81]: GOOGLE_FORM_URL_PLACEHOLDER sentinel used instead of empty href so broken enterprise links are visible before launch
+- [Phase Phase 81]: CE code snippet spacing: .dual-cta-block pre scoped to display:block so margin-bottom works in inline formatting context
 
 ### Roadmap Evolution
 
@@ -96,6 +98,6 @@ None carried forward.
 
 ## Session Continuity
 
-Last session: 2026-03-27T23:21:30.550Z
-Stopped at: Phase 81-01 tasks complete — awaiting human-verify checkpoint (Task 3)
+Last session: 2026-03-28T08:21:03.605Z
+Stopped at: Completed 81-01-PLAN.md — homepage enterprise messaging, SSO narrative, and conversion optimisation
 Resume file: None

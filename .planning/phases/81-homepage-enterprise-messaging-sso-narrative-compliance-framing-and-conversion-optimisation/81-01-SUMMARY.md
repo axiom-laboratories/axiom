@@ -36,8 +36,8 @@ patterns-established:
 
 requirements-completed: []
 
-duration: 2min
-completed: "2026-03-27"
+duration: 3min
+completed: "2026-03-28"
 ---
 
 # Phase 81 Plan 01: Homepage Enterprise Messaging Summary
@@ -46,10 +46,10 @@ completed: "2026-03-27"
 
 ## Performance
 
-- **Duration:** ~2 min
+- **Duration:** ~3 min
 - **Started:** 2026-03-27T23:18:53Z
-- **Completed:** 2026-03-27T23:20:34Z
-- **Tasks:** 2 of 3 (Task 3 is human-verify checkpoint — pending user review)
+- **Completed:** 2026-03-28
+- **Tasks:** 3 of 3
 - **Files modified:** 2
 
 ## Accomplishments
@@ -66,7 +66,8 @@ Each task was committed atomically:
 
 1. **Task 1: Add security grid and early-access badge CSS** - `c1263e2` (feat)
 2. **Task 2: Update index.html — security section, EE card, and CTA anchor fixes** - `2c784ac` (feat)
-3. **Task 3: Visual verification checkpoint** — awaiting human review
+3. **Task 3: Spacing fix — CE code snippet to CTA button** - `9539b8f` (fix)
+4. **Task 3: Human-verify checkpoint** — approved by user
 
 ## Files Created/Modified
 
@@ -82,7 +83,14 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None — plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Fixed missing spacing between CE code snippet and CTA button**
+- **Found during:** Task 3 human-verify (user-reported)
+- **Issue:** `pre` element was `display: inline-block` so `margin-bottom` had no effect in the inline formatting context; the docker-compose snippet butted directly against the "Read the install guide" link
+- **Fix:** Added `.dual-cta-block pre { display: block; margin-bottom: 1.5rem; }` to scope the block display and margin to that context only
+- **Files modified:** `homepage/style.css`
+- **Commit:** `9539b8f`
 
 ## Issues Encountered
 
@@ -95,8 +103,8 @@ Before launch: Replace all 4 instances of `GOOGLE_FORM_URL_PLACEHOLDER` in `home
 ## Next Phase Readiness
 
 - Homepage code changes complete — ready for deployment via Phase 80 homepage-deploy workflow
-- One URL swap required before launch: `GOOGLE_FORM_URL_PLACEHOLDER` → real Google Form URL
-- Task 3 (human-verify checkpoint) must be approved before marking this plan complete
+- One URL swap required before launch: `GOOGLE_FORM_URL_PLACEHOLDER` → real Google Form URL (5 occurrences in index.html)
+- Human-verify checkpoint approved — plan fully complete
 
 ---
 *Phase: 81-homepage-enterprise-messaging-sso-narrative-compliance-framing-and-conversion-optimisation*
@@ -108,3 +116,7 @@ Before launch: Replace all 4 instances of `GOOGLE_FORM_URL_PLACEHOLDER` in `home
 - FOUND: homepage/index.html
 - FOUND: c1263e2 (CSS task commit)
 - FOUND: 2c784ac (HTML task commit)
+- FOUND: 9539b8f (spacing fix commit)
+- VERIFIED: zero href="#enterprise-interest" self-references
+- VERIFIED: 5 GOOGLE_FORM_URL_PLACEHOLDER occurrences in index.html
+- VERIFIED: .security-grid and .badge-early-access present in style.css
