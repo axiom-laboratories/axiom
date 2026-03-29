@@ -21,6 +21,7 @@ import {
     X,
     Download,
     Pin,
+    FileCode,
     } from 'lucide-react';
 import { toast } from 'sonner';
 import { subHours, subDays } from 'date-fns';
@@ -56,6 +57,7 @@ import { authenticatedFetch } from '../auth';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
 import { GuidedDispatchCard } from '../components/GuidedDispatchCard';
+import ScriptViewerModal from '../components/ScriptViewerModal';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -78,6 +80,9 @@ interface Job {
     created_by?: string;
     originating_guid?: string;
     runtime?: string;
+    scheduled_job_id?: string | null;
+    definition_version_id?: string | null;
+    definition_version_number?: number | null;
 }
 
 interface DispatchDiagnosis {
@@ -176,6 +181,7 @@ const JobDetailPanel = ({
     onCancel,
     onResubmit,
     onEditResubmit,
+    onViewScript,
 }: {
     job: Job | null;
     open: boolean;
@@ -183,6 +189,7 @@ const JobDetailPanel = ({
     onCancel: (guid: string) => void;
     onResubmit: (guid: string) => void;
     onEditResubmit: (job: Job) => void;
+    onViewScript: (job: Job) => void;
 }) => {
     const [retryCountdown, setRetryCountdown] = useState<string | null>(null);
     const [resubmitConfirming, setResubmitConfirming] = useState(false);
@@ -614,7 +621,18 @@ const JobDetailPanel = ({
 
                     {/* Payload */}
                     <section className="space-y-2">
-                        <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Payload</h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Payload</h3>
+                            {(job.payload?.script_content || job.scheduled_job_id) && (
+                                <button
+                                    onClick={() => onViewScript(job)}
+                                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                                >
+                                    <FileCode className="h-3.5 w-3.5" />
+                                    {job.definition_version_number ? `View script (v${job.definition_version_number})` : 'View script'}
+                                </button>
+                            )}
+                        </div>
                         <pre className="text-xs text-zinc-400 font-mono bg-zinc-950 rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap">
                             {JSON.stringify(job.payload, null, 2)}
                         </pre>
@@ -863,6 +881,15 @@ const Jobs = () => {
 
     // Diagnosis cache
     const [diagnosisCache, setDiagnosisCache] = useState<Record<string, DispatchDiagnosis>>({});
+
+    // Script viewer state
+    const [viewingScript, setViewingScript] = useState<{
+        open: boolean;
+        jobDefId: string | null;
+        versionNumber: number | null;
+        scriptContent: string;
+        runtime?: string;
+    }>({ open: false, jobDefId: null, versionNumber: null, scriptContent: '' });
 
     const fetchDiagnoses = useCallback(async () => {
         const pendingGuids = jobs
@@ -1554,8 +1581,24 @@ const Jobs = () => {
                 onCancel={cancelJob}
                 onResubmit={handleResubmit}
                 onEditResubmit={handleEditResubmit}
+                onViewScript={(job) => setViewingScript({
+                    open: true,
+                    jobDefId: job.scheduled_job_id ?? null,
+                    versionNumber: job.definition_version_number ?? null,
+                    scriptContent: job.payload?.script_content ?? '',
+                    runtime: job.runtime,
+                })}
             />
             <ExecutionLogModal jobGuid={logModalGuid ?? ''} open={!!logModalGuid} onClose={() => setLogModalGuid(null)} />
+
+            <ScriptViewerModal
+                open={viewingScript.open}
+                onClose={() => setViewingScript(s => ({ ...s, open: false }))}
+                jobDefId={viewingScript.jobDefId ?? ''}
+                versionNumber={viewingScript.versionNumber ?? undefined}
+                scriptContent={viewingScript.scriptContent}
+                runtime={viewingScript.runtime}
+            />
 
             {/* Bulk action confirmation dialog */}
             <Dialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
