@@ -1315,6 +1315,213 @@ const SmelterRegistryManager = () => {
     );
 };
 
+const NotificationsCard: React.FC = () => {
+    const queryClient = useQueryClient();
+    const [testResult, setTestResult] = useState<{ success: boolean; status_code: number | null; error?: string | null } | null>(null);
+    const [isTesting, setIsTesting] = useState(false);
+    const [localUrl, setLocalUrl] = useState('');
+
+    const { data: alertsConfig, isLoading } = useQuery({
+        queryKey: ['alerts-config'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/admin/alerts/config');
+            if (!res.ok) throw new Error('Failed to load alerts config');
+            return res.json();
+        },
+        staleTime: 30_000,
+    });
+
+    // Sync localUrl with loaded config
+    useEffect(() => {
+        if (alertsConfig?.webhook_url !== undefined) {
+            setLocalUrl(alertsConfig.webhook_url);
+        }
+    }, [alertsConfig?.webhook_url]);
+
+    const saveMutation = useMutation({
+        mutationFn: async (updates: Record<string, unknown>) => {
+            const res = await authenticatedFetch('/api/admin/alerts/config', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates),
+            });
+            if (!res.ok) throw new Error('Failed to save alerts config');
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['alerts-config'] });
+            toast.success('Notifications config saved');
+        },
+        onError: (err: Error) => {
+            toast.error(`Save failed: ${err.message}`);
+        },
+    });
+
+    const handleSaveUrl = () => {
+        saveMutation.mutate({ webhook_url: localUrl });
+    };
+
+    const handleToggleEnabled = (enabled: boolean) => {
+        saveMutation.mutate({ webhook_enabled: enabled });
+    };
+
+    const handleToggleSecurityRejections = (checked: boolean) => {
+        saveMutation.mutate({ webhook_security_rejections: checked });
+    };
+
+    const handleSendTest = async () => {
+        setIsTesting(true);
+        setTestResult(null);
+        try {
+            const res = await authenticatedFetch('/api/admin/alerts/test', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) {
+                setTestResult({ success: false, status_code: null, error: data.detail || 'Request failed' });
+            } else {
+                setTestResult(data);
+            }
+        } catch (e) {
+            setTestResult({ success: false, status_code: null, error: String(e) });
+        } finally {
+            setIsTesting(false);
+            queryClient.invalidateQueries({ queryKey: ['alerts-config'] });
+        }
+    };
+
+    const savedUrl = alertsConfig?.webhook_url || '';
+    const isEnabled = alertsConfig?.webhook_enabled ?? false;
+    const secRejections = alertsConfig?.webhook_security_rejections ?? false;
+    const lastStatus = alertsConfig?.last_delivery_status;
+    const urlSaved = savedUrl.length > 0;
+
+    if (isLoading) {
+        return (
+            <Card className="bg-zinc-925 border-zinc-800/50 shadow-none">
+                <CardContent className="py-8 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card className="bg-zinc-925 border-zinc-800/50 shadow-none">
+            <CardHeader>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                    <Bell className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-xl font-bold text-white">Webhook Notifications</CardTitle>
+                <CardDescription className="text-zinc-500">
+                    Receive a webhook POST when any job reaches FAILED status. No EE licence required.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {/* URL input */}
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Webhook URL</label>
+                    <div className="flex gap-2">
+                        <Input
+                            type="url"
+                            placeholder="https://hooks.example.com/alert"
+                            value={localUrl}
+                            onChange={e => setLocalUrl(e.target.value)}
+                            className="flex-1 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 h-10"
+                        />
+                        <Button
+                            onClick={handleSaveUrl}
+                            disabled={saveMutation.isPending}
+                            className="h-10 bg-primary hover:bg-primary/90 text-white font-bold px-4"
+                        >
+                            {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Enabled toggle */}
+                <div className="flex items-center justify-between py-3 border-t border-zinc-800">
+                    <div>
+                        <p className="text-sm font-medium text-zinc-300">Enable notifications</p>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                            {urlSaved ? 'Send webhook on job failure' : 'Enter a webhook URL to enable'}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isEnabled}
+                        disabled={!urlSaved}
+                        onClick={() => urlSaved && handleToggleEnabled(!isEnabled)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                            isEnabled && urlSaved ? 'bg-primary' : 'bg-zinc-700'
+                        } ${!urlSaved ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                        title={!urlSaved ? 'Enter a webhook URL to enable' : undefined}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                                isEnabled && urlSaved ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </button>
+                </div>
+
+                {/* Security rejections checkbox */}
+                <div className="flex items-center gap-3 py-2 border-t border-zinc-800">
+                    <input
+                        type="checkbox"
+                        id="sec-rejections"
+                        checked={secRejections}
+                        onChange={e => handleToggleSecurityRejections(e.target.checked)}
+                        className="h-4 w-4 rounded border-zinc-600 bg-zinc-900 accent-primary"
+                    />
+                    <label htmlFor="sec-rejections" className="text-sm text-zinc-300 cursor-pointer">
+                        Also alert on security rejections
+                    </label>
+                </div>
+
+                {/* Send test button + inline result */}
+                <div className="space-y-2 pt-2 border-t border-zinc-800">
+                    <Button
+                        variant="outline"
+                        onClick={handleSendTest}
+                        disabled={!urlSaved || isTesting}
+                        className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 h-9 text-sm"
+                    >
+                        {isTesting ? (
+                            <>
+                                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                Sending…
+                            </>
+                        ) : (
+                            'Send test notification'
+                        )}
+                    </Button>
+
+                    {testResult && (
+                        <p className={`text-xs font-medium ${testResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                            {testResult.success
+                                ? `✓ Delivered (${testResult.status_code})`
+                                : `✗ Failed: ${testResult.error || `HTTP ${testResult.status_code}`}`}
+                        </p>
+                    )}
+                </div>
+
+                {/* Last delivery status */}
+                {lastStatus && (
+                    <div className="pt-3 border-t border-zinc-800">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Last Delivery</p>
+                        <p className={`text-xs ${lastStatus.status_code && lastStatus.status_code >= 200 && lastStatus.status_code < 300 ? 'text-green-400' : 'text-red-400'}`}>
+                            {lastStatus.status_code
+                                ? `${lastStatus.status_code >= 200 && lastStatus.status_code < 300 ? '✓' : '✗'} ${lastStatus.status_code} — ${new Date(lastStatus.timestamp).toLocaleString()}`
+                                : `✗ ${lastStatus.body_snippet || 'Unknown error'} — ${new Date(lastStatus.timestamp).toLocaleString()}`
+                            }
+                        </p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
 const Admin = () => {
     const [joinToken, setJoinToken] = useState<string | null>(null);
     const [pubKey, setPubKey] = useState('');
