@@ -18,6 +18,10 @@ import sys
 from pathlib import Path
 
 import requests
+import urllib3
+
+# The local Docker stack uses a self-signed cert — suppress the warning.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -35,7 +39,7 @@ def main():
 
     print(f"Fetching OpenAPI spec from {args.url}/openapi.json ...")
     try:
-        r = requests.get(f"{args.url}/openapi.json", timeout=10)
+        r = requests.get(f"{args.url}/openapi.json", timeout=10, verify=False)
         r.raise_for_status()
     except requests.exceptions.ConnectionError:
         print(f"[ERROR] Cannot connect to {args.url} — is the stack running?")
