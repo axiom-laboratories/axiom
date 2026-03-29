@@ -6,62 +6,57 @@ and dispatching your first job.
 
 ---
 
-## Zero-setup: demo key (fastest path)
+## Step 0: Generate a signing keypair
 
-The orchestrator ships with a pre-generated **demo keypair** so you can run your first job
-without any PKI setup. The demo public key is automatically registered as *Demo Key (Getting
-Started)* in the Signatures registry on first boot.
+Every job must be signed before dispatch. Generate a keypair once — the private key stays on your machine, the public key gets registered in Axiom.
 
-!!! warning "Demo key is not secret"
-    The private key file (`puppeteer/demo_signing_key.pem`) is committed to the repository and
-    is publicly known. It is safe only for local testing. Replace it with your own key before
-    running any real workloads.
+=== "Python (cryptography)"
 
-**Step 1 — Write a test script**
+    ```bash
+    python3 - <<'EOF'
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
 
-Create `hello.py`:
+    key = Ed25519PrivateKey.generate()
 
-```python
-print("Hello from Axiom!")
-import platform
-print(f"Running on {platform.node()} ({platform.system()})")
-```
+    with open("signing.key", "wb") as f:
+        f.write(key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption()
+        ))
 
-**Step 2 — Copy the demo private key to your working directory**
+    with open("verification.key", "wb") as f:
+        f.write(key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo
+        ))
 
-```bash
-cp /path/to/master_of_puppets/puppeteer/demo_signing_key.pem ./demo_signing_key.pem
-```
+    print("Done. Upload verification.key to Axiom, keep signing.key private.")
+    EOF
+    ```
 
-**Step 3 — Sign the script and capture the signature**
+=== "openssl"
 
-```bash
-python3 - <<'EOF'
-from cryptography.hazmat.primitives import serialization
-import base64
+    ```bash
+    openssl genpkey -algorithm ed25519 -out signing.key
+    openssl pkey -in signing.key -pubout -out verification.key
+    ```
 
-with open("demo_signing_key.pem", "rb") as f:
-    private_key = serialization.load_pem_private_key(f.read(), password=None)
+This produces `signing.key` (private — keep safe) and `verification.key` (public — upload to Axiom).
 
-script_content = open("hello.py", "r").read()
-sig = private_key.sign(script_content.encode("utf-8"))
-print(base64.b64encode(sig).decode())
-EOF
-```
+!!! warning "Never commit signing.key"
+    Store it in a secrets manager in production. Anyone who holds it can forge job signatures.
 
-Copy the printed base64 string — this is your job signature.
+### Register the public key
 
-**Step 4 — Dispatch from the dashboard**
+1. Go to **Signatures** in the dashboard sidebar
+2. Click **Register Trusted Key**
+3. Paste the contents of `verification.key`, give it a name (e.g. `dev-key`), click **Establish Trust**
+4. Note the **Key ID** — you'll need it when dispatching
 
-1. Go to **Jobs** → **New Job**
-2. Paste the contents of `hello.py` into the **Script** field
-3. Paste the base64 signature into the **Signature** field
-4. Select **Demo Key (Getting Started)** from the **Signing Key** dropdown
-5. Click **Dispatch**
-
-!!! tip "Signatures page shortcut"
-    The **Signatures** page shows a *Getting Started* banner with these same copy-paste commands
-    whenever the demo key is the only registered key.
+!!! tip "Getting started banner"
+    The Signatures page shows a banner with these same commands when no keys are registered yet.
 
 ---
 

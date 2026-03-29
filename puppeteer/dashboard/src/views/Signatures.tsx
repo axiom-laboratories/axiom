@@ -8,7 +8,6 @@ import {
     ExternalLink,
     Lock,
     ShieldCheck,
-    AlertCircle,
     BookOpen,
     Copy,
     CheckCheck,
@@ -49,24 +48,39 @@ interface Signature {
     uploaded_by: string;
 }
 
-const DEMO_KEY_ID = 'demo0000000000000000000000000000';
+const KEYGEN_CMD = `python3 - <<'EOF'
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives import serialization
 
-const DEMO_SIGN_CMD = `python3 - <<'EOF'
+key = Ed25519PrivateKey.generate()
+
+with open("signing.key", "wb") as f:
+    f.write(key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption()
+    ))
+
+with open("verification.key", "wb") as f:
+    f.write(key.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo
+    ))
+
+print("Done. Upload verification.key here, keep signing.key private.")
+EOF`;
+
+const SIGN_CMD = `python3 - <<'EOF'
 from cryptography.hazmat.primitives import serialization
 import base64
 
-with open("demo_signing_key.pem", "rb") as f:
+with open("signing.key", "rb") as f:
     private_key = serialization.load_pem_private_key(f.read(), password=None)
 
 script_content = open("hello.py", "r").read()
 sig = private_key.sign(script_content.encode("utf-8"))
 print(base64.b64encode(sig).decode())
 EOF`;
-
-const DEMO_KEY_LOCATION = `# The demo private key ships with the orchestrator at:
-# puppeteer/demo_signing_key.pem
-# Copy it locally:
-cp /path/to/master_of_puppets/puppeteer/demo_signing_key.pem ./demo_signing_key.pem`;
 
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false);
@@ -89,7 +103,7 @@ function CopyButton({ text }: { text: string }) {
 const Signatures = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showDemoGuide, setShowDemoGuide] = useState(false);
+    const [showKeygenGuide, setShowKeygenGuide] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ name: '', public_key: '' });
     const user = getUser();
@@ -104,7 +118,7 @@ const Signatures = () => {
         }
     });
 
-    const isDemoActive = !isLoading && signatures.length === 1 && signatures[0]?.id === DEMO_KEY_ID;
+    const noKeys = !isLoading && signatures.length === 0;
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
@@ -203,29 +217,28 @@ const Signatures = () => {
                 </Button>
             </div>
 
-            {isDemoActive && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex flex-col md:flex-row md:items-center gap-4">
+            {noKeys && (
+                <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4 flex flex-col md:flex-row md:items-center gap-4">
                     <div className="flex items-start gap-3 flex-1">
-                        <div className="mt-0.5 p-1.5 rounded-lg bg-amber-500/10 text-amber-400 shrink-0">
+                        <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 shrink-0">
                             <BookOpen className="h-4 w-4" />
                         </div>
                         <div>
-                            <p className="text-sm font-semibold text-amber-300">Getting Started — Demo key is active</p>
+                            <p className="text-sm font-semibold text-indigo-300">Getting Started — No signing keys registered</p>
                             <p className="text-xs text-zinc-400 mt-1">
-                                A demo Ed25519 keypair ships with the orchestrator so you can run your first job without any setup.
-                                The private key is at <code className="font-mono text-amber-300 bg-zinc-800 px-1 py-0.5 rounded">puppeteer/demo_signing_key.pem</code>.
-                                Replace it with your own key before going to production.
+                                All jobs must be signed before dispatch. Generate an Ed25519 keypair, upload the public key here,
+                                then sign your scripts with the private key before submitting.
                             </p>
                         </div>
                     </div>
                     <Button
                         variant="outline"
                         size="sm"
-                        className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 shrink-0 font-bold"
-                        onClick={() => setShowDemoGuide(true)}
+                        className="border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 shrink-0 font-bold"
+                        onClick={() => setShowKeygenGuide(true)}
                     >
                         <Terminal className="mr-2 h-3.5 w-3.5" />
-                        How to sign a script
+                        How to generate a key
                     </Button>
                 </div>
             )}
@@ -295,49 +308,49 @@ const Signatures = () => {
                 </div>
             )}
 
-            {/* Demo signing guide modal */}
-            <Dialog open={showDemoGuide} onOpenChange={setShowDemoGuide}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[600px]">
+            {/* Key generation guide modal */}
+            <Dialog open={showKeygenGuide} onOpenChange={setShowKeygenGuide}>
+                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[620px]">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Terminal className="h-5 w-5 text-amber-400" />
-                            Sign your first script with the demo key
+                            <Terminal className="h-5 w-5 text-indigo-400" />
+                            Generate a signing keypair
                         </DialogTitle>
                         <DialogDescription className="text-zinc-500">
-                            Three steps: copy the demo key, sign your script, then paste the signature when dispatching a job.
+                            Three steps: generate a keypair, register the public key here, sign your scripts before dispatch.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-5 pt-2">
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 1 — Write a test script (hello.py)</p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 1 — Generate keypair (run once, keep signing.key private)</p>
                             <div className="relative">
-                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-green-400 overflow-x-auto whitespace-pre">{`print("Hello from Axiom!")\nimport platform\nprint(f"Running on {'{'}platform.node(){'}'} ({'{'}platform.system(){'}'})") `}</pre>
-                                <CopyButton text={`print("Hello from Axiom!")\nimport platform\nprint(f"Running on {platform.node()} ({platform.system()})")`} />
+                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{KEYGEN_CMD}</pre>
+                                <CopyButton text={KEYGEN_CMD} />
                             </div>
                         </div>
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 2 — Copy the demo private key to your working directory</p>
-                            <div className="relative">
-                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-400 overflow-x-auto whitespace-pre">{DEMO_KEY_LOCATION}</pre>
-                                <CopyButton text={DEMO_KEY_LOCATION} />
-                            </div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 2 — Register the public key</p>
+                            <p className="text-xs text-zinc-400">
+                                Copy the contents of <code className="font-mono text-indigo-300 bg-zinc-800 px-1 py-0.5 rounded">verification.key</code> and
+                                click <strong className="text-zinc-200">Register Trusted Key</strong> above to upload it.
+                            </p>
                         </div>
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 3 — Generate the base64 signature</p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 3 — Sign a script before dispatch</p>
                             <div className="relative">
-                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{DEMO_SIGN_CMD}</pre>
-                                <CopyButton text={DEMO_SIGN_CMD} />
+                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{SIGN_CMD}</pre>
+                                <CopyButton text={SIGN_CMD} />
                             </div>
-                            <p className="text-xs text-zinc-500 mt-2">Paste the printed base64 string into the <strong className="text-zinc-300">Signature</strong> field when dispatching a job, and select <strong className="text-zinc-300">Demo Key (Getting Started)</strong> as the signing key.</p>
-                        </div>
-                        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
-                            <p className="text-xs text-red-400">
-                                <strong>Production warning:</strong> The demo key private file is committed to the repository and is not secret. Replace it with a key you generated yourself before handling any real workloads.
+                            <p className="text-xs text-zinc-500 mt-2">
+                                Paste the printed base64 string into the <strong className="text-zinc-300">Signature</strong> field when dispatching a job.
                             </p>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowDemoGuide(false)} className="border-zinc-800">Close</Button>
+                        <Button variant="outline" onClick={() => setShowKeygenGuide(false)} className="border-zinc-800">Close</Button>
+                        <Button onClick={() => { setShowKeygenGuide(false); setShowModal(true); }} className="bg-primary hover:bg-primary/90 text-white font-bold">
+                            Register Key Now
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

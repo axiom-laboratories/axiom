@@ -1747,7 +1747,7 @@ async def push_job_definition(
         raise HTTPException(422, detail=(
             "Signature verification failed — the script content does not match the provided signature. "
             "Ensure you signed the exact script content with the private key paired to the registered public key. "
-            "If you are getting started, See the Signatures page in the dashboard for key generation instructions."
+            "See the Signatures page in the dashboard for key generation instructions."
         ))
 
     # 2. Identity attribution (STAGE-04)

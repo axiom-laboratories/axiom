@@ -12,10 +12,6 @@ secrets/
 *.crt
 *.key
 
-# Exception: demo keypair committed intentionally for first-run onboarding
-!puppeteer/demo_signing_key.pem
-!puppeteer/demo_verification_key.pem
-
 # Python
 __pycache__/
 *.py[cod]
