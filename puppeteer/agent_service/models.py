@@ -79,6 +79,10 @@ class BulkJobActionRequest(BaseModel):
     """Request body for bulk job operations (Phase 51 — JOB-05/BULK-02/03/04)."""
     guids: List[str]
 
+class BulkDiagnosisRequest(BaseModel):
+    """Request body for bulk dispatch diagnosis (Phase 88 — DIAG-01)."""
+    guids: List[str]
+
 class BulkActionResponse(BaseModel):
     """Response for bulk job operations."""
     processed: int
