@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from .. import db as db_module
-from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord, ScheduledFireLog
+from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord, ScheduledFireLog, JobDefinitionVersion
 from ..models import JobDefinitionCreate, JobDefinitionResponse, JobDefinitionUpdate
 from .signature_service import SignatureService
 from .alert_service import AlertService
@@ -272,6 +272,43 @@ class SchedulerService:
                 await session.commit()
                 logger.info(f"Dispatch timeout sweeper: failed {failed_count} jobs")
 
+    async def _create_version_snapshot(
+        self,
+        db_session: AsyncSession,
+        job: ScheduledJob,
+        created_by: str,
+        is_signed: bool,
+        change_summary: Optional[str] = None,
+    ) -> "JobDefinitionVersion":
+        """Write an immutable version snapshot for a job definition. Auto-increments version_number."""
+        import uuid as _uuid
+        result = await db_session.execute(
+            select(func.max(JobDefinitionVersion.version_number)).where(
+                JobDefinitionVersion.job_def_id == job.id
+            )
+        )
+        max_ver = result.scalar_one_or_none() or 0
+        version = JobDefinitionVersion(
+            id=_uuid.uuid4().hex,
+            job_def_id=job.id,
+            version_number=max_ver + 1,
+            script_content=job.script_content,
+            signature_id=job.signature_id,
+            signature_payload=job.signature_payload,
+            cron_expression=job.schedule_cron,
+            target_tags=job.target_tags,
+            target_node_id=job.target_node_id,
+            runtime=job.runtime,
+            max_retries=job.max_retries,
+            backoff_multiplier=job.backoff_multiplier,
+            change_summary=change_summary,
+            is_signed=is_signed,
+            created_at=datetime.utcnow(),
+            created_by=created_by,
+        )
+        db_session.add(version)
+        return version
+
     async def get_scheduling_health(self, window: str, db: AsyncSession) -> dict:
         """Return aggregate and per-definition scheduling health for the given window."""
         window_hours = {"24h": 24, "7d": 168, "30d": 720}.get(window, 24)
@@ -438,11 +475,15 @@ class SchedulerService:
         db_session.add(new_def)
         await db_session.commit()
         await db_session.refresh(new_def)
-        
-        # 4. Update Scheduler
+
+        # 4. Create initial version snapshot
+        await self._create_version_snapshot(db_session, new_def, current_user.username, is_signed=True, change_summary="Initial version")
+        await db_session.commit()
+
+        # 5. Update Scheduler
         if new_def.is_active and new_def.schedule_cron:
             await self.sync_scheduler()
-        
+
         return new_def
 
     async def list_job_definitions(self, db_session: AsyncSession) -> List[ScheduledJob]:
@@ -568,11 +609,60 @@ class SchedulerService:
         if hasattr(update_req, 'runtime') and update_req.runtime is not None:
             job.runtime = update_req.runtime
 
+        # Build change summary
+        change_parts = []
+        if update_req.script_content is not None and update_req.script_content != job.script_content:
+            change_parts.append("script updated")
+        if update_req.schedule_cron is not None:
+            change_parts.append("schedule updated")
+        if update_req.target_tags is not None:
+            change_parts.append("tags updated")
+        if (
+            update_req.signature
+            and update_req.signature_id
+            and (update_req.script_content is None or update_req.script_content == job.script_content)
+            and not change_parts
+        ):
+            change_parts.append("re-signed")
+        change_summary = "; ".join(change_parts) if change_parts else "updated"
+
+        # is_signed: True if job will be ACTIVE after this update
+        final_status = update_req.status if update_req.status is not None else job.status
+        is_signed = final_status == "ACTIVE"
+
+        await self._create_version_snapshot(db_session, job, current_user.username, is_signed=is_signed, change_summary=change_summary)
+
         job.updated_at = datetime.utcnow()
         await db_session.commit()
         await db_session.refresh(job)
         await self.sync_scheduler()
         return job
+
+    async def list_job_definition_versions(self, job_id: str, db_session: AsyncSession) -> list:
+        """Returns all versions for a job definition, ordered newest first."""
+        from fastapi import HTTPException
+        # Verify definition exists
+        result = await db_session.execute(select(ScheduledJob).where(ScheduledJob.id == job_id))
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Job definition not found")
+        ver_result = await db_session.execute(
+            select(JobDefinitionVersion)
+            .where(JobDefinitionVersion.job_def_id == job_id)
+            .order_by(JobDefinitionVersion.version_number.desc())
+        )
+        return ver_result.scalars().all()
+
+    async def get_job_definition_version(self, job_id: str, version_num: int, db_session: AsyncSession):
+        """Returns a specific version of a job definition."""
+        from fastapi import HTTPException
+        ver_result = await db_session.execute(
+            select(JobDefinitionVersion)
+            .where(JobDefinitionVersion.job_def_id == job_id, JobDefinitionVersion.version_number == version_num)
+        )
+        ver = ver_result.scalar_one_or_none()
+        if not ver:
+            raise HTTPException(status_code=404, detail="Version not found")
+        return ver
 
 # Global Instance
 scheduler_service = SchedulerService()
