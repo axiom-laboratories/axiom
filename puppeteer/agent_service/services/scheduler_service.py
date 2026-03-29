@@ -231,6 +231,15 @@ class SchedulerService:
 
             payload_json = json.dumps(payload_dict)
 
+            # Stamp the current signed version on the dispatch
+            ver_result = await session.execute(
+                select(JobDefinitionVersion)
+                .where(JobDefinitionVersion.job_def_id == s_job.id, JobDefinitionVersion.is_signed == True)
+                .order_by(JobDefinitionVersion.version_number.desc())
+                .limit(1)
+            )
+            current_version = ver_result.scalar_one_or_none()
+
             # Create Job
             new_job = Job(
                 guid=execution_guid,
@@ -247,6 +256,7 @@ class SchedulerService:
                 runtime=runtime,
                 name=s_job.name,          # SRCH-04: auto-populate from scheduled job name
                 created_by=s_job.created_by,  # SRCH-03: stamp submitter
+                definition_version_id=current_version.id if current_version else None,
             )
             session.add(new_job)
             await session.commit()
