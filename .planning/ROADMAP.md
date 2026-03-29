@@ -244,7 +244,10 @@ Plans:
   2. Operator can follow the APT mirror guidance to configure `apt-cacher-ng` as a sidecar and confirm packages resolve through it during a Foundry node build
   3. Operator can follow the PWSH mirror guidance to install a module from a BaGet/PSGallery mirror inside a job script
   4. The signed pip-mirror validation job reports PASS when the internal mirror is active and FAIL when it is not reachable, giving operators a dispatch-ready smoke test
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 84-01-PLAN.md — PKG-04 validation script, manifest entry, and updated test suite
+- [ ] 84-02-PLAN.md — Package mirrors runbook (devpi/apt-cacher-ng/BaGet), MkDocs nav, air-gap cross-link
 
 ### Phase 85: Screenshot Capture
 **Goal**: The docs and marketing homepage show real, populated dashboard screenshots that reflect actual platform state
