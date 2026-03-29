@@ -33,8 +33,8 @@
 ### Screenshot Capture
 
 - [ ] **SCR-01**: A Playwright script seeds demo data (enrolled node, completed jobs) and captures 8+ dashboard view screenshots without manual intervention
-- [ ] **SCR-02**: Screenshots are integrated into the getting-started and feature docs pages
-- [ ] **SCR-03**: Screenshots are integrated into the marketing homepage (`homepage/index.html`)
+- [x] **SCR-02**: Screenshots are integrated into the getting-started and feature docs pages
+- [x] **SCR-03**: Screenshots are integrated into the marketing homepage (`homepage/index.html`)
 
 ### Docs Accuracy Validation
 
@@ -87,8 +87,8 @@
 | PKG-03 | Phase 84 | Complete |
 | PKG-04 | Phase 84 | Complete |
 | SCR-01 | Phase 85 | Pending |
-| SCR-02 | Phase 85 | Pending |
-| SCR-03 | Phase 85 | Pending |
+| SCR-02 | Phase 85 | Complete |
+| SCR-03 | Phase 85 | Complete |
 | DOC-01 | Phase 86 | Pending |
 | DOC-02 | Phase 86 | Pending |
 | DOC-03 | Phase 86 | Pending |

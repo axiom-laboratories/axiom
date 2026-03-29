@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
-status: executing
-stopped_at: Phase 85 Plan 01 complete
-last_updated: "2026-03-29T15:50:00.000Z"
-last_activity: 2026-03-29 — Phase 85 Plan 01 executed
+status: Plan 01 executed — tools/capture_screenshots.py written and committed
+stopped_at: Phase 85 Plan 02 complete
+last_updated: "2026-03-29T15:38:11.597Z"
+last_activity: 2026-03-29 — Phase 85 Plan 01 executed (3 tasks, 3 atomic commits)
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  completed_phases: 4
+  total_plans: 9
+  completed_plans: 9
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 85 of 86 (Screenshot Capture)
-Plan: 01 complete
-Status: Plan 01 executed — tools/capture_screenshots.py written and committed
-Last activity: 2026-03-29 — Phase 85 Plan 01 executed (3 tasks, 3 atomic commits)
+Plan: 02 complete — Phase 85 complete
+Status: All plans executed — docs/homepage screenshot integration complete
+Last activity: 2026-03-29 — Phase 85 Plan 02 executed (5 tasks, 5 atomic commits)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -87,6 +87,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 84-02]: devpi correct URL is http://devpi:3141/root/pypi/+simple/ — root index /+simple/ is empty; documented as critical common issue in runbook
 - [Phase 84-02]: apt-cacher-ng: rm /etc/apt/apt.conf.d/01proxy must be in same RUN layer as apt-get install to prevent proxy persisting in final node images
 - [Phase 84-02]: BaGet: Install-PSResource preferred over Install-Module on PS 7.4+ — PowerShellGet v2 has partial NuGet v3 compatibility issues
+- [Phase 85-02]: Homepage showcase CSS uses --axiom-* design tokens (not generic --bg-alt/--text-muted fallbacks) — keeps stylesheet consistent with existing dark-slate theme
+- [Phase 85-02]: Screenshot directories committed via .gitkeep before PNGs exist — structure-first, populate-later; screenshots committed separately by operator after running tools/capture_screenshots.py
 
 ### Pending Todos
 
@@ -109,6 +111,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-29T15:22:05.283Z
-Stopped at: Phase 85 context gathered
-Resume file: .planning/phases/85-screenshot-capture/85-CONTEXT.md
+Last session: 2026-03-29T15:38:11.595Z
+Stopped at: Phase 85 Plan 02 complete
+Resume file: None
