@@ -1214,14 +1214,23 @@ class JobService:
                     _draining_node.status = "OFFLINE"
                     await db.commit()
 
-        # 4. Final Terminal Status Webhook
-        is_terminal = job.status in ["COMPLETED", "FAILED", "DEAD_LETTER", "SECURITY_REJECTED"]
-        if is_terminal:
+        # 4. Final Terminal Status Webhook (alert-eligible statuses only)
+        is_alert_status = job.status in ["FAILED", "DEAD_LETTER", "SECURITY_REJECTED"]
+        if is_alert_status:
+            # Extract error_summary from result JSON (first 500 chars of error field)
+            _error_summary = ""
+            try:
+                _result_data = json.loads(job.result or "{}")
+                _error_summary = str(_result_data.get("error", _result_data.get("stderr", "")))[:500]
+            except Exception:
+                _error_summary = f"exit code {report.exit_code}"
+
             await WebhookService.dispatch_event(db, f"job:{job.status.lower()}", {
                 "guid": job.guid,
-                "node_id": job.node_id,
-                "status": job.status,
-                "exit_code": report.exit_code
+                "job_name": job.name or job.guid,
+                "node_id": job.node_id or "unknown",
+                "error_summary": _error_summary or f"exit code {report.exit_code}",
+                "failed_at": datetime.utcnow().isoformat() + "Z",
             })
 
         return {"status": job.status}
