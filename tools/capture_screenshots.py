@@ -261,6 +261,150 @@ def seed_demo_data(base_url: str, jwt: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Screenshot capture — 11 views
+# ---------------------------------------------------------------------------
+
+def capture_screenshots(base_url: str, jwt: str, out_dirs: list) -> int:
+    """
+    Capture 11 named PNG screenshots at 1440x900 and write them to all out_dirs.
+
+    Returns the number of successfully captured screenshots.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print(
+            "[ERROR] Playwright not installed.\n"
+            "  Run: pip install playwright && playwright install chromium"
+        )
+        return 0
+
+    def save_screenshot(page, name: str, captured: list):
+        """Write page screenshot to all output directories."""
+        try:
+            data = page.screenshot()
+            for d in out_dirs:
+                (d / name).write_bytes(data)
+            print(f"  [OK] {name}")
+            captured.append(name)
+        except Exception as e:
+            print(f"  [WARN] Failed to save {name}: {e}")
+
+    def auth_page(page, route: str):
+        """Navigate to /login, inject JWT, then navigate to the target route."""
+        page.goto(f"{base_url}/login", wait_until="domcontentloaded")
+        page.evaluate(f"localStorage.setItem('mop_auth_token', '{jwt}')")
+        page.goto(f"{base_url}{route}")
+        page.wait_for_load_state("networkidle")
+
+    print("\nCapturing screenshots...")
+
+    captured = []
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+        ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+        page = ctx.new_page()
+
+        # 1. Login page — no auth needed
+        try:
+            page.goto(f"{base_url}/login")
+            page.wait_for_load_state("networkidle")
+            save_screenshot(page, "login.png", captured)
+        except Exception as e:
+            print(f"  [WARN] login.png failed: {e}")
+
+        # 2. Dashboard
+        try:
+            auth_page(page, "/")
+            save_screenshot(page, "dashboard.png", captured)
+        except Exception as e:
+            print(f"  [WARN] dashboard.png failed: {e}")
+
+        # 3. Nodes list
+        try:
+            auth_page(page, "/nodes")
+            save_screenshot(page, "nodes.png", captured)
+        except Exception as e:
+            print(f"  [WARN] nodes.png failed: {e}")
+
+        # 4. Node detail — click first node row
+        try:
+            # Reuse already-loaded nodes page if still there; navigate fresh otherwise
+            if "/nodes" not in page.url:
+                auth_page(page, "/nodes")
+            first_row = page.locator("table tbody tr").first
+            first_row.click()
+            page.wait_for_timeout(800)
+            save_screenshot(page, "node_detail.png", captured)
+        except Exception as e:
+            print(f"  [WARN] node_detail.png failed: {e}")
+
+        # 5. Jobs page
+        try:
+            auth_page(page, "/jobs")
+            save_screenshot(page, "jobs.png", captured)
+        except Exception as e:
+            print(f"  [WARN] jobs.png failed: {e}")
+
+        # 6. Job detail — click a completed job row
+        try:
+            # Reuse already-loaded jobs page if still there
+            if "/jobs" not in page.url:
+                auth_page(page, "/jobs")
+            completed_row = page.locator("tr").filter(has_text="COMPLETED").first
+            completed_row.click()
+            page.wait_for_timeout(800)
+            save_screenshot(page, "job_detail.png", captured)
+        except Exception as e:
+            print(f"  [WARN] job_detail.png failed: {e}")
+
+        # 7. Queue page
+        try:
+            auth_page(page, "/queue")
+            save_screenshot(page, "queue.png", captured)
+        except Exception as e:
+            print(f"  [WARN] queue.png failed: {e}")
+
+        # 8. History page
+        try:
+            auth_page(page, "/history")
+            save_screenshot(page, "history.png", captured)
+        except Exception as e:
+            print(f"  [WARN] history.png failed: {e}")
+
+        # 9. Scheduled jobs page
+        try:
+            auth_page(page, "/scheduled-jobs")
+            save_screenshot(page, "scheduled_jobs.png", captured)
+        except Exception as e:
+            print(f"  [WARN] scheduled_jobs.png failed: {e}")
+
+        # 10. Foundry templates page
+        try:
+            auth_page(page, "/templates")
+            save_screenshot(page, "foundry.png", captured)
+        except Exception as e:
+            print(f"  [WARN] foundry.png failed: {e}")
+
+        # 11. Audit log
+        try:
+            auth_page(page, "/audit")
+            save_screenshot(page, "audit.png", captured)
+        except Exception as e:
+            print(f"  [WARN] audit.png failed: {e}")
+
+        browser.close()
+
+    print(f"\nCaptured {len(captured)}/11 screenshots.")
+    print("Written to:")
+    for d in out_dirs:
+        print(f"  {d}  ({len(list(d.glob('*.png')))} PNG files)")
+
+    return len(captured)
+
+
+# ---------------------------------------------------------------------------
 # Output directory setup
 # ---------------------------------------------------------------------------
 
@@ -323,7 +467,7 @@ def main():
     for d in out_dirs:
         print(f"  {d}")
 
-    # Seed demo data and capture screenshots (implemented in subsequent tasks)
+    # Seed demo data then capture screenshots
     seed_demo_data(args.url, jwt)
     capture_screenshots(args.url, jwt, out_dirs)
 
