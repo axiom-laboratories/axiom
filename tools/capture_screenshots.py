@@ -11,11 +11,11 @@ Usage:
     python tools/capture_screenshots.py [--url URL] [--check]
 
 Options:
-    --url URL    Base URL of the running stack (default: http://localhost:8080)
+    --url URL    Base URL of the running stack (default: http://localhost:80)
     --check      Run pre-flight check only (no screenshots), then exit
 
 Prerequisites:
-    - Puppeteer stack running (port 8080 accessible)
+    - Puppeteer stack running (port 80 accessible)
     - At least one node enrolled and online
     - pip install playwright requests && playwright install chromium
 """
@@ -38,13 +38,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # ---------------------------------------------------------------------------
 
 def load_secrets() -> dict:
-    """Read puppeteer/secrets.env and return a dict of key=value pairs."""
+    """Read puppeteer/secrets.env (or puppeteer/.env as fallback) and return a dict of key=value pairs."""
     secrets_path = REPO_ROOT / "puppeteer" / "secrets.env"
+    fallback_path = REPO_ROOT / "puppeteer" / ".env"
     if not secrets_path.exists():
-        raise FileNotFoundError(
-            f"secrets.env not found at {secrets_path}\n"
-            "Ensure the Puppeteer stack has been configured with credentials."
-        )
+        if fallback_path.exists():
+            secrets_path = fallback_path
+        else:
+            raise FileNotFoundError(
+                f"secrets.env not found at {secrets_path}\n"
+                "Ensure the Puppeteer stack has been configured with credentials."
+            )
     result = {}
     for line in secrets_path.read_text().splitlines():
         line = line.strip()
@@ -88,7 +92,7 @@ def preflight_check(base_url: str, admin_password: str):
     # 2. Admin credentials valid — obtain JWT
     try:
         r = requests.post(
-            f"{base_url}/api/auth/login",
+            f"{base_url}/auth/login",
             data={"username": "admin", "password": admin_password},
             timeout=10,
         )
@@ -115,7 +119,8 @@ def preflight_check(base_url: str, admin_password: str):
         if r.status_code != 200:
             print(f"  [FAIL] GET /api/nodes returned HTTP {r.status_code}")
             return False
-        nodes = r.json()
+        data = r.json()
+        nodes = data.get("items", data) if isinstance(data, dict) else data
         if not isinstance(nodes, list) or len(nodes) == 0:
             print("  [FAIL] No enrolled nodes found — enroll at least one node before capturing screenshots")
             return False
@@ -181,7 +186,7 @@ def seed_demo_data(base_url: str, jwt: str) -> dict:
             # Re-register to get the correct public key into the DB for this ephemeral priv
             # Since the key already exists we cannot verify — register under a unique name
             import datetime
-            unique_name = f"screenshot-seed-key-{datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%S')}"
+            unique_name = f"screenshot-seed-key-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S')}"
             r3 = requests.post(
                 f"{base_url}/api/signatures",
                 json={"name": unique_name, "public_key": pub_pem},
@@ -204,9 +209,11 @@ def seed_demo_data(base_url: str, jwt: str) -> dict:
         payload = {
             "task_type": "script",
             "runtime": "python",
-            "script": script,
+            "payload": {
+                "script_content": script,
+                "signature": sig_b64,
+            },
             "signature_id": sig_id,
-            "signature": sig_b64,
         }
         r = requests.post(
             f"{base_url}/api/jobs",
@@ -215,7 +222,7 @@ def seed_demo_data(base_url: str, jwt: str) -> dict:
             timeout=10,
         )
         if r.status_code in (200, 201):
-            job_id = r.json().get("id", "?")
+            job_id = r.json().get("guid", r.json().get("id", "?"))
             print(f"  [OK] Dispatched job '{label}' (id={job_id})")
         else:
             print(f"  [WARN] Job '{label}' dispatch returned {r.status_code}: {r.text[:120]}")
@@ -242,7 +249,8 @@ def seed_demo_data(base_url: str, jwt: str) -> dict:
         try:
             r = requests.get(f"{base_url}/api/jobs", headers=auth_headers, timeout=10)
             if r.status_code == 200:
-                jobs = r.json()
+                data = r.json()
+                jobs = data.get("items", data) if isinstance(data, dict) else data
                 terminal = [
                     j for j in jobs
                     if j.get("status", "").upper() in ("COMPLETED", "FAILED")
@@ -328,14 +336,14 @@ def capture_screenshots(base_url: str, jwt: str, out_dirs: list) -> int:
         except Exception as e:
             print(f"  [WARN] nodes.png failed: {e}")
 
-        # 4. Node detail — click first node row
+        # 4. Node detail — click first node card
         try:
-            # Reuse already-loaded nodes page if still there; navigate fresh otherwise
-            if "/nodes" not in page.url:
-                auth_page(page, "/nodes")
-            first_row = page.locator("table tbody tr").first
-            first_row.click()
-            page.wait_for_timeout(800)
+            auth_page(page, "/nodes")
+            # Nodes page uses card layout, not a table — click the first cursor-pointer card
+            page.wait_for_selector(".cursor-pointer", timeout=10000)
+            first_card = page.locator(".cursor-pointer").first
+            first_card.click()
+            page.wait_for_timeout(1200)
             save_screenshot(page, "node_detail.png", captured)
         except Exception as e:
             print(f"  [WARN] node_detail.png failed: {e}")
@@ -429,8 +437,8 @@ def main():
     )
     parser.add_argument(
         "--url",
-        default="http://localhost:8080",
-        help="Base URL of the running stack (default: http://localhost:8080)",
+        default="http://localhost:80",
+        help="Base URL of the running stack (default: http://localhost:80)",
     )
     parser.add_argument(
         "--check",
