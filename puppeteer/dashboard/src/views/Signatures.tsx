@@ -8,7 +8,11 @@ import {
     ExternalLink,
     Lock,
     ShieldCheck,
-    AlertCircle
+    AlertCircle,
+    BookOpen,
+    Copy,
+    CheckCheck,
+    Terminal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -45,9 +49,47 @@ interface Signature {
     uploaded_by: string;
 }
 
+const DEMO_KEY_ID = 'demo0000000000000000000000000000';
+
+const DEMO_SIGN_CMD = `python3 - <<'EOF'
+from cryptography.hazmat.primitives import serialization
+import base64
+
+with open("demo_signing_key.pem", "rb") as f:
+    private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+script_content = open("hello.py", "r").read()
+sig = private_key.sign(script_content.encode("utf-8"))
+print(base64.b64encode(sig).decode())
+EOF`;
+
+const DEMO_KEY_LOCATION = `# The demo private key ships with the orchestrator at:
+# puppeteer/demo_signing_key.pem
+# Copy it locally:
+cp /path/to/master_of_puppets/puppeteer/demo_signing_key.pem ./demo_signing_key.pem`;
+
+function CopyButton({ text }: { text: string }) {
+    const [copied, setCopied] = useState(false);
+    const handleCopy = () => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+    return (
+        <button
+            onClick={handleCopy}
+            className="absolute top-2 right-2 p-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors"
+            title="Copy to clipboard"
+        >
+            {copied ? <CheckCheck className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+    );
+}
+
 const Signatures = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showDemoGuide, setShowDemoGuide] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ name: '', public_key: '' });
     const user = getUser();
@@ -61,6 +103,8 @@ const Signatures = () => {
             return await res.json();
         }
     });
+
+    const isDemoActive = !isLoading && signatures.length === 1 && signatures[0]?.id === DEMO_KEY_ID;
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
@@ -159,6 +203,33 @@ const Signatures = () => {
                 </Button>
             </div>
 
+            {isDemoActive && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                        <div className="mt-0.5 p-1.5 rounded-lg bg-amber-500/10 text-amber-400 shrink-0">
+                            <BookOpen className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold text-amber-300">Getting Started — Demo key is active</p>
+                            <p className="text-xs text-zinc-400 mt-1">
+                                A demo Ed25519 keypair ships with the orchestrator so you can run your first job without any setup.
+                                The private key is at <code className="font-mono text-amber-300 bg-zinc-800 px-1 py-0.5 rounded">puppeteer/demo_signing_key.pem</code>.
+                                Replace it with your own key before going to production.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 shrink-0 font-bold"
+                        onClick={() => setShowDemoGuide(true)}
+                    >
+                        <Terminal className="mr-2 h-3.5 w-3.5" />
+                        How to sign a script
+                    </Button>
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3].map(i => (
@@ -223,6 +294,53 @@ const Signatures = () => {
                     )}
                 </div>
             )}
+
+            {/* Demo signing guide modal */}
+            <Dialog open={showDemoGuide} onOpenChange={setShowDemoGuide}>
+                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Terminal className="h-5 w-5 text-amber-400" />
+                            Sign your first script with the demo key
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-500">
+                            Three steps: copy the demo key, sign your script, then paste the signature when dispatching a job.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-5 pt-2">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 1 — Write a test script (hello.py)</p>
+                            <div className="relative">
+                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-green-400 overflow-x-auto whitespace-pre">{`print("Hello from Axiom!")\nimport platform\nprint(f"Running on {'{'}platform.node(){'}'} ({'{'}platform.system(){'}'})") `}</pre>
+                                <CopyButton text={`print("Hello from Axiom!")\nimport platform\nprint(f"Running on {platform.node()} ({platform.system()})")`} />
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 2 — Copy the demo private key to your working directory</p>
+                            <div className="relative">
+                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-400 overflow-x-auto whitespace-pre">{DEMO_KEY_LOCATION}</pre>
+                                <CopyButton text={DEMO_KEY_LOCATION} />
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 3 — Generate the base64 signature</p>
+                            <div className="relative">
+                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{DEMO_SIGN_CMD}</pre>
+                                <CopyButton text={DEMO_SIGN_CMD} />
+                            </div>
+                            <p className="text-xs text-zinc-500 mt-2">Paste the printed base64 string into the <strong className="text-zinc-300">Signature</strong> field when dispatching a job, and select <strong className="text-zinc-300">Demo Key (Getting Started)</strong> as the signing key.</p>
+                        </div>
+                        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                            <p className="text-xs text-red-400">
+                                <strong>Production warning:</strong> The demo key private file is committed to the repository and is not secret. Replace it with a key you generated yourself before handling any real workloads.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowDemoGuide(false)} className="border-zinc-800">Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[500px]">

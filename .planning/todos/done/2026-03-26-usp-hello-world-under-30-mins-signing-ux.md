@@ -45,3 +45,13 @@ The signing UX needs to be first-class to hit the 30-min USP reliably:
 ## Success criteria for the USP
 
 Time a fresh install end-to-end on a clean machine. Sub-30 min with no prior knowledge of Axiom = USP confirmed.
+
+## Implementation (completed 2026-03-29)
+
+Implemented Option B:
+- Generated demo Ed25519 keypair; committed both files to repo (`puppeteer/demo_signing_key.pem`, `puppeteer/demo_verification_key.pem`)
+- Added `.gitignore` exceptions for these two specific files
+- Startup seed logic in `main.py`: if no signature records exist and `demo_verification_key.pem` is present, seeds a `Signature` row with id `demo0000000000000000000000000000` and name "Demo Key (Getting Started)"
+- `Signatures.tsx`: amber "Getting Started" banner shown when demo key is the only registered key; "How to sign a script" button opens a modal with copy-paste Python signing commands
+- Improved all signature verification error messages in `main.py` and `scheduler_service.py` to be actionable and reference the Signatures page
+- Updated `docs/docs/getting-started/first-job.md` with a new "Zero-setup: demo key" section at the top
