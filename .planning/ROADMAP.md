@@ -312,7 +312,7 @@ Plans:
 | 81. Homepage Enterprise Messaging | v14.4 | 1/1 | Complete | 2026-03-28 |
 | 82. Licence Tooling | 2/2 | Complete    | 2026-03-28 | - |
 | 83. Node Validation Job Library | 3/3 | Complete    | 2026-03-28 | - |
-| 84. Package Repo Operator Docs | 2/2 | Complete   | 2026-03-29 | - |
+| 84. Package Repo Operator Docs | 2/2 | Complete    | 2026-03-29 | - |
 | 85. Screenshot Capture | v15.0 | 0/TBD | Not started | - |
 | 86. Docs Accuracy Validation | v15.0 | 0/TBD | Not started | - |
 
