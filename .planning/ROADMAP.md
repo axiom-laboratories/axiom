@@ -212,7 +212,7 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
 
 - [x] **Phase 87: Research & Design** — Review competitor pain points report; produce design decisions for all four implementation features (completed 2026-03-29)
 - [x] **Phase 88: Dispatch Diagnosis UI** — Wire the existing `/jobs/{guid}/dispatch-diagnosis` endpoint into the dashboard job list and detail view (completed 2026-03-29)
-- [ ] **Phase 89: CE Alerting** — SMTP/webhook notification on job failure, configurable by CE operators, no EE licence required
+- [~] **Phase 89: CE Alerting** — SMTP/webhook notification on job failure, configurable by CE operators, no EE licence required (plan 01/02 complete)
 - [ ] **Phase 90: Job Script Versioning** — Immutable script version records linked to execution history; operators can view exact script that ran
 - [ ] **Phase 91: Output Validation** — Operator-defined success patterns (exit code + JSON/regex); validation failures reported as FAILED with reason
 
@@ -320,7 +320,7 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
 | 86. Docs Accuracy Validation | v15.0 | 2/2 | Complete | 2026-03-29 |
 | 87. Research & Design | 1/1 | Complete    | 2026-03-29 | - |
 | 88. Dispatch Diagnosis UI | 2/2 | Complete    | 2026-03-29 | - |
-| 89. CE Alerting | v16.0 | 0/TBD | Not started | - |
+| 89. CE Alerting | v16.0 | 1/2 | In Progress | - |
 | 90. Job Script Versioning | v16.0 | 0/TBD | Not started | - |
 | 91. Output Validation | v16.0 | 0/TBD | Not started | - |
 

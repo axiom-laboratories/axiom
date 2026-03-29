@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
-status: completed
-stopped_at: Phase 89 context gathered
-last_updated: "2026-03-29T21:06:51.344Z"
-last_activity: "2026-03-29 — Phase 88 complete: DIAG-01, DIAG-02, DIAG-03 all satisfied"
+status: in_progress
+stopped_at: Phase 89 plan 01 complete
+last_updated: "2026-03-29T22:30:00.000Z"
+last_activity: "2026-03-29 — Phase 89 plan 01 complete: ALRT-01, ALRT-02, ALRT-03 satisfied"
 progress:
   total_phases: 5
   completed_phases: 2
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 88 of 91 (Dispatch Diagnosis UI) — Complete
-Plan: 02 of 02
-Status: Phase 88 done; ready for next phase (89, 90, or 91)
-Last activity: 2026-03-29 — Phase 88 complete: DIAG-01, DIAG-02, DIAG-03 all satisfied
+Phase: 89 of 91 (CE Alerting) — In Progress
+Plan: 01 of 02 complete
+Status: Backend webhook delivery implemented; ready for Phase 89-02 (frontend config UI)
+Last activity: 2026-03-29 — Phase 89 plan 01 complete: ALRT-01, ALRT-02, ALRT-03 satisfied
 
 Progress: [██████████] 100%
 
@@ -66,6 +66,8 @@ Progress: [██████████] 100%
 - [Phase 87]: Script versioning: two-table design (job_script_versions + job_definition_history), script_version_id FK on execution_records, Config key versioning.trigger_mode
 - [Phase 87]: Output validation: validation_rules JSON column on scheduled_jobs, failure_reason enum with 4 values, dot-notation path syntax, evaluation in job_service.py
 - [Phase 88 P02]: Poll useEffect uses stringified GUID join as dependency (array identity instability workaround); benign reason codes (pending_dispatch, not_pending) suppressed from inline display
+- [Phase 89 P01]: Event filtering split between job_service (alert-eligible statuses: FAILED/DEAD_LETTER/SECURITY_REJECTED) and webhook_service (enabled flag + security_rejections opt-in); all three admin endpoints gated on nodes:write (accessible to operators)
+- [Phase 89 P01]: last_delivery_status persisted as JSON string in existing Config table — no DB migration needed
 
 ### Pending Todos
 
