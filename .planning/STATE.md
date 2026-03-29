@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
-status: planning
-stopped_at: Phase 85 context gathered
-last_updated: "2026-03-29T15:22:05.285Z"
-last_activity: 2026-03-28 — Roadmap created for v15.0
+status: executing
+stopped_at: Phase 85 Plan 01 complete
+last_updated: "2026-03-29T15:50:00.000Z"
+last_activity: 2026-03-29 — Phase 85 Plan 01 executed
 progress:
   total_phases: 5
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 ## Current Position
 
-Phase: 82 of 86 (Licence Tooling)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-28 — Roadmap created for v15.0
+Phase: 85 of 86 (Screenshot Capture)
+Plan: 01 complete
+Status: Plan 01 executed — tools/capture_screenshots.py written and committed
+Last activity: 2026-03-29 — Phase 85 Plan 01 executed (3 tasks, 3 atomic commits)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -60,6 +60,9 @@ Progress: [░░░░░░░░░░] 0%
 
 ### Decisions
 
+- [Phase 85-01]: Ephemeral Ed25519 keypair collision handled by registering a timestamped unique key name so private key always matches the registered public key on each run
+- [Phase 85-01]: URL-based navigation used in Playwright (not nav link clicks) — more reliable per CLAUDE.md
+- [Phase 85-01]: node_detail screenshot reuses already-loaded nodes page via URL check to avoid redundant auth_page navigation
 - [v15.0 roadmap]: Ed25519 private key must move to private `axiom-laboratories/axiom-licences` repo — public repo retains only the verification public key hardcoded in `licence_service.py`
 - [v15.0 roadmap]: `issue_licence.py` must require explicit `--key` path with no default — silent default inside the repo is the primary security gap to close in Phase 82
 - [v15.0 roadmap]: Resource limit jobs (JOB-06, JOB-07) included in Phase 83 but must gate on `resource_limits_supported` capability flag — cgroup v2 enforcement is unreliable on LXC nodes
