@@ -22,6 +22,7 @@ from datetime import datetime, timedelta, UTC
 from dotenv import load_dotenv
 import logging
 from contextlib import asynccontextmanager
+import httpx
 
 from .models import (
     JobCreate, RegisterRequest, RegisterResponse, JobResponse, WorkResponse,
@@ -39,6 +40,7 @@ from .models import (
     BulkJobActionRequest, BulkActionResponse, BulkDiagnosisRequest,
     SchedulingHealthResponse, DefinitionHealthRow,
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
+    AlertsConfigUpdate,
     SIGNING_FIELDS,
 )
 from .security import (
@@ -2146,6 +2148,114 @@ async def update_retention_config(
         db.add(Config(key="execution_retention_days", value=str(body.retention_days)))
     await db.commit()
     return {"retention_days": body.retention_days}
+
+
+# --- Alerting Config (ALRT-01, ALRT-03) ---
+
+@app.get("/api/admin/alerts/config", tags=["Admin"])
+async def get_alerts_config(
+    current_user: User = Depends(require_permission("nodes:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current alerting/webhook configuration."""
+    keys = ["alerts.webhook_url", "alerts.webhook_enabled", "alerts.webhook_security_rejections", "alerts.last_delivery_status"]
+    rows = await db.execute(select(Config).where(Config.key.in_(keys)))
+    config_map = {r.key: r.value for r in rows.scalars().all()}
+
+    last_status = None
+    raw_status = config_map.get("alerts.last_delivery_status")
+    if raw_status:
+        try:
+            last_status = json.loads(raw_status)
+        except Exception:
+            pass
+
+    return {
+        "webhook_url": config_map.get("alerts.webhook_url", ""),
+        "webhook_enabled": config_map.get("alerts.webhook_enabled", "false") == "true",
+        "webhook_security_rejections": config_map.get("alerts.webhook_security_rejections", "false") == "true",
+        "last_delivery_status": last_status,
+    }
+
+
+@app.patch("/api/admin/alerts/config", tags=["Admin"])
+async def update_alerts_config(
+    body: AlertsConfigUpdate,
+    current_user: User = Depends(require_permission("nodes:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update alerting/webhook configuration. Only provided fields are updated."""
+    updates = {}
+    if body.webhook_url is not None:
+        updates["alerts.webhook_url"] = body.webhook_url
+    if body.webhook_enabled is not None:
+        updates["alerts.webhook_enabled"] = "true" if body.webhook_enabled else "false"
+    if body.webhook_security_rejections is not None:
+        updates["alerts.webhook_security_rejections"] = "true" if body.webhook_security_rejections else "false"
+
+    for key, value in updates.items():
+        existing = await db.execute(select(Config).where(Config.key == key))
+        row = existing.scalar_one_or_none()
+        if row:
+            row.value = value
+        else:
+            db.add(Config(key=key, value=value))
+
+    await db.commit()
+    return {"updated": list(updates.keys())}
+
+
+@app.post("/api/admin/alerts/test", tags=["Admin"])
+async def test_alerts_delivery(
+    current_user: User = Depends(require_permission("nodes:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fire a synthetic test notification to the configured webhook URL."""
+    url_row = await db.execute(select(Config).where(Config.key == "alerts.webhook_url"))
+    url_val = url_row.scalar_one_or_none()
+    webhook_url = url_val.value if url_val else ""
+
+    if not webhook_url or not (webhook_url.startswith("http://") or webhook_url.startswith("https://")):
+        raise HTTPException(status_code=400, detail="No valid webhook URL configured")
+
+    synthetic_payload = {
+        "event": "job.failed",
+        "job_guid": "00000000-0000-0000-0000-000000000000",
+        "job_name": "test-alert",
+        "node_id": "system",
+        "error_summary": "This is a test notification",
+        "failed_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+    success = False
+    status_code = None
+    body_snippet = None
+    error_msg = None
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(webhook_url, json=synthetic_payload)
+            status_code = resp.status_code
+            body_snippet = resp.text[:200]
+            success = 200 <= status_code < 300
+    except Exception as e:
+        error_msg = str(e)[:200]
+
+    # Update last_delivery_status
+    status_json = json.dumps({
+        "status_code": status_code,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "body_snippet": body_snippet or error_msg or "",
+    })
+    existing = await db.execute(select(Config).where(Config.key == "alerts.last_delivery_status"))
+    row = existing.scalar_one_or_none()
+    if row:
+        row.value = status_json
+    else:
+        db.add(Config(key="alerts.last_delivery_status", value=status_json))
+    await db.commit()
+
+    return {"success": success, "status_code": status_code, "body_snippet": body_snippet, "error": error_msg}
 
 
 if __name__ == "__main__":
