@@ -315,7 +315,7 @@ Plans:
 | 82. Licence Tooling | 2/2 | Complete    | 2026-03-28 | - |
 | 83. Node Validation Job Library | 3/3 | Complete    | 2026-03-28 | - |
 | 84. Package Repo Operator Docs | 2/2 | Complete    | 2026-03-29 | - |
-| 85. Screenshot Capture | 2/2 | Complete   | 2026-03-29 | 2026-03-29 |
+| 85. Screenshot Capture | 2/2 | Complete    | 2026-03-29 | 2026-03-29 |
 | 86. Docs Accuracy Validation | v15.0 | 0/TBD | Not started | - |
 
 ## Archived
