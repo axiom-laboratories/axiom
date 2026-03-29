@@ -21,7 +21,8 @@ import {
     Check,
     Loader2,
     ShieldCheck,
-    Search
+    Search,
+    Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -1420,6 +1421,7 @@ const Admin = () => {
                     <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Rollouts</TabsTrigger>
                     <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Automation</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Data</TabsTrigger>
+                    <TabsTrigger value="notifications" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Notifications</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="onboarding" className="space-y-8">
@@ -1583,6 +1585,10 @@ const Admin = () => {
                             </p>
                         </div>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="notifications" className="space-y-6">
+                    <NotificationsCard />
                 </TabsContent>
             </Tabs>
         </div>
