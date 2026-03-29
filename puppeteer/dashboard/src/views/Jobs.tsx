@@ -81,7 +81,9 @@ interface Job {
 }
 
 interface DispatchDiagnosis {
-    reason: 'no_nodes_online' | 'capability_mismatch' | 'all_nodes_busy' | 'target_node_unavailable' | 'pending_dispatch' | 'not_pending';
+    reason: 'no_nodes_online' | 'capability_mismatch' | 'all_nodes_busy' |
+            'target_node_unavailable' | 'pending_dispatch' | 'not_pending' |
+            'stuck_assigned';
     message: string;
     queue_position?: number | null;
 }
@@ -143,6 +145,12 @@ const getStatusVariant = (status: string) => {
         case 'dead_letter': return 'deadletter';
         default: return 'outline';
     }
+};
+
+const toOrdinal = (n: number): string => {
+    if (n === 2) return '2nd';
+    if (n === 3) return '3rd';
+    return `${n}th`;
 };
 
 const StatusIcon = ({ status }: { status: string }) => {
@@ -843,6 +851,37 @@ const Jobs = () => {
     const selectionActive = selectedGuids.size > 0;
     const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
     const [pendingBulkAction, setPendingBulkAction] = useState<'cancel' | 'resubmit' | 'delete' | null>(null);
+
+    // Diagnosis cache
+    const [diagnosisCache, setDiagnosisCache] = useState<Record<string, DispatchDiagnosis>>({});
+
+    const fetchDiagnoses = useCallback(async () => {
+        const pendingGuids = jobs
+            .filter(j => j.status === 'PENDING' || j.status === 'ASSIGNED')
+            .map(j => j.guid);
+        if (pendingGuids.length === 0) return;
+        try {
+            const r = await authenticatedFetch('/jobs/dispatch-diagnosis/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guids: pendingGuids }),
+            });
+            if (!r.ok) return;
+            const data = await r.json();
+            setDiagnosisCache(prev => ({ ...prev, ...data.results }));
+        } catch {}
+    }, [jobs]);
+
+    useEffect(() => {
+        const pendingGuids = jobs
+            .filter(j => j.status === 'PENDING' || j.status === 'ASSIGNED')
+            .map(j => j.guid);
+        if (pendingGuids.length === 0) return;
+        fetchDiagnoses(); // immediate fetch on mount or when job set changes
+        const id = setInterval(fetchDiagnoses, 10_000);
+        return () => clearInterval(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [jobs.filter(j => j.status === 'PENDING' || j.status === 'ASSIGNED').map(j => j.guid).join(',')]);
 
     // Bulk selection helpers
     const TERMINAL_STATES = new Set(['COMPLETED', 'FAILED', 'DEAD_LETTER', 'CANCELLED', 'SECURITY_REJECTED']);
