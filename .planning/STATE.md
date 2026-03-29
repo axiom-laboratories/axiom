@@ -92,8 +92,16 @@ Progress: [██████████] 100%
 
 ### Pending Todos
 
-8 pending todos. Key items:
-- Review competitor pain points report (`2026-03-29-review-competitor-pain-points-report.md`)
+15 pending todos. Key items (from competitor analysis):
+- Research dispatch diagnosis UX — surface pending job reasons in dashboard
+- Research job failure alerting/notifications for CE users
+- Research job script versioning options
+- Research scale limits (APScheduler + concurrent load)
+- Write upgrade runbook (migration SQL workflow end to end)
+- Research output/result validation beyond exit code
+- Validate and document Windows local dev getting started path
+Other pending:
+- Review competitor pain points report
 - USP — hello world job under 30 mins signing UX
 - Add screenshots/marketing images to marketing page
 - Create node validation jobs (bash/Python/PWSH)
