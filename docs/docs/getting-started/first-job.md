@@ -6,6 +6,65 @@ and dispatching your first job.
 
 ---
 
+## Zero-setup: demo key (fastest path)
+
+The orchestrator ships with a pre-generated **demo keypair** so you can run your first job
+without any PKI setup. The demo public key is automatically registered as *Demo Key (Getting
+Started)* in the Signatures registry on first boot.
+
+!!! warning "Demo key is not secret"
+    The private key file (`puppeteer/demo_signing_key.pem`) is committed to the repository and
+    is publicly known. It is safe only for local testing. Replace it with your own key before
+    running any real workloads.
+
+**Step 1 — Write a test script**
+
+Create `hello.py`:
+
+```python
+print("Hello from Axiom!")
+import platform
+print(f"Running on {platform.node()} ({platform.system()})")
+```
+
+**Step 2 — Copy the demo private key to your working directory**
+
+```bash
+cp /path/to/master_of_puppets/puppeteer/demo_signing_key.pem ./demo_signing_key.pem
+```
+
+**Step 3 — Sign the script and capture the signature**
+
+```bash
+python3 - <<'EOF'
+from cryptography.hazmat.primitives import serialization
+import base64
+
+with open("demo_signing_key.pem", "rb") as f:
+    private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+script_content = open("hello.py", "r").read()
+sig = private_key.sign(script_content.encode("utf-8"))
+print(base64.b64encode(sig).decode())
+EOF
+```
+
+Copy the printed base64 string — this is your job signature.
+
+**Step 4 — Dispatch from the dashboard**
+
+1. Go to **Jobs** → **New Job**
+2. Paste the contents of `hello.py` into the **Script** field
+3. Paste the base64 signature into the **Signature** field
+4. Select **Demo Key (Getting Started)** from the **Signing Key** dropdown
+5. Click **Dispatch**
+
+!!! tip "Signatures page shortcut"
+    The **Signatures** page shows a *Getting Started* banner with these same copy-paste commands
+    whenever the demo key is the only registered key.
+
+---
+
 ## Quick Start (axiom-push CLI)
 
 !!! note "axiom-push requires EE"

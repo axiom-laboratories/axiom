@@ -149,6 +149,26 @@ async def lifespan(app: FastAPI):
                 await db.commit()
                 logger.info("Bootstrapped Admin User")
 
+    # Seed demo signing key on first run (no signatures exist yet)
+    try:
+        _demo_key_path = Path(__file__).parent.parent / "demo_verification_key.pem"
+        if _demo_key_path.exists():
+            async with AsyncSessionLocal() as _db:
+                _sig_count = await _db.execute(select(func.count()).select_from(Signature))
+                if _sig_count.scalar() == 0:
+                    _demo_pub = _demo_key_path.read_text().strip()
+                    _demo_sig = Signature(
+                        id="demo0000000000000000000000000000",
+                        name="Demo Key (Getting Started)",
+                        public_key=_demo_pub,
+                        uploaded_by="system",
+                    )
+                    _db.add(_demo_sig)
+                    await _db.commit()
+                    logger.info("Seeded demo signing key for first-run onboarding")
+    except Exception as _e:
+        logger.debug(f"Demo key seed skipped: {_e}")
+
     # Start Scheduler
     scheduler_service.start()
     await scheduler_service.sync_scheduler()
@@ -1731,7 +1751,11 @@ async def push_job_definition(
     try:
         SignatureService.verify_payload_signature(sig.public_key, req.signature, req.script_content)
     except Exception as e:
-        raise HTTPException(422, detail=f"Invalid Ed25519 signature: {e}")
+        raise HTTPException(422, detail=(
+            "Signature verification failed — the script content does not match the provided signature. "
+            "Ensure you signed the exact script content with the private key paired to the registered public key. "
+            "If you are getting started, open the Signatures page in the dashboard for copy-paste signing commands using the demo key."
+        ))
 
     # 2. Identity attribution (STAGE-04)
     pushed_by = current_user.username  # "username" or "sp:name" for service principals
