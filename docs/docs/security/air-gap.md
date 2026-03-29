@@ -24,6 +24,8 @@ The following components work without internet access after initial setup:
 
 ## Package Mirror Setup
 
+> For a full from-scratch setup guide, see [Package Mirror Runbooks](../runbooks/package-mirrors.md).
+
 The mirror sidecars must be configured and seeded before disconnecting from the internet.
 
 **Step 1: Confirm mirror sidecars are running**
