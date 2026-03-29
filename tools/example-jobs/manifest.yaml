@@ -79,3 +79,13 @@ jobs:
     required_capabilities:
       resource_limits_supported: "1.0"
     cpu_limit: "2.0"
+
+  - name: validation-pypi-mirror
+    description: >-
+      Confirms pip resolves packages from the internal mirror, not pypi.org.
+      Reads PYPI_MIRROR_HOST env var (hostname:port, e.g. devpi:3141) and runs
+      a dry-run pip install of requests; PASSes if download URL contains the
+      mirror hostname, FAILs if it resolves from pypi.org or env var is absent.
+    script: validation/verify_pypi_mirror.py
+    runtime: python
+    required_capabilities: {}
