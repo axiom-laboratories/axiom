@@ -116,6 +116,16 @@ Running on <node-hostname> (Linux)
     - [Foundry](../feature-guides/foundry.md) — build custom node images with pre-installed runtimes and packages
     - [axiom-push CLI](../feature-guides/axiom-push.md) — full CLI reference
 
+## What the Jobs view looks like
+
+The **Jobs** view shows all dispatched jobs with their current status:
+
+![Jobs page showing dispatched jobs with COMPLETED and FAILED status](../assets/screenshots/jobs.png)
+
+Click a completed job row to open the job detail panel with output, timing, and attestation details:
+
+![Job detail panel showing script output and execution metadata](../assets/screenshots/job_detail.png)
+
 ---
 
 ## Manual Setup
