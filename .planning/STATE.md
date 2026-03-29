@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
 status: completed
-stopped_at: Phase 90 context gathered
-last_updated: "2026-03-29T22:46:42.603Z"
+stopped_at: Completed 90-01-PLAN.md
+last_updated: "2026-03-29T22:58:03.309Z"
 last_activity: "2026-03-29 — Phase 89 plan 02 complete: NotificationsCard in Admin.tsx, Notifications tab with webhook config UI"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Milestone v16.0 — Competitive Observability — Phase 89: Complete
+**Current focus:** Milestone v16.0 — Competitive Observability — Phase 90: In Progress
 
 ## Current Position
 
-Phase: 89 of 91 (CE Alerting) — Complete
-Plan: 02 of 02 complete
-Status: Phase 89 complete — CE alerting backend + frontend delivered
-Last activity: 2026-03-29 — Phase 89 plan 02 complete: NotificationsCard in Admin.tsx, Notifications tab with webhook config UI
+Phase: 90 of 91 (Job Script Versioning) — In Progress
+Plan: 01 of TBD complete
+Status: Phase 90 plan 01 complete — DB model, migration, backend versioning logic delivered
+Last activity: 2026-03-29 — Phase 90 plan 01 complete: JobDefinitionVersion table, _create_version_snapshot, dispatch stamping, version API endpoints
 
 Progress: [██████████] 100%
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100%
 | Phase 88 P01 | 2min | 3 tasks | 3 files |
 | Phase 88 P02 | 5min | 3 tasks | 1 files |
 | Phase 89 P02 | 2min | 2 tasks | 1 files |
+| Phase 90 P90-01 | 18min | 6 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Progress: [██████████] 100%
 - [Phase 89 P01]: Event filtering split between job_service (alert-eligible statuses: FAILED/DEAD_LETTER/SECURITY_REJECTED) and webhook_service (enabled flag + security_rejections opt-in); all three admin endpoints gated on nodes:write (accessible to operators)
 - [Phase 89 P01]: last_delivery_status persisted as JSON string in existing Config table — no DB migration needed
 - [Phase 89 P02]: NotificationsCard uses localUrl state synced from alertsConfig via useEffect; toggle greyed out until URL saved (disabled={!urlSaved}); inline test result via useState (not toast)
+- [Phase 90 P01]: Version snapshot created in second commit after create_job_definition (atomicity with initial row); update_job_definition snapshot before final commit (atomic with mutations)
+- [Phase 90 P01]: is_signed derived from final job status: ACTIVE=True, DRAFT/REVOKED=False; change_summary derived from field diff at snapshot time
 
 ### Pending Todos
 
@@ -81,11 +84,11 @@ Key items carried forward:
 
 ### Blockers/Concerns
 
-- [Phase 90]: Job script versioning requires DB schema change (new table) — existing deployments will need a migration SQL file (`migration_v17.sql` or similar)
+- [Phase 90]: migration_v44.sql delivered for existing deployments — must be applied before upgrading
 - [Phase 91]: Output validation requires node-side changes in `node.py` / `runtime.py` to report structured results — coordinate backend contract and node protocol in Phase 87 design
 
 ## Session Continuity
 
-Last session: 2026-03-29T22:46:42.601Z
-Stopped at: Phase 90 context gathered
-Resume file: .planning/phases/90-job-script-versioning/90-CONTEXT.md
+Last session: 2026-03-29T22:58:03.307Z
+Stopped at: Completed 90-01-PLAN.md
+Resume file: None

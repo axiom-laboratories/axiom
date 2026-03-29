@@ -27,9 +27,9 @@
 
 ### Versioning
 
-- [ ] **VER-01**: When a job definition's script is edited, the previous version is preserved and linked to historical executions
-- [ ] **VER-02**: Operator can view the exact script that ran for any specific historical execution
-- [ ] **VER-03**: Execution history shows the script version number that was active when the job ran
+- [x] **VER-01**: When a job definition's script is edited, the previous version is preserved and linked to historical executions
+- [x] **VER-02**: Operator can view the exact script that ran for any specific historical execution
+- [x] **VER-03**: Execution history shows the script version number that was active when the job ran
 
 ### Output Validation
 
@@ -74,9 +74,9 @@
 | ALRT-01 | Phase 89 | Complete |
 | ALRT-02 | Phase 89 | Pending |
 | ALRT-03 | Phase 89 | Complete |
-| VER-01 | Phase 90 | Pending |
-| VER-02 | Phase 90 | Pending |
-| VER-03 | Phase 90 | Pending |
+| VER-01 | Phase 90 | Complete |
+| VER-02 | Phase 90 | Complete |
+| VER-03 | Phase 90 | Complete |
 | VALD-01 | Phase 91 | Pending |
 | VALD-02 | Phase 91 | Pending |
 | VALD-03 | Phase 91 | Pending |
