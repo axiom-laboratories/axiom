@@ -80,7 +80,15 @@ Progress: [░░░░░░░░░░] 0%
 
 ### Pending Todos
 
-None.
+8 pending todos. Key items:
+- Review competitor pain points report (`2026-03-29-review-competitor-pain-points-report.md`)
+- USP — hello world job under 30 mins signing UX
+- Add screenshots/marketing images to marketing page
+- Create node validation jobs (bash/Python/PWSH)
+- Document custom package repo for EE node
+- Implement deployment recommendations in Docs stack
+- Licence generation tooling and private repo
+- Review docs for accuracy and add screenshots
 
 ### Blockers/Concerns
 
