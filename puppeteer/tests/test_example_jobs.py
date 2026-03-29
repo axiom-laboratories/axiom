@@ -174,7 +174,7 @@ def test_cpu_spin_no_cap():
 # ---------------------------------------------------------------------------
 
 def test_manifest_valid():
-    """tools/example-jobs/manifest.yaml must be valid YAML with 7 entries, each having name/script/runtime."""
+    """tools/example-jobs/manifest.yaml must be valid YAML with 8 entries, each having name/script/runtime."""
     yaml = pytest.importorskip("yaml", reason="PyYAML not installed — skipping manifest test")
     manifest_path = JOBS_DIR / "manifest.yaml"
     if not manifest_path.exists():
@@ -186,7 +186,7 @@ def test_manifest_valid():
     assert isinstance(data, dict), "manifest.yaml must be a mapping at top level"
     assert data.get("version") == "1", f"Expected version: '1', got {data.get('version')!r}"
     jobs = data.get("jobs", [])
-    assert len(jobs) == 7, f"Expected 7 jobs in manifest, found {len(jobs)}"
+    assert len(jobs) == 8, f"Expected 8 jobs in manifest, found {len(jobs)}"
     for job in jobs:
         assert "name" in job, f"Job entry missing 'name': {job}"
         assert "script" in job, f"Job entry missing 'script': {job}"
@@ -196,3 +196,42 @@ def test_manifest_valid():
             f"Script listed in manifest does not exist: {script_path}\n"
             f"Job entry: {job}"
         )
+
+
+# ---------------------------------------------------------------------------
+# PKG-04 — PyPI mirror validation job
+# ---------------------------------------------------------------------------
+
+def test_pypi_mirror_script():
+    """validation/verify_pypi_mirror.py must contain expected structure and exit-code logic."""
+    content = _read_script("validation/verify_pypi_mirror.py")
+    assert "PYPI_MIRROR_HOST" in content, "Missing PYPI_MIRROR_HOST variable"
+    assert "Downloading" in content, "Missing 'Downloading' parsing logic"
+    assert "pypi.org" in content, "Missing pypi.org detection logic"
+    assert "sys.exit(0)" in content, "Missing sys.exit(0) — PASS path"
+    assert "sys.exit(1)" in content, "Missing sys.exit(1) — FAIL path"
+
+
+def test_pypi_mirror_no_env():
+    """verify_pypi_mirror.py must exit 1 with clear message when PYPI_MIRROR_HOST is absent."""
+    script_path = JOBS_DIR / "validation" / "verify_pypi_mirror.py"
+    if not script_path.exists():
+        pytest.fail(
+            f"File not found: {script_path}\n"
+            "Expected at tools/example-jobs/validation/verify_pypi_mirror.py — has it been committed?"
+        )
+    env = {**os.environ, "PYPI_MIRROR_HOST": ""}
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=15,
+    )
+    combined = result.stdout + result.stderr
+    assert result.returncode == 1, (
+        f"Expected exit code 1 (missing env var), got {result.returncode}.\nOutput: {combined}"
+    )
+    assert "PYPI_MIRROR_HOST" in combined, (
+        f"Expected 'PYPI_MIRROR_HOST' in output.\nOutput: {combined}"
+    )
