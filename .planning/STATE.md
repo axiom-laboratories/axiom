@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
 status: planning
-stopped_at: Phase 84 context gathered
-last_updated: "2026-03-29T12:41:10.046Z"
+stopped_at: Completed 84-01-PLAN.md
+last_updated: "2026-03-29T14:42:36.552Z"
 last_activity: 2026-03-28 — Roadmap created for v15.0
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
   percent: 0
 ---
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 83 P01 | 2 | 2 tasks | 4 files |
 | Phase 83 P02 | 3 | 2 tasks | 5 files |
 | Phase 83 P03 | 8 | 2 tasks | 4 files |
+| Phase 84-package-repo-operator-docs P01 | 8 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 83]: manifest.yaml required_capabilities values quoted as strings ('1.0') because job_service.py uses packaging.version.Version for comparison
 - [Phase 83-03]: README uses awesome-list style with per-job H3 subsections — welcoming to community contributors
 - [Phase 83-03]: Runbook includes inversion-logic explanation for validation-memory-hog (FAILED = working correctly)
+- [Phase 84-01]: env block omitted from manifest.yaml — PYPI_MIRROR_HOST documented in runbook only (not a standard dispatch field)
+- [Phase 84-01]: verify_pypi_mirror.py exits 1 immediately on empty PYPI_MIRROR_HOST before spawning pip — prevents silent false negatives
 
 ### Pending Todos
 
@@ -99,6 +102,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-29T12:41:10.044Z
-Stopped at: Phase 84 context gathered
-Resume file: .planning/phases/84-package-repo-operator-docs/84-CONTEXT.md
+Last session: 2026-03-29T14:42:36.550Z
+Stopped at: Completed 84-01-PLAN.md
+Resume file: None

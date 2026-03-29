@@ -28,7 +28,7 @@
 - [ ] **PKG-01**: Operator can follow a runbook to configure a devpi PyPI mirror sidecar and point a Blueprint at it via `pip.conf` injection
 - [ ] **PKG-02**: Operator can follow guidance to configure an apt-cacher-ng APT mirror and verify packages resolve from it
 - [ ] **PKG-03**: Operator can follow guidance to set up a BaGet/PSGallery mirror and install a PWSH module from it inside a job
-- [ ] **PKG-04**: A signed validation job confirms a pip install resolves from the internal mirror (not the public internet)
+- [x] **PKG-04**: A signed validation job confirms a pip install resolves from the internal mirror (not the public internet)
 
 ### Screenshot Capture
 
@@ -85,7 +85,7 @@
 | PKG-01 | Phase 84 | Pending |
 | PKG-02 | Phase 84 | Pending |
 | PKG-03 | Phase 84 | Pending |
-| PKG-04 | Phase 84 | Pending |
+| PKG-04 | Phase 84 | Complete |
 | SCR-01 | Phase 85 | Pending |
 | SCR-02 | Phase 85 | Pending |
 | SCR-03 | Phase 85 | Pending |
