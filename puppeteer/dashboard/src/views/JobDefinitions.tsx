@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Terminal } from 'lucide-react';
+import { Plus, Terminal, GitCommit } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import JobDefinitionModal from '../components/job-definitions/JobDefinitionModal
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
 import HealthTab from '../components/job-definitions/HealthTab';
 import TemplatesTab from '../components/TemplatesTab';
+import ScriptViewerModal from '../components/ScriptViewerModal';
 
 interface EditingJob {
     id: string;
@@ -44,12 +45,27 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
     definitionId: string;
     onOpenRun: (jobRunId: string | null, executionId: number) => void;
 }) => {
-    const { data: executions, isLoading } = useQuery({
+    const [viewingVersion, setViewingVersion] = React.useState<{
+        jobDefId: string;
+        versionNumber: number;
+        runtime?: string;
+    } | null>(null);
+
+    const { data: executions, isLoading: execLoading } = useQuery({
         queryKey: ['definition-history', definitionId],
         queryFn: async () => {
             const res = await authenticatedFetch(
                 `/api/executions?scheduled_job_id=${definitionId}&limit=25`
             );
+            return res.json() as Promise<any[]>;
+        },
+        enabled: !!definitionId,
+    });
+
+    const { data: versions } = useQuery({
+        queryKey: ['definition-versions', definitionId],
+        queryFn: async () => {
+            const res = await authenticatedFetch(`/api/jobs/definitions/${definitionId}/versions`);
             return res.json() as Promise<any[]>;
         },
         enabled: !!definitionId,
@@ -74,83 +90,148 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
             }),
             ...ungrouped.map((ex: any) => ({ ...ex, _attemptCount: 1 })),
         ];
-        return rows.sort((a, b) =>
-            new Date(b.started_at ?? 0).getTime() - new Date(a.started_at ?? 0).getTime()
-        );
+        return rows;
     }, [executions]);
 
-    if (isLoading) return <div className="py-8 text-center text-zinc-500 text-sm animate-pulse">Loading history...</div>;
+    const timeline = React.useMemo(() => {
+        const execRows = grouped.map(e => ({ ...e, _rowType: 'execution', _sortTs: e.started_at }));
+        const verRows = (versions ?? []).map(v => ({
+            ...v,
+            _rowType: 'version',
+            _sortTs: v.created_at,
+        }));
+        return [...execRows, ...verRows].sort((a, b) => {
+            const ta = new Date(a._sortTs ?? 0).getTime();
+            const tb = new Date(b._sortTs ?? 0).getTime();
+            return tb - ta;
+        });
+    }, [grouped, versions]);
+
+    if (execLoading) return <div className="py-8 text-center text-zinc-500 text-sm animate-pulse">Loading history...</div>;
 
     return (
-        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2">
-                <Terminal className="h-4 w-4 text-zinc-500" />
-                <span className="text-sm font-bold text-zinc-300">Execution History</span>
-            </div>
-            {grouped.length === 0 ? (
-                <p className="py-8 text-center text-zinc-500 text-sm italic">No runs yet for this definition</p>
-            ) : (
-                <table className="w-full text-sm">
-                    <thead className="bg-zinc-900/50">
-                        <tr className="text-left text-zinc-500 text-xs font-bold uppercase tracking-wider">
-                            <th className="px-4 py-2">When</th>
-                            <th className="px-4 py-2">Node</th>
-                            <th className="px-4 py-2">Status</th>
-                            <th className="px-4 py-2">Duration</th>
-                            <th className="px-4 py-2">Retry</th>
-                            <th className="px-4 py-2 text-right">Logs</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {grouped.map((row: any) => {
-                            const showRetryBadge = (row.max_retries ?? 0) > 1 && (row._attemptCount ?? 1) > 1;
-                            const isRetrying = row.status === 'RETRYING';
-                            const isFailedExhausted = row.status === 'FAILED' && row.attempt_number === (row.max_retries ?? 0) + 1;
-                            return (
-                                <tr key={row.id} className="border-t border-zinc-900 hover:bg-zinc-900/30 transition-colors">
-                                    <td className="px-4 py-2 text-zinc-400 whitespace-nowrap tabular-nums text-xs">
-                                        {row.started_at ? formatDistanceToNow(new Date(row.started_at), { addSuffix: true }) : '—'}
-                                    </td>
-                                    <td className="px-4 py-2 text-zinc-400 text-xs font-mono">{row.node_id || 'N/A'}</td>
-                                    <td className="px-4 py-2">
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                                            row.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                                            row.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                            row.status === 'RETRYING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                                            'bg-zinc-800 text-zinc-400 border-zinc-700'
-                                        }`}>{row.status}</span>
-                                    </td>
-                                    <td className="px-4 py-2 text-zinc-400 tabular-nums text-xs">
-                                        {row.duration_seconds != null ? `${row.duration_seconds.toFixed(1)}s` : '—'}
-                                    </td>
-                                    <td className="px-4 py-2">
-                                        {showRetryBadge && (
+        <>
+            <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2">
+                    <Terminal className="h-4 w-4 text-zinc-500" />
+                    <span className="text-sm font-bold text-zinc-300">Execution History</span>
+                </div>
+                {timeline.length === 0 ? (
+                    <p className="py-8 text-center text-zinc-500 text-sm italic">No runs yet for this definition</p>
+                ) : (
+                    <table className="w-full text-sm">
+                        <thead className="bg-zinc-900/50">
+                            <tr className="text-left text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                                <th className="px-4 py-2">When</th>
+                                <th className="px-4 py-2">Node</th>
+                                <th className="px-4 py-2">Status</th>
+                                <th className="px-4 py-2">Version</th>
+                                <th className="px-4 py-2">Duration</th>
+                                <th className="px-4 py-2">Retry</th>
+                                <th className="px-4 py-2 text-right">Logs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {timeline.map((row: any) => {
+                                if (row._rowType === 'version') {
+                                    return (
+                                        <tr key={`ver-${row.id}`} className="border-t border-zinc-900/50">
+                                            <td className="px-4 py-2 text-zinc-600 whitespace-nowrap tabular-nums text-xs">
+                                                {row.created_at ? formatDistanceToNow(new Date(row.created_at), { addSuffix: true }) : '—'}
+                                            </td>
+                                            <td className="px-4 py-2 text-zinc-600 text-xs" colSpan={2}>
+                                                <span className="flex items-center gap-1.5">
+                                                    <GitCommit className="h-3 w-3" />
+                                                    <span className="font-medium text-zinc-500">v{row.version_number}</span>
+                                                    <span className="text-zinc-600">{row.change_summary || 'Definition updated'}</span>
+                                                    {!row.is_signed && (
+                                                        <span className="text-[9px] font-bold px-1 py-0.5 rounded border bg-amber-500/10 text-amber-400 border-amber-500/20">DRAFT</span>
+                                                    )}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-2 text-zinc-600 text-xs">
+                                                {row.created_by || '—'}
+                                            </td>
+                                            <td colSpan={3} />
+                                        </tr>
+                                    );
+                                }
+
+                                const showRetryBadge = (row.max_retries ?? 0) > 1 && (row._attemptCount ?? 1) > 1;
+                                const isRetrying = row.status === 'RETRYING';
+                                const isFailedExhausted = row.status === 'FAILED' && row.attempt_number === (row.max_retries ?? 0) + 1;
+                                return (
+                                    <tr key={row.id} className="border-t border-zinc-900 hover:bg-zinc-900/30 transition-colors">
+                                        <td className="px-4 py-2 text-zinc-400 whitespace-nowrap tabular-nums text-xs">
+                                            {row.started_at ? formatDistanceToNow(new Date(row.started_at), { addSuffix: true }) : '—'}
+                                        </td>
+                                        <td className="px-4 py-2 text-zinc-400 text-xs font-mono">{row.node_id || 'N/A'}</td>
+                                        <td className="px-4 py-2">
                                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                                                isRetrying ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                : isFailedExhausted ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                                            }`}>
-                                                {isRetrying
-                                                    ? `Attempt ${row.attempt_number} of ${(row.max_retries ?? 0) + 1}`
-                                                    : `Failed ${row.attempt_number}/${(row.max_retries ?? 0) + 1}`}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-2 text-right">
-                                        <button
-                                            onClick={() => onOpenRun(row.job_run_id, row.id)}
-                                            className="text-xs text-primary hover:text-primary/80 font-bold flex items-center gap-1 ml-auto"
-                                        >
-                                            <Terminal className="h-3 w-3" /> Logs
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                                row.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                                row.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                                row.status === 'RETRYING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                                'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                            }`}>{row.status}</span>
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {row.definition_version_id ? (
+                                                <button
+                                                    onClick={() => setViewingVersion({
+                                                        jobDefId: definitionId,
+                                                        versionNumber: row.definition_version_number,
+                                                        runtime: row.runtime,
+                                                    })}
+                                                    className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                                                >
+                                                    v{row.definition_version_number}
+                                                </button>
+                                            ) : (
+                                                <span className="text-zinc-600 text-xs">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2 text-zinc-400 tabular-nums text-xs">
+                                            {row.duration_seconds != null ? `${row.duration_seconds.toFixed(1)}s` : '—'}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {showRetryBadge && (
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                                    isRetrying ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                    : isFailedExhausted ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                                    : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                }`}>
+                                                    {isRetrying
+                                                        ? `Attempt ${row.attempt_number} of ${(row.max_retries ?? 0) + 1}`
+                                                        : `Failed ${row.attempt_number}/${(row.max_retries ?? 0) + 1}`}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2 text-right">
+                                            <button
+                                                onClick={() => onOpenRun(row.job_run_id, row.id)}
+                                                className="text-xs text-primary hover:text-primary/80 font-bold flex items-center gap-1 ml-auto"
+                                            >
+                                                <Terminal className="h-3 w-3" /> Logs
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            {viewingVersion && (
+                <ScriptViewerModal
+                    open={!!viewingVersion}
+                    onClose={() => setViewingVersion(null)}
+                    jobDefId={viewingVersion.jobDefId}
+                    versionNumber={viewingVersion.versionNumber}
+                    runtime={viewingVersion.runtime}
+                />
             )}
-        </div>
+        </>
     );
 };
 
