@@ -48,6 +48,7 @@ class Job(Base):
     originating_guid: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # JOB-05: resubmit traceability
     target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # VIS-04: explicit node targeting
     dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
+    definition_version_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # FK to job_definition_versions.id
 
 
 class Signature(Base):
@@ -207,6 +208,31 @@ class JobTemplate(Base):
     visibility: Mapped[str] = mapped_column(String, nullable=False, default='private')  # private | shared
     payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON of all job fields, signing state excluded
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class JobDefinitionVersion(Base):
+    __tablename__ = "job_definition_versions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    job_def_id: Mapped[str] = mapped_column(String, nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    script_content: Mapped[str] = mapped_column(Text, nullable=False)
+    signature_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    signature_payload: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cron_expression: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    target_tags: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    max_retries: Mapped[int] = mapped_column(Integer, default=0)
+    backoff_multiplier: Mapped[float] = mapped_column(Float, default=2.0)
+    change_summary: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_signed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('job_def_id', 'version_number', name='uq_jobdef_version'),
+    )
 
 
 class Signal(Base):
