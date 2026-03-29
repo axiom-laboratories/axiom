@@ -25,9 +25,9 @@
 
 ### Package Repo Docs
 
-- [ ] **PKG-01**: Operator can follow a runbook to configure a devpi PyPI mirror sidecar and point a Blueprint at it via `pip.conf` injection
-- [ ] **PKG-02**: Operator can follow guidance to configure an apt-cacher-ng APT mirror and verify packages resolve from it
-- [ ] **PKG-03**: Operator can follow guidance to set up a BaGet/PSGallery mirror and install a PWSH module from it inside a job
+- [x] **PKG-01**: Operator can follow a runbook to configure a devpi PyPI mirror sidecar and point a Blueprint at it via `pip.conf` injection
+- [x] **PKG-02**: Operator can follow guidance to configure an apt-cacher-ng APT mirror and verify packages resolve from it
+- [x] **PKG-03**: Operator can follow guidance to set up a BaGet/PSGallery mirror and install a PWSH module from it inside a job
 - [x] **PKG-04**: A signed validation job confirms a pip install resolves from the internal mirror (not the public internet)
 
 ### Screenshot Capture
@@ -82,9 +82,9 @@
 | JOB-05 | Phase 83 | Complete |
 | JOB-06 | Phase 83 | Complete |
 | JOB-07 | Phase 83 | Complete |
-| PKG-01 | Phase 84 | Pending |
-| PKG-02 | Phase 84 | Pending |
-| PKG-03 | Phase 84 | Pending |
+| PKG-01 | Phase 84 | Complete |
+| PKG-02 | Phase 84 | Complete |
+| PKG-03 | Phase 84 | Complete |
 | PKG-04 | Phase 84 | Complete |
 | SCR-01 | Phase 85 | Pending |
 | SCR-02 | Phase 85 | Pending |

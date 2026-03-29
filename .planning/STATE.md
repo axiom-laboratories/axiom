@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
 status: planning
-stopped_at: Completed 84-01-PLAN.md
-last_updated: "2026-03-29T14:42:36.552Z"
+stopped_at: Completed 84-02-PLAN.md
+last_updated: "2026-03-29T14:43:13.376Z"
 last_activity: 2026-03-28 — Roadmap created for v15.0
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 83 P02 | 3 | 2 tasks | 5 files |
 | Phase 83 P03 | 8 | 2 tasks | 4 files |
 | Phase 84-package-repo-operator-docs P01 | 8 | 2 tasks | 3 files |
+| Phase 84-package-repo-operator-docs P02 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 83-03]: Runbook includes inversion-logic explanation for validation-memory-hog (FAILED = working correctly)
 - [Phase 84-01]: env block omitted from manifest.yaml — PYPI_MIRROR_HOST documented in runbook only (not a standard dispatch field)
 - [Phase 84-01]: verify_pypi_mirror.py exits 1 immediately on empty PYPI_MIRROR_HOST before spawning pip — prevents silent false negatives
+- [Phase 84-02]: devpi correct URL is http://devpi:3141/root/pypi/+simple/ — root index /+simple/ is empty; documented as critical common issue in runbook
+- [Phase 84-02]: apt-cacher-ng: rm /etc/apt/apt.conf.d/01proxy must be in same RUN layer as apt-get install to prevent proxy persisting in final node images
+- [Phase 84-02]: BaGet: Install-PSResource preferred over Install-Module on PS 7.4+ — PowerShellGet v2 has partial NuGet v3 compatibility issues
 
 ### Pending Todos
 
@@ -102,6 +106,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-29T14:42:36.550Z
-Stopped at: Completed 84-01-PLAN.md
+Last session: 2026-03-29T14:43:13.374Z
+Stopped at: Completed 84-02-PLAN.md
 Resume file: None
