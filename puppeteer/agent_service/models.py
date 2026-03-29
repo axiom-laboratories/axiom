@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator, ConfigDict
 from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 import json as _json
@@ -68,6 +68,8 @@ class JobResponse(BaseModel):
     created_at: Optional[datetime] = None  # needed for cursor encoding in list response
     runtime: Optional[str] = None       # SRCH-03: runtime filter display
     originating_guid: Optional[str] = None  # JOB-05: set when job was created via resubmit
+    definition_version_id: Optional[str] = None    # FK to version snapshot active at dispatch
+    definition_version_number: Optional[int] = None  # version number for display
 
 class PaginatedJobResponse(BaseModel):
     """Cursor-based paginated job list response (Phase 49 — SRCH-01)."""
@@ -290,6 +292,36 @@ class JobDefinitionUpdate(BaseModel):
     @classmethod
     def normalize_env_tag(cls, v):
         return v.strip().upper() if isinstance(v, str) and v.strip() else None
+
+class JobDefinitionVersionResponse(BaseModel):
+    id: str
+    job_def_id: str
+    version_number: int
+    script_content: str
+    signature_id: Optional[str] = None
+    cron_expression: Optional[str] = None
+    target_tags: Optional[List[str]] = None
+    target_node_id: Optional[str] = None
+    runtime: Optional[str] = None
+    max_retries: int = 0
+    backoff_multiplier: float = 2.0
+    change_summary: Optional[str] = None
+    is_signed: bool = False
+    created_at: datetime
+    created_by: Optional[str] = None
+
+    @field_validator('target_tags', mode='before')
+    @classmethod
+    def parse_target_tags(cls, v):
+        if isinstance(v, str):
+            try:
+                return _json.loads(v)
+            except Exception:
+                return []
+        return v or []
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class JobPushRequest(BaseModel):
     name: Optional[str] = None   # for create (name-based upsert)

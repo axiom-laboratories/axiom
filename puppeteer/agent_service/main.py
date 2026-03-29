@@ -41,6 +41,7 @@ from .models import (
     SchedulingHealthResponse, DefinitionHealthRow,
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
     AlertsConfigUpdate,
+    JobDefinitionVersionResponse,
     SIGNING_FIELDS,
 )
 from .security import (
@@ -1799,6 +1800,23 @@ async def push_job_definition(
 @app.patch("/jobs/definitions/{id}", response_model=JobDefinitionResponse, tags=["Job Definitions"])
 async def update_job_definition(id: str, update_req: JobDefinitionUpdate, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.update_job_definition(id, update_req, current_user, db)
+
+@app.get("/jobs/definitions/{id}/versions", response_model=List[JobDefinitionVersionResponse], tags=["Job Definitions"])
+async def list_job_definition_versions(
+    id: str,
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    return await scheduler_service.list_job_definition_versions(id, db)
+
+@app.get("/jobs/definitions/{id}/versions/{version_num}", response_model=JobDefinitionVersionResponse, tags=["Job Definitions"])
+async def get_job_definition_version(
+    id: str,
+    version_num: int,
+    current_user: User = Depends(require_permission("jobs:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    return await scheduler_service.get_job_definition_version(id, version_num, db)
 
 # --- Installer & Doc Endpoints ---
 
