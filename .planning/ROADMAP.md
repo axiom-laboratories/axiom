@@ -17,6 +17,7 @@
 - ✅ **v14.3 — Security Hardening + EE Licensing** — Phases 72–76 (shipped 2026-03-27)
 - ✅ **v14.4 — Go-to-Market Polish** — Phases 77–81 (shipped 2026-03-28)
 - ✅ **v15.0 — Operator Readiness** — Phases 82–86 (shipped 2026-03-29)
+- 🚧 **v16.0 — Competitive Observability** — Phases 87–91 (in progress)
 
 ## Phases
 
@@ -205,9 +206,74 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
 
 </details>
 
+### 🚧 v16.0 — Competitive Observability (In Progress)
+
+**Milestone Goal:** Close four observability gaps identified through competitor analysis — dispatch diagnosis in the UI, CE-native job failure alerting, immutable job script versioning, and structured output validation. Every feature must be usable without an EE licence.
+
+- [ ] **Phase 87: Research & Design** — Review competitor pain points report; produce design decisions for all four implementation features
+- [ ] **Phase 88: Dispatch Diagnosis UI** — Wire the existing `/jobs/{guid}/dispatch-diagnosis` endpoint into the dashboard job list and detail view
+- [ ] **Phase 89: CE Alerting** — SMTP/webhook notification on job failure, configurable by CE operators, no EE licence required
+- [ ] **Phase 90: Job Script Versioning** — Immutable script version records linked to execution history; operators can view exact script that ran
+- [ ] **Phase 91: Output Validation** — Operator-defined success patterns (exit code + JSON/regex); validation failures reported as FAILED with reason
+
 ## Phase Details
 
+### Phase 87: Research & Design
+**Goal**: Design decisions are documented for all four v16.0 features — blocking ambiguity resolved before a single line of implementation is written
+**Depends on**: Phase 86 (v15.0 complete)
+**Requirements**: RSH-01, RSH-02, RSH-03, RSH-04, RSH-05
+**Success Criteria** (what must be TRUE):
+  1. A competitor pain-points review document exists and the four chosen feature approaches are recorded with rationale
+  2. Dispatch diagnosis UX decision is recorded: which view surfaces the reason, whether it auto-polls or is on-demand, and any endpoint gaps identified
+  3. CE alerting mechanism is chosen (SMTP, single webhook URL, or both) with explicit CE/EE boundary documented
+  4. Job script versioning DB schema and API shape are decided — immutable version table design with linkage to execution records documented
+  5. Output validation contract is defined — how a script signals structured results, what fields the node reports back, and how the backend maps them to FAILED status
+**Plans**: TBD
+
+### Phase 88: Dispatch Diagnosis UI
+**Goal**: An operator looking at a PENDING job can immediately see why it has not dispatched — without leaving the job list or navigating to a separate page
+**Depends on**: Phase 87
+**Requirements**: DIAG-01, DIAG-02, DIAG-03
+**Success Criteria** (what must be TRUE):
+  1. A PENDING job in the job list shows an inline indicator (badge, tooltip, or expandable row) explaining why it has not dispatched
+  2. The diagnosis text names the specific reason: no capable nodes, capability mismatch, resource limit exceeded, all nodes offline, or similar discrete categories
+  3. The diagnosis refreshes without a full page reload — either on a timed poll or via a manual refresh control in the UI
+**Plans**: TBD
+
+### Phase 89: CE Alerting
+**Goal**: A CE operator who configures a notification destination receives an alert whenever a job fails — no EE licence, no third-party integration required
+**Depends on**: Phase 87
+**Requirements**: ALRT-01, ALRT-02, ALRT-03
+**Success Criteria** (what must be TRUE):
+  1. The Admin settings page (or equivalent) has a form where an operator can enter an SMTP address or a webhook URL as a notification destination
+  2. When any job reaches FAILED status, the configured destination receives a message containing the job name, the node that ran it, and the error summary
+  3. The alerting configuration form and the notification delivery are both accessible to a user with the operator role on a CE stack (no EE licence required)
+**Plans**: TBD
+
+### Phase 90: Job Script Versioning
+**Goal**: Every edit to a job definition's script is preserved as an immutable version record — operators can inspect exactly which script ran for any historical execution
+**Depends on**: Phase 87
+**Requirements**: VER-01, VER-02, VER-03
+**Success Criteria** (what must be TRUE):
+  1. Editing a job definition's script content creates a new version record; the previous script is still accessible and has not been overwritten
+  2. Opening the execution detail for any historical run shows a "View script" action that displays the exact script content that was active when that job executed
+  3. The execution history list shows a version number or identifier column indicating which script version was in effect for each run
+**Plans**: TBD
+
+### Phase 91: Output Validation
+**Goal**: An operator can declare what a successful job output looks like — a job that exits 0 but violates its validation pattern is reported as FAILED with a clear reason, not silently marked COMPLETED
+**Depends on**: Phase 87
+**Requirements**: VALD-01, VALD-02, VALD-03
+**Success Criteria** (what must be TRUE):
+  1. The job definition form includes a validation section where an operator can specify a success pattern: exit code check, a JSON field assertion, or a stdout regex
+  2. A job that exits with code 0 but does not satisfy its configured validation pattern transitions to FAILED status — not COMPLETED — and the failure record includes the validation rule that was violated
+  3. The execution history view and the job detail view both display validation failure reasons distinctly from execution errors (e.g. a clear "Validation failed: ..." label rather than a generic error)
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -252,19 +318,13 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
 | 84. Package Repo Operator Docs | v15.0 | 2/2 | Complete | 2026-03-29 |
 | 85. Screenshot Capture | v15.0 | 2/2 | Complete | 2026-03-29 |
 | 86. Docs Accuracy Validation | v15.0 | 2/2 | Complete | 2026-03-29 |
+| 87. Research & Design | v16.0 | 0/TBD | Not started | - |
+| 88. Dispatch Diagnosis UI | v16.0 | 0/TBD | Not started | - |
+| 89. CE Alerting | v16.0 | 0/TBD | Not started | - |
+| 90. Job Script Versioning | v16.0 | 0/TBD | Not started | - |
+| 91. Output Validation | v16.0 | 0/TBD | Not started | - |
 
 ## Archived
 
 - ✅ **v14.3 — Security Hardening + EE Licensing** (Phases 72–76) — shipped 2026-03-27 → `.planning/milestones/v14.3-ROADMAP.md`
 - ✅ **v14.2 — Docs on GitHub Pages** (Phase 71) — shipped 2026-03-26 → `.planning/milestones/v14.2-ROADMAP.md`
-- ✅ **v14.1 — First-User Readiness** (Phases 66–70) — shipped 2026-03-26 → `.planning/milestones/v14.1-ROADMAP.md`
-- ✅ **v14.0 — CE/EE Cold-Start Validation** (Phases 61–65) — shipped 2026-03-25 → `.planning/milestones/v14.0-ROADMAP.md`
-- ✅ **v13.0 — Research & Documentation Foundation** (Phases 57–60) — shipped 2026-03-24 → `.planning/milestones/v13.0-ROADMAP.md`
-- ✅ **v12.0 — Operator Maturity** (Phases 46–56) — shipped 2026-03-24 → `.planning/milestones/v12.0-ROADMAP.md`
-- ✅ **v11.1 — Stack Validation** (Phases 38–45) — shipped 2026-03-22 → `.planning/milestones/v11.1-ROADMAP.md`
-- ✅ **v11.0 — CE/EE Split Completion** (Phases 34–37) — shipped 2026-03-20 → `.planning/milestones/v11.0-ROADMAP.md` | phases → `v11.0-phases/`
-- ✅ **v10.0 — Axiom Commercial Release** (Phases 29–33) — shipped 2026-03-19 → `.planning/milestones/v10.0-ROADMAP.md`
-- ✅ **v9.0 — Enterprise Documentation** (Phases 20–28) — shipped 2026-03-17 → `.planning/milestones/v9.0-ROADMAP.md`
-- ✅ **v8.0 — mop-push CLI & Job Staging** (Phases 17–19) — shipped 2026-03-15 → `.planning/milestones/v8.0-ROADMAP.md`
-- ✅ **v7.0 — Advanced Foundry & Smelter** (Phases 11–15) — shipped 2026-03-16 → `.planning/milestones/v7.0-ROADMAP.md`
-- ✅ **v6.0 — Remote Environment Validation** (Phases 6–10) — shipped 2026-03-06/09 → `.planning/milestones/v6.0-phases/`
