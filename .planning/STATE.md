@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
 status: completed
-stopped_at: Completed 90-01-PLAN.md
-last_updated: "2026-03-29T22:58:03.309Z"
-last_activity: "2026-03-29 — Phase 89 plan 02 complete: NotificationsCard in Admin.tsx, Notifications tab with webhook config UI"
+stopped_at: Completed 90-02-PLAN.md
+last_updated: "2026-03-29T23:03:59.569Z"
+last_activity: "2026-03-30 — Phase 90 plan 02 complete: ScriptViewerModal with diff view, interleaved timeline in DefinitionHistoryPanel, View Script action in Jobs.tsx"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 90 of 91 (Job Script Versioning) — In Progress
-Plan: 01 of TBD complete
-Status: Phase 90 plan 01 complete — DB model, migration, backend versioning logic delivered
-Last activity: 2026-03-29 — Phase 90 plan 01 complete: JobDefinitionVersion table, _create_version_snapshot, dispatch stamping, version API endpoints
+Phase: 90 of 91 (Job Script Versioning) — Complete
+Plan: 02 of 02 complete
+Status: Phase 90 complete — frontend versioning UI delivered (ScriptViewerModal, interleaved timeline, View Script action)
+Last activity: 2026-03-30 — Phase 90 plan 02 complete: ScriptViewerModal with diff view, interleaved timeline in DefinitionHistoryPanel, View Script action in Jobs.tsx
 
 Progress: [██████████] 100%
 
@@ -53,6 +53,7 @@ Progress: [██████████] 100%
 | Phase 88 P02 | 5min | 3 tasks | 1 files |
 | Phase 89 P02 | 2min | 2 tasks | 1 files |
 | Phase 90 P90-01 | 18min | 6 tasks | 5 files |
+| Phase 90 P90-02 | 18min | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Progress: [██████████] 100%
 - [Phase 89 P02]: NotificationsCard uses localUrl state synced from alertsConfig via useEffect; toggle greyed out until URL saved (disabled={!urlSaved}); inline test result via useState (not toast)
 - [Phase 90 P01]: Version snapshot created in second commit after create_job_definition (atomicity with initial row); update_job_definition snapshot before final commit (atomic with mutations)
 - [Phase 90 P01]: is_signed derived from final job status: ACTIVE=True, DRAFT/REVOKED=False; change_summary derived from field diff at snapshot time
+- [Phase 90 P02]: ScriptViewerModal uses React.lazy for ReactDiffViewer to avoid loading diff library until needed; diff mode requires prevVersionNumber > 0
+- [Phase 90 P02]: DefinitionHistoryPanel interleaved timeline uses _rowType marker (execution/version) + _sortTs for unified sort; version rows rendered as non-clickable lighter rows
 
 ### Pending Todos
 
@@ -89,6 +92,6 @@ Key items carried forward:
 
 ## Session Continuity
 
-Last session: 2026-03-29T22:58:03.307Z
-Stopped at: Completed 90-01-PLAN.md
+Last session: 2026-03-29T23:03:59.567Z
+Stopped at: Completed 90-02-PLAN.md
 Resume file: None
