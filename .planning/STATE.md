@@ -4,7 +4,7 @@ milestone: v16.0
 milestone_name: — Competitive Observability
 status: planning
 stopped_at: Completed 87-01-PLAN.md
-last_updated: "2026-03-29T19:15:47.153Z"
+last_updated: "2026-03-29T19:18:20.303Z"
 last_activity: 2026-03-29 — v16.0 roadmap defined; 5 phases (87–91), 17 requirements mapped
 progress:
   total_phases: 5
