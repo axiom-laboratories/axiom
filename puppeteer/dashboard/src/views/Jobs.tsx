@@ -1437,16 +1437,33 @@ const Jobs = () => {
                                         <TableCell className="text-white font-medium">
                                             {job.display_type ?? job.task_type ?? '—'}
                                         </TableCell>
-                                        <TableCell>
-                                            {job.status.toLowerCase() === 'retrying' ? (
-                                                <Badge className="border border-amber-500/60 text-amber-400 bg-amber-500/10 capitalize">retrying</Badge>
-                                            ) : job.status.toLowerCase() === 'dead_letter' ? (
-                                                <Badge className="border border-rose-900/60 text-rose-300 bg-rose-900/20 capitalize">dead letter</Badge>
-                                            ) : (
-                                                <Badge variant={getStatusVariant(job.status) as any} className="capitalize">
-                                                    {job.status.toLowerCase()}
-                                                </Badge>
-                                            )}
+                                        <TableCell className={`${
+                                            job.status === 'PENDING' || diagnosisCache[job.guid]?.reason === 'stuck_assigned'
+                                                ? 'border-l-2 border-amber-500/60 pl-[10px]'
+                                                : ''
+                                        }`}>
+                                            <div className="flex flex-col gap-0.5">
+                                                {job.status.toLowerCase() === 'retrying' ? (
+                                                    <Badge className="border border-amber-500/60 text-amber-400 bg-amber-500/10 capitalize">retrying</Badge>
+                                                ) : job.status.toLowerCase() === 'dead_letter' ? (
+                                                    <Badge className="border border-rose-900/60 text-rose-300 bg-rose-900/20 capitalize">dead letter</Badge>
+                                                ) : (
+                                                    <Badge variant={getStatusVariant(job.status) as any} className="capitalize">
+                                                        {job.status.toLowerCase()}
+                                                    </Badge>
+                                                )}
+                                                {(job.status === 'PENDING' || job.status === 'ASSIGNED') &&
+                                                 diagnosisCache[job.guid] &&
+                                                 diagnosisCache[job.guid].reason !== 'not_pending' &&
+                                                 diagnosisCache[job.guid].reason !== 'pending_dispatch' && (
+                                                    <span className="text-xs text-amber-400/80 leading-tight max-w-[200px] truncate">
+                                                        {diagnosisCache[job.guid].message}
+                                                        {diagnosisCache[job.guid].queue_position != null &&
+                                                         diagnosisCache[job.guid].queue_position! >= 2 &&
+                                                         ` · ${toOrdinal(diagnosisCache[job.guid].queue_position!)} in queue`}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-xs text-zinc-500 tabular-nums">
                                             {job.max_retries && job.max_retries > 0
