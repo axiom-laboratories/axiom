@@ -12,16 +12,9 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v15.0 — Operator Readiness
+## Current Milestone: Next
 
-**Goal:** Close the gap between a technically functional platform and one operators can confidently hand to a first customer — secure licence tooling, a validated node job library, package repo documentation, dashboard screenshots, and docs accuracy checks.
-
-**Target features:**
-- Licence generation tooling migrated to private repo with audit trail and CI key-leak guard
-- Node validation job library (bash/Python/PWSH + volume/network/resource limit tests)
-- Custom package repo operator runbook (devpi/APT/PWSH) with validation jobs
-- Playwright screenshot capture seeded with demo data for docs and marketing page
-- Docs accuracy validation script (OpenAPI + CLI flag cross-reference, CI-wirable)
+**Goal:** TBD — use `/gsd:new-milestone` to define the next milestone.
 
 ## Requirements
 
@@ -191,6 +184,16 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ `secrets-data` named Docker volume — `boot.log` and `licence.key` persist across `compose down/up` cycles — v14.3
 - ✓ Dashboard EE badge, grace/expired banner, Admin licence section aligned to backend response shape — v14.3
 
+### Validated — v15.0 Operator Readiness
+
+- ✓ `issue_licence.py` offline CLI — Ed25519 JWT signing, YAML audit record, GitHub API commit, `--no-remote` air-gap mode — v15.0
+- ✓ `list_licences.py` — tabular licence summary sorted by expiry ascending, `--json` flag — v15.0
+- ✓ gitleaks secret-scan CI guard — blocks `-----BEGIN PRIVATE KEY-----` commits to public repo; full history fetch — v15.0
+- ✓ Node validation job corpus — Bash/Python/PowerShell reference jobs, volume/network/memory/CPU validation scripts, `manifest.yaml`, `sign_corpus.py`, community catalog README + MkDocs runbook — v15.0
+- ✓ Package repo operator docs — devpi PyPI mirror runbook, apt-cacher-ng APT mirror guidance, BaGet PWSH mirror, `verify_pypi_mirror.py` signed validation job — v15.0
+- ✓ `capture_screenshots.py` — Playwright 11-view script with ephemeral Ed25519 seeding, 1440×900, integrated into docs and homepage — v15.0
+- ✓ `validate_docs.py` — OpenAPI + CLI flag + env var cross-reference (250 PASS / 0 WARN / 0 FAIL), `docs-validate` CI gate exits non-zero on FAIL — v15.0
+
 ### Validated — v14.4 Go-to-Market Polish
 
 - ✓ Role-gated licence banner — amber GRACE (sessionStorage dismiss) + red DEGRADED_CE (non-dismissible); hidden from operator/viewer roles — v14.4
@@ -222,7 +225,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, and has a public go-to-market surface (v14.4). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
+Codebase is functional, deployed, security-hardened, commercially ready, and has a complete operator readiness surface (v15.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
 
 Documentation site lives at `https://axiom-laboratories.github.io/axiom/docs/` (GitHub Pages, subtree deploy via `ghp-import`). Marketing homepage lives at `https://axiom-laboratories.github.io/axiom/`. Both auto-deploy from `main` via separate GitHub Actions jobs in `gh-pages-deploy.yml`. MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference auto-generated from FastAPI OpenAPI schema at container build time.
 
@@ -231,6 +234,8 @@ CLI is `axiom-push` — installable as `axiom-sdk` Python package. `axiom-push i
 Getting-started docs (install → enroll-node → first-job) verified against a real cold-start flow. `compose.cold-start.yaml` contains only 5 core services — no phantom test nodes. Both CE and EE paths documented end-to-end.
 
 EE licence system fully operational: `tools/generate_licence.py` generates offline; `licence_service.py` validates at startup with VALID/GRACE/EXPIRED/CE state machine; grace period enforced; DEGRADED_CE banner visible to admins in dashboard. All 6 CodeQL alerts closed.
+
+v15.0 operator readiness surface: `tools/` directory contains `capture_screenshots.py`, `validate_docs.py`, `generate_openapi.py`, `issue_licence.py`, `list_licences.py`. Node validation job corpus at `tools/example-jobs/` (bash/python/pwsh/validation) with `sign_corpus.py` and `manifest.yaml`. Package repo runbooks at `docs/docs/operations/package-mirrors.md`.
 
 Known deferred issues: SQLite NodeStats pruning compat (MIN-6), Foundry build dir cleanup (MIN-7), per-request DB query in require_permission (MIN-8), non-deterministic node ID scan order (WARN-8). See `.agent/reports/core-pipeline-gaps.md`. CLI tech debt: `mop_sdk.egg-info/entry_points.txt` registers stale `mop-push` entry — resolves on next `pip install -e .`.
 
@@ -311,6 +316,18 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `ghp-import --dest-dir docs` for MkDocs deploy (not `mkdocs gh-deploy --force`) | `mkdocs gh-deploy` has no `--dest-dir` flag; ghp-import subtree mode restricts writes to `docs/` so root homepage is preserved | ✓ Good |
 | Separate GitHub Actions jobs for docs and homepage in one workflow file (`gh-pages-deploy.yml`) | Path filters keep deploys independent; single file is simpler to maintain than two separate workflow files | ✓ Good |
 | `GOOGLE_FORM_URL_PLACEHOLDER` sentinel for enterprise CTA href | Broken links are visible before launch; grep-able single point of change when form URL is ready | ✓ Good |
+| `--no-remote` flag for air-gap licence issuance (writes to local file instead of GitHub) | Air-gapped operators cannot commit to GitHub; local file mode is equivalent audit trail without network dependency | ✓ Good |
+| `resolve_key()` requires explicit `--key` or env var — no silent default path | Silent default inside the repo was the v14.3 security gap (key could be committed accidentally); explicit requirement prevents regression | ✓ Good |
+| `list_licences.py` sorts ascending by expiry (soonest first) | Renewal visibility: soonest-to-expire licences need attention first; original plan said descending — reversed after reflection | ✓ Good |
+| Resource limit jobs gate on `resource_limits_supported` capability flag | cgroup v2 enforcement unreliable on LXC nodes with `EXECUTION_MODE=direct`; script exits 1 with descriptive message when capability absent | ✓ Good |
+| Network validation job uses `--network=none` Docker isolation (not iptables) | Direct iptables manipulation leaves residual node-global state; Docker network flag is scoped to container lifecycle | ✓ Good |
+| `openapi.json` pre-committed snapshot at 116 routes | `validate_docs.py` needs deterministic input; no running stack required for CI gate; operator runs `generate_openapi.py` locally to refresh | ✓ Good |
+| CLI regex in `validate_docs.py` restricted to lowercase tokens; unknown first-words silently skipped | Prevents prose descriptions like `axiom-push CLI guide` from generating spurious FAIL results | ✓ Good |
+| Screenshot directories committed via `.gitkeep` before PNGs exist | Structure-first deploy; screenshots committed separately by operator after running `capture_screenshots.py` on a live stack | ✓ Good |
+
+## Previous State — v15.0 Complete (2026-03-29)
+
+Axiom v15.0 delivered Operator Readiness — 5 phases, 11 plans, 20/22 requirements satisfied (2 checkbox omissions only — both features shipped). The operator tooling layer is now complete: licence issuance moves fully to a private repo, a signed node validation job corpus covers all runtimes and constraint types, package mirror runbooks cover devpi/APT/BaGet, dashboard screenshots are integrated into docs and marketing, and a CI-wirable docs accuracy gate catches stale API routes and CLI references. 175 files changed, 27,147 insertions.
 
 ## Previous State — v14.4 Complete (2026-03-28)
 

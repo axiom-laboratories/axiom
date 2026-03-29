@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
-status: All plans executed — docs-validate CI job added to ci.yml
-stopped_at: Completed 86-02-PLAN.md — Phase 86 complete — Milestone v15.0 complete
-last_updated: "2026-03-29T17:06:41.742Z"
-last_activity: 2026-03-29 — Phase 86 Plan 02 executed (1 commit, CI gate established)
+status: Milestone archived — ready for next milestone planning
+stopped_at: v15.0 milestone complete — archived to .planning/milestones/
+last_updated: "2026-03-29T18:30:00.000Z"
+last_activity: 2026-03-29 — v15.0 milestone archived (MILESTONES.md, PROJECT.md, ROADMAP.md, RETROSPECTIVE.md updated)
 progress:
   total_phases: 5
   completed_phases: 5
@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-28)
+See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v15.0 — Operator Readiness — Phase 82: Licence Tooling
+**Current focus:** Planning next milestone — run `/gsd:new-milestone` to define v16.0
 
 ## Current Position
 
