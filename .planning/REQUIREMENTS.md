@@ -21,9 +21,9 @@
 
 ### Alerting
 
-- [ ] **ALRT-01**: CE operator can configure a notification destination (SMTP email or single webhook URL) for job failure events
+- [x] **ALRT-01**: CE operator can configure a notification destination (SMTP email or single webhook URL) for job failure events
 - [ ] **ALRT-02**: When a job reaches FAILED status, the configured destination receives a notification with job name, node, and error summary
-- [ ] **ALRT-03**: Alerting config is available to CE operators without an EE licence
+- [x] **ALRT-03**: Alerting config is available to CE operators without an EE licence
 
 ### Versioning
 
@@ -71,9 +71,9 @@
 | DIAG-01 | Phase 88 | Complete |
 | DIAG-02 | Phase 88 | Complete |
 | DIAG-03 | Phase 88 | Complete |
-| ALRT-01 | Phase 89 | Pending |
+| ALRT-01 | Phase 89 | Complete |
 | ALRT-02 | Phase 89 | Pending |
-| ALRT-03 | Phase 89 | Pending |
+| ALRT-03 | Phase 89 | Complete |
 | VER-01 | Phase 90 | Pending |
 | VER-02 | Phase 90 | Pending |
 | VER-03 | Phase 90 | Pending |

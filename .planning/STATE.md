@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
-status: in_progress
-stopped_at: Phase 89 plan 01 complete
-last_updated: "2026-03-29T22:30:00.000Z"
+status: Phase 89 complete — CE alerting backend + frontend delivered
+stopped_at: Completed 89-02-PLAN.md
+last_updated: "2026-03-29T21:22:34.847Z"
 last_activity: "2026-03-29 — Phase 89 plan 01 complete: ALRT-01, ALRT-02, ALRT-03 satisfied"
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 3
+  total_plans: 5
+  completed_plans: 5
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Milestone v16.0 — Competitive Observability — Phase 88: Complete
+**Current focus:** Milestone v16.0 — Competitive Observability — Phase 89: Complete
 
 ## Current Position
 
-Phase: 89 of 91 (CE Alerting) — In Progress
-Plan: 01 of 02 complete
-Status: Backend webhook delivery implemented; ready for Phase 89-02 (frontend config UI)
-Last activity: 2026-03-29 — Phase 89 plan 01 complete: ALRT-01, ALRT-02, ALRT-03 satisfied
+Phase: 89 of 91 (CE Alerting) — Complete
+Plan: 02 of 02 complete
+Status: Phase 89 complete — CE alerting backend + frontend delivered
+Last activity: 2026-03-29 — Phase 89 plan 02 complete: NotificationsCard in Admin.tsx, Notifications tab with webhook config UI
 
 Progress: [██████████] 100%
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100%
 | Phase 87 P01 | 2 | 1 tasks | 1 files |
 | Phase 88 P01 | 2min | 3 tasks | 3 files |
 | Phase 88 P02 | 5min | 3 tasks | 1 files |
+| Phase 89 P02 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Progress: [██████████] 100%
 - [Phase 88 P02]: Poll useEffect uses stringified GUID join as dependency (array identity instability workaround); benign reason codes (pending_dispatch, not_pending) suppressed from inline display
 - [Phase 89 P01]: Event filtering split between job_service (alert-eligible statuses: FAILED/DEAD_LETTER/SECURITY_REJECTED) and webhook_service (enabled flag + security_rejections opt-in); all three admin endpoints gated on nodes:write (accessible to operators)
 - [Phase 89 P01]: last_delivery_status persisted as JSON string in existing Config table — no DB migration needed
+- [Phase 89 P02]: NotificationsCard uses localUrl state synced from alertsConfig via useEffect; toggle greyed out until URL saved (disabled={!urlSaved}); inline test result via useState (not toast)
 
 ### Pending Todos
 
@@ -84,6 +86,6 @@ Key items carried forward:
 
 ## Session Continuity
 
-Last session: 2026-03-29T21:06:51.342Z
-Stopped at: Phase 89 context gathered
-Resume file: .planning/phases/89-ce-alerting/89-CONTEXT.md
+Last session: 2026-03-29T21:22:34.845Z
+Stopped at: Completed 89-02-PLAN.md
+Resume file: None
