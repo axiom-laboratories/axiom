@@ -15,9 +15,9 @@
 
 ### Dispatch Diagnosis
 
-- [ ] **DIAG-01**: Operator can see why a PENDING job hasn't dispatched — inline in the job list or detail view, not buried in a separate page
+- [x] **DIAG-01**: Operator can see why a PENDING job hasn't dispatched — inline in the job list or detail view, not buried in a separate page
 - [x] **DIAG-02**: Diagnosis surfaces the specific reason: no capable nodes, capability mismatch, resource limit exceeded, all nodes offline, etc.
-- [ ] **DIAG-03**: Diagnosis updates without a full page reload (on-demand refresh or auto-poll)
+- [x] **DIAG-03**: Diagnosis updates without a full page reload (on-demand refresh or auto-poll)
 
 ### Alerting
 
@@ -68,9 +68,9 @@
 | RSH-03 | Phase 87 | Complete |
 | RSH-04 | Phase 87 | Complete |
 | RSH-05 | Phase 87 | Complete |
-| DIAG-01 | Phase 88 | Pending |
+| DIAG-01 | Phase 88 | Complete |
 | DIAG-02 | Phase 88 | Complete |
-| DIAG-03 | Phase 88 | Pending |
+| DIAG-03 | Phase 88 | Complete |
 | ALRT-01 | Phase 89 | Pending |
 | ALRT-02 | Phase 89 | Pending |
 | ALRT-03 | Phase 89 | Pending |

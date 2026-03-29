@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
 status: planning
-stopped_at: Completed 88-01-PLAN.md
-last_updated: "2026-03-29T20:05:42.679Z"
+stopped_at: Completed 88-02-PLAN.md
+last_updated: "2026-03-29T20:09:52.089Z"
 last_activity: 2026-03-29 — v16.0 roadmap defined; 5 phases (87–91), 17 requirements mapped
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Milestone v16.0 — Competitive Observability — Phase 87: Research & Design
+**Current focus:** Milestone v16.0 — Competitive Observability — Phase 88: Complete
 
 ## Current Position
 
-Phase: 87 of 91 (Research & Design)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-03-29 — v16.0 roadmap defined; 5 phases (87–91), 17 requirements mapped
+Phase: 88 of 91 (Dispatch Diagnosis UI) — Complete
+Plan: 02 of 02
+Status: Phase 88 done; ready for next phase (89, 90, or 91)
+Last activity: 2026-03-29 — Phase 88 complete: DIAG-01, DIAG-02, DIAG-03 all satisfied
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 | 91. Output Validation | TBD | - | - |
 | Phase 87 P01 | 2 | 1 tasks | 1 files |
 | Phase 88 P01 | 2min | 3 tasks | 3 files |
+| Phase 88 P02 | 5min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 87]: CE alerting: single webhook URL (HTTP POST) to alerts.webhook_url Config key; EE boundary at multiple destinations
 - [Phase 87]: Script versioning: two-table design (job_script_versions + job_definition_history), script_version_id FK on execution_records, Config key versioning.trigger_mode
 - [Phase 87]: Output validation: validation_rules JSON column on scheduled_jobs, failure_reason enum with 4 values, dot-notation path syntax, evaluation in job_service.py
+- [Phase 88 P02]: Poll useEffect uses stringified GUID join as dependency (array identity instability workaround); benign reason codes (pending_dispatch, not_pending) suppressed from inline display
 
 ### Pending Todos
 
@@ -80,6 +82,6 @@ Key items carried forward:
 
 ## Session Continuity
 
-Last session: 2026-03-29T20:05:42.676Z
-Stopped at: Completed 88-01-PLAN.md
+Last session: 2026-03-29T20:09:49.108Z
+Stopped at: Completed 88-02-PLAN.md
 Resume file: None
