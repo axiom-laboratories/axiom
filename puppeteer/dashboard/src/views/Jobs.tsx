@@ -228,16 +228,25 @@ const JobDetailPanel = ({
     }, [open, job?.guid]);
 
     useEffect(() => {
-        if (!open || !job || job.status !== 'PENDING') {
+        const isPendingOrAssigned = job?.status === 'PENDING' || job?.status === 'ASSIGNED';
+        if (!open || !job || !isPendingOrAssigned) {
             setDiagnosis(null);
             return;
         }
+        const fetchDiagnosis = () => {
+            authenticatedFetch(`/jobs/${job.guid}/dispatch-diagnosis`)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => data && setDiagnosis(data))
+                .catch(() => {});
+        };
         setDiagnosisLoading(true);
         authenticatedFetch(`/jobs/${job.guid}/dispatch-diagnosis`)
             .then(r => r.ok ? r.json() : null)
             .then(data => setDiagnosis(data))
             .catch(() => {})
             .finally(() => setDiagnosisLoading(false));
+        const id = setInterval(fetchDiagnosis, 10_000);
+        return () => clearInterval(id);
     }, [open, job?.guid, job?.status]);
 
     useWebSocket((event) => {
@@ -311,7 +320,7 @@ const JobDetailPanel = ({
 
                 <div className="space-y-6 pt-6">
                     {/* PENDING dispatch diagnosis callout */}
-                    {job.status === 'PENDING' && (
+                    {(job.status === 'PENDING' || (job.status === 'ASSIGNED' && diagnosis?.reason === 'stuck_assigned')) && (
                         <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
                             <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-1">
                                 Dispatch Diagnosis
@@ -1234,6 +1243,15 @@ const Jobs = () => {
                                 <CardTitle className="text-lg font-bold text-white">Queue Monitor</CardTitle>
                                 <CardDescription className="text-zinc-500">Real-time status of dispatched tasks.</CardDescription>
                             </div>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-zinc-400 hover:text-white h-8 w-8 p-0"
+                                onClick={fetchDiagnoses}
+                                title="Refresh dispatch diagnosis"
+                            >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                            </Button>
                         </div>
 
                         {/* Bulk action bar — replaces filter bar when selection is active */}
