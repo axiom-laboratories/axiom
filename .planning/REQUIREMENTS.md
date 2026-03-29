@@ -38,8 +38,8 @@
 
 ### Docs Accuracy Validation
 
-- [ ] **DOC-01**: A validation script cross-references all API routes in the committed `openapi.json` snapshot against docs and outputs PASS/WARN/FAIL per route
-- [ ] **DOC-02**: The script checks CLI flags and env var names in docs against `mop_sdk/cli.py` source and flags any mismatches
+- [x] **DOC-01**: A validation script cross-references all API routes in the committed `openapi.json` snapshot against docs and outputs PASS/WARN/FAIL per route
+- [x] **DOC-02**: The script checks CLI flags and env var names in docs against `mop_sdk/cli.py` source and flags any mismatches
 - [ ] **DOC-03**: The validation script can be run in CI and exits non-zero on FAIL results
 
 ## Future Requirements
@@ -89,8 +89,8 @@
 | SCR-01 | Phase 85 | Pending |
 | SCR-02 | Phase 85 | Complete |
 | SCR-03 | Phase 85 | Complete |
-| DOC-01 | Phase 86 | Pending |
-| DOC-02 | Phase 86 | Pending |
+| DOC-01 | Phase 86 | Complete |
+| DOC-02 | Phase 86 | Complete |
 | DOC-03 | Phase 86 | Pending |
 
 **Coverage:**

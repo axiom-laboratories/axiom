@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: — Operator Readiness
 status: completed
-stopped_at: Phase 86 context gathered
-last_updated: "2026-03-29T16:46:18.091Z"
+stopped_at: Completed 86-01-PLAN.md
+last_updated: "2026-03-29T17:01:35.205Z"
 last_activity: 2026-03-29 — Phase 85 Plan 02 executed (5 tasks, 5 atomic commits)
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 11
+  completed_plans: 10
   percent: 100
 ---
 
@@ -89,6 +89,8 @@ Progress: [██████████] 100%
 - [Phase 84-02]: BaGet: Install-PSResource preferred over Install-Module on PS 7.4+ — PowerShellGet v2 has partial NuGet v3 compatibility issues
 - [Phase 85-02]: Homepage showcase CSS uses --axiom-* design tokens (not generic --bg-alt/--text-muted fallbacks) — keeps stylesheet consistent with existing dark-slate theme
 - [Phase 85-02]: Screenshot directories committed via .gitkeep before PNGs exist — structure-first, populate-later; screenshots committed separately by operator after running tools/capture_screenshots.py
+- [Phase 86]: generate_openapi.py uses verify=False for self-signed TLS on local Docker stack (agent :8001 is HTTPS-only) — pragmatic workaround — the local stack uses a self-signed cert that has no CA bundle available
+- [Phase 86]: validate_docs.py: CLI regex restricted to lowercase tokens; unknown first-words silently skipped (not FAILed) to avoid prose false positives — prevents 'axiom-push CLI guide' and similar prose descriptions from generating spurious FAIL results
 
 ### Pending Todos
 
@@ -119,6 +121,6 @@ Other pending:
 
 ## Session Continuity
 
-Last session: 2026-03-29T16:46:18.088Z
-Stopped at: Phase 86 context gathered
-Resume file: .planning/phases/86-docs-accuracy-validation/86-CONTEXT.md
+Last session: 2026-03-29T17:01:23.507Z
+Stopped at: Completed 86-01-PLAN.md
+Resume file: None
