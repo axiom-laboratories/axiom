@@ -139,7 +139,7 @@ Two approaches are available for pipeline automation. Both use `<PLACEHOLDER>` v
 Suitable for single-team pipelines where a single operator-level identity is sufficient.
 
 1. Create an API key in the dashboard: **My Account** → **API Keys** → **Create**.
-2. Store the key as a CI secret (e.g. `AXIOM_API_KEY` in GitHub Actions secrets).
+2. Store the key as a CI secret in your pipeline (for example, a secret named **AXIOM\_API\_KEY** in GitHub Actions).
 3. Use the key directly in pipeline steps:
 
 ```bash

@@ -6,7 +6,7 @@ This runbook covers failures that occur from job submission through execution an
 
 | Symptom | Section |
 |---------|---------|
-| Job stuck in `PENDING` or `QUEUED` indefinitely | [Job stuck in Queued / PENDING indefinitely](#job-stuck-in-queued-pending-indefinitely) |
+| Job stuck in `PENDING` indefinitely | [Job stuck in PENDING indefinitely](#job-stuck-in-queued-pending-indefinitely) |
 | Job status is `BLOCKED` | [Job status is BLOCKED](#job-status-is-blocked) |
 | Job status is `CANCELLED` with "cancelled because upstream failed" | [Job status is CANCELLED — upstream dependency failed](#job-status-is-cancelled-upstream-dependency-failed) |
 | Job status is `DEAD_LETTER` | [Job status is DEAD_LETTER](#job-status-is-dead_letter) |
@@ -52,11 +52,11 @@ The job has a `depends_on` dependency that has not yet reached `COMPLETED` statu
 2. Check the dependency job's current status.
    - If it is `RUNNING` or `ASSIGNED`: no action needed — wait for it to complete.
    - If it is `FAILED` or `DEAD_LETTER`: the dependent job will be `CANCELLED` (see [Job status is CANCELLED](#job-status-is-cancelled-upstream-dependency-failed)). Investigate the dependency failure first.
-   - If it is `PENDING` or `QUEUED`: the dependency itself may be blocked — repeat this process for it.
+   - If it is `PENDING`: the dependency itself may be blocked — repeat this process for it.
 
 **Verify it worked:**
 
-Observe the dependency job reaching `COMPLETED`. The dependent job should automatically move to `QUEUED` within one poll cycle.
+Observe the dependency job reaching `COMPLETED`. The dependent job should automatically move to `PENDING` within one poll cycle.
 
 If the dependent job remains `BLOCKED` after the dependency has `COMPLETED`, check orchestrator logs for errors in the dependency resolution loop.
 
@@ -107,7 +107,7 @@ Job <guid> exhausted all <N> retries and failed terminally.
 
 **Verify it worked:**
 
-The new job should progress past `QUEUED` to `COMPLETED` without reaching `FAILED`.
+The new job should progress past `PENDING` to `COMPLETED` without reaching `FAILED`.
 
 If the new job also fails, compare its output with the original — look for environment differences, node capability gaps, or persistent resource constraints.
 
@@ -122,7 +122,7 @@ The job was `ASSIGNED` to a node, but the node stopped sending execution updates
 1. Check whether the assigned node is still `Online` in the **Nodes** view.
 2. If the node went `Offline`, run `docker logs <node-container>` to check for OOM kill messages or runtime errors.
 3. If the node was OOM killed, increase the node's `job_memory_limit` or reduce the job's `memory_limit`.
-4. If retries remain, the reaped job is automatically returned to `QUEUED` for reassignment. If retries are exhausted, it moves to `FAILED` — resubmit a new job.
+4. If retries remain, the reaped job is automatically returned to `PENDING` for reassignment. If retries are exhausted, it moves to `FAILED` — resubmit a new job.
 
 **Verify it worked:**
 
@@ -241,11 +241,11 @@ The node container was OOM killed (memory limit hit) or suffered a network parti
 1. Open the **Nodes** view and check whether the assigned node is `Online` or `Offline`. An OOM-killed node typically goes `Offline` within a few seconds of the kill.
 2. Run `docker stats <node-container>` to check current memory usage against the container's limit. If the container is gone, check `docker inspect` for the last exit code — exit code `137` indicates OOM kill.
 3. Increase `job_memory_limit` on the node template or reduce the job's `memory_limit`.
-4. The zombie reaper will reclaim the job within `zombie_timeout_minutes` (default: 30 minutes) and return it to `QUEUED` if retries remain.
+4. The zombie reaper will reclaim the job within `zombie_timeout_minutes` (default: 30 minutes) and return it to `PENDING` if retries remain.
 
 **Verify it worked:**
 
-After the zombie reaper fires, confirm the job moves back to `QUEUED` and is successfully reassigned to a node with adequate memory. Watch for `COMPLETED` status on the next execution.
+After the zombie reaper fires, confirm the job moves back to `PENDING` and is successfully reassigned to a node with adequate memory. Watch for `COMPLETED` status on the next execution.
 
 If the job is repeatedly stuck in `ASSIGNED` across multiple nodes, the script itself may be consuming unbounded memory — profile the script and add explicit memory limits.
 

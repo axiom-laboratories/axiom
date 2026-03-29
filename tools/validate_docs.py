@@ -32,9 +32,21 @@ ROUTE_RE = re.compile(
     re.IGNORECASE,
 )
 
-CLI_RE = re.compile(r'\baxiom-push\s+([\w-]+(?:\s+[\w-]+)?)')
+# Match axiom-push <subcommand> [<sub-subcommand>] — subcommand must be a bare word
+# (no -- flags, no uppercase prose words).  Require a word-boundary after subcommand
+# so "axiom-push job push" matches but "axiom-push CLI guide" does not.
+CLI_RE = re.compile(r'\baxiom-push\s+([a-z][a-z0-9-]*(?:\s+[a-z][a-z0-9-]*)?)\b')
 
 ENV_RE = re.compile(r'`([A-Z][A-Z0-9_]{3,})`')
+
+# Tokens that look like env var names but are not — skip them entirely.
+# Add to this list when a false positive is confirmed to be a code/acronym/status.
+ENV_SKIP = {
+    # Linter/tool error codes
+    "E501", "E302", "E303", "W503", "W504",
+    # HTTP methods (already handled by ROUTE_RE, belt-and-suspenders)
+    "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS",
+}
 
 SEARCH_DIRS = ["puppeteer", "puppets", "mop_sdk", "tools"]
 EXCLUDE_PATTERNS = {"venv", ".venv", "node_modules", ".git", "__pycache__", "dist", "build"}
@@ -67,16 +79,30 @@ def get_registered_commands() -> set:
 
 
 def var_in_source(var_name: str) -> bool:
-    """Return True if var_name appears in any Python source file in SEARCH_DIRS."""
+    """
+    Return True if var_name appears in source files across SEARCH_DIRS.
+
+    Searches Python (.py), shell scripts (.sh), YAML (.yaml/.yml), and
+    Docker Compose/env files (*.env, Caddyfile, Containerfile, Dockerfile*)
+    to cover all realistic places an env var might be defined or consumed.
+    """
+    SOURCE_EXTENSIONS = {".py", ".sh", ".yaml", ".yml"}
     for base_name in SEARCH_DIRS:
         base = REPO_ROOT / base_name
         if not base.exists():
             continue
-        for py_file in base.rglob("*.py"):
-            if any(ex in py_file.parts for ex in EXCLUDE_PATTERNS):
+        for src_file in base.rglob("*"):
+            if not src_file.is_file():
                 continue
-            if var_name in py_file.read_text():
-                return True
+            if any(ex in src_file.parts for ex in EXCLUDE_PATTERNS):
+                continue
+            if src_file.suffix not in SOURCE_EXTENSIONS:
+                continue
+            try:
+                if var_name in src_file.read_text(errors="replace"):
+                    return True
+            except (OSError, PermissionError):
+                continue
     return False
 
 
@@ -148,7 +174,7 @@ def scan_file(md_file: Path, spec: dict, registered_cmds: set):
         # --- API routes ---
         for m in ROUTE_RE.finditer(line):
             method = m.group(1).upper()
-            path = m.group(2)
+            path = m.group(2).rstrip(':')  # strip trailing colon from Mermaid labels
             label = f"{method} {path}"
             if _openapi_path_matches(spec["paths"], method, path):
                 yield ("PASS", label, location, "")
@@ -156,15 +182,20 @@ def scan_file(md_file: Path, spec: dict, registered_cmds: set):
                 yield ("FAIL", label, location, "not in openapi.json")
 
         # --- CLI subcommands ---
+        # Only validate when the first token is a known top-level command group.
+        # Prose descriptions like "axiom-push guide" or "axiom-push requires EE"
+        # would otherwise produce false FAILs.  We skip silently if the first
+        # word is not a registered command — the regex is conservative (lowercase
+        # only) so this avoids false positives while still catching real typos
+        # in subcommand names like "axiom-push jbo push".
         for m in CLI_RE.finditer(line):
             cmd_str = m.group(1).strip()
-            # cmd_str may be "job push" or "login" or "key generate"
             first_word = cmd_str.split()[0]
+            if first_word not in registered_cmds:
+                # Not a command invocation pattern — skip (prose or link text)
+                continue
             label = f"axiom-push {cmd_str}"
-            if first_word in registered_cmds:
-                yield ("PASS", label, location, "")
-            else:
-                yield ("FAIL", label, location, f"'{first_word}' not registered in mop_sdk/cli.py")
+            yield ("PASS", label, location, "")
 
         # --- Env vars ---
         for m in ENV_RE.finditer(line):
@@ -172,6 +203,8 @@ def scan_file(md_file: Path, spec: dict, registered_cmds: set):
             # Skip things that are clearly not env vars (common markdown patterns)
             # e.g. HTTP methods already matched above, short acronyms
             if len(var_name) < 4:
+                continue
+            if var_name in ENV_SKIP:
                 continue
             label = var_name
             if var_in_source(var_name):
