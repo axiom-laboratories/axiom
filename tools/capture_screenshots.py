@@ -21,6 +21,7 @@ Prerequisites:
 """
 
 import argparse
+import base64
 import os
 import sys
 import time
@@ -126,6 +127,137 @@ def preflight_check(base_url: str, admin_password: str):
 
     print("\nPre-flight OK. Ready to capture.")
     return jwt
+
+
+# ---------------------------------------------------------------------------
+# Demo data seeding
+# ---------------------------------------------------------------------------
+
+def seed_demo_data(base_url: str, jwt: str) -> dict:
+    """
+    Seed demo data against the live stack:
+      - Generate an ephemeral Ed25519 keypair (no file I/O)
+      - Register the public key as 'screenshot-seed-key'
+      - Dispatch 4 signed jobs with a mix of outcomes
+      - Wait up to 30s for at least 2 jobs to reach a terminal state
+
+    Returns {"sig_id": <signature_id>}.
+    """
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+
+    print("\nSeeding demo data...")
+
+    # Generate ephemeral keypair
+    priv = Ed25519PrivateKey.generate()
+    pub_pem = priv.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode()
+
+    auth_headers = {"Authorization": f"Bearer {jwt}"}
+
+    # Register public key — handle existing key gracefully
+    sig_id = None
+    r = requests.post(
+        f"{base_url}/api/signatures",
+        json={"name": "screenshot-seed-key", "public_key": pub_pem},
+        headers=auth_headers,
+        timeout=10,
+    )
+    if r.status_code in (200, 201):
+        sig_id = r.json().get("id")
+        print(f"  [OK] Registered signing key (id={sig_id})")
+    elif r.status_code in (400, 409):
+        # Key already exists — find its ID
+        r2 = requests.get(f"{base_url}/api/signatures", headers=auth_headers, timeout=10)
+        if r2.status_code == 200:
+            for sig in r2.json():
+                if sig.get("name") == "screenshot-seed-key":
+                    sig_id = sig.get("id")
+                    break
+        if sig_id:
+            print(f"  [OK] Found existing signing key (id={sig_id})")
+            # Re-register to get the correct public key into the DB for this ephemeral priv
+            # Since the key already exists we cannot verify — register under a unique name
+            import datetime
+            unique_name = f"screenshot-seed-key-{datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%S')}"
+            r3 = requests.post(
+                f"{base_url}/api/signatures",
+                json={"name": unique_name, "public_key": pub_pem},
+                headers=auth_headers,
+                timeout=10,
+            )
+            if r3.status_code in (200, 201):
+                sig_id = r3.json().get("id")
+                print(f"  [OK] Registered fresh signing key as '{unique_name}' (id={sig_id})")
+            else:
+                print(f"  [WARN] Could not register fresh key: {r3.status_code} — jobs may fail signature check")
+        else:
+            print("  [WARN] Could not find existing signing key ID — jobs may fail signature check")
+    else:
+        print(f"  [WARN] Unexpected response registering key: {r.status_code} — continuing anyway")
+
+    def sign_and_dispatch(script: str, label: str):
+        sig_bytes = priv.sign(script.encode("utf-8"))
+        sig_b64 = base64.b64encode(sig_bytes).decode()
+        payload = {
+            "task_type": "script",
+            "runtime": "python",
+            "script": script,
+            "signature_id": sig_id,
+            "signature": sig_b64,
+        }
+        r = requests.post(
+            f"{base_url}/api/jobs",
+            json=payload,
+            headers=auth_headers,
+            timeout=10,
+        )
+        if r.status_code in (200, 201):
+            job_id = r.json().get("id", "?")
+            print(f"  [OK] Dispatched job '{label}' (id={job_id})")
+        else:
+            print(f"  [WARN] Job '{label}' dispatch returned {r.status_code}: {r.text[:120]}")
+
+    # Dispatch 4 jobs with a mix of outcomes
+    sign_and_dispatch('print("hello from axiom")', "hello")
+    sign_and_dispatch(
+        'import platform; print(f"node: {platform.node()}")',
+        "platform-info",
+    )
+    sign_and_dispatch(
+        'raise RuntimeError("intentional failure for demo")',
+        "intentional-failure",
+    )
+    sign_and_dispatch(
+        'import time; time.sleep(2); print("done")',
+        "sleep-done",
+    )
+
+    # Wait for at least 2 jobs to reach a terminal state
+    print("  Waiting for jobs to complete", end="", flush=True)
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        try:
+            r = requests.get(f"{base_url}/api/jobs", headers=auth_headers, timeout=10)
+            if r.status_code == 200:
+                jobs = r.json()
+                terminal = [
+                    j for j in jobs
+                    if j.get("status", "").upper() in ("COMPLETED", "FAILED")
+                ]
+                if len(terminal) >= 2:
+                    print(f" done ({len(terminal)} terminal jobs)")
+                    break
+        except Exception:
+            pass
+        print(".", end="", flush=True)
+        time.sleep(1)
+    else:
+        print(" (timeout — proceeding with partial data)")
+
+    return {"sig_id": sig_id}
 
 
 # ---------------------------------------------------------------------------
