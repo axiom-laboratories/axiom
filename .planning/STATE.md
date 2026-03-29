@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v15.0
-milestone_name: — Operator Readiness
-status: Milestone archived — ready for next milestone planning
-stopped_at: v15.0 milestone complete — archived to .planning/milestones/
-last_updated: "2026-03-29T18:30:00.000Z"
-last_activity: 2026-03-29 — v15.0 milestone archived (MILESTONES.md, PROJECT.md, ROADMAP.md, RETROSPECTIVE.md updated)
+milestone: v16.0
+milestone_name: — Competitive Observability
+status: Defining requirements
+stopped_at: —
+last_updated: "2026-03-29T19:00:00.000Z"
+last_activity: 2026-03-29 — Milestone v16.0 started
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 11
-  completed_plans: 11
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone — run `/gsd:new-milestone` to define v16.0
+**Current focus:** Milestone v16.0 — Competitive Observability
 
 ## Current Position
 
-Phase: 86 of 86 (Docs Accuracy Validation)
-Plan: 02 complete — Phase 86 complete — milestone v15.0 complete
-Status: All plans executed — docs-validate CI job added to ci.yml
-Last activity: 2026-03-29 — Phase 86 Plan 02 executed (1 commit, CI gate established)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-29 — Milestone v16.0 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 

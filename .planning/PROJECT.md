@@ -12,9 +12,9 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: Next
+## Current Milestone: v16.0 — Competitive Observability
 
-**Goal:** TBD — use `/gsd:new-milestone` to define the next milestone.
+**Goal:** Close the operator experience gap versus competitors by surfacing dispatch diagnosis inline, adding CE-native job failure alerting, versioning job scripts so execution history is always traceable, and supporting output validation beyond exit code.
 
 ## Requirements
 
