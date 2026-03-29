@@ -210,7 +210,7 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
 
 **Milestone Goal:** Close four observability gaps identified through competitor analysis — dispatch diagnosis in the UI, CE-native job failure alerting, immutable job script versioning, and structured output validation. Every feature must be usable without an EE licence.
 
-- [ ] **Phase 87: Research & Design** — Review competitor pain points report; produce design decisions for all four implementation features
+- [x] **Phase 87: Research & Design** — Review competitor pain points report; produce design decisions for all four implementation features (completed 2026-03-29)
 - [ ] **Phase 88: Dispatch Diagnosis UI** — Wire the existing `/jobs/{guid}/dispatch-diagnosis` endpoint into the dashboard job list and detail view
 - [ ] **Phase 89: CE Alerting** — SMTP/webhook notification on job failure, configurable by CE operators, no EE licence required
 - [ ] **Phase 90: Job Script Versioning** — Immutable script version records linked to execution history; operators can view exact script that ran
@@ -318,7 +318,7 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
 | 84. Package Repo Operator Docs | v15.0 | 2/2 | Complete | 2026-03-29 |
 | 85. Screenshot Capture | v15.0 | 2/2 | Complete | 2026-03-29 |
 | 86. Docs Accuracy Validation | v15.0 | 2/2 | Complete | 2026-03-29 |
-| 87. Research & Design | v16.0 | 0/TBD | Not started | - |
+| 87. Research & Design | 1/1 | Complete   | 2026-03-29 | - |
 | 88. Dispatch Diagnosis UI | v16.0 | 0/TBD | Not started | - |
 | 89. CE Alerting | v16.0 | 0/TBD | Not started | - |
 | 90. Job Script Versioning | v16.0 | 0/TBD | Not started | - |

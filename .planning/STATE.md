@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
 status: planning
-stopped_at: Phase 87 context gathered
-last_updated: "2026-03-29T19:07:02.418Z"
+stopped_at: Completed 87-01-PLAN.md
+last_updated: "2026-03-29T19:15:47.153Z"
 last_activity: 2026-03-29 — v16.0 roadmap defined; 5 phases (87–91), 17 requirements mapped
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
   percent: 0
 ---
 
@@ -48,6 +48,7 @@ Progress: [░░░░░░░░░░] 0%
 | 89. CE Alerting | TBD | - | - |
 | 90. Job Script Versioning | TBD | - | - |
 | 91. Output Validation | TBD | - | - |
+| Phase 87 P01 | 2 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -58,6 +59,10 @@ Progress: [░░░░░░░░░░] 0%
 - [v16.0 roadmap]: Job script versioning requires new DB table (immutable version records) — schema design is a Phase 87 deliverable before Phase 90 executes
 - [v16.0 roadmap]: Output validation contract (how nodes report structured results) must be designed in Phase 87 before Phase 91 backend work begins
 - [v16.0 roadmap]: Phase 87 (Research) unblocks all four implementation phases — implementation phases (88–91) may execute in any order after 87 completes
+- [Phase 87]: Dispatch diagnosis: 5s auto-poll, server-side stuck-ASSIGNED detection via timeout*1.2 threshold formula
+- [Phase 87]: CE alerting: single webhook URL (HTTP POST) to alerts.webhook_url Config key; EE boundary at multiple destinations
+- [Phase 87]: Script versioning: two-table design (job_script_versions + job_definition_history), script_version_id FK on execution_records, Config key versioning.trigger_mode
+- [Phase 87]: Output validation: validation_rules JSON column on scheduled_jobs, failure_reason enum with 4 values, dot-notation path syntax, evaluation in job_service.py
 
 ### Pending Todos
 
@@ -74,6 +79,6 @@ Key items carried forward:
 
 ## Session Continuity
 
-Last session: 2026-03-29T19:07:02.416Z
-Stopped at: Phase 87 context gathered
-Resume file: .planning/phases/87-research-design/87-CONTEXT.md
+Last session: 2026-03-29T19:15:47.151Z
+Stopped at: Completed 87-01-PLAN.md
+Resume file: None

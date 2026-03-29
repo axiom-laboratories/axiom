@@ -7,11 +7,11 @@
 
 ### Research & Design
 
-- [ ] **RSH-01**: Competitor pain points report is reviewed and feature decisions documented (dispatch diagnosis, alerting, versioning, validation approaches chosen)
-- [ ] **RSH-02**: Dispatch diagnosis UX designed — endpoint completeness assessed, minimum viable UI surface defined
-- [ ] **RSH-03**: CE alerting mechanism chosen — email/webhook/polling options evaluated, approach selected with CE/EE boundary defined
-- [ ] **RSH-04**: Job script versioning designed — DB schema, API shape, and CE vs EE scope decided
-- [ ] **RSH-05**: Output/result validation contract designed — how job scripts signal structured results, what the node reports back
+- [x] **RSH-01**: Competitor pain points report is reviewed and feature decisions documented (dispatch diagnosis, alerting, versioning, validation approaches chosen)
+- [x] **RSH-02**: Dispatch diagnosis UX designed — endpoint completeness assessed, minimum viable UI surface defined
+- [x] **RSH-03**: CE alerting mechanism chosen — email/webhook/polling options evaluated, approach selected with CE/EE boundary defined
+- [x] **RSH-04**: Job script versioning designed — DB schema, API shape, and CE vs EE scope decided
+- [x] **RSH-05**: Output/result validation contract designed — how job scripts signal structured results, what the node reports back
 
 ### Dispatch Diagnosis
 
@@ -63,11 +63,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RSH-01 | Phase 87 | Pending |
-| RSH-02 | Phase 87 | Pending |
-| RSH-03 | Phase 87 | Pending |
-| RSH-04 | Phase 87 | Pending |
-| RSH-05 | Phase 87 | Pending |
+| RSH-01 | Phase 87 | Complete |
+| RSH-02 | Phase 87 | Complete |
+| RSH-03 | Phase 87 | Complete |
+| RSH-04 | Phase 87 | Complete |
+| RSH-05 | Phase 87 | Complete |
 | DIAG-01 | Phase 88 | Pending |
 | DIAG-02 | Phase 88 | Pending |
 | DIAG-03 | Phase 88 | Pending |
