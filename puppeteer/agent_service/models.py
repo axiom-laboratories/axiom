@@ -417,6 +417,35 @@ class RetentionConfigUpdate(BaseModel):
     retention_days: int
 
 
+# --- Alerting Config (ALRT-01) ---
+
+class AlertsConfigUpdate(BaseModel):
+    webhook_url: Optional[str] = None
+    webhook_enabled: Optional[bool] = None
+    webhook_security_rejections: Optional[bool] = None
+
+    @field_validator("webhook_url", mode="before")
+    @classmethod
+    def validate_url(cls, v):
+        if v is not None and v != "" and not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("Webhook URL must start with http:// or https://")
+        return v
+
+
+class AlertsConfigResponse(BaseModel):
+    webhook_url: str
+    webhook_enabled: bool
+    webhook_security_rejections: bool
+    last_delivery_status: Optional[dict] = None
+
+
+class AlertsTestResponse(BaseModel):
+    success: bool
+    status_code: Optional[int] = None
+    body_snippet: Optional[str] = None
+    error: Optional[str] = None
+
+
 # --- Scheduling Health (VIS-05, VIS-06) ---
 
 class DefinitionHealthRow(BaseModel):
