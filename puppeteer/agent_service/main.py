@@ -36,7 +36,7 @@ from .models import (
     AttestationExportResponse,
     AlertResponse,
     DispatchRequest, DispatchResponse, DispatchStatusResponse,
-    BulkJobActionRequest, BulkActionResponse,
+    BulkJobActionRequest, BulkActionResponse, BulkDiagnosisRequest,
     SchedulingHealthResponse, DefinitionHealthRow,
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
     SIGNING_FIELDS,
@@ -148,26 +148,6 @@ async def lifespan(app: FastAPI):
                 db.add(admin_user)
                 await db.commit()
                 logger.info("Bootstrapped Admin User")
-
-    # Seed demo signing key on first run (no signatures exist yet)
-    try:
-        _demo_key_path = Path(__file__).parent.parent / "demo_verification_key.pem"
-        if _demo_key_path.exists():
-            async with AsyncSessionLocal() as _db:
-                _sig_count = await _db.execute(select(func.count()).select_from(Signature))
-                if _sig_count.scalar() == 0:
-                    _demo_pub = _demo_key_path.read_text().strip()
-                    _demo_sig = Signature(
-                        id="demo0000000000000000000000000000",
-                        name="Demo Key (Getting Started)",
-                        public_key=_demo_pub,
-                        uploaded_by="system",
-                    )
-                    _db.add(_demo_sig)
-                    await _db.commit()
-                    logger.info("Seeded demo signing key for first-run onboarding")
-    except Exception as _e:
-        logger.debug(f"Demo key seed skipped: {_e}")
 
     # Start Scheduler
     scheduler_service.start()
@@ -1069,6 +1049,19 @@ async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require
     return result
 
 
+@app.post("/jobs/dispatch-diagnosis/bulk", tags=["Jobs"])
+async def bulk_dispatch_diagnosis(
+    req: BulkDiagnosisRequest,
+    current_user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns dispatch diagnosis for multiple jobs in one call (Phase 88 — DIAG-01)."""
+    results = {}
+    for guid in req.guids:
+        results[guid] = await JobService.get_dispatch_diagnosis(guid, db)
+    return {"results": results}
+
+
 @app.post("/jobs/{guid}/retry", tags=["Jobs"])
 async def retry_job(
     guid: str,
@@ -1754,7 +1747,7 @@ async def push_job_definition(
         raise HTTPException(422, detail=(
             "Signature verification failed — the script content does not match the provided signature. "
             "Ensure you signed the exact script content with the private key paired to the registered public key. "
-            "If you are getting started, open the Signatures page in the dashboard for copy-paste signing commands using the demo key."
+            "If you are getting started, See the Signatures page in the dashboard for key generation instructions."
         ))
 
     # 2. Identity attribution (STAGE-04)
