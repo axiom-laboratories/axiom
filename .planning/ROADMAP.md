@@ -16,7 +16,7 @@
 - ✅ **v14.2 — Docs on GitHub Pages** — Phase 71 (shipped 2026-03-26)
 - ✅ **v14.3 — Security Hardening + EE Licensing** — Phases 72–76 (shipped 2026-03-27)
 - ✅ **v14.4 — Go-to-Market Polish** — Phases 77–81 (shipped 2026-03-28)
-- 🚧 **v15.0 — Operator Readiness** — Phases 82–86 (in progress)
+- ✅ **v15.0 — Operator Readiness** — Phases 82–86 (shipped 2026-03-29)
 
 ## Phases
 
@@ -192,7 +192,7 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
 
 </details>
 
-### 🚧 v15.0 — Operator Readiness (Phases 82–86)
+### ✅ v15.0 — Operator Readiness (Phases 82–86) — SHIPPED 2026-03-29
 
 **Milestone Goal:** Close the gap between a technically functional platform and one that operators can confidently deploy in production — with a secure licence issuance workflow, a validated node job library, package repo runbooks, dashboard screenshots in docs and marketing, and a CI-wirable docs accuracy script.
 
@@ -200,7 +200,7 @@ Archive: `.planning/milestones/v14.4-ROADMAP.md`
 - [x] **Phase 83: Node Validation Job Library** — Signed Bash/Python/PowerShell reference jobs, volume + network + resource limit validation jobs, runbook, job manifest (completed 2026-03-28)
 - [x] **Phase 84: Package Repo Operator Docs** — devpi/APT/PWSH mirror runbooks, pip mirror validation job added to corpus (completed 2026-03-29)
 - [x] **Phase 85: Screenshot Capture** — Playwright seeded-data capture script, 11-view screenshots, pre-flight check (completed 2026-03-29)
-- [ ] **Phase 86: Docs Accuracy Validation** — OpenAPI/CLI cross-reference script, PASS/WARN/FAIL output with file+line refs, CI integration
+- [x] **Phase 86: Docs Accuracy Validation** — OpenAPI/CLI cross-reference script, PASS/WARN/FAIL output with file+line refs, CI integration (completed 2026-03-29)
 
 ## Phase Details
 
@@ -270,7 +270,10 @@ Plans:
   1. Running `validate_docs.py` against the committed `openapi.json` snapshot produces a PASS/WARN/FAIL result per documented API route, with the specific docs file and line number on any FAIL
   2. The script flags any `axiom-push <subcommand>` mentioned in docs that is not registered in `mop_sdk/cli.py`, and any env var names in docs that do not match the codebase
   3. The script exits with code 1 on any FAIL result, making it usable as a CI gate
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [x] 86-01-PLAN.md — validate_docs.py static cross-reference script (completed 2026-03-29)
+- [x] 86-02-PLAN.md — CI integration: docs-validate job in ci.yml (completed 2026-03-29)
 
 ## Progress
 
@@ -316,7 +319,7 @@ Plans:
 | 83. Node Validation Job Library | 3/3 | Complete    | 2026-03-28 | - |
 | 84. Package Repo Operator Docs | 2/2 | Complete    | 2026-03-29 | - |
 | 85. Screenshot Capture | 2/2 | Complete    | 2026-03-29 | 2026-03-29 |
-| 86. Docs Accuracy Validation | 1/2 | In Progress|  | - |
+| 86. Docs Accuracy Validation | 2/2 | Complete | 2026-03-29 | 2026-03-29 |
 
 ## Archived
 
