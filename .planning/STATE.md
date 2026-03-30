@@ -4,14 +4,14 @@ milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
 stopped_at: Completed 97-01-PLAN.md
-last_updated: "2026-03-30T21:11:40.740Z"
-last_activity: "2026-03-30 — Phase 96 Plan 01 complete: IS_POSTGRES, APScheduler pin, job_defaults, startup guards"
+last_updated: "2026-03-30T21:14:22.946Z"
+last_activity: "2026-03-30 — Phase 97 Plan 01 complete: asyncpg pool kwargs, ASYNCPG_POOL_SIZE env var, .env.example"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 2
   completed_plans: 2
-  percent: 20
+  percent: 40
 ---
 
 # Project State
