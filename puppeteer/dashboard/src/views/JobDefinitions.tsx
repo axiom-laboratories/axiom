@@ -57,6 +57,7 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
             const res = await authenticatedFetch(
                 `/executions?scheduled_job_id=${definitionId}&limit=25`
             );
+            if (!res.ok) return [] as any[];
             return res.json() as Promise<any[]>;
         },
         enabled: !!definitionId,
