@@ -71,31 +71,31 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase TBD | Pending |
-| FOUND-02 | Phase TBD | Pending |
-| FOUND-03 | Phase TBD | Pending |
-| POOL-01 | Phase TBD | Pending |
-| POOL-02 | Phase TBD | Pending |
-| POOL-03 | Phase TBD | Pending |
-| POOL-04 | Phase TBD | Pending |
-| DISP-01 | Phase TBD | Pending |
-| DISP-02 | Phase TBD | Pending |
-| DISP-03 | Phase TBD | Pending |
-| DISP-04 | Phase TBD | Pending |
-| SCHED-01 | Phase TBD | Pending |
-| SCHED-02 | Phase TBD | Pending |
-| SCHED-03 | Phase TBD | Pending |
-| OBS-01 | Phase TBD | Pending |
-| OBS-02 | Phase TBD | Pending |
-| OBS-03 | Phase TBD | Pending |
-| DOCS-01 | Phase TBD | Pending |
-| DOCS-02 | Phase TBD | Pending |
+| FOUND-01 | Phase 96 | Pending |
+| FOUND-02 | Phase 96 | Pending |
+| FOUND-03 | Phase 96 | Pending |
+| POOL-01 | Phase 97 | Pending |
+| POOL-02 | Phase 97 | Pending |
+| POOL-03 | Phase 97 | Pending |
+| POOL-04 | Phase 97 | Pending |
+| DISP-01 | Phase 98 | Pending |
+| DISP-02 | Phase 98 | Pending |
+| DISP-03 | Phase 98 | Pending |
+| DISP-04 | Phase 98 | Pending |
+| OBS-03 | Phase 98 | Pending |
+| SCHED-01 | Phase 99 | Pending |
+| SCHED-02 | Phase 99 | Pending |
+| SCHED-03 | Phase 99 | Pending |
+| OBS-01 | Phase 100 | Pending |
+| OBS-02 | Phase 100 | Pending |
+| DOCS-01 | Phase 100 | Pending |
+| DOCS-02 | Phase 100 | Pending |
 
 **Coverage:**
 - v17.0 requirements: 19 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 — traceability complete after roadmap creation*

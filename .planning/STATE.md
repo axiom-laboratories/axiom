@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v17.0
 milestone_name: Scale Hardening
-status: defining_requirements
-stopped_at: —
+status: ready_to_plan
+stopped_at: Phase 96 — Foundation
 last_updated: "2026-03-30T00:00:00.000Z"
-last_activity: 2026-03-30 — Milestone v17.0 started
+last_activity: 2026-03-30 — Roadmap created; phases 96–100 defined; ready to plan Phase 96
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,43 +21,36 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Defining requirements for v17.0 Scale Hardening
+**Current focus:** Phase 96 — Foundation (v17.0 Scale Hardening)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-30 — Milestone v17.0 started
+Phase: 96 of 100 (Foundation)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-03-30 — v17.0 roadmap created; phases 96–100 defined
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [░░░░░░░░░░] 0% (v17.0)
 
 ## Accumulated Context
 
-### Milestone Goals
-
-Target reliable operation at:
-- 20 concurrent polling nodes
-- 200+ pending jobs in queue
-- 1,000 active scheduled job definitions
-- 100 cron fires per minute
-
-All four dimensions currently exceed comfortable operating ceilings. APScheduler scale research (mop_validation/reports/apscheduler_scale_research.md) identified DB connection pool exhaustion as the primary constraint, followed by double-assignment races, O(N) sync_scheduler rebuild, and event loop saturation.
-
 ### Key Decisions
 
-(none yet — milestone just started)
+- [v17.0 Roadmap]: OBS-03 (concurrent dispatch integration test) assigned to Phase 98 alongside DISP-03/04 — validates the SKIP LOCKED correctness claim at the point of implementation
+- [v17.0 Roadmap]: Phase 99 (Scheduler Hardening) depends on Phase 96 only — independent of Phase 97/98; can be planned after Phase 96 completes
+- [v17.0 Roadmap]: `apscheduler>=3.10,<4.0` pin (FOUND-01) must land before any scheduler code is touched; APScheduler 4.x is a complete rewrite with no migration path
 
 ### Pending Todos
 
-(none)
+None.
 
 ### Blockers/Concerns
 
-(none)
+- FOUND-02 (IS_POSTGRES flag) is a hard prerequisite for Phase 97 pool kwargs and Phase 98 SKIP LOCKED guard — Phase 96 must complete before either can start
+- `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block — migration_v17.sql must carry this caveat explicitly (covered by DOCS-01 in Phase 100)
 
 ## Session Continuity
 
 Last session: 2026-03-30
-Stopped at: Milestone start — proceeding to research
+Stopped at: Roadmap created — all 19 v17.0 requirements mapped to phases 96–100; ready to plan Phase 96
 Resume file: None
