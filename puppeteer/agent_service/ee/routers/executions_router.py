@@ -96,6 +96,7 @@ async def list_executions(
             definition_version_id=job_definition_version_id,
             definition_version_number=version_number_map.get(job_definition_version_id) if job_definition_version_id else None,
             runtime=job_runtime,
+            failure_reason=r.failure_reason,
         ))
     return responses
 
@@ -142,6 +143,7 @@ async def get_execution(
         attempt_number=r.attempt_number,
         job_run_id=r.job_run_id,
         attestation_verified=r.attestation_verified,
+        failure_reason=r.failure_reason,
     )
 
 
@@ -220,6 +222,7 @@ async def list_job_executions(
             "attempt_number": r.attempt_number,
             "job_run_id": r.job_run_id,
             "attestation_verified": r.attestation_verified,
+            "failure_reason": r.failure_reason,
             "max_retries": job_max_retries,
         }
         for r, job_max_retries in rows
