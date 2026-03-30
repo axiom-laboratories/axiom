@@ -414,6 +414,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#windows-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#enterprise-edition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1477,6 +1488,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/upgrade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrade Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1913,6 +1952,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#windows-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#enterprise-edition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1959,9 +2009,16 @@
 
 <h1 id="install">Install</h1>
 <p>This guide uses Docker Compose (v2) — the recommended path for both homelab and production deployments.</p>
+<div class="admonition note">
+<p class="admonition-title">Windows support</p>
+<p>This guide has been documented against Docker Desktop 4.x with the WSL2 backend on Windows 10 21H1+ and Windows 11. Windows-specific commands are shown in tabbed blocks wherever the syntax differs from Linux/macOS. If you encounter issues not covered here, see the <a href="../../runbooks/faq/">FAQ</a> or open a GitHub issue.</p>
+</div>
 <hr />
 <h2 id="step-1-get-the-source">Step 1: Get the source</h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Git Clone</label><label for="__tabbed_1_2">GHCR Pull (no git required)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Linux / macOS</label><label for="__tabbed_2_2">Windows (PowerShell)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/your-org/master-of-puppets.git
@@ -1969,20 +2026,44 @@
 </code></pre></div>
 </div>
 <div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">://</span><span class="n">github</span><span class="p">.</span><span class="n">com</span><span class="p">/</span><span class="n">your-org</span><span class="p">/</span><span class="n">master-of-puppets</span><span class="p">.</span><span class="n">git</span>
+<span class="nb">cd </span><span class="n">master-of-puppets</span>
+</code></pre></div>
+<p>Git for Windows and the <code>git</code> command in WSL2 both work. If you use WSL2, run all subsequent commands inside the WSL2 shell for the best compatibility.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="tabbed-block">
 <p>Download the compose file directly and pull all images — no git installation needed:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Linux / macOS</label><label for="__tabbed_3_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sSLO<span class="w"> </span>https://raw.githubusercontent.com/axiom-laboratories/axiom/main/puppeteer/compose.cold-start.yaml
 docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>compose.cold-start.yaml<span class="w"> </span>pull
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nb">Invoke-WebRequest</span> <span class="n">-Uri</span> <span class="n">https</span><span class="p">://</span><span class="n">raw</span><span class="p">.</span><span class="n">githubusercontent</span><span class="p">.</span><span class="n">com</span><span class="p">/</span><span class="n">axiom-laboratories</span><span class="p">/</span><span class="n">axiom</span><span class="p">/</span><span class="n">main</span><span class="p">/</span><span class="n">puppeteer</span><span class="p">/</span><span class="n">compose</span><span class="p">.</span><span class="n">cold-start</span><span class="p">.</span><span class="n">yaml</span> <span class="n">-OutFile</span> <span class="n">compose</span><span class="p">.</span><span class="n">cold-start</span><span class="p">.</span><span class="n">yaml</span>
+<span class="n">docker</span> <span class="n">compose</span> <span class="o">-f</span> <span class="n">compose</span><span class="p">.</span><span class="n">cold-start</span><span class="p">.</span><span class="n">yaml</span> <span class="n">pull</span>
+</code></pre></div>
+<p>Alternatively, open the URL in a browser and save the file manually.</p>
+</div>
+</div>
+</div>
 <p>Then continue with Step 2 to create your <code>.env</code> file before starting the stack.</p>
 </div>
 </div>
 </div>
 <hr />
 <h2 id="step-2-configure-environment-variables">Step 2: Configure environment variables</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Server Install</label><label for="__tabbed_2_2">Quick Start</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Server Install</label><label for="__tabbed_4_2">Quick Start</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Create <code>puppeteer/secrets.env</code> with the required variables:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Linux / macOS</label><label for="__tabbed_5_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="c1"># puppeteer/secrets.env</span>
 
 <span class="c1"># JWT signing secret — generate with:</span>
@@ -1999,6 +2080,29 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <span class="c1"># Initial admin password — seeds the admin user on first start only</span>
 <span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>&lt;initial-admin-password&gt;
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<p>Create the file with your preferred text editor (Notepad, VS Code, etc.) or from PowerShell:</p>
+<div class="highlight"><pre><span></span><code><span class="c"># Generate the required secret values</span>
+<span class="nv">$SECRET_KEY</span>     <span class="p">=</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import secrets; print(secrets.token_hex(32))&quot;</span>
+<span class="nv">$ENCRYPTION_KEY</span> <span class="p">=</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span>
+<span class="nv">$API_KEY</span>        <span class="p">=</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import secrets; print(secrets.token_urlsafe(32))&quot;</span>
+
+<span class="c"># Write secrets.env</span>
+<span class="sh">@&quot;</span>
+<span class="sh">SECRET_KEY=$SECRET_KEY</span>
+<span class="sh">ENCRYPTION_KEY=$ENCRYPTION_KEY</span>
+<span class="sh">API_KEY=$API_KEY</span>
+<span class="sh">ADMIN_PASSWORD=&lt;choose-a-strong-password&gt;</span>
+<span class="sh">&quot;@</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">-Encoding</span> <span class="n">UTF8</span> <span class="n">puppeteer</span><span class="p">\</span><span class="n">secrets</span><span class="p">.</span><span class="n">env</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Line endings</p>
+<p>If you create or edit <code>secrets.env</code> (or any config file that will be bind-mounted into a Linux container) with Windows Notepad, save it as <strong>UTF-8</strong> and ensure line endings are <strong>LF</strong> (Unix-style), not <strong>CRLF</strong> (Windows-style). VS Code and most modern editors let you set this in the status bar. Mixed line endings can cause silent failures inside containers.</p>
+</div>
+</div>
+</div>
+</div>
 <div class="admonition danger">
 <p class="admonition-title">API_KEY is required</p>
 <p>If <code>API_KEY</code> is missing from <code>secrets.env</code>, the agent service <strong>crashes at startup with no useful log message</strong> — the process exits silently at import time. Set it to any non-empty string.</p>
@@ -2010,6 +2114,9 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 </div>
 <div class="tabbed-block">
 <p>Create a <code>.env</code> file in the same directory as <code>compose.cold-start.yaml</code>:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">Linux / macOS</label><label for="__tabbed_6_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="c1"># .env — place in same directory as compose.cold-start.yaml</span>
 
 <span class="c1"># Initial admin password — seeds the admin user on first start only</span>
@@ -2018,20 +2125,33 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <span class="c1"># Fernet key for encrypting secrets at rest</span>
 <span class="nv">ENCRYPTION_KEY</span><span class="o">=</span><span class="k">$(</span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span><span class="k">)</span>
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nv">$ENCRYPTION_KEY</span> <span class="p">=</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span>
+
+<span class="sh">@&quot;</span>
+<span class="sh">ADMIN_PASSWORD=&lt;choose-a-password&gt;</span>
+<span class="sh">ENCRYPTION_KEY=$ENCRYPTION_KEY</span>
+<span class="sh">&quot;@</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">-Encoding</span> <span class="n">UTF8</span> <span class="p">.</span><span class="n">env</span>
+</code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">ADMIN_PASSWORD is first-start only</p>
 <p><code>ADMIN_PASSWORD</code> is only read when the admin user does not yet exist in the database. After the first start, changing this value has <strong>no effect</strong>. Use the dashboard <strong>Users</strong> page to change the admin password.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Generating ENCRYPTION_KEY</p>
-<p>Run the <code>python3 -c "..."</code> command above in your shell and paste the output as the value. The key must be a valid Fernet key (43 URL-safe base64 characters followed by <code>=</code>).</p>
+<p>Run the <code>python -c "..."</code> command above in your shell and paste the output as the value. The key must be a valid Fernet key (43 URL-safe base64 characters followed by <code>=</code>).</p>
 </div>
 </div>
 </div>
 </div>
 <hr />
 <h2 id="step-3-start-the-stack">Step 3: Start the stack</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Server Install</label><label for="__tabbed_3_2">Quick Start</label></div>
+<p>Docker Compose works identically on Windows, Linux, and macOS. The commands below are the same on all platforms — run them from PowerShell, Command Prompt, Git Bash, or a WSL2 shell.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">Server Install</label><label for="__tabbed_7_2">Quick Start</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
@@ -2045,9 +2165,13 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 </div>
 </div>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Windows: Docker Desktop must be running</p>
+<p>Unlike Linux where Docker Engine runs as a background service, on Windows Docker Desktop must be open (visible in the system tray) before any <code>docker</code> or <code>docker compose</code> commands will work. If you see <code>error during connect: ... Is the docker daemon running?</code>, open Docker Desktop and wait for it to finish starting.</p>
+</div>
 <hr />
 <h2 id="step-4-verify">Step 4: Verify</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Server Install</label><label for="__tabbed_4_2">Quick Start</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">Server Install</label><label for="__tabbed_8_2">Quick Start</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Check that all containers are running:</p>
@@ -2066,16 +2190,71 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <div class="admonition note">
 <p class="admonition-title">TLS certificate warning</p>
 <p>The Root CA is auto-generated on first start. Your browser will show a certificate warning because it does not trust the self-signed CA yet. To install the CA in your browser and system trust store:</p>
-<ul>
-<li><strong>Linux:</strong> Visit <code>https://your-host/system/root-ca-installer</code> and run the downloaded script</li>
-<li><strong>Windows:</strong> Visit <code>https://your-host/system/root-ca-installer.ps1</code> and run the downloaded script</li>
-</ul>
-<p>This installs the Root CA into your OS and browser (Chrome and Firefox included on Linux).</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:3"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><input id="__tabbed_9_3" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1">Linux</label><label for="__tabbed_9_2">macOS</label><label for="__tabbed_9_3">Windows</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Visit <code>https://your-host/system/root-ca-installer</code> and run the downloaded script. The script installs the Root CA into the OS trust store and into Chrome and Firefox's NSS databases.</p>
+</div>
+<div class="tabbed-block">
+<p>Visit <code>https://your-host/system/root-ca-installer</code> in a browser, download the script, and run it. You may need to approve the Keychain access prompt.</p>
+</div>
+<div class="tabbed-block">
+<p>Visit <code>https://your-host/system/root-ca-installer.ps1</code> (note the <code>.ps1</code> extension). Save the file and run it from an <strong>elevated (Run as Administrator) PowerShell</strong> prompt:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">Set-ExecutionPolicy</span> <span class="n">-Scope</span> <span class="k">Process</span> <span class="n">-ExecutionPolicy</span> <span class="n">Bypass</span>
+<span class="p">.\</span><span class="n">root-ca-installer</span><span class="p">.</span><span class="n">ps1</span>
+</code></pre></div>
+<p>The script installs the Root CA into the Windows Certificate Store (Trusted Root Certification Authorities). Chrome and Edge pick this up automatically. Firefox uses its own trust store — after running the script, you may need to restart Firefox or manually import the CA under <strong>Settings → Privacy &amp; Security → Certificates → View Certificates</strong>.</p>
+</div>
+</div>
+</div>
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Podman Compose</p>
 <p>The stack is tested under both Docker and Podman. Substitute <code>podman compose</code> for <code>docker compose</code> in all commands. Everything else in this guide applies unchanged.</p>
 </div>
+<hr />
+<h2 id="windows-troubleshooting">Windows troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>error during connect: ... Is the docker daemon running?</code></td>
+<td>Docker Desktop is not running</td>
+<td>Open Docker Desktop and wait for it to reach "Docker Desktop is running" status in the system tray</td>
+</tr>
+<tr>
+<td><code>WSL 2 installation is incomplete</code> on Docker Desktop startup</td>
+<td>WSL2 kernel not installed</td>
+<td>Run <code>wsl --update</code> from an elevated PowerShell, then restart</td>
+</tr>
+<tr>
+<td>Containers start but immediately exit</td>
+<td>Bind-mounted config files have CRLF line endings</td>
+<td>Resave config files with LF line endings (VS Code status bar → "CRLF" → click → "LF")</td>
+</tr>
+<tr>
+<td><code>docker compose</code> not found</td>
+<td>Using old Docker Desktop (pre-3.x)</td>
+<td>Update to Docker Desktop 4.x; <code>docker compose</code> (v2 plugin) is bundled</td>
+</tr>
+<tr>
+<td>Port 80/443 already in use</td>
+<td>IIS or another service is bound to the port</td>
+<td>Stop IIS (<code>iisreset /stop</code>) or the conflicting service before starting the stack</td>
+</tr>
+<tr>
+<td>WSL2 integration not enabled for your distribution</td>
+<td>Docker Desktop WSL2 integration is per-distro</td>
+<td>In Docker Desktop: <strong>Settings → Resources → WSL Integration</strong> → enable your distro</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <hr />
 <h2 id="enterprise-edition">Enterprise Edition</h2>
@@ -2095,15 +2274,24 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <li><code>executions</code> — execution history and attestation log</li>
 </ul>
 <h3 id="verify-ee-is-active">Verify EE is active</h3>
-<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Dashboard</label><label for="__tabbed_5_2">CLI</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1">Dashboard</label><label for="__tabbed_10_2">CLI</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Open the dashboard in your browser. The sidebar shows a <strong>CE</strong> or <strong>EE</strong> badge — it switches from <strong>CE</strong> to <strong>EE</strong> once the key is loaded and valid.</p>
 </div>
 <div class="tabbed-block">
-<p>Call <code>GET /api/features</code>:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="__tabbed_11_1">Linux / macOS</label><label for="__tabbed_11_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sk<span class="w"> </span>https://&lt;your-orchestrator&gt;:8001/api/features
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nb">Invoke-RestMethod</span> <span class="n">-Uri</span> <span class="s2">&quot;https://&lt;your-orchestrator&gt;:8001/api/features&quot;</span> <span class="n">-SkipCertificateCheck</span>
+</code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Expected response when EE is active</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>

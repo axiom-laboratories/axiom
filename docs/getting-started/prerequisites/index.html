@@ -1416,6 +1416,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/upgrade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrade Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1841,10 +1869,24 @@
 <ul>
 <li>
 <p>[ ] <strong>Docker 24+ with Docker Compose v2</strong></p>
-<p>verify with:
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Linux / macOS</label><label for="__tabbed_1_2">Windows</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>--version<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>version
-</code></pre></div></p>
+</code></pre></div>
 <p>You need Docker Engine 24.0 or later and the <code>docker compose</code> v2 plugin (note: not the legacy <code>docker-compose</code> v1 binary). Check that <code>docker compose version</code> outputs <code>v2.x.x</code> or higher.</p>
+</div>
+<div class="tabbed-block">
+<p>Install <strong>Docker Desktop 4.x or later</strong> from <a href="https://www.docker.com/products/docker-desktop/">https://www.docker.com/products/docker-desktop/</a>.</p>
+<p>Docker Desktop bundles Docker Engine and Docker Compose v2 — no separate installation is needed. After installing, verify from PowerShell:</p>
+<div class="highlight"><pre><span></span><code><span class="n">docker</span> <span class="p">-</span><span class="n">-version</span>
+<span class="n">docker</span> <span class="n">compose</span> <span class="n">version</span>
+</code></pre></div>
+<p><strong>WSL2 backend is required.</strong> Docker Desktop 4.x uses WSL2 by default for Linux containers — confirm it is enabled under <strong>Settings → General → Use the WSL 2 based engine</strong>. If the option is greyed out, you may need to enable the <strong>Virtual Machine Platform</strong> and <strong>Windows Subsystem for Linux</strong> Windows features first (see the <a href="#windows-features">Windows Features</a> note below).</p>
+<p><strong>Minimum Windows version:</strong> Windows 10 21H1 (build 19043) or Windows 11. Earlier versions of Windows 10 do not support the WSL2 kernel required by Docker Desktop.</p>
+</div>
+</div>
+</div>
 </li>
 <li>
 <p>[ ] <strong>4 GB RAM available</strong></p>
@@ -1856,23 +1898,51 @@ free<span class="w"> </span>-h
 </li>
 <li>
 <p>[ ] <strong>Ports 80 and 443 available</strong></p>
-<p>verify with:
-<div class="highlight"><pre><span></span><code><span class="c1"># Linux</span>
-ss<span class="w"> </span>-tlnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:80|:443&#39;</span>
-
-<span class="c1"># macOS</span>
-netstat<span class="w"> </span>-an<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>LISTEN<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:80|:443&#39;</span>
-</code></pre></div></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Linux</label><label for="__tabbed_2_2">macOS</label><label for="__tabbed_2_3">Windows</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>ss<span class="w"> </span>-tlnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:80|:443&#39;</span>
+</code></pre></div>
 <p>No output means the ports are free. If a service is already listening on 80 or 443, stop it before starting the stack (Caddy needs both ports).</p>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>netstat<span class="w"> </span>-an<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>LISTEN<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:80|:443&#39;</span>
+</code></pre></div>
+<p>No output means the ports are free.</p>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">netstat</span> <span class="n">-ano</span> <span class="p">|</span> <span class="n">findstr</span> <span class="s2">&quot;:80 :443&quot;</span>
+</code></pre></div>
+<p>No output means the ports are free. If IIS or another web server is listening on these ports, stop it before starting the stack.</p>
+</div>
+</div>
+</div>
 </li>
 <li>
 <p>[ ] <strong>Git</strong> (to clone the repository)</p>
 <p>verify with:
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>--version
 </code></pre></div></p>
+<p>On Windows, Git for Windows (<a href="https://git-scm.com/download/win">https://git-scm.com/download/win</a>) provides both <code>git</code> and a Git Bash environment. Alternatively, use the Windows Subsystem for Linux (WSL2) shell.</p>
+</li>
+<li>
+<p>[ ] <strong>PowerShell 5.1+</strong> <em>(Windows only — for the CA installer)</em></p>
+<p>Windows 10 and Windows 11 include PowerShell 5.1 built in. Verify from a PowerShell prompt:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">$PSVersionTable</span><span class="p">.</span><span class="n">PSVersion</span>
+</code></pre></div>
+<p>PowerShell 7.x also works and is recommended for scripting.</p>
 </li>
 </ul>
 <hr />
+<p><span id="windows-features"></span></p>
+<div class="admonition note">
+<p class="admonition-title">Windows Features required for WSL2</p>
+<p>If Docker Desktop's WSL2 option is unavailable, you must enable two Windows features. Open an <strong>elevated PowerShell</strong> prompt and run:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dism</span><span class="p">.</span><span class="n">exe</span> <span class="p">/</span><span class="n">online</span> <span class="p">/</span><span class="nb">enable-feature</span> <span class="p">/</span><span class="n">featurename</span><span class="p">:</span><span class="n">VirtualMachinePlatform</span> <span class="p">/</span><span class="n">all</span> <span class="p">/</span><span class="n">norestart</span>
+<span class="n">dism</span><span class="p">.</span><span class="n">exe</span> <span class="p">/</span><span class="n">online</span> <span class="p">/</span><span class="nb">enable-feature</span> <span class="p">/</span><span class="n">featurename</span><span class="p">:</span><span class="n">Microsoft-Windows-Subsystem-Linux</span> <span class="p">/</span><span class="n">all</span> <span class="p">/</span><span class="n">norestart</span>
+</code></pre></div>
+<p>Restart your machine, then re-open Docker Desktop. If your machine does not support hardware virtualisation (Hyper-V / VT-x), Docker Desktop cannot run Linux containers.</p>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Podman Compose</p>
 <p>The Axiom stack runs under Podman as a drop-in alternative to Docker. To verify your Podman installation:
@@ -1882,11 +1952,24 @@ Substitute <code>podman compose</code> for <code>docker compose</code> in all co
 </div>
 <div class="admonition info">
 <p class="admonition-title">Corporate / enterprise proxy</p>
-<p>If deploying behind a corporate proxy, set the standard proxy environment variables before running <code>docker compose</code>:
+<p>If deploying behind a corporate proxy, set the standard proxy environment variables before running <code>docker compose</code>:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Linux / macOS</label><label for="__tabbed_3_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">HTTP_PROXY</span><span class="o">=</span>http://proxy.example.com:8080
 <span class="nb">export</span><span class="w"> </span><span class="nv">HTTPS_PROXY</span><span class="o">=</span>http://proxy.example.com:8080
 <span class="nb">export</span><span class="w"> </span><span class="nv">NO_PROXY</span><span class="o">=</span>localhost,127.0.0.1
-</code></pre></div></p>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nv">$env:HTTP_PROXY</span>  <span class="p">=</span> <span class="s2">&quot;http://proxy.example.com:8080&quot;</span>
+<span class="nv">$env:HTTPS_PROXY</span> <span class="p">=</span> <span class="s2">&quot;http://proxy.example.com:8080&quot;</span>
+<span class="nv">$env:NO_PROXY</span>    <span class="p">=</span> <span class="s2">&quot;localhost,127.0.0.1&quot;</span>
+</code></pre></div>
+<p>You can also configure the proxy in Docker Desktop under <strong>Settings → Resources → Proxies</strong>.</p>
+</div>
+</div>
+</div>
 </div>
 <hr />
 <p><strong>Next:</strong> <a href="../install/">Install →</a></p>

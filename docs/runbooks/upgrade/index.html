@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/runbooks/node-validation/">
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/runbooks/upgrade/">
       
       
-        <link rel="prev" href="../faq/">
+        <link rel="prev" href="../package-mirrors/">
       
       
-        <link rel="next" href="../package-mirrors/">
+        <link rel="next" href="../../developer/architecture/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Node Validation - Axiom</title>
+        <title>Upgrade Guide - Axiom</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#node-validation-job-library" class="md-skip">
+        <a href="#upgrade-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Node Validation
+              Upgrade Guide
             
           </span>
         </div>
@@ -1306,37 +1306,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Node Validation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../node-validation/" class="md-nav__link">
         
   
   
@@ -1352,164 +1325,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#hello-bash" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        hello-bash
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hello-python" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        hello-python
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hello-pwsh" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        hello-pwsh
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-volume-mapping" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-volume-mapping
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-network-filter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-network-filter
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-memory-hog" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-memory-hog
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-cpu-spin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-cpu-spin
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#resource-limit-node-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Resource Limit Node Setup
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Resource Limit Node Setup">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#memory-limit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Memory limit
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cpu-limit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CPU limit
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#capability-registration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Capability registration
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#lxc-caveat" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        LXC caveat
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1547,10 +1362,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../upgrade/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrade Guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1566,6 +1408,253 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#upgrade-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrade philosophy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-upgrade-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-upgrade checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#standard-upgrade-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standard upgrade procedure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Standard upgrade procedure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-pull-the-new-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Pull the new image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-stop-the-agent-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Stop the agent service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-apply-migration-sql-if-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Apply migration SQL (if required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-start-the-updated-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Start the updated agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — Verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-sql-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration SQL reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration SQL reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-a-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a migration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migration-file-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration file index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sqlite-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite note
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-upgrade-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-upgrade verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rollback-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollback procedure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rollback procedure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-stop-the-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Stop the agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-restore-the-database-backup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Restore the database backup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-pin-to-the-previous-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Pin to the previous image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-stack-restart-all-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full-stack restart (all services)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1963,10 +2052,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hello-bash" class="md-nav__link">
+  <a href="#upgrade-philosophy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        hello-bash
+        Upgrade philosophy
       
     </span>
   </a>
@@ -1974,10 +2063,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#hello-python" class="md-nav__link">
+  <a href="#pre-upgrade-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       
-        hello-python
+        Pre-upgrade checklist
       
     </span>
   </a>
@@ -1985,77 +2074,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#hello-pwsh" class="md-nav__link">
+  <a href="#standard-upgrade-procedure" class="md-nav__link">
     <span class="md-ellipsis">
       
-        hello-pwsh
+        Standard upgrade procedure
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-volume-mapping" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-volume-mapping
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-network-filter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-network-filter
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-memory-hog" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-memory-hog
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation-cpu-spin" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validation-cpu-spin
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#resource-limit-node-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Resource Limit Node Setup
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Resource Limit Node Setup">
+    <nav class="md-nav" aria-label="Standard upgrade procedure">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#memory-limit" class="md-nav__link">
+  <a href="#step-1-pull-the-new-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Memory limit
+        Step 1 — Pull the new image
       
     </span>
   </a>
@@ -2063,10 +2097,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cpu-limit" class="md-nav__link">
+  <a href="#step-2-stop-the-agent-service" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CPU limit
+        Step 2 — Stop the agent service
       
     </span>
   </a>
@@ -2074,10 +2108,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#capability-registration" class="md-nav__link">
+  <a href="#step-3-apply-migration-sql-if-required" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Capability registration
+        Step 3 — Apply migration SQL (if required)
       
     </span>
   </a>
@@ -2085,10 +2119,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#lxc-caveat" class="md-nav__link">
+  <a href="#step-4-start-the-updated-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        LXC caveat
+        Step 4 — Start the updated agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — Verify
       
     </span>
   </a>
@@ -2097,6 +2142,139 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-sql-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration SQL reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migration SQL reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-a-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a migration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migration-file-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration file index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sqlite-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite note
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-upgrade-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-upgrade verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rollback-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollback procedure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rollback procedure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-stop-the-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Stop the agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-restore-the-database-backup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Restore the database backup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-pin-to-the-previous-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Pin to the previous image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-stack-restart-all-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full-stack restart (all services)
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2117,217 +2295,390 @@
 
 
 
-<h1 id="node-validation-job-library">Node Validation Job Library</h1>
-<p>The node validation corpus is a set of reference jobs at <code>tools/example-jobs/</code> that operators use to verify a node handles all supported runtimes and constraint types correctly. Scripts are committed unsigned — sign each one with your registered <code>axiom-push</code> key before dispatching. The manifest at <code>tools/example-jobs/manifest.yaml</code> contains machine-readable metadata for every job.</p>
+<h1 id="upgrade-guide">Upgrade Guide</h1>
+<p>This runbook covers the end-to-end process for upgrading an existing Axiom deployment — from pre-flight checks through schema migration to post-upgrade verification and rollback.</p>
 <hr />
-<h2 id="hello-bash">hello-bash</h2>
-<p><strong>What it tests:</strong> Verifies that the Bash runtime is available and that a job can be dispatched, signature-verified, and executed end-to-end on the node.</p>
-<p><strong>Required capabilities:</strong> None.</p>
-<p><strong>Dispatch:</strong></p>
-<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/bash/hello.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;
-<span class="c1"># Then publish from the Staging tab in the dashboard</span>
-</code></pre></div>
-<p><strong>Expected PASS output:</strong></p>
-<div class="highlight"><pre><span></span><code>Hello from Axiom!
-Hostname: node-a1b2c3d4
-OS: Ubuntu 22.04.4 LTS
-Bash: 5.1.16(1)-release
-UTC: 2026-03-28T12:00:00Z
-</code></pre></div>
-<p><strong>Expected FAIL output:</strong> N/A — this job has no expected failure path. If it fails, the node's Bash runtime is not available or the script was not signed correctly. Check <code>SECURITY_REJECTED</code> status in the <a href="../jobs/#security_rejected-signature-verification-failed">Job Execution runbook</a>.</p>
+<h2 id="upgrade-philosophy">Upgrade philosophy</h2>
+<p>Axiom manages its database schema with SQLAlchemy's <code>Base.metadata.create_all()</code> at startup. Understanding what that does and does not handle is the key to a smooth upgrade:</p>
+<table>
+<thead>
+<tr>
+<th>Change type</th>
+<th>Handled by</th>
+<th>Action required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New tables</td>
+<td><code>create_all</code> at startup</td>
+<td>None — automatic</td>
+</tr>
+<tr>
+<td>New indexes on new tables</td>
+<td><code>create_all</code> at startup</td>
+<td>None — automatic</td>
+</tr>
+<tr>
+<td>New columns on <strong>existing</strong> tables</td>
+<td><strong>Not handled</strong> by <code>create_all</code></td>
+<td>Run the migration SQL file</td>
+</tr>
+<tr>
+<td>New indexes on <strong>existing</strong> tables</td>
+<td><strong>Not handled</strong> by <code>create_all</code></td>
+<td>Run the migration SQL file</td>
+</tr>
+<tr>
+<td>Enum value changes</td>
+<td><strong>Not handled</strong></td>
+<td>Usually documentation-only (see migration notes)</td>
+</tr>
+<tr>
+<td>Initial data seeds (role permissions, config defaults)</td>
+<td><code>create_all</code> + startup seeds</td>
+<td>Run migration SQL for existing deployments</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>ADMIN_PASSWORD</code> only seeds on first start.</strong> It is read once during database initialisation, when the <code>users</code> table is empty. Upgrading does not reset or re-read it. The password in your <code>.env</code> or <code>secrets.env</code> file is irrelevant once the admin user exists in the database.</p>
+<p><strong>Nodes reconnect automatically.</strong> Axiom uses a pull model: nodes poll <code>/work/pull</code> on their own schedule. After a server restart, online nodes resume polling within seconds. No manual intervention is needed to re-attach nodes.</p>
 <hr />
-<h2 id="hello-python">hello-python</h2>
-<p><strong>What it tests:</strong> Verifies that the Python runtime is available and that a Python job can be dispatched, signature-verified, and executed end-to-end on the node.</p>
-<p><strong>Required capabilities:</strong> None.</p>
-<p><strong>Dispatch:</strong></p>
-<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/python/hello.py<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;
-<span class="c1"># Then publish from the Staging tab in the dashboard</span>
+<h2 id="pre-upgrade-checklist">Pre-upgrade checklist</h2>
+<p>Complete all items before pulling a new image.</p>
+<ul>
+<li>
+<p>[ ] <strong>Back up PostgreSQL</strong></p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>puppet_db<span class="w"> </span>&gt;<span class="w"> </span>axiom_backup_<span class="k">$(</span>date<span class="w"> </span>+%Y%m%d_%H%M%S<span class="k">)</span>.sql
 </code></pre></div>
-<p><strong>Expected PASS output:</strong></p>
-<div class="highlight"><pre><span></span><code>Hello from Axiom!
-Hostname: node-a1b2c3d4
-OS: Linux
-Python: 3.11.8
-UTC: 2026-03-28T12:00:00Z
+<p>Store the dump file off the host before proceeding.</p>
+</li>
+<li>
+<p>[ ] <strong>Record the current version</strong></p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sk<span class="w"> </span>https://localhost:8001/api/version<span class="w"> </span><span class="p">|</span><span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>json.tool
 </code></pre></div>
-<p><strong>Expected FAIL output:</strong> N/A — if the job fails, the node's Python runtime is not available or the signing step was skipped.</p>
+<p>Note the version string in case a rollback is needed.</p>
+</li>
+<li>
+<p>[ ] <strong>Read the release notes</strong> for each version between current and target. Identify which migration SQL files are listed as required.</p>
+</li>
+<li>
+<p>[ ] <strong>Confirm migration SQL files are available</strong> — check that the <code>puppeteer/migration_vNN.sql</code> files for the target version exist in your working copy.</p>
+</li>
+<li>
+<p>[ ] <strong>Verify no jobs are actively running</strong> on nodes you want to quiesce before the restart. Use the dashboard Jobs view or:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sk<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://localhost:8001/api/jobs?status<span class="o">=</span>ASSIGNED<span class="w"> </span><span class="p">|</span><span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>json.tool
+</code></pre></div>
+</li>
+</ul>
 <hr />
-<h2 id="hello-pwsh">hello-pwsh</h2>
-<p><strong>What it tests:</strong> Verifies that PowerShell 7+ (<code>pwsh</code>) is available on the node and that a PowerShell job can be dispatched and executed end-to-end.</p>
-<p><strong>Required capabilities:</strong> None.</p>
-<p><strong>Dispatch:</strong></p>
-<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/pwsh/hello.ps1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;
-<span class="c1"># Then publish from the Staging tab in the dashboard</span>
+<h2 id="standard-upgrade-procedure">Standard upgrade procedure</h2>
+<h3 id="step-1-pull-the-new-image">Step 1 — Pull the new image</h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>pull<span class="w"> </span>agent
 </code></pre></div>
-<p><strong>Expected PASS output:</strong></p>
-<div class="highlight"><pre><span></span><code>Hello from Axiom!
-Hostname: node-a1b2c3d4
-OS: Ubuntu 22.04.4 LTS
-PowerShell: 7.4.1
-UTC: 2026-03-28T12:00:00Z
+<p>Or, if building locally after a code change:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>build<span class="w"> </span>agent
 </code></pre></div>
-<p><strong>Expected FAIL output:</strong> N/A — if the job fails, PowerShell 7+ is not installed on the node. Use a Foundry-built image that includes <code>pwsh</code> or install it manually on the node.</p>
-<hr />
-<h2 id="validation-volume-mapping">validation-volume-mapping</h2>
-<p><strong>What it tests:</strong> Confirms that a volume mount is readable and writable inside the job container at the path specified by <code>AXIOM_VOLUME_PATH</code>.</p>
-<p><strong>Required capabilities:</strong> None.</p>
-<p><strong>Setup:</strong> Before dispatching, the target node must have a volume mounted at the path you specify, and <code>AXIOM_VOLUME_PATH</code> must be set in the job's environment payload.</p>
-<p>Node compose snippet:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">puppet-node</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">axiom_data:/mnt/axiom-data</span>
-<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AXIOM_VOLUME_PATH=/mnt/axiom-data</span>
+<h3 id="step-2-stop-the-agent-service">Step 2 — Stop the agent service</h3>
+<p>Bring down only the agent to avoid PostgreSQL downtime:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>stop<span class="w"> </span>agent
+</code></pre></div>
+<p>The <code>db</code> service remains running throughout so migration SQL can be applied immediately.</p>
+<h3 id="step-3-apply-migration-sql-if-required">Step 3 — Apply migration SQL (if required)</h3>
+<p>See <a href="#migration-sql-reference">Migration SQL reference</a> to identify which files apply to your upgrade path. Run each file in order:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>puppet_db<span class="w"> </span>&lt;<span class="w"> </span>puppeteer/migration_vNN.sql
+</code></pre></div>
+<p>Replace <code>migration_vNN.sql</code> with the correct file name. Run multiple files sequentially, lowest number first.</p>
+<div class="admonition tip">
+<p class="admonition-title">Check whether a migration is already applied</p>
+<p>Before running a migration, confirm the column or table does not already exist:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check for a column</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>puppet_db<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;\d nodes&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>column_name
 
-<span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">axiom_data</span><span class="p">:</span>
+<span class="c1"># Check for a table</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>puppet_db<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;\dt table_name&quot;</span>
 </code></pre></div>
-<p><strong>Dispatch:</strong></p>
-<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/validation/volume-mapping.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;
-<span class="c1"># Then publish from the Staging tab in the dashboard</span>
-</code></pre></div>
-<p><strong>Expected PASS output:</strong></p>
-<div class="highlight"><pre><span></span><code>PASS: volume mount at /mnt/axiom-data is readable and writable.
-</code></pre></div>
-<p><strong>Expected FAIL output:</strong></p>
-<div class="highlight"><pre><span></span><code>FAIL: cannot write to /mnt/axiom-data — check volume mount configuration.
-</code></pre></div>
-<p>If the job fails, confirm the volume is mounted on the node (<code>docker inspect &lt;container&gt;</code> → <code>Mounts</code>) and that <code>AXIOM_VOLUME_PATH</code> matches the mount point inside the container.</p>
-<hr />
-<h2 id="validation-network-filter">validation-network-filter</h2>
-<p><strong>What it tests:</strong> Confirms network isolation is active on the target node. The job attempts a connection to <code>AXIOM_BLOCKED_HOST</code> (default: <code>8.8.8.8</code>) and exits 0 if the host is <strong>unreachable</strong> (isolation confirmed), or exits 1 if the host is reachable (isolation not in effect).</p>
-<p><strong>Required capabilities:</strong> None.</p>
-<div class="admonition warning">
-<p class="admonition-title">The script does not create isolation</p>
-<p>This job validates isolation that is already in place. You must configure <code>--network=none</code> (or equivalent) on the node <strong>before</strong> dispatching. The script does not manipulate <code>iptables</code> or any node-global network state.</p>
+<p>All migration files use <code>IF NOT EXISTS</code> guards on PostgreSQL, so re-running a previously applied file is safe.</p>
 </div>
-<p><strong>Setup:</strong> Configure the target node with <code>--network=none</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">puppet-node</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">network_mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;none&quot;</span>
+<h3 id="step-4-start-the-updated-agent">Step 4 — Start the updated agent</h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--no-build<span class="w"> </span>agent
 </code></pre></div>
-<p>Alternatively, pass <code>--network=none</code> via the Docker run command. <code>AXIOM_BLOCKED_HOST</code> can be overridden in the job environment if your isolation blocks a different address range.</p>
-<p><strong>Dispatch:</strong></p>
-<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/validation/network-filter.py<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;
-<span class="c1"># Then publish from the Staging tab in the dashboard</span>
+<p><code>--no-build</code> prevents Docker Compose from rebuilding the image; it uses the image pulled or built in Step 1.</p>
+<h3 id="step-5-verify">Step 5 — Verify</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Health check</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>https://localhost:8001/api/health
+
+<span class="c1"># Version confirmation</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>https://localhost:8001/api/version
 </code></pre></div>
-<p><strong>Expected PASS output:</strong></p>
-<div class="highlight"><pre><span></span><code>PASS: network isolation confirmed — 8.8.8.8 is unreachable.
-</code></pre></div>
-<p><strong>Expected FAIL output:</strong></p>
-<div class="highlight"><pre><span></span><code>FAIL: network isolation NOT active — 8.8.8.8 is reachable. Configure --network=none on the node.
-</code></pre></div>
+<p>Check the <a href="#post-upgrade-verification">post-upgrade verification checklist</a> below.</p>
 <hr />
-<h2 id="validation-memory-hog">validation-memory-hog</h2>
-<p><strong>What it tests:</strong> OOM enforcement — the job allocates 256 MB (page-touched to prevent overcommit deferral) and holds it for 30 seconds. On a node with a memory limit below 256 MB, the container runtime kills the process before it completes.</p>
-<p><strong>Required capabilities:</strong> <code>resource_limits_supported: "1.0"</code></p>
-<div class="admonition warning">
-<p class="admonition-title">Expected FAILED status</p>
-<p>The job reaching <code>FAILED</code> status is the <strong>expected success outcome</strong>. The OOM kill is the point of the test — it confirms the runtime is enforcing memory limits. If the job reaches <code>COMPLETED</code>, the memory limit is not being enforced.</p>
+<h2 id="migration-sql-reference">Migration SQL reference</h2>
+<p>Each migration file is numbered to match the feature phase that introduced it. Run all files between your current version and the target version, in ascending order.</p>
+<div class="admonition note">
+<p class="admonition-title">Fresh installs do not need migration SQL</p>
+<p>On a fresh deployment, <code>create_all</code> at startup builds all tables with the latest schema. Migration files only apply to existing databases that are missing columns or tables added in later releases.</p>
 </div>
-<p><strong>Setup:</strong> Configure the target node with a memory limit below 256 MB. Set the <code>resource_limits_supported</code> capability in the node's capability list.</p>
-<p>Node compose snippet:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">puppet-node</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">JOB_MEMORY_LIMIT=128m</span>
+<h3 id="running-a-migration">Running a migration</h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>puppet_db<span class="w"> </span>&lt;<span class="w"> </span>puppeteer/migration_vNN.sql
 </code></pre></div>
-<p>Register <code>resource_limits_supported</code> in the dashboard: open the <strong>Nodes</strong> view, select the node, open the Capabilities panel, and add <code>resource_limits_supported = 1.0</code>.</p>
-<p><strong>Dispatch:</strong></p>
-<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/validation/memory-hog.py<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;
-<span class="c1"># Then publish from the Staging tab in the dashboard</span>
-</code></pre></div>
-<p><strong>Expected PASS output (job status = FAILED):</strong></p>
-<div class="highlight"><pre><span></span><code>[node] Job &lt;guid&gt; killed by OOM — memory limit enforced correctly.
-</code></pre></div>
-<p>The job status will show <code>FAILED</code>. This is correct behaviour.</p>
-<p><strong>Expected FAIL output (job status = COMPLETED):</strong></p>
-<div class="highlight"><pre><span></span><code>Allocated 256 MB — sleeping 30 seconds.
-Done.
-</code></pre></div>
-<p>If the job completes, memory limits are not being enforced. Check cgroup v2 support on the host (see <a href="#resource-limit-node-setup">LXC caveat</a> below).</p>
+<h3 id="migration-file-index">Migration file index</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it covers</th>
+<th>Key DDL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>migration.sql</code> (v0.8)</td>
+<td>Concurrent job limits on nodes</td>
+<td><code>nodes.concurrency_limit</code>, <code>nodes.job_memory_limit</code></td>
+</tr>
+<tr>
+<td><code>migration_v09.sql</code></td>
+<td>Capability-based node scheduling</td>
+<td><code>nodes.capabilities</code>, <code>nodes.node_secret_hash</code>, <code>jobs.capability_requirements</code>, <code>scheduled_jobs.capability_requirements</code></td>
+</tr>
+<tr>
+<td><code>migration_v10.sql</code></td>
+<td>Force password change + session invalidation</td>
+<td><code>users.must_change_password</code>, <code>users.token_version</code>; seeds <code>foundry:write</code> and <code>signatures:write</code> for the operator role</td>
+</tr>
+<tr>
+<td><code>migration_v11.sql</code></td>
+<td>Per-user signing keys and API keys</td>
+<td>New tables: <code>user_signing_keys</code>, <code>user_api_keys</code></td>
+</tr>
+<tr>
+<td><code>migration_v12.sql</code></td>
+<td>Service principals</td>
+<td>New table: <code>service_principals</code></td>
+</tr>
+<tr>
+<td><code>migration_v13.sql</code></td>
+<td>Edit scheduled jobs</td>
+<td><code>scheduled_jobs.updated_at</code></td>
+</tr>
+<tr>
+<td><code>migration_v14.sql</code></td>
+<td>Job output capture</td>
+<td>New table: <code>execution_records</code></td>
+</tr>
+<tr>
+<td><code>migration_v15.sql</code></td>
+<td>Retry policy</td>
+<td><code>jobs.max_retries</code>, <code>jobs.retry_count</code>, <code>jobs.retry_after</code>, <code>jobs.backoff_multiplier</code>, <code>jobs.timeout_minutes</code>; same on <code>scheduled_jobs</code>; seeds <code>zombie_timeout_minutes</code> config value</td>
+</tr>
+<tr>
+<td><code>migration_v16.sql</code></td>
+<td>Execution history indexes</td>
+<td>Index on <code>execution_records.started_at</code>; <code>config</code> retention key</td>
+</tr>
+<tr>
+<td><code>migration_v17.sql</code></td>
+<td>Environment tags on nodes</td>
+<td><code>nodes.operator_tags</code></td>
+</tr>
+<tr>
+<td><code>migration_v18.sql</code></td>
+<td>Job dependency ordering</td>
+<td><code>jobs.depends_on</code></td>
+</tr>
+<tr>
+<td><code>migration_v19.sql</code></td>
+<td>Advanced Foundry — artifacts and approved OS list</td>
+<td>New tables: <code>artifacts</code>, <code>approved_os</code></td>
+</tr>
+<tr>
+<td><code>migration_v20.sql</code></td>
+<td>Tamper detection</td>
+<td><code>tokens.template_id</code></td>
+</tr>
+<tr>
+<td><code>migration_v21.sql</code></td>
+<td>Hot-upgrade engine</td>
+<td><code>nodes.pending_upgrade</code></td>
+</tr>
+<tr>
+<td><code>migration_v22.sql</code></td>
+<td>Persist base OS family on nodes</td>
+<td><code>nodes.base_os_family</code></td>
+</tr>
+<tr>
+<td><code>migration_v23.sql</code></td>
+<td>Automation triggers</td>
+<td>New table: <code>triggers</code></td>
+</tr>
+<tr>
+<td><code>migration_v24.sql</code></td>
+<td>Conditional triggers and signals</td>
+<td>New table: <code>signals</code></td>
+</tr>
+<tr>
+<td><code>migration_v25.sql</code></td>
+<td>Alerts and webhooks</td>
+<td>New tables: <code>alerts</code>, <code>webhooks</code></td>
+</tr>
+<tr>
+<td><code>migration_v26.sql</code></td>
+<td>Compatibility engine</td>
+<td><code>capability_matrix.is_active</code>, <code>capability_matrix.runtime_dependencies</code>, <code>blueprints.os_family</code>; backfills <code>os_family='DEBIAN'</code></td>
+</tr>
+<tr>
+<td><code>migration_v27.sql</code></td>
+<td>Job lifecycle status and push attribution</td>
+<td><code>scheduled_jobs.status</code> (DRAFT/ACTIVE/DEPRECATED/REVOKED), <code>scheduled_jobs.pushed_by</code>; backfills existing rows to <code>ACTIVE</code></td>
+</tr>
+<tr>
+<td><code>migration_v28.sql</code></td>
+<td>Smelter registry and compliance tracking</td>
+<td>New table: <code>approved_ingredients</code></td>
+</tr>
+<tr>
+<td><code>migration_v29.sql</code></td>
+<td>Package mirroring columns</td>
+<td><code>approved_ingredients.mirror_status</code>, <code>approved_ingredients.mirror_path</code>, <code>approved_ingredients.mirror_log</code></td>
+</tr>
+<tr>
+<td><code>migration_v30.sql</code></td>
+<td>Image lifecycle and Bill of Materials</td>
+<td><code>puppet_templates.status</code>, <code>puppet_templates.bom_captured</code></td>
+</tr>
+<tr>
+<td><code>migration_v31.sql</code></td>
+<td>Track template image on nodes</td>
+<td><code>nodes.template_id</code></td>
+</tr>
+<tr>
+<td><code>migration_v32.sql</code></td>
+<td>Execution output capture</td>
+<td><code>execution_records.stdout</code>, <code>execution_records.stderr</code></td>
+</tr>
+<tr>
+<td><code>migration_v33.sql</code></td>
+<td>Runtime attestation</td>
+<td>Additional columns on <code>execution_records</code> for runtime provenance</td>
+</tr>
+<tr>
+<td><code>migration_v34.sql</code></td>
+<td>Environment tags on jobs</td>
+<td><code>nodes.env_tag</code>, <code>jobs.env_tag</code>, <code>scheduled_jobs.env_tag</code></td>
+</tr>
+<tr>
+<td><code>migration_v35.sql</code></td>
+<td>Operator env tag lock</td>
+<td><code>nodes.operator_env_tag</code> — prevents heartbeat from overwriting operator-set tag</td>
+</tr>
+<tr>
+<td><code>migration_v36.sql</code></td>
+<td>Role column for EE RBAC</td>
+<td><code>users.role</code> (default <code>'admin'</code> preserves existing admin user)</td>
+</tr>
+<tr>
+<td><code>migration_v37.sql</code></td>
+<td>HMAC integrity on job signatures</td>
+<td><code>jobs.signature_hmac</code></td>
+</tr>
+<tr>
+<td><code>migration_v38.sql</code></td>
+<td>Multi-runtime support</td>
+<td><code>scheduled_jobs.runtime</code>, <code>jobs.runtime</code></td>
+</tr>
+<tr>
+<td><code>migration_v39.sql</code></td>
+<td>Job name and creator tracking</td>
+<td><code>jobs.name</code>, <code>jobs.created_by</code>; index on <code>jobs.name</code></td>
+</tr>
+<tr>
+<td><code>migration_v40.sql</code> / <code>migration_v41.sql</code></td>
+<td>Job resubmit traceability</td>
+<td><code>jobs.originating_guid</code> (v40 and v41 are equivalent; applying either is sufficient)</td>
+</tr>
+<tr>
+<td><code>migration_v42.sql</code></td>
+<td>DRAINING node status + explicit node targeting</td>
+<td>Documentation-only for DRAINING; <code>jobs.target_node_id</code></td>
+</tr>
+<tr>
+<td><code>migration_v43.sql</code></td>
+<td>Scheduling health and data management</td>
+<td><code>execution_records.pinned</code>, <code>scheduled_jobs.allow_overlap</code>, <code>scheduled_jobs.dispatch_timeout_minutes</code>, <code>jobs.dispatch_timeout_minutes</code>; new tables: <code>scheduled_fire_log</code>, <code>job_templates</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sqlite-note">SQLite note</h3>
+<p>Migration files use PostgreSQL's <code>IF NOT EXISTS</code> syntax on <code>ALTER TABLE</code>, which SQLite does not support. For local development with SQLite, the standard workflow is to delete <code>jobs.db</code> and let <code>create_all</code> rebuild it. If you need to preserve a local SQLite database, the SQL comments inside each migration file include the equivalent bare <code>ALTER TABLE</code> statements without guards.</p>
 <hr />
-<h2 id="validation-cpu-spin">validation-cpu-spin</h2>
-<p><strong>What it tests:</strong> CPU throttle enforcement — the job runs a CPU-bound loop for 5 seconds and reports wall time, CPU time, and their ratio. On a node with <code>cpu_limit=0.5</code>, the ratio will be approximately <code>0.5</code> rather than <code>1.0</code>, confirming throttling is active.</p>
-<p><strong>Required capabilities:</strong> <code>resource_limits_supported: "1.0"</code></p>
-<p>The job completes normally (exit 0) and reports its measurements. The operator reads the output to verify the ratio.</p>
-<p><strong>Setup:</strong> Configure the target node with a CPU limit of 0.5 and register the <code>resource_limits_supported</code> capability.</p>
-<p>Node compose snippet:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">puppet-node</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">JOB_CPU_LIMIT=0.5</span>
+<h2 id="post-upgrade-verification">Post-upgrade verification</h2>
+<p>Run through this checklist after the agent starts:</p>
+<ul>
+<li>
+<p>[ ] <strong>Health endpoint returns 200</strong></p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sk<span class="w"> </span>https://localhost:8001/api/health
 </code></pre></div>
-<p>Register <code>resource_limits_supported</code> in the dashboard: open the <strong>Nodes</strong> view, select the node, open the Capabilities panel, and add <code>resource_limits_supported = 1.0</code>.</p>
-<p><strong>Dispatch:</strong></p>
-<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/validation/cpu-spin.py<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;
-<span class="c1"># Then publish from the Staging tab in the dashboard</span>
-</code></pre></div>
-<p><strong>Expected PASS output:</strong></p>
-<div class="highlight"><pre><span></span><code>CPU spin complete.
-Wall time : 10.02s
-CPU time  : 5.01s
-Ratio     : 0.50
-PASS: ratio &lt; 0.8 — CPU throttling confirmed.
-</code></pre></div>
-<p><strong>Expected FAIL output:</strong></p>
-<div class="highlight"><pre><span></span><code>CPU spin complete.
-Wall time : 5.01s
-CPU time  : 5.00s
-Ratio     : 1.00
-FAIL: ratio &gt;= 0.8 — CPU throttling is NOT active. Check JOB_CPU_LIMIT on the node.
-</code></pre></div>
+</li>
+<li>
+<p>[ ] <strong>Login works</strong> — sign in to the dashboard and confirm your session is valid</p>
+</li>
+<li>
+<p>[ ] <strong>Nodes reconnect</strong> — check the Nodes view; online nodes should show <code>ONLINE</code> status within 30 seconds of the agent starting</p>
+</li>
+<li>
+<p>[ ] <strong>Audit log has a startup entry</strong> — the AuditLog view should show a <code>SYSTEM_STARTUP</code> event timestamped at the restart time</p>
+</li>
+<li>
+<p>[ ] <strong>Scheduled jobs are active</strong> — the Job Definitions view should list all previously configured schedules with their next fire times</p>
+</li>
+<li>
+<p>[ ] <strong>Run a smoke job</strong> — dispatch a simple job to a known-good node and confirm it completes with status <code>COMPLETED</code></p>
+</li>
+</ul>
 <hr />
-<h2 id="resource-limit-node-setup">Resource Limit Node Setup</h2>
-<p>Use this section to configure a node for the memory and CPU validation jobs.</p>
-<h3 id="memory-limit">Memory limit</h3>
-<p>Set <code>JOB_MEMORY_LIMIT</code> on the node. The node agent reads this value and passes it as <code>--memory</code> to the container runtime when executing each job:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">environment</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">JOB_MEMORY_LIMIT=128m</span>
+<h2 id="rollback-procedure">Rollback procedure</h2>
+<p>If the upgrade introduces a regression:</p>
+<h3 id="step-1-stop-the-agent">Step 1 — Stop the agent</h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>stop<span class="w"> </span>agent
 </code></pre></div>
-<p>The <code>validation-memory-hog</code> job allocates 256 MB — any limit strictly below 256 MB will trigger the OOM kill. <code>128m</code> is recommended for a clear result.</p>
-<h3 id="cpu-limit">CPU limit</h3>
-<p>Set <code>JOB_CPU_LIMIT</code> on the node. The node agent reads this value and passes it as <code>--cpus</code> to the container runtime:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">environment</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">JOB_CPU_LIMIT=0.5</span>
+<h3 id="step-2-restore-the-database-backup">Step 2 — Restore the database backup</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Drop and recreate the database</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;DROP DATABASE puppet_db;&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;CREATE DATABASE puppet_db;&quot;</span>
+
+<span class="c1"># Restore from backup</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>puppet_db<span class="w"> </span>&lt;<span class="w"> </span>axiom_backup_YYYYMMDD_HHMMSS.sql
 </code></pre></div>
-<p>The <code>validation-cpu-spin</code> job spins on two CPUs. With <code>cpu_limit=0.5</code>, the wall/CPU ratio will be approximately <code>0.5</code>. Any value below <code>1.0</code> will show measurable throttling.</p>
-<h3 id="capability-registration">Capability registration</h3>
-<p>Resource limit jobs require the <code>resource_limits_supported</code> capability to be registered on the target node. Without this capability, the job exits with code 1 and reports:</p>
-<div class="highlight"><pre><span></span><code>FAIL: resource limits are not supported on this node (resource_limits_supported capability missing)
+<h3 id="step-3-pin-to-the-previous-image">Step 3 — Pin to the previous image</h3>
+<p>Tag the image you want to revert to. If you kept the previous image locally:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>tag<span class="w"> </span>&lt;previous-image-sha&gt;<span class="w"> </span>localhost/master-of-puppets-server:rollback
 </code></pre></div>
-<p>To register the capability:</p>
-<ol>
-<li>Open the <strong>Nodes</strong> view in the dashboard.</li>
-<li>Select the target node.</li>
-<li>Open the <strong>Capabilities</strong> panel.</li>
-<li>Add capability name <code>resource_limits_supported</code> with value <code>1.0</code>.</li>
-<li>Save. The capability takes effect on the next job assignment cycle.</li>
-</ol>
-<h3 id="lxc-caveat">LXC caveat</h3>
-<p>Cgroup v2 resource limit enforcement is unreliable on LXC-hosted nodes. When <code>EXECUTION_MODE=direct</code> (Python subprocess, used in Docker-in-Docker configurations), <code>--memory</code> and <code>--cpus</code> flags are not passed to any container runtime — the host must enforce limits at the LXC level instead. For reliable enforcement of <code>validation-memory-hog</code> and <code>validation-cpu-spin</code>, run these jobs on a <strong>native Docker node</strong> (not LXC-hosted).</p>
+<p>Update <code>compose.server.yaml</code> (or set an env override) to reference the rollback tag, then:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>--no-build<span class="w"> </span>agent
+</code></pre></div>
+<h3 id="step-4-verify">Step 4 — Verify</h3>
+<p>Repeat the <a href="#post-upgrade-verification">post-upgrade verification checklist</a> against the restored state.</p>
+<div class="admonition warning">
+<p class="admonition-title">Migration SQL cannot be automatically reversed</p>
+<p><code>ALTER TABLE ADD COLUMN</code> statements are not automatically reversible. The database backup taken in the pre-upgrade checklist is the only reliable rollback path. <strong>Always take the backup before running migration SQL.</strong></p>
+</div>
+<hr />
+<h2 id="full-stack-restart-all-services">Full-stack restart (all services)</h2>
+<p>If you need to restart the entire stack (e.g., after a PostgreSQL config change or a host reboot):</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>down
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<p><code>create_all</code> runs on every startup and will create any tables that are missing from the current schema. It does not alter or drop existing tables, so this is always safe to run.</p>
 
 
 
