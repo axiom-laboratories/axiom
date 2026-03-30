@@ -76,6 +76,15 @@ async def lifespan(app: FastAPI):
     # Startup logic
     await init_db()
 
+    # SQLite dev-mode warning — surfaces missing SKIP LOCKED before the first pull
+    import sys as _sys
+    from .db import IS_POSTGRES as _IS_POSTGRES
+    if not _IS_POSTGRES:
+        print(
+            "WARNING: SQLite detected — SKIP LOCKED not active. Use Postgres for production.",
+            file=_sys.stderr,
+        )
+
     # Load licence first (check_and_record_boot now needs it)
     licence_state = load_licence()
     app.state.licence_state = licence_state
@@ -148,6 +157,13 @@ async def lifespan(app: FastAPI):
                 db.add(admin_user)
                 await db.commit()
                 logger.info("Bootstrapped Admin User")
+
+    # Guard against silent APScheduler v4 install (v4 is a complete rewrite)
+    import importlib.metadata as _importlib_metadata
+    from packaging.version import Version as _Version
+    _aps_ver = _importlib_metadata.version("apscheduler")
+    if _Version(_aps_ver) >= _Version("4.0"):
+        raise RuntimeError("APScheduler v4 detected — pin to >=3.10,<4.0")
 
     # Start Scheduler
     scheduler_service.start()
