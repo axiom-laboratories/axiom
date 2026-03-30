@@ -83,6 +83,7 @@ class ScheduledJob(Base):
     runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="python")  # RT-07
     allow_overlap: Mapped[bool] = mapped_column(Boolean, default=False)  # SRCH-08: default safe — no concurrent runs
     dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
+    validation_rules: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Phase 91: JSON validation rule dict
 
 class Token(Base):
     __tablename__ = "tokens"
@@ -177,6 +178,7 @@ class ExecutionRecord(Base):
     attestation_signature: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     attestation_verified: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)  # SRCH-09: user-pinned execution record
+    failure_reason: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)  # Phase 91: validation_exit_code | validation_regex | validation_json_field | execution_error
 
     __table_args__ = (
         Index("ix_execution_records_job_guid", "job_guid"),
