@@ -471,7 +471,15 @@ const JobDetailPanel = ({
                                                         <Pin className={`h-3 w-3 ${rec.pinned ? 'fill-amber-500 text-amber-500' : 'text-zinc-500 hover:text-zinc-300'}`} />
                                                     </button>
                                                 </td>
-                                                <td className="px-2 py-1.5 font-mono text-zinc-300 capitalize">{(rec.status || '—').toLowerCase()}</td>
+                                                <td className="px-2 py-1.5 font-mono text-zinc-300 capitalize">
+                                                    {(rec.status || '—').toLowerCase()}
+                                                    {rec.failure_reason?.startsWith('validation_') && (
+                                                        <div className="flex items-center gap-1.5 text-xs text-orange-400 mt-0.5">
+                                                            <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                                                            <span>Validation failed: {rec.failure_reason.replace('validation_', '')}</span>
+                                                        </div>
+                                                    )}
+                                                </td>
                                                 <td className="px-2 py-1.5 text-zinc-400">{rec.attempt_number ?? 1}</td>
                                                 <td className="px-2 py-1.5 text-zinc-400">{rec.started_at ? new Date(rec.started_at).toLocaleTimeString() : '—'}</td>
                                                 <td className="px-2 py-1.5 text-zinc-400">{rec.duration_s != null ? `${rec.duration_s.toFixed(1)}s` : '—'}</td>

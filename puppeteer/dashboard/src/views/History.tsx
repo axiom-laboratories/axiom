@@ -20,7 +20,7 @@ import {
     SelectValue 
 } from '@/components/ui/select';
 import { formatDistanceToNow } from 'date-fns';
-import { Terminal, Search, Filter } from 'lucide-react';
+import { Terminal, Search, Filter, AlertTriangle } from 'lucide-react';
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
 
 const History = () => {
@@ -158,6 +158,12 @@ const History = () => {
                                 <TableCell className="text-zinc-400 group-hover:text-zinc-300 transition-colors">{ex.node_id || 'N/A'}</TableCell>
                                 <TableCell>
                                     <Badge variant={getStatusVariant(ex.status)} className="font-semibold px-2 py-0.5">{ex.status}</Badge>
+                                    {ex.failure_reason?.startsWith('validation_') && (
+                                        <div className="flex items-center gap-1.5 text-xs text-orange-400 mt-0.5">
+                                            <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                                            <span>Validation failed: {ex.failure_reason.replace('validation_', '')}</span>
+                                        </div>
+                                    )}
                                 </TableCell>
                                 <TableCell className="text-right text-zinc-400 whitespace-nowrap tabular-nums group-hover:text-zinc-300 transition-colors">
                                     {ex.duration_seconds ? `${ex.duration_seconds.toFixed(1)}s` : '-'}
