@@ -268,7 +268,11 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
   1. The job definition form includes a validation section where an operator can specify a success pattern: exit code check, a JSON field assertion, or a stdout regex
   2. A job that exits with code 0 but does not satisfy its configured validation pattern transitions to FAILED status — not COMPLETED — and the failure record includes the validation rule that was violated
   3. The execution history view and the job detail view both display validation failure reasons distinctly from execution errors (e.g. a clear "Validation failed: ..." label rather than a generic error)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [x] 91-01-PLAN.md — DB columns, job_service validation logic, scheduler stamping
+- [x] 91-02-PLAN.md — validation form UI, failure_reason display across three history views
+- [ ] 91-03-PLAN.md — Wire failure_reason into executions router API responses
 
 ## Progress
 
