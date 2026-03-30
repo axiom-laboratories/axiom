@@ -17,7 +17,7 @@
 - ✅ **v14.3 — Security Hardening + EE Licensing** — Phases 72–76 (shipped 2026-03-27)
 - ✅ **v14.4 — Go-to-Market Polish** — Phases 77–81 (shipped 2026-03-28)
 - ✅ **v15.0 — Operator Readiness** — Phases 82–86 (shipped 2026-03-29)
-- 🚧 **v16.0 — Competitive Observability** — Phases 87–91 (in progress)
+- ✅ **v16.0 — Competitive Observability** — Phases 87–91 (completed 2026-03-30)
 
 ## Phases
 
@@ -214,7 +214,7 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
 - [x] **Phase 88: Dispatch Diagnosis UI** — Wire the existing `/jobs/{guid}/dispatch-diagnosis` endpoint into the dashboard job list and detail view (completed 2026-03-29)
 - [x] **Phase 89: CE Alerting** — SMTP/webhook notification on job failure, configurable by CE operators, no EE licence required (completed 2026-03-29)
 - [x] **Phase 90: Job Script Versioning** — Immutable script version records linked to execution history; operators can view exact script that ran (completed 2026-03-29)
-- [ ] **Phase 91: Output Validation** — Operator-defined success patterns (exit code + JSON/regex); validation failures reported as FAILED with reason
+- [x] **Phase 91: Output Validation** — Operator-defined success patterns (exit code + JSON/regex); validation failures reported as FAILED with reason (completed 2026-03-30)
 
 ## Phase Details
 
@@ -322,7 +322,7 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
 | 88. Dispatch Diagnosis UI | 2/2 | Complete    | 2026-03-29 | - |
 | 89. CE Alerting | 2/2 | Complete   | 2026-03-29 | - |
 | 90. Job Script Versioning | 3/3 | Complete   | 2026-03-30 | - |
-| 91. Output Validation | 1/2 | In Progress|  | - |
+| 91. Output Validation | 2/2 | Complete   | 2026-03-30 | - |
 
 ## Archived
 
