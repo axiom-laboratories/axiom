@@ -15,10 +15,10 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 
 ### DB Pool
 
-- [ ] **POOL-01**: asyncpg connection pool right-sized for 20+ concurrent polling nodes (`pool_size=20`, `max_overflow=10`, `pool_timeout=30`, `pool_recycle=300`)
-- [ ] **POOL-02**: `pool_pre_ping=True` configured to detect and discard stale connections before checkout
-- [ ] **POOL-03**: Pool size configurable via `ASYNCPG_POOL_SIZE` env var — operator can tune without code changes; documented in `.env.example`
-- [ ] **POOL-04**: Pool configuration guarded by `IS_POSTGRES` — SQLite dev path uses default pool (no kwargs that cause SQLite errors)
+- [x] **POOL-01**: asyncpg connection pool right-sized for 20+ concurrent polling nodes (`pool_size=20`, `max_overflow=10`, `pool_timeout=30`, `pool_recycle=300`)
+- [x] **POOL-02**: `pool_pre_ping=True` configured to detect and discard stale connections before checkout
+- [x] **POOL-03**: Pool size configurable via `ASYNCPG_POOL_SIZE` env var — operator can tune without code changes; documented in `.env.example`
+- [x] **POOL-04**: Pool configuration guarded by `IS_POSTGRES` — SQLite dev path uses default pool (no kwargs that cause SQLite errors)
 
 ### Dispatch Correctness
 
@@ -74,10 +74,10 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 | FOUND-01 | Phase 96 | Complete |
 | FOUND-02 | Phase 96 | Complete |
 | FOUND-03 | Phase 96 | Complete |
-| POOL-01 | Phase 97 | Pending |
-| POOL-02 | Phase 97 | Pending |
-| POOL-03 | Phase 97 | Pending |
-| POOL-04 | Phase 97 | Pending |
+| POOL-01 | Phase 97 | Complete |
+| POOL-02 | Phase 97 | Complete |
+| POOL-03 | Phase 97 | Complete |
+| POOL-04 | Phase 97 | Complete |
 | DISP-01 | Phase 98 | Pending |
 | DISP-02 | Phase 98 | Pending |
 | DISP-03 | Phase 98 | Pending |

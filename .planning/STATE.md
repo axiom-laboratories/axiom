@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
-stopped_at: Phase 97 context gathered
-last_updated: "2026-03-30T21:02:52.519Z"
+stopped_at: Completed 97-01-PLAN.md
+last_updated: "2026-03-30T21:11:40.740Z"
 last_activity: "2026-03-30 — Phase 96 Plan 01 complete: IS_POSTGRES, APScheduler pin, job_defaults, startup guards"
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
   percent: 20
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Phase 96 — Foundation (v17.0 Scale Hardening)
+**Current focus:** Phase 97 — DB Pool Tuning (v17.0 Scale Hardening)
 
 ## Current Position
 
-Phase: 96 of 100 (Foundation)
+Phase: 97 of 100 (DB Pool Tuning)
 Plan: 1 of 1 in current phase (phase complete)
-Status: Phase 96 complete — ready for Phase 97
-Last activity: 2026-03-30 — Phase 96 Plan 01 complete: IS_POSTGRES, APScheduler pin, job_defaults, startup guards
+Status: Phase 97 complete — ready for Phase 98
+Last activity: 2026-03-30 — Phase 97 Plan 01 complete: asyncpg pool kwargs, ASYNCPG_POOL_SIZE env var, .env.example
 
-Progress: [██░░░░░░░░] 20% (v17.0 — 1/5 phases done)
+Progress: [████░░░░░░] 40% (v17.0 — 2/5 phases done)
 
 ## Accumulated Context
 
@@ -41,6 +41,7 @@ Progress: [██░░░░░░░░] 20% (v17.0 — 1/5 phases done)
 - [v17.0 Roadmap]: `apscheduler>=3.10,<4.0` pin (FOUND-01) must land before any scheduler code is touched; APScheduler 4.x is a complete rewrite with no migration path
 - [Phase 96-01]: IS_POSTGRES evaluates startswith('postgresql') at module import time — not a DB connection check; test reload avoided in local dev to prevent asyncpg import error
 - [Phase 96-01]: APScheduler job_defaults centralized at constructor level removes per-job misfire_grace_time arguments from sync_scheduler
+- [Phase 97-01]: _pool_kwargs is module-level (not function-scoped) to allow test imports without asyncpg side effects; max_overflow=10 hardcoded to keep operator tuning surface minimal
 
 ### Pending Todos
 
@@ -58,6 +59,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T21:02:52.517Z
-Stopped at: Phase 97 context gathered
-Resume file: .planning/phases/97-db-pool-tuning/97-CONTEXT.md
+Last session: 2026-03-30T21:11:40.739Z
+Stopped at: Completed 97-01-PLAN.md
+Resume file: None

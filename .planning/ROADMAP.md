@@ -238,7 +238,7 @@ Archive: `.planning/milestones/v16.1-ROADMAP.md`
 **Milestone Goal:** Extend the reliable operation envelope to 20+ nodes / 200+ pending jobs / 1,000 scheduled definitions / 100 cron fires per minute without correctness regressions.
 
 - [x] **Phase 96: Foundation** - APScheduler version pin and IS_POSTGRES dialect flag (completed 2026-03-30)
-- [ ] **Phase 97: DB Pool Tuning** - Connection pool right-sized for 20 concurrent nodes with health checks
+- [x] **Phase 97: DB Pool Tuning** - Connection pool right-sized for 20 concurrent nodes with health checks (completed 2026-03-30)
 - [ ] **Phase 98: Dispatch Correctness** - Composite index + SKIP LOCKED eliminates double-assignment races
 - [ ] **Phase 99: Scheduler Hardening** - Incremental sync and dispatcher isolation fix dark window and event loop saturation
 - [ ] **Phase 100: Observability + Sign-off** - Health endpoint, admin dashboard metrics, and operations docs
@@ -357,7 +357,7 @@ Phases execute in numeric order: 96 → 97 → 98 → 99 → 100
 | 94. Research & Planning Closure | v16.1 | 2/2 | Complete | 2026-03-30 |
 | 95. Tech Debt | v16.1 | 2/2 | Complete | 2026-03-30 |
 | 96. Foundation | 1/1 | Complete    | 2026-03-30 | - |
-| 97. DB Pool Tuning | v17.0 | 0/TBD | Not started | - |
+| 97. DB Pool Tuning | 1/1 | Complete   | 2026-03-30 | - |
 | 98. Dispatch Correctness | v17.0 | 0/TBD | Not started | - |
 | 99. Scheduler Hardening | v17.0 | 0/TBD | Not started | - |
 | 100. Observability + Sign-off | v17.0 | 0/TBD | Not started | - |
