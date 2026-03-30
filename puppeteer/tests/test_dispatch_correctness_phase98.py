@@ -10,6 +10,7 @@ Tests:
     (SKIPPED unless IS_POSTGRES=True in test environment)
 """
 import asyncio
+import json
 import pytest
 from pathlib import Path
 from agent_service.db import IS_POSTGRES
@@ -119,6 +120,11 @@ def test_no_double_assignment_concurrent_pull_work():
         sessions = [AsyncSessionLocal() for _ in range(5)]
 
         try:
+            # Use a unique capability to isolate this job from the live stack.
+            # Real nodes don't have "test-dispatch-phase98" capability, so they
+            # won't pick up this job even if the live puppeteer-agent is running.
+            test_capability = json.dumps({"test-dispatch-phase98": "1.0"})
+
             # Setup: insert 1 PENDING job and 5 minimal nodes using session[0]
             setup_session = sessions[0]
             async with setup_session.begin():
@@ -128,6 +134,7 @@ def test_no_double_assignment_concurrent_pull_work():
                     payload='{"script": "print(1)", "runtime": "python"}',
                     status="PENDING",
                     created_at=datetime.utcnow(),
+                    capability_requirements=test_capability,
                 )
                 setup_session.add(test_job)
                 for nid in node_ids:
@@ -136,6 +143,7 @@ def test_no_double_assignment_concurrent_pull_work():
                         hostname=nid,
                         ip="127.0.0.1",
                         status="ONLINE",
+                        capabilities=test_capability,
                     )
                     setup_session.add(node)
 
@@ -169,7 +177,7 @@ def test_no_double_assignment_concurrent_pull_work():
                     # Count how many nodes think they have this job
                     assignments = [
                         r for r in results
-                        if r is not None and r.job is not None and r.job.get("guid") == job_guid
+                        if r is not None and r.job is not None and r.job.guid == job_guid
                     ]
                     assert len(assignments) == 1, (
                         f"Expected exactly 1 assignment, got {len(assignments)}. "

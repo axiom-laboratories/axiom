@@ -669,9 +669,12 @@ class JobService:
             if IS_POSTGRES:
                 # Two-phase lock: lock only the single chosen row to prevent double-assignment
                 # SKIP LOCKED means if another node grabbed it first, we try the next candidate
+                # Status filter guards against the race where Session A commits (releasing lock)
+                # before Session B's lock query runs — without it, B would re-lock an ASSIGNED row
                 lock_result = await db.execute(
                     select(Job)
                     .where(Job.guid == candidate.guid)
+                    .where(or_(Job.status == 'PENDING', Job.status == 'RETRYING'))
                     .with_for_update(skip_locked=True)
                 )
                 locked_job = lock_result.scalar_one_or_none()
