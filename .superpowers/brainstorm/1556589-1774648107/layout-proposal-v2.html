@@ -1,0 +1,40 @@
+<h2>Updated layout — EE "Coming soon"</h2>
+<p class="subtitle">Enterprise Edition flagged as coming soon with an interest CTA. Two options for how to handle it.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="overlay" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Overlay badge + interest link</h3>
+      <p>EE card gets a "Coming soon" banner across the top, features shown but dimmed, and a single line at the bottom: "Interested in Enterprise? <u>Let us know →</u>" linking to an email or form. The nav "Enterprise" button becomes "Enterprise (coming soon)" or is removed.</p>
+
+      <div style="margin-top:1rem;background:#0d1117;border:1px solid #d22356;border-radius:8px;padding:1rem;font-family:sans-serif;font-size:0.8rem;position:relative;overflow:hidden;">
+        <div style="background:#d22356;color:#fff;font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:0.2rem 0.6rem;border-radius:3px;display:inline-block;margin-bottom:0.6rem;">Coming soon</div>
+        <div style="color:#e6edf3;font-weight:600;margin-bottom:0.5rem;">Enterprise Edition</div>
+        <ul style="color:#484f58;padding-left:1rem;display:flex;flex-direction:column;gap:0.3rem;list-style:none;padding:0;">
+          <li style="padding-left:1rem;position:relative;"><span style="position:absolute;left:0;color:#484f58;">–</span> Cryptographic execution attestation</li>
+          <li style="padding-left:1rem;position:relative;"><span style="position:absolute;left:0;color:#484f58;">–</span> Fleet governance &amp; node limits</li>
+          <li style="padding-left:1rem;position:relative;"><span style="position:absolute;left:0;color:#484f58;">–</span> Organisation SSO readiness</li>
+        </ul>
+        <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #30363d;color:#8b949e;font-size:0.77rem;">Interested in Enterprise? <span style="color:#d22356;font-weight:600;cursor:pointer;">Get in touch →</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="replace" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Replace EE card with interest block</h3>
+      <p>Instead of a feature list for EE, show a single full-width "What's coming" teaser card with 3 bullet points and a prominent email CTA. Cleaner — doesn't advertise features that don't exist yet.</p>
+
+      <div style="margin-top:1rem;background:#0d1117;border:1px dashed #30363d;border-radius:8px;padding:1.25rem;font-family:sans-serif;font-size:0.8rem;text-align:center;">
+        <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#d22356;font-weight:600;margin-bottom:0.4rem;">Coming soon</div>
+        <div style="color:#e6edf3;font-weight:600;font-size:1rem;margin-bottom:0.4rem;">Enterprise Edition</div>
+        <div style="color:#8b949e;margin-bottom:0.75rem;max-width:360px;margin-inline:auto;">Fleet governance, cryptographic attestation, and SSO — built for teams that need compliance and control.</div>
+        <div style="background:#d22356;color:#fff;padding:0.4rem 1rem;border-radius:5px;font-size:0.82rem;font-weight:600;display:inline-block;">Register your interest →</div>
+      </div>
+    </div>
+  </div>
+
+</div>

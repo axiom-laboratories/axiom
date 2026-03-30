@@ -1,0 +1,102 @@
+<h2>Proposed page layout</h2>
+<p class="subtitle">Problem → Solution arc with dashboard mockup. Two clear conversion paths.</p>
+
+<div style="display:flex;flex-direction:column;gap:1.5rem;max-width:720px;margin:0 auto;">
+
+  <!-- Nav -->
+  <div style="border:1px solid #30363d;border-radius:8px;overflow:hidden;">
+    <div style="background:#161b22;padding:0.4rem 1rem;font-size:0.7rem;color:#484f58;letter-spacing:0.05em;text-transform:uppercase;">Section 1 — Nav</div>
+    <div style="background:#0d1117;padding:0.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;font-family:sans-serif;font-size:0.85rem;">
+      <span style="color:#e6edf3;font-weight:700;">⬡ Axiom</span>
+      <span style="display:flex;gap:1.25rem;color:#8b949e;">
+        <span>Docs</span><span>GitHub</span>
+        <span style="background:#d22356;color:#fff;padding:0.2rem 0.75rem;border-radius:4px;font-weight:600;">Enterprise</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div style="border:1px solid #30363d;border-radius:8px;overflow:hidden;">
+    <div style="background:#161b22;padding:0.4rem 1rem;font-size:0.7rem;color:#484f58;letter-spacing:0.05em;text-transform:uppercase;">Section 2 — Hero (problem-first)</div>
+    <div style="background:#0d1117;padding:1.25rem;text-align:center;font-family:sans-serif;">
+      <div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#d22356;font-weight:600;margin-bottom:0.5rem;">Open-source orchestration</div>
+      <div style="font-size:1.5rem;font-weight:700;color:#e6edf3;line-height:1.2;margin-bottom:0.75rem;">You have scripts running on<br>dozens of servers. Are they safe?</div>
+      <div style="font-size:0.85rem;color:#8b949e;max-width:480px;margin:0 auto 1rem;">Axiom replaces SSH + crontab sprawl with a pull-model orchestrator — every connection mTLS-verified, every script Ed25519-signed before it runs.</div>
+      <div style="display:flex;gap:0.75rem;justify-content:center;">
+        <div style="background:#d22356;color:#fff;padding:0.4rem 1rem;border-radius:5px;font-size:0.82rem;font-weight:600;">Self-host in 30 min →</div>
+        <div style="border:1px solid #30363d;color:#e6edf3;padding:0.4rem 1rem;border-radius:5px;font-size:0.82rem;">Talk to us about Enterprise</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard mockup -->
+  <div style="border:1px solid #30363d;border-radius:8px;overflow:hidden;">
+    <div style="background:#161b22;padding:0.4rem 1rem;font-size:0.7rem;color:#484f58;letter-spacing:0.05em;text-transform:uppercase;">Section 3 — Dashboard screenshot / mockup</div>
+    <div style="background:#0d1117;padding:1rem;font-family:sans-serif;">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:1rem;font-size:0.78rem;">
+        <div style="display:flex;gap:1.5rem;margin-bottom:0.75rem;color:#8b949e;">
+          <span style="color:#e6edf3;font-weight:600;">Nodes</span><span>Jobs</span><span>Audit</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;">
+          <div style="display:flex;align-items:center;gap:0.75rem;color:#8b949e;">
+            <span style="color:#3fb950;font-size:0.7rem;">●</span>
+            <span style="color:#e6edf3;flex:1">node-alpha</span>
+            <span style="font-family:monospace;font-size:0.72rem;background:#0d1117;padding:0.1rem 0.4rem;border-radius:3px;border:1px solid #30363d;">python · bash</span>
+            <span>CPU <strong style="color:#e6edf3;">23%</strong></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;color:#8b949e;">
+            <span style="color:#3fb950;font-size:0.7rem;">●</span>
+            <span style="color:#e6edf3;flex:1">node-beta</span>
+            <span style="font-family:monospace;font-size:0.72rem;background:#0d1117;padding:0.1rem 0.4rem;border-radius:3px;border:1px solid #30363d;">python · powershell</span>
+            <span>CPU <strong style="color:#e6edf3;">61%</strong></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;color:#8b949e;">
+            <span style="color:#d22356;font-size:0.7rem;">●</span>
+            <span style="color:#8b949e;flex:1">node-gamma</span>
+            <span style="font-size:0.72rem;color:#484f58;">offline · 4h ago</span>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:0.75rem;color:#484f58;margin-top:0.6rem;">Real dashboard — no mock data in prod</div>
+    </div>
+  </div>
+
+  <!-- Problems -->
+  <div style="border:1px solid #30363d;border-radius:8px;overflow:hidden;">
+    <div style="background:#161b22;padding:0.4rem 1rem;font-size:0.7rem;color:#484f58;letter-spacing:0.05em;text-transform:uppercase;">Section 4 — The problem (3 pain points)</div>
+    <div style="background:#0d1117;padding:1rem 1.25rem;font-family:sans-serif;display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;">
+      <div style="border:1px solid #30363d;border-radius:6px;padding:0.75rem;font-size:0.8rem;">
+        <div style="font-size:1rem;margin-bottom:0.35rem;">🔑</div>
+        <div style="color:#e6edf3;font-weight:600;margin-bottom:0.25rem;font-size:0.82rem;">SSH key sprawl</div>
+        <div style="color:#8b949e;font-size:0.77rem;">Keys on every server, revocation is manual, and you can't prove who ran what.</div>
+      </div>
+      <div style="border:1px solid #30363d;border-radius:6px;padding:0.75rem;font-size:0.8rem;">
+        <div style="font-size:1rem;margin-bottom:0.35rem;">📋</div>
+        <div style="color:#e6edf3;font-weight:600;margin-bottom:0.25rem;font-size:0.82rem;">No audit trail</div>
+        <div style="color:#8b949e;font-size:0.77rem;">Scripts ran. You think. Cron has no log of who triggered what or whether it succeeded.</div>
+      </div>
+      <div style="border:1px solid #30363d;border-radius:6px;padding:0.75rem;font-size:0.8rem;">
+        <div style="font-size:1rem;margin-bottom:0.35rem;">⚠️</div>
+        <div style="color:#e6edf3;font-weight:600;margin-bottom:0.25rem;font-size:0.82rem;">Unsigned execution</div>
+        <div style="color:#8b949e;font-size:0.77rem;">Any script that lands on a node runs. There's no verification that it hasn't been tampered with.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CE vs EE + CTAs -->
+  <div style="border:1px solid #30363d;border-radius:8px;overflow:hidden;">
+    <div style="background:#161b22;padding:0.4rem 1rem;font-size:0.7rem;color:#484f58;letter-spacing:0.05em;text-transform:uppercase;">Section 5 — CE vs EE (kept) + dual CTAs</div>
+    <div style="background:#0d1117;padding:0.75rem 1.25rem;font-family:sans-serif;font-size:0.82rem;color:#8b949e;">Existing CE/EE comparison cards (unchanged) followed by two CTA blocks side-by-side: <span style="color:#3fb950;">docker compose up</span> snippet for DevOps · <span style="color:#d22356;">Contact Enterprise</span> form/link for buyers</div>
+  </div>
+
+  <!-- Footer -->
+  <div style="border:1px solid #30363d;border-radius:8px;overflow:hidden;">
+    <div style="background:#161b22;padding:0.4rem 1rem;font-size:0.7rem;color:#484f58;letter-spacing:0.05em;text-transform:uppercase;">Section 6 — Footer</div>
+    <div style="background:#0d1117;padding:0.6rem 1.25rem;font-family:sans-serif;font-size:0.78rem;color:#484f58;text-align:center;">Apache 2.0 · GitHub · Docs</div>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:1.5rem;">
+  <p class="subtitle">Does this structure feel right? Anything to move, cut, or expand?</p>
+</div>

@@ -1,0 +1,48 @@
+<h2>What direction should the homepage take?</h2>
+<p class="subtitle">The current page has good bones but feels sparse. Pick the direction that feels right for Axiom's audience.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="power" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d1117;border-bottom:1px solid #30363d;padding:1.5rem;font-family:'Fira Code',monospace;font-size:0.75rem;color:#8b949e;min-height:140px;display:flex;flex-direction:column;gap:0.5rem;">
+      <div style="color:#e6edf3;font-size:1.1rem;font-weight:700;font-family:sans-serif;margin-bottom:0.5rem;">Distributed job execution<br>you can trust</div>
+      <div style="color:#3fb950">✓ mTLS verified  ✓ Ed25519 signed  ✓ Pull model</div>
+      <div style="margin-top:auto;display:flex;gap:0.75rem;">
+        <div style="background:#d22356;color:#fff;padding:0.3rem 0.9rem;border-radius:4px;font-family:sans-serif;font-size:0.8rem;font-weight:600;">Get started</div>
+        <div style="border:1px solid #30363d;padding:0.3rem 0.9rem;border-radius:4px;font-family:sans-serif;font-size:0.8rem;color:#e6edf3;">GitHub</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Power User First</h3>
+      <p>Lead with technical credibility. Add a terminal-style animated demo, security proof points with icons, and a feature matrix. Appeals to the DevOps/SRE persona who wants to know <em>exactly</em> what they're getting before they click anything.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="product" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d1117;border-bottom:1px solid #30363d;padding:1.5rem;min-height:140px;display:flex;flex-direction:column;gap:0.75rem;">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:0.75rem;font-family:sans-serif;font-size:0.78rem;color:#8b949e;">
+        <div style="color:#e6edf3;font-weight:600;margin-bottom:0.35rem;">🖥  3 nodes online · 2 jobs running</div>
+        <div>node-alpha ████████░░ CPU 78%</div>
+        <div>node-beta  ███░░░░░░░ CPU 31%</div>
+      </div>
+      <div style="font-family:sans-serif;font-size:0.85rem;color:#e6edf3;font-weight:600;">See your fleet at a glance</div>
+    </div>
+    <div class="card-body">
+      <h3>B — Product Screenshot</h3>
+      <p>Lead with a dashboard screenshot/mockup so visitors immediately see what they're getting. Headline focuses on the <em>outcome</em> ("Run jobs on any machine, securely"), with a live-ish demo widget. Broad appeal — shows rather than tells.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="story" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d1117;border-bottom:1px solid #30363d;padding:1.5rem;min-height:140px;font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;gap:0.5rem;">
+      <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#d22356;font-weight:600;">The problem</div>
+      <div style="font-size:1rem;color:#e6edf3;font-weight:600;">"We need cron jobs on 40 servers.<br>SSH + crontab doesn't scale."</div>
+      <div style="font-size:0.8rem;color:#8b949e;margin-top:0.25rem;">Axiom replaces ad-hoc scripts with a secure, observable orchestration layer.</div>
+    </div>
+    <div class="card-body">
+      <h3>C — Problem → Solution</h3>
+      <p>Open with the pain (SSH sprawl, no audit trail, unsigned scripts running as root). Then position Axiom as the fix. Longer page with a narrative arc — resonates with buyers who need to justify the tool to a team or manager.</p>
+    </div>
+  </div>
+
+</div>
