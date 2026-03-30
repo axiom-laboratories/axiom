@@ -227,6 +227,7 @@ class SchedulerService:
                 "signature": s_job.signature_payload,
                 "secrets": {},
                 "runtime": runtime,
+                "validation_rules": s_job.validation_rules,  # Phase 91: stamp at dispatch time; None if not configured
             }
 
             payload_json = json.dumps(payload_dict)
