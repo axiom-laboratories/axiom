@@ -4,7 +4,7 @@ milestone: v16.0
 milestone_name: — Competitive Observability
 status: completed
 stopped_at: Completed 91-03-PLAN.md
-last_updated: "2026-03-30T10:26:33.311Z"
+last_updated: "2026-03-30T11:05:33.819Z"
 last_activity: "2026-03-30 — Phase 91 plan 02 complete: collapsible Validation Rules form in JobDefinitionModal, validation_rules serialization, failure_reason display in DefinitionHistoryPanel/Jobs/History"
 progress:
   total_phases: 5
@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-29)
+See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Milestone v16.0 — Competitive Observability — Phase 90: In Progress
+**Current focus:** Planning next milestone — run `/gsd:new-milestone` to define v17.0
 
 ## Current Position
 

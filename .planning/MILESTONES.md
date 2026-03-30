@@ -1,5 +1,23 @@
 # Milestones
 
+## v16.0 Competitive Observability (Shipped: 2026-03-30)
+
+**Phases completed:** 5 phases (87–91), 11 plans
+**Stats:** 75 files changed, +10,064 / -225 lines | 1 day (2026-03-29 → 2026-03-30)
+**Git range:** `25cd2b1` → `4899979`
+
+**Key accomplishments:**
+- Phase 87 — Research & Design: `87-DESIGN-DECISIONS.md` created; all four v16.0 feature approaches resolved (dispatch diagnosis UX, CE alerting via webhook, immutable version table schema, output validation contract with exit-code + JSON/regex pattern)
+- Phase 88 — Dispatch Diagnosis UI: `POST /jobs/dispatch-diagnosis/bulk` aggregation endpoint; inline diagnosis sub-text under status badge in job list; amber left-border accent on PENDING/stuck rows; 10s auto-poll with dependency-stable effect; manual refresh button in Queue Monitor header
+- Phase 89 — CE Alerting: Webhook notification delivery on job failure with job name/node/error summary; `NotificationsCard` in Admin.tsx; URL input, enabled toggle, security-rejections checkbox, send-test, last-delivery-status display; CE-accessible without EE licence
+- Phase 90 — Job Script Versioning: `JobDefinitionVersion` ORM table; version snapshot on create/update; `definition_version_id` stamped at dispatch; `ScriptViewerModal` component; interleaved DefinitionHistoryPanel timeline with version badges; `ExecutionRecordResponse` extended with version fields (batch query, no N+1)
+- Phase 91 — Output Validation: `validation_rules` + `failure_reason` DB columns; `process_result()` validation engine (exit-code, stdout-regex, json-path checks); collapsible Validation Rules form in `JobDefinitionModal` with auto-expand on edit; orange "Validation failed: ..." labels in DefinitionHistoryPanel, Jobs.tsx, History.tsx, and executions router API responses
+
+**Known Gaps:**
+- ALRT-02: Webhook delivery requirement marked Pending in REQUIREMENTS.md (webhook config + test endpoint implemented in Phase 89-01; delivery on FAILED status wired — checkbox not updated during execution)
+
+---
+
 ## v15.0 Operator Readiness (Shipped: 2026-03-29)
 
 **Phases completed:** 5 phases (82–86), 11 plans

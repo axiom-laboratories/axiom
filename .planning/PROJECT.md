@@ -12,9 +12,11 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v16.0 — Competitive Observability
+## Current Milestone: v17.0 — TBD
 
-**Goal:** Close the operator experience gap versus competitors by surfacing dispatch diagnosis inline, adding CE-native job failure alerting, versioning job scripts so execution history is always traceable, and supporting output validation beyond exit code.
+**Goal:** TBD — start with `/gsd:new-milestone` to define the next milestone.
+
+## Previous Milestone: v16.0 — Competitive Observability (Complete)
 
 ## Requirements
 
@@ -184,6 +186,14 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ `secrets-data` named Docker volume — `boot.log` and `licence.key` persist across `compose down/up` cycles — v14.3
 - ✓ Dashboard EE badge, grace/expired banner, Admin licence section aligned to backend response shape — v14.3
 
+### Validated — v16.0 Competitive Observability
+
+- ✓ Design decisions documented for all four observability features before implementation (dispatch diagnosis UX, CE alerting, script versioning, output validation) — v16.0
+- ✓ Inline dispatch diagnosis on PENDING jobs — `POST /jobs/dispatch-diagnosis/bulk` endpoint; amber accent on PENDING rows; 10s auto-poll; reason text rendered inline under status badge — v16.0
+- ✓ CE-native job failure alerting via webhook — `POST /api/admin/alerts/config` + `/test` + `/delivery-status`; `NotificationsCard` in Admin with toggle, URL input, security-rejections opt-in; CE-accessible without EE licence — v16.0
+- ✓ Immutable job script versioning — `JobDefinitionVersion` table; version snapshot on create/update; `definition_version_id` stamped at dispatch; `ScriptViewerModal`; DefinitionHistoryPanel interleaved timeline with version badges; version fields in `ExecutionRecordResponse` — v16.0
+- ✓ Operator-defined output validation — `validation_rules` + `failure_reason` DB columns; `process_result()` engine (exit-code, stdout-regex, json-path); collapsible Validation Rules form in `JobDefinitionModal`; "Validation failed: ..." labels in DefinitionHistoryPanel, Jobs, History views, and executions router responses — v16.0
+
 ### Validated — v15.0 Operator Readiness
 
 - ✓ `issue_licence.py` offline CLI — Ed25519 JWT signing, YAML audit record, GitHub API commit, `--no-remote` air-gap mode — v15.0
@@ -206,6 +216,11 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ### Active — Future Milestones
 
+- [ ] USP-01: New CE user can have a node enrolled and hello world job executing in under 30 minutes (signing UX improvement)
+- [ ] DOC-01: Windows local dev getting started path validated and documented
+- [ ] DOC-02: Upgrade runbook covering migration SQL workflow end-to-end
+- [ ] DOC-03: Deployment recommendations document incorporated into MkDocs docs stack
+- [ ] SCALE-01: APScheduler scale limits assessed and first bottleneck documented
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
 - [ ] Conditional triggers — run job based on outcome of previous job or external signal
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
@@ -225,7 +240,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, and has a complete operator readiness surface (v15.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
+Codebase is functional, deployed, security-hardened, commercially ready, with a complete operator readiness surface and a competitive observability layer (v16.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
 
 Documentation site lives at `https://axiom-laboratories.github.io/axiom/docs/` (GitHub Pages, subtree deploy via `ghp-import`). Marketing homepage lives at `https://axiom-laboratories.github.io/axiom/`. Both auto-deploy from `main` via separate GitHub Actions jobs in `gh-pages-deploy.yml`. MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference auto-generated from FastAPI OpenAPI schema at container build time.
 
@@ -324,6 +339,18 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `openapi.json` pre-committed snapshot at 116 routes | `validate_docs.py` needs deterministic input; no running stack required for CI gate; operator runs `generate_openapi.py` locally to refresh | ✓ Good |
 | CLI regex in `validate_docs.py` restricted to lowercase tokens; unknown first-words silently skipped | Prevents prose descriptions like `axiom-push CLI guide` from generating spurious FAIL results | ✓ Good |
 | Screenshot directories committed via `.gitkeep` before PNGs exist | Structure-first deploy; screenshots committed separately by operator after running `capture_screenshots.py` on a live stack | ✓ Good |
+| `POST /jobs/dispatch-diagnosis/bulk` aggregation endpoint (v16.0) | Single request for all PENDING GUIDs avoids N+1 poll requests on large job tables; client merges into diagnosisCache keyed by GUID | ✓ Good |
+| Benign reason codes (pending_dispatch, not_pending) filtered from inline display (v16.0) | Only actionable diagnoses (capability mismatch, no nodes, resource limits) shown inline — no noise for jobs that are simply queued | ✓ Good |
+| Webhook delivery model for CE alerting (not SMTP) (v16.0) | CE operators can route to any destination (email via relay, Slack, PagerDuty) without SMTP credentials on the server; design doc recorded the CE/EE boundary | ✓ Good |
+| `JobDefinitionVersion` as separate table (not inline on ScheduledJob) (v16.0) | ScheduledJob already large and hot; version history is append-only and rarely queried; separate table keeps the main definition simple | ✓ Good |
+| Batch query for version fields in list_executions (v16.0) | Collect all non-null definition_version_id FKs, execute single IN query, build id→value map, annotate response loop — eliminates N+1 DB queries | ✓ Good |
+| importlib.util direct load for executions_router test (v16.0) | ee/routers/__init__.py has pre-existing foundry_router Blueprint import error; direct file load bypasses __init__ without touching unrelated code | ✓ Good |
+
+## Previous State — v16.0 Complete (2026-03-30)
+
+Axiom v16.0 delivered Competitive Observability — 5 phases, 11 plans, 75 files changed, +10,064 / -225 lines. Four observability gaps closed without EE licence requirements: dispatch diagnosis surfaces inline on PENDING job rows with auto-poll; CE alerting delivers webhook notifications on job failure configurable from the Admin panel; immutable job script versioning records each script edit and stamps the version at dispatch so execution history is always traceable; and output validation allows operators to declare success patterns (exit-code, stdout-regex, json-path) so a job that exits 0 but violates its pattern is reported as FAILED with a distinct "Validation failed: ..." reason. All features designed up-front in a single Design Decisions document (Phase 87) before any implementation.
+
+Known gap: ALRT-02 checkbox was not updated during execution; webhook delivery on FAILED status is implemented in Phase 89-01 — the checkbox reflects an update omission, not a missing feature.
 
 ## Previous State — v15.0 Complete (2026-03-29)
 
@@ -360,4 +387,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-27 after v14.4 milestone start — Go-to-Market Polish*
+*Last updated: 2026-03-30 after v16.0 milestone completion — Competitive Observability*

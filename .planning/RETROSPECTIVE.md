@@ -493,6 +493,42 @@
 - 86 commits, 175 files changed, 27,147 insertions — primarily tooling scripts and documentation
 - No backend/frontend code changes — tooling-only milestone achieved clean execution budget
 
+## Milestone: v16.0 — Competitive Observability
+
+**Shipped:** 2026-03-30
+**Phases:** 5 (87–91) | **Plans:** 11
+
+### What Was Built
+- Research & Design (Phase 87) — `87-DESIGN-DECISIONS.md` resolving all four feature designs before implementation; competitor pain-points review grounded all decisions
+- Dispatch Diagnosis UI (Phase 88) — `POST /jobs/dispatch-diagnosis/bulk` aggregation endpoint; inline diagnosis sub-text on PENDING job rows with amber accent; 10s auto-poll with stable useEffect dependency; manual refresh in Queue Monitor
+- CE Alerting (Phase 89) — webhook delivery on job failure; `NotificationsCard` in Admin.tsx; URL, enabled toggle, security-rejections opt-in, send-test, last-delivery-status; CE-accessible without EE licence
+- Job Script Versioning (Phase 90) — `JobDefinitionVersion` ORM table; version snapshot on create/update; `definition_version_id` stamped at dispatch; `ScriptViewerModal` with diff mode; DefinitionHistoryPanel interleaved timeline with version badges; batch query pattern in `list_executions`/`list_jobs` (no N+1)
+- Output Validation (Phase 91) — `validation_rules` + `failure_reason` DB columns; `process_result()` validation engine (exit-code, stdout-regex, json-path); collapsible Validation Rules form in `JobDefinitionModal` with auto-expand on edit; orange "Validation failed: ..." labels in all three history views and executions router API responses
+
+### What Worked
+- Design-first Phase 87 pattern eliminated mid-implementation decisions — all four feature designs resolved before a single line of code was written; no rework required in phases 88–91
+- Batch query pattern for version fields (collect IDs, single IN query, annotate response loop) eliminated N+1 and is now an established pattern for FK-resolved fields in list endpoints
+- TDD red-green for the executions router gap-closure (91-03) — failing test committed first proved the gap, green commit proved the fix; 2-minute plan with zero ambiguity
+
+### What Was Inefficient
+- ALRT-02 checkbox not updated during Phase 89 execution — the webhook delivery was implemented but the requirement stayed "Pending"; a small housekeeping miss that shows up as a gap in milestone close
+- No milestone audit file — the gap was accepted and noted, but running `/gsd:audit-milestone` first would have caught the ALRT-02 checkbox discrepancy before the close ceremony
+
+### Patterns Established
+- Design-first single document (Phase N-research → `N-DESIGN-DECISIONS.md`) before any implementation phase — prevents mid-implementation design churn on multi-feature milestones
+- `startsWith('validation_')` guard on `failure_reason` to distinguish validation failures from runtime errors — reusable convention for future typed reason codes
+- `importlib.util` direct file load in tests as workaround for pre-existing `__init__.py` import errors in sibling modules — avoids breaking unrelated code
+
+### Key Lessons
+- For multi-feature milestones, a single design document resolving all features upfront (Phase 87 pattern) is more efficient than per-phase research; the cost of one research phase is recovered by eliminating mid-implementation pivots across 4+ phases
+- Requirement checkbox hygiene matters at milestone close — a "Pending" status that is actually implemented creates noise and requires investigation; keep checkboxes current at plan completion time
+- Batch query pattern (collect FKs → IN query → annotate) should be the default approach for any list endpoint that needs resolved FK fields; never add a DB query inside the annotation loop
+
+### Cost Observations
+- 5 phases, 11 plans, 31 feature commits — single-day delivery (2026-03-29 → 2026-03-30)
+- 75 files changed, +10,064 / -225 lines
+- No audit file for v16.0 (first milestone since v14.2 without one) — small enough that gaps were captured at plan level instead
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -511,6 +547,7 @@
 | v14.3 | 5 | 8 | Security + EE licensing; TDD RED→GREEN; audit-before-complete caught 3 tech debt items; frontend alignment phase predictable from backend API shape |
 | v14.4 | 5 | 7 | Go-to-market milestone; tech debt found post-audit cleaned before close; ghp-import subtree pattern solves docs/homepage coexistence on GitHub Pages |
 | v15.0 | 5 | 11 | Operator readiness milestone; tooling-only (no DB/API changes); Wave 0 TDD for job corpus; static OpenAPI snapshot for CI-safe docs validation |
+| v16.0 | 5 | 11 | Competitive observability; design-first Phase 87 eliminated mid-implementation pivots; batch query pattern established for FK-resolved list endpoints |
 
 ## Milestone: v14.2 — Docs on GitHub Pages
 
