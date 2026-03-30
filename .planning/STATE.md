@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
 status: completed
-stopped_at: Completed 90-02-PLAN.md
-last_updated: "2026-03-29T23:03:59.569Z"
+stopped_at: Completed 90-03-PLAN.md
+last_updated: "2026-03-30T08:03:35.809Z"
 last_activity: "2026-03-30 — Phase 90 plan 02 complete: ScriptViewerModal with diff view, interleaved timeline in DefinitionHistoryPanel, View Script action in Jobs.tsx"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 8
+  completed_plans: 8
   percent: 100
 ---
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100%
 | Phase 89 P02 | 2min | 2 tasks | 1 files |
 | Phase 90 P90-01 | 18min | 6 tasks | 5 files |
 | Phase 90 P90-02 | 18min | 4 tasks | 4 files |
+| Phase 90 P90-03 | 8min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,7 @@ Progress: [██████████] 100%
 - [Phase 90 P01]: is_signed derived from final job status: ACTIVE=True, DRAFT/REVOKED=False; change_summary derived from field diff at snapshot time
 - [Phase 90 P02]: ScriptViewerModal uses React.lazy for ReactDiffViewer to avoid loading diff library until needed; diff mode requires prevVersionNumber > 0
 - [Phase 90 P02]: DefinitionHistoryPanel interleaved timeline uses _rowType marker (execution/version) + _sortTs for unified sort; version rows rendered as non-clickable lighter rows
+- [Phase 90]: Batch query approach for version_number resolution: collect all definition_version_ids, execute single IN query against JobDefinitionVersion, annotate response objects — avoids N+1 in both list_executions and list_jobs
 
 ### Pending Todos
 
@@ -92,6 +94,6 @@ Key items carried forward:
 
 ## Session Continuity
 
-Last session: 2026-03-29T23:03:59.567Z
-Stopped at: Completed 90-02-PLAN.md
+Last session: 2026-03-30T08:03:35.807Z
+Stopped at: Completed 90-03-PLAN.md
 Resume file: None
