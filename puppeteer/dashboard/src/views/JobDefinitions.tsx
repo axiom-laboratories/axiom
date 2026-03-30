@@ -26,6 +26,14 @@ interface EditingJob {
     target_node_id: string | null;
     target_tags: string[] | null;
     capability_requirements: Record<string, string> | null;
+    allow_overlap?: boolean;
+    dispatch_timeout_minutes?: number | null;
+    validation_rules?: {
+        exit_code?: number | null;
+        stdout_regex?: string | null;
+        json_path?: string | null;
+        json_expected?: string | null;
+    } | null;
 }
 
 const EMPTY_FORM = {
@@ -39,6 +47,10 @@ const EMPTY_FORM = {
     capability_requirements: '',
     allow_overlap: false,
     dispatch_timeout_minutes: null as number | null,
+    validation_exit_code: '0',
+    validation_stdout_regex: '',
+    validation_json_path: '',
+    validation_json_expected: '',
 };
 
 const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
@@ -174,6 +186,11 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
                                                 row.status === 'RETRYING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                                                 'bg-zinc-800 text-zinc-400 border-zinc-700'
                                             }`}>{row.status}</span>
+                                            {row.failure_reason && row.failure_reason.startsWith('validation_') && (
+                                                <span className="ml-1 text-[10px] font-mono text-orange-400 whitespace-nowrap">
+                                                    Validation failed: {row.failure_reason.replace('validation_', '')}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-2">
                                             {row.definition_version_id ? (
@@ -310,6 +327,21 @@ const JobDefinitions = () => {
         }
     };
 
+    // Phase 91: build validation_rules from flat form fields
+    const buildValidationRules = (fd: typeof formData) => {
+        const rules: Record<string, unknown> = {};
+        if (fd.validation_exit_code !== '') {
+            const n = parseInt(fd.validation_exit_code, 10);
+            if (!isNaN(n)) rules.exit_code = n;
+        }
+        if (fd.validation_stdout_regex) rules.stdout_regex = fd.validation_stdout_regex;
+        if (fd.validation_json_path && fd.validation_json_expected !== '') {
+            rules.json_path = fd.validation_json_path;
+            rules.json_expected = fd.validation_json_expected;
+        }
+        return Object.keys(rules).length > 0 ? rules : null;
+    };
+
     const buildPayload = () => {
         const tags = formData.target_tags.trim()
             ? formData.target_tags.split(',').map(t => t.trim()).filter(Boolean)
@@ -321,7 +353,12 @@ const JobDefinitions = () => {
                     .filter(parts => parts.length === 2 && parts[0])
               )
             : undefined;
-        return { ...formData, target_tags: tags, capability_requirements: caps };
+        return {
+            ...formData,
+            target_tags: tags,
+            capability_requirements: caps,
+            validation_rules: buildValidationRules(formData),
+        };
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
