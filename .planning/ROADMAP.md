@@ -374,3 +374,13 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91 → 92 → 93 �
 
 - ✅ **v14.3 — Security Hardening + EE Licensing** (Phases 72–76) — shipped 2026-03-27 → `.planning/milestones/v14.3-ROADMAP.md`
 - ✅ **v14.2 — Docs on GitHub Pages** (Phase 71) — shipped 2026-03-26 → `.planning/milestones/v14.2-ROADMAP.md`
+
+### Phase 95: techdebt
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 94
+**Plans:** 1/2 plans executed
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 95 to break down)
