@@ -1,10 +1,13 @@
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Code2,
     Info,
     Tag,
     Cpu,
     AlertTriangle,
+    CheckSquare,
+    ChevronDown,
+    ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +46,10 @@ interface JobDefinitionFormData {
     capability_requirements: string;
     allow_overlap: boolean;
     dispatch_timeout_minutes: number | null;
+    validation_exit_code: string;
+    validation_stdout_regex: string;
+    validation_json_path: string;
+    validation_json_expected: string;
 }
 
 interface EditingJob {
@@ -57,6 +64,12 @@ interface EditingJob {
     capability_requirements: Record<string, string> | null;
     allow_overlap?: boolean;
     dispatch_timeout_minutes?: number | null;
+    validation_rules?: {
+        exit_code?: number | null;
+        stdout_regex?: string | null;
+        json_path?: string | null;
+        json_expected?: string | null;
+    } | null;
 }
 
 interface JobDefinitionModalProps {
@@ -78,6 +91,8 @@ const JobDefinitionModal = ({
     signatures,
     editingJob,
 }: JobDefinitionModalProps) => {
+    const [validationExpanded, setValidationExpanded] = useState(false);
+
     useEffect(() => {
         if (!editingJob) return;
         setFormData({
@@ -93,7 +108,14 @@ const JobDefinitionModal = ({
                 .join(', '),
             allow_overlap: editingJob.allow_overlap ?? false,
             dispatch_timeout_minutes: editingJob.dispatch_timeout_minutes ?? null,
+            validation_exit_code: editingJob.validation_rules?.exit_code != null
+                ? String(editingJob.validation_rules.exit_code)
+                : '0',
+            validation_stdout_regex: editingJob.validation_rules?.stdout_regex ?? '',
+            validation_json_path: editingJob.validation_rules?.json_path ?? '',
+            validation_json_expected: editingJob.validation_rules?.json_expected ?? '',
         });
+        setValidationExpanded(!!(editingJob?.validation_rules && Object.values(editingJob.validation_rules).some(v => v != null && v !== '')));
     }, [editingJob]);
 
     const isEditMode = !!editingJob;
@@ -272,6 +294,82 @@ const JobDefinitionModal = ({
                                 aria-label="Python script source code"
                             />
                         </div>
+                    </div>
+
+                    {/* Validation Rules */}
+                    <div className="col-span-full border border-zinc-800 rounded-lg overflow-hidden">
+                        <button
+                            type="button"
+                            className="w-full flex items-center justify-between px-4 py-2.5 bg-zinc-900/50 hover:bg-zinc-900 transition-colors text-sm font-medium text-zinc-300"
+                            onClick={() => setValidationExpanded(v => !v)}
+                        >
+                            <span className="flex items-center gap-2">
+                                <CheckSquare className="h-4 w-4 text-zinc-500" />
+                                Validation Rules
+                            </span>
+                            {validationExpanded
+                                ? <ChevronDown className="h-4 w-4 text-zinc-500" />
+                                : <ChevronRight className="h-4 w-4 text-zinc-500" />
+                            }
+                        </button>
+                        {validationExpanded && (
+                            <div className="px-4 py-4 space-y-4 bg-zinc-950/30">
+                                {/* Exit code */}
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="validation_exit_code" className="text-xs text-zinc-400">
+                                        Expected exit code
+                                    </Label>
+                                    <Input
+                                        id="validation_exit_code"
+                                        type="number"
+                                        placeholder="0 — clear to disable"
+                                        value={formData.validation_exit_code}
+                                        onChange={e => setFormData({ ...formData, validation_exit_code: e.target.value })}
+                                        className="h-8 text-xs"
+                                    />
+                                    <p className="text-[11px] text-zinc-600">Leave empty to skip exit code validation. Default: 0.</p>
+                                </div>
+
+                                {/* Stdout regex */}
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="validation_stdout_regex" className="text-xs text-zinc-400">
+                                        Stdout regex (optional)
+                                    </Label>
+                                    <Input
+                                        id="validation_stdout_regex"
+                                        placeholder="e.g. SUCCESS|ok"
+                                        value={formData.validation_stdout_regex}
+                                        onChange={e => setFormData({ ...formData, validation_stdout_regex: e.target.value })}
+                                        className="h-8 text-xs font-mono"
+                                    />
+                                    <p className="text-[11px] text-zinc-600">Job fails if stdout does not match this pattern. Empty = not enforced.</p>
+                                </div>
+
+                                {/* JSON field assertion */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-zinc-400">JSON field assertion (optional)</Label>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 space-y-1">
+                                            <Input
+                                                placeholder="JSON path, e.g. result.status"
+                                                value={formData.validation_json_path}
+                                                onChange={e => setFormData({ ...formData, validation_json_path: e.target.value })}
+                                                className="h-8 text-xs font-mono"
+                                            />
+                                        </div>
+                                        <div className="flex-1 space-y-1">
+                                            <Input
+                                                placeholder="Expected value, e.g. ok"
+                                                value={formData.validation_json_expected}
+                                                onChange={e => setFormData({ ...formData, validation_json_expected: e.target.value })}
+                                                className="h-8 text-xs"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-zinc-600">Both fields must be filled. Parses stdout as JSON and checks the path value equals expected.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter className="col-span-full pt-4 border-t border-zinc-800 mt-2">
