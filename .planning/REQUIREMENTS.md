@@ -33,8 +33,8 @@
 
 ### Output Validation
 
-- [ ] **VALD-01**: Operator can define a success pattern for a job (exit-code + optional JSON field check or stdout regex)
-- [ ] **VALD-02**: A job that exits 0 but fails its validation pattern is reported as FAILED with a validation failure reason, not COMPLETED
+- [x] **VALD-01**: Operator can define a success pattern for a job (exit-code + optional JSON field check or stdout regex)
+- [x] **VALD-02**: A job that exits 0 but fails its validation pattern is reported as FAILED with a validation failure reason, not COMPLETED
 - [ ] **VALD-03**: Validation failures are visible in execution history and the job detail view
 
 ## Future Requirements
@@ -77,8 +77,8 @@
 | VER-01 | Phase 90 | Complete |
 | VER-02 | Phase 90 | Complete |
 | VER-03 | Phase 90 | Complete |
-| VALD-01 | Phase 91 | Pending |
-| VALD-02 | Phase 91 | Pending |
+| VALD-01 | Phase 91 | Complete |
+| VALD-02 | Phase 91 | Complete |
 | VALD-03 | Phase 91 | Pending |
 
 **Coverage:**

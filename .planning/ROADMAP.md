@@ -322,7 +322,7 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
 | 88. Dispatch Diagnosis UI | 2/2 | Complete    | 2026-03-29 | - |
 | 89. CE Alerting | 2/2 | Complete   | 2026-03-29 | - |
 | 90. Job Script Versioning | 3/3 | Complete   | 2026-03-30 | - |
-| 91. Output Validation | v16.0 | 0/TBD | Not started | - |
+| 91. Output Validation | 1/2 | In Progress|  | - |
 
 ## Archived
 

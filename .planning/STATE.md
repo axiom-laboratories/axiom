@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v16.0
 milestone_name: — Competitive Observability
 status: completed
-stopped_at: Phase 91 context gathered
-last_updated: "2026-03-30T09:31:19.970Z"
+stopped_at: Completed 91-01-PLAN.md
+last_updated: "2026-03-30T09:46:30.770Z"
 last_activity: "2026-03-30 — Phase 90 plan 02 complete: ScriptViewerModal with diff view, interleaved timeline in DefinitionHistoryPanel, View Script action in Jobs.tsx"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 90 of 91 (Job Script Versioning) — Complete
-Plan: 02 of 02 complete
-Status: Phase 90 complete — frontend versioning UI delivered (ScriptViewerModal, interleaved timeline, View Script action)
-Last activity: 2026-03-30 — Phase 90 plan 02 complete: ScriptViewerModal with diff view, interleaved timeline in DefinitionHistoryPanel, View Script action in Jobs.tsx
+Phase: 91 of 91 (Output Validation) — Complete
+Plan: 01 of 01 complete
+Status: Phase 91 plan 01 complete — output validation backend delivered (DB columns, dispatch stamping, evaluation logic, API models, migration SQL, unit tests)
+Last activity: 2026-03-30 — Phase 91 plan 01 complete: validation_rules on ScheduledJob, failure_reason on ExecutionRecord, process_result() evaluation, all models updated
 
 Progress: [██████████] 100%
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | Phase 90 P90-01 | 18min | 6 tasks | 5 files |
 | Phase 90 P90-02 | 18min | 4 tasks | 4 files |
 | Phase 90 P90-03 | 8min | 2 tasks | 3 files |
+| Phase 91 P01 | 5min | 8 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Progress: [██████████] 100%
 - [Phase 90 P02]: ScriptViewerModal uses React.lazy for ReactDiffViewer to avoid loading diff library until needed; diff mode requires prevVersionNumber > 0
 - [Phase 90 P02]: DefinitionHistoryPanel interleaved timeline uses _rowType marker (execution/version) + _sortTs for unified sort; version rows rendered as non-clickable lighter rows
 - [Phase 90]: Batch query approach for version_number resolution: collect all definition_version_ids, execute single IN query against JobDefinitionVersion, annotate response objects — avoids N+1 in both list_executions and list_jobs
+- [Phase 91 P01]: migration_v45.sql delivers output validation columns for existing deployments (v17 was already taken)
+- [Phase 91 P01]: Validation stdout evaluated from raw report.output_log (pre-scrubbing) to preserve full pattern-matching fidelity; failure_reason stored on ExecutionRecord; validation failures are terminal (non-retriable)
 
 ### Pending Todos
 
@@ -90,10 +93,10 @@ Key items carried forward:
 ### Blockers/Concerns
 
 - [Phase 90]: migration_v44.sql delivered for existing deployments — must be applied before upgrading
-- [Phase 91]: Output validation requires node-side changes in `node.py` / `runtime.py` to report structured results — coordinate backend contract and node protocol in Phase 87 design
+- [Phase 91]: migration_v45.sql delivered — must be applied before upgrading to pick up validation_rules and failure_reason columns
 
 ## Session Continuity
 
-Last session: 2026-03-30T09:31:19.967Z
-Stopped at: Phase 91 context gathered
-Resume file: .planning/phases/91-output-validation/91-CONTEXT.md
+Last session: 2026-03-30T09:46:30.768Z
+Stopped at: Completed 91-01-PLAN.md
+Resume file: None
