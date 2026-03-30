@@ -68,6 +68,7 @@ services:
       - NODE_EXECUTION_MODE=${NODE_EXECUTION_MODE:-auto}
       - MIRROR_DATA_PATH=/app/mirror_data
       - AXIOM_LICENCE_KEY=${AXIOM_LICENCE_KEY:-}
+      - ASYNCPG_POOL_SIZE=${ASYNCPG_POOL_SIZE:-20}
     ports:
       - "8001:8001"
     volumes:
