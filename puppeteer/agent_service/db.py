@@ -61,6 +61,10 @@ class Job(Base):
     target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # VIS-04: explicit node targeting
     dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
 
+    __table_args__ = (
+        Index("ix_jobs_status_created_at", "status", "created_at"),
+    )
+
 
 class Signature(Base):
     __tablename__ = "signatures"
