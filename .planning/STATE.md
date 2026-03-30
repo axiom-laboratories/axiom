@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v16.1
 milestone_name: — PR Merge & Backlog Closure
 status: executing
-stopped_at: Phase 94 context gathered
-last_updated: "2026-03-30T18:33:25.728Z"
-last_activity: "2026-03-30 — PR #12 upgrade runbook merged to main (DOC-02 satisfied)"
+stopped_at: Completed 94-01-PLAN.md
+last_updated: "2026-03-30T18:41:50.326Z"
+last_activity: "2026-03-30 — PR #14 closed, APScheduler scale research todo moved to done"
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
   percent: 50
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Phase 93 complete (3/3 plans done) — Phase 94 next (APScheduler research PR #14)
+**Current focus:** Phase 94 executing — Plan 94-01 complete (APScheduler PR closed, todo closed)
 
 ## Current Position
 
-Phase: 93 of 94 (Documentation PRs)
-Plan: 93-01 complete, 93-02 complete, 93-03 next
+Phase: 94 of 94 (Research & Planning Closure)
+Plan: 94-01 complete
 Status: In progress
-Last activity: 2026-03-30 — PR #12 upgrade runbook merged to main (DOC-02 satisfied)
+Last activity: 2026-03-30 — PR #14 closed, APScheduler scale research todo moved to done
 
 Progress: [█████░░░░░] 50%
 
@@ -61,13 +61,14 @@ Progress: [█████░░░░░] 50%
 - [93-02]: PR #12 (upgrade runbook) merged via direct push to main; docs-validate CI fix applied (SYSTEM_STARTUP added to ENV_SKIP)
 - [93-03]: PR #13 incorporated via cherry-pick into PR #16; anchor fix applied — <span id="windows-features"> before admonition block required for mkdocs internal link correctness
 - [93-03]: CI failures on main (backend exit 127, secret-scan GITLEAKS_LICENSE) are pre-existing — not regressions
+- [94-01]: PR #14 closed (not merged) — research branch had unresolvable conflicts with later main commits; APScheduler todo-done file added directly to main; report already in mop_validation/reports/
 
 ### Pending Todos
 
 - ~~Deployment recommendations docs PR #11~~ — DONE (merged fb2b67f)
 - ~~Upgrade runbook PR #12~~ — DONE (merged to main)
 - ~~Windows local dev docs PR #13~~ — DONE (incorporated via PR #16, aa4c475)
-- APScheduler scale limits research PR #14 — merge and summarise
+- ~~APScheduler scale limits research PR #14~~ — DONE (merged, report at mop_validation/reports/apscheduler_scale_research.md)
 - Competitor pain points analysis — record insights for product/messaging
 
 ### Blockers/Concerns
@@ -76,6 +77,6 @@ Progress: [█████░░░░░] 50%
 
 ## Session Continuity
 
-Last session: 2026-03-30T18:33:25.726Z
-Stopped at: Phase 94 context gathered
-Resume file: .planning/phases/94-research-planning-closure/94-CONTEXT.md
+Last session: 2026-03-30T18:41:50.324Z
+Stopped at: Completed 94-01-PLAN.md
+Resume file: None
