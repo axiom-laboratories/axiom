@@ -482,6 +482,7 @@ class SchedulerService:
             target_tags=json.dumps(def_req.target_tags) if def_req.target_tags else None,
             created_by=current_user.username,
             runtime=def_req.runtime or "python",
+            validation_rules=json.dumps(def_req.validation_rules) if def_req.validation_rules else None,  # Phase 91
         )
         db_session.add(new_def)
         await db_session.commit()
@@ -619,6 +620,8 @@ class SchedulerService:
             job.status = update_req.status
         if hasattr(update_req, 'runtime') and update_req.runtime is not None:
             job.runtime = update_req.runtime
+        if update_req.validation_rules is not None:
+            job.validation_rules = json.dumps(update_req.validation_rules)  # Phase 91
 
         # Build change summary
         change_parts = []
