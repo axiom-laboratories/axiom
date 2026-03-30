@@ -66,6 +66,7 @@ nav:
     - FAQ: runbooks/faq.md
     - Node Validation: runbooks/node-validation.md
     - Package Mirror Setup: runbooks/package-mirrors.md
+    - Upgrade Guide: runbooks/upgrade.md
   - Developer:
     - Architecture: developer/architecture.md
     - Setup & Deployment: developer/setup-deployment.md
