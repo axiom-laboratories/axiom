@@ -12,6 +12,7 @@ what you are seeing, not the internal component name.
 | [Foundry](foundry.md) | A template build fails, Smelt-Check rejects an image, or registry push fails |
 | [FAQ](faq.md) | You hit a known misconfiguration or have an operational how-to question |
 | [Node Validation](node-validation.md) | You want to verify a node handles all runtimes and constraints correctly |
+| [Upgrade Guide](upgrade.md) | You are upgrading an existing deployment and need to know which migration SQL files to run |
 
 ---
 
