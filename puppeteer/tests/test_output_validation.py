@@ -143,3 +143,100 @@ def test_validation_rules_schema():
     assert "failure_reason" in er_columns, (
         "ExecutionRecord.failure_reason column missing — run migration_v17.sql"
     )
+
+
+# ---------------------------------------------------------------------------
+# Serialization test: failure_reason forwarded in list_executions() response
+# ---------------------------------------------------------------------------
+
+def test_failure_reason_serialized_in_list_executions():
+    """
+    failure_reason must be forwarded by the executions_router, not silently dropped.
+
+    Uses an in-memory SQLite DB so we can create a real ExecutionRecord row with
+    failure_reason='validation_regex' and verify the list endpoint returns it.
+    """
+    import asyncio
+    from datetime import datetime, timezone
+    from unittest.mock import patch, AsyncMock, MagicMock
+
+    from fastapi.testclient import TestClient
+    from fastapi import FastAPI
+
+    import importlib.util, sys, os
+
+    # Load executions_router directly from its file to avoid triggering
+    # ee/routers/__init__.py (pre-existing Blueprint import error in foundry_router).
+    _router_path = os.path.join(
+        os.path.dirname(__file__), "..",
+        "agent_service", "ee", "routers", "executions_router.py"
+    )
+    _spec = importlib.util.spec_from_file_location(
+        "agent_service.ee.routers.executions_router", _router_path
+    )
+    _mod = importlib.util.module_from_spec(_spec)
+    sys.modules.setdefault("agent_service.ee.routers.executions_router", _mod)
+    _spec.loader.exec_module(_mod)
+    executions_router = _mod.executions_router
+    from agent_service.models import ExecutionRecordResponse
+
+    # Build a minimal mock ExecutionRecord that has failure_reason set
+    mock_record = MagicMock()
+    mock_record.id = 42
+    mock_record.job_guid = "test-guid-001"
+    mock_record.node_id = "node-alpha"
+    mock_record.status = "VALIDATION_FAILED"
+    mock_record.exit_code = 0
+    mock_record.started_at = datetime(2026, 3, 30, 10, 0, 0, tzinfo=timezone.utc)
+    mock_record.completed_at = datetime(2026, 3, 30, 10, 0, 5, tzinfo=timezone.utc)
+    mock_record.output_log = None
+    mock_record.truncated = False
+    mock_record.stdout = "some output"
+    mock_record.stderr = None
+    mock_record.script_hash = None
+    mock_record.hash_mismatch = None
+    mock_record.attempt_number = 1
+    mock_record.job_run_id = None
+    mock_record.attestation_verified = None
+    mock_record.failure_reason = "validation_regex"  # the field under test
+
+    # job_max_retries, job_definition_version_id, job_runtime
+    mock_row = (mock_record, None, None, None)
+
+    # Minimal FastAPI app with the router
+    app = FastAPI()
+    app.include_router(executions_router)
+
+    # Patch get_db and require_auth
+    async def _fake_get_db():
+        mock_db = AsyncMock()
+        # First execute() call → list_executions rows
+        mock_result = MagicMock()
+        mock_result.all.return_value = [mock_row]
+        # Second execute() call → version_number batch fetch (empty)
+        mock_version_result = MagicMock()
+        mock_version_result.all.return_value = []
+        mock_db.execute = AsyncMock(side_effect=[mock_result, mock_version_result])
+        yield mock_db
+
+    mock_user = MagicMock()
+    mock_user.username = "test_user"
+    mock_user.role = "admin"
+
+    app.dependency_overrides = {}
+    from agent_service import deps as _deps
+    from agent_service.db import get_db as _get_db
+    app.dependency_overrides[_get_db] = _fake_get_db
+    app.dependency_overrides[_deps.require_auth] = lambda: mock_user
+
+    client = TestClient(app)
+    response = client.get("/api/executions")
+
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    data = response.json()
+    assert len(data) == 1
+    record = data[0]
+    assert record["failure_reason"] == "validation_regex", (
+        f"failure_reason was not forwarded — got: {record.get('failure_reason')!r}. "
+        "Add failure_reason=r.failure_reason to the ExecutionRecordResponse constructor in list_executions()."
+    )
