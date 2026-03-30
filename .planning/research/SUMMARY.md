@@ -1,238 +1,170 @@
 # Project Research Summary
 
-**Project:** Axiom v15.0 — Operator Readiness
-**Domain:** Commercial job-orchestration platform — operator tooling, documentation quality, and validation infrastructure
-**Researched:** 2026-03-28
+**Project:** Master of Puppets — v17.0 Scale Hardening
+**Domain:** High-throughput distributed job dispatch and scheduler infrastructure (FastAPI + SQLAlchemy async + APScheduler 3.x)
+**Researched:** 2026-03-30
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Axiom v15.0 is an operator readiness milestone, not a feature milestone. The underlying platform (job scheduling, node management, mTLS, RBAC, Foundry, licence enforcement) is complete at v14.4. Every v15.0 deliverable is either a script, a documentation page, or a process — not a new server-side service. This distinction shapes the entire approach: the work is low-risk from a platform perspective, but the gaps it closes (undocumented mirror configuration, no node validation runbook, no screenshot documentation, no licence audit trail) are the difference between a product that is technically functional and one that operators can confidently deploy in production. No changes to `puppeteer/requirements.txt` are required; all five capabilities are tooling- and documentation-layer work.
+This milestone is a targeted hardening of the existing Axiom backend to sustain the target operating envelope: 20 nodes, 200+ pending jobs, 1,000 scheduled definitions, and 100 cron fires per minute. The system already runs correctly at lower scale. Research identifies five specific failure modes that emerge at the target envelope: connection pool exhaustion under concurrent node polling, a double-assignment race condition in job dispatch, full-table scans on every work-pull call, a scheduler dark window during definition changes, and event loop saturation when cron burst competes with HTTP request handling.
 
-The recommended approach treats each of the five capability areas as an independent workstream with a clear "done" definition: a script that runs, a doc that passes validation, a set of signed jobs that dispatch cleanly. The build order is driven by one hard dependency (the validation job library pattern must be established before the package repo validation jobs can reuse it) and one critical security remediation (the licence signing private key must be migrated out of the public repo before any other licence tooling work is done). After those two constraints are honoured, all five capabilities can be built in parallel.
+All four research agents converge on the same recommended approach: no new dependencies, no architectural overhaul. Every fix is a targeted code change to three existing files (`db.py`, `job_service.py`, `scheduler_service.py`) plus one new migration SQL file. The changes are ordered by dependency — pool sizing must come first because the SKIP LOCKED pattern and dispatcher isolation both require connections to be available before they deliver correctness benefits. Incremental scheduler sync and dispatcher isolation are independent of each other and can be combined into one phase after pool sizing is in place.
 
-The top risks are not technical: they are operational governance (the private key has no mandatory safeguard preventing it from being committed to the public repo), correctness assumptions (docs validation must target the Docker stack, not a dev server, or it validates the wrong environment), and test reliability (screenshot capture and resource limit tests are both prone to false-positive passes if wait strategies and cgroup capability detection are not implemented). Each pitfall has a concrete prevention that must be built in from the start rather than retrofitted.
-
----
+The primary implementation risk is the SQLite/Postgres dual-mode constraint: every DB-layer change requires dialect detection, and failures in this area are silent — tests pass on SQLite while the production Postgres deployment remains broken. A second risk is APScheduler version drift: v4 has a completely incompatible API and must be explicitly pinned out before any scheduler work begins. Both risks have concrete prevention patterns and must be addressed in the first commit of the milestone.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack already provides everything v15.0 needs at the server layer. Three new dependencies are needed in operator tooling venvs only: `PyGithub>=2.5.0` for the licence record ledger (GitHub REST API v3, typed, actively maintained), `playwright>=1.58.0` for screenshot capture (already proven in this environment with documented `--no-sandbox` and localStorage-auth workarounds), and `linkcheckmd>=1.4.0` for docs link validation (the current community replacement for the abandoned `mkdocs-linkcheck`).
+No new packages are required for this milestone. All changes are configuration and code modifications to the existing stack. The version pin for APScheduler must be tightened from the current unpinned state to `apscheduler>=3.11.2,<4` — this is the single most important dependency change, and it must land before any scheduler code is touched.
+
+For the asyncpg pool, `create_async_engine` accepts all QueuePool parameters directly. SQLite must be excluded from pool parameter configuration via a `_IS_POSTGRES` flag exported from `db.py`. The `AsyncAdaptedQueuePool` is automatically selected for async engines and requires no manual specification.
 
 **Core technologies:**
-- `PyGithub>=2.5.0`: append licence issuance records to a private GitHub repo — standard GitHub API v3 client; `tools/` venv only, never `puppeteer/requirements.txt`
-- `playwright>=1.58.0`: dashboard screenshot capture — already validated in this environment; `--no-sandbox` and `localStorage` auth patterns documented and required
-- `linkcheckmd>=1.4.0`: Markdown link validation across `docs/` — async, no build step needed; `mkdocs-linkcheck` is abandoned and must not be used
-- `cryptography==46.0.6`: Ed25519 signing — already in `requirements.txt`; no change
-- `PyJWT[crypto]>=2.7.0`: EdDSA JWT issuance and validation — already in `requirements.txt`; no change
-- `httpx`: API smoke tests in docs validation — already in `requirements.txt`; no change
-
-**What NOT to use:**
-- `mkdocs-linkcheck` — abandoned; use `linkcheckmd` instead
-- `python-jose` — does not support EdDSA; `PyJWT` is already installed and correct
-- MCP browser tool — crashes on navigation in this environment per CLAUDE.md
+- SQLAlchemy asyncio 2.x: async ORM + pool management — `AsyncAdaptedQueuePool` auto-selected; all pool params flow through `create_async_engine` kwargs; no manual pool class specification needed
+- asyncpg (current): PostgreSQL async driver — native async, supports `SELECT FOR UPDATE SKIP LOCKED` via SQLAlchemy's `with_for_update(skip_locked=True)`
+- aiosqlite (current): SQLite async driver for dev/test — does NOT support `FOR UPDATE`; requires dialect branch in all locking code
+- APScheduler `>=3.11.2,<4`: cron scheduling — v4 is a full rewrite (pre-release as of April 2025, 4.0.0a6); `<4` pin is mandatory; 3.11.2 is the current stable release
 
 ### Expected Features
 
-**Must have (table stakes for v15.0):**
-- Licence issuance audit trail — support cannot manage customers without a record of what was issued
-- Offline licence signing with no default key path inside the public repo — the current default is a security gap
-- Node validation runbook — operators need a documented path to verify a new node is working end-to-end
-- Pre-signed reference jobs for Python, Bash, and PowerShell runtimes — dispatch-ready, not just scripts
-- Package repo operator guide covering PyPI (devpi, already bundled) and APT — existing v7.0 feature is completely undocumented for operators
-- Dashboard screenshots in docs — absence of screenshots signals product immaturity to evaluating operators
+All four capabilities are P1 for v17.0. Each addresses either a correctness failure or a performance failure that manifests within the target envelope. The feature dependency graph establishes Capability 1 (pool sizing) as a prerequisite for Capabilities 2 and 4.
 
-**Should have (differentiators):**
-- Structured PASS/WARN/FAIL docs accuracy validation report with exit codes for CI integration
-- Seeded demo data in screenshot captures — empty state screenshots are not useful in marketing or docs
-- Git-backed licence ledger with `jti` field for duplicate-issuance detection
-- Static OpenAPI snapshot validation (not live-stack) — CI-safe, sub-second, covers the most important drift category
-- Validation job manifest file — enables operator discovery of available jobs without reading the code
+**Must have (table stakes — v17.0):**
+- DB connection pool right-sized to `pool_size=20, max_overflow=10` with `pool_pre_ping=True` and `pool_recycle=300` — eliminates pool exhaustion under 20-node concurrent polling
+- Composite index on `jobs(status, created_at)` — eliminates full-table scan on every `/work/pull` call; required for SKIP LOCKED to be performant at scale
+- `SELECT FOR UPDATE SKIP LOCKED` on dispatch with dialect branch — eliminates double-assignment race on Postgres; SQLite write serialisation provides equivalent correctness guarantee
+- Incremental `sync_scheduler()` with three-way add/replace/remove diff — eliminates scheduler dark window during definition CRUD
+- APScheduler dispatcher isolation via `asyncio.create_task` — decouples cron fire callbacks from the HTTP request event loop
 
-**Defer to v15.x / v16+:**
-- CI gate blocking `mkdocs gh-deploy` on docs validation failures — add after initial script is tuned in practice
-- Resource limit validation jobs — cgroup v2 behaviour variance makes these unreliable until capability detection is robust
-- PWSH PSRepository mirror guide — limited tooling maturity; mark as advanced/experimental when added
-- Licence issuance portal — correct at scale, but not at current customer volume
-- Automated validation job orchestration — manual runbook is sufficient for v15.0
+**Operator-configurable (differentiators — v17.0):**
+- `AXIOM_DB_POOL_SIZE` / `AXIOM_DB_MAX_OVERFLOW` env vars — lets operators tune for constrained Postgres deployments without forking compose files
+- `AXIOM_SCHEDULER_MISFIRE_GRACE_SEC` / `AXIOM_SCHEDULER_COALESCE` env vars — controls cron fire tolerance under load; defaults to `grace=60, coalesce=True`
+- Pool stats and event loop lag exposed at `GET /health/scheduling` — surfaces pool utilisation and scheduler health without requiring direct Postgres access
+
+**Defer (v17.x and beyond):**
+- Priority queue ordering — extend composite index to `(status, priority DESC, created_at)` once dispatch correctness is proven in production
+- Separate OS process for dispatcher (`multiprocessing.Process` with `spawn`) — only warranted if profiling shows HTTP event loop is measurably saturated after `create_task` isolation at the target envelope
+- APScheduler 4.x migration — fully rewritten async-native API; plan as a separate future milestone; blocked by complete API incompatibility
+- PgBouncer sidecar — only warranted if Postgres is shared across multiple services and `max_connections` is the binding constraint
 
 ### Architecture Approach
 
-All v15.0 work sits at the tooling and documentation layer above the existing platform. The most important architectural decision is the private/public repo boundary for licence tooling: the Ed25519 private signing key and `generate_licence.py` must move to a separate private `axiom-laboratories/axiom-licences` repository, leaving only the verification public key (hardcoded in `licence_service.py`) in the public repo. This is a security requirement, not organisational preference — a leaked signing key enables unlimited EE licence forgery and requires rebuilding all Cython EE wheels to remediate. The docs validation script and screenshot capture script live in the main public repo under `docs/scripts/`. The node validation job corpus lives in `mop_validation/` (the existing private validation repo), consistent with the project convention of keeping test infrastructure separate.
+All changes are confined to three existing files and one new migration SQL file. The `IS_POSTGRES` flag, introduced in `db.py`, threads through to `job_service.py` for the SKIP LOCKED guard. The `migration_v17.sql` file follows the project's established pattern of manual migration SQL files for existing deployments, using `CREATE INDEX CONCURRENTLY` to avoid table locks during live production deployment.
 
-**Major components:**
-1. `axiom-laboratories/axiom-licences` private repo — signing key, issuance CLI, issued-licence ledger; isolated by repo access control
-2. `docs/scripts/validate_docs.py` — static OpenAPI snapshot cross-reference plus CLI command cross-reference; CI-wirable; no running stack required
-3. `docs/scripts/capture_screenshots.py` — Playwright screenshot capture against live Docker stack; operator step on release prep, not a CI gate
-4. `mop_validation/scripts/node_jobs/` — signed reference jobs (Python/Bash/PowerShell) with companion manifest; requires `axiom-push init`
-5. `mop_validation/scripts/sign_corpus.py` — batch-signs all jobs in `node_jobs/`; mandatory publication step before the corpus is distributable
-6. `docs/docs/runbooks/package-repo.md` — operator guide for devpi (bundled), bandersnatch, APT mirror; documentation only, no new code
+**Major components and required changes:**
+1. `db.py` — add `pool_size=20`, `max_overflow=10`, `pool_pre_ping=True`, `pool_recycle=300` under `_IS_POSTGRES` guard; add `Index("ix_jobs_status_created_at", "status", "created_at")` to `Job.__table_args__`; export `IS_POSTGRES` boolean for consumers
+2. `job_service.py` — guard `with_for_update(skip_locked=True)` behind `if IS_POSTGRES` in the `pull_work()` candidate query (lines 647–660); add `IS_POSTGRES` to existing import from `..db`
+3. `scheduler_service.py` — replace `remove_all_jobs()` + full reload with incremental three-way diff using `get_jobs()` / `add_job(replace_existing=True)` / `remove_job()`; rename `execute_scheduled_job` body to `_execute_scheduled_job_impl` and add thin `create_task` launcher; set `job_defaults={'misfire_grace_time': 60, 'coalesce': True}` on `AsyncIOScheduler` constructor
+4. `migration_v17.sql` (new, `puppeteer/`) — `CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_jobs_status_created_at ON jobs (status, created_at)`; must run outside a transaction block via psql, not wrapped in `BEGIN/COMMIT`
 
 ### Critical Pitfalls
 
-1. **Licence private key default path inside the public repo** — `tools/generate_licence.py --generate-keypair` currently defaults to writing `tools/licence_signing.key` inside the repo directory; gitignore is the only protection. Prevention: remove the `--out` default entirely (require explicit path); add exact-filename gitignore entry as belt-and-suspenders; add a CI guard rejecting `-----BEGIN PRIVATE KEY-----` in staged files.
-
-2. **Issued licence records lack integrity** — if the private repo is the sole audit trail and lacks a `jti` field per record, there is no unique key for customer support lookups and no duplicate-issuance detection. Prevention: design the JSONL format with `issued_at`, `customer_id`, `tier`, `node_limit`, `expiry`, `issued_by`, and `jti` fields before the first licence is issued.
-
-3. **Docs validation against the dev server, not the Docker stack** — validation checks running against `http://localhost:8001` (no auth, SQLite, no TLS) validate the wrong environment. Prevention: the recommended architecture uses static OpenAPI snapshot validation, which sidesteps live-stack dependency for the most important check category. The CLAUDE.md rule "never use local dev servers for testing" applies here.
-
-4. **Screenshot capture racing WebSocket data loading** — the dashboard receives Nodes and Jobs data asynchronously over WebSocket; `page.screenshot()` immediately after `page.goto()` captures loading spinners. Prevention: `page.wait_for_selector()` on a stable DOM element; inject animation-disabling CSS via `page.add_style_tag()` before capture; seed data before running capture.
-
-5. **Resource limit tests producing false-positive passes on LXC nodes** — `EXECUTION_MODE=direct` is required on LXC test nodes (no cgroup support); `--memory` flags are accepted but not enforced without cgroup v2. Prevention: gate resource limit tests on a `resource_limits_supported` capability flag; have jobs read `/sys/fs/cgroup/memory.max` and assert the observed value, not just job completion. Defer these jobs to v15.x.
-
-6. **Network filtering tests leaving residual iptables rules** — any validation job that calls `subprocess.run(['iptables', ...])` modifies node-global network state that persists after the container exits. Prevention: prohibit direct iptables manipulation; use Docker-native `--network=none` isolation only.
-
----
+1. **SQLite silently ignores `SKIP LOCKED` — no error, no warning, tests pass** — gate all `with_for_update(skip_locked=True)` calls behind `if IS_POSTGRES`; emit a startup `logger.warning` when running on SQLite so the gap is explicit; never run concurrent dispatch correctness tests against SQLite
+2. **APScheduler 4.x is a full API rewrite — `pip install --upgrade` silently destroys the scheduler** — pin `apscheduler>=3.11.2,<4` in `requirements.txt` before touching any scheduler code; add startup assertion `assert apscheduler.__version__.startswith("3.")`; annotate the pin in the requirements file so future maintainers do not remove it
+3. **SKIP LOCKED lock must be committed in the same `session.begin()` block that acquires it** — if the SELECT and UPDATE span two transactions the lock is released before the status update is durable; use `async with session.begin()` wrapping both the locked SELECT and the status UPDATE; verify the existing `pull_work()` transaction boundary at implementation time
+4. **`CREATE INDEX` without `CONCURRENTLY` locks the `jobs` table for the full build duration** — every node heartbeat and work-pull will hang; always use `CREATE INDEX CONCURRENTLY IF NOT EXISTS` in the migration file; run outside any `BEGIN/COMMIT` block; validate with `SELECT indexname FROM pg_indexes WHERE NOT indisvalid` after migration
+5. **Full `sync_scheduler()` rebuild drops all jobs before re-adding them — dark window on every CRUD** — the `remove_all_jobs()` + full-reload pattern causes fires to be missed; implement incremental diff from the start; the full-rebuild approach is a correctness trap that looks correct in unit tests but fails under concurrent load
 
 ## Implications for Roadmap
 
-Based on combined research, the suggested phase structure reflects hard dependency order and security priority.
+Based on the dependency graph in FEATURES.md and the build order confirmed by ARCHITECTURE.md, the milestone should be structured as five sequential phases. Capabilities 1 and 2 (pool + index + SKIP LOCKED) share the same files and the index is a performance prerequisite for SKIP LOCKED, so they ship together. Capabilities 3 and 4 (incremental sync + dispatcher isolation) share `scheduler_service.py` and have no dependency on each other, so they are combined into one phase.
 
-### Phase 1: Licence Tooling — Key Migration and Audit Trail
+### Phase 1: Foundation — APScheduler Pin + IS_POSTGRES Flag
 
-**Rationale:** The highest-priority risk remediation in the entire milestone. The private signing key being in the public repo is an active security gap that undermines the commercial model. This is fully independent of all other v15.0 work and should ship first. The record store format (JSONL with `jti`) must be decided before any licences are issued — retroactive format changes are costly.
+**Rationale:** APScheduler pin must precede all scheduler work to prevent v4 accidentally being pulled in. The `IS_POSTGRES` flag export is a prerequisite for Phases 2 and 3. Both changes are trivial in scope and zero-risk. The cost of skipping this phase is silent breakage in every subsequent phase.
+**Delivers:** `apscheduler>=3.11.2,<4` in `requirements.txt`; startup version assertion; `_IS_POSTGRES` flag in `db.py` exported as `IS_POSTGRES`; SQLite startup warning for SKIP LOCKED gap
+**Addresses:** APScheduler 4.x breakage pitfall (Pitfall 2); SQLite dual-mode constraint established for all downstream phases
+**Avoids:** Any scenario where scheduler code is written before the version boundary is enforced
 
-**Delivers:** `axiom-laboratories/axiom-licences` private repo created and operational; `generate_licence.py` migrated with safe defaults (no default key path, requires explicit `--out`); issued-licence JSONL ledger with `jti`, `customer_id`, `tier`, `expiry`, `issued_by` fields; key pair rotation with public key updated in `licence_service.py`; stub replacing `tools/generate_licence.py` in the main repo.
+### Phase 2: DB Pool Tuning + Connection Health
 
-**Addresses:** FEATURES.md Capability 1 — all table stakes and differentiators
+**Rationale:** Pool exhaustion is the root cause that masks correctness wins from SKIP LOCKED and performance wins from dispatcher isolation. Must be resolved before those phases deliver their full value. Formula: `workers × (pool_size + max_overflow) < postgres max_connections`.
+**Delivers:** `pool_size=20`, `max_overflow=10`, `pool_pre_ping=True`, `pool_recycle=300` under `IS_POSTGRES` guard; operator env vars `AXIOM_DB_POOL_SIZE` / `AXIOM_DB_MAX_OVERFLOW` / `AXIOM_DB_POOL_RECYCLE`; pool stats (`db_pool_checked_out`) in `GET /health/scheduling`; `POSTGRES_MAX_CONNECTIONS=200` override in `compose.server.yaml`
+**Uses:** SQLAlchemy `AsyncAdaptedQueuePool`; `create_async_engine` kwargs; `IS_POSTGRES` from Phase 1
+**Avoids:** Pool exhaustion under 20-node concurrent polling (Pitfall 3); `pool_size × workers > max_connections` explosion
 
-**Avoids:** Pitfall 1 (key default path), Pitfall 2 (audit trail integrity), security mistake (log and key in same repo)
+### Phase 3: Dispatch Correctness — Composite Index + SKIP LOCKED
 
-**Research flag:** Standard patterns — no additional phase research needed. Key migration is a git operation; ledger design is a data format decision.
+**Rationale:** Composite index and SKIP LOCKED are deployed together because the index is a performance prerequisite for SKIP LOCKED at scale — without it each locked SELECT does a full table scan. The correctness fix (no double-assignment) and the performance baseline are established in a single deploy.
+**Delivers:** `Index("ix_jobs_status_created_at")` in `Job.__table_args__`; `migration_v17.sql` with `CREATE INDEX CONCURRENTLY IF NOT EXISTS`; `with_for_update(skip_locked=True)` guarded by `IS_POSTGRES` in `pull_work()` covering both the candidate SELECT and the status UPDATE in one `session.begin()` block; integration test for concurrent dispatch against Postgres
+**Uses:** SQLAlchemy `with_for_update(skip_locked=True)`; `IS_POSTGRES` from Phase 1; asyncpg pool from Phase 2
+**Avoids:** Full-table scan on every work-pull (Scaling Consideration — 50+ nodes); double-assignment race (Pitfall 1); index table lock during live migration (Pitfall 7); SKIP LOCKED lock not committed atomically (Pitfall 4)
 
----
+### Phase 4: Incremental Scheduler Sync + Dispatcher Isolation
 
-### Phase 2: Node Validation Job Library
+**Rationale:** Both changes are in `scheduler_service.py` and address the scheduler's two failure modes: the dark window during CRUD and the event loop saturation during cron burst. Combining them into one phase avoids touching the same file in consecutive phases and keeps the PR diff cohesive.
+**Delivers:** Incremental three-way diff in `sync_scheduler()` replacing `remove_all_jobs()`; internal job guard `if not job.id.startswith("__")` to protect `__prune_node_stats__` and related internal jobs from deletion; `execute_scheduled_job` refactored to thin `create_task` launcher with `_execute_scheduled_job_impl` containing the existing logic; `job_defaults={'misfire_grace_time': 60, 'coalesce': True, 'max_instances': 1}` on scheduler constructor; `AXIOM_SCHEDULER_MISFIRE_GRACE_SEC` and `AXIOM_SCHEDULER_COALESCE` env vars
+**Uses:** APScheduler 3.x `get_jobs()` / `add_job(replace_existing=True)` / `remove_job()`; `asyncio.create_task`; pool from Phase 2
+**Avoids:** Scheduler dark window on definition CRUD (Pitfall 5); event loop saturation under cron burst (Performance trap — misfire_grace_time too short); fork-inherited event loop risk (Pitfall 6 is avoided entirely because `create_task` keeps everything in-process)
 
-**Rationale:** Must precede Package Repo Docs (Phase 3) because the PyPI mirror validation job reuses the signing pattern and dispatch infrastructure established here. This phase defines the job format, signing workflow, and runbook structure that Phase 3 extends.
+### Phase 5: Observability + Validation Sign-off
 
-**Delivers:** `mop_validation/scripts/node_jobs/` with 6-8 signed reference jobs: Python/Bash/PowerShell hello-world, exit-failure, stdout+stderr capture, volume write (tmpdir only), network connectivity check; `sign_corpus.py` batch-signing script; `docs/docs/runbooks/node-validation.md` runbook with expected outputs per job; job manifest JSON.
-
-**Addresses:** FEATURES.md Capability 4 — pre-signed, self-describing jobs; volume mapping; network test; runbook
-
-**Avoids:** Pitfall 5 (resource limit false positives — defer resource limit jobs to v15.x), Pitfall 6 (unsafe volume mounts — tmpdir only, no absolute host paths), Pitfall 7 (residual iptables rules — no direct iptables manipulation), anti-pattern (unsigned corpus)
-
-**Research flag:** Standard patterns — `axiom-sdk` signing is established; script authoring is plain Python/Bash/PowerShell.
-
----
-
-### Phase 3: Custom Package Repo Operator Docs and Validation
-
-**Rationale:** Depends on Phase 2 for the validation job pattern. The PyPI mirror check job is a member of the validation corpus and must not define a divergent job format. The documentation writing is independent and can be drafted in parallel with Phase 2 — but the mirror validation job cannot be signed and published until Phase 2's signing infrastructure exists.
-
-**Delivers:** `docs/docs/runbooks/package-repo.md` covering devpi configuration (Caddy-proxied URL as primary access path), bandersnatch scoped mirror strategy (curated allowlist, not full 20+ TB PyPI mirror), APT via `apt-cacher-ng` (operator-managed sidecar), air-gap upload procedure with exact commands, PSRepository via BaGet (advanced/optional); PyPI mirror connectivity validation job added to `node_jobs/`; `mkdocs.yml` nav entry.
-
-**Addresses:** FEATURES.md Capability 5 — all table stakes and scoped-mirror differentiator
-
-**Avoids:** Pitfall 8 (devpi docs describing wrong URL — document Caddy-proxied path as primary; test all `curl` examples against a live devpi instance before publishing); UX pitfall (lead with devpi as the recommended tool)
-
-**Research flag:** Before writing devpi documentation, verify the actual Caddy-proxied devpi URL, index names, and port by running `docker compose -f puppeteer/compose.server.yaml up -d` and inspecting live config. This is a 15-minute verification session, not a full research phase.
-
----
-
-### Phase 4: Screenshot Capture
-
-**Rationale:** Requires the full Docker stack running with stable UI and realistic data. Scheduling after the validation job library means the stack will have been exercised and any remaining issues will have surfaced. Screenshots showing realistic content (3+ nodes, live jobs, audit entries) require a working job execution pipeline.
-
-**Delivers:** `docs/scripts/capture_screenshots.py` with full wait strategy (DOM selector waits, animation-disable CSS injection, seeded demo data before capture); 8-10 PNG captures at 1440x900 with `deviceScaleFactor: 2`; stable deterministic filenames (never timestamps); images committed to `docs/docs/assets/screenshots/` and `homepage/assets/screenshots/`; env-var configuration (`AXIOM_URL`, `AXIOM_ADMIN_PASSWORD`).
-
-**Addresses:** FEATURES.md Capability 3 — all table stakes and differentiators
-
-**Avoids:** Pitfall 4 (screenshot flakiness — DOM selector wait strategy mandatory, never `time.sleep()`); security mistake (no admin secrets visible in screenshots — use test-fixture data only); anti-pattern (screenshots not a CI gate)
-
-**Stack:** `playwright>=1.58.0` — `tools/` venv only; `playwright install chromium` required; `--no-sandbox` required on Linux
-
-**Research flag:** Standard patterns — Playwright authentication pattern is fully documented in CLAUDE.md and validated in `mop_validation/`. No additional research needed.
-
----
-
-### Phase 5: Docs Accuracy Validation
-
-**Rationale:** Last because it validates the final state of all prior phases' documentation. The CI gate (blocking `mkdocs gh-deploy`) should be added after the validation script has been run and tuned in practice against real docs — wiring an untuned gate creates noise and CI fatigue.
-
-**Delivers:** `docs/scripts/validate_docs.py` with static OpenAPI snapshot cross-reference (every `/api/...` path in docs exists in `openapi.json`), Click command cross-reference (every `axiom-push <subcommand>` in docs is registered in `mop_sdk/cli.py`), compose service name cross-reference; structured PASS/WARN/FAIL output with file + line references on failures; exit code 1 on any FAIL item; `linkcheckmd` integration for internal Markdown link checking; wired into `docs-deploy.yml` as advisory (warn, not block) initially with documented path to making it blocking.
-
-**Addresses:** FEATURES.md Capability 2 — all table stakes and OpenAPI cross-check differentiator
-
-**Avoids:** Pitfall 3 (static snapshot approach eliminates live-stack requirement for API validation); UX pitfall (failure messages must name the specific docs file and line, not just the path); anti-pattern (live HTTP requests in CI)
-
-**Stack:** No new dependencies — `httpx` for any live checks; static file parsing uses stdlib `re` and `json`; `linkcheckmd>=1.4.0` in docs venv
-
-**Research flag:** Standard patterns for static file analysis. No additional research needed.
-
----
+**Rationale:** Health endpoint enhancements and integration tests validate that all prior phases delivered their intended guarantees. The concurrent dispatch correctness test against Postgres is the key gate for declaring the milestone complete.
+**Delivers:** `db_pool_checked_out` and `event_loop_lag_ms_p95` in `GET /health/scheduling`; integration test verifying two concurrent `/work/pull` requests against a single PENDING job result in only one assignment; startup `logger.warning` for SQLite SKIP LOCKED gap (if not already added in Phase 1); "Looks Done But Isn't" checklist from PITFALLS.md verified against all eight items
+**Avoids:** Silent correctness failures that pass all unit tests on SQLite but fail in production Postgres
 
 ### Phase Ordering Rationale
 
-- **Phase 1 first** because it is an active security gap, fully independent, and the ledger format decision is irreversible after first use.
-- **Phase 2 before Phase 3** because the package repo validation job is a member of the validation corpus and must use the same signing infrastructure.
-- **Phase 4 (Screenshots) after Phase 2** because screenshots with demo data require a working job execution pipeline and an enrolled node to show realistic dashboard state.
-- **Phase 5 (Docs Validation) last** because it validates the output of all prior phases and benefits from docs being in their final state before wiring CI gates.
-- **Phases 2, 3, 4, and 5 can be parallelised** if multiple workstreams are available — the only hard sequential dependency is Phase 2 preceding Phase 3 for the shared corpus signing pattern.
+- Phase 1 must be first: APScheduler pin prevents accidental v4 installation during development; `IS_POSTGRES` is imported by Phases 2, 3, and 4
+- Phase 2 must precede Phases 3 and 4: pool connections must be available for concurrent SKIP LOCKED sessions and for dispatcher fire-callback tasks to each acquire a connection without starvation
+- Phase 3 and Phase 4 are independently orderable but share no code paths; grouping by file (Phase 3 touches `db.py` + `job_service.py`, Phase 4 touches only `scheduler_service.py`) keeps PR diffs clean and reviewable
+- Phase 5 is last: validates cumulative guarantees of all prior phases, especially the Postgres-only concurrent dispatch test that cannot run against SQLite
 
 ### Research Flags
 
-Phases with standard patterns — skip additional research-phase:
-- **Phase 1 (Licence Tooling):** Key migration is a git operation; JSONL ledger is a data format decision; PyGithub file API is documented and straightforward.
-- **Phase 2 (Validation Job Library):** `axiom-sdk` signing is established; script authoring is plain Python/Bash/PowerShell; runbook format follows existing `mop_validation/` patterns.
-- **Phase 4 (Screenshot Capture):** Playwright pattern fully documented in CLAUDE.md and validated in `mop_validation/`.
-- **Phase 5 (Docs Validation):** Static regex + JSON parsing against committed files; standard Python stdlib pattern.
+Phases with standard, well-documented patterns — skip `/gsd:research-phase`:
+- **Phase 1:** APScheduler version pinning and SQLAlchemy dialect detection are trivially documented; implementation is mechanical
+- **Phase 2:** `create_async_engine` pool parameters are from official SQLAlchemy 2.0 docs; pool sizing formula is established; no research needed
+- **Phase 3:** `with_for_update(skip_locked=True)` syntax confirmed in SQLAlchemy GitHub discussion #10460; `CREATE INDEX CONCURRENTLY` is standard PostgreSQL DDL; no research needed
+- **Phase 4:** APScheduler 3.x `get_jobs()` / `add_job(replace_existing=True)` / `remove_job()` are in the 3.x user guide; `asyncio.create_task` is stdlib; no research needed
+- **Phase 5:** Correctness test patterns are standard pytest-asyncio; no new patterns needed
 
-Phase warranting a quick pre-execution verification (not a full research-phase):
-- **Phase 3 (Package Repo Docs):** Before writing devpi documentation, run `docker compose -f puppeteer/compose.server.yaml up -d` and verify the actual Caddy-proxied devpi URL, index names, and port. 15-minute session; eliminates Pitfall 8.
-
----
+Phases that may benefit from targeted implementation-time checks (not full research phases):
+- **Phase 5 (observability):** If `event_loop_lag_ms_p95` metric is implemented, verify the asyncio heartbeat-tick measurement approach against the specific uvicorn event loop version in use; this is a best-effort metric and can be deferred if implementation proves complex
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All findings from direct codebase inspection of `requirements.txt`, `compose.server.yaml`, existing scripts. Three new deps are standard, well-maintained libraries. `linkcheckmd` is MEDIUM (PyPI maintenance signal only) but is a minor dependency. |
-| Features | HIGH | All five capability areas documented against existing Axiom features and codebase state. Table stakes and differentiators grounded in v14.x project history and operator workflow analysis. |
-| Architecture | HIGH | All component boundaries verified by reading live source files: `licence_service.py`, `mop_sdk/cli.py`, `docs/scripts/regen_openapi.sh`, `mop_validation/scripts/`. Private/public repo boundary is the most critical finding and is unambiguous. |
-| Pitfalls | HIGH | Most critical pitfalls (key default path, cgroup resource limits on LXC, WebSocket async screenshot timing, devpi proxied URL) corroborated by direct code inspection, CLAUDE.md, and PROJECT.md sprint history. |
+| Stack | HIGH | All findings from SQLAlchemy 2.0 official docs, APScheduler 3.x official docs, asyncpg docs, and PyPI version history; no new packages; version constraints verified against live package registry |
+| Features | HIGH | Feature boundaries are conservative and derived from the existing codebase; dependency graph is internally consistent and confirmed independently by all four research files |
+| Architecture | HIGH | Exact file paths, line numbers, and method signatures verified against existing codebase; build order confirmed by cross-referencing FEATURES.md dependency graph with PITFALLS.md phase mapping |
+| Pitfalls | HIGH | Seven pitfalls sourced from official docs (SQLAlchemy, APScheduler, PostgreSQL), issue trackers, and verified community post-mortems; all pitfalls include detection signals and recovery strategies |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Devpi live configuration:** The exact Caddy-proxied URL, index names, and auth configuration for the bundled devpi sidecar should be verified against a running stack before Phase 3 docs are written. Risk of Pitfall 8 is real; 15-minute verification session eliminates it.
-- **`axiom-push init` prerequisite in CI:** The node validation job signing workflow (`sign_corpus.py`) requires `~/.axiom/credentials` to be present. In CI this means a service principal token must be injected. The exact mechanism should be defined before Phase 2 implementation begins.
-- **Key rotation impact on existing customers:** When the licence signing key pair is rotated in Phase 1, previously issued licences signed with the old key become invalid unless the old public key is retained during a transition window. The transition strategy (parallel public keys vs. re-signing all issued licences) must be decided before Phase 1 work begins — this is the most consequential design decision in the milestone.
-
----
+- **`pool_recycle` value alignment:** STACK.md recommends `pool_recycle=300` (5 minutes); ARCHITECTURE.md uses `pool_recycle=1800` (30 minutes) in its example code. Either is acceptable; 300 seconds is more conservative and should be preferred for containers with network restarts. Confirm at Phase 2 implementation time.
+- **Internal scheduler job ID naming conventions:** The incremental sync guard `if not job.id.startswith("__")` assumes all internal APScheduler jobs use the `__` prefix. Verify this against the actual job IDs registered in `scheduler_service.py` startup (`__prune_node_stats__`, `__prune_execution_history__`, `__dispatch_timeout_sweeper__`) before Phase 4 implementation to ensure no internal job uses a different naming pattern.
+- **`event_loop_lag_ms_p95` measurement implementation:** No single canonical pattern exists in official asyncio docs; the asyncio heartbeat-tick approach is community consensus. Treat as a best-effort metric addition in Phase 5; skip if implementation complexity is disproportionate to the observability value.
 
 ## Sources
 
-### Primary — HIGH confidence
+### Primary (HIGH confidence)
+- [SQLAlchemy 2.0 — Connection Pooling](https://docs.sqlalchemy.org/en/20/core/pooling.html) — pool_size, max_overflow, pool_pre_ping, AsyncAdaptedQueuePool defaults
+- [SQLAlchemy 2.0 — Async I/O](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html) — AsyncSession usage patterns and transaction constraints
+- [SQLAlchemy 2.0 — Constraints and Indexes](https://docs.sqlalchemy.org/en/20/core/constraints.html) — Index in __table_args__ declaration
+- [SQLAlchemy GitHub Discussion #10460](https://github.com/sqlalchemy/sqlalchemy/discussions/10460) — confirms `with_for_update(skip_locked=True)` emits correct PostgreSQL syntax; confirms SQLite silently omits FOR UPDATE
+- [APScheduler 3.11.2 User Guide](https://apscheduler.readthedocs.io/en/3.x/userguide.html) — AsyncIOScheduler, job_defaults, misfire_grace_time, coalesce, add_job, replace_existing
+- [APScheduler 3.x → 4.x Migration Guide](https://apscheduler.readthedocs.io/en/master/migration.html) — breaking changes enumerated; confirmed v4 not production-ready
+- [APScheduler PyPI page](https://pypi.org/project/APScheduler/) — 3.11.2 stable confirmed; v4.0.0a6 pre-release confirmed
+- [PostgreSQL CREATE INDEX CONCURRENTLY](https://www.postgresql.org/docs/current/sql-createindex.html) — lock behaviour, CONCURRENTLY restrictions, invalid index detection
 
-- `tools/generate_licence.py` — existing issuance CLI; default path risk confirmed
-- `puppeteer/agent_service/services/licence_service.py` — Ed25519 JWT validation; hardcoded public key; LicenceState state machine
-- `puppeteer/requirements.txt` — confirmed no new server-side deps required for v15.0
-- `puppeteer/compose.server.yaml` — devpi and pypiserver sidecars confirmed running
-- `docs/scripts/regen_openapi.sh`, `docs/docs/api-reference/openapi.json` — static snapshot validation pattern confirmed
-- `mop_sdk/cli.py` — Click command registration; source of truth for CLI cross-reference
-- `mop_validation/scripts/test_playwright.py` — Playwright authentication pattern validated
-- `CLAUDE.md` — `--no-sandbox`, localStorage JWT injection, form-encoded login, `mop_auth_token` key — authoritative project constraints
-- `.planning/PROJECT.md` — v14.4 baseline; v11.1 LXC/cgroup notes; v14.3 `generate_licence` notes; v9.0 devpi notes
-- `.gitignore` — `*.key` glob present; exact `tools/licence_signing.key` filename entry absent (confirmed gap)
+### Secondary (MEDIUM confidence)
+- [Pool sizing formula for ASGI apps — pythontutorials.net](https://www.pythontutorials.net/blog/how-to-properly-set-pool-size-and-max-overflow-in-sqlalchemy-for-asgi-app/) — `workers × (pool_size + max_overflow)` formula; consistent with SQLAlchemy docs reasoning
+- [APScheduler scale-out issue #514](https://github.com/agronholm/apscheduler/issues/514) — confirmed AsyncIOScheduler cannot scale beyond 1 CPU without process isolation
+- [FastAPI BackgroundTasks event loop discussion #11210](https://github.com/fastapi/fastapi/discussions/11210) — confirms `asyncio.create_task` approach over process isolation for single-server deployment
+- [PostgreSQL SKIP LOCKED — inferable.ai](https://www.inferable.ai/blog/posts/postgres-skip-locked) — SKIP LOCKED implementation pattern and transaction handling
+- [Solid Queue SKIP LOCKED walkthrough — BigBinary](https://www.bigbinary.com/blog/solid-queue) — production job queue design reference using the same pattern
+- [SQLAlchemy Discussion #10697](https://github.com/sqlalchemy/sqlalchemy/discussions/10697) — pool_size and max_overflow sizing guidance
 
-### Secondary — MEDIUM confidence
-
-- [PyGithub PyPI 2.9.0](https://pypi.org/project/PyGithub/) — `repo.create_file()` / `repo.update_file()` API
-- [playwright PyPI 1.58.0](https://pypi.org/project/playwright/) — current version January 2026
-- [linkcheckmd PyPI](https://pypi.org/project/linkcheckmd/) — active; `mkdocs-linkcheck` confirmed abandoned
-- [Playwright Python docs — screenshots](https://playwright.dev/python/docs/screenshots) — `page.screenshot()` options confirmed
-- [Espejo Docker-based PyPI + APT mirror](https://github.com/mmguero/espejo) — scoped mirror pattern; air-gap procedure
-- [Keygen offline licensing docs](https://keygen.sh/docs/choosing-a-licensing-model/offline-licenses/) — Ed25519 as standard offline licence signing scheme
-
-### Tertiary — MEDIUM/LOW confidence
-
-- [PyPI mirror storage sizing discussion (Python Discuss, 2024)](https://discuss.python.org/t/how-do-i-locally-host-a-pypi-repository-on-an-air-gapped-server/60704) — scoped allowlist strategy rationale; confirms 20+ TB for full mirror
-- Domain knowledge: Docker cgroup resource limit enforcement requires cgroup v2 — well-documented failure mode in containerised CI environments
+### Tertiary (LOW confidence — inference or single source)
+- [asyncpg connection pool best practices — johal.in](https://www.johal.in/gino-asyncpg-connection-pool-best-practices-2025/) — pool_size formula; consistent with official docs but community article
+- [Python Bug Tracker #22087](https://bugs.python.org/issue22087) — asyncio multiprocessing fork unsafety; informs Pitfall 6 avoidance recommendation
 
 ---
-*Research completed: 2026-03-28*
+*Research completed: 2026-03-30*
 *Ready for roadmap: yes*

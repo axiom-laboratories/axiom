@@ -1,500 +1,512 @@
 # Architecture Research
 
-**Domain:** Operator Readiness tooling for existing Axiom job orchestration platform (v15.0)
-**Researched:** 2026-03-28
-**Confidence:** HIGH — all findings verified against live codebase inspection
+**Domain:** Scale hardening integration — Axiom job scheduler (FastAPI + SQLAlchemy async + APScheduler 3.x)
+**Researched:** 2026-03-30
+**Confidence:** HIGH (verified against SQLAlchemy 2.0 docs, APScheduler 3.x docs, PostgreSQL docs, and existing codebase)
 
 ---
 
-## Standard Architecture
+## System Overview
 
-### System Overview — Existing (v14.4 baseline)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Public Surface (GitHub Pages — axiom-laboratories.github.io/axiom) │
-│  ┌────────────────────┐  ┌────────────────────────────────────────┐ │
-│  │ homepage/index.html │  │ docs/  (MkDocs Material, gh-deploy)   │ │
-│  └────────────────────┘  └────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│  Orchestrator (puppeteer/)                                           │
-│  ┌─────────────────────┐  ┌────────────────┐  ┌─────────────────┐  │
-│  │ agent_service/       │  │ model_service/ │  │ dashboard/      │  │
-│  │ main.py (FastAPI)    │  │ (port 8000)    │  │ (React/Vite)    │  │
-│  │ services/            │  └────────────────┘  └─────────────────┘  │
-│  │   licence_service.py │                                            │
-│  │   job_service.py     │  ┌────────────────┐                        │
-│  │   scheduler_service  │  │  PostgreSQL /  │                        │
-│  │   foundry_service    │  │  SQLite        │                        │
-│  └─────────────────────┘  └────────────────┘                        │
-└───────────────────────────────────┬─────────────────────────────────┘
-                            mTLS (pull model)
-┌───────────────────────────────────┴─────────────────────────────────┐
-│  Puppet Nodes (puppets/)                                             │
-│  environment_service/node.py  ->  polls /work/pull                  │
-│  runtime.py  ->  container-isolated execution                       │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│  Operator CLI (mop_sdk / axiom-sdk PyPI package)                    │
-│  axiom-push CLI: init / login / push / create / key generate        │
-│  ~/.axiom/ credential store   Ed25519 signing stays on client       │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│  Private Tooling (tools/ in main repo — current state, needs fix)   │
-│  tools/generate_licence.py   tools/licence_signing.key             │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### System Overview — v15.0 Additions
+Current architecture (before scale hardening):
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  PRIVATE REPO: axiom-laboratories/axiom-licences  (NEW)             │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  generate_licence.py   (migrated from main repo tools/)        │ │
-│  │  licence_signing.key   (Ed25519 private key — NEVER public)    │ │
-│  │  issued/               (ledger of issued licences, gitignored) │ │
-│  │  README.md             (key rotation runbook)                  │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
+│                    Single FastAPI Process                            │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
+│  │  HTTP API    │  │  WebSocket   │  │  APScheduler             │  │
+│  │  Routes      │  │  /ws         │  │  AsyncIOScheduler        │  │
+│  │  (main.py)   │  │              │  │  (same event loop)       │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────────┘  │
+│         │                 │                      │                  │
+│         └─────────────────┴──────────────────────┘                  │
+│                           │                                          │
+│              ┌────────────▼────────────┐                            │
+│              │  AsyncSession / engine  │                            │
+│              │  (pool_size=5, default) │                            │
+│              └────────────┬────────────┘                            │
+└───────────────────────────┼─────────────────────────────────────────┘
+                            │
+                    ┌───────▼────────┐
+                    │  PostgreSQL /  │
+                    │  SQLite (dev)  │
+                    └────────────────┘
+```
 
-┌─────────────────────────────────────────────────────────────────────┐
-│  mop_validation repo — extended validation corpus  (NEW)            │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  scripts/node_jobs/           (signed .py / .sh / .ps1)        │ │
-│  │    health_check.py            (basic node liveness probe)      │ │
-│  │    disk_usage.sh              (OS-agnostic disk report)        │ │
-│  │    port_scan.py               (network reachability probe)     │ │
-│  │    env_report.ps1             (Windows env snapshot)           │ │
-│  │  scripts/sign_corpus.py       (batch-signs scripts via axiom-sdk│ │
-│  └────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
+Problems at scale:
+- APScheduler cron callbacks fire on the same event loop as HTTP request handling — 100 cron fires/min saturate the loop.
+- `pull_work()` does `SELECT PENDING LIMIT 50` + status update with no row lock — two nodes polling simultaneously can both select the same job.
+- `sync_scheduler()` calls `remove_all_jobs()` on every definition CRUD — causes a brief window where no cron jobs are registered.
+- `pool_size=5` (implicit default) exhausts under concurrent node polling from 20+ nodes.
+- No index on `(status, created_at)` on the `jobs` table — full scan on every `pull_work()` call.
 
+Target architecture (after scale hardening):
+
+```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  docs/ (existing, extended with accuracy validation + screenshots)  │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  scripts/validate_docs.py   (NEW — docs accuracy validator)    │ │
-│  │    verifies: API endpoints, CLI commands, compose service names │ │
-│  │  scripts/capture_screenshots.py  (NEW — Playwright screenshots) │ │
-│  │  docs/runbooks/package-repo.md   (NEW — devpi/bandersnatch)    │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
+│                    Single FastAPI Process                            │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
+│  │  HTTP API    │  │  WebSocket   │  │  APScheduler (isolated)  │  │
+│  │  Routes      │  │  /ws         │  │  create_task wrapping    │  │
+│  │  (main.py)   │  │              │  │  (same event loop)       │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────────┘  │
+│         │                 │                      │                  │
+│         └─────────────────┴──────────────────────┘                  │
+│                           │                                          │
+│              ┌────────────▼────────────┐                            │
+│              │  AsyncSession / engine  │                            │
+│              │  pool_size=20,          │                            │
+│              │  max_overflow=10        │                            │
+│              └────────────┬────────────┘                            │
+└───────────────────────────┼─────────────────────────────────────────┘
+                            │
+              ┌─────────────▼─────────────┐
+              │       PostgreSQL          │
+              │  idx: (status,created_at) │
+              └───────────────────────────┘
 ```
 
 ---
 
-## Component Responsibilities
+## Component Boundaries
 
-### New vs Modified Components
-
-| Component | Location | Type | Responsibility |
-|-----------|----------|------|----------------|
-| `generate_licence.py` | `axiom-laboratories/axiom-licences` private repo | Migrated | Offline Ed25519-signed JWT licence issuance; private key co-located and never leaves this repo |
-| `axiom-licences` private repo | Separate GitHub repo | New | Isolation boundary: private signing key, issuance tooling, and issued-licence ledger |
-| `docs/scripts/validate_docs.py` | Main repo `docs/scripts/` | New | Crawls markdown docs, extracts API path patterns and CLI command references, validates against `openapi.json` snapshot and `mop_sdk/cli.py` |
-| `docs/scripts/capture_screenshots.py` | Main repo `docs/scripts/` | New | Playwright (Python, `--no-sandbox`) captures live dashboard views for docs and marketing homepage |
-| `mop_validation/scripts/node_jobs/` | `mop_validation` repo | New | Library of signed validation scripts (Python/Bash/PowerShell) with companion signatures |
-| `mop_validation/scripts/sign_corpus.py` | `mop_validation` repo | New | Batch-signs all scripts in `node_jobs/` via `axiom-sdk` Python API; idempotent |
-| `docs/docs/runbooks/package-repo.md` | Main repo `docs/docs/runbooks/` | New | Operator runbook for devpi (Python), bandersnatch (PyPI mirror), PSRepository (PowerShell) |
-| `tools/generate_licence.py` | Main repo `tools/` | Stubbed/Removed | After migration: replaced with comment directing to private repo |
+| Component | File | Responsibility | Changes Required |
+|-----------|------|----------------|-----------------|
+| Engine creation | `db.py` line 14 | Creates the SQLAlchemy AsyncEngine | Add `pool_size`, `max_overflow`, `pool_pre_ping`, dialect guard |
+| `pull_work()` | `job_service.py` line 550 | Selects + assigns a PENDING job to a node | Replace bare `select(Job).where(status=PENDING)` with `with_for_update(skip_locked=True)` on Postgres; keep existing pattern on SQLite |
+| `sync_scheduler()` | `scheduler_service.py` line 120 | Keeps APScheduler in sync with DB definitions | Replace `remove_all_jobs()` + full reload with incremental add/remove using `get_job()` / `add_job(replace_existing=True)` / `remove_job()` |
+| APScheduler isolation | `scheduler_service.py` `execute_scheduled_job` | Keeps cron callback work off the scheduler loop | Wrap method body with `asyncio.create_task` pattern |
+| DB index | `db.py` `Job.__table_args__` + migration SQL | Index on `(status, created_at)` for `pull_work` query | Add to `__table_args__` for new deployments; provide migration SQL for existing DBs |
 
 ---
 
-## Integration Points
+## Recommended Project Structure
 
-### 1. Licence Generation Tooling -> Licence Validation Service
-
-**Direction:** Offline, no runtime coupling. Key pair is the only coordination point.
+No new files required except a migration SQL file. All changes are targeted modifications to existing files:
 
 ```
-axiom-laboratories/axiom-licences/generate_licence.py
-    |
-    |  (Ed25519 private key signs JWT claims: customer_id, tier,
-    |   node_limit, expiry, grace_days, features[])
-    v
-JWT string (stdout)
-    |
-    |  (operator pastes into customer secrets.env as AXIOM_LICENCE_KEY)
-    v
-puppeteer/agent_service/services/licence_service.py
-    |
-    |  (hardcoded Ed25519 PUBLIC key: _LICENCE_PUBLIC_KEY_PEM)
-    |  (validates at startup; VALID/GRACE/EXPIRED/CE state machine)
-    v
-LicenceState injected into:
-  - EE plugin activation check
-  - /api/enroll node-limit enforcement (HTTP 402 when at limit)
-  - Dashboard EE badge and GRACE/DEGRADED_CE banner
-```
+puppeteer/agent_service/
+├── db.py                        # pool_size + IS_POSTGRES + index addition
+├── services/
+│   ├── job_service.py           # SKIP LOCKED in pull_work()
+│   └── scheduler_service.py    # incremental sync_scheduler(), create_task isolation
+└── main.py                     # no changes needed for dispatcher isolation at v17.0 scope
 
-**Migration constraint:** The public key embedded in `licence_service.py` must match the private key in `axiom-licences/`. After key migration, the key pair must be rotated (new pair generated, public key updated in `licence_service.py`, existing issued licences re-signed with new key). There is no other coordination point between the two repos.
-
-### 2. Docs Accuracy Validator -> OpenAPI Snapshot + CLI Source
-
-**Direction:** Read-only. Validates committed artifacts, not a live server.
-
-```
-docs/scripts/validate_docs.py
-    |
-    +-- reads docs/docs/**/*.md
-    |     (extracts: /api/... patterns, axiom-push <subcommand> patterns,
-    |      service names from compose YAML snippets)
-    |
-    +-- reads docs/docs/api-reference/openapi.json
-    |     (ground truth for API paths — regenerated via regen_openapi.sh)
-    |
-    +-- reads mop_sdk/cli.py
-    |     (ground truth for CLI subcommands — reads registered Click commands)
-    |
-    v
-Validation report to stdout + exit code 1 on any mismatch
-    |
-    |  (wired into ci.yml as: docs-validate job, runs on docs/** push)
-    v
-PR blocked if documented endpoints missing from openapi.json,
-or documented CLI commands not registered in cli.py
-```
-
-**What it validates:**
-- Every `/api/...` path mentioned in docs exists in `openapi.json`
-- Every `axiom-push <subcommand>` mentioned in docs is a registered Click command in `mop_sdk/cli.py`
-- Every compose service name referenced in docs exists in `compose.cold-start.yaml` or `compose.server.yaml`
-
-**Not in scope for v15.0:** Live HTTP request validation. Static OpenAPI comparison is sufficient and CI-safe without a running stack.
-
-### 3. Screenshot Capture -> Live Docker Stack -> Docs and Marketing Assets
-
-**Direction:** One-way read. Output PNG files committed to repo.
-
-```
-docs/scripts/capture_screenshots.py
-    |
-    |  Playwright (Python, --no-sandbox, headless Chromium)
-    |  Auth: JWT injected via localStorage before navigation
-    |        (existing pattern from mop_validation/scripts/test_playwright.py)
-    |  Prerequisite: docker compose -f puppeteer/compose.server.yaml up -d
-    |
-    +-- captures: Jobs, Nodes, Queue, Foundry, Admin, Staging views
-    |
-    +-- writes: docs/docs/assets/screenshots/*.png
-    +-- writes: homepage/assets/screenshots/*.png
-    |
-    v
-Committed to main branch
-    |
-    v
-Auto-deployed via gh-pages-deploy.yml (existing workflow)
-```
-
-**Key constraint:** Screenshots must be captured against the running Docker stack, never against `npm run dev`. This matches the project's existing testing rule.
-
-### 4. Node Validation Job Library -> axiom-push CLI -> Puppet Nodes
-
-**Direction:** Scripts authored offline, signed via axiom-sdk, dispatched to nodes.
-
-```
-mop_validation/scripts/node_jobs/*.py (and .sh, .ps1)
-    |
-    |  python mop_validation/scripts/sign_corpus.py
-    |    calls axiom_sdk.signer per script (or axiom-push push CLI)
-    |    requires: ~/.axiom/credentials (from axiom-push init)
-    |    requires: signing public key registered at POST /api/signatures
-    |
-    v
-Server: signature record stored (script_hash + signature bytes)
-    |
-    |  operator dispatches:
-    |    axiom-push create health-check node_jobs/health_check.py --node <id>
-    |    or dashboard guided dispatch form
-    |
-    v
-Puppet node: runtime.py verifies Ed25519 signature before execution
-    |
-    v
-Job result: stdout/stderr captured in ExecutionRecord
-```
-
-**Dependency:** `axiom-push init` must be completed before any corpus script can be dispatched. The public key registration step is already handled by `axiom-push init` (existing v14.4 feature).
-
-### 5. Custom Package Repo Docs -> No New Code Integration Required
-
-**Direction:** Documentation only. References existing `mirror_service.py` and Foundry pip.conf injection.
-
-```
-docs/docs/runbooks/package-repo.md  (new markdown file)
-    |
-    References existing functionality:
-    - mirror_service.py   (devpi sidecar already in compose.server.yaml)
-    - foundry_service.py  (Smelter pip.conf injection — existing)
-    - bandersnatch        (operator-managed external process, no Axiom API coupling)
-    - PSRepository        (PowerShell-side setup, no Axiom coupling)
-    |
-    v
-Appears in MkDocs nav under Runbooks section
-    (requires mkdocs.yml nav entry — the only change needed)
-```
-
----
-
-## Recommended Project Structure (v15.0 Changes)
-
-```
-axiom-laboratories/axiom-licences/    <- NEW private GitHub repo
-├── generate_licence.py               # migrated from tools/
-├── licence_signing.key               # Ed25519 private key (keep secret)
-├── issued/                           # ledger of issued licences
-│   └── .gitkeep
-└── README.md                         # key rotation runbook
-
-master_of_puppets/                    <- existing public repo
-├── tools/
-│   └── generate_licence.py           # STUB: "moved to axiom-licences private repo"
-│                                     # (licence_signing.key removed entirely)
-├── docs/
-│   ├── scripts/
-│   │   ├── regen_openapi.sh          # existing
-│   │   ├── validate_docs.py          # NEW
-│   │   └── capture_screenshots.py   # NEW
-│   └── docs/
-│       ├── runbooks/
-│       │   ├── package-repo.md       # NEW
-│       │   └── ...existing...
-│       └── assets/
-│           └── screenshots/          # NEW — Playwright output dir
-│               └── .gitkeep
-
-mop_validation/                       <- existing private validation repo
-└── scripts/
-    ├── node_jobs/                    # NEW directory
-    │   ├── README.md                 # corpus description + dispatch instructions
-    │   ├── health_check.py
-    │   ├── disk_usage.sh
-    │   ├── port_scan.py
-    │   └── env_report.ps1
-    └── sign_corpus.py                # NEW
+puppeteer/
+└── migration_v17.sql            # CREATE INDEX CONCURRENTLY for existing Postgres DBs
 ```
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Offline Signing Tool Isolation (Private Repo Boundary)
+### Pattern 1: Pool Size in `create_async_engine`
 
-**What:** Private key tooling lives in a separate, access-controlled private repo. The public repo contains only the verification public key, hardcoded in source.
+**What:** `create_async_engine` accepts `pool_size` and `max_overflow` directly as keyword arguments. The engine automatically uses `AsyncAdaptedQueuePool` (asyncio-safe variant of `QueuePool`) — no manual pool class specification needed. Default `pool_size=5`, `max_overflow=10`.
 
-**When to use:** Any tool that holds a private signing key whose leak would compromise the security model. Licence issuance is exactly this case — a leaked `licence_signing.key` allows unlimited EE licence forgery.
-
-**Trade-offs:** Slight operational friction (clone two repos to do issuance work) vs. eliminating the risk of the private key appearing in git history, PRs, or public forks.
-
-### Pattern 2: Static Snapshot Validation Over Live-Stack CI
-
-**What:** The docs accuracy validator reads `openapi.json` (a committed snapshot produced by `regen_openapi.sh`) rather than making live HTTP requests.
-
-**When to use:** CI jobs where spinning up the full Docker stack is expensive. The snapshot is regenerated manually after API route changes and committed alongside the docs changes that reference the new routes.
-
-**Trade-offs:** Docs can drift from the live API if `regen_openapi.sh` is not run. Mitigation: CI can check that the committed snapshot's route set is a subset of the current server output, failing if new routes were added without updating the snapshot.
-
-**Example:**
+**Current code** (`db.py` line 14):
 ```python
-import re, json
-from pathlib import Path
-
-def extract_api_paths_from_docs(docs_root: Path) -> set:
-    pattern = re.compile(r'`(/api/[^`\s]+)`')
-    paths = set()
-    for md in docs_root.rglob("*.md"):
-        paths.update(pattern.findall(md.read_text()))
-    return paths
-
-def validate_against_openapi(paths: set, openapi: dict) -> list:
-    known = set(openapi["paths"].keys())
-    return sorted(p for p in paths if p not in known)
+engine = create_async_engine(DATABASE_URL, echo=False)
 ```
 
-### Pattern 3: Playwright Screenshot Automation (Existing Project Convention)
-
-**What:** Python Playwright with `--no-sandbox`, JWT injected via `localStorage.setItem('mop_auth_token', token)` before navigation.
-
-**When to use:** Capturing authenticated dashboard views for documentation. This is the identical authentication pattern already used in `mop_validation/scripts/test_playwright.py`.
-
-**Trade-offs:** Screenshots go stale when UI changes. Treat as an operator step, not a blocking CI gate, to avoid blocking deploys on cosmetic drift.
-
-**Example:**
+**Target code:**
 ```python
-from playwright.sync_api import sync_playwright
-import requests
+_IS_POSTGRES = DATABASE_URL.startswith("postgresql")
 
-def get_token(base_url, username, password):
-    r = requests.post(f"{base_url}/api/auth/login",
-                      data={"username": username, "password": password})
-    return r.json()["access_token"]
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=20 if _IS_POSTGRES else 5,
+    max_overflow=10 if _IS_POSTGRES else 0,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 
-def capture(page, url, out_path, token):
-    page.evaluate(f"localStorage.setItem('mop_auth_token', '{token}')")
-    page.goto(url)
-    page.wait_for_load_state("networkidle")
-    page.screenshot(path=out_path)
+IS_POSTGRES = _IS_POSTGRES  # exported for use in services
 ```
+
+**When to use:** Set at engine creation time. `pool_size` controls persistent connections kept open. `max_overflow` allows temporary burst beyond `pool_size`. Total max connections = `pool_size + max_overflow`. For a 20-node deployment, 20 simultaneous `/work/pull` calls each need one connection at the SELECT point — `pool_size=20` matches this 1:1.
+
+**Trade-offs:** `pool_size=20` assumes Postgres `max_connections >= 100` (default is 100). For SQLite, `pool_size=5` is sufficient since SQLite serialises writes via file-level locking — more connections increase contention without benefit. The `_IS_POSTGRES` guard makes this safe for both environments. Confidence: HIGH (SQLAlchemy 2.0 docs, confirmed defaults).
 
 ---
 
-## Data Flow
+### Pattern 2: SELECT FOR UPDATE SKIP LOCKED in async SQLAlchemy
 
-### Licence Issuance Flow
+**What:** Appending `.with_for_update(skip_locked=True)` to a `select()` statement generates `SELECT ... FOR UPDATE SKIP LOCKED` in PostgreSQL. SQLAlchemy silently ignores `with_for_update()` on SQLite — it emits no locking clause, which is safe because SQLite's write serialisation provides the same correctness guarantee for a single-process dev deployment.
 
-```
-Operator (axiom-licences private repo)
-    |  python generate_licence.py --customer-id ACME --tier ee --expiry 2027-01-01 ...
-    v
-JWT string printed to stdout
-    |
-    |  operator pastes into customer secrets.env: AXIOM_LICENCE_KEY=<jwt>
-    v
-Axiom startup (lifespan in main.py)
-    |  licence_service.load_licence()
-    |    -> Ed25519 JWT signature verified against hardcoded public key
-    |    -> LicenceState computed: VALID / GRACE / EXPIRED / CE
-    v
-EE plugin loaded if is_ee_active
-POST /api/enroll: HTTP 402 if active_node_count >= node_limit
-Dashboard: EE badge, GRACE banner (dismissible), DEGRADED_CE banner (non-dismissible)
+**Current code** (`job_service.py` lines 647–660):
+```python
+result = await db.execute(
+    select(Job).where(
+        or_(Job.status == 'PENDING', and_(...RETRYING...))
+    ).where(
+        (Job.node_id == None) | (Job.node_id == node_id)
+    ).order_by(Job.created_at.asc()).limit(50)
+)
+jobs = result.scalars().all()
 ```
 
-### Docs Validation Flow
+**Target code:**
+```python
+from ..db import IS_POSTGRES
 
-```
-Developer edits docs/docs/**/*.md
-    |
-    v
-CI job: docs-validate (on docs/** push)
-    |  python docs/scripts/validate_docs.py
-    |    -> extract /api/... patterns from markdown
-    |    -> cross-reference docs/docs/api-reference/openapi.json
-    |    -> extract axiom-push subcommands from markdown
-    |    -> cross-reference mop_sdk/cli.py registered commands
-    v
-Pass: exit 0 -> PR can merge
-Fail: exit 1 -> PR blocked with diff of unknown references
+candidate_query = (
+    select(Job).where(
+        or_(Job.status == 'PENDING', and_(...RETRYING...))
+    ).where(
+        (Job.node_id == None) | (Job.node_id == node_id)
+    ).order_by(Job.created_at.asc()).limit(50)
+)
+if IS_POSTGRES:
+    candidate_query = candidate_query.with_for_update(skip_locked=True)
+
+result = await db.execute(candidate_query)
+jobs = result.scalars().all()
 ```
 
-### Node Validation Corpus Dispatch Flow
+**Transaction scope note:** `SKIP LOCKED` requires the SELECT and UPDATE to happen inside the same transaction. The existing `pull_work` function commits at line 578 (after the node upsert) before reaching the candidate query. This means the candidate SELECT starts a new implicit transaction automatically — SQLAlchemy's `AsyncSession` starts a new transaction on the next `execute()` call after a commit. The `selected_job.status = 'ASSIGNED'` mutation and subsequent `db.commit()` at the end of `pull_work` completes the transaction. This is correct — no structural change to session handling required.
 
-```
-Operator writes mop_validation/scripts/node_jobs/health_check.py
-    |
-    v
-python mop_validation/scripts/sign_corpus.py
-    |  requires: ~/.axiom/credentials (axiom-push init completed)
-    |  calls axiom_sdk per script -> POST /api/signatures registers public key + hash
-    v
-axiom-push create health-check scripts/node_jobs/health_check.py --node <node-id>
-    |
-    v
-Puppet node runtime.py:
-    -> verifies Ed25519 signature against registered public key
-    -> executes in container if valid
-    -> captures stdout/stderr in ExecutionRecord
-```
+**SQLite fallback:** `with_for_update(skip_locked=True)` on SQLite: the clause is not emitted (confirmed by SQLAlchemy docs). The query runs as a plain `SELECT`. This is safe for single-process dev. Multi-process SQLite dispatch is not a supported configuration.
+
+**Trade-offs:** `FOR UPDATE SKIP LOCKED` means: lock the rows I am evaluating; if another session already holds a lock on a row, skip that row and move to the next one. Two simultaneous `pull_work` calls on Postgres now see disjoint sets of candidate rows. The race condition (two nodes assigned the same job) is eliminated at the database level. Confidence: HIGH (SQLAlchemy GitHub discussion #10460 confirms correct PostgreSQL syntax generation).
 
 ---
 
-## Build Order
+### Pattern 3: Incremental `sync_scheduler()`
 
-Dependencies drive the sequence. Items later in the list depend on earlier ones.
+**What:** Replace the `remove_all_jobs()` + full-reload pattern with a three-way diff: add new definitions (using `add_job(replace_existing=True)` which is idempotent), remove deleted/inactive definitions, leave unchanged definitions alone.
 
-| Order | Component | Depends On | Rationale |
-|-------|-----------|-----------|-----------|
-| 1 | `axiom-laboratories/axiom-licences` repo setup + key migration | Nothing (fully standalone) | Highest-priority risk remediation; clears private key from public repo immediately; no other v15 work depends on this being done first, but it should be |
-| 2 | `docs/docs/runbooks/package-repo.md` | Existing MkDocs nav structure | Pure documentation; zero code changes; easy early win |
-| 3 | `docs/scripts/validate_docs.py` | `docs/docs/api-reference/openapi.json` (existing committed snapshot) | Static file analysis only; no stack needed; CI-wirable once passing |
-| 4 | `mop_validation/scripts/node_jobs/` corpus (write scripts) | Nothing | Scripts can be authored before signing infrastructure is wired |
-| 5 | `mop_validation/scripts/sign_corpus.py` | node_jobs/ scripts (step 4), running Axiom stack, `axiom-push init` | Batch signing requires scripts to exist and server to be reachable |
-| 6 | `docs/scripts/capture_screenshots.py` | Running Docker stack, all UI features stable | Last — captures final UI state; requires the full stack; output depends on UI being complete |
+**Current code** (`scheduler_service.py` lines 120–144) — problem:
+```python
+async def sync_scheduler(self):
+    self.scheduler.remove_all_jobs()          # ALL jobs dark from here...
+    async with db_module.AsyncSessionLocal() as session:
+        result = await session.execute(...)   # ...until this completes
+        jobs = result.scalars().all()
+        for j in jobs:
+            self.scheduler.add_job(...)       # ...and this loop finishes
+```
+
+**Target code:**
+```python
+async def sync_scheduler(self):
+    """Incremental sync: add/replace changed jobs, remove deleted jobs, no dark window."""
+    async with db_module.AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ScheduledJob).where(ScheduledJob.is_active == True)
+        )
+        db_jobs = {j.id: j for j in result.scalars().all()}
+
+    # IDs currently registered in the scheduler
+    scheduled_ids = {job.id for job in self.scheduler.get_jobs()
+                     if not job.id.startswith("__")}  # exclude internal jobs
+
+    # Remove jobs no longer active in DB
+    for jid in scheduled_ids - db_jobs.keys():
+        self.scheduler.remove_job(jid)
+
+    # Add or update jobs present in DB
+    for jid, j in db_jobs.items():
+        if not j.schedule_cron:
+            continue
+        parts = j.schedule_cron.split()
+        if len(parts) != 5:
+            continue
+        try:
+            self.scheduler.add_job(
+                self.execute_scheduled_job,
+                'cron',
+                args=[j.id],
+                minute=parts[0], hour=parts[1], day=parts[2],
+                month=parts[3], day_of_week=parts[4],
+                id=j.id,
+                replace_existing=True,
+                misfire_grace_time=60,
+            )
+        except Exception as e:
+            logger.error(f"Failed to schedule {j.name}: {e}")
+```
+
+**`replace_existing=True` behaviour:** APScheduler replaces the job's trigger but retains its run count. If the cron expression is unchanged, recreating the trigger is effectively a no-op at the execution level. All other registered jobs (including the internal `__prune_node_stats__`, `__dispatch_timeout_sweeper__` jobs) are never touched. Confidence: HIGH (APScheduler 3.x docs).
 
 ---
 
-## Isolation: Private Repo vs Public Repo
+### Pattern 4: Composite Index on `jobs(status, created_at)` Without Alembic
 
-This is the most critical architectural boundary in v15.0.
+**What:** The `pull_work` candidate query has `WHERE status IN ('PENDING', 'RETRYING') ORDER BY created_at ASC LIMIT 50`. A composite index on `(status, created_at)` lets Postgres use an index range scan instead of a full table scan.
 
-| Concern | Repo | Rationale |
-|---------|------|-----------|
-| Ed25519 licence signing private key | `axiom-laboratories/axiom-licences` (private) | Leaked private key enables unlimited EE licence forgery |
-| Licence issuance CLI (`generate_licence.py`) | `axiom-laboratories/axiom-licences` (private) | Tool co-located with key; no value in public exposure |
-| Issued licence ledger | Inside `axiom-licences` (gitignored subfolder) | Customer data |
-| Licence verification public key | `puppeteer/agent_service/services/licence_service.py` (public) | Ships with product; read-only verification is safe and necessary |
-| Docs validation tooling | Main repo `docs/scripts/` (public) | No secrets; useful to open-source contributors |
-| Screenshot capture script | Main repo `docs/scripts/` (public) | No secrets; requires local stack to run |
-| Node validation job scripts | `mop_validation` repo (private) | Test infrastructure kept separate — existing project convention |
+**For new deployments** — add `__table_args__` to `Job` in `db.py`:
 
-**Current state requiring remediation:** `tools/licence_signing.key` exists in the public main repo. This must be migrated and the key pair rotated before v15.0 is complete. The public key in `licence_service.py` must be updated to match the rotated key.
+The `Job` class currently has no `__table_args__`. Add it after the last column definition:
+
+```python
+class Job(Base):
+    __tablename__ = "jobs"
+    # ... all existing columns unchanged ...
+    dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    __table_args__ = (
+        Index("ix_jobs_status_created_at", "status", "created_at"),
+    )
+```
+
+`Base.metadata.create_all` creates this index when it creates the `jobs` table on a fresh database. For an existing database, `create_all` does NOT add new indexes to existing tables — it only creates objects that do not yet exist.
+
+**For existing Postgres deployments** — `migration_v17.sql`:
+```sql
+-- Safe for live production: CONCURRENTLY does not block reads or writes.
+-- NOTE: Cannot run inside a transaction block.
+-- Run via: psql $DATABASE_URL -f migration_v17.sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_jobs_status_created_at
+    ON jobs (status, created_at ASC);
+```
+
+`CREATE INDEX CONCURRENTLY` builds the index via two table scans without an exclusive lock — live traffic continues uninterrupted. `IF NOT EXISTS` makes it idempotent. The `CONCURRENTLY` keyword cannot be used inside a `BEGIN` block — the migration SQL file must be run directly via psql, not wrapped in a transaction.
+
+**For SQLite dev environments:** The `Index(...)` in `__table_args__` is created by `create_all` on a fresh SQLite file without issue. SQLite does not have `CONCURRENTLY` but does not need it.
+
+**Trade-offs:** A `(status, created_at)` B-tree index is most effective when `status` has low cardinality (it does: ~6 values). Postgres will use the index for both the `WHERE status IN (...)` filter and the `ORDER BY created_at` sort, potentially eliminating a sort step. On a table with 10,000+ jobs (mostly COMPLETED/FAILED), this index means `pull_work` scans only the small PENDING/RETRYING subset rather than the full table. Confidence: HIGH (PostgreSQL docs + SQLAlchemy index definition docs).
 
 ---
 
-## Anti-Patterns
+### Pattern 5: APScheduler Dispatcher Isolation
 
-### Anti-Pattern 1: Leaving Private Key in Public Repo
+**What:** APScheduler's `AsyncIOScheduler` shares the main event loop with FastAPI. At 100 cron fires/minute, each `execute_scheduled_job` callback runs DB queries and creates job records — work that competes with HTTP request handlers for event loop time.
 
-**What people do:** Leave `tools/licence_signing.key` in place because migration seems risky.
+**v17.0 recommendation (single container, lowest risk):** Fire-and-forget via `asyncio.create_task`. The APScheduler callback becomes a thin launcher; the DB work runs as a background coroutine:
 
-**Why it's wrong:** Any clone of the public repo grants the ability to generate unlimited valid EE licences. The entire commercial model is undermined. The key has already been exposed to git history.
+```python
+async def execute_scheduled_job(self, scheduled_job_id: str):
+    """APScheduler callback — returns immediately, work runs as background task."""
+    asyncio.create_task(
+        self._execute_scheduled_job_impl(scheduled_job_id),
+        name=f"cron-fire-{scheduled_job_id[:8]}",
+    )
 
-**Do this instead:** Migrate to `axiom-licences` private repo, rotate the key pair (generate new, update `_LICENCE_PUBLIC_KEY_PEM` in `licence_service.py`, re-sign any issued licences), and delete `tools/licence_signing.key` from the main repo with a squash or history rewrite if the key was ever committed.
+async def _execute_scheduled_job_impl(self, scheduled_job_id: str):
+    """Actual implementation — all existing logic moved here unchanged."""
+    logger.info(f"Triggering Scheduled Job: {scheduled_job_id}")
+    # ... existing body of execute_scheduled_job ...
+```
 
-### Anti-Pattern 2: Live-Stack Validation in CI
+This decouples the APScheduler callback duration from the job creation work. The scheduler loop returns in microseconds. At 100 fires/minute, 100 background tasks are launched per minute — each takes ~50ms for a DB round trip, so at any moment there are at most ~8 concurrent background tasks, well within asyncio's capacity.
 
-**What people do:** Write `validate_docs.py` to make HTTP requests to `http://localhost:8001` in CI.
+**Future: true process isolation** (if event loop saturation becomes the next bottleneck after v17.0): Extract the scheduler into a separate entry point (`puppeteer/agent_service/dispatcher.py`) that runs its own `asyncio` event loop with its own APScheduler and its own DB engine, connecting to the same Postgres database via `DATABASE_URL`. Add a second service in `compose.server.yaml`:
 
-**Why it's wrong:** CI jobs without a running stack will fail spuriously; adding the stack to CI requires Docker-in-Docker or service containers, adding minutes of setup time and flaky failures.
+```yaml
+dispatcher:
+  image: puppeteer-agent
+  command: python -m agent_service.dispatcher
+  environment:
+    DATABASE_URL: ${DATABASE_URL}
+  depends_on: [db]
+```
 
-**Do this instead:** Validate against the committed `openapi.json` snapshot. The snapshot is already version-controlled, always available, and makes validation run in under a second.
+This works cleanly because all coordination state (which jobs exist, their schedules, the `jobs` table) lives in Postgres. No in-memory state sharing between API and dispatcher processes is needed. The architecture already supports this — it requires no data model changes.
 
-### Anti-Pattern 3: Unsigned Scripts in the Validation Corpus
+**Trade-offs:** The `create_task` pattern has near-zero risk and covers the v17.0 load target. True process isolation adds operational complexity (two services, startup ordering, log aggregation) and should only be implemented if profiling shows the event loop is actually saturated. Confidence: MEDIUM for the `create_task` pattern (standard asyncio); HIGH that the architecture supports process isolation cleanly.
 
-**What people do:** Commit `.py`/`.sh`/`.ps1` scripts to `node_jobs/` without registered signatures, assuming users will know how to sign them.
+---
 
-**Why it's wrong:** Scripts without registered server-side signatures will be rejected at execution time by `runtime.py`. The corpus is useless if it cannot be dispatched.
+## Data Flow Changes
 
-**Do this instead:** Treat `sign_corpus.py` as the mandatory publication step. The corpus is not "ready" until all scripts have registered signatures. Document this constraint in the `node_jobs/README.md`.
+### Current `pull_work` Data Flow (with race condition)
 
-### Anti-Pattern 4: Screenshots in Git History
+```
+Node A polls /work/pull              Node B polls /work/pull (simultaneous)
+    |                                    |
+    v                                    v
+SELECT Node, UPDATE last_seen        SELECT Node, UPDATE last_seen
+    |                                    |
+    v                                    v
+SELECT Job WHERE status=PENDING      SELECT Job WHERE status=PENDING
+    LIMIT 50                             LIMIT 50
+    |                                    |
+    v                                    v
+Both select job X as candidate       Both select job X as candidate
+    |                                    |
+    v                                    v
+job_X.status = ASSIGNED              job_X.status = ASSIGNED
+    |                                    |
+    v                                    v
+await db.commit()                    await db.commit()  <-- last writer wins
+                                     (both nodes assigned job X)
+```
 
-**What people do:** Commit every Playwright capture run, accumulating large binary diffs.
+### Target `pull_work` Data Flow (with SKIP LOCKED)
 
-**Why it's wrong:** Git is not an image store. Screenshot PNGs are tens of KB each; history bloats quickly.
+```
+Node A polls /work/pull              Node B polls /work/pull (simultaneous)
+    |                                    |
+    v                                    v
+SELECT Node, UPDATE last_seen        SELECT Node, UPDATE last_seen
+    |                                    |
+    v                                    v
+SELECT Job WHERE status=PENDING      SELECT Job WHERE status=PENDING
+    LIMIT 50                             LIMIT 50
+    FOR UPDATE SKIP LOCKED               FOR UPDATE SKIP LOCKED
+    |                                    |
+    v                                    v
+Node A locks job X                   Job X is locked → skipped
+Node A selects job X                 Node B skips to job Y
+    |                                    |
+    v                                    v
+job_X.status = ASSIGNED              job_Y.status = ASSIGNED
+    |                                    |
+    v                                    v
+await db.commit()                    await db.commit()
+(lock released)
+```
 
-**Do this instead:** Store screenshots in the repo but document `capture_screenshots.py` as an operator step run before intentional doc refreshes, not as a CI gate. Consider `.gitignore`-ing them and having a dedicated "refresh screenshots" workflow that generates and commits them only when needed.
+### Scheduler Sync Data Flow Change
+
+```
+Before CRUD:  sync_scheduler()
+    |
+    v
+remove_all_jobs()           <- ALL jobs unregistered (dark window starts)
+    |
+    v
+DB SELECT all active jobs   <- network round trip during dark window
+    |
+    v
+add_job() for each          <- jobs re-registered (dark window ends)
+
+After CRUD:   sync_scheduler()
+    |
+    v
+DB SELECT all active jobs   <- read-only, no dark window
+    |
+    v
+diff: scheduled_ids vs db_ids
+    |
+    +--> remove_job(id) for departed IDs   <- targeted removal
+    +--> add_job(id, replace_existing=True) for all DB IDs   <- idempotent upsert
+         (jobs not changing are re-registered with same trigger — effectively no-op)
+```
 
 ---
 
 ## Scaling Considerations
 
-These v15.0 components are operator tooling and documentation — they have no runtime performance footprint on the Axiom server itself.
+| Scale | Bottleneck | Fix |
+|-------|------------|-----|
+| 10 nodes / 50 jobs | None | No changes needed |
+| 20 nodes / 200 jobs | DB connection pool exhaustion | `pool_size=20` |
+| 20 nodes / 200 jobs | Double-assignment race | `SKIP LOCKED` |
+| 50 nodes / 500 jobs | Full-table scan on `pull_work` | Composite index `(status, created_at)` |
+| 100 cron fires/min | Scheduler sync dark window | Incremental `sync_scheduler()` |
+| 100 cron fires/min | Event loop saturation | `create_task` dispatcher isolation |
+| 200+ nodes | Postgres `max_connections` | PgBouncer (out of scope for v17.0) |
 
-| Concern | Impact | Notes |
-|---------|--------|-------|
-| Licence issuance volume | None | Offline tool; runs once per customer; zero server load |
-| Docs validation in CI | Low | Markdown + JSON parsing; completes in under 5 seconds |
-| Screenshot capture | Moderate (one-time) | Full Playwright + Chromium launch; ~30-60 seconds for a full capture run; not a hot CI path |
-| Node job corpus size | Negligible | Text files; signing is one-time per script version |
+**v17.0 target (20 nodes / 200 jobs / 1,000 definitions / 100 fires/min):** All five patterns above cover this range within the existing single-container Docker deployment topology.
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: `remove_all_jobs()` on Every CRUD
+
+**What people do:** Call `sync_scheduler()` which calls `remove_all_jobs()` + full reload on every job definition create/update/delete.
+
+**Why it's wrong:** During the reload window, all scheduled jobs are unregistered. Any cron fire due in that window is missed. Under burst load (many operators editing definitions concurrently), the dark windows can overlap or chain.
+
+**Do this instead:** Incremental sync using `add_job(replace_existing=True)` and `remove_job()` for only the changed definitions. Internal scheduler jobs (`__prune_node_stats__`, `__dispatch_timeout_sweeper__`) are never touched.
+
+---
+
+### Anti-Pattern 2: Applying `SKIP LOCKED` Unconditionally
+
+**What people do:** Add `with_for_update(skip_locked=True)` unconditionally to the candidate query.
+
+**Why it's wrong:** SQLite silently ignores `with_for_update()` — the lock clause is not emitted. This is benign for correctness but creates a false expectation that SQLite is protected against multi-process dispatch races (it is not — switching to Postgres is the correct fix for multi-process production use).
+
+**Do this instead:** Guard the `with_for_update` call behind `IS_POSTGRES` defined at engine creation. This makes the intent explicit and prevents future confusion when debugging dispatch issues on dev environments.
+
+---
+
+### Anti-Pattern 3: Setting `pool_size` Without a Dialect Guard
+
+**What people do:** Hardcode `pool_size=20` for all dialects.
+
+**Why it's wrong:** SQLite with `pool_size > 1` creates a queue of connections to a single file. Multiple concurrent write transactions on SQLite produce `database is locked` errors. The dev experience degrades unnecessarily.
+
+**Do this instead:** `pool_size=20 if IS_POSTGRES else 5`. Single-line guard; same file as the engine.
+
+---
+
+### Anti-Pattern 4: `CREATE INDEX` in a Migration Transaction
+
+**What people do:** Wrap `CREATE INDEX` inside a `BEGIN; ... COMMIT;` transaction in a migration SQL file.
+
+**Why it's wrong:** `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block. The command will error with `ERROR: CREATE INDEX CONCURRENTLY cannot run inside a transaction block`. Regular `CREATE INDEX` (without `CONCURRENTLY`) inside a transaction is valid but takes an exclusive table lock, blocking `pull_work` calls during index creation on large job tables.
+
+**Do this instead:** Run `CREATE INDEX CONCURRENTLY IF NOT EXISTS ...` outside any transaction, directly via psql.
+
+---
+
+## Integration Points — Exact File + Line
+
+| Change | File | Location | Scope |
+|--------|------|----------|-------|
+| Add `pool_size`, `max_overflow`, `pool_pre_ping`, `pool_recycle` | `db.py` | Line 14: `engine = create_async_engine(...)` | Replace 1 line |
+| Export `IS_POSTGRES` boolean | `db.py` | After line 12 (DATABASE_URL assignment) | Add 2 lines |
+| Composite index on `jobs(status, created_at)` | `db.py` | After last column in `Job` class | Add `__table_args__` tuple, ~3 lines |
+| Guard `with_for_update(skip_locked=True)` | `job_service.py` | Lines 647–660: candidate query in `pull_work()` | Wrap in `if IS_POSTGRES`, add import |
+| Import `IS_POSTGRES` | `job_service.py` | Top of file, existing `from ..db import ...` line | Add `IS_POSTGRES` to existing import |
+| Incremental `sync_scheduler()` | `scheduler_service.py` | Lines 120–144: full method body | Replace method body |
+| Fire-and-forget dispatcher | `scheduler_service.py` | Lines 146–253: `execute_scheduled_job()` | Rename to `_execute_scheduled_job_impl`, add thin launcher |
+| Migration SQL for composite index | `migration_v17.sql` (new) | `puppeteer/` directory | New file, 4 lines |
+
+---
+
+## Build Order
+
+Recommended sequence — non-breaking changes first, correctness before performance, SQLite compat established before Postgres-only features:
+
+**Step 1: Pool size tuning + `IS_POSTGRES` export** (`db.py`)
+- Non-breaking. Changes `pool_size` from 5 to 20 on Postgres (increase; no existing connections affected). SQLite stays at 5.
+- No schema changes. No migration. No test changes needed.
+- Establishes `IS_POSTGRES` boolean used by all subsequent steps.
+
+**Step 2: Composite index** (`db.py` `__table_args__` + `migration_v17.sql`)
+- Non-breaking. `create_all` creates the index on fresh databases. Running `migration_v17.sql` via psql adds it to existing Postgres deployments without downtime.
+- Deploy the migration SQL on the live Postgres instance before or immediately after code deploy — `CONCURRENTLY` is safe on live traffic.
+- SQLite fresh databases get the index via `create_all` automatically.
+
+**Step 3: Incremental `sync_scheduler()`** (`scheduler_service.py`)
+- Correctness fix (eliminates scheduler dark window). No schema changes. No API changes.
+- Must preserve the three internal jobs (`__prune_node_stats__`, `__prune_execution_history__`, `__dispatch_timeout_sweeper__`) — the incremental sync must not remove them. Guard by filtering `job.id.startswith("__")` from the set of IDs to remove.
+- Test: verify that creating a new job definition does not cause existing job definitions to stop firing.
+
+**Step 4: SKIP LOCKED on `pull_work()`** (`job_service.py`)
+- Correctness fix (eliminates double-assignment race on Postgres). SQLite unaffected.
+- Requires `IS_POSTGRES` from Step 1.
+- Verify transaction scope: the candidate query executes after the first `db.commit()` at line 578 (node upsert). SQLAlchemy automatically begins a new implicit transaction on the next `execute()` call — no manual `BEGIN` needed. The `SKIP LOCKED` lock is held until the final `db.commit()` at the end of `pull_work()`.
+- Test: two concurrent `/work/pull` requests against a single PENDING job on Postgres — only one should receive the job.
+
+**Step 5: APScheduler dispatcher isolation** (`scheduler_service.py`)
+- Performance fix. Lowest risk as `create_task` wrapping.
+- No schema changes. No API changes. No change to `execute_scheduled_job`'s existing logic — just moved to an inner `_impl` method.
+- Test: verify cron jobs still fire at the correct times after refactor.
 
 ---
 
 ## Sources
 
-- Direct inspection: `puppeteer/agent_service/services/licence_service.py` — Ed25519 JWT validation, hardcoded public key, LicenceState state machine
-- Direct inspection: `tools/generate_licence.py` — existing licence issuance CLI structure and deps (PyJWT, cryptography)
-- Direct inspection: `docs/scripts/regen_openapi.sh` — established pattern for OpenAPI snapshot management
-- Direct inspection: `docs/docs/api-reference/openapi.json` — existing committed validation ground truth
-- Direct inspection: `mop_validation/scripts/` — existing test/validation script patterns
-- Direct inspection: `mop_sdk/signer.py`, `mop_sdk/cli.py` — Ed25519 signing infrastructure and CLI command registration
-- Project memory: Playwright `--no-sandbox` + localStorage JWT injection pattern (validated in v14.0 cold-start)
-- `PROJECT.md`: v14.4 validated state, key decisions table, deferred future items
+- [SQLAlchemy 2.0 — Connection Pooling](https://docs.sqlalchemy.org/en/20/core/pooling.html) — pool_size, max_overflow defaults and AsyncAdaptedQueuePool
+- [SQLAlchemy 2.0 — Async I/O](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html) — AsyncSession usage patterns
+- [SQLAlchemy GitHub Discussion #10460](https://github.com/sqlalchemy/sqlalchemy/discussions/10460) — confirms `with_for_update(skip_locked=True)` emits correct PostgreSQL syntax
+- [SQLAlchemy 2.0 — SQLite dialect](https://docs.sqlalchemy.org/en/20/dialects/sqlite.html) — confirmed: `with_for_update` silently ignored on SQLite
+- [APScheduler 3.x User Guide](https://apscheduler.readthedocs.io/en/3.x/userguide.html) — `add_job`, `replace_existing`, `get_jobs`
+- [APScheduler 3.x Base Scheduler API](https://apscheduler.readthedocs.io/en/3.x/modules/schedulers/base.html) — `add_job`, `remove_job`, `get_job` method signatures
+- [SQLAlchemy 2.0 — Defining Constraints and Indexes](https://docs.sqlalchemy.org/en/20/core/constraints.html) — `Index` in `__table_args__`
+- [PostgreSQL CREATE INDEX CONCURRENTLY guide](https://dev.to/mickelsamuel/create-index-concurrently-the-complete-postgresql-guide-b7m) — safe live index creation, transaction restriction
 
 ---
-*Architecture research for: Axiom v15.0 Operator Readiness*
-*Researched: 2026-03-28*
+
+*Architecture research for: Axiom v17.0 Scale Hardening*
+*Researched: 2026-03-30*

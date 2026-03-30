@@ -1,271 +1,306 @@
 # Stack Research
 
-**Domain:** Operator Readiness — licence generation tooling, docs accuracy validation, screenshot capture, node validation job library, custom package repo docs and validation
-**Researched:** 2026-03-28
+**Domain:** Scale Hardening — asyncpg pool, SKIP LOCKED dispatch, composite indexes, APScheduler tuning, dispatcher isolation
+**Researched:** 2026-03-30
 **Confidence:** HIGH
 
 ---
 
-## Context: Existing Stack (Do Not Re-research)
+## Context: Scope of This Milestone
 
-The existing stack already handles every primitive these five features depend on. New features require additions at the tooling and scripting layer only — no new server-side dependencies.
+This research covers only the NEW capabilities required for v17.0 Scale Hardening. The existing stack (FastAPI, SQLAlchemy async, asyncpg, APScheduler 3.x, aiosqlite) is validated and not re-researched. All findings are additive changes or configuration adjustments to existing components.
 
-| Component | Status | Relevant to v15.0 |
-|-----------|--------|-------------------|
-| `cryptography` 46.x | In `requirements.txt` | Ed25519 signing (licence generator already uses it) |
-| `PyJWT[crypto]` >= 2.7.0 | In `requirements.txt` | EdDSA JWT encode/decode (licence JWT already uses it) |
-| `playwright` (Python) | In `mop_validation/` | Screenshot capture already works there |
-| `pypiserver/pypiserver` | In `compose.server.yaml` | PyPI sidecar already deployed |
-| `devpi` (muccg/devpi image) | In `compose.server.yaml` | Internal wheel index already deployed |
-| `pytest` + `httpx` | In `puppeteer/requirements.txt` | API smoke tests already possible |
-| `tools/generate_licence.py` | In `tools/` | Offline CLI signing already implemented (Ed25519 JWT) |
+Target envelope: 20+ nodes / 200+ pending jobs / 1,000 scheduled definitions / 100 cron fires per minute without correctness regressions.
 
 ---
 
-## Feature 1: Licence Generation Tooling (Issuance Records in Private GitHub Repo)
+## Recommended Stack
 
-### What Already Exists
+### Core Technologies (Configuration Changes Only)
 
-`tools/generate_licence.py` is a complete offline CLI using `cryptography` + `PyJWT`. It generates Ed25519 keypairs, signs JWT payloads, and prints the token to stdout. The private signing key lives at `tools/licence_signing.key`.
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| SQLAlchemy asyncio | already installed (2.x) | Async ORM + pool management | `create_async_engine` accepts all QueuePool params directly; `AsyncAdaptedQueuePool` is the auto-selected pool class for async engines |
+| asyncpg | already installed | PostgreSQL async driver | Native async, no threading overhead; pool params flow through SQLAlchemy engine kwargs |
+| aiosqlite | already installed | SQLite async driver (dev/test) | Used in SQLite fallback path; does NOT support SELECT FOR UPDATE so fallback logic is required |
+| APScheduler | `>=3.11.2,<4` | Cron scheduling | 3.11.2 is the current stable (released 2025-12-22); v4 is still alpha (4.0.0a6 as of 2025-04-27) — do not upgrade to v4 |
 
-**What is missing:** A record-keeping mechanism. Every issued licence should be auditable — when issued, to whom, expiry, tier, features. The milestone asks for a private GitHub repository as the record store.
+### Supporting Libraries (No New Installs Needed)
 
-### Recommended Addition: PyGithub
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| `sqlalchemy[asyncio]` | already in requirements | Provides `AsyncAdaptedQueuePool`, `with_for_update(skip_locked=True)` | All async DB work; pool config at engine creation time |
+| `aiosqlite` | already in requirements | SQLite async bridge | Local dev only; must detect dialect and use `UPDATE ... WHERE status='PENDING' LIMIT 1` fallback instead of SKIP LOCKED |
 
-**PyGithub 2.x** is the standard Python library for the GitHub REST API v3. It supports creating/updating files in private repositories via `repo.create_file()` and `repo.update_file()`. The licence issuance script can append a JSONL record to a ledger file after signing.
+No new packages are required for this milestone. All changes are configuration, SQL query patterns, and code structure.
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| `PyGithub` | `>=2.5.0` (latest 2.9.0) | Append licence issuance records to a private GitHub repo | Official GitHub REST API v3 client; typed; supports create/update file operations on private repos; no alternative has the same breadth of coverage and active maintenance |
+---
 
-**Pattern for ledger append:**
+## Pool Configuration
+
+### asyncpg Pool Parameters (Postgres production path)
+
+Pass directly to `create_async_engine()`. SQLAlchemy automatically selects `AsyncAdaptedQueuePool` for async engines.
 
 ```python
-from github import Github
-
-g = Github(os.environ["GITHUB_TOKEN"])
-repo = g.get_repo("axiom-laboratories/axiom-licence-ledger")
-
-# Read existing ledger (JSONL)
-try:
-    f = repo.get_contents("ledger.jsonl")
-    existing = f.decoded_content.decode()
-    new_content = existing + json.dumps(record) + "\n"
-    repo.update_file("ledger.jsonl", f"Add licence {licence_id}", new_content, f.sha)
-except:
-    repo.create_file("ledger.jsonl", f"Add licence {licence_id}", json.dumps(record) + "\n")
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=10,           # persistent connections kept alive
+    max_overflow=20,        # burst capacity; total = pool_size + max_overflow = 30
+    pool_timeout=30.0,      # seconds to wait before raising; default is 30
+    pool_recycle=300,       # recycle connections older than 5 min (prevents stale conn errors)
+    pool_pre_ping=True,     # SELECT 1 health check at checkout; eliminates "connection closed" errors
+)
 ```
 
-**Dependencies:** `PyGithub>=2.5.0` — install in the `tools/` venv only, not `puppeteer/requirements.txt`. This is an operator tooling dependency, not a server dependency.
+**Sizing rationale for target envelope (20 nodes, single Uvicorn worker):**
+- Each node polls `/work/pull` every N seconds; peak concurrent DB touches ≈ nodes + HTTP requests ≈ 30-40
+- `pool_size=10` covers steady-state; `max_overflow=20` covers cron burst when 100 definitions fire simultaneously
+- Formula: `workers * (pool_size + max_overflow) < postgres max_connections` — with 1 worker and pool=10+20, total connections = 30, well within Postgres default of 100
+- `pool_pre_ping=True` is essential: Docker network restarts silently drop idle connections; without this, the first post-restart request fails
 
-**Authentication:** GitHub Personal Access Token with `repo` scope, stored in `GITHUB_TOKEN` env var. For CI use, a fine-grained PAT scoped to the ledger repo is preferable.
+### SQLite fallback (dev/test path)
 
-**Confidence:** HIGH — PyGithub is the standard library; the pattern above is a one-page script on top of the existing generate_licence.py.
+SQLite with aiosqlite does NOT support pool sizing parameters meaningfully. Use `NullPool` or accept the default `StaticPool`. Do not configure `pool_size`/`max_overflow` for SQLite — they are ignored or raise errors depending on SQLAlchemy version.
 
----
+Detect via dialect:
 
-## Feature 2: Docs Accuracy Validation
-
-### What Needs Validating
-
-Three categories of accuracy drift are possible:
-
-1. **API endpoints** — docs reference routes that have been renamed or removed
-2. **CLI commands** — `axiom-push` subcommands/flags documented but changed
-3. **Compose file** — service names, env vars, port numbers described incorrectly
-
-### Recommended Approach: httpx-based smoke test script (no new deps)
-
-The server already has `httpx` in `requirements.txt`. A standalone script in `tools/` that:
-1. Boots or connects to the running stack
-2. Issues authenticated GET requests to every documented endpoint
-3. Reports any non-2xx or 404
-
-This is not a new library — it uses httpx that is already present. The script lives in `tools/validate_docs.py` and is invoked manually or in CI against a live stack.
-
-For **CLI command validation**, run `axiom-push --help` and each documented subcommand with `subprocess.run` and assert return codes. No new library needed.
-
-For **link checking in MkDocs source**, use `linkcheckmd`:
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| `linkcheckmd` | `>=1.4.0` | Check all Markdown links in `docs/docs/` | Async, fast, works on raw `.md` files without building the site; actively maintained; does not require a running server for internal link checking |
-
-**Do NOT use** `mkdocs-linkcheck` — it is abandoned (no releases in 12+ months per PyPI). `linkcheckmd` is the current community choice.
-
-**Pattern:**
-
-```bash
-# In CI or as a pre-deploy check:
-python -m linkcheckmd docs/docs/ --local
-```
-
-The `--local` flag checks only internal file-relative links (no HTTP requests). This catches broken cross-references in docs without needing the site built.
-
-For **external link checking** (e.g. docs referencing GitHub URLs), run without `--local` but be tolerant of rate-limit false positives — external checks should be advisory, not blocking.
-
-**Confidence:** MEDIUM — linkcheckmd is maintained and fits the use case; httpx pattern is HIGH confidence (existing library, existing pattern in the codebase).
-
----
-
-## Feature 3: Screenshot Capture for Docs and Marketing Homepage
-
-### What Already Exists
-
-The `mop_validation/` repo uses Python Playwright (sync API) with `--no-sandbox` and JWT-via-localStorage auth. This already works in the environment.
-
-### Recommended: Python Playwright (same pattern, moved to main repo `tools/`)
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| `playwright` (Python) | `>=1.58.0` (current: 1.58.0) | Capture dashboard screenshots for docs/homepage | Already proven in this environment; `--no-sandbox` workaround documented in CLAUDE.md; sync API is simpler for a one-shot screenshot script |
-
-**No new library needed** — Playwright is already used and validated. The only addition is a screenshot script in `tools/capture_screenshots.py` that:
-1. Starts the Docker stack (or connects to running stack)
-2. Gets a JWT via the API (not UI login — avoid React form issues)
-3. Injects JWT via `localStorage.setItem('mop_auth_token', token)`
-4. Navigates to each dashboard view
-5. Calls `page.screenshot(path=f"docs/docs/assets/screenshots/{name}.png", full_page=False)`
-
-**Key constraints from CLAUDE.md (verified, do not change):**
-- Always launch with `args=['--no-sandbox']`
-- Auth: inject JWT via localStorage, not login form
-- API login uses form-encoded data, not JSON
-- localStorage key is `mop_auth_token`
-
-**For screenshot dimensions:** Use `page.set_viewport_size({"width": 1280, "height": 800})` for consistent framing across all captures.
-
-**Playwright version:** 1.58.0 released January 30, 2026. Requires `playwright install chromium` after pip install. No version bump needed from mop_validation — use the same version.
-
-**Confidence:** HIGH — direct carry-over of working pattern from mop_validation.
-
----
-
-## Feature 4: Node Validation Job Library
-
-### What Needs Building
-
-A library of signed reference jobs in `puppets/validation_jobs/` that operators can dispatch against their nodes to verify:
-- Runtime: Python/Bash/PowerShell execution
-- Volume mapping: read/write test files
-- Network filtering: connectivity tests (should reach / should not reach)
-- Resource limit enforcement: OOM/timeout triggers
-
-### Stack: No New Libraries
-
-All validation jobs are **script content** — Python, Bash, or PowerShell — dispatched via the existing `axiom-push job push` CLI or `POST /api/jobs`. The signing uses the existing `cryptography` + `PyJWT` toolchain.
-
-The library is a directory of `.py`, `.sh`, and `.ps1` files plus a manifest. Each script is pre-signed and stored with its signature in a sidecar `.sig` file (same pattern as existing signed job dispatch).
-
-| Component | Purpose | How |
-|-----------|---------|-----|
-| `puppets/validation_jobs/*.py` | Python runtime validation scripts | Standard Python, no imports beyond stdlib |
-| `puppets/validation_jobs/*.sh` | Bash validation scripts | POSIX-compatible |
-| `puppets/validation_jobs/*.ps1` | PowerShell validation scripts | pwsh 7 compatible |
-| `tools/sign_validation_jobs.py` | Batch sign all validation scripts | Uses existing Ed25519 signing (`cryptography` already present) |
-| `tools/dispatch_validation_suite.py` | Dispatch + monitor all validation jobs | Uses `httpx` (already present) |
-
-**No new server-side dependencies.** The validation job scripts use only OS stdlib (Python `os`, `sys`, `subprocess`; Bash builtins; PowerShell core cmdlets). Resource limit tests deliberately allocate memory or sleep to trigger enforced limits — this is intentional and requires no external libraries.
-
-**Confidence:** HIGH — straightforward script files dispatched via existing API.
-
----
-
-## Feature 5: Custom Package Repo — Operator Docs and Validation Jobs
-
-### What Already Exists
-
-The `compose.server.yaml` already runs:
-- `pypiserver/pypiserver:latest` on port 8080 — bare PyPI-compatible index, no auth, no mirroring
-- `muccg/devpi:latest` on port 3141 — full devpi stack with PyPI mirror capability
-
-The `mirror_service.py` downloads packages via `pip download` into a volume, and a Caddy sidecar serves them.
-
-### What is Missing
-
-1. **Operator documentation** — how to configure nodes to use the local PyPI mirror (`pip.conf`, `PIP_INDEX_URL`), how to upload internal packages, how to set up APT and PWSH mirrors
-2. **Validation jobs** — signed Bash/Python/PowerShell jobs that verify connectivity to the local mirror, install a test package, and confirm the source is the internal mirror (not public PyPI)
-
-### Stack Assessment for Package Mirror Validation Jobs
-
-No new server-side library is needed. The validation jobs are scripts that run inside nodes:
-
-**PyPI validation job (Python):**
 ```python
-import subprocess, sys
-# Verify pip uses local mirror
-result = subprocess.run([sys.executable, '-m', 'pip', 'install',
-    '--dry-run', '--index-url', 'http://pypi:8080/simple/', 'requests'],
-    capture_output=True, text=True)
-assert 'pypi:8080' in result.stdout or result.returncode == 0
-```
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./jobs.db")
+is_sqlite = DATABASE_URL.startswith("sqlite")
 
-**APT mirror validation (Bash):**
-The existing `mirror_service.py` does not implement APT mirroring — it is stubbed out (see lines 33-38: only `_mirror_pypi` is called). APT mirroring was deferred in v7.0. For v15.0, **document only** — advise operators to use `apt-cacher-ng` as a separate sidecar if they need APT mirroring. Do not implement a new APT mirror service for this milestone.
-
-**PowerShell (PSRepository) validation (PowerShell):**
-PowerShell module repos use NuGet v2/v3 API. For air-gapped environments, `BaGet` (an open-source NuGet server) is the standard choice for hosting a local PSRepository. This is documentation guidance only for v15.0 — no new service is implemented.
-
-| Decision | Recommendation | Rationale |
-|----------|----------------|-----------|
-| PyPI mirror | Document devpi already in stack | devpi supports `--index-url` pip config; already running |
-| APT mirror | Document apt-cacher-ng as operator-managed sidecar | Too large to bundle (200-300 GB full mirror); transparent proxy model is simpler |
-| PWSH PSRepository | Document BaGet as operator choice | NuGet v2 API; well-documented; out of scope to add to compose |
-
----
-
-## Recommended Stack Additions (New for v15.0)
-
-### Core Technologies (New Installs Required)
-
-| Technology | Version | Purpose | Why Recommended | Scope |
-|------------|---------|---------|-----------------|-------|
-| `PyGithub` | `>=2.5.0` | Append licence issuance records to private GitHub repo | Standard GitHub REST API v3 client; typed; actively maintained; covers create/update file on private repos | `tools/` venv only — NOT `puppeteer/requirements.txt` |
-| `playwright` (Python) | `>=1.58.0` | Dashboard screenshot capture script | Already validated in environment; `--no-sandbox` pattern proven; 1.58.0 is current (Jan 2026) | `tools/` venv only |
-| `linkcheckmd` | `>=1.4.0` | Markdown link validation across docs/ | Async, fast, no build step needed; `mkdocs-linkcheck` is abandoned | `docs/` venv or CI |
-
-### No Changes Required
-
-| Component | Why No Change Needed |
-|-----------|---------------------|
-| `cryptography` | Already in requirements.txt; Ed25519 keypair generation and signing already works |
-| `PyJWT[crypto]>=2.7.0` | Already in requirements.txt; EdDSA JWT encoding already works |
-| `httpx` | Already in requirements.txt; API smoke test scripts use it directly |
-| `pytest` | Already in requirements.txt; validation test scripts can use it |
-| `pypiserver` sidecar | Already in compose.server.yaml on port 8080 |
-| `devpi` sidecar | Already in compose.server.yaml on port 3141 |
-| Playwright browser binaries | Already installed in mop_validation environment; run `playwright install chromium` in the tools venv |
-
----
-
-## Installation
-
-```bash
-# Tools venv (offline operator tooling — NOT the puppeteer server):
-pip install PyGithub>=2.5.0
-pip install playwright>=1.58.0
-playwright install chromium  # download browser binary
-
-# Docs venv (add to docs/requirements.txt):
-# Current: mkdocs-material==9.7.5, mkdocs-swagger-ui-tag==0.8.0
-pip install linkcheckmd>=1.4.0
-
-# puppeteer/requirements.txt — NO CHANGES for v15.0
-# All 5 features are tooling/scripting layer; server gets no new deps.
+if is_sqlite:
+    engine = create_async_engine(DATABASE_URL, echo=False)
+else:
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,
+        pool_size=10,
+        max_overflow=20,
+        pool_timeout=30,
+        pool_recycle=300,
+        pool_pre_ping=True,
+    )
 ```
 
 ---
 
-## Alternatives Considered
+## SELECT FOR UPDATE SKIP LOCKED
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| `PyGithub` for ledger records | Raw `httpx` calls to GitHub API | Use raw httpx if you want zero new dependencies; PyGithub is less friction for file create/update with SHA management |
-| `PyGithub` for ledger records | Git commit + push via subprocess | Use subprocess git if the operator machine already has git configured with credentials; avoids PyGithub dep entirely; slightly less portable |
-| `linkcheckmd` for docs validation | `linkchecker-mkdocs` plugin | Use the MkDocs plugin if you want validation baked into `mkdocs build --strict`; linkcheckmd is simpler as a standalone CI step |
-| Python Playwright for screenshots | Selenium / Puppeteer (JS) | Use Playwright; it is already validated in this environment with the exact workarounds needed (`--no-sandbox`, localStorage auth) |
-| `apt-cacher-ng` (operator-managed) for APT | Bundling apt-mirror into compose | Never bundle a full APT mirror — 200-300 GB disk, complex sync scheduling; caching proxy is the right pattern for most operators |
-| BaGet for PSRepository | Proget, Azure Artifacts, Nexus | BaGet is free, open-source, and self-hosted; Proget/Azure are commercial; for an air-gapped environment, BaGet is the minimum viable NuGet server |
+### Postgres path
+
+SQLAlchemy 2.x supports `with_for_update(skip_locked=True)` on `select()` statements in async sessions. This is the standard mechanism for lock-free job dispatch: the first session to touch a PENDING job locks it; all other concurrent dispatchers skip it atomically.
+
+```python
+from sqlalchemy import select, update
+
+# In job_service.py assign_job() — postgres path
+stmt = (
+    select(Job)
+    .where(Job.status == "PENDING")
+    .order_by(Job.created_at.asc())
+    .limit(1)
+    .with_for_update(skip_locked=True)
+)
+result = await db.execute(stmt)
+job = result.scalar_one_or_none()
+if job:
+    job.status = "ASSIGNED"
+    job.node_id = node.node_id
+    await db.flush()   # hold the lock until commit
+    await db.commit()
+```
+
+**Key constraint:** The session must stay open and commit while the lock is held. Do not use `expire_on_commit=False` patterns that might release the session before the status update commits. Each concurrent dispatch call must use its own `AsyncSession` instance — sessions are not safe to share across concurrent tasks.
+
+**Behavior:** If a PENDING job is already locked by another dispatcher, the query returns `None` instead of blocking. The caller should handle `None` gracefully (no work available). This eliminates double-assignment races entirely.
+
+### SQLite fallback (dev/test)
+
+SQLite does not support `SELECT FOR UPDATE`. SQLAlchemy renders nothing for `with_for_update()` on SQLite — it silently becomes a plain SELECT, which means races can occur. This is acceptable for dev/test (single-process, low concurrency) but must be detected and handled.
+
+Recommended SQLite fallback: issue an `UPDATE ... SET status='ASSIGNED' WHERE guid = (SELECT guid FROM jobs WHERE status='PENDING' ... LIMIT 1)` in a single statement and check `rowcount`. SQLite's exclusive write lock ensures only one writer wins at a time.
+
+```python
+from sqlalchemy import text
+
+# SQLite fallback: atomic update-and-claim
+result = await db.execute(
+    text("""
+        UPDATE jobs SET status='ASSIGNED', node_id=:node_id
+        WHERE guid = (
+            SELECT guid FROM jobs WHERE status='PENDING'
+            ORDER BY created_at ASC LIMIT 1
+        )
+    """),
+    {"node_id": node_id}
+)
+await db.commit()
+claimed = result.rowcount > 0
+```
+
+Detect which path to use via `db.bind.dialect.name == "sqlite"` or check the engine URL at startup.
+
+---
+
+## Composite Index on the Jobs Table
+
+### Declaration pattern (no Alembic required)
+
+Add `__table_args__` to the `Job` model in `db.py`. SQLAlchemy's `create_all()` will create the index on fresh deployments. For existing deployments, a manual `CREATE INDEX IF NOT EXISTS` migration SQL is required (same pattern as existing `migration_vN.sql` files).
+
+```python
+# In db.py — Job model
+class Job(Base):
+    __tablename__ = "jobs"
+    # ... existing columns ...
+
+    __table_args__ = (
+        Index('idx_jobs_status_created_at', 'status', 'created_at'),
+    )
+```
+
+**Why this index:** The job candidate query filters by `status = 'PENDING'` and orders by `created_at ASC`. Without an index, this requires a full table scan on every `/work/pull` call. At 200 pending jobs × 20 nodes polling every 5 seconds = 800 scans/minute. The composite index makes this a single B-tree seek.
+
+**Column order matters:** `(status, created_at)` is correct. The index serves both `WHERE status = 'PENDING'` equality lookups and `ORDER BY created_at` range scans. Reversing them to `(created_at, status)` would not serve the status equality filter efficiently.
+
+**Optional partial index (Postgres only):**
+
+```python
+Index(
+    'idx_jobs_pending_created_at',
+    'created_at',
+    postgresql_where=(Job.status == 'PENDING')
+)
+```
+
+A partial index on only PENDING rows is smaller and faster than the full composite index. However it is Postgres-only and cannot be used in SQLite dev environments. Use the full composite index for cross-dialect compatibility, or add both with dialect detection.
+
+### Migration SQL for existing deployments
+
+```sql
+-- migration_v17.sql
+CREATE INDEX IF NOT EXISTS idx_jobs_status_created_at ON jobs (status, created_at);
+```
+
+---
+
+## APScheduler Pinning and Incremental Job Management
+
+### Version pinning
+
+```
+apscheduler>=3.11.2,<4
+```
+
+Pin to `<4` explicitly. APScheduler 4 is pre-release (4.0.0a6 as of April 2025) with a completely rewritten API (add_job → add_schedule, different job store schema, new executor concept). The migration guide explicitly warns against using v4 in production. Pin `<4` to prevent accidental upgrade breaking the scheduler.
+
+### misfire_grace_time tuning
+
+The current `sync_scheduler()` sets `misfire_grace_time=60` per job. The APScheduler default is 1 second — this means any job that doesn't fire within 1 second of its scheduled time is marked as misfired and skipped.
+
+At 100 cron fires per minute with a busy event loop, 1-second grace time guarantees missed fires under load. The existing 60-second per-job setting is correct. For global configuration:
+
+```python
+self.scheduler = AsyncIOScheduler(
+    job_defaults={
+        'misfire_grace_time': 60,  # seconds; overrides per-job default of 1s
+        'coalesce': True,          # if multiple fires were missed, run once not N times
+        'max_instances': 1,        # prevent overlapping runs of the same job
+    }
+)
+```
+
+Setting it globally via `job_defaults` removes the need to pass `misfire_grace_time=60` to every `add_job()` call.
+
+### Incremental sync_scheduler (add/remove instead of remove_all_jobs)
+
+The current `sync_scheduler()` calls `self.scheduler.remove_all_jobs()` then re-adds all definitions. At 1,000 definitions, this is a full rebuild every sync call, causing a brief window where no jobs are scheduled.
+
+Replace with incremental diff:
+
+```python
+async def sync_scheduler(self):
+    """Incremental sync: add/remove individual jobs instead of full rebuild."""
+    async with db_module.AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ScheduledJob).where(ScheduledJob.is_active == True)
+        )
+        db_jobs = {j.id: j for j in result.scalars().all()}
+
+    # Jobs currently in the scheduler (excluding internal housekeeping jobs)
+    scheduled_ids = {
+        job.id for job in self.scheduler.get_jobs()
+        if not job.id.startswith('__')
+    }
+
+    db_ids = set(db_jobs.keys())
+
+    # Remove jobs no longer in DB or deactivated
+    for job_id in scheduled_ids - db_ids:
+        self.scheduler.remove_job(job_id)
+
+    # Add new jobs not yet in scheduler
+    for job_id in db_ids - scheduled_ids:
+        j = db_jobs[job_id]
+        self._schedule_one(j)
+
+    # Reschedule modified jobs (cron expression changed)
+    for job_id in db_ids & scheduled_ids:
+        j = db_jobs[job_id]
+        existing = self.scheduler.get_job(job_id)
+        # CronTrigger fields are on existing.trigger; compare cron string via repr
+        # Simplest: reschedule unconditionally for modified jobs is safe
+        # Only reschedule if cron changed to avoid disrupting next_run_time
+```
+
+APScheduler 3.x provides `scheduler.get_job(job_id)` (single job by ID) and `scheduler.get_jobs()` (all jobs) for this diffing. `scheduler.reschedule_job(job_id, trigger=CronTrigger(...))` updates the trigger without removing/re-adding.
+
+### AsyncIOScheduler and event loop coupling
+
+`AsyncIOScheduler` runs jobs as coroutines scheduled onto the existing event loop. It does NOT create a separate process or thread. This means:
+- Cron callbacks compete with HTTP request handlers on the same event loop
+- Under burst load (100 fires/minute), cron callbacks can delay HTTP responses and vice versa
+- `coalesce=True` prevents pileup when the loop is temporarily saturated
+
+---
+
+## Dispatcher Isolation from the HTTP Event Loop
+
+### Problem
+
+`AsyncIOScheduler` fires cron jobs as coroutines on the Uvicorn event loop. A burst of 100 cron fires per minute means 100 coroutines queued on the same loop that handles HTTP. Under load, this degrades HTTP response latency and can cause `misfire_grace_time` violations (the loop is busy when a job fires).
+
+### Options and Recommendation
+
+**Option 1: asyncio.create_task() with bounded semaphore (recommended for this milestone)**
+
+No process isolation — stays on the same event loop but limits concurrency. Add a semaphore around `execute_scheduled_job` to cap concurrent cron callbacks:
+
+```python
+self._dispatch_semaphore = asyncio.Semaphore(10)  # max 10 concurrent cron dispatches
+
+async def execute_scheduled_job(self, scheduled_job_id: str):
+    async with self._dispatch_semaphore:
+        # existing dispatch logic
+```
+
+This prevents cron burst from consuming all event loop capacity. Simple, no new dependencies, no inter-process complexity.
+
+**Option 2: run_in_executor with ThreadPoolExecutor**
+
+For CPU-bound or blocking work inside cron callbacks, offload via `asyncio.get_event_loop().run_in_executor()`. The existing cron callbacks are async DB operations (not CPU-bound), so this provides limited benefit and adds complexity.
+
+**Option 3: Separate OS process via multiprocessing.Process**
+
+True isolation — the dispatcher runs its own asyncio event loop in a separate process. HTTP latency is fully protected from scheduler load. However:
+- Python multiprocessing cannot share SQLAlchemy async sessions or engines across processes (not picklable)
+- IPC between the dispatcher process and HTTP process requires a queue or shared DB state
+- Each process needs its own asyncpg pool (adds to total Postgres connections)
+- Significantly more complex to implement and debug
+
+**Recommendation:** Use Option 1 (semaphore) for this milestone. It provides the core protection against burst saturation without process isolation complexity. True process isolation is appropriate if profiling shows the HTTP event loop is measurably impacted at the target envelope — that is a v18+ concern.
 
 ---
 
@@ -273,33 +308,23 @@ pip install linkcheckmd>=1.4.0
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `mkdocs-linkcheck` | Abandoned — no PyPI releases in 12+ months | `linkcheckmd` |
-| `python-jose` for licence JWT | Does not support EdDSA (Ed25519) — explicitly noted in `licence_service.py` | `PyJWT[crypto]>=2.7.0` (already installed) |
-| New Ed25519 library (`PyNaCl`, standalone `ed25519`) | `cryptography` already provides `Ed25519PrivateKey`; adding a second Ed25519 library creates ambiguity | `cryptography.hazmat.primitives.asymmetric.ed25519` |
-| MCP browser tool for screenshots | Crashes on every navigation in this environment (documented in CLAUDE.md) | Python Playwright with `--no-sandbox` |
-| `pip download` + Caddy for APT mirroring | `pip download` only works for PyPI packages, not `.deb` packages — type mismatch | `apt-cacher-ng` sidecar (transparent proxy, no pre-download needed) |
-| New dependencies in `puppeteer/requirements.txt` for v15.0 features | All 5 features are operator tooling, not server features; adding tooling deps to the server image bloats it | Separate `tools/` venv |
+| `apscheduler>=4` | Pre-release, completely rewritten API, no migration path yet | Pin `apscheduler>=3.11.2,<4` |
+| `with_for_update(skip_locked=True)` on SQLite | Silently becomes plain SELECT; races remain | Detect dialect; use single-statement UPDATE fallback on SQLite |
+| `pool_size`/`max_overflow` on SQLite engine | Ignored or error depending on version | Only configure pool params when `not is_sqlite` |
+| `remove_all_jobs()` on every sync | Causes scheduling gap; slow at 1000+ definitions | Incremental diff via `get_jobs()` + `remove_job()` / `add_job()` |
+| `multiprocessing.Process` for dispatcher | Cannot share async sessions; adds pool complexity | asyncio Semaphore for burst control (Option 1 above) |
+| Alembic | Not used in this project; schema managed by `create_all` | Declare `Index()` in `__table_args__`; ship `migration_v17.sql` for existing DBs |
 
 ---
 
-## Stack Patterns by Variant
+## Alternatives Considered
 
-**If operator is air-gapped (no GitHub access):**
-- Skip `PyGithub` for ledger; write JSONL records to a local file instead
-- The `generate_licence.py` already works offline; add a `--ledger-file` flag as fallback
-
-**If operator wants APT mirroring (not just PyPI):**
-- Add `apt-cacher-ng` as a sidecar in `compose.server.yaml` (port 3142 conventional)
-- Document `Acquire::http::Proxy "http://apt-cacher:3142"` in `/etc/apt/apt.conf.d/01proxy` on nodes
-- No code change to the Axiom server required
-
-**If operator wants PSRepository mirroring:**
-- Deploy BaGet (`docker run --rm -p 5000:80 loicsharma/baget`) as a standalone sidecar
-- Register with `Register-PSRepository -Name AxiomInternal -SourceLocation http://baget:5000/v3/index.json`
-
-**If screenshot capture needs to run in CI (headless, no display):**
-- Playwright already supports headless Chromium; `--no-sandbox` is required on Linux CI
-- Add `playwright install --with-deps chromium` step to GitHub Actions screenshot job
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| `with_for_update(skip_locked=True)` | Application-level distributed lock (Redis, etc.) | When running multiple Uvicorn workers or multiple server replicas; SKIP LOCKED handles single-process concurrency, not multi-process |
+| Composite Index in `__table_args__` | Partial index `postgresql_where=(status == 'PENDING')` | Pure Postgres deployments; smaller index, faster scan; not cross-dialect compatible |
+| Semaphore for dispatcher isolation | Separate worker process | Only if HTTP p99 latency degrades measurably under cron burst at the target envelope |
+| APScheduler 3.11.2 incremental sync | Redis-backed Celery beat | When multi-server deployment is required; overkill for single-server homelab/enterprise target |
 
 ---
 
@@ -307,27 +332,44 @@ pip install linkcheckmd>=1.4.0
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| `PyGithub>=2.5.0` | Python 3.8+, GitHub API v3 | v2.x dropped Python 3.7; current project uses 3.10+ so no issue |
-| `playwright>=1.58.0` | Python 3.9+, Chromium 132 | Requires separate `playwright install chromium` after pip install; browser binary is ~300 MB |
-| `linkcheckmd>=1.4.0` | Python 3.7+, aiohttp | Async; fast; no special system deps |
-| `cryptography==46.0.6` | Python 3.8+, OpenSSL 1.1+ | Current version; already in requirements.txt; no change needed |
-| `PyJWT[crypto]>=2.7.0` | `cryptography>=3.4` | EdDSA support added in 2.4.0; `>=2.7.0` pin already in requirements.txt |
+| `apscheduler>=3.11.2,<4` | Python 3.8+, asyncio | 3.x API is stable and documented; 3.11.2 is latest as of 2025-12-22 |
+| `sqlalchemy[asyncio]` 2.x | `asyncpg`, `aiosqlite` | Pool params only apply to QueuePool-based engines (Postgres); ignored for SQLite StaticPool |
+| `asyncpg` (any current) | `sqlalchemy` 2.x | `AsyncAdaptedQueuePool` wraps asyncpg natively; no additional config needed |
+
+---
+
+## Installation
+
+No new packages required. Version pin adjustment only:
+
+```bash
+# In puppeteer/requirements.txt — change:
+apscheduler
+# To:
+apscheduler>=3.11.2,<4
+```
+
+All other changes are code modifications to existing files:
+- `puppeteer/agent_service/db.py` — pool config in `create_async_engine`, `__table_args__` on `Job`
+- `puppeteer/agent_service/services/job_service.py` — `with_for_update(skip_locked=True)` + SQLite fallback
+- `puppeteer/agent_service/services/scheduler_service.py` — `AsyncIOScheduler(job_defaults=...)`, incremental sync, semaphore
 
 ---
 
 ## Sources
 
-- Direct codebase analysis: `tools/generate_licence.py`, `puppeteer/requirements.txt`, `puppeteer/compose.server.yaml`, `puppeteer/agent_service/services/mirror_service.py`, `puppeteer/agent_service/services/licence_service.py`, `.github/workflows/ci.yml`, `docs/requirements.txt` — current state (HIGH confidence)
-- [PyJWT 2.12.1 documentation — Digital Signature Algorithms](https://pyjwt.readthedocs.io/en/stable/algorithms.html) — EdDSA/Ed25519 support confirmed (HIGH confidence)
-- [playwright PyPI — version 1.58.0](https://pypi.org/project/playwright/) — current version January 2026 (HIGH confidence)
-- [Playwright Python docs — screenshots](https://playwright.dev/python/docs/screenshots) — screenshot API confirmed (HIGH confidence)
-- [PyGithub PyPI — version 2.9.0](https://pypi.org/project/PyGithub/) — current version (HIGH confidence)
-- [cryptography PyPI — version 46.0.6](https://pypi.org/project/cryptography/) — current version March 2026 (HIGH confidence)
-- [linkcheckmd PyPI](https://pypi.org/project/linkcheckmd/) — active; mkdocs-linkcheck abandoned (MEDIUM confidence — PyPI maintenance signal)
-- [devpi-server documentation](https://pypi.org/project/devpi-server/) — PyPI mirror and private index capabilities confirmed (HIGH confidence)
-- CLAUDE.md project instructions — `--no-sandbox`, localStorage auth, form-encoded login patterns (HIGH confidence — project source of truth)
+- [SQLAlchemy 2.0 Connection Pooling](https://docs.sqlalchemy.org/en/20/core/pooling.html) — pool_size, max_overflow, pool_pre_ping, AsyncAdaptedQueuePool — HIGH confidence
+- [SQLAlchemy Asyncio Extension](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html) — async session constraints, with_for_update — HIGH confidence
+- [SQLAlchemy Constraints and Indexes](https://docs.sqlalchemy.org/en/21/core/constraints.html) — __table_args__ Index() declaration — HIGH confidence
+- [APScheduler 3.11.2 User Guide](https://apscheduler.readthedocs.io/en/3.x/userguide.html) — AsyncIOScheduler, job_defaults, misfire_grace_time — HIGH confidence
+- [APScheduler PyPI page](https://pypi.org/project/APScheduler/) — version 3.11.2 stable confirmed, v4.0.0a6 pre-release confirmed — HIGH confidence
+- [APScheduler v4 progress issue](https://github.com/agronholm/apscheduler/issues/465) — v4 API breaking changes, do-not-use-in-production warning — HIGH confidence
+- [SQLAlchemy SKIP LOCKED discussion](https://github.com/sqlalchemy/sqlalchemy/discussions/10460) — with_for_update(skip_locked=True) syntax confirmed — MEDIUM confidence (GitHub discussion, not official docs)
+- [SQLite SELECT FOR UPDATE limitation](https://groups.google.com/g/sqlalchemy/c/RIBdLP_s6hk) — SQLite ignores with_for_update, fallback required — HIGH confidence
+- [Pool sizing formula for ASGI apps](https://www.pythontutorials.net/blog/how-to-properly-set-pool-size-and-max-overflow-in-sqlalchemy-for-asgi-app/) — workers * (pool_size + max_overflow) formula — MEDIUM confidence (community article)
+- [FastAPI BackgroundTasks blocks event loop discussion](https://github.com/fastapi/fastapi/discussions/11210) — confirms asyncio semaphore approach over process isolation — MEDIUM confidence
 
 ---
 
-*Stack research for: v15.0 Operator Readiness (licence generation tooling, docs accuracy validation, screenshot capture, node validation job library, custom package repo validation)*
-*Researched: 2026-03-28*
+*Stack research for: v17.0 Scale Hardening — asyncpg pool, SKIP LOCKED dispatch, composite indexes, APScheduler tuning*
+*Researched: 2026-03-30*
