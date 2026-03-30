@@ -147,6 +147,14 @@ Key points:
 
 ---
 
+## Air-Gap Deployments
+
+Axiom EE is designed to operate in network-isolated environments. The documentation site, Foundry image builds, and node execution runtime can all run without outbound internet access after initial setup.
+
+For a full from-scratch setup guide, see [Package Mirror Runbooks](../runbooks/package-mirrors.md) — covering devpi (PyPI), apt-cacher-ng (APT), and BaGet (NuGet/PowerShell) mirror configuration. For a full overview of what is already offline-capable and what requires substitution, see [Air-Gap Operation](../security/air-gap.md).
+
+---
+
 ## Pre-Deployment Checklist
 
 ### Host Infrastructure
@@ -175,5 +183,6 @@ Key points:
 ## Related Guides
 
 - [Running with Docker](docker-deployment.md) — stack startup, secret generation, production checklist
-- [Air-Gap Operation](../security/air-gap.md) — package mirrors, offline image setup, network isolation
+- [Air-Gap Operation](../security/air-gap.md) — what is already offline-capable and what requires substitution
+- [Package Mirror Runbooks](../runbooks/package-mirrors.md) — devpi, apt-cacher-ng, and BaGet mirror setup for air-gapped environments
 - [Node Troubleshooting](../runbooks/nodes.md) — diagnosing node connectivity and enrollment issues
