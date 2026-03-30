@@ -46,6 +46,8 @@ ENV_SKIP = {
     "E501", "E302", "E303", "W503", "W504",
     # HTTP methods (already handled by ROUTE_RE, belt-and-suspenders)
     "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS",
+    # Audit event type constants (not env vars — used as user-facing labels in docs)
+    "SYSTEM_STARTUP",
 }
 
 SEARCH_DIRS = ["puppeteer", "puppets", "mop_sdk", "tools"]
