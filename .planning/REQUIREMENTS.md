@@ -43,7 +43,7 @@
 
 - **USP-01**: New CE user can have a node enrolled and hello world job executing in under 30 minutes (signing UX improvement)
 - **DOC-01**: Windows local dev getting started path validated and documented
-- **DOC-02**: Upgrade runbook covering migration SQL workflow end-to-end
+- ~~**DOC-02**: Upgrade runbook covering migration SQL workflow end-to-end~~ ✓ (2026-03-30)
 - **DOC-03**: Deployment recommendations document incorporated into MkDocs docs stack
 
 ### Scale & Research
