@@ -380,7 +380,7 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91 → 92 → 93 �
 **Goal:** Close Nyquist compliance gap and housekeeping for v16.1 milestone
 **Requirements**: TBD
 **Depends on:** Phase 94
-**Plans:** 2/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 95-01: Housekeeping — SIGN_CMD placeholder, DOC strikethroughs, plan frontmatter (completed 2026-03-30)
