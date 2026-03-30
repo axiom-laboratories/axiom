@@ -4,8 +4,8 @@ milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
 stopped_at: Phase 98 Plan 01 complete
-last_updated: "2026-03-30T22:45:00.000Z"
-last_activity: "2026-03-30 — Phase 98 Plan 01 complete: SKIP LOCKED in pull_work(), composite index, migration_v44.sql"
+last_updated: "2026-03-30T21:51:23.981Z"
+last_activity: "2026-03-30 — Phase 98 Plan 01 complete: SKIP LOCKED in pull_work(), composite index ix_jobs_status_created_at, migration_v44.sql"
 progress:
   total_phases: 5
   completed_phases: 3
