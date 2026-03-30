@@ -17,7 +17,8 @@
 - ✅ **v14.3 — Security Hardening + EE Licensing** — Phases 72–76 (shipped 2026-03-27)
 - ✅ **v14.4 — Go-to-Market Polish** — Phases 77–81 (shipped 2026-03-28)
 - ✅ **v15.0 — Operator Readiness** — Phases 82–86 (shipped 2026-03-29)
-- 🚧 **v16.0 — Competitive Observability** — Phases 87–91 (in progress)
+- ✅ **v16.0 — Competitive Observability** — Phases 87–91 (shipped 2026-03-30)
+- 🚧 **v16.1 — PR Merge & Backlog Closure** — Phases 92–94 (in progress)
 
 ## Phases
 
@@ -206,17 +207,59 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
 
 </details>
 
-### 🚧 v16.0 — Competitive Observability (In Progress)
-
-**Milestone Goal:** Close four observability gaps identified through competitor analysis — dispatch diagnosis in the UI, CE-native job failure alerting, immutable job script versioning, and structured output validation. Every feature must be usable without an EE licence.
+<details>
+<summary>✅ v16.0 — Competitive Observability (Phases 87–91) — SHIPPED 2026-03-30</summary>
 
 - [x] **Phase 87: Research & Design** — Review competitor pain points report; produce design decisions for all four implementation features (completed 2026-03-29)
-- [ ] **Phase 88: Dispatch Diagnosis UI** — Wire the existing `/jobs/{guid}/dispatch-diagnosis` endpoint into the dashboard job list and detail view
-- [ ] **Phase 89: CE Alerting** — SMTP/webhook notification on job failure, configurable by CE operators, no EE licence required
-- [ ] **Phase 90: Job Script Versioning** — Immutable script version records linked to execution history; operators can view exact script that ran
-- [ ] **Phase 91: Output Validation** — Operator-defined success patterns (exit code + JSON/regex); validation failures reported as FAILED with reason
+- [x] **Phase 88: Dispatch Diagnosis UI** — Inline dispatch diagnosis on PENDING jobs; bulk diagnosis endpoint; 10s auto-poll (completed 2026-03-29)
+- [x] **Phase 89: CE Alerting** — Webhook notification on job failure; NotificationsCard in Admin; CE-accessible without EE licence (completed 2026-03-29)
+- [x] **Phase 90: Job Script Versioning** — Immutable JobDefinitionVersion table; ScriptViewerModal; version fields in ExecutionRecordResponse (completed 2026-03-30)
+- [x] **Phase 91: Output Validation** — validation_rules + failure_reason DB columns; process_result() engine; Validation Rules form in JobDefinitionModal; failure labels in all history views (completed 2026-03-30)
+
+Archive: `.planning/milestones/v16.0-ROADMAP.md`
+
+</details>
+
+### 🚧 v16.1 — PR Merge & Backlog Closure (In Progress)
+
+**Milestone Goal:** Land all five open PRs, close the backlog-captured todos, and record research insights — leaving the codebase clean and the product story complete before v17.0 planning begins.
+
+- [x] **Phase 92: USP Signing UX** — Test and merge PR #10 (feat/usp-signing-ux): keygen guide and Signatures banner (completed 2026-03-30)
+- [ ] **Phase 93: Documentation PRs** — Review and merge PRs #11, #12, #13: deployment guide, upgrade runbook, Windows getting-started
+- [ ] **Phase 94: Research & Planning Closure** — Merge PR #14 (APScheduler scale limits) and record competitor pain-point insights
 
 ## Phase Details
+
+### Phase 92: USP Signing UX
+**Goal**: New users can run a hello-world job in under 30 minutes without generating their own signing keys
+**Depends on**: Nothing (first phase of v16.1 milestone)
+**Requirements**: UX-01
+**Success Criteria** (what must be TRUE):
+  1. The Signatures page guides users through keypair generation with copy-paste commands — no auto-seeded demo keypair
+  2. The Signatures page displays a banner with copy-paste signing steps that a new user can follow without consulting external docs
+  3. PR #10 (feat/usp-signing-ux) passes all tests and is merged to main
+**Plans**: 92-01, 92-02, 92-03
+
+### Phase 93: Documentation PRs
+**Goal**: Operators have production deployment guidance, an upgrade runbook, and a Windows getting-started path available in the published docs
+**Depends on**: Phase 92
+**Requirements**: DOC-01, DOC-02, DOC-03
+**Success Criteria** (what must be TRUE):
+  1. The docs site includes a production deployment guide covering HA, backups, recovery, and air-gap considerations
+  2. The docs site includes an upgrade runbook with all migration SQL files indexed so an operator can upgrade any version to current
+  3. The docs site includes an end-to-end Windows getting-started path (Docker Desktop + WSL2)
+  4. PRs #11, #12, and #13 are merged to main with no unresolved review comments
+**Plans**: TBD
+
+### Phase 94: Research & Planning Closure
+**Goal**: APScheduler scale-limit research is accessible for future architecture decisions, and competitor pain-point insights are recorded
+**Depends on**: Phase 93
+**Requirements**: RES-01, PLAN-01
+**Success Criteria** (what must be TRUE):
+  1. PR #14 (research/apscheduler-scale-limits) is merged and the report is accessible in mop_validation reports
+  2. The APScheduler scale findings are summarised with concrete job-count thresholds and recommended migration path
+  3. Competitor pain-point insights are written into a product notes file with at least three actionable observations
+**Plans**: TBD
 
 ### Phase 87: Research & Design
 **Goal**: Design decisions are documented for all four v16.0 features — blocking ambiguity resolved before a single line of implementation is written
@@ -273,7 +316,7 @@ Archive: `.planning/milestones/v15.0-ROADMAP.md`
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
+Phases execute in numeric order: 87 → 88 → 89 → 90 → 91 → 92 → 93 → 94
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -318,11 +361,14 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
 | 84. Package Repo Operator Docs | v15.0 | 2/2 | Complete | 2026-03-29 |
 | 85. Screenshot Capture | v15.0 | 2/2 | Complete | 2026-03-29 |
 | 86. Docs Accuracy Validation | v15.0 | 2/2 | Complete | 2026-03-29 |
-| 87. Research & Design | 1/1 | Complete    | 2026-03-29 | - |
-| 88. Dispatch Diagnosis UI | v16.0 | 0/TBD | Not started | - |
-| 89. CE Alerting | v16.0 | 0/TBD | Not started | - |
-| 90. Job Script Versioning | v16.0 | 0/TBD | Not started | - |
-| 91. Output Validation | v16.0 | 0/TBD | Not started | - |
+| 87. Research & Design | v16.0 | 1/1 | Complete | 2026-03-29 |
+| 88. Dispatch Diagnosis UI | v16.0 | 2/2 | Complete | 2026-03-29 |
+| 89. CE Alerting | v16.0 | 2/2 | Complete | 2026-03-29 |
+| 90. Job Script Versioning | v16.0 | 2/2 | Complete | 2026-03-30 |
+| 91. Output Validation | v16.0 | 2/2 | Complete | 2026-03-30 |
+| 92. USP Signing UX | v16.1 | 3/3 | Complete | 2026-03-30 |
+| 93. Documentation PRs | v16.1 | 0/TBD | Not started | - |
+| 94. Research & Planning Closure | v16.1 | 0/TBD | Not started | - |
 
 ## Archived
 
