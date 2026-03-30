@@ -74,7 +74,7 @@ const SIGN_CMD = `python3 - <<'EOF'
 from cryptography.hazmat.primitives import serialization
 import base64
 
-YOUR_SCRIPT = "hello.py"
+YOUR_SCRIPT = "YOUR_SCRIPT.py"
 
 with open("signing.key", "rb") as f:
     private_key = serialization.load_pem_private_key(f.read(), password=None)
