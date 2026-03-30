@@ -9,9 +9,9 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 
 ### Foundation
 
-- [ ] **FOUND-01**: APScheduler pinned to `>=3.10,<4.0` in `requirements.txt` — prevents silent v4.x upgrade breakage (v4 is a complete rewrite, no migration path)
-- [ ] **FOUND-02**: `IS_POSTGRES` dialect detection helper available at engine creation — gates all Postgres-only features and prevents SQLite path contamination
-- [ ] **FOUND-03**: APScheduler `AsyncIOScheduler` configured with global `job_defaults` (`misfire_grace_time=60`, `coalesce=True`, `max_instances=1`) rather than per-job
+- [x] **FOUND-01**: APScheduler pinned to `>=3.10,<4.0` in `requirements.txt` — prevents silent v4.x upgrade breakage (v4 is a complete rewrite, no migration path)
+- [x] **FOUND-02**: `IS_POSTGRES` dialect detection helper available at engine creation — gates all Postgres-only features and prevents SQLite path contamination
+- [x] **FOUND-03**: APScheduler `AsyncIOScheduler` configured with global `job_defaults` (`misfire_grace_time=60`, `coalesce=True`, `max_instances=1`) rather than per-job
 
 ### DB Pool
 
@@ -71,9 +71,9 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 96 | Pending |
-| FOUND-02 | Phase 96 | Pending |
-| FOUND-03 | Phase 96 | Pending |
+| FOUND-01 | Phase 96 | Complete |
+| FOUND-02 | Phase 96 | Complete |
+| FOUND-03 | Phase 96 | Complete |
 | POOL-01 | Phase 97 | Pending |
 | POOL-02 | Phase 97 | Pending |
 | POOL-03 | Phase 97 | Pending |
