@@ -48,7 +48,7 @@
 
 ### Scale & Research
 
-- **SCALE-01**: APScheduler scale limits assessed and first bottleneck documented
+- ~~**SCALE-01**: APScheduler scale limits assessed and first bottleneck documented~~ ✓ (2026-03-30)
 
 ## Out of Scope
 
@@ -80,6 +80,7 @@
 | VALD-01 | Phase 91 | Pending |
 | VALD-02 | Phase 91 | Pending |
 | VALD-03 | Phase 91 | Pending |
+| SCALE-01 | Phase 94 | Complete |
 
 **Coverage:**
 - v16.0 requirements: 17 total
