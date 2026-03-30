@@ -12,7 +12,18 @@ from uuid import uuid4
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./jobs.db")
 IS_POSTGRES: bool = DATABASE_URL.startswith("postgresql")
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+# Connection pool configuration — Postgres only (SQLite uses StaticPool, kwargs unsupported)
+_pool_kwargs: dict = {}
+if IS_POSTGRES:
+    _pool_kwargs = {
+        "pool_size": int(os.getenv("ASYNCPG_POOL_SIZE", "20")),
+        "max_overflow": 10,
+        "pool_timeout": 30,
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+
+engine = create_async_engine(DATABASE_URL, echo=False, **_pool_kwargs)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 class Base(DeclarativeBase):
