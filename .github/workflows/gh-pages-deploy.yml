@@ -54,13 +54,14 @@ jobs:
         run: |
           cp homepage/index.html /tmp/homepage-index.html
           cp homepage/style.css /tmp/homepage-style.css
-          cp -r homepage/assets /tmp/homepage-assets
+          cp -r homepage/assets/screenshots /tmp/homepage-screenshots
           git fetch origin gh-pages
           git checkout gh-pages
           cp /tmp/homepage-index.html index.html
           cp /tmp/homepage-style.css style.css
-          cp -r /tmp/homepage-assets assets
+          mkdir -p assets/screenshots
+          cp -r /tmp/homepage-screenshots/. assets/screenshots/
           touch .nojekyll
-          git add index.html style.css assets/ .nojekyll
+          git add index.html style.css assets/screenshots/ .nojekyll
           git diff --cached --quiet || git commit -m "Deploy homepage and docs from ${{ github.sha }}"
           git push origin gh-pages
