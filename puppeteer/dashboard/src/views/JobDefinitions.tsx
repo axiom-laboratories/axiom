@@ -55,7 +55,7 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
         queryKey: ['definition-history', definitionId],
         queryFn: async () => {
             const res = await authenticatedFetch(
-                `/api/executions?scheduled_job_id=${definitionId}&limit=25`
+                `/executions?scheduled_job_id=${definitionId}&limit=25`
             );
             return res.json() as Promise<any[]>;
         },
@@ -65,7 +65,7 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
     const { data: versions } = useQuery({
         queryKey: ['definition-versions', definitionId],
         queryFn: async () => {
-            const res = await authenticatedFetch(`/api/jobs/definitions/${definitionId}/versions`);
+            const res = await authenticatedFetch(`/jobs/definitions/${definitionId}/versions`);
             return res.json() as Promise<any[]>;
         },
         enabled: !!definitionId,
