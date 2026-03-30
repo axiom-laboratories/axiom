@@ -127,3 +127,6 @@ Before exposing Axiom to the network:
 - [Enroll your first node](enroll-node.md) to start routing jobs
 - [Set up RBAC](../feature-guides/rbac.md) for operator and viewer accounts
 - [Configure Foundry](../feature-guides/foundry.md) to build custom node images
+
+!!! tip "EE production deployments"
+    If you are deploying Axiom EE on-premises for a BPO client, see the [Production Deployment Guide](deployment-guide.md) for host infrastructure requirements, data durability recommendations, and the pre-deployment checklist.

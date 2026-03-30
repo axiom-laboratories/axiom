@@ -36,6 +36,7 @@ nav:
     - Prerequisites: getting-started/prerequisites.md
     - Install: getting-started/install.md
     - Running with Docker: getting-started/docker-deployment.md
+    - Production Deployment Guide: getting-started/deployment-guide.md
     - Enroll a Node: getting-started/enroll-node.md
     - First Job: getting-started/first-job.md
   - Feature Guides:
