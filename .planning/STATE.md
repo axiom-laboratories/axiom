@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v16.1
-milestone_name: — PR Merge & Backlog Closure
-status: completed
-stopped_at: Completed 95-01-PLAN.md
-last_updated: "2026-03-30T19:46:44.575Z"
-last_activity: 2026-03-30 — retroactive VALIDATION.md created for phases 92, 93, 94; Nyquist compliance gap closed (commit f90cd01)
+milestone: v17.0
+milestone_name: Scale Hardening
+status: defining_requirements
+stopped_at: —
+last_updated: "2026-03-30T00:00:00.000Z"
+last_activity: 2026-03-30 — Milestone v17.0 started
 progress:
-  total_phases: 9
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,66 +21,43 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Phase 95 complete — Plan 95-02 complete (retroactive VALIDATION.md for phases 92, 93, 94)
+**Current focus:** Defining requirements for v17.0 Scale Hardening
 
 ## Current Position
 
-Phase: 95 of 95 (Techdebt)
-Plan: 95-02 complete
-Status: Complete
-Last activity: 2026-03-30 — retroactive VALIDATION.md created for phases 92, 93, 94; Nyquist compliance gap closed (commit f90cd01)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-30 — Milestone v17.0 started
 
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 6 (this milestone)
-- Average duration: —
-- Total execution time: —
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 92. USP Signing UX | 3/3 | - | - |
-| 93. Documentation PRs | 3/3 | - | - |
-| 94. Research & Planning Closure | TBD | - | - |
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
-### Roadmap Evolution
+### Milestone Goals
 
-- Phase 95 added: techdebt
+Target reliable operation at:
+- 20 concurrent polling nodes
+- 200+ pending jobs in queue
+- 1,000 active scheduled job definitions
+- 100 cron fires per minute
 
-### Decisions
+All four dimensions currently exceed comfortable operating ceilings. APScheduler scale research (mop_validation/reports/apscheduler_scale_research.md) identified DB connection pool exhaustion as the primary constraint, followed by double-assignment races, O(N) sync_scheduler rebuild, and event loop saturation.
 
-- [v16.1 roadmap]: Three phases derived from natural PR groupings — UX PR alone (Phase 92), three docs PRs together (Phase 93), research/planning closure together (Phase 94)
-- [v16.1 roadmap]: Phase ordering is sequential but phases 93 and 94 have no hard blocking dependency — can be reordered if a PR is ready earlier
-- [92-02]: 10 backend test failures and 1 frontend test failure are pre-existing on main — not regressions from this PR
-- [92-02]: pytest testpaths in pyproject.toml is `puppeteer/agent_service/tests/` — all new tests must be placed there, not `puppeteer/tests/`
-- [92-03]: PR #10 merged via direct GitHub API squash (bypassing merge queue); merge commit SHA: 1a097b3
-- [93-01]: secret-scan CI job fails on all PRs — pre-existing infrastructure gap (missing GITLEAKS_LICENSE org secret for gitleaks-action@v2), not a content issue
-- [93-01]: PR #11 merged via GitHub merge queue (merge commit fb2b67f); deployment guide includes air-gap section cross-linking to runbooks/package-mirrors.md
-- [93-02]: PR #12 (upgrade runbook) merged via direct push to main; docs-validate CI fix applied (SYSTEM_STARTUP added to ENV_SKIP)
-- [93-03]: PR #13 incorporated via cherry-pick into PR #16; anchor fix applied — <span id="windows-features"> before admonition block required for mkdocs internal link correctness
-- [93-03]: CI failures on main (backend exit 127, secret-scan GITLEAKS_LICENSE) are pre-existing — not regressions
-- [94-01]: PR #14 closed (not merged) — research branch had unresolvable conflicts with later main commits; APScheduler todo-done file added directly to main; report already in mop_validation/reports/
+### Key Decisions
+
+(none yet — milestone just started)
 
 ### Pending Todos
 
-- ~~Deployment recommendations docs PR #11~~ — DONE (merged fb2b67f)
-- ~~Upgrade runbook PR #12~~ — DONE (merged to main)
-- ~~Windows local dev docs PR #13~~ — DONE (incorporated via PR #16, aa4c475)
-- ~~APScheduler scale limits research PR #14~~ — DONE (merged, report at mop_validation/reports/apscheduler_scale_research.md)
-- ~~Competitor pain points analysis~~ — DONE (mop_validation/reports/competitor_product_notes.md, 7 observations)
+(none)
 
 ### Blockers/Concerns
 
-- [Phase 91 carry-forward]: migration_v45.sql must be applied on existing deployments before upgrading
+(none)
 
 ## Session Continuity
 
-Last session: 2026-03-30T19:38:11.652Z
-Stopped at: Completed 95-01-PLAN.md
+Last session: 2026-03-30
+Stopped at: Milestone start — proceeding to research
 Resume file: None

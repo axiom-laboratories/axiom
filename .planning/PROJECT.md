@@ -12,11 +12,19 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current State: v16.1 Complete — PR Merge & Backlog Closure
+## Current Milestone: v17.0 — Scale Hardening
 
-**Shipped:** 2026-03-30 | **Next milestone:** v17.0 (TBD — run `/gsd:new-milestone` to begin)
+**Goal:** Extend the reliable operation envelope from ~10 nodes / ~50 pending jobs to 20+ nodes / 200+ pending jobs / 1,000 scheduled definitions / 100 cron fires per minute without correctness regressions.
 
-v16.0 delivered full Competitive Observability (dispatch diagnosis, CE alerting, script versioning, output validation). v16.1 closed the PR backlog: signing UX guide merged, production/upgrade/Windows docs merged, APScheduler research archived, Nyquist compliance gaps closed.
+**Target features:**
+- Asyncpg connection pool right-sized for the target node count
+- Composite DB index on `(status, created_at)` for the job candidate query
+- `SELECT FOR UPDATE SKIP LOCKED` on job dispatch to eliminate double-assignment races
+- Incremental `sync_scheduler()` — per-definition add/remove instead of full rebuild
+- APScheduler version pinned; misfire grace time tuned for burst load
+- Dedicated dispatcher worker process (or equivalent isolation) to decouple cron firing from the HTTP API event loop
+
+**Previous:** v16.1 shipped 2026-03-30 (PR backlog closure — signing UX, docs, APScheduler research archived)
 
 ## Requirements
 
@@ -222,6 +230,15 @@ v16.0 delivered full Competitive Observability (dispatch diagnosis, CE alerting,
 - ✓ Windows local dev getting-started path (Docker Desktop + WSL2) documented and merged — v16.1
 - ✓ APScheduler scale limits research archived in `mop_validation/reports/` with concrete thresholds and migration path — v16.1
 - ✓ Competitor pain-point insights recorded in product notes with actionable observations — v16.1
+
+### Active — v17.0 Scale Hardening
+
+- [ ] Asyncpg connection pool size right-sized for 20+ concurrent polling nodes
+- [ ] Composite DB index on `(status, created_at)` for the job candidate query
+- [ ] `SELECT FOR UPDATE SKIP LOCKED` on job dispatch to eliminate double-assignment races under burst load
+- [ ] Incremental `sync_scheduler()` — per-definition add/remove instead of full O(N) rebuild
+- [ ] APScheduler version pinned; `misfire_grace_time` tuned for burst load scenarios
+- [ ] Dedicated dispatcher worker process (or equivalent isolation) to decouple cron firing from HTTP API event loop
 
 ### Active — Future Milestones
 
