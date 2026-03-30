@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from .. import db as db_module
-from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord, ScheduledFireLog
+from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord, ScheduledFireLog, IS_POSTGRES
 from ..models import JobDefinitionCreate, JobDefinitionResponse, JobDefinitionUpdate
 from .signature_service import SignatureService
 from .alert_service import AlertService
@@ -40,7 +40,13 @@ def expected_fires_in_window(cron_expr: str, window_start: datetime, window_end:
 
 class SchedulerService:
     def __init__(self):
-        self.scheduler = AsyncIOScheduler()
+        self.scheduler = AsyncIOScheduler(
+            job_defaults={
+                "misfire_grace_time": 60,
+                "coalesce": True,
+                "max_instances": 1,
+            }
+        )
 
     def start(self):
         """Starts the internal APScheduler."""
@@ -131,12 +137,11 @@ class SchedulerService:
                          parts = j.schedule_cron.split()
                          if len(parts) == 5:
                              self.scheduler.add_job(
-                                 self.execute_scheduled_job, 
-                                 'cron', 
-                                 args=[j.id], 
+                                 self.execute_scheduled_job,
+                                 'cron',
+                                 args=[j.id],
                                  minute=parts[0], hour=parts[1], day=parts[2], month=parts[3], day_of_week=parts[4],
                                  id=j.id,
-                                 misfire_grace_time=60
                              )
                              count += 1
                      except Exception as e:
