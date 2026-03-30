@@ -1504,6 +1504,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../node-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../package-mirrors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Mirror Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2107,8 +2163,8 @@
 </thead>
 <tbody>
 <tr>
-<td>Job stuck in <code>PENDING</code> or <code>QUEUED</code> indefinitely</td>
-<td><a href="#job-stuck-in-queued-pending-indefinitely">Job stuck in Queued / PENDING indefinitely</a></td>
+<td>Job stuck in <code>PENDING</code> indefinitely</td>
+<td><a href="#job-stuck-in-queued-pending-indefinitely">Job stuck in PENDING indefinitely</a></td>
 </tr>
 <tr>
 <td>Job status is <code>BLOCKED</code></td>
@@ -2172,10 +2228,10 @@
 <li>Check the dependency job's current status.</li>
 <li>If it is <code>RUNNING</code> or <code>ASSIGNED</code>: no action needed — wait for it to complete.</li>
 <li>If it is <code>FAILED</code> or <code>DEAD_LETTER</code>: the dependent job will be <code>CANCELLED</code> (see <a href="#job-status-is-cancelled-upstream-dependency-failed">Job status is CANCELLED</a>). Investigate the dependency failure first.</li>
-<li>If it is <code>PENDING</code> or <code>QUEUED</code>: the dependency itself may be blocked — repeat this process for it.</li>
+<li>If it is <code>PENDING</code>: the dependency itself may be blocked — repeat this process for it.</li>
 </ol>
 <p><strong>Verify it worked:</strong></p>
-<p>Observe the dependency job reaching <code>COMPLETED</code>. The dependent job should automatically move to <code>QUEUED</code> within one poll cycle.</p>
+<p>Observe the dependency job reaching <code>COMPLETED</code>. The dependent job should automatically move to <code>PENDING</code> within one poll cycle.</p>
 <p>If the dependent job remains <code>BLOCKED</code> after the dependency has <code>COMPLETED</code>, check orchestrator logs for errors in the dependency resolution loop.</p>
 <hr />
 <h3 id="job-status-is-cancelled-upstream-dependency-failed">Job status is CANCELLED — upstream dependency failed</h3>
@@ -2210,7 +2266,7 @@
 <li>Submit a new job with the corrected script (re-signed via <code>axiom-push</code> if the script was changed).</li>
 </ol>
 <p><strong>Verify it worked:</strong></p>
-<p>The new job should progress past <code>QUEUED</code> to <code>COMPLETED</code> without reaching <code>FAILED</code>.</p>
+<p>The new job should progress past <code>PENDING</code> to <code>COMPLETED</code> without reaching <code>FAILED</code>.</p>
 <p>If the new job also fails, compare its output with the original — look for environment differences, node capability gaps, or persistent resource constraints.</p>
 <hr />
 <h3 id="job-status-is-zombie_reaped">Job status is ZOMBIE_REAPED</h3>
@@ -2220,7 +2276,7 @@
 <li>Check whether the assigned node is still <code>Online</code> in the <strong>Nodes</strong> view.</li>
 <li>If the node went <code>Offline</code>, run <code>docker logs &lt;node-container&gt;</code> to check for OOM kill messages or runtime errors.</li>
 <li>If the node was OOM killed, increase the node's <code>job_memory_limit</code> or reduce the job's <code>memory_limit</code>.</li>
-<li>If retries remain, the reaped job is automatically returned to <code>QUEUED</code> for reassignment. If retries are exhausted, it moves to <code>FAILED</code> — resubmit a new job.</li>
+<li>If retries remain, the reaped job is automatically returned to <code>PENDING</code> for reassignment. If retries are exhausted, it moves to <code>FAILED</code> — resubmit a new job.</li>
 </ol>
 <p><strong>Verify it worked:</strong></p>
 <p>Confirm the node returns to <code>Online</code> status. If retries remain, watch the job move back to <code>ASSIGNED</code> on the next healthy node.</p>
@@ -2303,10 +2359,10 @@
 <li>Open the <strong>Nodes</strong> view and check whether the assigned node is <code>Online</code> or <code>Offline</code>. An OOM-killed node typically goes <code>Offline</code> within a few seconds of the kill.</li>
 <li>Run <code>docker stats &lt;node-container&gt;</code> to check current memory usage against the container's limit. If the container is gone, check <code>docker inspect</code> for the last exit code — exit code <code>137</code> indicates OOM kill.</li>
 <li>Increase <code>job_memory_limit</code> on the node template or reduce the job's <code>memory_limit</code>.</li>
-<li>The zombie reaper will reclaim the job within <code>zombie_timeout_minutes</code> (default: 30 minutes) and return it to <code>QUEUED</code> if retries remain.</li>
+<li>The zombie reaper will reclaim the job within <code>zombie_timeout_minutes</code> (default: 30 minutes) and return it to <code>PENDING</code> if retries remain.</li>
 </ol>
 <p><strong>Verify it worked:</strong></p>
-<p>After the zombie reaper fires, confirm the job moves back to <code>QUEUED</code> and is successfully reassigned to a node with adequate memory. Watch for <code>COMPLETED</code> status on the next execution.</p>
+<p>After the zombie reaper fires, confirm the job moves back to <code>PENDING</code> and is successfully reassigned to a node with adequate memory. Watch for <code>COMPLETED</code> status on the next execution.</p>
 <p>If the job is repeatedly stuck in <code>ASSIGNED</code> across multiple nodes, the script itself may be consuming unbounded memory — profile the script and add explicit memory limits.</p>
 <hr />
 <h2 id="see-also">See Also</h2>

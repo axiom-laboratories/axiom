@@ -454,6 +454,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#step-0-generate-a-signing-keypair" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 0: Generate a signing keypair
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 0: Generate a signing keypair">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#register-the-public-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Register the public key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-start-axiom-push-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -491,6 +519,17 @@
     <span class="md-ellipsis">
       
         Step 4: Verify the result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-jobs-view-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the Jobs view looks like
       
     </span>
   </a>
@@ -1415,6 +1454,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/node-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/package-mirrors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Mirror Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1807,6 +1902,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#step-0-generate-a-signing-keypair" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 0: Generate a signing keypair
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 0: Generate a signing keypair">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#register-the-public-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Register the public key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-start-axiom-push-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1844,6 +1967,17 @@
     <span class="md-ellipsis">
       
         Step 4: Verify the result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-jobs-view-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the Jobs view looks like
       
     </span>
   </a>
@@ -1922,6 +2056,58 @@
 before executing. This guide walks through generating a signing key, registering the public key,
 and dispatching your first job.</p>
 <hr />
+<h2 id="step-0-generate-a-signing-keypair">Step 0: Generate a signing keypair</h2>
+<p>Every job must be signed before dispatch. Generate a keypair once — the private key stays on your machine, the public key gets registered in Axiom.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Python (cryptography)</label><label for="__tabbed_1_2">openssl</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey</span>
+<span class="s">from cryptography.hazmat.primitives import serialization</span>
+
+<span class="s">key = Ed25519PrivateKey.generate()</span>
+
+<span class="s">with open(&quot;signing.key&quot;, &quot;wb&quot;) as f:</span>
+<span class="s">    f.write(key.private_bytes(</span>
+<span class="s">        serialization.Encoding.PEM,</span>
+<span class="s">        serialization.PrivateFormat.PKCS8,</span>
+<span class="s">        serialization.NoEncryption()</span>
+<span class="s">    ))</span>
+
+<span class="s">with open(&quot;verification.key&quot;, &quot;wb&quot;) as f:</span>
+<span class="s">    f.write(key.public_key().public_bytes(</span>
+<span class="s">        serialization.Encoding.PEM,</span>
+<span class="s">        serialization.PublicFormat.SubjectPublicKeyInfo</span>
+<span class="s">    ))</span>
+
+<span class="s">print(&quot;Done. Upload verification.key to Axiom, keep signing.key private.&quot;)</span>
+<span class="s">EOF</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>genpkey<span class="w"> </span>-algorithm<span class="w"> </span>ed25519<span class="w"> </span>-out<span class="w"> </span>signing.key
+openssl<span class="w"> </span>pkey<span class="w"> </span>-in<span class="w"> </span>signing.key<span class="w"> </span>-pubout<span class="w"> </span>-out<span class="w"> </span>verification.key
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>This produces <code>signing.key</code> (private — keep safe) and <code>verification.key</code> (public — upload to Axiom).</p>
+<div class="admonition warning">
+<p class="admonition-title">Never commit signing.key</p>
+<p>Store it in a secrets manager in production. Anyone who holds it can forge job signatures.</p>
+</div>
+<h3 id="register-the-public-key">Register the public key</h3>
+<ol>
+<li>Go to <strong>Signatures</strong> in the dashboard sidebar</li>
+<li>Click <strong>Register Trusted Key</strong></li>
+<li>Paste the contents of <code>verification.key</code>, give it a name (e.g. <code>dev-key</code>), click <strong>Establish Trust</strong></li>
+<li>Note the <strong>Key ID</strong> — you'll need it when dispatching</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Getting started banner</p>
+<p>The Signatures page shows a banner with these same commands when no keys are registered yet.</p>
+</div>
+<hr />
 <h2 id="quick-start-axiom-push-cli">Quick Start (axiom-push CLI)</h2>
 <div class="admonition note">
 <p class="admonition-title">axiom-push requires EE</p>
@@ -1966,7 +2152,7 @@ prints the public key PEM to stdout. Use <code>--force</code> to overwrite exist
 </code></pre></div>
 <hr />
 <h2 id="step-3-dispatch-the-job">Step 3: Dispatch the job</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">CLI (axiom-push)</label><label for="__tabbed_1_2">Dashboard</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">CLI (axiom-push)</label><label for="__tabbed_2_2">Dashboard</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
@@ -2009,6 +2195,11 @@ Running on &lt;node-hostname&gt; (Linux)
 <li><a href="../../feature-guides/axiom-push/">axiom-push CLI</a> — full CLI reference</li>
 </ul>
 </div>
+<h2 id="what-the-jobs-view-looks-like">What the Jobs view looks like</h2>
+<p>The <strong>Jobs</strong> view shows all dispatched jobs with their current status:</p>
+<p><img alt="Jobs page showing dispatched jobs with COMPLETED and FAILED status" src="../../assets/screenshots/jobs.png" /></p>
+<p>Click a completed job row to open the job detail panel with output, timing, and attestation details:</p>
+<p><img alt="Job detail panel showing script output and execution metadata" src="../../assets/screenshots/job_detail.png" /></p>
 <hr />
 <h2 id="manual-setup">Manual Setup</h2>
 <p>Use this path if you do not have <code>axiom-push</code> or prefer to use <code>openssl</code> directly.</p>

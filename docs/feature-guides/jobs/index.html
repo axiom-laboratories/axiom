@@ -1406,6 +1406,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/node-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/package-mirrors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Mirror Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1952,7 +2008,7 @@
 </tr>
 </tbody>
 </table>
-<p>Bulk actions apply only to jobs in compatible states — for example, bulk cancel only affects <code>PENDING</code> or <code>QUEUED</code> jobs.</p>
+<p>Bulk actions apply only to jobs in compatible states — for example, bulk cancel only affects <code>PENDING</code> or <code>ASSIGNED</code> jobs.</p>
 <hr />
 <h2 id="queue-monitor">Queue Monitor</h2>
 <p>The Queue Monitor shows all pending and active jobs in real time via WebSocket updates. It displays per-node job counts and highlights nodes that are receiving work.</p>
@@ -1964,7 +2020,7 @@
 <hr />
 <h2 id="draft-lifecycle">DRAFT Lifecycle</h2>
 <p>Jobs dispatched via <code>axiom-push</code> start in <code>DRAFT</code> state and must be reviewed and published before nodes receive them. See <a href="../axiom-push/">axiom-push CLI</a> and <a href="../job-scheduling/">Job Scheduling</a> for DRAFT workflow details.</p>
-<p>Jobs dispatched directly (via the dashboard or API) start in <code>QUEUED</code> state and are assigned to a node immediately.</p>
+<p>Jobs dispatched directly (via the dashboard or API) start in <code>PENDING</code> state and are assigned to a node immediately.</p>
 
 
 

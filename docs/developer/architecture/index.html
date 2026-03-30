@@ -11,7 +11,7 @@
         <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/developer/architecture/">
       
       
-        <link rel="prev" href="../../runbooks/faq/">
+        <link rel="prev" href="../../runbooks/package-mirrors/">
       
       
         <link rel="next" href="../setup-deployment/">
@@ -1259,6 +1259,62 @@
     
   
     FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/node-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbooks/package-mirrors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Mirror Setup
   
 
     
@@ -2539,7 +2595,7 @@
     N --&gt;|"mTLS client cert · POLL /work/pull"| A
     N --&gt;|"POST /heartbeat"| A
     A --&gt;|"WorkResponse (signed script + limits)"| N
-    N --&gt;|"POST /work/result"| A
+    N --&gt;|"POST /work/{guid}/result"| A
     OPER([Operator]) --&gt; DASH
     OPER --&gt; N</code></pre>
 <p>Three components run in every deployment:</p>
@@ -2674,7 +2730,7 @@
 <p>Inbound webhook-triggered job dispatch:</p>
 <ul>
 <li>Each <code>Trigger</code> record has a unique <code>slug</code> and a <code>secret_token</code>.</li>
-<li><code>POST /triggers/{slug}</code> validates the token and dispatches the associated job definition.</li>
+<li><code>POST /api/trigger/{slug}</code> validates the token and dispatches the associated job definition.</li>
 <li>Enables CI/CD pipelines and external systems to fire scheduled jobs on demand.</li>
 </ul>
 <h4 id="mirror_service">mirror_service</h4>
@@ -2687,7 +2743,7 @@
 <h4 id="staging_service">staging_service</h4>
 <p>A review gate for job definitions before they are activated:</p>
 <ul>
-<li>Job definitions can be submitted to a staging queue (<code>STAGED</code> state) rather than dispatched directly.</li>
+<li>Job definitions can be submitted to a staging queue (<code>DRAFT</code> state) rather than dispatched directly.</li>
 <li>An approver promotes a staged definition to active via a separate approval endpoint.</li>
 <li>Provides an audit trail of who approved what and when.</li>
 </ul>
@@ -2936,7 +2992,7 @@
     <span class="o">...</span>
 </code></pre></div>
 <p><code>require_permission()</code> is a factory that returns a FastAPI dependency. Admin users skip the DB lookup. All other users are checked against <code>role_permissions</code>.</p>
-<p>Node-facing endpoints (<code>/api/enroll</code>, <code>/work/pull</code>, <code>/heartbeat</code>, <code>/work/result</code>) are <strong>unauthenticated</strong> — they rely on mTLS client certificates only.</p>
+<p>Node-facing endpoints (<code>/api/enroll</code>, <code>/work/pull</code>, <code>/heartbeat</code>, <code>/work/{guid}/result</code>) are <strong>unauthenticated</strong> — they rely on mTLS client certificates only.</p>
 <h3 id="fernet-encryption-at-rest">Fernet Encryption at Rest</h3>
 <p>Sensitive job payloads and secrets stored in the database are encrypted using Fernet (AES-128-CBC with HMAC-SHA256).</p>
 <ul>
@@ -2973,7 +3029,7 @@
     N-&gt;&gt;R: run(script, memory_limit, cpu_limit)
     R-&gt;&gt;R: Execute in subprocess or container (based on EXECUTION_MODE)
     R--&gt;&gt;N: {stdout, stderr, exit_code}
-    N-&gt;&gt;A: POST /work/result {guid, status, output, exit_code}
+    N-&gt;&gt;A: POST /work/{guid}/result {status, output, exit_code}
     A-&gt;&gt;A: Update Job (status=COMPLETED or FAILED)
     A-&gt;&gt;A: Write ExecutionRecord
     A-&gt;&gt;D: WebSocket push (job status update)
@@ -3090,7 +3146,7 @@
         alt Job available and node matches
             A--&gt;&gt;N: 200 WorkResponse {job details}
             N-&gt;&gt;N: Execute job
-            N-&gt;&gt;A: POST /work/result
+            N-&gt;&gt;A: POST /work/{guid}/result
         else No matching job
             A--&gt;&gt;N: 204 No Content
         end

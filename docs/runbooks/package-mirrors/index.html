@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/feature-guides/oauth/">
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/runbooks/package-mirrors/">
       
       
-        <link rel="prev" href="../rbac/">
+        <link rel="prev" href="../node-validation/">
       
       
-        <link rel="next" href="../rbac-reference/">
+        <link rel="next" href="../../developer/architecture/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>OAuth & Authentication - Axiom</title>
+        <title>Package Mirror Setup - Axiom</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#oauth-authentication" class="md-skip">
+        <a href="#package-mirror-setup" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              OAuth & Authentication
+              Package Mirror Setup
             
           </span>
         </div>
@@ -424,20 +424,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -458,7 +456,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -523,7 +521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../axiom-push/" class="md-nav__link">
+      <a href="../../feature-guides/axiom-push/" class="md-nav__link">
         
   
   
@@ -556,20 +554,18 @@
                 
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -590,7 +586,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -608,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../jobs/" class="md-nav__link">
+      <a href="../../feature-guides/jobs/" class="md-nav__link">
         
   
   
@@ -636,7 +632,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../nodes/" class="md-nav__link">
+      <a href="../../feature-guides/nodes/" class="md-nav__link">
         
   
   
@@ -664,7 +660,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../foundry/" class="md-nav__link">
+      <a href="../../feature-guides/foundry/" class="md-nav__link">
         
   
   
@@ -692,7 +688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../job-scheduling/" class="md-nav__link">
+      <a href="../../feature-guides/job-scheduling/" class="md-nav__link">
         
   
   
@@ -720,7 +716,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rbac/" class="md-nav__link">
+      <a href="../../feature-guides/rbac/" class="md-nav__link">
         
   
   
@@ -745,37 +741,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    OAuth & Authentication
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../feature-guides/oauth/" class="md-nav__link">
         
   
   
@@ -791,154 +760,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#authentication-methods" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Authentication Methods
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#device-flow-oauth-20" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Device Flow (OAuth 2.0)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Device Flow (OAuth 2.0)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#flow-overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Flow overview
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#token-lifecycle" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Token Lifecycle
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Token Lifecycle">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#forced-invalidation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Forced invalidation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-keys" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API Keys
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#service-principal-tokens" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Service Principal Tokens
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cicd-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CI/CD Integration
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="CI/CD Integration">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#approach-a-api-key-simpler" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Approach A: API key (simpler)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#approach-b-service-principal-recommended-for-teams" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Approach B: Service principal (recommended for teams)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1006,7 +827,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rbac-reference/" class="md-nav__link">
+      <a href="../../feature-guides/rbac-reference/" class="md-nav__link">
         
   
   
@@ -1268,18 +1089,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
@@ -1300,7 +1123,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1318,7 +1141,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -1346,7 +1169,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/nodes/" class="md-nav__link">
+      <a href="../nodes/" class="md-nav__link">
         
   
   
@@ -1374,7 +1197,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/jobs/" class="md-nav__link">
+      <a href="../jobs/" class="md-nav__link">
         
   
   
@@ -1402,7 +1225,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/foundry/" class="md-nav__link">
+      <a href="../foundry/" class="md-nav__link">
         
   
   
@@ -1430,7 +1253,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/faq/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
@@ -1458,7 +1281,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/node-validation/" class="md-nav__link">
+      <a href="../node-validation/" class="md-nav__link">
         
   
   
@@ -1483,10 +1306,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../runbooks/package-mirrors/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Mirror Setup
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1502,6 +1352,231 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#devpi-pypi-mirror-pkg-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        devpi — PyPI Mirror (PKG-01)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="devpi — PyPI Mirror (PKG-01)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enable-the-mirror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable the mirror
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seed-packages-for-offline-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Seed packages for offline use
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify-with-the-pkg-04-validation-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify with the PKG-04 validation job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apt-cacher-ng-apt-mirror-pkg-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        apt-cacher-ng — APT Mirror (PKG-02)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="apt-cacher-ng — APT Mirror (PKG-02)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#add-the-sidecar-to-composeserveryaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add the sidecar to compose.server.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-foundry-builds-to-use-the-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure Foundry builds to use the proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-issues_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#baget-powershell-module-mirror-pkg-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BaGet — PowerShell Module Mirror (PKG-03)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BaGet — PowerShell Module Mirror (PKG-03)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#add-the-sidecar-to-composeserveryaml_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add the sidecar to compose.server.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seed-a-module-example-pester" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Seed a module (example: Pester)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-a-foundry-blueprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure a Foundry Blueprint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify-with-a-pwsh-job-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify with a PWSH job script
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-issues_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enterprise-alternatives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enterprise alternatives
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1899,33 +1974,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication-methods" class="md-nav__link">
+  <a href="#devpi-pypi-mirror-pkg-01" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Authentication Methods
+        devpi — PyPI Mirror (PKG-01)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="devpi — PyPI Mirror (PKG-01)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enable-the-mirror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable the mirror
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#device-flow-oauth-20" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#seed-packages-for-offline-use" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Device Flow (OAuth 2.0)
+        Seed packages for offline use
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Device Flow (OAuth 2.0)">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#flow-overview" class="md-nav__link">
+  <a href="#verify-with-the-pkg-04-validation-job" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Flow overview
+        Verify with the PKG-04 validation job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common issues
       
     </span>
   </a>
@@ -1938,22 +2035,55 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#token-lifecycle" class="md-nav__link">
+  <a href="#apt-cacher-ng-apt-mirror-pkg-02" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Token Lifecycle
+        apt-cacher-ng — APT Mirror (PKG-02)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Token Lifecycle">
+    <nav class="md-nav" aria-label="apt-cacher-ng — APT Mirror (PKG-02)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#forced-invalidation" class="md-nav__link">
+  <a href="#add-the-sidecar-to-composeserveryaml" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Forced invalidation
+        Add the sidecar to compose.server.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-foundry-builds-to-use-the-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure Foundry builds to use the proxy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-issues_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common issues
       
     </span>
   </a>
@@ -1966,44 +2096,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-keys" class="md-nav__link">
+  <a href="#baget-powershell-module-mirror-pkg-03" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Keys
+        BaGet — PowerShell Module Mirror (PKG-03)
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#service-principal-tokens" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Service Principal Tokens
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cicd-integration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CI/CD Integration
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="CI/CD Integration">
+    <nav class="md-nav" aria-label="BaGet — PowerShell Module Mirror (PKG-03)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#approach-a-api-key-simpler" class="md-nav__link">
+  <a href="#add-the-sidecar-to-composeserveryaml_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Approach A: API key (simpler)
+        Add the sidecar to compose.server.yaml
       
     </span>
   </a>
@@ -2011,10 +2119,43 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#approach-b-service-principal-recommended-for-teams" class="md-nav__link">
+  <a href="#seed-a-module-example-pester" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Approach B: Service principal (recommended for teams)
+        Seed a module (example: Pester)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-a-foundry-blueprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure a Foundry Blueprint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify-with-a-pwsh-job-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify with a PWSH job script
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-issues_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common issues
       
     </span>
   </a>
@@ -2023,6 +2164,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enterprise-alternatives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enterprise alternatives
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2043,197 +2195,157 @@
 
 
 
-<h1 id="oauth-authentication">OAuth &amp; Authentication</h1>
-<p>Axiom uses JWT-based authentication with RFC 8628 device flow for CLI tools and API keys for automation.</p>
+<h1 id="package-mirror-setup">Package Mirror Setup</h1>
+<p>Package mirrors allow Foundry node image builds to resolve packages from internal sidecars instead of the public internet. This runbook covers devpi (PyPI), apt-cacher-ng (APT), and BaGet (PWSH/NuGet) from scratch — compose snippets, setup steps, verification commands, and common issues for each.</p>
 <hr />
-<div class="admonition enterprise">
-<p class="admonition-title">Enterprise</p>
-</div>
-<h2 id="authentication-methods">Authentication Methods</h2>
-<p>Three authentication methods are supported:</p>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Best for</th>
-<th>Obtained via</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Password login</td>
-<td>Dashboard users</td>
-<td>Login page (<code>/login</code>)</td>
-</tr>
-<tr>
-<td>Device flow (OAuth 2.0)</td>
-<td>CLI tools, <code>axiom-push</code></td>
-<td><code>POST /auth/device</code> + browser approval</td>
-</tr>
-<tr>
-<td>API key</td>
-<td>Automation, scripts, CI pipelines</td>
-<td><strong>My Account</strong> → <strong>API Keys</strong> → <strong>Create</strong></td>
-</tr>
-</tbody>
-</table>
-<p>All three methods return or carry a JWT that must be supplied as a <code>Bearer</code> token in the <code>Authorization</code> header.</p>
-<hr />
-<h2 id="device-flow-oauth-20">Device Flow (OAuth 2.0)</h2>
-<p>The OAuth 2.0 Device Authorization Grant (RFC 8628) allows tools without a browser — like <code>axiom-push</code> — to authenticate without a redirect URI. The flow works by having the user approve the request in a browser session while the tool polls for the result.</p>
-<p><strong>Why Axiom uses device flow:</strong> CLI tools cannot host a redirect URI. The device flow separates the user approval step (done in a browser) from the tool waiting for the token (done by polling). No callback server is needed on the client machine.</p>
-<h3 id="flow-overview">Flow overview</h3>
+<h2 id="devpi-pypi-mirror-pkg-01">devpi — PyPI Mirror (PKG-01)</h2>
+<p>devpi is a full PyPI caching proxy. It mirrors pypi.org and caches packages locally. devpi is already included in <code>compose.server.yaml</code> at port 3141 — no additional compose changes are required.</p>
+<h3 id="enable-the-mirror">Enable the mirror</h3>
 <ol>
-<li>The CLI requests a <code>device_code</code> and <code>user_code</code> from <code>POST /auth/device</code>.</li>
-<li>The CLI displays the <code>user_code</code> and the <code>verification_uri</code> to the operator.</li>
-<li>The operator visits the <code>verification_uri</code> in a browser and enters the <code>user_code</code>.</li>
-<li>An admin (or the same user if they have permission) approves the request at the approval page.</li>
-<li>The CLI polls <code>POST /auth/device/token</code> every 5 seconds until a JWT is returned.</li>
+<li>Configure the agent to point Foundry builds at devpi by setting <code>PYPI_MIRROR_URL</code>:</li>
 </ol>
-<p><strong>Constants:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Authorization window</td>
-<td>300 seconds (5 minutes)</td>
-</tr>
-<tr>
-<td>Poll interval</td>
-<td>5 seconds</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition warning">
-<p class="admonition-title">Device codes are not persisted</p>
-<p>Device authorization codes are stored in memory and are not persisted across server restarts. If the server restarts during the 5-minute authorization window, the login flow must be restarted from step 1.</p>
-</div>
-<p>For step-by-step <code>axiom-push</code> login instructions, see the <a href="../axiom-push/">axiom-push CLI guide</a>.</p>
-<hr />
-<h2 id="token-lifecycle">Token Lifecycle</h2>
-<p>All JWTs issued by Axiom share the same structure and expiry rules.</p>
-<p><strong>Token fields:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>sub</code></td>
-<td>Username (string)</td>
-</tr>
-<tr>
-<td><code>role</code></td>
-<td>User role: <code>admin</code>, <code>operator</code>, or <code>viewer</code></td>
-</tr>
-<tr>
-<td><code>tv</code></td>
-<td>Token version — used for forced invalidation (see below)</td>
-</tr>
-<tr>
-<td><code>exp</code></td>
-<td>Expiry timestamp (Unix epoch)</td>
-</tr>
-<tr>
-<td><code>type</code></td>
-<td>Present for non-password tokens: <code>"device_flow"</code> or <code>"service_principal"</code></td>
-</tr>
-<tr>
-<td><code>sp_id</code></td>
-<td>Present on service principal tokens: the service principal's UUID</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Default expiry:</strong> 24 hours from the time of issuance.</p>
-<h3 id="forced-invalidation">Forced invalidation</h3>
-<p>When a user's password is changed — either by the user via <strong>My Account</strong> or by an admin — all existing tokens for that user are immediately rejected.</p>
-<p>The JWT includes a <code>tv</code> (token version) field. When the server validates a token, it checks that the <code>tv</code> value matches the user's current <code>token_version</code> in the database. Any token with a mismatched <code>tv</code> is rejected instantly, regardless of the token's <code>exp</code> claim. There is no need to wait for token expiry.</p>
-<p><strong>To invalidate all sessions for a user:</strong></p>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;ADMIN_JWT&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://&lt;YOUR_HOST&gt;/admin/users/&lt;USERNAME&gt;/reset-password<span class="w"> </span><span class="se">\</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Option A: environment variable in compose.server.yaml agent service</span>
+environment:
+<span class="w">  </span>-<span class="w"> </span><span class="nv">PYPI_MIRROR_URL</span><span class="o">=</span>http://devpi:3141/root/pypi/+simple/
+</code></pre></div>
+<p>Or via API:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span>https://localhost:8001/admin/mirror-config<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;new_password&quot;: &quot;&lt;NEW_PASSWORD&gt;&quot;}&#39;</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;pypi_mirror_url&quot;: &quot;http://devpi:3141/root/pypi/+simple/&quot;}&#39;</span>
 </code></pre></div>
-<p>This increments the user's <code>token_version</code> and immediately invalidates all prior tokens for that user.</p>
-<hr />
-<h2 id="api-keys">API Keys</h2>
-<p>API keys are long-lived bearer tokens. They are created in the <strong>My Account</strong> section of the dashboard.</p>
-<p><strong>Creating an API key:</strong> Navigate to <strong>My Account</strong> → <strong>API Keys</strong> → <strong>Create</strong>. Give the key a descriptive name. The full key value is shown once at creation time — copy it immediately.</p>
-<p><strong>Using an API key:</strong></p>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;YOUR_API_KEY&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://&lt;YOUR_HOST&gt;/api/nodes
-</code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">API key permissions</p>
-<p>API keys grant the same access as the owning user's role. The <code>permissions</code> field is reserved for future per-key permission scoping — per-key permission restriction is not currently enforced. If you need to restrict access, create a dedicated user account with the <code>viewer</code> or <code>operator</code> role and generate an API key for that account.</p>
-</div>
-<p><strong>Revoking an API key:</strong> Navigate to <strong>My Account</strong> → <strong>API Keys</strong> and click <strong>Revoke</strong> next to the key. Revocation is immediate.</p>
-<hr />
-<h2 id="service-principal-tokens">Service Principal Tokens</h2>
-<p>Service principals are machine identities — not human users. They are documented fully in the <a href="../rbac/">RBAC guide</a>. To obtain a token for a service principal:</p>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-u<span class="w"> </span><span class="s2">&quot;&lt;SP_CLIENT_ID&gt;:&lt;SP_CLIENT_SECRET&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://&lt;YOUR_HOST&gt;/auth/service-principals/&lt;SP_ID&gt;/token
-</code></pre></div>
-<p>The response contains a JWT with <code>"type": "service_principal"</code> and the <code>sp_id</code> field set to the service principal's UUID.</p>
-<p><strong>Secret rotation:</strong></p>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;ADMIN_JWT&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://&lt;YOUR_HOST&gt;/auth/service-principals/&lt;SP_ID&gt;/rotate
-</code></pre></div>
-<div class="admonition danger">
-<p class="admonition-title">Secret shown once</p>
-<p>The new secret is returned in the rotation response and cannot be retrieved again. Store it immediately in your secrets manager. The old secret is invalidated at the moment of rotation.</p>
-</div>
-<hr />
-<h2 id="cicd-integration">CI/CD Integration</h2>
-<p>Two approaches are available for pipeline automation. Both use <code>&lt;PLACEHOLDER&gt;</code> values — replace them with your actual credentials stored as CI secrets.</p>
-<h3 id="approach-a-api-key-simpler">Approach A: API key (simpler)</h3>
-<p>Suitable for single-team pipelines where a single operator-level identity is sufficient.</p>
 <ol>
-<li>Create an API key in the dashboard: <strong>My Account</strong> → <strong>API Keys</strong> → <strong>Create</strong>.</li>
-<li>Store the key as a CI secret in your pipeline (for example, a secret named <strong>AXIOM_API_KEY</strong> in GitHub Actions).</li>
-<li>Use the key directly in pipeline steps:</li>
+<li>Rebuild all Foundry templates so the updated <code>pip.conf</code> is baked into new node images.</li>
 </ol>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;AXIOM_API_KEY&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://&lt;YOUR_HOST&gt;/api/jobs/push<span class="w"> </span><span class="se">\</span>
+<h3 id="seed-packages-for-offline-use">Seed packages for offline use</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create the root/pypi caching index (first-run only)</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-devpi-1<span class="w"> </span>devpi<span class="w"> </span>use<span class="w"> </span>http://localhost:3141
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-devpi-1<span class="w"> </span>devpi<span class="w"> </span>login<span class="w"> </span>root<span class="w"> </span>--password<span class="o">=</span><span class="s2">&quot;&quot;</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-devpi-1<span class="w"> </span>devpi<span class="w"> </span>index<span class="w"> </span>-c<span class="w"> </span>root/pypi<span class="w"> </span><span class="nv">bases</span><span class="o">=</span>root/pypi<span class="w"> </span><span class="nv">type</span><span class="o">=</span>mirror<span class="w"> </span><span class="nv">mirror_url</span><span class="o">=</span>https://pypi.org/simple/
+<span class="c1"># Trigger initial cache fill (packages download on first install request)</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>puppeteer-devpi-1<span class="w"> </span>devpi<span class="w"> </span>install<span class="w"> </span>requests
+</code></pre></div>
+<h3 id="verify-with-the-pkg-04-validation-job">Verify with the PKG-04 validation job</h3>
+<div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--script<span class="w"> </span>tools/example-jobs/validation/verify_pypi_mirror.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--key<span class="w"> </span>signing.key<span class="w"> </span>--key-id<span class="w"> </span>&lt;your-key-id&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">PYPI_MIRROR_HOST</span><span class="o">=</span>devpi:3141
+</code></pre></div>
+<p>Expected output on PASS:</p>
+<div class="highlight"><pre><span></span><code>=== Axiom PyPI Mirror Validation ===
+Testing mirror: devpi:3141
+PASS: pip resolved &#39;requests&#39; from internal mirror (devpi:3141).
+      Downloading http://devpi:3141/root/pypi/+f/abc/requests-2.31.0-py3-none-any.whl (62 kB)
+</code></pre></div>
+<p>Expected output on FAIL (mirror not seeded or wrong URL):</p>
+<div class="highlight"><pre><span></span><code>FAIL: pip is resolving from pypi.org, not the internal mirror.
+</code></pre></div>
+<h3 id="common-issues">Common issues</h3>
+<ul>
+<li><strong>"No matching distribution found"</strong> — using wrong index path. The correct URL is <code>http://devpi:3141/root/pypi/+simple/</code>, not <code>http://devpi:3141/+simple/</code> (root index is empty).</li>
+<li><strong>pip SSL error on HTTP URL</strong> — <code>trusted-host</code> must match the devpi hostname. The <code>MirrorService.get_pip_conf_content()</code> sets this automatically from the URL.</li>
+<li><strong>devpi <code>root/pypi</code> index not found after fresh deploy</strong> — run the <code>devpi index -c root/pypi</code> init commands above on first start.</li>
+</ul>
+<hr />
+<h2 id="apt-cacher-ng-apt-mirror-pkg-02">apt-cacher-ng — APT Mirror (PKG-02)</h2>
+<p>apt-cacher-ng is a transparent caching proxy for APT packages. Adding it as a sidecar lets Foundry builds install Debian/Ubuntu packages through the cache; on subsequent builds and in air-gapped environments, packages resolve from the cache rather than the internet.</p>
+<h3 id="add-the-sidecar-to-composeserveryaml">Add the sidecar to compose.server.yaml</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apt-mirror</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sameersbn/apt-cacher-ng:latest</span>
+<span class="w">  </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
+<span class="w">  </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;3142:3142&quot;</span>
+<span class="w">  </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apt-cache-data:/var/cache/apt-cacher-ng</span>
+<span class="w">  </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DISABLE_IPFORWARD_CHECK=1</span>
+</code></pre></div>
+<p>Also add <code>apt-cache-data:</code> under the top-level <code>volumes:</code> key.</p>
+<h3 id="configure-foundry-builds-to-use-the-proxy">Configure Foundry builds to use the proxy</h3>
+<p>The apt proxy must be injected at build time and removed from the final image. Configure the mirror URL via the API:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span>https://localhost:8001/admin/mirror-config<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-d<span class="w"> </span>@job_payload.json
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;apt_mirror_url&quot;: &quot;http://apt-mirror:3142&quot;}&#39;</span>
 </code></pre></div>
-<p>Or with <code>axiom-push</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">AXIOM_API_KEY</span><span class="o">=</span>&lt;AXIOM_API_KEY&gt;<span class="w"> </span>axiom-push<span class="w"> </span>push<span class="w"> </span>--script<span class="w"> </span>my_job.py
+<p>The resulting Dockerfile pattern (auto-generated by Foundry):</p>
+<div class="highlight"><pre><span></span><code><span class="k">RUN</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;Acquire::http::Proxy &quot;http://apt-mirror:3142&quot;;&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/apt/apt.conf.d/01proxy<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>update<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>&lt;packages&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span>rm<span class="w"> </span>/etc/apt/apt.conf.d/01proxy
 </code></pre></div>
-<h3 id="approach-b-service-principal-recommended-for-teams">Approach B: Service principal (recommended for teams)</h3>
-<p>Suitable when multiple pipelines or teams need isolated identities with independent revocation.</p>
-<ol>
-<li>Create a service principal: <strong>Admin</strong> → <strong>Service Principals</strong> → <strong>Create</strong>.</li>
-<li>Set the role to <code>operator</code> (not <code>admin</code>) — follow the principle of least privilege.</li>
-<li>Store <code>client_id</code> and <code>client_secret</code> as CI secrets.</li>
-<li>Request a token at the start of each pipeline run and use it for the duration:</li>
-</ol>
-<div class="highlight"><pre><span></span><code><span class="c1"># Obtain a token</span>
-<span class="nv">TOKEN</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-u<span class="w"> </span><span class="s2">&quot;&lt;SP_CLIENT_ID&gt;:&lt;SP_CLIENT_SECRET&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://&lt;YOUR_HOST&gt;/auth/service-principals/&lt;SP_ID&gt;/token<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.access_token&#39;</span><span class="k">)</span>
+<h3 id="verify">Verify</h3>
+<p>Trigger a Foundry build and check apt-cacher-ng logs:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>logs<span class="w"> </span>puppeteer-apt-mirror-1<span class="w"> </span>--tail<span class="w"> </span><span class="m">20</span>
+</code></pre></div>
+<p>Cache hits appear as <code>200 (ca)</code> in the log. Cache misses (first build) appear as <code>200</code>.</p>
+<h3 id="common-issues_1">Common issues</h3>
+<ul>
+<li><strong>apt-mirror hostname not resolving from inside Foundry build container</strong> — ensure <code>apt-mirror</code> service is in the same Docker network as the agent (<code>puppeteer_default</code>).</li>
+<li><strong>Proxy baked into final node image</strong> — always <code>rm /etc/apt/apt.conf.d/01proxy</code> in the same <code>RUN</code> layer as the install. Node APT commands will fail outside the compose network if the proxy line persists.</li>
+<li><strong>DISABLE_IPFORWARD_CHECK=1 required</strong> — without this, apt-cacher-ng may fail to start in Docker due to missing IP forwarding.</li>
+</ul>
+<hr />
+<h2 id="baget-powershell-module-mirror-pkg-03">BaGet — PowerShell Module Mirror (PKG-03)</h2>
+<p>BaGet is a lightweight NuGet v3 server compatible with PowerShell's <code>Install-Module</code> and <code>Install-PSResource</code> commands. Adding it as a sidecar lets PWSH job scripts install modules from an internal repository rather than PSGallery.</p>
+<h3 id="add-the-sidecar-to-composeserveryaml_1">Add the sidecar to compose.server.yaml</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">baget</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loicsharma/baget:latest</span>
+<span class="w">  </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
+<span class="w">  </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;5555:80&quot;</span>
+<span class="w">  </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">baget-data:/var/baget</span>
+<span class="w">  </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ApiKey=AXIOM-INTERNAL-NUGET-KEY</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Storage__Type=FileSystem</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Storage__Path=/var/baget</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Database__Type=Sqlite</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Database__ConnectionString=Data Source=/var/baget/db/baget.db</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Search__Type=Database</span>
+</code></pre></div>
+<p>Also add <code>baget-data:</code> under the top-level <code>volumes:</code> key. BaGet is available at <code>http://baget:5555</code>.</p>
+<h3 id="seed-a-module-example-pester">Seed a module (example: Pester)</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Download Pester from PSGallery</span>
+curl<span class="w"> </span>-L<span class="w"> </span><span class="s2">&quot;https://www.powershellgallery.com/api/v2/package/Pester&quot;</span><span class="w"> </span>-o<span class="w"> </span>Pester.nupkg
 
-<span class="c1"># Use the token</span>
-curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://&lt;YOUR_HOST&gt;/api/nodes
+<span class="c1"># Upload to BaGet</span>
+curl<span class="w"> </span>-X<span class="w"> </span>PUT<span class="w"> </span><span class="s2">&quot;http://localhost:5555/api/v2/package&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;X-NuGet-ApiKey: AXIOM-INTERNAL-NUGET-KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">&quot;package=@Pester.nupkg&quot;</span>
 </code></pre></div>
-<div class="admonition tip">
-<p class="admonition-title">Set an expiry and rotate on schedule</p>
-<p>Service principals support an <code>expires_at</code> field set at creation time. Configure a rotation schedule in your CI system to refresh the secret before it expires. See the <a href="../rbac/">RBAC guide</a> for the full service principal management reference.</p>
-</div>
+<p>Verify via BaGet web UI at <code>http://localhost:5555</code> — Pester should appear in the package list.</p>
+<h3 id="configure-a-foundry-blueprint">Configure a Foundry Blueprint</h3>
+<p>Add to the Blueprint's PowerShell setup script so node images have the PSRepository pre-registered:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">Register-PSRepository</span> <span class="p">`</span>
+  <span class="n">-Name</span> <span class="s2">&quot;AxiomInternal&quot;</span> <span class="p">`</span>
+  <span class="n">-SourceLocation</span> <span class="s2">&quot;http://baget:5555/v3/index.json&quot;</span> <span class="p">`</span>
+  <span class="n">-PublishLocation</span> <span class="s2">&quot;http://baget:5555/v3/index.json&quot;</span> <span class="p">`</span>
+  <span class="n">-InstallationPolicy</span> <span class="n">Trusted</span>
+</code></pre></div>
+<h3 id="verify-with-a-pwsh-job-script">Verify with a PWSH job script</h3>
+<p>Dispatch a job containing:</p>
+<div class="highlight"><pre><span></span><code><span class="c"># Prefer Install-PSResource (PowerShellGet v3, available in PS 7.4+)</span>
+<span class="k">if</span> <span class="p">(</span><span class="nb">Get-Command</span> <span class="nb">Install-PSResource</span> <span class="n">-ErrorAction</span> <span class="n">SilentlyContinue</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nb">Install-PSResource</span> <span class="n">-Name</span> <span class="n">Pester</span> <span class="n">-Repository</span> <span class="n">AxiomInternal</span> <span class="n">-TrustRepository</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nb">Install-Module</span> <span class="n">-Name</span> <span class="n">Pester</span> <span class="n">-Repository</span> <span class="n">AxiomInternal</span> <span class="n">-Force</span>
+<span class="p">}</span>
+<span class="nb">Import-Module</span> <span class="n">Pester</span>
+<span class="nb">Write-Host</span> <span class="s2">&quot;=== PASS: Pester </span><span class="p">$((</span><span class="nb">Get-Module</span> <span class="n">Pester</span><span class="p">).</span><span class="n">Version</span><span class="p">)</span><span class="s2"> installed from AxiomInternal ===&quot;</span>
+</code></pre></div>
+<p>Expected output:</p>
+<div class="highlight"><pre><span></span><code>=== PASS: Pester 5.x.x installed from AxiomInternal ===
+</code></pre></div>
+<h3 id="common-issues_2">Common issues</h3>
+<ul>
+<li><strong>"Unable to find module Pester"</strong> on <code>Install-Module</code> — PowerShellGet v2 has partial NuGet v3 compatibility issues. Use <code>Install-PSResource</code> (PSResourceGet/PowerShellGet v3) on PowerShell 7.4+ nodes. Check BaGet package list at <code>http://localhost:5555</code> to confirm Pester is seeded.</li>
+<li><strong>Register-PSRepository already exists</strong> — if the repository was registered in a previous build or run, use <code>Set-PSRepository -Name AxiomInternal -InstallationPolicy Trusted</code> or add an <code>-ErrorAction SilentlyContinue</code> guard.</li>
+<li><strong>BaGet container unhealthy on first start</strong> — the SQLite DB directory <code>/var/baget/db/</code> is created on first run. If the volume is empty, wait 10 seconds after <code>docker compose up</code> before seeding.</li>
+</ul>
+<hr />
+<h2 id="enterprise-alternatives">Enterprise alternatives</h2>
+<p>For larger organisations, Sonatype Nexus Repository and JFrog Artifactory both expose NuGet v3 feeds compatible with <code>Register-PSRepository</code>. The same <code>SourceLocation</code> and <code>InstallationPolicy Trusted</code> registration pattern applies — replace <code>http://baget:5555/v3/index.json</code> with the Nexus or Artifactory NuGet feed URL.</p>
 
 
 
