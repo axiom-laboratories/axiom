@@ -1,0 +1,91 @@
+# Axiom Example Jobs — Manifest
+# Job metadata and dispatch parameters for the node validation corpus.
+# See tools/example-jobs/README.md for the community catalog and
+# docs/runbooks/node-validation.md for the operator workflow guide.
+#
+# required_capabilities values are strings (not booleans/numbers) because
+# job_service.py compares them with packaging.version.Version.
+# YAML unquoted 1.0 would be parsed as a float — use quoted "1.0".
+version: "1"
+jobs:
+  - name: hello-bash
+    description: >-
+      Hello-world reference job for bash-capable nodes. Verifies the node can
+      receive, sign-verify, and execute a Bash job. Prints hostname, OS, Bash
+      version, and timestamp.
+    script: bash/hello.sh
+    runtime: bash
+    required_capabilities: {}
+
+  - name: hello-python
+    description: >-
+      Hello-world reference job for Python-capable nodes. Verifies Python
+      runtime availability and basic job execution. Prints hostname, OS,
+      Python version, and timestamp.
+    script: python/hello.py
+    runtime: python
+    required_capabilities: {}
+
+  - name: hello-pwsh
+    description: >-
+      Hello-world reference job for PowerShell-capable nodes. Verifies
+      PowerShell 7+ runtime availability. Prints hostname, OS description,
+      PS version, and timestamp.
+    script: pwsh/hello.ps1
+    runtime: powershell
+    required_capabilities: {}
+
+  - name: validation-volume-mapping
+    description: >-
+      Confirms container volume mounts are readable and writable. Writes a
+      PID-unique sentinel file at AXIOM_VOLUME_PATH, reads it back, and cleans
+      up. Requires AXIOM_VOLUME_PATH env var set to the mount path inside the
+      container.
+    script: validation/volume-mapping.sh
+    runtime: bash
+    required_capabilities: {}
+
+  - name: validation-network-filter
+    description: >-
+      Confirms network isolation is active on the target node. Expects the node
+      to be configured with --network=none or equivalent isolation. Attempts a
+      connection to AXIOM_BLOCKED_HOST (default: 8.8.8.8); exits 0 if the host
+      is unreachable (isolation confirmed), exits 1 if it is reachable. Does
+      NOT manipulate iptables — validates existing isolation only.
+    script: validation/network-filter.py
+    runtime: python
+    required_capabilities: {}
+
+  - name: validation-memory-hog
+    description: >-
+      OOM validation: allocates 256 MB (page-touched to prevent overcommit
+      deferral) and holds it for 30 seconds. The job should be killed by the
+      container runtime before completing. Requires resource_limits_supported
+      capability and a node memory_limit strictly below 256 MB.
+    script: validation/memory-hog.py
+    runtime: python
+    required_capabilities:
+      resource_limits_supported: "1.0"
+    memory_limit: "256m"
+
+  - name: validation-cpu-spin
+    description: >-
+      CPU throttle validation: spins a CPU-bound loop for 5 seconds and reports
+      wall time, CPU time, and their ratio. On a node with cpu_limit=0.5 the
+      ratio will be ~0.5 rather than ~1.0, confirming throttling. Requires
+      resource_limits_supported capability.
+    script: validation/cpu-spin.py
+    runtime: python
+    required_capabilities:
+      resource_limits_supported: "1.0"
+    cpu_limit: "2.0"
+
+  - name: validation-pypi-mirror
+    description: >-
+      Confirms pip resolves packages from the internal mirror, not pypi.org.
+      Reads PYPI_MIRROR_HOST env var (hostname:port, e.g. devpi:3141) and runs
+      a dry-run pip install of requests; PASSes if download URL contains the
+      mirror hostname, FAILs if it resolves from pypi.org or env var is absent.
+    script: validation/verify_pypi_mirror.py
+    runtime: python
+    required_capabilities: {}

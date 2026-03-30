@@ -34,11 +34,11 @@ BOOT_LOG_PATH = Path("secrets/boot.log")
 
 # ---------------------------------------------------------------------------
 # Hardcoded licence verification public key
-# Generated 2026-03-27 — operators cannot replace this.
-# Corresponding private key is in tools/licence_signing.key (keep secret).
+# Generated 2026-03-28 — operators cannot replace this.
+# Corresponding private key is in the private axiom-licenses repo (keep secret).
 # ---------------------------------------------------------------------------
 _LICENCE_PUBLIC_KEY_PEM: bytes = b"""-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAVnaDTBFZ4C+X1Fk7F3FzqMbncsZ3oLvYCHVFBaGeHpA=
+MCowBQYDK2VwAyEA4ceile+Eh85kcTaQuI+CZS3qlHX8f+kYYReW7x3heVk=
 -----END PUBLIC KEY-----"""
 
 _pub_key: Ed25519PublicKey = serialization.load_pem_public_key(_LICENCE_PUBLIC_KEY_PEM)  # type: ignore[assignment]

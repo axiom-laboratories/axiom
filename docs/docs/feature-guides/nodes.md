@@ -16,6 +16,14 @@ Nodes are the worker machines that execute jobs. Each node runs the Axiom puppet
 
 ---
 
+## The Nodes view
+
+The **Nodes** page provides live status for all enrolled nodes, including capability tags and resource utilisation:
+
+![Nodes monitoring page](../assets/screenshots/nodes.png)
+
+---
+
 ## DRAINING State
 
 Use the DRAINING state to gracefully remove a node from the job pool without losing in-flight work.

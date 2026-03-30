@@ -416,7 +416,11 @@ class SchedulerService:
             logger.info(f"✅ Signature Validated for new job: {def_req.name}")
         except Exception as e:
             from fastapi import HTTPException
-            raise HTTPException(status_code=403, detail=f"Invalid Signature: {str(e)}")
+            raise HTTPException(status_code=403, detail=(
+                "Signature verification failed — the script content does not match the provided signature. "
+                "Ensure you signed the exact script bytes with the private key paired to the registered public key. "
+                "See the Signatures page in the dashboard for getting-started instructions."
+            ))
 
         # 3. Store Definition
         new_def = ScheduledJob(
@@ -477,7 +481,11 @@ class SchedulerService:
                 SignatureService.verify_payload_signature(sig.public_key, update_req.signature, job.script_content)
                 logger.info(f"✅ Signature re-validated for job re-sign: {job_id}")
             except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Invalid Signature: {str(e)}")
+                raise HTTPException(status_code=400, detail=(
+                    "Signature verification failed — ensure you signed the current script content "
+                    "with the private key paired to the selected registered key. "
+                    "See the Signatures page in the dashboard for getting-started instructions."
+                ))
             job.signature_id = update_req.signature_id
             job.signature_payload = update_req.signature
             job.status = "ACTIVE"
@@ -510,7 +518,11 @@ class SchedulerService:
                     SignatureService.verify_payload_signature(sig.public_key, update_req.signature, update_req.script_content)
                     logger.info(f"✅ Signature re-validated for job update: {job_id}")
                 except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"Invalid Signature: {str(e)}")
+                    raise HTTPException(status_code=400, detail=(
+                        "Signature verification failed — ensure you signed the updated script content "
+                        "with the private key paired to the selected registered key. "
+                        "See the Signatures page in the dashboard for getting-started instructions."
+                    ))
                 job.script_content = update_req.script_content
                 job.signature_id = update_req.signature_id
                 job.signature_payload = update_req.signature

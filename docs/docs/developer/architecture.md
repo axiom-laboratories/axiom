@@ -28,7 +28,7 @@ graph TB
     N -->|"mTLS client cert · POLL /work/pull"| A
     N -->|"POST /heartbeat"| A
     A -->|"WorkResponse (signed script + limits)"| N
-    N -->|"POST /work/result"| A
+    N -->|"POST /work/{guid}/result"| A
     OPER([Operator]) --> DASH
     OPER --> N
 ```
@@ -144,7 +144,7 @@ Outbound HMAC-signed webhook delivery:
 Inbound webhook-triggered job dispatch:
 
 - Each `Trigger` record has a unique `slug` and a `secret_token`.
-- `POST /triggers/{slug}` validates the token and dispatches the associated job definition.
+- `POST /api/trigger/{slug}` validates the token and dispatches the associated job definition.
 - Enables CI/CD pipelines and external systems to fire scheduled jobs on demand.
 
 #### mirror_service
@@ -159,7 +159,7 @@ Local package mirror management for air-gap builds:
 
 A review gate for job definitions before they are activated:
 
-- Job definitions can be submitted to a staging queue (`STAGED` state) rather than dispatched directly.
+- Job definitions can be submitted to a staging queue (`DRAFT` state) rather than dispatched directly.
 - An approver promotes a staged definition to active via a separate approval endpoint.
 - Provides an audit trail of who approved what and when.
 
@@ -384,7 +384,7 @@ async def some_route(current_user = Depends(require_permission("jobs:write"))):
 
 `require_permission()` is a factory that returns a FastAPI dependency. Admin users skip the DB lookup. All other users are checked against `role_permissions`.
 
-Node-facing endpoints (`/api/enroll`, `/work/pull`, `/heartbeat`, `/work/result`) are **unauthenticated** — they rely on mTLS client certificates only.
+Node-facing endpoints (`/api/enroll`, `/work/pull`, `/heartbeat`, `/work/{guid}/result`) are **unauthenticated** — they rely on mTLS client certificates only.
 
 ### Fernet Encryption at Rest
 
@@ -427,7 +427,7 @@ sequenceDiagram
     N->>R: run(script, memory_limit, cpu_limit)
     R->>R: Execute in subprocess or container (based on EXECUTION_MODE)
     R-->>N: {stdout, stderr, exit_code}
-    N->>A: POST /work/result {guid, status, output, exit_code}
+    N->>A: POST /work/{guid}/result {status, output, exit_code}
     A->>A: Update Job (status=COMPLETED or FAILED)
     A->>A: Write ExecutionRecord
     A->>D: WebSocket push (job status update)
@@ -534,7 +534,7 @@ sequenceDiagram
         alt Job available and node matches
             A-->>N: 200 WorkResponse {job details}
             N->>N: Execute job
-            N->>A: POST /work/result
+            N->>A: POST /work/{guid}/result
         else No matching job
             A-->>N: 204 No Content
         end

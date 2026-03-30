@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519 as ed25519_lib
 from cryptography.hazmat.primitives import serialization
 
 def main():
-    parser = argparse.ArgumentParser(prog="mop-push", description="Master of Puppets (MoP) CLI")
+    parser = argparse.ArgumentParser(prog="axiom-push", description="Axiom CLI")
     parser.add_argument("--url", help="Base URL of the MoP control plane")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 

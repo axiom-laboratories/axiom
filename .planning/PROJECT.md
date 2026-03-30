@@ -12,6 +12,10 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
+## Current Milestone: v16.0 — Competitive Observability
+
+**Goal:** Close the operator experience gap versus competitors by surfacing dispatch diagnosis inline, adding CE-native job failure alerting, versioning job scripts so execution history is always traceable, and supporting output validation beyond exit code.
+
 ## Requirements
 
 ### Validated
@@ -180,12 +184,25 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ `secrets-data` named Docker volume — `boot.log` and `licence.key` persist across `compose down/up` cycles — v14.3
 - ✓ Dashboard EE badge, grace/expired banner, Admin licence section aligned to backend response shape — v14.3
 
-### Active — v14.4
+### Validated — v15.0 Operator Readiness
 
-- [ ] Marketing homepage on GitHub Pages (standalone landing page separate from /docs/)
-- [ ] Dashboard amber/red banner on GRACE/DEGRADED_CE (backend API in v14.3; frontend deferred)
-- [ ] Fix golden path install docs — remove bundled nodes from `compose.cold-start.yaml`
-- [ ] Hello-world under 30 mins — signing UX improvement (reduce operator friction at first job dispatch)
+- ✓ `issue_licence.py` offline CLI — Ed25519 JWT signing, YAML audit record, GitHub API commit, `--no-remote` air-gap mode — v15.0
+- ✓ `list_licences.py` — tabular licence summary sorted by expiry ascending, `--json` flag — v15.0
+- ✓ gitleaks secret-scan CI guard — blocks `-----BEGIN PRIVATE KEY-----` commits to public repo; full history fetch — v15.0
+- ✓ Node validation job corpus — Bash/Python/PowerShell reference jobs, volume/network/memory/CPU validation scripts, `manifest.yaml`, `sign_corpus.py`, community catalog README + MkDocs runbook — v15.0
+- ✓ Package repo operator docs — devpi PyPI mirror runbook, apt-cacher-ng APT mirror guidance, BaGet PWSH mirror, `verify_pypi_mirror.py` signed validation job — v15.0
+- ✓ `capture_screenshots.py` — Playwright 11-view script with ephemeral Ed25519 seeding, 1440×900, integrated into docs and homepage — v15.0
+- ✓ `validate_docs.py` — OpenAPI + CLI flag + env var cross-reference (250 PASS / 0 WARN / 0 FAIL), `docs-validate` CI gate exits non-zero on FAIL — v15.0
+
+### Validated — v14.4 Go-to-Market Polish
+
+- ✓ Role-gated licence banner — amber GRACE (sessionStorage dismiss) + red DEGRADED_CE (non-dismissible); hidden from operator/viewer roles — v14.4
+- ✓ `axiom-push key generate` — Ed25519 keypair creation without openssl; `~/.axiom/` credential store — v14.4
+- ✓ `axiom-push init` — single interactive flow: login + key generation + server registration — v14.4
+- ✓ `first-job.md` restructured with `axiom-push init` as primary path; openssl ceremony demoted to Manual Setup — v14.4
+- ✓ `compose.cold-start.yaml` trimmed to 5 core services; no bundled test nodes or JOIN_TOKEN refs in `install.md` — v14.4
+- ✓ MkDocs docs coexisting with marketing homepage on GitHub Pages (`/docs/` subtree + root) — v14.4
+- ✓ Marketing homepage: hero copy, security positioning, CE/EE comparison, security posture grid (mTLS/RBAC/air-gap/cryptographic audit), SAML/OIDC early-access EE card, enterprise CTA — v14.4
 
 ### Active — Future Milestones
 
@@ -208,17 +225,19 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, and commercially ready (v14.3). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
+Codebase is functional, deployed, security-hardened, commercially ready, and has a complete operator readiness surface (v15.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
 
-Documentation site lives at `/docs/` (containerised, air-gapped) and is **publicly accessible at `https://axiom-laboratories.github.io/axiom/`** (GitHub Pages, auto-deployed via `docs-deploy.yml` on every `docs/**` push to `main`). MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference is auto-generated from FastAPI OpenAPI schema at container build time; `docs/scripts/regen_openapi.sh` refreshes the pre-committed snapshot locally.
+Documentation site lives at `https://axiom-laboratories.github.io/axiom/docs/` (GitHub Pages, subtree deploy via `ghp-import`). Marketing homepage lives at `https://axiom-laboratories.github.io/axiom/`. Both auto-deploy from `main` via separate GitHub Actions jobs in `gh-pages-deploy.yml`. MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference auto-generated from FastAPI OpenAPI schema at container build time.
 
-CLI is `axiom-push` (formerly `mop-push`) — installable as `axiom-sdk` Python package. GitHub Actions CI/CD pipelines in place for multi-arch GHCR images and PyPI publishing via OIDC Trusted Publisher. Version is derived dynamically from git tags via `setuptools-scm`.
+CLI is `axiom-push` — installable as `axiom-sdk` Python package. `axiom-push init` is the zero-ceremony onboarding path (login + Ed25519 keypair + server registration in one command). Credentials stored in `~/.axiom/`. GitHub Actions CI/CD for multi-arch GHCR images and PyPI via OIDC Trusted Publisher. Version derived from git tags via `setuptools-scm`.
 
-Getting-started docs (install → enroll-node → first-job) are complete and verified against a real cold-start flow. Both CE and EE paths are documented end-to-end with CLI alternatives for all GUI steps.
+Getting-started docs (install → enroll-node → first-job) verified against a real cold-start flow. `compose.cold-start.yaml` contains only 5 core services — no phantom test nodes. Both CE and EE paths documented end-to-end.
 
-EE licence system is fully operational: `tools/generate_licence.py` generates signed keys offline; `licence_service.py` validates at startup; grace period and DEGRADED_CE state machine are enforced. `secrets/boot.log` clock-rollback detection is hardened to use licence status (EE enforces, CE warns). All 6 CodeQL alerts closed.
+EE licence system fully operational: `tools/generate_licence.py` generates offline; `licence_service.py` validates at startup with VALID/GRACE/EXPIRED/CE state machine; grace period enforced; DEGRADED_CE banner visible to admins in dashboard. All 6 CodeQL alerts closed.
 
-Known deferred issues: SQLite NodeStats pruning compat (MIN-6), Foundry build dir cleanup (MIN-7), per-request DB query in require_permission (MIN-8), non-deterministic node ID scan order (WARN-8). See `.agent/reports/core-pipeline-gaps.md`.
+v15.0 operator readiness surface: `tools/` directory contains `capture_screenshots.py`, `validate_docs.py`, `generate_openapi.py`, `issue_licence.py`, `list_licences.py`. Node validation job corpus at `tools/example-jobs/` (bash/python/pwsh/validation) with `sign_corpus.py` and `manifest.yaml`. Package repo runbooks at `docs/docs/operations/package-mirrors.md`.
+
+Known deferred issues: SQLite NodeStats pruning compat (MIN-6), Foundry build dir cleanup (MIN-7), per-request DB query in require_permission (MIN-8), non-deterministic node ID scan order (WARN-8). See `.agent/reports/core-pipeline-gaps.md`. CLI tech debt: `mop_sdk.egg-info/entry_points.txt` registers stale `mop-push` entry — resolves on next `pip install -e .`.
 
 The security model is zero-trust by default. Any feature that requires relaxing mTLS, skipping signature verification, or running jobs outside containers must be treated as a configuration option with explicit documentation of the risk — never a code default.
 
@@ -293,20 +312,26 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Node limit guard before token validation in `enroll_node()` | 402 must fire before 403 so limit is checked even for expired tokens; also prevents consuming a token when limit is already hit | ✓ Good |
 | `DEGRADED_CE pull_work` returns `PollResponse(job=None)` silently | HTTPException would disconnect nodes; silent empty response keeps nodes heartbeating while CE features are degraded | ✓ Good |
 | `secrets-data` named volume (not bind mount) for boot.log | Named volumes survive `compose down` without operator needing to specify a host path; correct semantics for secrets that must outlive container lifecycle | ✓ Good |
+| `axiom-push init` as single onboarding command (not separate login + keygen + register steps) | Reduces ceremony for new operators; idempotent — safe to re-run; steps documented inline in `first-job.md` | ✓ Good |
+| `ghp-import --dest-dir docs` for MkDocs deploy (not `mkdocs gh-deploy --force`) | `mkdocs gh-deploy` has no `--dest-dir` flag; ghp-import subtree mode restricts writes to `docs/` so root homepage is preserved | ✓ Good |
+| Separate GitHub Actions jobs for docs and homepage in one workflow file (`gh-pages-deploy.yml`) | Path filters keep deploys independent; single file is simpler to maintain than two separate workflow files | ✓ Good |
+| `GOOGLE_FORM_URL_PLACEHOLDER` sentinel for enterprise CTA href | Broken links are visible before launch; grep-able single point of change when form URL is ready | ✓ Good |
+| `--no-remote` flag for air-gap licence issuance (writes to local file instead of GitHub) | Air-gapped operators cannot commit to GitHub; local file mode is equivalent audit trail without network dependency | ✓ Good |
+| `resolve_key()` requires explicit `--key` or env var — no silent default path | Silent default inside the repo was the v14.3 security gap (key could be committed accidentally); explicit requirement prevents regression | ✓ Good |
+| `list_licences.py` sorts ascending by expiry (soonest first) | Renewal visibility: soonest-to-expire licences need attention first; original plan said descending — reversed after reflection | ✓ Good |
+| Resource limit jobs gate on `resource_limits_supported` capability flag | cgroup v2 enforcement unreliable on LXC nodes with `EXECUTION_MODE=direct`; script exits 1 with descriptive message when capability absent | ✓ Good |
+| Network validation job uses `--network=none` Docker isolation (not iptables) | Direct iptables manipulation leaves residual node-global state; Docker network flag is scoped to container lifecycle | ✓ Good |
+| `openapi.json` pre-committed snapshot at 116 routes | `validate_docs.py` needs deterministic input; no running stack required for CI gate; operator runs `generate_openapi.py` locally to refresh | ✓ Good |
+| CLI regex in `validate_docs.py` restricted to lowercase tokens; unknown first-words silently skipped | Prevents prose descriptions like `axiom-push CLI guide` from generating spurious FAIL results | ✓ Good |
+| Screenshot directories committed via `.gitkeep` before PNGs exist | Structure-first deploy; screenshots committed separately by operator after running `capture_screenshots.py` on a live stack | ✓ Good |
 
-## Current Milestone: v14.4 Go-to-Market Polish
+## Previous State — v15.0 Complete (2026-03-29)
 
-**Goal:** Remove the remaining friction between a fresh install and a confident first impression — marketing page, licence UX completeness, docs accuracy, and signing onboarding speed.
+Axiom v15.0 delivered Operator Readiness — 5 phases, 11 plans, 20/22 requirements satisfied (2 checkbox omissions only — both features shipped). The operator tooling layer is now complete: licence issuance moves fully to a private repo, a signed node validation job corpus covers all runtimes and constraint types, package mirror runbooks cover devpi/APT/BaGet, dashboard screenshots are integrated into docs and marketing, and a CI-wirable docs accuracy gate catches stale API routes and CLI references. 175 files changed, 27,147 insertions.
 
-**Target features:**
-- Marketing homepage on GitHub Pages (standalone landing page separate from /docs/)
-- Dashboard amber/red banner on GRACE/DEGRADED_CE (backend API landed in v14.3; frontend component deferred)
-- Fix golden path install docs (remove bundled nodes from `compose.cold-start.yaml`)
-- Hello-world under 30 mins — signing UX improvement (reduce operator friction at first job dispatch)
+## Previous State — v14.4 Complete (2026-03-28)
 
-## Previous State — v14.3 Complete (2026-03-27)
-
-Axiom v14.3 delivered Security Hardening + EE Licensing — 5 phases, 8 plans, all 13/13 requirements satisfied. All 6 CodeQL alerts (XSS, path traversal ×4, ReDoS, API_KEY crash, nosniff) are resolved. The EE licence system is fully operational: offline JWT key generation, startup signature validation, VALID/GRACE/EXPIRED/CE state machine, hash-chained boot-log clock-rollback detection (EE enforces, CE warns), node-limit enforcement at enrollment, and a `secrets-data` Docker volume so boot.log persists across restarts. The frontend licence display is aligned to the backend response — EE badge, Admin licence section, and grace/expired banner all work correctly. Three audit tech debt items (stale tests, dead env var, orphaned bytecode) were also closed.
+Axiom v14.4 delivered Go-to-Market Polish — 5 phases, 7 plans, all 13/13 requirements satisfied. First-user friction removed: `compose.cold-start.yaml` trimmed to 5 clean services, `axiom-push init` zero-ceremony onboarding, `first-job.md` restructured. Public go-to-market surface established: marketing homepage at `axiom-laboratories.github.io/axiom/` with security posture grid, CE/EE comparison, early-access EE card, and enterprise CTA. Docs coexist at `/docs/` via ghp-import subtree deploy. All v14.4 tech debt items resolved (CLI branding, `from_store()` migration fallback).
 
 ## Previous State — v14.2 Complete (2026-03-26)
 

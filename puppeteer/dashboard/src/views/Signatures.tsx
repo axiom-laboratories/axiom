@@ -8,7 +8,10 @@ import {
     ExternalLink,
     Lock,
     ShieldCheck,
-    AlertCircle
+    BookOpen,
+    Copy,
+    CheckCheck,
+    Terminal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -45,9 +48,62 @@ interface Signature {
     uploaded_by: string;
 }
 
+const KEYGEN_CMD = `python3 - <<'EOF'
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives import serialization
+
+key = Ed25519PrivateKey.generate()
+
+with open("signing.key", "wb") as f:
+    f.write(key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption()
+    ))
+
+with open("verification.key", "wb") as f:
+    f.write(key.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo
+    ))
+
+print("Done. Upload verification.key here, keep signing.key private.")
+EOF`;
+
+const SIGN_CMD = `python3 - <<'EOF'
+from cryptography.hazmat.primitives import serialization
+import base64
+
+with open("signing.key", "rb") as f:
+    private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+script_content = open("hello.py", "r").read()
+sig = private_key.sign(script_content.encode("utf-8"))
+print(base64.b64encode(sig).decode())
+EOF`;
+
+function CopyButton({ text }: { text: string }) {
+    const [copied, setCopied] = useState(false);
+    const handleCopy = () => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+    return (
+        <button
+            onClick={handleCopy}
+            className="absolute top-2 right-2 p-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors"
+            title="Copy to clipboard"
+        >
+            {copied ? <CheckCheck className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+    );
+}
+
 const Signatures = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showKeygenGuide, setShowKeygenGuide] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ name: '', public_key: '' });
     const user = getUser();
@@ -61,6 +117,8 @@ const Signatures = () => {
             return await res.json();
         }
     });
+
+    const noKeys = !isLoading && signatures.length === 0;
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
@@ -159,6 +217,32 @@ const Signatures = () => {
                 </Button>
             </div>
 
+            {noKeys && (
+                <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4 flex flex-col md:flex-row md:items-center gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                        <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 shrink-0">
+                            <BookOpen className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold text-indigo-300">Getting Started — No signing keys registered</p>
+                            <p className="text-xs text-zinc-400 mt-1">
+                                All jobs must be signed before dispatch. Generate an Ed25519 keypair, upload the public key here,
+                                then sign your scripts with the private key before submitting.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10 shrink-0 font-bold"
+                        onClick={() => setShowKeygenGuide(true)}
+                    >
+                        <Terminal className="mr-2 h-3.5 w-3.5" />
+                        How to generate a key
+                    </Button>
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3].map(i => (
@@ -223,6 +307,53 @@ const Signatures = () => {
                     )}
                 </div>
             )}
+
+            {/* Key generation guide modal */}
+            <Dialog open={showKeygenGuide} onOpenChange={setShowKeygenGuide}>
+                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[620px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Terminal className="h-5 w-5 text-indigo-400" />
+                            Generate a signing keypair
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-500">
+                            Three steps: generate a keypair, register the public key here, sign your scripts before dispatch.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-5 pt-2">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 1 — Generate keypair (run once, keep signing.key private)</p>
+                            <div className="relative">
+                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{KEYGEN_CMD}</pre>
+                                <CopyButton text={KEYGEN_CMD} />
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 2 — Register the public key</p>
+                            <p className="text-xs text-zinc-400">
+                                Copy the contents of <code className="font-mono text-indigo-300 bg-zinc-800 px-1 py-0.5 rounded">verification.key</code> and
+                                click <strong className="text-zinc-200">Register Trusted Key</strong> above to upload it.
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 3 — Sign a script before dispatch</p>
+                            <div className="relative">
+                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{SIGN_CMD}</pre>
+                                <CopyButton text={SIGN_CMD} />
+                            </div>
+                            <p className="text-xs text-zinc-500 mt-2">
+                                Paste the printed base64 string into the <strong className="text-zinc-300">Signature</strong> field when dispatching a job.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowKeygenGuide(false)} className="border-zinc-800">Close</Button>
+                        <Button onClick={() => { setShowKeygenGuide(false); setShowModal(true); }} className="bg-primary hover:bg-primary/90 text-white font-bold">
+                            Register Key Now
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[500px]">

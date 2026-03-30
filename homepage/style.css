@@ -513,6 +513,32 @@ code {
   line-height: 1.55;
 }
 
+/* ----- Security posture grid ----- */
+.security-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.security-card {
+  background-color: var(--axiom-bg);
+  border: 1px solid var(--axiom-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.security-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.security-card p {
+  font-size: 0.875rem;
+  color: var(--axiom-text-muted);
+  line-height: 1.55;
+}
+
 /* ----- Dual CTA section ----- */
 .dual-cta {
   display: grid;
@@ -540,6 +566,11 @@ code {
   margin-bottom: 1.25rem;
 }
 
+.dual-cta-block pre {
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
 /* ----- Coming soon badge ----- */
 .badge-coming-soon {
   background-color: rgba(210, 53, 86, 0.12);
@@ -551,6 +582,13 @@ code {
   text-transform: uppercase;
   padding: 0.2em 0.55em;
   border-radius: 4px;
+}
+
+/* ----- Early access badge ----- */
+.badge-early-access {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
 }
 
 /* ----- Dimmed feature list (EE coming soon) ----- */
@@ -579,6 +617,47 @@ code {
 
 .ee-interest a:hover {
   text-decoration: underline;
+}
+
+/* ----- Screenshot showcase ----- */
+.showcase-section {
+  background: var(--axiom-surface);
+  padding: 5rem 0;
+}
+
+.section-intro {
+  color: var(--axiom-text-muted);
+  margin-bottom: 2.5rem;
+  font-size: 1.05rem;
+}
+
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.screenshot-item {
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.32);
+  background: var(--axiom-bg);
+  border: 1px solid var(--axiom-border);
+}
+
+.screenshot-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-bottom: 1px solid var(--axiom-border);
+}
+
+.screenshot-caption {
+  font-size: 0.85rem;
+  color: var(--axiom-text-muted);
+  padding: 0.6rem 0.8rem;
+  margin: 0;
+  font-style: italic;
 }
 
 /* ----- Responsive ----- */
@@ -612,5 +691,13 @@ code {
     height: 1px;
     margin: 2rem 0;
     background-color: var(--axiom-border);
+  }
+
+  .security-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .screenshot-grid {
+    grid-template-columns: 1fr;
   }
 }

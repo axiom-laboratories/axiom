@@ -177,4 +177,16 @@ Then check the dashboard — go to **Nodes** and the node should appear with sta
 
 ---
 
+## What the Nodes view looks like
+
+Once your node is enrolled and sending heartbeats, the **Nodes** page shows live status:
+
+![Nodes page showing an enrolled node with ONLINE status](../assets/screenshots/nodes.png)
+
+Click any node row to open the node detail drawer with capability information, stats history, and enrollment details:
+
+![Node detail drawer](../assets/screenshots/node_detail.png)
+
+---
+
 **Next:** [First Job →](first-job.md)

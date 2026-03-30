@@ -15,7 +15,9 @@
 - ✅ **v14.1 — First-User Readiness** — Phases 66–70 (shipped 2026-03-26)
 - ✅ **v14.2 — Docs on GitHub Pages** — Phase 71 (shipped 2026-03-26)
 - ✅ **v14.3 — Security Hardening + EE Licensing** — Phases 72–76 (shipped 2026-03-27)
-- 🚧 **v14.4 — Go-to-Market Polish** — Phases 77–80 (in progress)
+- ✅ **v14.4 — Go-to-Market Polish** — Phases 77–81 (shipped 2026-03-28)
+- ✅ **v15.0 — Operator Readiness** — Phases 82–86 (shipped 2026-03-29)
+- 🚧 **v16.0 — Competitive Observability** — Phases 87–91 (in progress)
 
 ## Phases
 
@@ -178,74 +180,100 @@ Archive: `.planning/milestones/v14.3-ROADMAP.md`
 
 </details>
 
-### 🚧 v14.4 — Go-to-Market Polish (In Progress)
-
-**Milestone Goal:** Remove the three biggest first-user friction points (licence UX, signing ceremony, install docs) and establish an external conversion surface (marketing homepage on GitHub Pages).
+<details>
+<summary>✅ v14.4 — Go-to-Market Polish (Phases 77–81) — SHIPPED 2026-03-28</summary>
 
 - [x] **Phase 77: Licence Banner Polish** — Admin-visible amber/red banner with session-scoped dismiss, role guard, and DEGRADED_CE non-dismissible variant (completed 2026-03-27)
-- [x] **Phase 78: CLI Signing UX** — Fix `AXIOM_URL` env var, add `key generate` and `init` subcommands, update signing docs (completed 2026-03-27)
-- [x] **Phase 79: Install Docs Cleanup** — Remove bundled test nodes from cold-start compose and update install.md atomically (completed 2026-03-27)
-- [x] **Phase 80: GitHub Pages Deploy + Marketing Homepage** — Fix docs deploy workflow to `/docs/` subdirectory, then add marketing homepage to repo root (completed 2026-03-27)
+- [x] **Phase 78: CLI Signing UX** — `AXIOM_URL` env var fix, `key generate` and `init` subcommands, first-job.md restructured with `axiom-push init` as primary path (completed 2026-03-27)
+- [x] **Phase 79: Install Docs Cleanup** — Removed bundled test nodes from cold-start compose; install.md JOIN_TOKEN references purged (completed 2026-03-27)
+- [x] **Phase 80: GitHub Pages Deploy + Marketing Homepage** — Docs at `/docs/` via ghp-import subtree; marketing homepage at repo root with CE/EE comparison and hero copy (completed 2026-03-27)
+- [x] **Phase 81: Homepage Enterprise Messaging** — Security posture grid (mTLS/RBAC/air-gap/cryptographic audit), SAML/OIDC early-access EE card, enterprise CTA wired to conversion form (completed 2026-03-28)
+
+Archive: `.planning/milestones/v14.4-ROADMAP.md`
+
+</details>
+
+<details>
+<summary>✅ v15.0 — Operator Readiness (Phases 82–86) — SHIPPED 2026-03-29</summary>
+
+- [x] **Phase 82: Licence Tooling** — Key migration to private repo, CI guard against committed keys, `issue_licence.py` CLI, YAML audit ledger, `--no-remote` flag (completed 2026-03-28)
+- [x] **Phase 83: Node Validation Job Library** — Signed Bash/Python/PowerShell reference jobs, volume + network + resource limit validation jobs, runbook, job manifest (completed 2026-03-28)
+- [x] **Phase 84: Package Repo Operator Docs** — devpi/APT/PWSH mirror runbooks, pip mirror validation job added to corpus (completed 2026-03-29)
+- [x] **Phase 85: Screenshot Capture** — Playwright seeded-data capture script, 11-view screenshots, pre-flight check (completed 2026-03-29)
+- [x] **Phase 86: Docs Accuracy Validation** — OpenAPI/CLI cross-reference script, PASS/WARN/FAIL output with file+line refs, CI integration (completed 2026-03-29)
+
+Archive: `.planning/milestones/v15.0-ROADMAP.md`
+
+</details>
+
+### 🚧 v16.0 — Competitive Observability (In Progress)
+
+**Milestone Goal:** Close four observability gaps identified through competitor analysis — dispatch diagnosis in the UI, CE-native job failure alerting, immutable job script versioning, and structured output validation. Every feature must be usable without an EE licence.
+
+- [x] **Phase 87: Research & Design** — Review competitor pain points report; produce design decisions for all four implementation features (completed 2026-03-29)
+- [ ] **Phase 88: Dispatch Diagnosis UI** — Wire the existing `/jobs/{guid}/dispatch-diagnosis` endpoint into the dashboard job list and detail view
+- [ ] **Phase 89: CE Alerting** — SMTP/webhook notification on job failure, configurable by CE operators, no EE licence required
+- [ ] **Phase 90: Job Script Versioning** — Immutable script version records linked to execution history; operators can view exact script that ran
+- [ ] **Phase 91: Output Validation** — Operator-defined success patterns (exit code + JSON/regex); validation failures reported as FAILED with reason
 
 ## Phase Details
 
-### Phase 77: Licence Banner Polish
-**Goal**: Admin users can see and act on licence state warnings without other roles being distracted by unactionable alerts
-**Depends on**: Nothing (banner component already exists in MainLayout.tsx)
-**Requirements**: BNR-01, BNR-02, BNR-03, BNR-04, BNR-05
+### Phase 87: Research & Design
+**Goal**: Design decisions are documented for all four v16.0 features — blocking ambiguity resolved before a single line of implementation is written
+**Depends on**: Phase 86 (v15.0 complete)
+**Requirements**: RSH-01, RSH-02, RSH-03, RSH-04, RSH-05
 **Success Criteria** (what must be TRUE):
-  1. Admin user visiting any dashboard page sees an amber banner when the licence is in GRACE state
-  2. Admin user visiting any dashboard page sees a red banner when the licence is in DEGRADED_CE state
-  3. Admin user can dismiss the amber GRACE banner and it does not reappear for the rest of that browser session
-  4. The red DEGRADED_CE banner has no dismiss control and remains visible until the licence state changes
-  5. Operator and viewer users see no licence banner regardless of licence state
-**Plans**: 1 plan
+  1. A competitor pain-points review document exists and the four chosen feature approaches are recorded with rationale
+  2. Dispatch diagnosis UX decision is recorded: which view surfaces the reason, whether it auto-polls or is on-demand, and any endpoint gaps identified
+  3. CE alerting mechanism is chosen (SMTP, single webhook URL, or both) with explicit CE/EE boundary documented
+  4. Job script versioning DB schema and API shape are decided — immutable version table design with linkage to execution records documented
+  5. Output validation contract is defined — how a script signals structured results, what fields the node reports back, and how the backend maps them to FAILED status
+**Plans**: TBD
 
-Plans:
-- [ ] 77-01-PLAN.md — Role-guard + dismiss: MainLayout banner polish
-
-### Phase 78: CLI Signing UX
-**Goal**: A new user can generate a signing keypair and register it with the server using only the `axiom-push` CLI, with no openssl ceremony required
-**Depends on**: Nothing (CLI changes are additive, no backend API changes needed)
-**Requirements**: CLI-01, CLI-02, CLI-03, CLI-04
+### Phase 88: Dispatch Diagnosis UI
+**Goal**: An operator looking at a PENDING job can immediately see why it has not dispatched — without leaving the job list or navigating to a separate page
+**Depends on**: Phase 87
+**Requirements**: DIAG-01, DIAG-02, DIAG-03
 **Success Criteria** (what must be TRUE):
-  1. Running `axiom-push` with `AXIOM_URL` set connects to the correct server (the `MOP_URL` silent mismatch is fixed)
-  2. Running `axiom-push key generate` produces a local Ed25519 keypair without requiring openssl or any external tool
-  3. Running `axiom-push init` completes login, key generation, and public key registration in a single interactive flow
-  4. `first-job.md` presents `axiom-push init` as the primary getting-started path with `key generate` documented as the standalone alternative
-**Plans**: 2 plans
+  1. A PENDING job in the job list shows an inline indicator (badge, tooltip, or expandable row) explaining why it has not dispatched
+  2. The diagnosis text names the specific reason: no capable nodes, capability mismatch, resource limit exceeded, all nodes offline, or similar discrete categories
+  3. The diagnosis refreshes without a full page reload — either on a timed poll or via a manual refresh control in the UI
+**Plans**: TBD
 
-Plans:
-- [ ] 78-01-PLAN.md — CLI implementation: AXIOM_URL fix, key generate, init flow (mop_sdk/)
-- [ ] 78-02-PLAN.md — Doc restructure: first-job.md with axiom-push init as primary path
-
-### Phase 79: Install Docs Cleanup
-**Goal**: A new user following `install.md` starts a clean Axiom stack with no phantom node services or stale JOIN_TOKEN references
-**Depends on**: Nothing (pure YAML deletion + doc prose update, no code changes)
-**Requirements**: INST-01, INST-02
+### Phase 89: CE Alerting
+**Goal**: A CE operator who configures a notification destination receives an alert whenever a job fails — no EE licence, no third-party integration required
+**Depends on**: Phase 87
+**Requirements**: ALRT-01, ALRT-02, ALRT-03
 **Success Criteria** (what must be TRUE):
-  1. Running `docker compose -f compose.cold-start.yaml up -d` starts only Axiom services — no puppet-node-1, puppet-node-2, or their associated volumes
-  2. `install.md` contains no references to bundled JOIN_TOKENs, JOIN_TOKEN_1, or JOIN_TOKEN_2
-**Plans**: 1 plan
+  1. The Admin settings page (or equivalent) has a form where an operator can enter an SMTP address or a webhook URL as a notification destination
+  2. When any job reaches FAILED status, the configured destination receives a message containing the job name, the node that ran it, and the error summary
+  3. The alerting configuration form and the notification delivery are both accessible to a user with the operator role on a CE stack (no EE licence required)
+**Plans**: TBD
 
-Plans:
-- [ ] 79-01-PLAN.md — Atomic cleanup: remove bundled node services from compose, rename tabs and fix prose in install.md
-
-### Phase 80: GitHub Pages Deploy + Marketing Homepage
-**Goal**: The project has a public marketing homepage at the GitHub Pages root that coexists with the MkDocs docs site at `/docs/` without either overwriting the other on push
-**Depends on**: Phase 78 (homepage can honestly claim a sub-30-minute setup path only after signing UX is fixed), Phase 79 (homepage install instructions must match the clean compose)
-**Requirements**: MKTG-01, MKTG-02
+### Phase 90: Job Script Versioning
+**Goal**: Every edit to a job definition's script is preserved as an immutable version record — operators can inspect exactly which script ran for any historical execution
+**Depends on**: Phase 87
+**Requirements**: VER-01, VER-02, VER-03
 **Success Criteria** (what must be TRUE):
-  1. Pushing a docs change triggers `docs-deploy.yml` and the rendered MkDocs output appears at `axiom-laboratories.github.io/axiom/docs/` without touching the homepage
-  2. Pushing a homepage change triggers `homepage-deploy.yml` and the updated `index.html` appears at `axiom-laboratories.github.io/axiom/` without touching the docs subdirectory
-  3. A visitor to `axiom-laboratories.github.io/axiom/` sees a marketing page with hero copy, security positioning, CE/EE comparison, and a link to the docs
-**Plans**: 2 plans
+  1. Editing a job definition's script content creates a new version record; the previous script is still accessible and has not been overwritten
+  2. Opening the execution detail for any historical run shows a "View script" action that displays the exact script content that was active when that job executed
+  3. The execution history list shows a version number or identifier column indicating which script version was in effect for each run
+**Plans**: TBD
 
-Plans:
-- [ ] 80-01-PLAN.md — Docs deploy fix: ghp-import prefix mode + site_url update
-- [ ] 80-02-PLAN.md — Marketing homepage: source files + homepage-deploy workflow
+### Phase 91: Output Validation
+**Goal**: An operator can declare what a successful job output looks like — a job that exits 0 but violates its validation pattern is reported as FAILED with a clear reason, not silently marked COMPLETED
+**Depends on**: Phase 87
+**Requirements**: VALD-01, VALD-02, VALD-03
+**Success Criteria** (what must be TRUE):
+  1. The job definition form includes a validation section where an operator can specify a success pattern: exit code check, a JSON field assertion, or a stdout regex
+  2. A job that exits with code 0 but does not satisfy its configured validation pattern transitions to FAILED status — not COMPLETED — and the failure record includes the validation rule that was violated
+  3. The execution history view and the job detail view both display validation failure reasons distinctly from execution errors (e.g. a clear "Validation failed: ..." label rather than a generic error)
+**Plans**: TBD
 
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 87 → 88 → 89 → 90 → 91
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -280,28 +308,23 @@ Plans:
 | 74. Fix EE Licence Display | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 75. Secrets Volume + Dead Code Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
 | 76. v14.3 Tech Debt Cleanup | v14.3 | 1/1 | Complete | 2026-03-27 |
-| 77. Licence Banner Polish | 1/1 | Complete    | 2026-03-27 | - |
-| 78. CLI Signing UX | 2/2 | Complete    | 2026-03-27 | - |
-| 79. Install Docs Cleanup | 1/1 | Complete    | 2026-03-27 | - |
-| 80. GitHub Pages Deploy + Marketing Homepage | 2/2 | Complete    | 2026-03-27 | - |
+| 77. Licence Banner Polish | v14.4 | 1/1 | Complete | 2026-03-27 |
+| 78. CLI Signing UX | v14.4 | 2/2 | Complete | 2026-03-27 |
+| 79. Install Docs Cleanup | v14.4 | 1/1 | Complete | 2026-03-27 |
+| 80. GitHub Pages Deploy + Marketing Homepage | v14.4 | 2/2 | Complete | 2026-03-27 |
+| 81. Homepage Enterprise Messaging | v14.4 | 1/1 | Complete | 2026-03-28 |
+| 82. Licence Tooling | v15.0 | 2/2 | Complete | 2026-03-28 |
+| 83. Node Validation Job Library | v15.0 | 3/3 | Complete | 2026-03-28 |
+| 84. Package Repo Operator Docs | v15.0 | 2/2 | Complete | 2026-03-29 |
+| 85. Screenshot Capture | v15.0 | 2/2 | Complete | 2026-03-29 |
+| 86. Docs Accuracy Validation | v15.0 | 2/2 | Complete | 2026-03-29 |
+| 87. Research & Design | 1/1 | Complete    | 2026-03-29 | - |
+| 88. Dispatch Diagnosis UI | v16.0 | 0/TBD | Not started | - |
+| 89. CE Alerting | v16.0 | 0/TBD | Not started | - |
+| 90. Job Script Versioning | v16.0 | 0/TBD | Not started | - |
+| 91. Output Validation | v16.0 | 0/TBD | Not started | - |
 
 ## Archived
 
 - ✅ **v14.3 — Security Hardening + EE Licensing** (Phases 72–76) — shipped 2026-03-27 → `.planning/milestones/v14.3-ROADMAP.md`
 - ✅ **v14.2 — Docs on GitHub Pages** (Phase 71) — shipped 2026-03-26 → `.planning/milestones/v14.2-ROADMAP.md`
-- ✅ **v14.1 — First-User Readiness** (Phases 66–70) — shipped 2026-03-26 → `.planning/milestones/v14.1-ROADMAP.md`
-- ✅ **v14.0 — CE/EE Cold-Start Validation** (Phases 61–65) — shipped 2026-03-25 → `.planning/milestones/v14.0-ROADMAP.md`
-- ✅ **v13.0 — Research & Documentation Foundation** (Phases 57–60) — shipped 2026-03-24 → `.planning/milestones/v13.0-ROADMAP.md`
-- ✅ **v12.0 — Operator Maturity** (Phases 46–56) — shipped 2026-03-24 → `.planning/milestones/v12.0-ROADMAP.md`
-- ✅ **v11.1 — Stack Validation** (Phases 38–45) — shipped 2026-03-22 → `.planning/milestones/v11.1-ROADMAP.md`
-- ✅ **v11.0 — CE/EE Split Completion** (Phases 34–37) — shipped 2026-03-20 → `.planning/milestones/v11.0-ROADMAP.md` | phases → `v11.0-phases/`
-- ✅ **v10.0 — Axiom Commercial Release** (Phases 29–33) — shipped 2026-03-19 → `.planning/milestones/v10.0-ROADMAP.md`
-- ✅ **v9.0 — Enterprise Documentation** (Phases 20–28) — shipped 2026-03-17 → `.planning/milestones/v9.0-ROADMAP.md`
-- ✅ **v8.0 — mop-push CLI & Job Staging** (Phases 17–19) — shipped 2026-03-15 → `.planning/milestones/v8.0-ROADMAP.md`
-- ✅ **v7.0 — Advanced Foundry & Smelter** (Phases 11–15) — shipped 2026-03-16 → `.planning/milestones/v7.0-ROADMAP.md`
-- ✅ **v6.0 — Remote Environment Validation** (Phases 6–10) — shipped 2026-03-06/09 → `.planning/milestones/v6.0-phases/`
-- ✅ **v5.0 — Notifications & Webhooks** (Phases 1–3) — shipped 2026-03-06 → `.planning/milestones/v5.0-phases/`
-- ✅ **v4.0 — Automation & Integration** (Phases 1–3) — shipped 2026-03-06 → `.planning/milestones/v4.0-phases/`
-- ✅ **v3.0 — Advanced Foundry & Hot-Upgrades** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v3.0-phases/`
-- ✅ **v2.0 — Foundry & Node Lifecycle** (Phases 1–4) — shipped 2026-03-05 → `.planning/milestones/v2.0-phases/`
-- ✅ **v1.0 — Production Reliability** (Phases 1–6) — shipped 2026-03-05 → `.planning/milestones/v1.0-phases/`

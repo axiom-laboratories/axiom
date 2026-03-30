@@ -1,402 +1,500 @@
 # Architecture Research
 
-**Domain:** Go-to-market polish for existing Axiom orchestration platform
-**Researched:** 2026-03-27
-**Confidence:** HIGH (all findings verified against live codebase)
+**Domain:** Operator Readiness tooling for existing Axiom job orchestration platform (v15.0)
+**Researched:** 2026-03-28
+**Confidence:** HIGH — all findings verified against live codebase inspection
 
 ---
 
 ## Standard Architecture
 
-### System Overview — v14.4 Feature Integration
+### System Overview — Existing (v14.4 baseline)
 
 ```
-GitHub Pages (axiom-laboratories.github.io/axiom/)
-  ├── / (root)           <- NEW: Marketing homepage (plain HTML/CSS)
-  └── /docs/             <- EXISTING: MkDocs Material site (gh-deploy target)
-       ├── /docs/index.html
-       └── /docs/...
+┌─────────────────────────────────────────────────────────────────────┐
+│  Public Surface (GitHub Pages — axiom-laboratories.github.io/axiom) │
+│  ┌────────────────────┐  ┌────────────────────────────────────────┐ │
+│  │ homepage/index.html │  │ docs/  (MkDocs Material, gh-deploy)   │ │
+│  └────────────────────┘  └────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
 
-Axiom Dashboard (React/Vite)
-  ├── MainLayout.tsx
-  │   ├── <header>
-  │   │   └── sticky top-0 z-10
-  │   ├── <LicenceBanner>  <- ALREADY EXISTS (lines 211-223 in MainLayout.tsx)
-  │   └── <main>
-  │       └── <Outlet />
-  └── hooks/useLicence.ts  <- ALREADY EXISTS, returns LicenceInfo
+┌─────────────────────────────────────────────────────────────────────┐
+│  Orchestrator (puppeteer/)                                           │
+│  ┌─────────────────────┐  ┌────────────────┐  ┌─────────────────┐  │
+│  │ agent_service/       │  │ model_service/ │  │ dashboard/      │  │
+│  │ main.py (FastAPI)    │  │ (port 8000)    │  │ (React/Vite)    │  │
+│  │ services/            │  └────────────────┘  └─────────────────┘  │
+│  │   licence_service.py │                                            │
+│  │   job_service.py     │  ┌────────────────┐                        │
+│  │   scheduler_service  │  │  PostgreSQL /  │                        │
+│  │   foundry_service    │  │  SQLite        │                        │
+│  └─────────────────────┘  └────────────────┘                        │
+└───────────────────────────────────┬─────────────────────────────────┘
+                            mTLS (pull model)
+┌───────────────────────────────────┴─────────────────────────────────┐
+│  Puppet Nodes (puppets/)                                             │
+│  environment_service/node.py  ->  polls /work/pull                  │
+│  runtime.py  ->  container-isolated execution                       │
+└─────────────────────────────────────────────────────────────────────┘
 
-compose.cold-start.yaml (Axiom evaluation stack)
-  ├── db (postgres)
-  ├── cert-manager (Caddy)
-  ├── agent (FastAPI)
-  ├── dashboard (React)
-  ├── docs (MkDocs container)
-  ├── puppet-node-1       <- REMOVE: bundled test node
-  └── puppet-node-2       <- REMOVE: bundled test node
+┌─────────────────────────────────────────────────────────────────────┐
+│  Operator CLI (mop_sdk / axiom-sdk PyPI package)                    │
+│  axiom-push CLI: init / login / push / create / key generate        │
+│  ~/.axiom/ credential store   Ed25519 signing stays on client       │
+└─────────────────────────────────────────────────────────────────────┘
 
-axiom-push CLI (mop_sdk/cli.py)
-  ├── login               -> OAuth device flow (needs AXIOM_URL env var)
-  ├── job push            -> --script, --key (path), --key-id (required)
-  └── job create          -> --script, --key (path), --key-id (required)
+┌─────────────────────────────────────────────────────────────────────┐
+│  Private Tooling (tools/ in main repo — current state, needs fix)   │
+│  tools/generate_licence.py   tools/licence_signing.key             │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+### System Overview — v15.0 Additions
 
-| Component | Responsibility | Integration Touch |
-|-----------|----------------|-------------------|
-| GitHub Pages root `/` | Marketing landing page | NEW: separate workflow or manual deploy |
-| GitHub Pages `/docs/` | MkDocs Material documentation site | MODIFIED: mkdocs `site_url` adjusted |
-| `MainLayout.tsx` | App shell wrapping all dashboard views | ALREADY DONE: banner at lines 211-223 |
-| `useLicence.ts` | Polls `GET /api/licence`, exposes `LicenceInfo` | NO CHANGE NEEDED |
-| `compose.cold-start.yaml` | Cold-start evaluation stack | MODIFIED: remove `puppet-node-1/2` services + volumes |
-| `mop_sdk/cli.py` | axiom-push CLI entry point | MODIFIED: add `generate-keypair` subcommand |
-| `docs/getting-started/first-job.md` | First-job walkthrough | MODIFIED: promote CLI path, reduce openssl ceremony |
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  PRIVATE REPO: axiom-laboratories/axiom-licences  (NEW)             │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │  generate_licence.py   (migrated from main repo tools/)        │ │
+│  │  licence_signing.key   (Ed25519 private key — NEVER public)    │ │
+│  │  issued/               (ledger of issued licences, gitignored) │ │
+│  │  README.md             (key rotation runbook)                  │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  mop_validation repo — extended validation corpus  (NEW)            │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │  scripts/node_jobs/           (signed .py / .sh / .ps1)        │ │
+│  │    health_check.py            (basic node liveness probe)      │ │
+│  │    disk_usage.sh              (OS-agnostic disk report)        │ │
+│  │    port_scan.py               (network reachability probe)     │ │
+│  │    env_report.ps1             (Windows env snapshot)           │ │
+│  │  scripts/sign_corpus.py       (batch-signs scripts via axiom-sdk│ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  docs/ (existing, extended with accuracy validation + screenshots)  │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │  scripts/validate_docs.py   (NEW — docs accuracy validator)    │ │
+│  │    verifies: API endpoints, CLI commands, compose service names │ │
+│  │  scripts/capture_screenshots.py  (NEW — Playwright screenshots) │ │
+│  │  docs/runbooks/package-repo.md   (NEW — devpi/bandersnatch)    │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Recommended Project Structure
+## Component Responsibilities
 
-```
-(repo root)
-├── docs/                    # MkDocs project (existing)
-│   ├── mkdocs.yml           # MODIFIED: site_url -> /axiom/docs/ if using subdirectory
-│   ├── docs/                # Source markdown
-│   └── ...
-├── homepage/                # NEW: marketing homepage source
-│   ├── index.html           # Static HTML
-│   ├── assets/              # CSS, images, logo.svg
-│   └── ...
-├── .github/workflows/
-│   ├── docs-deploy.yml      # EXISTING: modified to use ghp-import --dest-dir
-│   └── homepage-deploy.yml  # NEW: deploys homepage to gh-pages root
-├── puppeteer/
-│   ├── compose.cold-start.yaml  # MODIFIED: bundled nodes removed
-│   └── ...
-└── mop_sdk/
-    ├── cli.py               # MODIFIED: add key generate command
-    └── signer.py            # MODIFIED: add generate_keypair() static method
-```
+### New vs Modified Components
 
-### Structure Rationale
-
-- **homepage/**: Isolated from `docs/` so the two GitHub Actions workflows operate independently without conflicting paths. Static HTML avoids any build tool dependency.
-- **Two-workflow GitHub Actions**: Each workflow commits only to its own path in `gh-pages` branch; neither clobbers the other's output.
-
----
-
-## Architectural Patterns
-
-### Pattern 1: Two-Workflow GitHub Pages Coexistence
-
-**What:** Marketing homepage lives at `gh-pages` branch root (`/`); MkDocs docs live at `gh-pages:/docs/`. Two separate GitHub Actions workflows manage them. Neither overwrites the other because each uses `ghp-import` with different destination scopes.
-
-**When to use:** Any repo publishing two distinct sites (landing + docs) to the same GitHub Pages domain.
-
-**Trade-offs:** `mkdocs gh-deploy --force` by default overwrites the entire `gh-pages` branch. Must switch to `ghp-import` directly to scope the docs deployment to a subdirectory.
-
-**Verified constraint (HIGH confidence):** `mkdocs gh-deploy` (MkDocs 1.6.1 installed locally) has NO `--dest-dir` flag. Running `mkdocs gh-deploy --help` confirms only: `-d/--site-dir` (local build output, not remote destination), `--force`, `--remote-branch`, `--remote-name`. The `--force` push replaces the entire branch root with no subdirectory option.
-
-**Implementation — use `ghp-import` directly:**
-
-```yaml
-# .github/workflows/docs-deploy.yml  (MODIFIED)
-- name: Build MkDocs
-  working-directory: docs
-  run: mkdocs build --strict
-
-- name: Deploy docs to /docs/ subtree only
-  run: |
-    pip install ghp-import
-    ghp-import --no-jekyll --push --force --dest-dir docs docs/site
-```
-
-`ghp-import --dest-dir docs` deploys only to the `/docs/` directory inside `gh-pages`, leaving the root (marketing homepage) untouched.
-
-```yaml
-# .github/workflows/homepage-deploy.yml  (NEW)
-on:
-  push:
-    branches: [main]
-    paths: ['homepage/**']
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy homepage to gh-pages root
-        run: |
-          pip install ghp-import
-          ghp-import --no-jekyll --push --force homepage/
-```
-
-Both workflows use `ghp-import`. The docs workflow targets `--dest-dir docs`; the homepage workflow targets root (no `--dest-dir`). Execution order does not matter since each is scoped to a different path.
-
-**mkdocs.yml `site_url` must be updated to match:**
-```yaml
-site_url: https://axiom-laboratories.github.io/axiom/docs/
-```
-Without this change, MkDocs generates incorrect relative URLs (e.g., canonical links, sitemap) assuming the site is at `/axiom/` root.
-
----
-
-### Pattern 2: Licence Banner Already Implemented
-
-**What:** The licence banner is already present in `MainLayout.tsx` at lines 211-223. It renders conditionally on `licence.status === 'grace' || licence.status === 'expired'`, inserting a full-width amber/red bar between the sticky `<header>` and `<main>`.
-
-**Confirmed implementation (HIGH confidence, from live source):**
-
-```tsx
-// MainLayout.tsx lines 211-223 — already in production
-{(licence.status === 'grace' || licence.status === 'expired') && (
-    <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${
-        licence.status === 'expired'
-            ? 'bg-red-900/40 text-red-300 border-b border-red-800'
-            : 'bg-amber-900/40 text-amber-300 border-b border-amber-800'
-    }`}>
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        {licence.status === 'expired'
-            ? 'Your EE licence has expired. The system is running in Community Edition mode.'
-            : `Your EE licence expires in ${licence.days_until_expiry} day${licence.days_until_expiry === 1 ? '' : 's'}. Please renew.`
-        }
-    </div>
-)}
-```
-
-**Action required:** Validate against a running GRACE-state licence. The banner code is implemented — the v14.4 task is complete unless smoke testing reveals a rendering issue.
-
-**useLicence.ts data flow:**
-
-```
-GET /api/licence (5-min stale, no retry on failure)
-    |
-LicenceInfo { status, tier, days_until_expiry, node_limit, customer_id, grace_days }
-    | (computed)
-isEnterprise = status !== 'ce'
-    |
-MainLayout:
-  - sidebar badge: CE / EE (coloured by status — lines 135-143)
-  - banner: shown on grace | expired (lines 211-223)
-Admin.tsx:
-  - LicenceSection: detailed display
-```
-
-No state management changes needed. If a `DEGRADED_CE` status is added to the backend state machine in a future milestone, adding it to the banner means: (1) extend `LicenceInfo.status` type in `useLicence.ts`, and (2) add a branch to the banner JSX.
-
----
-
-### Pattern 3: compose.cold-start.yaml Node Removal
-
-**What:** Remove `puppet-node-1` and `puppet-node-2` services and their named volumes. The evaluation stack becomes infrastructure-only (db, cert-manager, agent, dashboard, docs). Users enroll nodes manually following `enroll-node.md`.
-
-**Why bundled nodes are a problem:** They require `JOIN_TOKEN_1`/`JOIN_TOKEN_2` env vars before first stack start — a bootstrap deadlock. The tokens can only be generated after the stack is running. Empty tokens (`JOIN_TOKEN_1:-`) cause both node containers to crash-loop with enrollment failures, polluting `docker compose logs` output and misleading evaluators into thinking the stack is broken.
-
-**Minimal changes (exact lines to remove from compose.cold-start.yaml):**
-
-```
-Remove services:
-  puppet-node-1: (lines 105-126, inclusive)
-  puppet-node-2: (lines 127-148, inclusive)
-
-Remove from volumes block (lines 154-155):
-  node1-secrets:
-  node2-secrets:
-
-Update header comment (lines 13-14):
-  Remove steps 3 and 4 referencing JOIN_TOKEN_1/JOIN_TOKEN_2.
-  Replace with: "3. Follow docs/getting-started/enroll-node.md to enroll your first node."
-```
-
-No other compose changes required. The `secrets-data` volume for `boot.log`/`licence.key` stays. The `AXIOM_LICENCE_KEY` env passthrough in the `agent` service stays. The `depends_on` chain (db -> cert-manager -> agent) is unaffected.
-
----
-
-### Pattern 4: axiom-push First-Job Friction Reduction
-
-**What:** Reduce the number of distinct commands and manual steps between "I have axiom-push installed" and "my first job ran successfully."
-
-**Current CLI friction points (HIGH confidence, from mop_sdk/cli.py and signer.py source):**
-
-1. **No `key generate` command** — user must use raw `openssl genpkey` + `openssl pkey` commands. The CLI has `login`, `job push`, `job create` but no key generation subcommand. `mop_sdk/signer.py` has `load_private_key()` and `sign_payload()` but no `generate_keypair()` method.
-
-2. **`--key` requires a file path** — private key must exist on disk before running any `job` subcommand. No stdin or env var alternative.
-
-3. **`--key-id` is required with no lookup helper** — user must manually retrieve the UUID of the registered public key from the dashboard. There is no `axiom-push key register` or `axiom-push key list` command.
-
-4. **`MOP_URL` vs `AXIOM_URL` inconsistency** — `cli.py` line 51 reads `os.getenv("MOP_URL")`. The docs (`axiom-push.md`) say `export AXIOM_URL=https://your-host`. This mismatch means the env var silently does nothing for users following the documentation.
-
-**Minimal changes to reduce time-to-first-job:**
-
-```
-Priority 1 (cli.py + signer.py):
-  Add `axiom-push key generate` subcommand
-  - Calls Signer.generate_keypair() (new method in signer.py)
-  - Uses cryptography lib Ed25519PrivateKey.generate() — already a dependency
-  - Writes signing.key + verification.key to current directory (or --output-dir)
-  - Prints next-step instructions: "Upload verification.key to Signatures in the dashboard"
-  - Eliminates openssl dependency entirely for new users
-
-Priority 2 (cli.py):
-  Fix env var: os.getenv("MOP_URL") -> os.getenv("AXIOM_URL")
-  - One-line change, unblocks users following the docs verbatim
-
-Priority 3 (docs):
-  first-job.md: reorder steps to put CLI tab first
-  - Move CLI tab to primary position in Step 3 (sign) and Step 4 (dispatch)
-  - CE curl path moves to collapsible block (already a pattern in the file)
-  - Add "Step 0: Install axiom-push" before Step 1
-  axiom-push.md: add key generation step to the documented workflow
-```
-
-**Data flow for reduced-friction path (post-changes):**
-
-```
-axiom-push key generate
-    -> writes signing.key + verification.key to ./
-
-[Manual: Dashboard -> Signatures -> Add -> paste verification.key -> note Key ID]
-
-axiom-push login
-    -> OAuth device flow -> saves token to ~/.axiom/credentials.json
-
-axiom-push job push --script hello.py --key signing.key --key-id <uuid>
-    -> loads key -> signs script -> POST /jobs -> prints job ID
-```
-
-The manual Signatures step cannot be eliminated without adding a `key register` CLI command (a larger change). For v14.4, the priority is removing the openssl ceremony and fixing the env var.
-
----
-
-## Data Flow
-
-### Licence Banner Flow
-
-```
-App mount
-    |
-useLicence() -> GET /api/licence (React Query, 5min stale, retry: false)
-    |
-MainLayout render
-    |
-licence.status === 'grace'   -> amber banner (days_until_expiry countdown)
-licence.status === 'expired' -> red banner (CE fallback message)
-licence.status === 'valid'   -> no banner
-licence.status === 'ce'      -> no banner (CE badge in sidebar only)
-```
-
-### GitHub Pages Deploy Flow (proposed)
-
-```
-Push to main (docs/** changed)
-    |
-docs-deploy.yml
-    -> mkdocs build --strict (working-directory: docs)
-    -> ghp-import --no-jekyll --push --force --dest-dir docs docs/site
-    -> gh-pages branch: /docs/** updated, root untouched
-
-Push to main (homepage/** changed)
-    |
-homepage-deploy.yml (NEW)
-    -> ghp-import --no-jekyll --push --force homepage/
-    -> gh-pages branch: root index.html, assets/ updated, /docs/ untouched
-```
+| Component | Location | Type | Responsibility |
+|-----------|----------|------|----------------|
+| `generate_licence.py` | `axiom-laboratories/axiom-licences` private repo | Migrated | Offline Ed25519-signed JWT licence issuance; private key co-located and never leaves this repo |
+| `axiom-licences` private repo | Separate GitHub repo | New | Isolation boundary: private signing key, issuance tooling, and issued-licence ledger |
+| `docs/scripts/validate_docs.py` | Main repo `docs/scripts/` | New | Crawls markdown docs, extracts API path patterns and CLI command references, validates against `openapi.json` snapshot and `mop_sdk/cli.py` |
+| `docs/scripts/capture_screenshots.py` | Main repo `docs/scripts/` | New | Playwright (Python, `--no-sandbox`) captures live dashboard views for docs and marketing homepage |
+| `mop_validation/scripts/node_jobs/` | `mop_validation` repo | New | Library of signed validation scripts (Python/Bash/PowerShell) with companion signatures |
+| `mop_validation/scripts/sign_corpus.py` | `mop_validation` repo | New | Batch-signs all scripts in `node_jobs/` via `axiom-sdk` Python API; idempotent |
+| `docs/docs/runbooks/package-repo.md` | Main repo `docs/docs/runbooks/` | New | Operator runbook for devpi (Python), bandersnatch (PyPI mirror), PSRepository (PowerShell) |
+| `tools/generate_licence.py` | Main repo `tools/` | Stubbed/Removed | After migration: replaced with comment directing to private repo |
 
 ---
 
 ## Integration Points
 
-### New vs Modified Components
+### 1. Licence Generation Tooling -> Licence Validation Service
 
-| Component | Status | Change |
-|-----------|--------|--------|
-| `homepage/index.html` | NEW | Marketing landing page (standalone HTML) |
-| `homepage-deploy.yml` | NEW | GitHub Actions workflow for homepage |
-| `docs-deploy.yml` | MODIFIED | Switch from `mkdocs gh-deploy --force` to `ghp-import --dest-dir docs` |
-| `docs/mkdocs.yml` `site_url` | MODIFIED | Update to `.../axiom/docs/` if using subdirectory deploy |
-| `MainLayout.tsx` lines 211-223 | ALREADY DONE | Banner implemented — validate only |
-| `useLicence.ts` | NO CHANGE | Hook is complete |
-| `compose.cold-start.yaml` | MODIFIED | Remove puppet-node-1, puppet-node-2, node1-secrets, node2-secrets |
-| `mop_sdk/cli.py` | MODIFIED | Add `key generate` subcommand; fix `MOP_URL` -> `AXIOM_URL` |
-| `mop_sdk/signer.py` | MODIFIED | Add `generate_keypair()` static method |
-| `docs/getting-started/first-job.md` | MODIFIED | Reorder steps, promote CLI tab, fix env var name |
-| `docs/feature-guides/axiom-push.md` | MODIFIED | Add key generation step to documented workflow |
+**Direction:** Offline, no runtime coupling. Key pair is the only coordination point.
 
-### Internal Boundaries
+```
+axiom-laboratories/axiom-licences/generate_licence.py
+    |
+    |  (Ed25519 private key signs JWT claims: customer_id, tier,
+    |   node_limit, expiry, grace_days, features[])
+    v
+JWT string (stdout)
+    |
+    |  (operator pastes into customer secrets.env as AXIOM_LICENCE_KEY)
+    v
+puppeteer/agent_service/services/licence_service.py
+    |
+    |  (hardcoded Ed25519 PUBLIC key: _LICENCE_PUBLIC_KEY_PEM)
+    |  (validates at startup; VALID/GRACE/EXPIRED/CE state machine)
+    v
+LicenceState injected into:
+  - EE plugin activation check
+  - /api/enroll node-limit enforcement (HTTP 402 when at limit)
+  - Dashboard EE badge and GRACE/DEGRADED_CE banner
+```
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `useLicence` <-> `MainLayout` | React hook in component tree | Already wired at line 41 in MainLayout.tsx |
-| `MainLayout` banner <-> `Admin.tsx` LicenceSection | Both consume `useLicence()` independently | No shared state; both update when React Query cache refreshes |
-| `homepage/` <-> `docs/` on gh-pages | `ghp-import` path scoping | Each workflow owns its path; no interference |
-| `axiom-push key generate` <-> dashboard Signatures | Manual out-of-band step | No API automation for v14.4 |
+**Migration constraint:** The public key embedded in `licence_service.py` must match the private key in `axiom-licences/`. After key migration, the key pair must be rotated (new pair generated, public key updated in `licence_service.py`, existing issued licences re-signed with new key). There is no other coordination point between the two repos.
+
+### 2. Docs Accuracy Validator -> OpenAPI Snapshot + CLI Source
+
+**Direction:** Read-only. Validates committed artifacts, not a live server.
+
+```
+docs/scripts/validate_docs.py
+    |
+    +-- reads docs/docs/**/*.md
+    |     (extracts: /api/... patterns, axiom-push <subcommand> patterns,
+    |      service names from compose YAML snippets)
+    |
+    +-- reads docs/docs/api-reference/openapi.json
+    |     (ground truth for API paths — regenerated via regen_openapi.sh)
+    |
+    +-- reads mop_sdk/cli.py
+    |     (ground truth for CLI subcommands — reads registered Click commands)
+    |
+    v
+Validation report to stdout + exit code 1 on any mismatch
+    |
+    |  (wired into ci.yml as: docs-validate job, runs on docs/** push)
+    v
+PR blocked if documented endpoints missing from openapi.json,
+or documented CLI commands not registered in cli.py
+```
+
+**What it validates:**
+- Every `/api/...` path mentioned in docs exists in `openapi.json`
+- Every `axiom-push <subcommand>` mentioned in docs is a registered Click command in `mop_sdk/cli.py`
+- Every compose service name referenced in docs exists in `compose.cold-start.yaml` or `compose.server.yaml`
+
+**Not in scope for v15.0:** Live HTTP request validation. Static OpenAPI comparison is sufficient and CI-safe without a running stack.
+
+### 3. Screenshot Capture -> Live Docker Stack -> Docs and Marketing Assets
+
+**Direction:** One-way read. Output PNG files committed to repo.
+
+```
+docs/scripts/capture_screenshots.py
+    |
+    |  Playwright (Python, --no-sandbox, headless Chromium)
+    |  Auth: JWT injected via localStorage before navigation
+    |        (existing pattern from mop_validation/scripts/test_playwright.py)
+    |  Prerequisite: docker compose -f puppeteer/compose.server.yaml up -d
+    |
+    +-- captures: Jobs, Nodes, Queue, Foundry, Admin, Staging views
+    |
+    +-- writes: docs/docs/assets/screenshots/*.png
+    +-- writes: homepage/assets/screenshots/*.png
+    |
+    v
+Committed to main branch
+    |
+    v
+Auto-deployed via gh-pages-deploy.yml (existing workflow)
+```
+
+**Key constraint:** Screenshots must be captured against the running Docker stack, never against `npm run dev`. This matches the project's existing testing rule.
+
+### 4. Node Validation Job Library -> axiom-push CLI -> Puppet Nodes
+
+**Direction:** Scripts authored offline, signed via axiom-sdk, dispatched to nodes.
+
+```
+mop_validation/scripts/node_jobs/*.py (and .sh, .ps1)
+    |
+    |  python mop_validation/scripts/sign_corpus.py
+    |    calls axiom_sdk.signer per script (or axiom-push push CLI)
+    |    requires: ~/.axiom/credentials (from axiom-push init)
+    |    requires: signing public key registered at POST /api/signatures
+    |
+    v
+Server: signature record stored (script_hash + signature bytes)
+    |
+    |  operator dispatches:
+    |    axiom-push create health-check node_jobs/health_check.py --node <id>
+    |    or dashboard guided dispatch form
+    |
+    v
+Puppet node: runtime.py verifies Ed25519 signature before execution
+    |
+    v
+Job result: stdout/stderr captured in ExecutionRecord
+```
+
+**Dependency:** `axiom-push init` must be completed before any corpus script can be dispatched. The public key registration step is already handled by `axiom-push init` (existing v14.4 feature).
+
+### 5. Custom Package Repo Docs -> No New Code Integration Required
+
+**Direction:** Documentation only. References existing `mirror_service.py` and Foundry pip.conf injection.
+
+```
+docs/docs/runbooks/package-repo.md  (new markdown file)
+    |
+    References existing functionality:
+    - mirror_service.py   (devpi sidecar already in compose.server.yaml)
+    - foundry_service.py  (Smelter pip.conf injection — existing)
+    - bandersnatch        (operator-managed external process, no Axiom API coupling)
+    - PSRepository        (PowerShell-side setup, no Axiom coupling)
+    |
+    v
+Appears in MkDocs nav under Runbooks section
+    (requires mkdocs.yml nav entry — the only change needed)
+```
+
+---
+
+## Recommended Project Structure (v15.0 Changes)
+
+```
+axiom-laboratories/axiom-licences/    <- NEW private GitHub repo
+├── generate_licence.py               # migrated from tools/
+├── licence_signing.key               # Ed25519 private key (keep secret)
+├── issued/                           # ledger of issued licences
+│   └── .gitkeep
+└── README.md                         # key rotation runbook
+
+master_of_puppets/                    <- existing public repo
+├── tools/
+│   └── generate_licence.py           # STUB: "moved to axiom-licences private repo"
+│                                     # (licence_signing.key removed entirely)
+├── docs/
+│   ├── scripts/
+│   │   ├── regen_openapi.sh          # existing
+│   │   ├── validate_docs.py          # NEW
+│   │   └── capture_screenshots.py   # NEW
+│   └── docs/
+│       ├── runbooks/
+│       │   ├── package-repo.md       # NEW
+│       │   └── ...existing...
+│       └── assets/
+│           └── screenshots/          # NEW — Playwright output dir
+│               └── .gitkeep
+
+mop_validation/                       <- existing private validation repo
+└── scripts/
+    ├── node_jobs/                    # NEW directory
+    │   ├── README.md                 # corpus description + dispatch instructions
+    │   ├── health_check.py
+    │   ├── disk_usage.sh
+    │   ├── port_scan.py
+    │   └── env_report.ps1
+    └── sign_corpus.py                # NEW
+```
+
+---
+
+## Architectural Patterns
+
+### Pattern 1: Offline Signing Tool Isolation (Private Repo Boundary)
+
+**What:** Private key tooling lives in a separate, access-controlled private repo. The public repo contains only the verification public key, hardcoded in source.
+
+**When to use:** Any tool that holds a private signing key whose leak would compromise the security model. Licence issuance is exactly this case — a leaked `licence_signing.key` allows unlimited EE licence forgery.
+
+**Trade-offs:** Slight operational friction (clone two repos to do issuance work) vs. eliminating the risk of the private key appearing in git history, PRs, or public forks.
+
+### Pattern 2: Static Snapshot Validation Over Live-Stack CI
+
+**What:** The docs accuracy validator reads `openapi.json` (a committed snapshot produced by `regen_openapi.sh`) rather than making live HTTP requests.
+
+**When to use:** CI jobs where spinning up the full Docker stack is expensive. The snapshot is regenerated manually after API route changes and committed alongside the docs changes that reference the new routes.
+
+**Trade-offs:** Docs can drift from the live API if `regen_openapi.sh` is not run. Mitigation: CI can check that the committed snapshot's route set is a subset of the current server output, failing if new routes were added without updating the snapshot.
+
+**Example:**
+```python
+import re, json
+from pathlib import Path
+
+def extract_api_paths_from_docs(docs_root: Path) -> set:
+    pattern = re.compile(r'`(/api/[^`\s]+)`')
+    paths = set()
+    for md in docs_root.rglob("*.md"):
+        paths.update(pattern.findall(md.read_text()))
+    return paths
+
+def validate_against_openapi(paths: set, openapi: dict) -> list:
+    known = set(openapi["paths"].keys())
+    return sorted(p for p in paths if p not in known)
+```
+
+### Pattern 3: Playwright Screenshot Automation (Existing Project Convention)
+
+**What:** Python Playwright with `--no-sandbox`, JWT injected via `localStorage.setItem('mop_auth_token', token)` before navigation.
+
+**When to use:** Capturing authenticated dashboard views for documentation. This is the identical authentication pattern already used in `mop_validation/scripts/test_playwright.py`.
+
+**Trade-offs:** Screenshots go stale when UI changes. Treat as an operator step, not a blocking CI gate, to avoid blocking deploys on cosmetic drift.
+
+**Example:**
+```python
+from playwright.sync_api import sync_playwright
+import requests
+
+def get_token(base_url, username, password):
+    r = requests.post(f"{base_url}/api/auth/login",
+                      data={"username": username, "password": password})
+    return r.json()["access_token"]
+
+def capture(page, url, out_path, token):
+    page.evaluate(f"localStorage.setItem('mop_auth_token', '{token}')")
+    page.goto(url)
+    page.wait_for_load_state("networkidle")
+    page.screenshot(path=out_path)
+```
+
+---
+
+## Data Flow
+
+### Licence Issuance Flow
+
+```
+Operator (axiom-licences private repo)
+    |  python generate_licence.py --customer-id ACME --tier ee --expiry 2027-01-01 ...
+    v
+JWT string printed to stdout
+    |
+    |  operator pastes into customer secrets.env: AXIOM_LICENCE_KEY=<jwt>
+    v
+Axiom startup (lifespan in main.py)
+    |  licence_service.load_licence()
+    |    -> Ed25519 JWT signature verified against hardcoded public key
+    |    -> LicenceState computed: VALID / GRACE / EXPIRED / CE
+    v
+EE plugin loaded if is_ee_active
+POST /api/enroll: HTTP 402 if active_node_count >= node_limit
+Dashboard: EE badge, GRACE banner (dismissible), DEGRADED_CE banner (non-dismissible)
+```
+
+### Docs Validation Flow
+
+```
+Developer edits docs/docs/**/*.md
+    |
+    v
+CI job: docs-validate (on docs/** push)
+    |  python docs/scripts/validate_docs.py
+    |    -> extract /api/... patterns from markdown
+    |    -> cross-reference docs/docs/api-reference/openapi.json
+    |    -> extract axiom-push subcommands from markdown
+    |    -> cross-reference mop_sdk/cli.py registered commands
+    v
+Pass: exit 0 -> PR can merge
+Fail: exit 1 -> PR blocked with diff of unknown references
+```
+
+### Node Validation Corpus Dispatch Flow
+
+```
+Operator writes mop_validation/scripts/node_jobs/health_check.py
+    |
+    v
+python mop_validation/scripts/sign_corpus.py
+    |  requires: ~/.axiom/credentials (axiom-push init completed)
+    |  calls axiom_sdk per script -> POST /api/signatures registers public key + hash
+    v
+axiom-push create health-check scripts/node_jobs/health_check.py --node <node-id>
+    |
+    v
+Puppet node runtime.py:
+    -> verifies Ed25519 signature against registered public key
+    -> executes in container if valid
+    -> captures stdout/stderr in ExecutionRecord
+```
 
 ---
 
 ## Build Order
 
-Dependencies determine the order. Items with no cross-dependency can be done in parallel.
+Dependencies drive the sequence. Items later in the list depend on earlier ones.
 
-1. **compose.cold-start.yaml cleanup** — zero-risk, no code dependencies, immediately unblocks clean install documentation
-2. **Licence banner smoke test** — verify existing code against GRACE licence state; close the task if it renders correctly; diagnose if it doesn't
-3. **axiom-push CLI: fix MOP_URL -> AXIOM_URL** — one-line change, no test impact, unblocks users following docs
-4. **axiom-push CLI: add `key generate` subcommand** — requires signer.py extension; test with `axiom-push key generate && axiom-push job push --key signing.key ...`
-5. **first-job.md and axiom-push.md docs update** — depends on (3) and (4) being done; reorder steps, fix env var, promote CLI tab
-6. **docs-deploy.yml: switch to ghp-import --dest-dir docs** — can be done in parallel with (1)-(5); must be in place before homepage goes live
-7. **Marketing homepage HTML** — depends on (6) validated; final deliverable
+| Order | Component | Depends On | Rationale |
+|-------|-----------|-----------|-----------|
+| 1 | `axiom-laboratories/axiom-licences` repo setup + key migration | Nothing (fully standalone) | Highest-priority risk remediation; clears private key from public repo immediately; no other v15 work depends on this being done first, but it should be |
+| 2 | `docs/docs/runbooks/package-repo.md` | Existing MkDocs nav structure | Pure documentation; zero code changes; easy early win |
+| 3 | `docs/scripts/validate_docs.py` | `docs/docs/api-reference/openapi.json` (existing committed snapshot) | Static file analysis only; no stack needed; CI-wirable once passing |
+| 4 | `mop_validation/scripts/node_jobs/` corpus (write scripts) | Nothing | Scripts can be authored before signing infrastructure is wired |
+| 5 | `mop_validation/scripts/sign_corpus.py` | node_jobs/ scripts (step 4), running Axiom stack, `axiom-push init` | Batch signing requires scripts to exist and server to be reachable |
+| 6 | `docs/scripts/capture_screenshots.py` | Running Docker stack, all UI features stable | Last — captures final UI state; requires the full stack; output depends on UI being complete |
+
+---
+
+## Isolation: Private Repo vs Public Repo
+
+This is the most critical architectural boundary in v15.0.
+
+| Concern | Repo | Rationale |
+|---------|------|-----------|
+| Ed25519 licence signing private key | `axiom-laboratories/axiom-licences` (private) | Leaked private key enables unlimited EE licence forgery |
+| Licence issuance CLI (`generate_licence.py`) | `axiom-laboratories/axiom-licences` (private) | Tool co-located with key; no value in public exposure |
+| Issued licence ledger | Inside `axiom-licences` (gitignored subfolder) | Customer data |
+| Licence verification public key | `puppeteer/agent_service/services/licence_service.py` (public) | Ships with product; read-only verification is safe and necessary |
+| Docs validation tooling | Main repo `docs/scripts/` (public) | No secrets; useful to open-source contributors |
+| Screenshot capture script | Main repo `docs/scripts/` (public) | No secrets; requires local stack to run |
+| Node validation job scripts | `mop_validation` repo (private) | Test infrastructure kept separate — existing project convention |
+
+**Current state requiring remediation:** `tools/licence_signing.key` exists in the public main repo. This must be migrated and the key pair rotated before v15.0 is complete. The public key in `licence_service.py` must be updated to match the rotated key.
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Running `mkdocs gh-deploy --force` with a root homepage
+### Anti-Pattern 1: Leaving Private Key in Public Repo
 
-**What people do:** Add a marketing homepage to the repo root and run the existing `mkdocs gh-deploy --force` workflow unchanged.
-**Why it's wrong:** `gh-deploy --force` replaces the entire `gh-pages` branch with MkDocs output. The marketing homepage is deleted on every docs push.
-**Do this instead:** Switch to `ghp-import --dest-dir docs` for the MkDocs workflow so it only writes to `/docs/` on the branch.
+**What people do:** Leave `tools/licence_signing.key` in place because migration seems risky.
 
-### Anti-Pattern 2: Keying the banner on undocumented status values
+**Why it's wrong:** Any clone of the public repo grants the ability to generate unlimited valid EE licences. The entire commercial model is undermined. The key has already been exposed to git history.
 
-**What people do:** Add a `DEGRADED_CE` branch to the banner before confirming the backend emits that value.
-**Why it's wrong:** The `GET /api/licence` response (v14.3) emits only `status: 'valid' | 'grace' | 'expired' | 'ce'`. A dead branch causes confusion and TypeScript type drift.
-**Do this instead:** Validate against the live `GET /api/licence` response. If `DEGRADED_CE` is needed, extend both `licence_service.py` and `useLicence.ts` LicenceInfo type simultaneously.
+**Do this instead:** Migrate to `axiom-licences` private repo, rotate the key pair (generate new, update `_LICENCE_PUBLIC_KEY_PEM` in `licence_service.py`, re-sign any issued licences), and delete `tools/licence_signing.key` from the main repo with a squash or history rewrite if the key was ever committed.
 
-### Anti-Pattern 3: Bundling test nodes in an evaluation compose file
+### Anti-Pattern 2: Live-Stack Validation in CI
 
-**What people do:** Include pre-wired test nodes in `compose.cold-start.yaml` to give evaluators "something to see."
-**Why it's wrong:** The nodes require JOIN tokens that can only be generated after the stack is running — a bootstrap deadlock. Empty tokens cause crash-loop restarts that flood `docker compose logs` and make evaluators think the stack is broken.
-**Do this instead:** Remove bundled nodes. Document the manual enroll flow. Evaluators can follow `enroll-node.md` immediately after the core stack is up.
+**What people do:** Write `validate_docs.py` to make HTTP requests to `http://localhost:8001` in CI.
 
-### Anti-Pattern 4: Adding a CLI subcommand without fixing the env var mismatch first
+**Why it's wrong:** CI jobs without a running stack will fail spuriously; adding the stack to CI requires Docker-in-Docker or service containers, adding minutes of setup time and flaky failures.
 
-**What people do:** Add `key generate` to the CLI while leaving `MOP_URL` in `cli.py` line 51.
-**Why it's wrong:** The env var mismatch means documentation-following users cannot set the server URL without using `--url`, making the login flow harder than it should be. New subcommands compound the confusion.
-**Do this instead:** Fix `MOP_URL` -> `AXIOM_URL` in the same PR that adds `key generate`.
+**Do this instead:** Validate against the committed `openapi.json` snapshot. The snapshot is already version-controlled, always available, and makes validation run in under a second.
+
+### Anti-Pattern 3: Unsigned Scripts in the Validation Corpus
+
+**What people do:** Commit `.py`/`.sh`/`.ps1` scripts to `node_jobs/` without registered signatures, assuming users will know how to sign them.
+
+**Why it's wrong:** Scripts without registered server-side signatures will be rejected at execution time by `runtime.py`. The corpus is useless if it cannot be dispatched.
+
+**Do this instead:** Treat `sign_corpus.py` as the mandatory publication step. The corpus is not "ready" until all scripts have registered signatures. Document this constraint in the `node_jobs/README.md`.
+
+### Anti-Pattern 4: Screenshots in Git History
+
+**What people do:** Commit every Playwright capture run, accumulating large binary diffs.
+
+**Why it's wrong:** Git is not an image store. Screenshot PNGs are tens of KB each; history bloats quickly.
+
+**Do this instead:** Store screenshots in the repo but document `capture_screenshots.py` as an operator step run before intentional doc refreshes, not as a CI gate. Consider `.gitignore`-ing them and having a dedicated "refresh screenshots" workflow that generates and commits them only when needed.
 
 ---
 
 ## Scaling Considerations
 
-These features are purely user-experience concerns (deploy workflow, UI banner, compose cleanup, CLI command). No runtime scaling changes required. Not applicable.
+These v15.0 components are operator tooling and documentation — they have no runtime performance footprint on the Axiom server itself.
+
+| Concern | Impact | Notes |
+|---------|--------|-------|
+| Licence issuance volume | None | Offline tool; runs once per customer; zero server load |
+| Docs validation in CI | Low | Markdown + JSON parsing; completes in under 5 seconds |
+| Screenshot capture | Moderate (one-time) | Full Playwright + Chromium launch; ~30-60 seconds for a full capture run; not a hot CI path |
+| Node job corpus size | Negligible | Text files; signing is one-time per script version |
 
 ---
 
 ## Sources
 
-- Live codebase: `puppeteer/dashboard/src/layouts/MainLayout.tsx` (banner at lines 211-223)
-- Live codebase: `puppeteer/dashboard/src/hooks/useLicence.ts`
-- Live codebase: `puppeteer/compose.cold-start.yaml`
-- Live codebase: `mop_sdk/cli.py` (env var at line 51: `MOP_URL`)
-- Live codebase: `mop_sdk/signer.py`
-- Live codebase: `docs/docs/getting-started/first-job.md`
-- Live codebase: `.github/workflows/docs-deploy.yml`
-- Live codebase: `docs/mkdocs.yml` (`site_url: https://axiom-laboratories.github.io/axiom/`)
-- `mkdocs gh-deploy --help` (MkDocs 1.6.1 installed) — confirmed no `--dest-dir` flag (HIGH confidence)
-- [MkDocs deploying docs](https://www.mkdocs.org/user-guide/deploying-your-docs/) — MEDIUM confidence
-- [MkDocs with existing GitHub Pages discussion](https://github.com/mkdocs/mkdocs/discussions/3402) — MEDIUM confidence
+- Direct inspection: `puppeteer/agent_service/services/licence_service.py` — Ed25519 JWT validation, hardcoded public key, LicenceState state machine
+- Direct inspection: `tools/generate_licence.py` — existing licence issuance CLI structure and deps (PyJWT, cryptography)
+- Direct inspection: `docs/scripts/regen_openapi.sh` — established pattern for OpenAPI snapshot management
+- Direct inspection: `docs/docs/api-reference/openapi.json` — existing committed validation ground truth
+- Direct inspection: `mop_validation/scripts/` — existing test/validation script patterns
+- Direct inspection: `mop_sdk/signer.py`, `mop_sdk/cli.py` — Ed25519 signing infrastructure and CLI command registration
+- Project memory: Playwright `--no-sandbox` + localStorage JWT injection pattern (validated in v14.0 cold-start)
+- `PROJECT.md`: v14.4 validated state, key decisions table, deferred future items
 
 ---
-*Architecture research for: Axiom v14.4 go-to-market polish*
-*Researched: 2026-03-27*
+*Architecture research for: Axiom v15.0 Operator Readiness*
+*Researched: 2026-03-28*

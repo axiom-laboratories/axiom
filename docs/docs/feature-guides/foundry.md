@@ -67,6 +67,14 @@ After submission, the blueprint appears in the Blueprints list showing its OS fa
 
 ---
 
+## The Foundry interface
+
+The Foundry **Templates** tab lists all built images with their blueprint composition and build status:
+
+![Foundry templates page showing built node images](../assets/screenshots/foundry.png)
+
+---
+
 ## Templates
 
 A template combines one RUNTIME blueprint and one NETWORK blueprint into a single Docker image build.

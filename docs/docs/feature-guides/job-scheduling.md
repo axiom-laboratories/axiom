@@ -64,6 +64,12 @@ Common patterns:
 !!! warning "Do not use 6-field cron"
     Do not use a 6-field cron expression (with a leading seconds field). Axiom uses 5-field standard cron; a 6-field string will fail to schedule and the job definition will not be activated.
 
+## The Scheduled Jobs view
+
+The **Scheduled Jobs** view lists all active job definitions with their next fire time and last execution status:
+
+![Scheduled jobs page listing cron-triggered job definitions](../assets/screenshots/scheduled_jobs.png)
+
 ---
 
 ## Node Targeting

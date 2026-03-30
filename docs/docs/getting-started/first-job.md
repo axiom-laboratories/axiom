@@ -6,6 +6,60 @@ and dispatching your first job.
 
 ---
 
+## Step 0: Generate a signing keypair
+
+Every job must be signed before dispatch. Generate a keypair once — the private key stays on your machine, the public key gets registered in Axiom.
+
+=== "Python (cryptography)"
+
+    ```bash
+    python3 - <<'EOF'
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+
+    key = Ed25519PrivateKey.generate()
+
+    with open("signing.key", "wb") as f:
+        f.write(key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption()
+        ))
+
+    with open("verification.key", "wb") as f:
+        f.write(key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo
+        ))
+
+    print("Done. Upload verification.key to Axiom, keep signing.key private.")
+    EOF
+    ```
+
+=== "openssl"
+
+    ```bash
+    openssl genpkey -algorithm ed25519 -out signing.key
+    openssl pkey -in signing.key -pubout -out verification.key
+    ```
+
+This produces `signing.key` (private — keep safe) and `verification.key` (public — upload to Axiom).
+
+!!! warning "Never commit signing.key"
+    Store it in a secrets manager in production. Anyone who holds it can forge job signatures.
+
+### Register the public key
+
+1. Go to **Signatures** in the dashboard sidebar
+2. Click **Register Trusted Key**
+3. Paste the contents of `verification.key`, give it a name (e.g. `dev-key`), click **Establish Trust**
+4. Note the **Key ID** — you'll need it when dispatching
+
+!!! tip "Getting started banner"
+    The Signatures page shows a banner with these same commands when no keys are registered yet.
+
+---
+
 ## Quick Start (axiom-push CLI)
 
 !!! note "axiom-push requires EE"
@@ -115,6 +169,16 @@ Running on <node-hostname> (Linux)
 
     - [Foundry](../feature-guides/foundry.md) — build custom node images with pre-installed runtimes and packages
     - [axiom-push CLI](../feature-guides/axiom-push.md) — full CLI reference
+
+## What the Jobs view looks like
+
+The **Jobs** view shows all dispatched jobs with their current status:
+
+![Jobs page showing dispatched jobs with COMPLETED and FAILED status](../assets/screenshots/jobs.png)
+
+Click a completed job row to open the job detail panel with output, timing, and attestation details:
+
+![Job detail panel showing script output and execution metadata](../assets/screenshots/job_detail.png)
 
 ---
 

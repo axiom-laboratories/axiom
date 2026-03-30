@@ -1,299 +1,257 @@
 # Stack Research
 
-**Domain:** Go-to-market polish — marketing homepage, licence state banner, install doc fixes, signing UX
-**Researched:** 2026-03-27
+**Domain:** Operator Readiness — licence generation tooling, docs accuracy validation, screenshot capture, node validation job library, custom package repo docs and validation
+**Researched:** 2026-03-28
 **Confidence:** HIGH
-
-## Context: What Already Exists (Do Not Re-research)
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| FastAPI backend | In production | `GET /api/licence` returns `status/tier/node_limit/expiry/grace_days/is_enterprise` |
-| React/Vite dashboard | In production | Tailwind + shadcn/ui + lucide-react + `useLicence()` hook |
-| `MainLayout.tsx` | In production | Already has a licence banner block (lines 211–223) for `grace`/`expired` states — renders inline below the header |
-| `useLicence()` hook | In production | `@tanstack/react-query`, 5-min stale time, falls back to CE defaults on non-200 |
-| MkDocs Material docs | In production | `docs-deploy.yml` runs `mkdocs gh-deploy --force` from `docs/` on `main` push; deploys to `gh-pages` branch root |
-| `axiom-push` CLI | In production | `mop_sdk/cli.py` — argparse, OAuth device flow, `job push/create`; no `key` subcommand |
-| `compose.cold-start.yaml` | In production | Includes `puppet-node-1` and `puppet-node-2` services with bundled test nodes |
 
 ---
 
-## Feature 1: Marketing Homepage on GitHub Pages
+## Context: Existing Stack (Do Not Re-research)
 
-### Problem
+The existing stack already handles every primitive these five features depend on. New features require additions at the tooling and scripting layer only — no new server-side dependencies.
 
-`mkdocs gh-deploy --force` deploys the built MkDocs site to the **root** of the `gh-pages` branch, overwriting everything. The current `site_url` in `mkdocs.yml` is `https://axiom-laboratories.github.io/axiom/`, which means MkDocs places its output at the branch root. There is no room for a separate root `index.html` landing page.
+| Component | Status | Relevant to v15.0 |
+|-----------|--------|-------------------|
+| `cryptography` 46.x | In `requirements.txt` | Ed25519 signing (licence generator already uses it) |
+| `PyJWT[crypto]` >= 2.7.0 | In `requirements.txt` | EdDSA JWT encode/decode (licence JWT already uses it) |
+| `playwright` (Python) | In `mop_validation/` | Screenshot capture already works there |
+| `pypiserver/pypiserver` | In `compose.server.yaml` | PyPI sidecar already deployed |
+| `devpi` (muccg/devpi image) | In `compose.server.yaml` | Internal wheel index already deployed |
+| `pytest` + `httpx` | In `puppeteer/requirements.txt` | API smoke tests already possible |
+| `tools/generate_licence.py` | In `tools/` | Offline CLI signing already implemented (Ed25519 JWT) |
 
-### Recommended Approach: Split Deploy via `ghp-import`
+---
 
-**Do not use `mkdocs gh-deploy` for the final push.** Instead, split the workflow into two steps:
+## Feature 1: Licence Generation Tooling (Issuance Records in Private GitHub Repo)
 
-1. `mkdocs build` — generates `docs/site/` as before
-2. `ghp-import -n -p -f -r origin -b gh-pages -x docs docs/site/` — pushes MkDocs output into the `docs/` subdirectory of the `gh-pages` branch
+### What Already Exists
 
-Then a separate step copies the marketing `index.html` (from `homepage/` in the repo) to the branch root using the same `ghp-import` approach or direct git commit to `gh-pages`.
+`tools/generate_licence.py` is a complete offline CLI using `cryptography` + `PyJWT`. It generates Ed25519 keypairs, signs JWT payloads, and prints the token to stdout. The private signing key lives at `tools/licence_signing.key`.
 
-**Result:** `axiom-laboratories.github.io/axiom/` serves the marketing page; `axiom-laboratories.github.io/axiom/docs/` serves MkDocs.
+**What is missing:** A record-keeping mechanism. Every issued licence should be auditable — when issued, to whom, expiry, tier, features. The milestone asks for a private GitHub repository as the record store.
 
-Update `mkdocs.yml` `site_url` to `https://axiom-laboratories.github.io/axiom/docs/` to match the new location.
+### Recommended Addition: PyGithub
 
-### ghp-import `-x` flag (MEDIUM confidence — verified via mkdocs/mkdocs issue #2534)
-
-`ghp-import` is already installed as a transitive dependency of `mkdocs`. The `-x DEST_DIR` flag deploys output to a subdirectory of the target branch rather than the root. The `mkdocs gh-deploy` wrapper does not expose this flag, so call `ghp-import` directly.
-
-```bash
-# In docs-deploy.yml — replace the mkdocs gh-deploy step with:
-mkdocs build --config-file docs/mkdocs.yml
-ghp-import -n -p -f -b gh-pages -x docs docs/site/
-```
-
-`-n` adds `.nojekyll` (already needed). `-p` pushes. `-f` forces. `-x docs` places MkDocs output at `/docs/` on the branch.
-
-### Marketing Homepage: Pure Static HTML + Tailwind CDN
-
-**No build step required.** A single `homepage/index.html` using the Tailwind CDN play CDN is sufficient. This is a public marketing page, not an app — no bundler, no framework.
-
-Why Tailwind CDN (not a full Vite build):
-- Zero toolchain for a static HTML page
-- GitHub Actions just copies the file — no `npm install`, no build artifacts
-- The dashboard already uses Tailwind; visual language is consistent
-
-The homepage deploy step in `docs-deploy.yml` is a single `ghp-import` or `git commit` that places `homepage/index.html` at the branch root as `index.html`.
-
-**Recommended structure in repo:**
-
-```
-homepage/
-  index.html       # marketing landing page (self-contained, Tailwind CDN)
-  assets/
-    logo.svg       # reuse docs/docs/assets/logo.svg
-```
-
-### Workflow Change Summary
-
-Replace the `docs-deploy.yml` single-step `mkdocs gh-deploy --force` with:
-
-```yaml
-- name: Build MkDocs
-  working-directory: docs
-  run: mkdocs build
-
-- name: Deploy docs to /docs/ subfolder
-  run: ghp-import -n -p -f -b gh-pages -x docs docs/site/
-
-- name: Deploy homepage to root
-  run: |
-    # ghp-import preserves existing branch content when not using --force on root
-    # Copy homepage/index.html to gh-pages root via a second ghp-import with no -x
-    # Use a temp dir to avoid overwriting /docs/
-    mkdir -p /tmp/homepage-deploy
-    cp homepage/index.html /tmp/homepage-deploy/index.html
-    cp -r homepage/assets /tmp/homepage-deploy/assets 2>/dev/null || true
-    ghp-import -n -p -b gh-pages /tmp/homepage-deploy/
-```
-
-**Caution:** `ghp-import` by default replaces the entire branch. Use `-x` to scope to subdirectory. For the root landing page step, use a temp dir containing only the homepage files to avoid clobbering `/docs/`.
-
-A cleaner alternative is the `peaceiris/actions-gh-pages` GitHub Action (v4), which supports `destination_dir` and `keep_files: true` — this eliminates the manual temp-dir dance.
-
-### Recommended: `peaceiris/actions-gh-pages@v4`
+**PyGithub 2.x** is the standard Python library for the GitHub REST API v3. It supports creating/updating files in private repositories via `repo.create_file()` and `repo.update_file()`. The licence issuance script can append a JSONL record to a ledger file after signing.
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| `peaceiris/actions-gh-pages` | v4 | Deploy to GitHub Pages with `destination_dir` | Supports deploying MkDocs to `/docs/` and homepage to root in separate steps with `keep_files: true` — no manual branch manipulation needed |
+| `PyGithub` | `>=2.5.0` (latest 2.9.0) | Append licence issuance records to a private GitHub repo | Official GitHub REST API v3 client; typed; supports create/update file operations on private repos; no alternative has the same breadth of coverage and active maintenance |
 
-```yaml
-- uses: peaceiris/actions-gh-pages@v4
-  with:
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-    publish_dir: ./docs/site
-    destination_dir: docs
-    keep_files: true
+**Pattern for ledger append:**
 
-- uses: peaceiris/actions-gh-pages@v4
-  with:
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-    publish_dir: ./homepage
-    keep_files: true
+```python
+from github import Github
+
+g = Github(os.environ["GITHUB_TOKEN"])
+repo = g.get_repo("axiom-laboratories/axiom-licence-ledger")
+
+# Read existing ledger (JSONL)
+try:
+    f = repo.get_contents("ledger.jsonl")
+    existing = f.decoded_content.decode()
+    new_content = existing + json.dumps(record) + "\n"
+    repo.update_file("ledger.jsonl", f"Add licence {licence_id}", new_content, f.sha)
+except:
+    repo.create_file("ledger.jsonl", f"Add licence {licence_id}", json.dumps(record) + "\n")
 ```
 
-`keep_files: true` preserves files already on the branch from prior deploys. This is the critical flag that prevents the docs deploy from wiping the homepage and vice versa.
+**Dependencies:** `PyGithub>=2.5.0` — install in the `tools/` venv only, not `puppeteer/requirements.txt`. This is an operator tooling dependency, not a server dependency.
 
-**Confidence:** HIGH — peaceiris/actions-gh-pages is the standard GH Pages action (100k+ stars, used in mkdocs-material's own CI docs).
+**Authentication:** GitHub Personal Access Token with `repo` scope, stored in `GITHUB_TOKEN` env var. For CI use, a fine-grained PAT scoped to the ledger repo is preferable.
+
+**Confidence:** HIGH — PyGithub is the standard library; the pattern above is a one-page script on top of the existing generate_licence.py.
 
 ---
 
-## Feature 2: Dashboard Licence State Banner (GRACE/DEGRADED_CE)
+## Feature 2: Docs Accuracy Validation
 
-### Current State
+### What Needs Validating
 
-`MainLayout.tsx` lines 211–223 already contain a banner for `grace` and `expired` states. It is a non-dismissible inline `<div>` below the header. The banner already reads from `useLicence()` and renders amber (grace) or red (expired) text with an `AlertTriangle` icon.
+Three categories of accuracy drift are possible:
 
-**What is missing:**
-- No dismiss capability (banner is always visible if licence is in grace/expired)
-- No `DEGRADED_CE` state handling (the API returns `status: 'ce'` but this also covers the case where an EE licence has fully expired and fallen back; the banner currently only fires on `grace`/`expired`)
-- The banner has no CTA link ("Renew" or "Contact us")
+1. **API endpoints** — docs reference routes that have been renamed or removed
+2. **CLI commands** — `axiom-push` subcommands/flags documented but changed
+3. **Compose file** — service names, env vars, port numbers described incorrectly
 
-### Recommended Pattern: Dismissible Banner with Session State
+### Recommended Approach: httpx-based smoke test script (no new deps)
 
-The existing banner is already in the right location and the right structure. The change is:
+The server already has `httpx` in `requirements.txt`. A standalone script in `tools/` that:
+1. Boots or connects to the running stack
+2. Issues authenticated GET requests to every documented endpoint
+3. Reports any non-2xx or 404
 
-1. Add a dismiss button (X icon) to the existing banner `<div>`
-2. Store dismissed state in `sessionStorage` keyed to `axiom-licence-banner-dismissed-{status}` — this way the banner reappears if status changes (e.g. from grace to expired), but not on every page navigation within the same session
-3. Do **not** use `localStorage` — operators need to see the warning again on next login
-4. Add a `DEGRADED_CE` display: when `status === 'ce'` AND `isEnterprise` was previously true (i.e. EE features are now locked), show a red banner. The API already surfaces this via `status: 'ce'` after licence expiry.
+This is not a new library — it uses httpx that is already present. The script lives in `tools/validate_docs.py` and is invoked manually or in CI against a live stack.
 
-**No new libraries needed.** The pattern uses:
-- `useState` to track dismissed state (already imported in MainLayout)
-- `sessionStorage` (browser stdlib) for persistence within the session
-- Existing `AlertTriangle` from lucide-react (already imported)
-- The existing Tailwind classes already in the banner
+For **CLI command validation**, run `axiom-push --help` and each documented subcommand with `subprocess.run` and assert return codes. No new library needed.
+
+For **link checking in MkDocs source**, use `linkcheckmd`:
+
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| `linkcheckmd` | `>=1.4.0` | Check all Markdown links in `docs/docs/` | Async, fast, works on raw `.md` files without building the site; actively maintained; does not require a running server for internal link checking |
+
+**Do NOT use** `mkdocs-linkcheck` — it is abandoned (no releases in 12+ months per PyPI). `linkcheckmd` is the current community choice.
 
 **Pattern:**
 
-```tsx
-const BANNER_KEY = `axiom-licence-banner-v1-${licence.status}`;
-const [dismissed, setDismissed] = useState(
-  () => sessionStorage.getItem(BANNER_KEY) === '1'
-);
-
-const handleDismiss = () => {
-  sessionStorage.setItem(BANNER_KEY, '1');
-  setDismissed(true);
-};
-```
-
-The key includes `licence.status` so the banner re-shows if the status changes between sessions (e.g. grace→expired after 14 days). The `v1` prefix allows forced re-show after a code change if needed.
-
-### No New shadcn Components Required
-
-The existing inline `<div>` is the correct pattern for a global layout banner — it does not need a shadcn Alert or Dialog wrapper. Keep it as a `<div>` with Tailwind classes. The only addition is an `<button>` (or `<Button variant="ghost">`) for dismiss.
-
----
-
-## Feature 3: Fix Golden Path Install Docs (Remove Bundled Test Nodes)
-
-### Problem
-
-`compose.cold-start.yaml` includes `puppet-node-1` and `puppet-node-2` services. New users run this compose file and immediately have nodes enrolled — but those nodes need `JOIN_TOKEN_1` / `JOIN_TOKEN_2` set in `.env` before they work, and the tokens require a running server to generate. This creates a chicken-and-egg UX problem and obscures the actual node enrollment workflow.
-
-The `install.md` and `enroll-node.md` docs rely on this compose file but the bundled nodes make the first-run experience unclear.
-
-### Recommended Fix
-
-**Remove `puppet-node-1` and `puppet-node-2` from `compose.cold-start.yaml`** entirely. The cold-start compose should spin up: `db`, `cert-manager`, `agent`, `dashboard`, `docs`. Nothing else.
-
-This is a **pure YAML deletion** — no new libraries, no new code. The node enrollment flow then follows the documented manual steps in `enroll-node.md`.
-
-Update the comment block at the top of `compose.cold-start.yaml` to remove the JOIN_TOKEN instructions (Steps 3–4 in the current comment). Remove the `node1-secrets`, `node2-secrets` volumes from the `volumes:` block.
-
-**No stack changes required.**
-
----
-
-## Feature 4: Signing UX Improvement (Hello-World Under 30 Minutes)
-
-### Problem
-
-The current first-job flow requires:
-1. `openssl genpkey -algorithm ed25519 -out signing.key` (raw CLI)
-2. `openssl pkey -in signing.key -pubout -out verification.key`
-3. Manual paste of `verification.key` into the dashboard Signatures UI
-4. Note the returned Key ID
-5. Pass `--key signing.key --key-id <id>` to `axiom-push job push`
-
-Steps 1–4 are the friction. Three separate shell commands + a dashboard UI round-trip before the operator can push their first job.
-
-### Recommended Fix: `axiom-push key` Subcommand
-
-Add a `key` subcommand to `mop_sdk/cli.py` that handles the entire keygen + register flow:
-
-```
-axiom-push key generate            # generates signing.key + verification.key locally
-axiom-push key register --name X   # reads verification.key, POST /signatures, prints Key ID
-axiom-push key setup --name X      # generate + register in one step
-```
-
-**Implementation:** Pure Python using the `cryptography` library (already a dependency in `pyproject.toml`):
-
-```python
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding, PrivateFormat, PublicFormat, NoEncryption
-)
-
-# Generate
-private_key = Ed25519PrivateKey.generate()
-signing_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
-verification_pem = private_key.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
-
-# Write
-Path("signing.key").write_bytes(signing_pem)
-Path("signing.key").chmod(0o600)
-Path("verification.key").write_bytes(verification_pem)
-```
-
-`cryptography` is already in `pyproject.toml` dependencies for `mop_sdk`. Zero new imports required beyond what's already available.
-
-The `register` sub-step calls `POST /api/signing-keys` (or the existing signatures endpoint) via the existing `MOPClient`, reads `verification.key`, and prints the returned Key ID so the operator can copy-paste it.
-
-**The `setup` sub-step** is the happy path — one command generates the keys, registers the public key with a provided name, and prints the Key ID. The first-job doc can then be:
-
 ```bash
-axiom-push login
-axiom-push key setup --name my-first-key   # prints: Key ID: abc123
-axiom-push job push --script hello.py --key signing.key --key-id abc123
+# In CI or as a pre-deploy check:
+python -m linkcheckmd docs/docs/ --local
 ```
 
-This reduces the keygen friction from 4 steps to 1.
+The `--local` flag checks only internal file-relative links (no HTTP requests). This catches broken cross-references in docs without needing the site built.
 
-### Dashboard Signing UX (Optional Parallel Improvement)
+For **external link checking** (e.g. docs referencing GitHub URLs), run without `--local` but be tolerant of rate-limit false positives — external checks should be advisory, not blocking.
 
-The Signatures view (`Signatures.tsx`) could display a "Generate & Download" button that uses `window.crypto.subtle.generateKey` (Web Crypto API) in the browser to generate an Ed25519 keypair, download the private key as `signing.key`, and auto-register the public key via the API. This eliminates even the CLI keygen step.
-
-**However:** Web Crypto Ed25519 support landed in Chrome 113 / Firefox 130 / Safari 17. Given the target audience (homelab/enterprise operators, likely on modern browsers), this is viable but optional. The `axiom-push key setup` CLI approach is the higher-priority fix and covers the CI/CD use case that dashboards cannot.
-
-**No new frontend libraries required** — Web Crypto is a browser stdlib API.
+**Confidence:** MEDIUM — linkcheckmd is maintained and fits the use case; httpx pattern is HIGH confidence (existing library, existing pattern in the codebase).
 
 ---
 
-## Recommended Stack Additions (New)
+## Feature 3: Screenshot Capture for Docs and Marketing Homepage
 
-### Core Technologies
+### What Already Exists
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `peaceiris/actions-gh-pages` | v4 | GitHub Pages deploy with subdirectory support | `keep_files: true` + `destination_dir` enable split homepage/docs deploy without manual branch manipulation; official GH Actions approach |
+The `mop_validation/` repo uses Python Playwright (sync API) with `--no-sandbox` and JWT-via-localStorage auth. This already works in the environment.
 
-### Supporting Libraries
+### Recommended: Python Playwright (same pattern, moved to main repo `tools/`)
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| `ghp-import` | already installed (mkdocs transitive dep) | Deploy MkDocs to `/docs/` subdirectory of gh-pages | Only needed if NOT using peaceiris/actions-gh-pages; already available in the docs venv |
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| `playwright` (Python) | `>=1.58.0` (current: 1.58.0) | Capture dashboard screenshots for docs/homepage | Already proven in this environment; `--no-sandbox` workaround documented in CLAUDE.md; sync API is simpler for a one-shot screenshot script |
 
-### Development Tools
+**No new library needed** — Playwright is already used and validated. The only addition is a screenshot script in `tools/capture_screenshots.py` that:
+1. Starts the Docker stack (or connects to running stack)
+2. Gets a JWT via the API (not UI login — avoid React form issues)
+3. Injects JWT via `localStorage.setItem('mop_auth_token', token)`
+4. Navigates to each dashboard view
+5. Calls `page.screenshot(path=f"docs/docs/assets/screenshots/{name}.png", full_page=False)`
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| Tailwind CDN (play.tailwindcss.com) | Styling for the marketing homepage | Use CDN script tag in `homepage/index.html`; no build step. Switch to bundled Tailwind only if homepage grows beyond a single page. |
+**Key constraints from CLAUDE.md (verified, do not change):**
+- Always launch with `args=['--no-sandbox']`
+- Auth: inject JWT via localStorage, not login form
+- API login uses form-encoded data, not JSON
+- localStorage key is `mop_auth_token`
+
+**For screenshot dimensions:** Use `page.set_viewport_size({"width": 1280, "height": 800})` for consistent framing across all captures.
+
+**Playwright version:** 1.58.0 released January 30, 2026. Requires `playwright install chromium` after pip install. No version bump needed from mop_validation — use the same version.
+
+**Confidence:** HIGH — direct carry-over of working pattern from mop_validation.
+
+---
+
+## Feature 4: Node Validation Job Library
+
+### What Needs Building
+
+A library of signed reference jobs in `puppets/validation_jobs/` that operators can dispatch against their nodes to verify:
+- Runtime: Python/Bash/PowerShell execution
+- Volume mapping: read/write test files
+- Network filtering: connectivity tests (should reach / should not reach)
+- Resource limit enforcement: OOM/timeout triggers
+
+### Stack: No New Libraries
+
+All validation jobs are **script content** — Python, Bash, or PowerShell — dispatched via the existing `axiom-push job push` CLI or `POST /api/jobs`. The signing uses the existing `cryptography` + `PyJWT` toolchain.
+
+The library is a directory of `.py`, `.sh`, and `.ps1` files plus a manifest. Each script is pre-signed and stored with its signature in a sidecar `.sig` file (same pattern as existing signed job dispatch).
+
+| Component | Purpose | How |
+|-----------|---------|-----|
+| `puppets/validation_jobs/*.py` | Python runtime validation scripts | Standard Python, no imports beyond stdlib |
+| `puppets/validation_jobs/*.sh` | Bash validation scripts | POSIX-compatible |
+| `puppets/validation_jobs/*.ps1` | PowerShell validation scripts | pwsh 7 compatible |
+| `tools/sign_validation_jobs.py` | Batch sign all validation scripts | Uses existing Ed25519 signing (`cryptography` already present) |
+| `tools/dispatch_validation_suite.py` | Dispatch + monitor all validation jobs | Uses `httpx` (already present) |
+
+**No new server-side dependencies.** The validation job scripts use only OS stdlib (Python `os`, `sys`, `subprocess`; Bash builtins; PowerShell core cmdlets). Resource limit tests deliberately allocate memory or sleep to trigger enforced limits — this is intentional and requires no external libraries.
+
+**Confidence:** HIGH — straightforward script files dispatched via existing API.
+
+---
+
+## Feature 5: Custom Package Repo — Operator Docs and Validation Jobs
+
+### What Already Exists
+
+The `compose.server.yaml` already runs:
+- `pypiserver/pypiserver:latest` on port 8080 — bare PyPI-compatible index, no auth, no mirroring
+- `muccg/devpi:latest` on port 3141 — full devpi stack with PyPI mirror capability
+
+The `mirror_service.py` downloads packages via `pip download` into a volume, and a Caddy sidecar serves them.
+
+### What is Missing
+
+1. **Operator documentation** — how to configure nodes to use the local PyPI mirror (`pip.conf`, `PIP_INDEX_URL`), how to upload internal packages, how to set up APT and PWSH mirrors
+2. **Validation jobs** — signed Bash/Python/PowerShell jobs that verify connectivity to the local mirror, install a test package, and confirm the source is the internal mirror (not public PyPI)
+
+### Stack Assessment for Package Mirror Validation Jobs
+
+No new server-side library is needed. The validation jobs are scripts that run inside nodes:
+
+**PyPI validation job (Python):**
+```python
+import subprocess, sys
+# Verify pip uses local mirror
+result = subprocess.run([sys.executable, '-m', 'pip', 'install',
+    '--dry-run', '--index-url', 'http://pypi:8080/simple/', 'requests'],
+    capture_output=True, text=True)
+assert 'pypi:8080' in result.stdout or result.returncode == 0
+```
+
+**APT mirror validation (Bash):**
+The existing `mirror_service.py` does not implement APT mirroring — it is stubbed out (see lines 33-38: only `_mirror_pypi` is called). APT mirroring was deferred in v7.0. For v15.0, **document only** — advise operators to use `apt-cacher-ng` as a separate sidecar if they need APT mirroring. Do not implement a new APT mirror service for this milestone.
+
+**PowerShell (PSRepository) validation (PowerShell):**
+PowerShell module repos use NuGet v2/v3 API. For air-gapped environments, `BaGet` (an open-source NuGet server) is the standard choice for hosting a local PSRepository. This is documentation guidance only for v15.0 — no new service is implemented.
+
+| Decision | Recommendation | Rationale |
+|----------|----------------|-----------|
+| PyPI mirror | Document devpi already in stack | devpi supports `--index-url` pip config; already running |
+| APT mirror | Document apt-cacher-ng as operator-managed sidecar | Too large to bundle (200-300 GB full mirror); transparent proxy model is simpler |
+| PWSH PSRepository | Document BaGet as operator choice | NuGet v2 API; well-documented; out of scope to add to compose |
+
+---
+
+## Recommended Stack Additions (New for v15.0)
+
+### Core Technologies (New Installs Required)
+
+| Technology | Version | Purpose | Why Recommended | Scope |
+|------------|---------|---------|-----------------|-------|
+| `PyGithub` | `>=2.5.0` | Append licence issuance records to private GitHub repo | Standard GitHub REST API v3 client; typed; actively maintained; covers create/update file on private repos | `tools/` venv only — NOT `puppeteer/requirements.txt` |
+| `playwright` (Python) | `>=1.58.0` | Dashboard screenshot capture script | Already validated in environment; `--no-sandbox` pattern proven; 1.58.0 is current (Jan 2026) | `tools/` venv only |
+| `linkcheckmd` | `>=1.4.0` | Markdown link validation across docs/ | Async, fast, no build step needed; `mkdocs-linkcheck` is abandoned | `docs/` venv or CI |
+
+### No Changes Required
+
+| Component | Why No Change Needed |
+|-----------|---------------------|
+| `cryptography` | Already in requirements.txt; Ed25519 keypair generation and signing already works |
+| `PyJWT[crypto]>=2.7.0` | Already in requirements.txt; EdDSA JWT encoding already works |
+| `httpx` | Already in requirements.txt; API smoke test scripts use it directly |
+| `pytest` | Already in requirements.txt; validation test scripts can use it |
+| `pypiserver` sidecar | Already in compose.server.yaml on port 8080 |
+| `devpi` sidecar | Already in compose.server.yaml on port 3141 |
+| Playwright browser binaries | Already installed in mop_validation environment; run `playwright install chromium` in the tools venv |
 
 ---
 
 ## Installation
 
 ```bash
-# No new Python packages required for any of the 4 features.
-# All backend changes are code-only (YAML deletion, Python stdlib).
+# Tools venv (offline operator tooling — NOT the puppeteer server):
+pip install PyGithub>=2.5.0
+pip install playwright>=1.58.0
+playwright install chromium  # download browser binary
 
-# No new npm packages required for the banner fix.
-# All React changes use existing: useState, sessionStorage, lucide-react.
+# Docs venv (add to docs/requirements.txt):
+# Current: mkdocs-material==9.7.5, mkdocs-swagger-ui-tag==0.8.0
+pip install linkcheckmd>=1.4.0
 
-# For homepage:
-# No npm install needed — Tailwind CDN in a <script> tag.
-
-# For docs-deploy.yml change:
-# peaceiris/actions-gh-pages@v4 is a GitHub Action, not a local package.
-# Add it to .github/workflows/docs-deploy.yml.
+# puppeteer/requirements.txt — NO CHANGES for v15.0
+# All 5 features are tooling/scripting layer; server gets no new deps.
 ```
 
 ---
@@ -302,11 +260,12 @@ The Signatures view (`Signatures.tsx`) could display a "Generate & Download" but
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| `peaceiris/actions-gh-pages@v4` for split deploy | Manual `ghp-import -x` in bash | Use `ghp-import -x` if you want to avoid the Actions dependency. More fragile (temp dir dance), but no external action required. |
-| Static HTML + Tailwind CDN for homepage | Astro static site generator | Use Astro only if the marketing homepage needs multiple pages, blog, or MDX content. For a single landing page with a hero, features, and CTA, Astro adds unnecessary complexity. |
-| `sessionStorage` for banner dismiss | `localStorage` | Use `localStorage` if you want the banner to stay dismissed across logins. Rejected: operators need to see the warning on each new session until the licence is renewed. |
-| `axiom-push key setup` CLI command | Dashboard "Generate & Download" button | Use the dashboard Web Crypto approach if you want zero-CLI UX. The CLI is higher priority because it covers CI/CD and headless operators who never open the dashboard. |
-| Remove nodes from cold-start compose | Keep nodes, improve token generation docs | Removing is cleaner. Bundled nodes cannot self-enroll without pre-generated tokens; the circular dependency makes first-run confusing regardless of how the docs explain it. |
+| `PyGithub` for ledger records | Raw `httpx` calls to GitHub API | Use raw httpx if you want zero new dependencies; PyGithub is less friction for file create/update with SHA management |
+| `PyGithub` for ledger records | Git commit + push via subprocess | Use subprocess git if the operator machine already has git configured with credentials; avoids PyGithub dep entirely; slightly less portable |
+| `linkcheckmd` for docs validation | `linkchecker-mkdocs` plugin | Use the MkDocs plugin if you want validation baked into `mkdocs build --strict`; linkcheckmd is simpler as a standalone CI step |
+| Python Playwright for screenshots | Selenium / Puppeteer (JS) | Use Playwright; it is already validated in this environment with the exact workarounds needed (`--no-sandbox`, localStorage auth) |
+| `apt-cacher-ng` (operator-managed) for APT | Bundling apt-mirror into compose | Never bundle a full APT mirror — 200-300 GB disk, complex sync scheduling; caching proxy is the right pattern for most operators |
+| BaGet for PSRepository | Proget, Azure Artifacts, Nexus | BaGet is free, open-source, and self-hosted; Proget/Azure are commercial; for an air-gapped environment, BaGet is the minimum viable NuGet server |
 
 ---
 
@@ -314,28 +273,33 @@ The Signatures view (`Signatures.tsx`) could display a "Generate & Download" but
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `mkdocs gh-deploy --force` for the combined homepage+docs deploy | `--force` replaces the entire gh-pages branch root; no way to scope to a subdirectory | `peaceiris/actions-gh-pages@v4` with `destination_dir: docs` + `keep_files: true` |
-| React framework (Next.js, Astro) for the homepage | Single-page marketing site does not need server-side rendering or a component framework; adds CI build time | Plain HTML + Tailwind CDN |
-| `localStorage` for banner dismiss key | Makes the banner permanently hidden; operators on grace period need to see the renewal warning on every login | `sessionStorage` keyed to `licence.status` |
-| New pip dependency for CLI keygen | `cryptography` is already in `pyproject.toml`; adding `PyNaCl` or `PyOpenSSL` for the same operation is redundant | `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey` |
-| shadcn Alert component to replace the existing licence banner div | The existing `<div>` in `MainLayout.tsx` is already correctly positioned as a full-width layout element. Wrapping it in shadcn Alert adds unnecessary component nesting for no visual benefit | Keep the existing `<div>` structure; add only the dismiss button and sessionStorage logic |
+| `mkdocs-linkcheck` | Abandoned — no PyPI releases in 12+ months | `linkcheckmd` |
+| `python-jose` for licence JWT | Does not support EdDSA (Ed25519) — explicitly noted in `licence_service.py` | `PyJWT[crypto]>=2.7.0` (already installed) |
+| New Ed25519 library (`PyNaCl`, standalone `ed25519`) | `cryptography` already provides `Ed25519PrivateKey`; adding a second Ed25519 library creates ambiguity | `cryptography.hazmat.primitives.asymmetric.ed25519` |
+| MCP browser tool for screenshots | Crashes on every navigation in this environment (documented in CLAUDE.md) | Python Playwright with `--no-sandbox` |
+| `pip download` + Caddy for APT mirroring | `pip download` only works for PyPI packages, not `.deb` packages — type mismatch | `apt-cacher-ng` sidecar (transparent proxy, no pre-download needed) |
+| New dependencies in `puppeteer/requirements.txt` for v15.0 features | All 5 features are operator tooling, not server features; adding tooling deps to the server image bloats it | Separate `tools/` venv |
 
 ---
 
 ## Stack Patterns by Variant
 
-**If the marketing homepage stays a single page (likely):**
-- Use plain HTML + Tailwind CDN
-- Deploy via `peaceiris/actions-gh-pages@v4`
-- Zero build step
+**If operator is air-gapped (no GitHub access):**
+- Skip `PyGithub` for ledger; write JSONL records to a local file instead
+- The `generate_licence.py` already works offline; add a `--ledger-file` flag as fallback
 
-**If the marketing homepage grows to multiple pages (future):**
-- Migrate to Astro with Tailwind integration
-- Build in CI, deploy output directory
+**If operator wants APT mirroring (not just PyPI):**
+- Add `apt-cacher-ng` as a sidecar in `compose.server.yaml` (port 3142 conventional)
+- Document `Acquire::http::Proxy "http://apt-cacher:3142"` in `/etc/apt/apt.conf.d/01proxy` on nodes
+- No code change to the Axiom server required
 
-**If the docs site URL must change (from root to /docs/):**
-- Update `site_url` in `mkdocs.yml` to `https://axiom-laboratories.github.io/axiom/docs/`
-- Update any hardcoded doc links in README, dashboard sidebar, and `install.md`
+**If operator wants PSRepository mirroring:**
+- Deploy BaGet (`docker run --rm -p 5000:80 loicsharma/baget`) as a standalone sidecar
+- Register with `Register-PSRepository -Name AxiomInternal -SourceLocation http://baget:5000/v3/index.json`
+
+**If screenshot capture needs to run in CI (headless, no display):**
+- Playwright already supports headless Chromium; `--no-sandbox` is required on Linux CI
+- Add `playwright install --with-deps chromium` step to GitHub Actions screenshot job
 
 ---
 
@@ -343,25 +307,27 @@ The Signatures view (`Signatures.tsx`) could display a "Generate & Download" but
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| `peaceiris/actions-gh-pages@v4` | `actions/checkout@v4`, GitHub Actions `ubuntu-latest` | v4 requires `GITHUB_TOKEN` or `deploy_key`. Already using `contents: write` permission in `docs-deploy.yml`. |
-| `cryptography` (already in `pyproject.toml`) | Python 3.10+ | `Ed25519PrivateKey.generate()` available since cryptography 2.6. No version bump needed. |
-| Tailwind CDN (play CDN) | All modern browsers | Use `https://cdn.tailwindcss.com` script tag. Not for production apps (runtime JIT), but fine for a static marketing page. |
-| `sessionStorage` | All modern browsers | Available since IE8. No polyfill needed. |
-| Web Crypto `subtle.generateKey` with Ed25519 | Chrome 113+, Firefox 130+, Safari 17+ | August 2025 baseline is fine for this audience. Flag as optional enhancement, not MVP. |
+| `PyGithub>=2.5.0` | Python 3.8+, GitHub API v3 | v2.x dropped Python 3.7; current project uses 3.10+ so no issue |
+| `playwright>=1.58.0` | Python 3.9+, Chromium 132 | Requires separate `playwright install chromium` after pip install; browser binary is ~300 MB |
+| `linkcheckmd>=1.4.0` | Python 3.7+, aiohttp | Async; fast; no special system deps |
+| `cryptography==46.0.6` | Python 3.8+, OpenSSL 1.1+ | Current version; already in requirements.txt; no change needed |
+| `PyJWT[crypto]>=2.7.0` | `cryptography>=3.4` | EdDSA support added in 2.4.0; `>=2.7.0` pin already in requirements.txt |
 
 ---
 
 ## Sources
 
-- Direct codebase analysis: `MainLayout.tsx`, `useLicence.ts`, `mop_sdk/cli.py`, `docs/mkdocs.yml`, `.github/workflows/docs-deploy.yml`, `compose.cold-start.yaml`, `pyproject.toml` — current state (HIGH confidence — source of truth)
-- [mkdocs/mkdocs issue #2534 — Publish to subdirectory with gh_deploy](https://github.com/mkdocs/mkdocs/issues/2534) — `ghp-import -x` prefix flag confirmed (MEDIUM confidence — official issue tracker, community workaround)
-- [peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages) — `destination_dir` and `keep_files: true` flags (HIGH confidence — official README, widely deployed)
-- `mkdocs gh-deploy --help` — no `--dest-dir` or subdirectory flag exists (HIGH confidence — direct tool invocation)
-- [shadcn/ui Banner component](https://www.shadcn.io/components/layout/banner) — controlled visibility pattern, localStorage persistence approach (MEDIUM confidence — official shadcn docs)
-- [cryptography.io — Ed25519 key generation](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/) — `Ed25519PrivateKey.generate()` API (HIGH confidence — official library docs)
-- [MDN — sessionStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage) — session-scoped persistence (HIGH confidence — MDN)
+- Direct codebase analysis: `tools/generate_licence.py`, `puppeteer/requirements.txt`, `puppeteer/compose.server.yaml`, `puppeteer/agent_service/services/mirror_service.py`, `puppeteer/agent_service/services/licence_service.py`, `.github/workflows/ci.yml`, `docs/requirements.txt` — current state (HIGH confidence)
+- [PyJWT 2.12.1 documentation — Digital Signature Algorithms](https://pyjwt.readthedocs.io/en/stable/algorithms.html) — EdDSA/Ed25519 support confirmed (HIGH confidence)
+- [playwright PyPI — version 1.58.0](https://pypi.org/project/playwright/) — current version January 2026 (HIGH confidence)
+- [Playwright Python docs — screenshots](https://playwright.dev/python/docs/screenshots) — screenshot API confirmed (HIGH confidence)
+- [PyGithub PyPI — version 2.9.0](https://pypi.org/project/PyGithub/) — current version (HIGH confidence)
+- [cryptography PyPI — version 46.0.6](https://pypi.org/project/cryptography/) — current version March 2026 (HIGH confidence)
+- [linkcheckmd PyPI](https://pypi.org/project/linkcheckmd/) — active; mkdocs-linkcheck abandoned (MEDIUM confidence — PyPI maintenance signal)
+- [devpi-server documentation](https://pypi.org/project/devpi-server/) — PyPI mirror and private index capabilities confirmed (HIGH confidence)
+- CLAUDE.md project instructions — `--no-sandbox`, localStorage auth, form-encoded login patterns (HIGH confidence — project source of truth)
 
 ---
 
-*Stack research for: Go-to-market polish (homepage, licence banner, install docs, signing UX) — post-v14.3 milestone*
-*Researched: 2026-03-27*
+*Stack research for: v15.0 Operator Readiness (licence generation tooling, docs accuracy validation, screenshot capture, node validation job library, custom package repo validation)*
+*Researched: 2026-03-28*

@@ -155,9 +155,10 @@ class MOPClient:
         
         creds = store.load()
         if not creds:
-            raise Exception("Not logged in. Run 'mop-push login' first.")
-        
-        client = cls(base_url=creds["base_url"], verify_ssl=verify_ssl)
+            raise Exception("Not logged in. Run 'axiom-push login' first.")
+
+        base_url = creds.get("base_url") or os.getenv("AXIOM_URL", "http://localhost:8001")
+        client = cls(base_url=base_url, verify_ssl=verify_ssl)
         client.token = creds["access_token"]
         return client
 

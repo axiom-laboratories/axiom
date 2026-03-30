@@ -53,7 +53,7 @@ Select multiple jobs using the checkboxes in the job list to enable bulk actions
 | **Resubmit** | Creates new jobs identical to each selected job |
 | **Delete** | Permanently removes selected jobs from the queue |
 
-Bulk actions apply only to jobs in compatible states — for example, bulk cancel only affects `PENDING` or `QUEUED` jobs.
+Bulk actions apply only to jobs in compatible states — for example, bulk cancel only affects `PENDING` or `ASSIGNED` jobs.
 
 ---
 
@@ -72,4 +72,4 @@ Click any node card in the Queue Monitor to open the node detail drawer, which s
 
 Jobs dispatched via `axiom-push` start in `DRAFT` state and must be reviewed and published before nodes receive them. See [axiom-push CLI](axiom-push.md) and [Job Scheduling](job-scheduling.md) for DRAFT workflow details.
 
-Jobs dispatched directly (via the dashboard or API) start in `QUEUED` state and are assigned to a node immediately.
+Jobs dispatched directly (via the dashboard or API) start in `PENDING` state and are assigned to a node immediately.

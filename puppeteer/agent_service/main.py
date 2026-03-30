@@ -36,7 +36,7 @@ from .models import (
     AttestationExportResponse,
     AlertResponse,
     DispatchRequest, DispatchResponse, DispatchStatusResponse,
-    BulkJobActionRequest, BulkActionResponse,
+    BulkJobActionRequest, BulkActionResponse, BulkDiagnosisRequest,
     SchedulingHealthResponse, DefinitionHealthRow,
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
     SIGNING_FIELDS,
@@ -1049,6 +1049,19 @@ async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require
     return result
 
 
+@app.post("/jobs/dispatch-diagnosis/bulk", tags=["Jobs"])
+async def bulk_dispatch_diagnosis(
+    req: BulkDiagnosisRequest,
+    current_user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns dispatch diagnosis for multiple jobs in one call (Phase 88 — DIAG-01)."""
+    results = {}
+    for guid in req.guids:
+        results[guid] = await JobService.get_dispatch_diagnosis(guid, db)
+    return {"results": results}
+
+
 @app.post("/jobs/{guid}/retry", tags=["Jobs"])
 async def retry_job(
     guid: str,
@@ -1731,7 +1744,11 @@ async def push_job_definition(
     try:
         SignatureService.verify_payload_signature(sig.public_key, req.signature, req.script_content)
     except Exception as e:
-        raise HTTPException(422, detail=f"Invalid Ed25519 signature: {e}")
+        raise HTTPException(422, detail=(
+            "Signature verification failed — the script content does not match the provided signature. "
+            "Ensure you signed the exact script content with the private key paired to the registered public key. "
+            "See the Signatures page in the dashboard for key generation instructions."
+        ))
 
     # 2. Identity attribution (STAGE-04)
     pushed_by = current_user.username  # "username" or "sp:name" for service principals

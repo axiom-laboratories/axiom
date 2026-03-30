@@ -1,9 +1,5 @@
 """
-RED phase tests for Phase 73 EE Licence System (LIC-01 through LIC-07).
-
-All 7 tests MUST fail before plan 02/03 create licence_service.py.
-Each test imports from puppeteer.agent_service.services.licence_service at function
-scope so the ImportError is the failure, not an import-time crash.
+Tests for Phase 82 EE Licence System (LIC-01 through LIC-07).
 """
 import pytest
 import time
@@ -20,7 +16,7 @@ import jwt as _jwt
 # ---------------------------------------------------------------------------
 def test_generate_licence_jwt():
     """LIC-01: A valid EdDSA JWT payload round-trips correctly through encode/decode."""
-    from puppeteer.agent_service.services.licence_service import _decode_licence_jwt, LicenceState  # noqa: F401
+    from agent_service.services.licence_service import _decode_licence_jwt, LicenceState  # noqa: F401
 
     # Generate a test keypair inline
     private_key = Ed25519PrivateKey.generate()
@@ -69,7 +65,7 @@ def test_generate_licence_jwt():
 # ---------------------------------------------------------------------------
 def test_invalid_signature_falls_to_ce():
     """LIC-02: A JWT with a tampered signature causes load_licence() to return CE state."""
-    from puppeteer.agent_service.services.licence_service import load_licence  # noqa: F401
+    from agent_service.services.licence_service import load_licence  # noqa: F401
 
     # Generate a test keypair inline
     private_key = Ed25519PrivateKey.generate()
@@ -94,7 +90,7 @@ def test_invalid_signature_falls_to_ce():
     # Tamper the last 4 characters of the JWT (corrupts the signature segment)
     tampered = token[:-4] + "XXXX"
 
-    with patch("puppeteer.agent_service.services.licence_service._pub_key", pub_key):
+    with patch("agent_service.services.licence_service._pub_key", pub_key):
         with patch.dict("os.environ", {"AXIOM_LICENCE_KEY": tampered}, clear=False):
             result = load_licence()
 
@@ -107,7 +103,7 @@ def test_invalid_signature_falls_to_ce():
 # ---------------------------------------------------------------------------
 def test_grace_period_active():
     """LIC-03: _compute_state() returns GRACE+is_ee_active=True when within grace window."""
-    from puppeteer.agent_service.services.licence_service import _compute_state  # noqa: F401
+    from agent_service.services.licence_service import _compute_state  # noqa: F401
 
     payload = {
         "exp": int(time.time()) - 60,   # expired 1 minute ago
@@ -129,7 +125,7 @@ def test_grace_period_active():
 # ---------------------------------------------------------------------------
 def test_degraded_ce_state():
     """LIC-04: _compute_state() returns EXPIRED+is_ee_active=False when grace has elapsed."""
-    from puppeteer.agent_service.services.licence_service import _compute_state  # noqa: F401
+    from agent_service.services.licence_service import _compute_state  # noqa: F401
 
     payload = {
         "exp": int(time.time()) - 31 * 86400,  # expired 31 days ago
@@ -151,7 +147,7 @@ def test_degraded_ce_state():
 # ---------------------------------------------------------------------------
 def test_clock_rollback_detection():
     """LIC-05: check_and_record_boot() detects a future timestamp in boot.log as rollback."""
-    from puppeteer.agent_service.services.licence_service import check_and_record_boot, LicenceStatus  # noqa: F401
+    from agent_service.services.licence_service import check_and_record_boot, LicenceStatus  # noqa: F401
     from datetime import datetime, timezone, timedelta
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -163,14 +159,14 @@ def test_clock_rollback_detection():
         future_hash = hashlib.sha256(f"{future_ts}".encode()).hexdigest()
         boot_log.write_text(f"{future_hash} {future_ts}\n")
 
-        with patch("puppeteer.agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
             result = check_and_record_boot(LicenceStatus.CE)
 
         assert result is False, "Expected rollback to be detected (return False)"
 
         # EE strict mode: rollback should raise RuntimeError (no env var — use LicenceStatus.VALID)
         boot_log.write_text(f"{future_hash} {future_ts}\n")
-        with patch("puppeteer.agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
             with pytest.raises(RuntimeError):
                 check_and_record_boot(LicenceStatus.VALID)
 
@@ -180,7 +176,7 @@ def test_clock_rollback_detection():
 # ---------------------------------------------------------------------------
 def test_check_and_record_boot_strict_ee():
     """LIC-05: check_and_record_boot(LicenceStatus.VALID) raises RuntimeError on rollback (hardcoded EE strict)."""
-    from puppeteer.agent_service.services.licence_service import check_and_record_boot, LicenceStatus
+    from agent_service.services.licence_service import check_and_record_boot, LicenceStatus
     from datetime import datetime, timezone, timedelta
     import hashlib
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -188,7 +184,7 @@ def test_check_and_record_boot_strict_ee():
         future_ts = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
         future_hash = hashlib.sha256(f"{future_ts}".encode()).hexdigest()
         boot_log.write_text(f"{future_hash} {future_ts}\n")
-        with patch("puppeteer.agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
             with pytest.raises(RuntimeError, match="Clock rollback"):
                 check_and_record_boot(LicenceStatus.VALID)
 
@@ -198,10 +194,10 @@ def test_check_and_record_boot_strict_ee():
 # ---------------------------------------------------------------------------
 def test_licence_status_endpoint():
     """LIC-06: GET /api/licence returns status, days_until_expiry, node_limit, tier, customer_id, grace_days."""
-    from puppeteer.agent_service.services.licence_service import LicenceState, LicenceStatus  # noqa: F401
-    from puppeteer.agent_service.main import app
+    from agent_service.services.licence_service import LicenceState, LicenceStatus  # noqa: F401
+    from agent_service.main import app
     from fastapi.testclient import TestClient
-    from puppeteer.agent_service.deps import require_auth
+    from agent_service.deps import require_auth
 
     # Build a GRACE licence state
     grace_state = LicenceState(
@@ -247,8 +243,8 @@ def test_licence_status_endpoint():
 @pytest.mark.asyncio
 async def test_enroll_node_limit_enforced():
     """LIC-07: enroll_node() raises HTTP 402 when active node count >= node_limit."""
-    from puppeteer.agent_service.main import enroll_node
-    from puppeteer.agent_service.models import EnrollmentRequest
+    from agent_service.main import enroll_node
+    from agent_service.models import EnrollmentRequest
     from fastapi import HTTPException
 
     # Mock db.execute to return active_count == node_limit (5 == 5)

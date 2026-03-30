@@ -1234,6 +1234,15 @@ class JobService:
         job = job_result.scalar_one_or_none()
         if not job:
             return {"reason": "not_found", "message": "Job not found", "queue_position": None}
+        if job.status == "ASSIGNED" and job.started_at is not None:
+            threshold_minutes = (job.timeout_minutes or 30) * 1.2
+            elapsed_minutes = (datetime.utcnow() - job.started_at).total_seconds() / 60
+            if elapsed_minutes > threshold_minutes:
+                return {
+                    "reason": "stuck_assigned",
+                    "message": f"Assigned to {job.node_id} — no response in {int(elapsed_minutes)} min",
+                    "queue_position": None,
+                }
         if job.status != "PENDING":
             return {
                 "reason": "not_pending",

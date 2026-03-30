@@ -1,5 +1,33 @@
 # Milestones
 
+## v15.0 Operator Readiness (Shipped: 2026-03-29)
+
+**Phases completed:** 5 phases (82–86), 11 plans
+**Stats:** 175 files changed, +27,147 / -1,356 lines | 1 day (2026-03-28 → 2026-03-29)
+**Git range:** `v14.4` → `1b49670`
+
+**Key accomplishments:**
+- Phase 82 — Licence tooling: `issue_licence.py` offline CLI (JWT signing, YAML audit ledger, GitHub API commit); `list_licences.py` with `--json` flag; `--no-remote` air-gap mode; gitleaks secret-scan CI guard blocking PEM key commits to public repo
+- Phase 83 — Node validation job library: Bash/Python/PowerShell hello-world reference jobs; volume mapping, network filtering, memory-hog, and CPU-spin validation scripts; `sign_corpus.py` for corpus signing; `manifest.yaml`; community catalog README + MkDocs runbook
+- Phase 84 — Package repo operator docs: devpi PyPI mirror runbook (Caddy-proxied `root/pypi/+simple/`), apt-cacher-ng APT mirror guidance, BaGet PWSH mirror with Install-PSResource; `verify_pypi_mirror.py` signed validation job added to corpus
+- Phase 85 — Screenshot capture: `capture_screenshots.py` Playwright script with `seed_demo_data.py` (ephemeral Ed25519 keypair); 11 named PNGs at 1440×900; integrated into getting-started + feature docs pages and marketing homepage showcase
+- Phase 86 — Docs accuracy validation: `generate_openapi.py` snapshot tool; `validate_docs.py` (250 PASS / 0 WARN / 0 FAIL against 116-route OpenAPI snapshot); docs-validate CI job in `ci.yml` exits non-zero on FAIL
+
+**Known Gaps:**
+- SCR-01: Playwright script checkbox was not ticked in REQUIREMENTS.md (script completed and working — checkbox omission only)
+- DOC-03: CI non-zero exit checkbox was not ticked in REQUIREMENTS.md (CI job implemented in Phase 86-02 — checkbox omission only)
+
+---
+
+## v14.4 Go-to-Market Polish (Shipped: 2026-03-28)
+
+**Phases completed:** 5 phases, 7 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v14.3 Security Hardening + EE Licensing (Shipped: 2026-03-27)
 
 **Phases completed:** 5 phases (72–76), 8 plans
