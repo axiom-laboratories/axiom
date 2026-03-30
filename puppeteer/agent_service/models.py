@@ -210,6 +210,7 @@ class JobDefinitionCreate(BaseModel):
     timeout_minutes: Optional[int] = None
     env_tag: Optional[str] = None
     runtime: Optional[Literal["python", "bash", "powershell"]] = None
+    validation_rules: Optional[Dict[str, Any]] = None  # Phase 91: output validation rules
 
     @field_validator("env_tag", mode="before")
     @classmethod
@@ -237,6 +238,7 @@ class JobDefinitionResponse(BaseModel):
     timeout_minutes: Optional[int] = None
     env_tag: Optional[str] = None
     runtime: Optional[str] = None
+    validation_rules: Optional[Dict[str, Any]] = None  # Phase 91: output validation rules
 
     @field_validator('target_tags', mode='before')
     @classmethod
@@ -251,6 +253,16 @@ class JobDefinitionResponse(BaseModel):
     @field_validator('capability_requirements', mode='before')
     @classmethod
     def deserialize_capability_requirements(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            try:
+                return _json.loads(v)
+            except Exception:
+                return v
+        return v
+
+    @field_validator('validation_rules', mode='before')
+    @classmethod
+    def deserialize_validation_rules(cls, v: Any) -> Any:
         if isinstance(v, str):
             try:
                 return _json.loads(v)
@@ -277,6 +289,7 @@ class JobDefinitionUpdate(BaseModel):
     status: Optional[str] = None
     env_tag: Optional[str] = None
     runtime: Optional[Literal["python", "bash", "powershell"]] = None
+    validation_rules: Optional[Dict[str, Any]] = None  # Phase 91: output validation rules
 
     @field_validator("status")
     @classmethod
@@ -375,6 +388,7 @@ class ExecutionRecordResponse(BaseModel):
     definition_version_id: Optional[str] = None
     definition_version_number: Optional[int] = None
     runtime: Optional[str] = None
+    failure_reason: Optional[str] = None  # Phase 91: validation_exit_code | validation_regex | validation_json_field
 
 
 class AttestationExportResponse(BaseModel):
