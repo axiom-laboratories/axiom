@@ -104,4 +104,38 @@ describe('History View', () => {
             expect(defCalls.length).toBeGreaterThan(0);
         });
     });
+
+    // ── VALD-03: failure_reason in execution history ─────────────────────────
+
+    it('VALD-03: execution history shows failure_reason for validation failures', async () => {
+        mockAuthFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/executions') || (url.includes('/executions') && !url.includes('/jobs/definitions'))) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([{
+                        id: 999,
+                        job_guid: 'guid-abc',
+                        node_id: 'node-1',
+                        status: 'FAILED',
+                        failure_reason: 'validation_regex',
+                        started_at: new Date().toISOString(),
+                        duration_seconds: 0.8,
+                    }]),
+                });
+            }
+            if (url.includes('/jobs/definitions')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([{ id: 'def-1', name: 'My Job' }]),
+                });
+            }
+            return Promise.resolve({ ok: false, json: () => Promise.resolve([]) });
+        });
+
+        renderWithProviders(<History />);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Validation failed: regex/i)).toBeInTheDocument();
+        });
+    });
 });
