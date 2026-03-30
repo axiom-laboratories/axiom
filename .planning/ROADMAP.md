@@ -226,7 +226,7 @@ Archive: `.planning/milestones/v16.0-ROADMAP.md`
 
 - [x] **Phase 92: USP Signing UX** — Test and merge PR #10 (feat/usp-signing-ux): keygen guide and Signatures banner (completed 2026-03-30)
 - [x] **Phase 93: Documentation PRs** — Review and merge PRs #11, #12, #13: deployment guide, upgrade runbook, Windows getting-started (completed 2026-03-30)
-- [ ] **Phase 94: Research & Planning Closure** — Merge PR #14 (APScheduler scale limits) and record competitor pain-point insights
+- [x] **Phase 94: Research & Planning Closure** — Merge PR #14 (APScheduler scale limits) and record competitor pain-point insights (completed 2026-03-30)
 
 ## Phase Details
 
@@ -368,7 +368,7 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91 → 92 → 93 �
 | 91. Output Validation | v16.0 | 2/2 | Complete | 2026-03-30 |
 | 92. USP Signing UX | v16.1 | Complete    | 2026-03-30 | 2026-03-30 |
 | 93. Documentation PRs | v16.1 | Complete    | 2026-03-30 | 2026-03-30 |
-| 94. Research & Planning Closure | 1/2 | In Progress|  | - |
+| 94. Research & Planning Closure | 2/2 | Complete   | 2026-03-30 | - |
 
 ## Archived
 
