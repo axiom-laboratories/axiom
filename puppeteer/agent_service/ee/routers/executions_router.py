@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.future import select
 from sqlalchemy import desc
 
-from ...db import get_db, AsyncSession, ExecutionRecord, Job, NodeStats, User
+from ...db import get_db, AsyncSession, ExecutionRecord, Job, NodeStats, User, JobDefinitionVersion
 from ...deps import require_auth, require_permission, audit
 from ...models import ExecutionRecordResponse, AttestationExportResponse
 
@@ -34,7 +34,7 @@ async def list_executions(
     current_user: User = Depends(require_auth)
 ):
     """List execution history with filtering and pagination."""
-    query = select(ExecutionRecord, Job.max_retries).outerjoin(Job, Job.guid == ExecutionRecord.job_guid)
+    query = select(ExecutionRecord, Job.max_retries, Job.definition_version_id, Job.runtime).outerjoin(Job, Job.guid == ExecutionRecord.job_guid)
     if node_id:
         query = query.where(ExecutionRecord.node_id == node_id)
     if status:
@@ -51,8 +51,18 @@ async def list_executions(
     result = await db.execute(query)
     rows = result.all()
 
+    # Batch-fetch version numbers for all non-null definition_version_ids (avoids N+1)
+    all_version_ids = [row[2] for row in rows if row[2] is not None]
+    version_number_map: dict = {}
+    if all_version_ids:
+        ver_result = await db.execute(
+            select(JobDefinitionVersion.id, JobDefinitionVersion.version_number)
+            .where(JobDefinitionVersion.id.in_(all_version_ids))
+        )
+        version_number_map = {vid: vnum for vid, vnum in ver_result.all()}
+
     responses = []
-    for r, job_max_retries in rows:
+    for r, job_max_retries, job_definition_version_id, job_runtime in rows:
         duration = None
         if r.started_at and r.completed_at:
             duration = (r.completed_at - r.started_at).total_seconds()
@@ -83,6 +93,9 @@ async def list_executions(
             job_run_id=r.job_run_id,
             attestation_verified=r.attestation_verified,
             max_retries=job_max_retries,
+            definition_version_id=job_definition_version_id,
+            definition_version_number=version_number_map.get(job_definition_version_id) if job_definition_version_id else None,
+            runtime=job_runtime,
         ))
     return responses
 

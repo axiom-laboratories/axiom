@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Union, Dict
 from packaging.version import Version, InvalidVersion
 from sqlalchemy import select, desc, func, delete, or_, and_
-from ..db import Job, Node, NodeStats, ExecutionRecord, AsyncSession, Config, Signal
+from ..db import Job, Node, NodeStats, ExecutionRecord, AsyncSession, Config, Signal, JobDefinitionVersion
 from ..models import (
     ResultReport, JobResponse, JobCreate, WorkResponse, PollResponse,
     HeartbeatPayload
@@ -200,7 +200,22 @@ class JobService:
                 "max_retries": job.max_retries,
                 "retry_after": job.retry_after.isoformat() if job.retry_after else None,
                 "originating_guid": job.originating_guid,
+                "definition_version_id": job.definition_version_id,
+                "definition_version_number": None,  # populated below via batch query
+                "scheduled_job_id": job.scheduled_job_id,
             })
+
+        # Batch-fetch version numbers for all non-null definition_version_ids (avoids N+1)
+        all_version_ids = [j["definition_version_id"] for j in response_jobs if j.get("definition_version_id")]
+        if all_version_ids:
+            ver_result = await db.execute(
+                select(JobDefinitionVersion.id, JobDefinitionVersion.version_number)
+                .where(JobDefinitionVersion.id.in_(all_version_ids))
+            )
+            version_number_map = {vid: vnum for vid, vnum in ver_result.all()}
+            for j in response_jobs:
+                if j.get("definition_version_id"):
+                    j["definition_version_number"] = version_number_map.get(j["definition_version_id"])
 
         next_cursor = None
         if len(jobs) == limit:
