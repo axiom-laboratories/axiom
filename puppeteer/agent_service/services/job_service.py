@@ -666,9 +666,23 @@ class JobService:
         for candidate in jobs:
             if not JobService._node_is_eligible(node, candidate, node_tags, node_caps_dict):
                 continue
-            selected_job = candidate
+            if IS_POSTGRES:
+                # Two-phase lock: lock only the single chosen row to prevent double-assignment
+                # SKIP LOCKED means if another node grabbed it first, we try the next candidate
+                lock_result = await db.execute(
+                    select(Job)
+                    .where(Job.guid == candidate.guid)
+                    .with_for_update(skip_locked=True)
+                )
+                locked_job = lock_result.scalar_one_or_none()
+                if locked_job is None:
+                    continue  # Another node grabbed this job — try next candidate
+                selected_job = locked_job
+            else:
+                # SQLite: serialised writes provide equivalent correctness — no locking needed
+                selected_job = candidate
             break
-        
+
         if not selected_job:
             return PollResponse(job=None, env_tag=current_env_tag)
             
