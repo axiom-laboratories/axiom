@@ -1,5 +1,6 @@
 import base64
 import logging
+import re
 import uuid
 import json
 import random
@@ -1075,6 +1076,58 @@ class JobService:
         else:
             new_status = "FAILED"
 
+        # Phase 91: Output validation — evaluate rules if job would be COMPLETED
+        _validation_failed = False
+        _validation_failure_reason: Optional[str] = None
+        if new_status == "COMPLETED":
+            try:
+                _payload_for_validation = json.loads(job.payload) if job.payload else {}
+                _rules_raw = _payload_for_validation.get("validation_rules")
+                _rules: Optional[dict] = json.loads(_rules_raw) if isinstance(_rules_raw, str) else _rules_raw
+            except Exception:
+                _rules = None
+
+            if _rules:
+                _stdout_for_validation = "\n".join(
+                    e["line"] for e in (report.output_log or []) if e.get("stream") == "stdout"
+                )
+                _failures: list = []
+
+                # Rule 1: Exit code check
+                _rule_exit = _rules.get("exit_code")
+                if _rule_exit is not None:
+                    if report.exit_code != int(_rule_exit):
+                        _failures.append("validation_exit_code")
+
+                # Rule 2: Stdout regex
+                _rule_regex = _rules.get("stdout_regex")
+                if _rule_regex:
+                    if not re.search(_rule_regex, _stdout_for_validation or ""):
+                        _failures.append("validation_regex")
+
+                # Rule 3: JSON field assertion
+                _rule_json_path = _rules.get("json_path")
+                _rule_json_expected = _rules.get("json_expected")
+                if _rule_json_path and _rule_json_expected is not None:
+                    try:
+                        _parsed = json.loads(_stdout_for_validation or "")
+                        _val = _parsed
+                        for _part in _rule_json_path.split("."):
+                            _val = _val[_part]
+                        if str(_val) != str(_rule_json_expected):
+                            _failures.append("validation_json_field")
+                    except Exception:
+                        _failures.append("validation_json_field")
+
+                if _failures:
+                    _validation_failed = True
+                    _validation_failure_reason = _failures[0]  # Priority: exit_code > regex > json_field
+                    new_status = "FAILED"
+                    logger.info(
+                        "Job %s validation failed: rule=%s (exit_code=%s)",
+                        guid, _validation_failure_reason, report.exit_code,
+                    )
+
         # Build truncated output_log
         output_log = report.output_log or []
         
@@ -1144,6 +1197,8 @@ class JobService:
             attestation_bundle=report.attestation_bundle,
             attestation_signature=report.attestation_signature,
             attestation_verified=None,  # Set below after verification
+            # Phase 91: validation failure reason (None for pass/non-validation failures)
+            failure_reason=_validation_failure_reason,
         )
         # OUTPUT-06: verify attestation bundle before persisting
         attestation_status = await attestation_service.verify_bundle(
@@ -1170,10 +1225,10 @@ class JobService:
         else:
             job.result = json.dumps({"exit_code": report.exit_code})
 
-        # Retry classification (only for genuine failures, not security rejections)
+        # Retry classification (only for genuine failures, not security rejections or validation failures)
         if new_status == "FAILED":
             is_retriable = report.retriable is True  # None or False = non-retriable
-            if is_retriable and job.max_retries > 0 and job.retry_count < job.max_retries:
+            if not _validation_failed and is_retriable and job.max_retries > 0 and job.retry_count < job.max_retries:
                 job.retry_count += 1
                 base_delay = min(30.0 * (job.backoff_multiplier ** (job.retry_count - 1)), 3600.0)
                 jitter = base_delay * 0.2
