@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/getting-started/prerequisites/">
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/getting-started/deployment-guide/">
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../docker-deployment/">
       
       
-        <link rel="next" href="../install/">
+        <link rel="next" href="../enroll-node/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Prerequisites - Axiom</title>
+        <title>Production Deployment Guide - Axiom</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#prerequisites" class="md-skip">
+        <a href="#production-deployment-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Prerequisites
+              Production Deployment Guide
             
           </span>
         </div>
@@ -279,37 +279,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Prerequisites
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../prerequisites/" class="md-nav__link">
         
   
   
@@ -325,37 +298,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Checklist
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -421,10 +363,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../deployment-guide/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Production Deployment Guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -440,6 +409,198 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-the-recovery-profile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding the Recovery Profile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#host-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host Infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Host Infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hypervisor-layer-ha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hypervisor-Layer HA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-restart-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Restart Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-durability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Durability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Durability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-nightly-pg_dump-minimum-viable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1 — Nightly pg_dump (Minimum Viable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-postgresql-streaming-replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2 — PostgreSQL Streaming Replication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-configuration-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment Configuration Comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#air-gap-deployments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Air-Gap Deployments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-deployment-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Deployment Checklist
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pre-Deployment Checklist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-infrastructure_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-durability_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Durability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-fleet-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Fleet Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-guides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Guides
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1808,10 +1969,171 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#checklist" class="md-nav__link">
+  <a href="#understanding-the-recovery-profile" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Checklist
+        Understanding the Recovery Profile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#host-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host Infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Host Infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hypervisor-layer-ha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hypervisor-Layer HA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-restart-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Restart Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-durability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Durability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Durability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-nightly-pg_dump-minimum-viable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1 — Nightly pg_dump (Minimum Viable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-postgresql-streaming-replication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2 — PostgreSQL Streaming Replication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-configuration-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment Configuration Comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#air-gap-deployments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Air-Gap Deployments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-deployment-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Deployment Checklist
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pre-Deployment Checklist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-infrastructure_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-durability_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Durability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-fleet-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Fleet Behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-guides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Guides
       
     </span>
   </a>
@@ -1835,61 +2157,214 @@
 
 
 
-<h1 id="prerequisites">Prerequisites</h1>
-<p>Before installing Axiom, verify your environment meets the following requirements.</p>
-<h2 id="checklist">Checklist</h2>
+<h1 id="production-deployment-guide">Production Deployment Guide</h1>
+<p>This guide covers infrastructure recommendations for Axiom EE deployments in local and air-gapped environments. It is aimed at BPO infrastructure teams, deployment engineers, and technical stakeholders preparing for a production rollout.</p>
+<div class="admonition note">
+<p class="admonition-title">Scope</p>
+<p>These recommendations apply to <strong>local and air-gapped deployments</strong> — the target model for Axiom EE. Cloud-native HA patterns (load balancers, replica sets, automatic failover) are not the relevant frame here and are not covered.</p>
+</div>
+<hr />
+<h2 id="understanding-the-recovery-profile">Understanding the Recovery Profile</h2>
+<p>Axiom EE's control plane runs as a single orchestrator process. For local deployments, the meaningful risks are:</p>
 <ul>
-<li>
-<p>[ ] <strong>Docker 24+ with Docker Compose v2</strong></p>
-<p>verify with:
-<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>--version<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>version
-</code></pre></div></p>
-<p>You need Docker Engine 24.0 or later and the <code>docker compose</code> v2 plugin (note: not the legacy <code>docker-compose</code> v1 binary). Check that <code>docker compose version</code> outputs <code>v2.x.x</code> or higher.</p>
-</li>
-<li>
-<p>[ ] <strong>4 GB RAM available</strong></p>
-<p>verify with:
-<div class="highlight"><pre><span></span><code><span class="c1"># Linux</span>
-free<span class="w"> </span>-h
-</code></pre></div></p>
-<p>On Mac, check <strong>Activity Monitor → Memory</strong>. On Windows, open <strong>Task Manager → Performance → Memory</strong>. Ensure at least 4 GB is free before starting the stack.</p>
-</li>
-<li>
-<p>[ ] <strong>Ports 80 and 443 available</strong></p>
-<p>verify with:
-<div class="highlight"><pre><span></span><code><span class="c1"># Linux</span>
-ss<span class="w"> </span>-tlnp<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:80|:443&#39;</span>
+<li><strong>Recovery time</strong> — how long is the outage if the host VM goes down?</li>
+<li><strong>Data durability</strong> — how much job state is lost if the host is unrecoverable?</li>
+<li><strong>Fleet behaviour</strong> — do nodes recover automatically when the orchestrator returns?</li>
+</ul>
+<p>Axiom's pull model directly addresses the third question. Nodes continuously retry their poll against the orchestrator. When the orchestrator returns — whether after a process crash or a full host restart — <strong>the entire fleet resumes without any manual intervention or reconnection</strong>. There is no push channel to re-establish.</p>
+<div class="admonition tip">
+<p class="admonition-title">Practical analogy</p>
+<p>An orchestrator outage is operationally similar to a cron server rebooting: jobs do not fire during the downtime, and they resume when the server is back. BPO ops teams already know how to manage this risk. The recommendations below ensure that recovery is fast and data loss is bounded.</p>
+</div>
+<hr />
+<h2 id="host-infrastructure">Host Infrastructure</h2>
+<h3 id="hypervisor-layer-ha">Hypervisor-Layer HA</h3>
+<div class="admonition tip">
+<p class="admonition-title">Strong recommendation</p>
+<p>Deploy the Axiom EE orchestrator on a VM or host with managed uptime. If the host runs on a hypervisor platform with live migration or HA configured at the hypervisor layer, the recovery window for a host failure is measured in <strong>seconds to minutes</strong> — not hours. This is the single most impactful infrastructure decision for EE deployments.</p>
+</div>
+<p>Most enterprise BPO environments already run virtualisation infrastructure with HA policies. The orchestrator VM should be covered by whatever HA or live-migration policy applies to business-critical VMs in that environment.</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>HA behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VMware vSphere HA</td>
+<td>VM restarts automatically on another host within the cluster on host failure. Recovery typically 1–3 minutes.</td>
+</tr>
+<tr>
+<td>Microsoft Hyper-V</td>
+<td>Failover Clustering provides automatic VM restart on host failure. Live Migration enables near-zero-downtime planned maintenance.</td>
+</tr>
+<tr>
+<td>Proxmox VE</td>
+<td>HA Manager restarts VMs on surviving cluster nodes. Suitable for smaller BPO deployments.</td>
+</tr>
+<tr>
+<td>Nutanix AHV</td>
+<td>Built-in HA with automatic VM restart across the cluster. No additional configuration required.</td>
+</tr>
+<tr>
+<td>Bare metal (no hypervisor)</td>
+<td>Recovery depends on manual intervention. Not recommended for production EE deployments. If unavoidable, pair with a hardware watchdog and a documented runbook.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="docker-restart-policy">Docker Restart Policy</h3>
+<p>Regardless of hypervisor configuration, set Docker restart policies that handle process-level crashes without host intervention.</p>
+<div class="admonition tip">
+<p class="admonition-title">Strong recommendation</p>
+<p>Set <code>restart: unless-stopped</code> on all Axiom services. A process crash (OOM kill, unhandled exception) results in an automatic container restart — typically within seconds.</p>
+</div>
+<div class="highlight"><pre><span></span><code><span class="c1"># compose.server.yaml — recommended restart policy for all EE services</span>
+<span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">agent</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
+<span class="w">  </span><span class="nt">db</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
+<span class="w">  </span><span class="nt">caddy</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
+</code></pre></div>
+<p>With <code>unless-stopped</code>, the service restarts automatically on any crash but stays stopped if explicitly halted (e.g. <code>docker compose stop</code>) — the correct behaviour for production.</p>
+<hr />
+<h2 id="data-durability">Data Durability</h2>
+<p>All meaningful state in an Axiom EE deployment lives in PostgreSQL: job history, audit log, node certificates, signing keys, RBAC configuration, and execution records. Protecting the database is the data durability strategy.</p>
+<h3 id="option-1-nightly-pg_dump-minimum-viable">Option 1 — Nightly pg_dump (Minimum Viable)</h3>
+<div class="admonition tip">
+<p class="admonition-title">Strong recommendation — minimum viable data durability</p>
+<p>A nightly <code>pg_dump</code> exported to a separate host provides the minimum acceptable data durability for a production EE deployment. In a catastrophic host failure, recovery means: restore the VM (or provision a new one), restore from backup, restart the stack. RPO is up to 24 hours; RTO depends on VM provisioning time.</p>
+</div>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># /etc/cron.d/axiom-backup — run as root or docker user</span>
 
-<span class="c1"># macOS</span>
-netstat<span class="w"> </span>-an<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>LISTEN<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;:80|:443&#39;</span>
-</code></pre></div></p>
-<p>No output means the ports are free. If a service is already listening on 80 or 443, stop it before starting the stack (Caddy needs both ports).</p>
-</li>
-<li>
-<p>[ ] <strong>Git</strong> (to clone the repository)</p>
-<p>verify with:
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>--version
-</code></pre></div></p>
-</li>
+<span class="nv">BACKUP_HOST</span><span class="o">=</span>backup.internal
+<span class="nv">BACKUP_PATH</span><span class="o">=</span>/backups/axiom
+<span class="nv">TIMESTAMP</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d_%H%M%S<span class="k">)</span>
+<span class="nv">CONTAINER</span><span class="o">=</span>axiom-postgres
+
+<span class="c1"># Dump inside the container, stream to backup host via SSH</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span><span class="nv">$CONTAINER</span><span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>axiom<span class="w"> </span>axiom_db<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>gzip<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>ssh<span class="w"> </span>axiom-backup@<span class="nv">$BACKUP_HOST</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span><span class="s2">&quot;cat &gt; </span><span class="nv">$BACKUP_PATH</span><span class="s2">/axiom_</span><span class="si">${</span><span class="nv">TIMESTAMP</span><span class="si">}</span><span class="s2">.sql.gz&quot;</span>
+
+<span class="c1"># Retain 14 days of backups</span>
+ssh<span class="w"> </span>axiom-backup@<span class="nv">$BACKUP_HOST</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">&quot;find </span><span class="nv">$BACKUP_PATH</span><span class="s2"> -name &#39;*.sql.gz&#39; -mtime +14 -delete&quot;</span>
+</code></pre></div>
+<p>Before going to production, confirm:</p>
+<ul>
+<li>[ ] Backup destination is on a <strong>separate physical host</strong> or network-attached storage — not a local mount on the same VM</li>
+<li>[ ] A test restore has been performed and the recovery time documented</li>
+<li>[ ] Backup success/failure is monitored and alerted — silent backup failure is the most common real-world failure mode</li>
+<li>[ ] Backup files are encrypted at rest if the destination host is in a shared environment</li>
+</ul>
+<h3 id="option-2-postgresql-streaming-replication">Option 2 — PostgreSQL Streaming Replication</h3>
+<div class="admonition tip">
+<p class="admonition-title">Recommended for high-volume or compliance-sensitive deployments</p>
+<p>A PostgreSQL streaming read replica on a second host reduces RPO to seconds (the replication lag) and provides a warm standby that can be promoted to primary on host failure.</p>
+</div>
+<p><strong>Primary host configuration:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># postgresql.conf</span>
+<span class="na">wal_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">replica</span>
+<span class="na">max_wal_senders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">3</span>
+<span class="na">wal_keep_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">256MB</span><span class="w">    </span><span class="c1"># retain WAL for replica catchup</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code># pg_hba.conf — allow replication user from replica host
+host  replication  axiom_replica  &lt;REPLICA_IP&gt;/32  scram-sha-256
+</code></pre></div>
+<p><strong>Initial replica sync:</strong></p>
+<div class="highlight"><pre><span></span><code>pg_basebackup<span class="w"> </span>-h<span class="w"> </span>&lt;PRIMARY_IP&gt;<span class="w"> </span>-U<span class="w"> </span>axiom_replica<span class="w"> </span>-D<span class="w"> </span>/var/lib/postgresql/data<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span>-Xs<span class="w"> </span>-R
+
+<span class="c1"># The -R flag writes standby.signal and primary_conninfo automatically.</span>
+<span class="c1"># Start postgres on the replica — it will begin streaming replication.</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Promotion requires manual intervention</p>
+<p>If the primary host fails, promoting the replica requires manual steps: remove <code>standby.signal</code>, adjust <code>primary_conninfo</code>, restart. <strong>Document this runbook before you need it.</strong></p>
+</div>
+<p>Key points:</p>
+<ul>
+<li>The read replica carries a full copy of all Axiom state — apply the same access controls as the primary</li>
+<li>The replica can serve read-only queries for audit log access without load on the primary — useful for BPO audit workflows</li>
+<li>If the client environment has a DBA team, streaming replication is a standard operation they will already be familiar with</li>
 </ul>
 <hr />
-<div class="admonition tip">
-<p class="admonition-title">Podman Compose</p>
-<p>The Axiom stack runs under Podman as a drop-in alternative to Docker. To verify your Podman installation:
-<div class="highlight"><pre><span></span><code>podman-compose<span class="w"> </span>--version
-</code></pre></div>
-Substitute <code>podman compose</code> for <code>docker compose</code> in all commands throughout this guide.</p>
-</div>
-<div class="admonition info">
-<p class="admonition-title">Corporate / enterprise proxy</p>
-<p>If deploying behind a corporate proxy, set the standard proxy environment variables before running <code>docker compose</code>:
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">HTTP_PROXY</span><span class="o">=</span>http://proxy.example.com:8080
-<span class="nb">export</span><span class="w"> </span><span class="nv">HTTPS_PROXY</span><span class="o">=</span>http://proxy.example.com:8080
-<span class="nb">export</span><span class="w"> </span><span class="nv">NO_PROXY</span><span class="o">=</span>localhost,127.0.0.1
-</code></pre></div></p>
-</div>
+<h2 id="deployment-configuration-comparison">Deployment Configuration Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>RPO</th>
+<th>RTO</th>
+<th>Complexity</th>
+<th>Recommended for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pg_dump nightly + managed VM</td>
+<td>Up to 24h</td>
+<td>Minutes (VM recovery)</td>
+<td>Low</td>
+<td>Most EE deployments</td>
+</tr>
+<tr>
+<td>pg_dump nightly + bare metal</td>
+<td>Up to 24h</td>
+<td>Hours (manual recovery)</td>
+<td>Low</td>
+<td>Not recommended for production</td>
+</tr>
+<tr>
+<td>Streaming replica + managed VM</td>
+<td>Seconds (lag-dependent)</td>
+<td>Minutes (manual promotion)</td>
+<td>Medium</td>
+<td>High-volume or compliance-sensitive</td>
+</tr>
+</tbody>
+</table>
 <hr />
-<p><strong>Next:</strong> <a href="../install/">Install →</a></p>
+<h2 id="air-gap-deployments">Air-Gap Deployments</h2>
+<p>Axiom EE is designed to operate in network-isolated environments. The documentation site, Foundry image builds, and node execution runtime can all run without outbound internet access after initial setup.</p>
+<p>For a full from-scratch setup guide, see <a href="../../runbooks/package-mirrors/">Package Mirror Runbooks</a> — covering devpi (PyPI), apt-cacher-ng (APT), and BaGet (NuGet/PowerShell) mirror configuration. For a full overview of what is already offline-capable and what requires substitution, see <a href="../../security/air-gap/">Air-Gap Operation</a>.</p>
+<hr />
+<h2 id="pre-deployment-checklist">Pre-Deployment Checklist</h2>
+<h3 id="host-infrastructure_1">Host Infrastructure</h3>
+<ul>
+<li>[ ] Orchestrator VM is deployed on managed hypervisor infrastructure with HA or live-migration policy</li>
+<li>[ ] VM is covered by existing business-critical uptime SLA</li>
+<li>[ ] Docker restart policies set to <code>unless-stopped</code> for all Axiom services</li>
+<li>[ ] Expected recovery time for host restart documented and agreed with client</li>
+</ul>
+<h3 id="data-durability_1">Data Durability</h3>
+<ul>
+<li>[ ] Nightly <code>pg_dump</code> configured and tested — restore procedure documented</li>
+<li>[ ] Backup destination is on a separate host from the orchestrator</li>
+<li>[ ] Backup success monitored and alerted</li>
+<li>[ ] Backup retention period agreed with client (minimum 14 days recommended)</li>
+<li>[ ] If streaming replication required: replica provisioned, tested, and promotion runbook documented</li>
+</ul>
+<h3 id="node-fleet-behaviour">Node Fleet Behaviour</h3>
+<ul>
+<li>[ ] Client team understands pull-model recovery: nodes resume automatically when orchestrator returns</li>
+<li>[ ] Node poll interval configured appropriately for acceptable job-start latency during recovery</li>
+<li>[ ] Fleet recovery tested: orchestrator restarted, nodes confirmed to resume without intervention</li>
+</ul>
+<hr />
+<h2 id="related-guides">Related Guides</h2>
+<ul>
+<li><a href="../docker-deployment/">Running with Docker</a> — stack startup, secret generation, production checklist</li>
+<li><a href="../../security/air-gap/">Air-Gap Operation</a> — what is already offline-capable and what requires substitution</li>
+<li><a href="../../runbooks/package-mirrors/">Package Mirror Runbooks</a> — devpi, apt-cacher-ng, and BaGet mirror setup for air-gapped environments</li>
+<li><a href="../../runbooks/nodes/">Node Troubleshooting</a> — diagnosing node connectivity and enrollment issues</li>
+</ul>
 
 
 
