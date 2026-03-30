@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v16.1
 milestone_name: — PR Merge & Backlog Closure
 status: executing
-stopped_at: Completed 95-01-PLAN.md
-last_updated: "2026-03-30T19:38:11.654Z"
-last_activity: 2026-03-30 — competitor_product_notes.md written, 7 actionable observations, all todos closed
+stopped_at: Completed 95-02-PLAN.md
+last_updated: "2026-03-30T20:00:00.000Z"
+last_activity: 2026-03-30 — retroactive VALIDATION.md created for phases 92, 93, 94; Nyquist compliance gap closed
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 7
-  completed_plans: 6
-  percent: 62
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Phase 95 complete — Plan 95-01 complete (housekeeping: SIGN_CMD, DOC strikethroughs, plan frontmatter)
+**Current focus:** Phase 95 complete — Plan 95-02 complete (retroactive VALIDATION.md for phases 92, 93, 94)
 
 ## Current Position
 
 Phase: 95 of 95 (Techdebt)
-Plan: 95-01 complete
+Plan: 95-02 complete
 Status: Complete
-Last activity: 2026-03-30 — housekeeping edits: SIGN_CMD placeholder, DOC-01/DOC-03 strikethroughs, 94 plan frontmatter IDs corrected
+Last activity: 2026-03-30 — retroactive VALIDATION.md created for phases 92, 93, 94; Nyquist compliance gap closed (commit f90cd01)
 
 Progress: [██████████] 100%
 

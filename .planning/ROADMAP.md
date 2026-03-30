@@ -377,10 +377,11 @@ Phases execute in numeric order: 87 → 88 → 89 → 90 → 91 → 92 → 93 �
 
 ### Phase 95: techdebt
 
-**Goal:** [To be planned]
+**Goal:** Close Nyquist compliance gap and housekeeping for v16.1 milestone
 **Requirements**: TBD
 **Depends on:** Phase 94
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans executed
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 95 to break down)
+- [x] 95-01: Housekeeping — SIGN_CMD placeholder, DOC strikethroughs, plan frontmatter (completed 2026-03-30)
+- [x] 95-02: Retroactive VALIDATION.md for phases 92, 93, 94 (completed 2026-03-30)
