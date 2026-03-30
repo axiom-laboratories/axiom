@@ -3,7 +3,7 @@ uvicorn
 httpx
 cryptography
 python-dotenv
-apscheduler
+apscheduler>=3.10,<4.0
 pydantic
 asyncpg
 sqlalchemy
