@@ -4,8 +4,8 @@ milestone: v16.1
 milestone_name: — PR Merge & Backlog Closure
 status: executing
 stopped_at: "Completed 93-02-PLAN.md — PR #12 upgrade runbook merged, DOC-02 satisfied"
-last_updated: "2026-03-30T16:34:34.494Z"
-last_activity: "2026-03-30 — PR #16 merged: Windows getting-started path (DOC-01 satisfied)"
+last_updated: "2026-03-30T16:39:09.199Z"
+last_activity: "2026-03-30 — PR #12 upgrade runbook merged to main (DOC-02 satisfied)"
 progress:
   total_phases: 8
   completed_phases: 1
