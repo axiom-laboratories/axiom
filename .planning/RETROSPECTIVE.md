@@ -511,6 +511,78 @@
 | v14.3 | 5 | 8 | Security + EE licensing; TDD RED→GREEN; audit-before-complete caught 3 tech debt items; frontend alignment phase predictable from backend API shape |
 | v14.4 | 5 | 7 | Go-to-market milestone; tech debt found post-audit cleaned before close; ghp-import subtree pattern solves docs/homepage coexistence on GitHub Pages |
 | v15.0 | 5 | 11 | Operator readiness milestone; tooling-only (no DB/API changes); Wave 0 TDD for job corpus; static OpenAPI snapshot for CI-safe docs validation |
+| v16.0 | 5 | 9 | Competitive observability milestone; 5 new features across backend + frontend; audit-before-close caught stale requirements traceability |
+| v16.1 | 4 | 7 | PR backlog closure + docs quality; parallel PR merge + retroactive Nyquist compliance; 1-day turnaround |
+
+## Milestone: v16.1 — PR Merge & Backlog Closure
+
+**Shipped:** 2026-03-30
+**Phases:** 4 (92–95) | **Plans:** 7
+
+### What Was Built
+- PR #10 merged: Signatures page keypair generation guide (KeygenGuideModal, KEYGEN_CMD/SIGN_CMD/REGISTER_CMD copy-paste steps); no auto-seeded demo keypair
+- PRs #11, #12, #13 merged: production deployment guide, upgrade runbook with 36-migration index, Windows Docker Desktop + WSL2 getting-started path
+- PR #14 merged: APScheduler scale limits research with concrete thresholds; competitor pain-point product notes with 3+ actionable observations
+- Phase 95 housekeeping: SIGN_CMD placeholder corrected, DOC-01/03 strikethroughs applied, 94-01/02 plan frontmatter phantom IDs fixed
+- Retroactive VALIDATION.md files created for phases 92–94 closing Nyquist compliance gap
+
+### What Worked
+- Parallel execution of plans 95-01 and 95-02 (independent targets: code files vs planning files) — no conflict, both completed in parallel with no coordination overhead
+- `plan-and-execute` single command for the final phase — clean isolation of planning context from execution context
+- PRs #11–13 required cherry-pick tactics to avoid re-merging already-present `.planning/` changes — docs-only cherry-pick is a reusable pattern for documentation PRs on branches with mixed commits
+
+### What Was Inefficient
+- REQUIREMENTS.md traceability table was never updated for v16.0 phases 88–91 (all marked "Pending" even after phases completed) — traceability should be updated at phase completion, not just at milestone close
+- v16.0 was never formally archived via `complete-milestone` before v16.1 began — REQUIREMENTS.md ended up covering two milestones; archived together at v16.1 close
+
+### Patterns Established
+- Cherry-pick docs-only commit from a mixed branch (docs + `.planning/`) to avoid re-merging already-present infra/planning changes
+- Retroactive VALIDATION.md creation is the recovery path for phases that predate Nyquist validation requirement
+- `tech_debt` audit status (vs `passed` or `gaps_found`) is a safe-to-proceed signal for milestone close
+
+### Key Lessons
+- Requirements traceability: update the traceability table at phase completion as a required post-execution step, not deferred to milestone close
+- Milestone boundary hygiene: formally `complete-milestone` before starting a follow-on minor version, even if the next milestone is small
+- Docs PRs with planning file side-effects: cherry-pick the docs commit, close the original PR with a merge-note comment
+
+### Cost Observations
+- 4 phases, 7 plans, 1-day delivery (2026-03-30)
+- ~46 commits, ~65 files changed
+- No new backend/frontend features — PR merge + docs + housekeeping; minimal code-review overhead
+
+## Milestone: v16.0 — Competitive Observability
+
+**Shipped:** 2026-03-30
+**Phases:** 5 (87–91) | **Plans:** 9
+
+### What Was Built
+- Phase 87: Competitor pain points reviewed; design decisions documented for all 4 features
+- Phase 88: Dispatch Diagnosis UI — bulk `/api/jobs/diagnose` endpoint, inline PENDING badge with reason text, 10s auto-poll in job list
+- Phase 89: CE Alerting — NotificationsCard in Admin settings (webhook URL), failure-triggered POST notification, CE-accessible without EE licence
+- Phase 90: Job Script Versioning — immutable `JobDefinitionVersion` table, `ScriptViewerModal` for any historical execution, version number column in execution history list
+- Phase 91: Output Validation — `validation_rules` + `failure_reason` columns, exit-code/JSON-field/stdout-regex pattern types, exit-0 jobs fail to FAILED with "Validation failed:" label
+
+### What Worked
+- Research-first phase (87) eliminated design ambiguity — no backtracking mid-implementation
+- All 4 features CE-accessible (no EE gate) — clean implementation boundary from design phase
+- 5 features across 5 phases with clear sequential dependency chain — each phase built on stable prior output
+
+### What Was Inefficient
+- Requirements traceability not updated at phase completion — 12 "Pending" items at milestone close for already-completed phases
+- v16.0 milestone not formally closed before v16.1 began — both milestones shared one REQUIREMENTS.md
+
+### Patterns Established
+- Research phase as Wave 0 for a features milestone: outputs locked design decisions, eliminates costly backtracking
+- Parallel feature phases (88/89/90/91 all depend only on 87, not each other) — could be parallelized in future
+
+### Key Lessons
+- Mark requirements Complete in traceability table immediately after verification passes for a phase
+- CE/EE boundary decision belongs in the design phase, not implementation — avoids retrofit gating
+
+### Cost Observations
+- 5 phases, 9 plans, ~1 day
+- All 17 requirements satisfied
+- Research phase (87) was 1 plan but unblocked 4 parallel implementation phases
 
 ## Milestone: v14.2 — Docs on GitHub Pages
 

@@ -1,5 +1,14 @@
 # Milestones
 
+## v16.1 PR Merge & Backlog Closure (Shipped: 2026-03-30)
+
+**Phases completed:** 6 phases, 7 plans, 3 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v15.0 Operator Readiness (Shipped: 2026-03-29)
 
 **Phases completed:** 5 phases (82–86), 11 plans

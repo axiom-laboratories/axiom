@@ -12,9 +12,11 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v16.0 — Competitive Observability
+## Current State: v16.1 Complete — PR Merge & Backlog Closure
 
-**Goal:** Close the operator experience gap versus competitors by surfacing dispatch diagnosis inline, adding CE-native job failure alerting, versioning job scripts so execution history is always traceable, and supporting output validation beyond exit code.
+**Shipped:** 2026-03-30 | **Next milestone:** v17.0 (TBD — run `/gsd:new-milestone` to begin)
+
+v16.0 delivered full Competitive Observability (dispatch diagnosis, CE alerting, script versioning, output validation). v16.1 closed the PR backlog: signing UX guide merged, production/upgrade/Windows docs merged, APScheduler research archived, Nyquist compliance gaps closed.
 
 ## Requirements
 
@@ -204,6 +206,23 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ MkDocs docs coexisting with marketing homepage on GitHub Pages (`/docs/` subtree + root) — v14.4
 - ✓ Marketing homepage: hero copy, security positioning, CE/EE comparison, security posture grid (mTLS/RBAC/air-gap/cryptographic audit), SAML/OIDC early-access EE card, enterprise CTA — v14.4
 
+### Validated — v16.0 Competitive Observability
+
+- ✓ Competitor pain points reviewed; dispatch diagnosis, alerting, versioning, validation approaches documented with rationale — v16.0
+- ✓ Dispatch diagnosis: bulk `/api/jobs/diagnose` endpoint + inline PENDING badge with 10s auto-poll in job list — v16.0
+- ✓ CE alerting: NotificationsCard in Admin for webhook URL; job FAILED triggers POST with job name, node, error summary; CE-accessible without EE licence — v16.0
+- ✓ Job script versioning: immutable `JobDefinitionVersion` table; `ScriptViewerModal` shows exact script for any historical execution; version number column in execution history — v16.0
+- ✓ Output validation: `validation_rules` + `failure_reason` columns; exit-code, JSON-field, and stdout-regex patterns; exit-0 jobs fail to FAILED status with "Validation failed:" label — v16.0
+
+### Validated — v16.1 PR Merge & Backlog Closure
+
+- ✓ Signatures page keypair generation guide (KeygenGuideModal with KEYGEN_CMD/SIGN_CMD/REGISTER_CMD copy-paste steps); no auto-seeded demo keypair — v16.1
+- ✓ Production deployment guide (HA, backups, recovery, air-gap) merged to docs — v16.1
+- ✓ Upgrade runbook (36-migration reference table, pre-flight checklist, rollback procedure) merged to docs — v16.1
+- ✓ Windows local dev getting-started path (Docker Desktop + WSL2) documented and merged — v16.1
+- ✓ APScheduler scale limits research archived in `mop_validation/reports/` with concrete thresholds and migration path — v16.1
+- ✓ Competitor pain-point insights recorded in product notes with actionable observations — v16.1
+
 ### Active — Future Milestones
 
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
@@ -325,6 +344,14 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | CLI regex in `validate_docs.py` restricted to lowercase tokens; unknown first-words silently skipped | Prevents prose descriptions like `axiom-push CLI guide` from generating spurious FAIL results | ✓ Good |
 | Screenshot directories committed via `.gitkeep` before PNGs exist | Structure-first deploy; screenshots committed separately by operator after running `capture_screenshots.py` on a live stack | ✓ Good |
 
+## Previous State — v16.1 Complete (2026-03-30)
+
+Axiom v16.1 delivered PR Merge & Backlog Closure — 4 phases (92–95), 7 plans. Five open PRs merged: #10 (signing keygen guide), #11 (production deployment guide), #12 (upgrade runbook), #13 (Windows getting-started), #14 (APScheduler scale limits research). Competitor pain-point product notes recorded. Nyquist compliance gap closed: retroactive VALIDATION.md created for phases 92–94. Minor housekeeping: SIGN_CMD placeholder fixed, DOC strikethroughs applied, plan frontmatter phantom IDs corrected.
+
+## Previous State — v16.0 Complete (2026-03-30)
+
+Axiom v16.0 delivered Competitive Observability — 5 phases (87–91), 9 plans, all 17 requirements satisfied. Dispatch diagnosis surfaced inline in job list with 10s auto-poll. CE-native webhook alerting on job failure added to Admin settings. Job script versioning via immutable `JobDefinitionVersion` table — any historical execution can display its exact script. Output validation beyond exit code: exit-0 jobs can be declared FAILED via JSON-field or stdout-regex patterns. All features CE-accessible without EE licence where noted.
+
 ## Previous State — v15.0 Complete (2026-03-29)
 
 Axiom v15.0 delivered Operator Readiness — 5 phases, 11 plans, 20/22 requirements satisfied (2 checkbox omissions only — both features shipped). The operator tooling layer is now complete: licence issuance moves fully to a private repo, a signed node validation job corpus covers all runtimes and constraint types, package mirror runbooks cover devpi/APT/BaGet, dashboard screenshots are integrated into docs and marketing, and a CI-wirable docs accuracy gate catches stale API routes and CLI references. 175 files changed, 27,147 insertions.
@@ -360,4 +387,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-27 after v14.4 milestone start — Go-to-Market Polish*
+*Last updated: 2026-03-30 after v16.1 milestone — PR Merge & Backlog Closure*
