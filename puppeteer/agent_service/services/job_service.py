@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Union, Dict
 from packaging.version import Version, InvalidVersion
 from sqlalchemy import select, desc, func, delete, or_, and_
-from ..db import Job, Node, NodeStats, ExecutionRecord, AsyncSession, Config, Signal
+from ..db import Job, Node, NodeStats, ExecutionRecord, AsyncSession, Config, Signal, IS_POSTGRES
 from ..models import (
     ResultReport, JobResponse, JobCreate, WorkResponse, PollResponse,
     HeartbeatPayload
