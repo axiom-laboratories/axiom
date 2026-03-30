@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
-stopped_at: Completed 96-01-PLAN.md
-last_updated: "2026-03-30T20:50:12.011Z"
+stopped_at: Phase 97 context gathered
+last_updated: "2026-03-30T21:02:52.519Z"
 last_activity: "2026-03-30 — Phase 96 Plan 01 complete: IS_POSTGRES, APScheduler pin, job_defaults, startup guards"
 progress:
   total_phases: 5
@@ -58,6 +58,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T20:47:21.990Z
-Stopped at: Completed 96-01-PLAN.md
-Resume file: None
+Last session: 2026-03-30T21:02:52.517Z
+Stopped at: Phase 97 context gathered
+Resume file: .planning/phases/97-db-pool-tuning/97-CONTEXT.md
