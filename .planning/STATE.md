@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v18.0
 milestone_name: — First-User Experience & E2E Validation
 status: in-progress
-stopped_at: Completed 102-01-PLAN.md
-last_updated: "2026-03-31T19:51:00Z"
-last_activity: 2026-03-31 — Plan 102-01 executed (Linux E2E validation infrastructure)
+stopped_at: "Checkpoint:human-verify in 102-02-PLAN.md — awaiting review of FRICTION-LNX-102.md"
+last_updated: "2026-03-31T21:02:08.715Z"
+last_activity: "2026-03-31 — Plan 102-02 executed (golden path run, 1 BLOCKER found: --env-file .env)"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 5
-  completed_plans: 3
-  percent: 15
+  completed_plans: 4
+  percent: 5
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 102 of 103 (Linux E2E Validation) — IN PROGRESS
-Plan: 102-01 complete (1 of 2 plans done in phase 102)
-Status: Phase 102 Plan 01 complete; next is 102-02 (friction fixes)
-Last activity: 2026-03-31 — Plan 102-01 executed (Linux E2E validation infrastructure: run_linux_e2e.py, linux_validation_prompt.md, synthesise_friction.py --files patch)
+Plan: 102-02 at checkpoint:human-verify (2 of 3 plans done in phase 102)
+Status: Golden path run complete; 1 BLOCKER found; awaiting human review at checkpoint
+Last activity: 2026-03-31 — Plan 102-02 executed (golden path run in LXC, 1 BLOCKER: --env-file .env in Quick Start compose command)
 
 Progress: [█░░░░░░░░░] ~5%
 
@@ -51,6 +51,10 @@ Progress: [█░░░░░░░░░] ~5%
 
 *Updated after each plan completion*
 
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 102-linux-e2e-validation P02 | 1 | 66 min | 66 min |
+
 ## Accumulated Context
 
 ### Key Decisions
@@ -63,6 +67,9 @@ Progress: [█░░░░░░░░░] ~5%
 - [101-02]: Tab visibility tests use queryByRole/getByRole with licence mock; exact regex /^\+ enterprise$/i used for EE-mode absence to avoid false positives from licence badge text
 - [102-01]: Exit code 2 used for pre-flight image-unreachable failure (vs exit 1 for run failure) to distinguish failure modes
 - [102-01]: synthesise_friction.py _derive_edition() derives edition from filename stem (CE/EE by keyword, else run prefix like LNX) enabling cross-phase reuse
+- [102-02]: chromium-browser excluded from LXC apt install — pulls snapd which stalls inside LXC; Playwright chromium installed separately via playwright install chromium
+- [102-02]: Claude subagent must run as non-root user — UID 0 blocks --dangerously-skip-permissions; validator user created in LXC with docker group membership
+- [102-02]: FRICTION finding: Quick Start compose command hard-codes --env-file .env which fails with no .env file — this is the BLOCKER for Plan 03
 
 ### Pending Todos
 
@@ -70,10 +77,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+FRICTION-LNX-102.md BLOCKER: Quick Start compose command uses `--env-file .env` flag but no .env file is created in Quick Start instructions. First user gets immediate fatal error. Fix: remove `--env-file .env` from compose command in docs, OR add a step to create the .env file.
 
 ## Session Continuity
 
-Last session: 2026-03-31T19:51:00Z
-Stopped at: Completed 102-01-PLAN.md
-Resume file: .planning/phases/102-linux-e2e-validation/102-02-PLAN.md
+Last session: 2026-03-31T21:02:08.713Z
+Stopped at: Checkpoint:human-verify in 102-02-PLAN.md — review FRICTION-LNX-102.md
+Resume file: .planning/phases/102-linux-e2e-validation/102-02-PLAN.md (Task 3 — checkpoint response)
