@@ -252,7 +252,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 **Milestone Goal:** A first-time user on Linux or Windows can follow the Quick Start guide from cold start to a completed job with zero undocumented friction. The CE dashboard presents only CE-relevant UI.
 
 - [x] **Phase 101: CE UX Cleanup** — Hide EE-only tabs in CE mode, add upgrade prompts, verify no black pages (completed 2026-03-31)
-- [x] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed (completed 2026-04-01)
+- [ ] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed
 - [ ] **Phase 103: Windows E2E Validation** — Dwight SSH cold-start through first PowerShell job; all friction catalogued and fixed
 
 ## Phase Details
@@ -282,9 +282,9 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
   6. Every friction point found during the Linux run is catalogued in a report and fixed before the phase is marked complete
 **Plans**: 3 plans
 Plans:
-- [x] 102-01-PLAN.md — Validation infrastructure (orchestrator, persona prompt, synthesise_friction.py patch) (completed 2026-04-01)
-- [x] 102-02-PLAN.md — Live golden path run in fresh LXC + friction catalogue (completed 2026-04-01)
-- [x] 102-03-PLAN.md — Fix all BLOCKERs, iterate until clean, produce READY synthesis sign-off (completed 2026-04-01)
+- [ ] 102-01-PLAN.md — Validation infrastructure (orchestrator, persona prompt, synthesise_friction.py patch)
+- [ ] 102-02-PLAN.md — Live golden path run in fresh LXC + friction catalogue
+- [ ] 102-03-PLAN.md — Fix all BLOCKERs, iterate until clean, produce READY synthesis sign-off
 
 ### Phase 103: Windows E2E Validation
 **Goal**: A fresh Windows user following the Quick Start (Windows) guide on Dwight reaches a completed PowerShell job with no undocumented steps and no friction points left unresolved
@@ -297,7 +297,12 @@ Plans:
   4. A node enrolls on Dwight following the documented Windows enrollment steps and appears as ONLINE in the Nodes view
   5. A PowerShell job dispatched through the dashboard runs to COMPLETED status and its output is visible
   6. Every friction point found during the Windows run is catalogued in a report and fixed before the phase is marked complete
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 103-01-PLAN.md — Docs pre-audit: add PowerShell tabs to enroll-node.md and first-job.md
+- [ ] 103-02-PLAN.md — Scaffold: paramiko helpers, Windows orchestrator, validation persona prompt
+- [ ] 103-03-PLAN.md — Live Windows golden path run on Dwight + friction catalogue
+- [ ] 103-04-PLAN.md — Fix all BLOCKERs, iterate until clean, produce READY synthesis sign-off
 
 ## Progress
 
@@ -362,21 +367,11 @@ Phases execute in numeric order: 101 → 102 → 103
 | 99. Scheduler Hardening | v17.0 | 1/1 | Complete | 2026-03-31 |
 | 100. Observability + Sign-off | v17.0 | 2/2 | Complete | 2026-03-31 |
 | 101. CE UX Cleanup | v18.0 | Complete    | 2026-03-31 | 2026-03-31 |
-| 102. Linux E2E Validation | 3/3 | Complete    | 2026-04-01 | - |
-| 103. Windows E2E Validation | v18.0 | 0/TBD | Not started | - |
+| 102. Linux E2E Validation | v18.0 | 0/TBD | Not started | - |
+| 103. Windows E2E Validation | 1/4 | In Progress|  | - |
 
 ## Archived
 
 - ✅ **v16.1 — PR Merge & Backlog Closure** (Phases 92–95) — shipped 2026-03-30 → `.planning/milestones/v16.1-ROADMAP.md`
 - ✅ **v14.3 — Security Hardening + EE Licensing** (Phases 72–76) — shipped 2026-03-27 → `.planning/milestones/v14.3-ROADMAP.md`
 - ✅ **v14.2 — Docs on GitHub Pages** (Phase 71) — shipped 2026-03-26 → `.planning/milestones/v14.2-ROADMAP.md`
-
-### Phase 104: PR Review & Merge
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 103
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd:plan-phase 104 to break down)

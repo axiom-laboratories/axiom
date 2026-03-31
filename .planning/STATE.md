@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v18.0
 milestone_name: — First-User Experience & E2E Validation
 status: completed
-stopped_at: Completed 102-02-PLAN.md — ready for 102-03 (friction fix)
-last_updated: "2026-04-01T10:07:23.581Z"
-last_activity: "2026-03-31 — Plan 102-02 closed after checkpoint review; user direction: remove --env-file .env from compose (self-contained)"
+stopped_at: Completed 103-02-PLAN.md
+last_updated: "2026-03-31T21:15:07.424Z"
+last_activity: 2026-03-31 — Plan 101-02 executed (CE/EE tab visibility tests in Admin.test.tsx)
 progress:
   total_phases: 3
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  completed_phases: 1
+  total_plans: 9
+  completed_plans: 3
   percent: 5
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 102 of 103 (Linux E2E Validation) — IN PROGRESS
-Plan: 102-02 COMPLETE — ready for 102-03 (friction fix plan)
-Status: Golden path run complete; 1 BLOCKER identified and user direction recorded; Plan 02 closed
-Last activity: 2026-03-31 — Plan 102-02 closed after checkpoint review; user direction: remove --env-file .env from compose (self-contained)
+Phase: 101 of 103 (CE UX Cleanup) — COMPLETE
+Plan: 101-02 complete (phase complete, 2 of 2 plans done)
+Status: Phase 101 complete; Phase 102 (Linux E2E Validation) is next
+Last activity: 2026-03-31 — Plan 101-02 executed (CE/EE tab visibility tests in Admin.test.tsx)
 
 Progress: [█░░░░░░░░░] ~5%
 
@@ -51,11 +51,6 @@ Progress: [█░░░░░░░░░] ~5%
 
 *Updated after each plan completion*
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 102-linux-e2e-validation P02 | 1 | 66 min | 66 min |
-| Phase 102-linux-e2e-validation P02 | 66 | 3 tasks | 3 files |
-
 ## Accumulated Context
 
 ### Key Decisions
@@ -66,16 +61,8 @@ Progress: [█░░░░░░░░░] ~5%
 - [101-01]: isEnterprise destructured at Admin component scope; EE tabs gated with {isEnterprise && (...)} on both TabsTrigger and TabsContent; + Enterprise CE upgrade panel renders UpgradePlaceholder grid
 - [101-01]: Playwright confirmed CE tab bar = [Onboarding][+ Enterprise][Data], 6 EE tabs absent, upgrade panel shows 6 UpgradePlaceholder instances
 - [101-02]: Tab visibility tests use queryByRole/getByRole with licence mock; exact regex /^\+ enterprise$/i used for EE-mode absence to avoid false positives from licence badge text
-- [102-01]: Exit code 2 used for pre-flight image-unreachable failure (vs exit 1 for run failure) to distinguish failure modes
-- [102-01]: synthesise_friction.py _derive_edition() derives edition from filename stem (CE/EE by keyword, else run prefix like LNX) enabling cross-phase reuse
-- [102-02]: chromium-browser excluded from LXC apt install — pulls snapd which stalls inside LXC; Playwright chromium installed separately via playwright install chromium
-- [102-02]: Claude subagent must run as non-root user — UID 0 blocks --dangerously-skip-permissions; validator user created in LXC with docker group membership
-- [102-02]: FRICTION finding: Quick Start compose command hard-codes --env-file .env which fails with no .env file — this is the BLOCKER for Plan 03
-- [102-02 checkpoint]: User direction — remove --env-file .env from compose flow; compose must be self-contained with no external env file required
-
-### Roadmap Evolution
-
-- Phase 104 added: PR Review & Merge — Review and merge PRs #17 (WebSocket fix), #18 (Windows E2E), #19 (Linux E2E) into main
+- [103-02]: invoke_subagent.ps1 reads prompt via Get-Content from disk rather than inline -Command — avoids PowerShell multi-line quoting failures
+- [103-02]: dwight_exec wraps all commands in pwsh -NoProfile -NonInteractive -Command — Windows OpenSSH defaults to cmd.exe
 
 ### Pending Todos
 
@@ -83,10 +70,10 @@ None.
 
 ### Blockers/Concerns
 
-FRICTION-LNX-102.md BLOCKER (actioned): Quick Start compose command uses `--env-file .env` but no .env file is created in Quick Start instructions. User direction: remove the flag entirely. Plan 03 will implement this fix.
+None.
 
 ## Session Continuity
 
-Last session: 2026-03-31T21:15:00Z
-Stopped at: Completed 102-02-PLAN.md — ready for 102-03 (friction fix)
-Resume file: .planning/phases/102-linux-e2e-validation/102-03-PLAN.md
+Last session: 2026-03-31T21:15:07.423Z
+Stopped at: Completed 103-02-PLAN.md
+Resume file: None
