@@ -19,7 +19,8 @@
 - ✅ **v15.0 — Operator Readiness** — Phases 82–86 (shipped 2026-03-29)
 - ✅ **v16.0 — Competitive Observability** — Phases 87–91 (shipped 2026-03-30)
 - ✅ **v16.1 — PR Merge & Backlog Closure** — Phases 92–95 (shipped 2026-03-30)
-- ✅ **v17.0 — Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
+- ✅ **v17.0 �� Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
+- 🚧 **v18.0 — First-User Experience & E2E Validation** — Phases 101–103 (in progress)
 
 ## Phases
 
@@ -246,66 +247,56 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 
 </details>
 
+### 🚧 v18.0 — First-User Experience & E2E Validation (In Progress)
+
+**Milestone Goal:** A first-time user on Linux or Windows can follow the Quick Start guide from cold start to a completed job with zero undocumented friction. The CE dashboard presents only CE-relevant UI.
+
+- [ ] **Phase 101: CE UX Cleanup** — Hide EE-only tabs in CE mode, add upgrade prompts, verify no black pages
+- [ ] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed
+- [ ] **Phase 103: Windows E2E Validation** — Dwight SSH cold-start through first PowerShell job; all friction catalogued and fixed
+
 ## Phase Details
 
-### Phase 96: Foundation
-**Goal**: Safety prerequisites are in place so all subsequent phases can land without risk of silent breakage
-**Depends on**: Nothing (first phase of v17.0)
-**Requirements**: FOUND-01, FOUND-02, FOUND-03
+### Phase 101: CE UX Cleanup
+**Goal**: CE users see a clean dashboard scoped to CE features — no EE tabs cluttering the navigation, no blank pages on EE routes, and clear upgrade prompts where EE features would otherwise appear
+**Depends on**: Nothing (first phase of v18.0)
+**Requirements**: CEUX-01, CEUX-02, CEUX-03
 **Success Criteria** (what must be TRUE):
-  1. `requirements.txt` pins `apscheduler>=3.10,<4.0` and a startup assertion fires if a v4 wheel is somehow installed
-  2. `IS_POSTGRES` boolean is exported from `db.py` and importable by `job_service.py` and `scheduler_service.py`
-  3. APScheduler `AsyncIOScheduler` is constructed with global `job_defaults` (`misfire_grace_time=60`, `coalesce=True`, `max_instances=1`) rather than per-job overrides
-  4. Running on SQLite emits a startup warning that SKIP LOCKED is not active, making the gap explicit
+  1. A CE user navigating the Admin settings page sees only CE-relevant tabs; EE-only tabs (Smelter Registry, BOM Explorer, Tools, Artifact Vault, Rollouts, Automation) are absent from the rendered tab list
+  2. Any UI surface that previously showed an EE tab now shows a visible upgrade prompt in its place — not a blank area or a broken/empty panel
+  3. No dashboard route renders a black or empty page in CE mode; every route either renders its CE content or shows a graceful feature-gate message
 **Plans**: TBD
 
-### Phase 97: DB Pool Tuning
-**Goal**: The asyncpg connection pool is sized to sustain 20 concurrent polling nodes without exhaustion or stale-connection errors
-**Depends on**: Phase 96
-**Requirements**: POOL-01, POOL-02, POOL-03, POOL-04
+### Phase 102: Linux E2E Validation
+**Goal**: A fresh Linux user following the Quick Start guide inside a clean LXC environment reaches a completed job with no undocumented steps and no friction points left unresolved
+**Depends on**: Phase 101
+**Requirements**: LNX-01, LNX-02, LNX-03, LNX-04, LNX-05, LNX-06
 **Success Criteria** (what must be TRUE):
-  1. Postgres deployments use `pool_size=20`, `max_overflow=10`, `pool_timeout=30`, `pool_recycle=300`, and `pool_pre_ping=True`
-  2. Pool size is tunable via `ASYNCPG_POOL_SIZE` env var without a code change; the variable is documented in `.env.example`
-  3. SQLite dev path is unaffected — no pool kwargs are applied that would cause SQLite errors
-  4. Starting the stack with a Postgres URL and 20 enrolled nodes produces no pool exhaustion errors under concurrent `/work/pull` load
+  1. A clean LXC container can complete the cold-start deployment following only the published Quick Start guide — no commands outside the docs are needed
+  2. Logging in with admin/admin immediately shows the forced password change prompt, which completes successfully and grants dashboard access
+  3. A node enrolls following the documented enrollment steps and appears as ONLINE in the Nodes view
+  4. A Python or Bash job dispatched through the guided form runs to COMPLETED status and its output is visible in the dashboard
+  5. All documented CE features (job dispatch, scheduling, node management, audit log) are reachable and functional with no missing or broken UI elements
+  6. Every friction point found during the Linux run is catalogued in a report and fixed before the phase is marked complete
 **Plans**: TBD
 
-### Phase 98: Dispatch Correctness
-**Goal**: Job candidates are selected with a locking query and an index so no two nodes are ever assigned the same job and full-table scans are eliminated
-**Depends on**: Phase 97
-**Requirements**: DISP-01, DISP-02, DISP-03, DISP-04, OBS-03
+### Phase 103: Windows E2E Validation
+**Goal**: A fresh Windows user following the Quick Start (Windows) guide on Dwight reaches a completed PowerShell job with no undocumented steps and no friction points left unresolved
+**Depends on**: Phase 101
+**Requirements**: WIN-01, WIN-02, WIN-03, WIN-04, WIN-05, WIN-06
 **Success Criteria** (what must be TRUE):
-  1. A composite index `ix_jobs_status_created_at` exists on the `Job` model in `db.py` and is created by `create_all` on fresh deployments
-  2. `migration_v17.sql` ships `CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_jobs_status_created_at` for existing Postgres deployments
-  3. `pull_work()` uses `SELECT FOR UPDATE SKIP LOCKED` on Postgres; the SQLite path uses the existing unguarded query
-  4. An integration test runs 5 concurrent `pull_work()` calls against a single PENDING job on a real Postgres session and confirms exactly one assignment results — zero double-assignments
-**Plans**: TBD
-
-### Phase 99: Scheduler Hardening
-**Goal**: The scheduler syncs definitions incrementally without a dark window and fires cron callbacks without blocking the HTTP event loop
-**Depends on**: Phase 96
-**Requirements**: SCHED-01, SCHED-02, SCHED-03
-**Success Criteria** (what must be TRUE):
-  1. Adding, editing, or deleting a job definition via the API triggers a diff-based sync — only the affected APScheduler job is modified; no other scheduled jobs are removed and re-added
-  2. Internal system jobs (IDs prefixed `__`) are never removed by `sync_scheduler()` regardless of DB state
-  3. Cron fire callbacks return from the APScheduler thread immediately; the actual job execution runs inside `asyncio.create_task()` so heartbeats and WebSocket frames are not delayed during a cron burst
-**Plans**: TBD
-
-### Phase 100: Observability + Sign-off
-**Goal**: Operators can see live pool and scheduler health in the dashboard, the upgrade path is documented, and all v17.0 correctness claims are validated
-**Depends on**: Phase 98, Phase 99
-**Requirements**: OBS-01, OBS-02, DOCS-01, DOCS-02
-**Success Criteria** (what must be TRUE):
-  1. `GET /health/scale` returns `pool_size`, `checked_out`, `available`, `overflow`, APScheduler job count, and current pending job depth
-  2. The Admin dashboard health section shows pool checkout count and pending job depth without requiring a new page
-  3. `migration_v17.sql` steps appear in the upgrade runbook with a pre-flight check, the `CONCURRENTLY` transaction-block caveat, and a validity confirmation query
-  4. Operations docs document the v17.0 thresholds, the `ASYNCPG_POOL_SIZE` tuning formula, and the APScheduler version pin rationale
+  1. The Docker stack starts on Dwight via SSH following only the published Windows Quick Start guide; credentials come from `mop_validation/secrets.env`
+  2. All shell interactions with the stack use PowerShell (PWSH) — no CMD commands appear in any documented step or tested path
+  3. Logging in with admin/admin immediately shows the forced password change prompt, which completes successfully and grants dashboard access
+  4. A node enrolls on Dwight following the documented Windows enrollment steps and appears as ONLINE in the Nodes view
+  5. A PowerShell job dispatched through the dashboard runs to COMPLETED status and its output is visible
+  6. Every friction point found during the Windows run is catalogued in a report and fixed before the phase is marked complete
 **Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 96 → 97 → 98 → 99 → 100
+Phases execute in numeric order: 101 → 102 → 103
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -359,11 +350,14 @@ Phases execute in numeric order: 96 → 97 → 98 → 99 → 100
 | 93. Documentation PRs | v16.1 | 2/2 | Complete | 2026-03-30 |
 | 94. Research & Planning Closure | v16.1 | 2/2 | Complete | 2026-03-30 |
 | 95. Tech Debt | v16.1 | 2/2 | Complete | 2026-03-30 |
-| 96. Foundation | 1/1 | Complete    | 2026-03-30 | - |
-| 97. DB Pool Tuning | 1/1 | Complete    | 2026-03-30 | - |
-| 98. Dispatch Correctness | v17.0 | Complete    | 2026-03-30 | 2026-03-30 |
-| 99. Scheduler Hardening | 1/1 | Complete    | 2026-03-31 | - |
-| 100. Observability + Sign-off | 2/2 | Complete    | 2026-03-31 | - |
+| 96. Foundation | v17.0 | 1/1 | Complete | 2026-03-30 |
+| 97. DB Pool Tuning | v17.0 | 1/1 | Complete | 2026-03-30 |
+| 98. Dispatch Correctness | v17.0 | 1/1 | Complete | 2026-03-30 |
+| 99. Scheduler Hardening | v17.0 | 1/1 | Complete | 2026-03-31 |
+| 100. Observability + Sign-off | v17.0 | 2/2 | Complete | 2026-03-31 |
+| 101. CE UX Cleanup | v18.0 | 0/TBD | Not started | - |
+| 102. Linux E2E Validation | v18.0 | 0/TBD | Not started | - |
+| 103. Windows E2E Validation | v18.0 | 0/TBD | Not started | - |
 
 ## Archived
 
