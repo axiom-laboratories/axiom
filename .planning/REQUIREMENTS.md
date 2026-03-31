@@ -14,12 +14,12 @@
 
 ### Linux E2E
 
-- [ ] **LNX-01**: Fresh Linux cold-start deployment completes inside an LXC container (clean environment) without deviating from the Quick Start guide
+- [x] **LNX-01**: Fresh Linux cold-start deployment completes inside an LXC container (clean environment) without deviating from the Quick Start guide
 - [ ] **LNX-02**: Admin/admin first login triggers forced password change prompt, which completes successfully
 - [ ] **LNX-03**: Node enrollment succeeds following the documentation steps
 - [ ] **LNX-04**: First job (Python or Bash) dispatches, executes, and shows output in the dashboard
 - [ ] **LNX-05**: All documented CE features are accessible and functional from the dashboard
-- [ ] **LNX-06**: All friction found during the Linux run is catalogued and fixed
+- [x] **LNX-06**: All friction found during the Linux run is catalogued and fixed
 
 ### Windows E2E
 
@@ -49,12 +49,12 @@
 | CEUX-01 | Phase 101 | Pending |
 | CEUX-02 | Phase 101 | Pending |
 | CEUX-03 | Phase 101 | Pending |
-| LNX-01 | Phase 102 | Pending |
+| LNX-01 | Phase 102 | Complete |
 | LNX-02 | Phase 102 | Pending |
 | LNX-03 | Phase 102 | Pending |
 | LNX-04 | Phase 102 | Pending |
 | LNX-05 | Phase 102 | Pending |
-| LNX-06 | Phase 102 | Pending |
+| LNX-06 | Phase 102 | Complete |
 | WIN-01 | Phase 103 | Pending |
 | WIN-02 | Phase 103 | Complete |
 | WIN-03 | Phase 103 | Pending |
