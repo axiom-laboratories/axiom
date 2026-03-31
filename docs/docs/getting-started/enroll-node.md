@@ -138,17 +138,29 @@ ip route | awk '/default/ {print $3}'
         environment:
           NODE_TAGS: general,linux
           JOB_IMAGE: docker.io/library/python:3.12-alpine
-          AGENT_URL: https://172.17.0.1:8001
+          AGENT_URL: https://agent:8001
           JOIN_TOKEN: <paste-your-enhanced-token-here>
           ROOT_CA_PATH: /app/secrets/root_ca.crt
           EXECUTION_MODE: docker
         volumes:
           - node-secrets:/app/secrets
           - /var/run/docker.sock:/var/run/docker.sock
+        networks:
+          - axiom_default
 
     volumes:
       node-secrets:
+
+    networks:
+      axiom_default:
+        external: true
     ```
+
+    !!! note "Network name"
+        The `axiom_default` network is created automatically when you run `compose.cold-start.yaml`.
+        The network name is derived from the directory you placed the compose file in — if the file is
+        in a directory other than the default, you may see a different prefix. Run
+        `docker network ls | grep default` to find the exact name and update `axiom_default` accordingly.
 
     !!! tip "EXECUTION_MODE=docker"
         When the node container runs inside Docker, set `EXECUTION_MODE=docker`. This tells the node to spawn job containers using the host's Docker daemon via the mounted socket (`/var/run/docker.sock`).
@@ -169,10 +181,16 @@ ip route | awk '/default/ {print $3}'
             image: ghcr.io/axiom-laboratories/axiom-node:latest
             environment:
               ...
+              AGENT_URL: https://agent:8001
               EXECUTION_MODE: docker
             volumes:
               - node-secrets:/app/secrets
               - /var/run/docker.sock:/var/run/docker.sock
+            networks:
+              - axiom_default
+        networks:
+          axiom_default:
+            external: true
         ```
 
     Then start the node:

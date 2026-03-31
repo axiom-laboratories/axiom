@@ -95,3 +95,7 @@ volumes:
   caddy_data:
   caddy_config:
   secrets-data:   # Agent secrets persistence (boot.log, licence.key)
+
+networks:
+  default:
+    name: axiom_default   # Stable name so node compose files can attach with networks.axiom_default.external: true
