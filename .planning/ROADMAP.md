@@ -280,7 +280,11 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
   4. A Python or Bash job dispatched through the guided form runs to COMPLETED status and its output is visible in the dashboard
   5. All documented CE features (job dispatch, scheduling, node management, audit log) are reachable and functional with no missing or broken UI elements
   6. Every friction point found during the Linux run is catalogued in a report and fixed before the phase is marked complete
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 102-01-PLAN.md — Validation infrastructure (orchestrator, persona prompt, synthesise_friction.py patch)
+- [ ] 102-02-PLAN.md — Live golden path run in fresh LXC + friction catalogue
+- [ ] 102-03-PLAN.md — Fix all BLOCKERs, iterate until clean, produce READY synthesis sign-off
 
 ### Phase 103: Windows E2E Validation
 **Goal**: A fresh Windows user following the Quick Start (Windows) guide on Dwight reaches a completed PowerShell job with no undocumented steps and no friction points left unresolved
