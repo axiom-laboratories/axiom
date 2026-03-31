@@ -211,7 +211,7 @@ ip route | awk '/default/ {print $3}'
     ```yaml
     services:
       puppet-node:
-        image: localhost/master-of-puppets-node:latest
+        image: ghcr.io/axiom-laboratories/axiom-node:latest
         environment:
           NODE_TAGS: general,windows
           JOB_IMAGE: docker.io/library/python:3.12-alpine

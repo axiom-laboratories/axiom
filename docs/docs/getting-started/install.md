@@ -145,6 +145,17 @@ Docker Compose works identically on Windows, Linux, and macOS. The commands belo
 !!! tip "Windows: Docker Desktop must be running"
     Unlike Linux where Docker Engine runs as a background service, on Windows Docker Desktop must be open (visible in the system tray) before any `docker` or `docker compose` commands will work. If you see `error during connect: ... Is the docker daemon running?`, open Docker Desktop and wait for it to finish starting.
 
+!!! warning "Windows: Run `docker compose up` from an interactive PowerShell session"
+    On Windows, Docker Desktop uses a **credential helper** (`docker-credential-desktop`) that requires an interactive Windows session to access the credential store. If you run `docker compose up` over a remote session (SSH, WinRM, Task Scheduler, or any non-interactive context), the credential helper will fail with an error such as:
+
+    ```
+    error getting credentials - err: exit status 1, out: ``
+    ```
+
+    **Always run `docker compose up` from an interactive PowerShell or Command Prompt window** opened directly on the Windows machine (not via SSH or remoting).
+
+    If you need to automate the startup (e.g. for a homelab auto-start), pre-pull all images in an interactive session first, then they will be available locally and no credential lookup is needed at `compose up` time. Alternatively, you can disable the credential helper for public images by editing `%USERPROFILE%\.docker\config.json` and removing the `"credsStore"` key.
+
 ---
 
 ## Step 4: Verify
