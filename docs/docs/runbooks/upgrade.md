@@ -237,6 +237,69 @@ Run through this checklist after the agent starts:
 
 ---
 
+## v17.0 Scale Hardening — Operations Reference
+
+This section documents the operational parameters introduced in v17.0 for database connection pool tuning and APScheduler stability.
+
+### DB Connection Pool (`ASYNCPG_POOL_SIZE`)
+
+Axiom uses SQLAlchemy's `QueuePool` backed by asyncpg. The pool is configured at startup via environment variables. The defaults suit most single-host deployments; adjust when running multiple Gunicorn/Uvicorn workers or under high concurrent load.
+
+| Parameter | Default | Env var |
+|-----------|---------|---------|
+| `pool_size` | 20 | `ASYNCPG_POOL_SIZE` |
+| `max_overflow` | 10 | (hardcoded) |
+| `pool_timeout` | 30s | (hardcoded) |
+| `pool_recycle` | 300s | (hardcoded) |
+
+**Tuning formula:**
+
+```
+pool_size ≤ max_connections / worker_count
+```
+
+- `max_connections` is the PostgreSQL server limit (default 100 on most distros; check with `SHOW max_connections;`)
+- `worker_count` is the number of Uvicorn/Gunicorn worker processes running the agent service (1 in the default Docker Compose setup)
+- The default `pool_size=20` leaves headroom for `max_overflow=10` and other DB clients
+
+**Example — 4-worker deployment with Postgres max_connections=100:**
+
+```
+pool_size ≤ 100 / 4 = 25   →   set ASYNCPG_POOL_SIZE=20 (conservative)
+```
+
+To override, set in your `puppeteer/.env` or `compose.server.yaml` environment block:
+
+```yaml
+environment:
+  ASYNCPG_POOL_SIZE: "20"
+```
+
+**Live pool metrics** are available at `GET /api/health/scale` (requires authentication) and are displayed in the Admin dashboard → Foundry → Repository Health section.
+
+### APScheduler Version Pin (`>=3.10,<4.0`)
+
+Axiom pins APScheduler to the `3.x` series:
+
+```
+apscheduler>=3.10,<4.0
+```
+
+**Rationale:** APScheduler 4.x is a complete architectural rewrite with no backward-compatible migration path. The v4 API removed `AsyncIOScheduler` and changed the job store, trigger, and executor interfaces entirely. Upgrading to 4.x would require rewriting all scheduler integration code. The `<4.0` upper bound prevents accidental upgrades via `pip install --upgrade`.
+
+Do not remove or relax this pin without a dedicated migration phase.
+
+### v17.0 Correctness Thresholds
+
+| Metric | Safe range | Action if exceeded |
+|--------|-----------|-------------------|
+| Pool checkout (`checked_out`) | < `pool_size` (20) | Increase `ASYNCPG_POOL_SIZE` or reduce concurrency |
+| Overflow in use (`overflow`) | 0 in steady state | Investigate slow queries or long-held transactions |
+| Pending job depth | < 50 | Check node availability and dispatch timeout settings |
+| APScheduler jobs | 1 per active job definition | Investigate if count exceeds active definition count |
+
+---
+
 ## Rollback procedure
 
 If the upgrade introduces a regression:
