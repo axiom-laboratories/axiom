@@ -3054,12 +3054,23 @@
 <ul>
 <li>The <code>ENCRYPTION_KEY</code> environment variable must hold a valid Fernet key.</li>
 <li>Encryption and decryption are handled in <code>security.py</code> via <code>fernet_encrypt()</code> and <code>fernet_decrypt()</code>.</li>
-<li>If <code>ENCRYPTION_KEY</code> is not set, the service will auto-generate one at startup — but this key is lost on restart, making all previously encrypted data unreadable. <strong>Always set <code>ENCRYPTION_KEY</code> explicitly in production.</strong></li>
+<li>If <code>ENCRYPTION_KEY</code> is not set, the service auto-generates one on first start and persists it to <code>/app/secrets/encryption.key</code>. It is reloaded from disk on subsequent restarts. For production, set it explicitly so you can back it up and rotate it independently. <strong>If you change <code>ENCRYPTION_KEY</code> on an existing deployment, all stored secrets become unreadable.</strong></li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Generating a Fernet key</p>
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Linux / macOS</label><label for="__tabbed_1_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">32</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;+/&#39;</span><span class="w"> </span><span class="s1">&#39;-_&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\n=&#39;</span>
+<span class="c1"># append a trailing = to the output</span>
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="no">[System.Convert]</span><span class="p">::</span><span class="n">ToBase64String</span><span class="p">(</span><span class="no">[System.Security.Cryptography.RandomNumberGenerator]</span><span class="p">::</span><span class="n">GetBytes</span><span class="p">(</span><span class="n">32</span><span class="p">)).</span><span class="n">Replace</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">,</span><span class="s1">&#39;-&#39;</span><span class="p">).</span><span class="n">Replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+</code></pre></div>
+</div>
+</div>
+</div>
 </div>
 <hr />
 <h2 id="job-execution-data-flow">Job Execution Data Flow</h2>

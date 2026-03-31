@@ -2748,7 +2748,7 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <td><code>ENCRYPTION_KEY</code></td>
 <td><strong>Required</strong> (unstable if absent)</td>
 <td>Fernet key for job secrets encrypted at rest. If you change this after deployment, all stored secrets become unreadable.</td>
-<td><code>python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</code></td>
+<td><code>openssl rand -base64 32 \| tr '+/' '-_' \| tr -d '\n='</code> (append a trailing <code>=</code>)</td>
 </tr>
 <tr>
 <td><code>SECRET_KEY</code></td>
@@ -2808,7 +2808,7 @@ pip<span class="w"> </span>install<span class="w"> </span>aiosqlite<span class="
 <h4 id="set-required-environment-variables">Set required environment variables</h4>
 <p><code>security.py</code> calls <code>sys.exit(1)</code> at <strong>import time</strong> if <code>API_KEY</code> is not set. This means the FastAPI process will not start — not even to print a helpful error — unless the env var is present before launch. Set these before running:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">API_KEY</span><span class="o">=</span>dev-key
-<span class="nb">export</span><span class="w"> </span><span class="nv">ENCRYPTION_KEY</span><span class="o">=</span><span class="k">$(</span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span><span class="k">)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">ENCRYPTION_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">32</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;+/&#39;</span><span class="w"> </span><span class="s1">&#39;-_&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\n=&#39;</span><span class="k">)</span><span class="o">=</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">SECRET_KEY</span><span class="o">=</span>dev-secret-key
 </code></pre></div>
 <p>You can also place these in a <code>.env</code> file in <code>puppeteer/</code> and load them with <code>source .env</code> or a tool like <code>direnv</code>.</p>

@@ -2041,19 +2041,34 @@
 </div>
 <hr />
 <h2 id="secret-generation">Secret Generation</h2>
-<p>Three secrets must be set before first start:</p>
+<p>Three secrets must be set before first start. All commands use <code>openssl</code> (available on Linux, macOS, and Windows via Git Bash or WSL2) — no Python required.</p>
 <p><strong>JWT signing key</strong> — used to sign all operator session tokens:
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import secrets; print(secrets.token_hex(32))&quot;</span>
+<div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span>
 <span class="c1"># → paste result into SECRET_KEY=</span>
 </code></pre></div></p>
 <p><strong>Fernet encryption key</strong> — encrypts node join tokens and secrets at rest:
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span>
-<span class="c1"># → paste result into ENCRYPTION_KEY=</span>
+<div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">32</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;+/&#39;</span><span class="w"> </span><span class="s1">&#39;-_&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\n=&#39;</span>
+<span class="c1"># → paste result into ENCRYPTION_KEY= (append a trailing = to the output)</span>
 </code></pre></div></p>
 <p><strong>API key</strong> — required by the agent service (crashes at import if absent):
-<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import secrets; print(secrets.token_urlsafe(32))&quot;</span>
+<div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span>
 <span class="c1"># → paste result into API_KEY=</span>
 </code></pre></div></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:1"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c"># JWT signing key</span>
+<span class="no">[System.Convert]</span><span class="p">::</span><span class="n">ToHexString</span><span class="p">(</span><span class="no">[System.Security.Cryptography.RandomNumberGenerator]</span><span class="p">::</span><span class="n">GetBytes</span><span class="p">(</span><span class="n">32</span><span class="p">)).</span><span class="n">ToLower</span><span class="p">()</span>
+
+<span class="c"># Fernet encryption key</span>
+<span class="no">[System.Convert]</span><span class="p">::</span><span class="n">ToBase64String</span><span class="p">(</span><span class="no">[System.Security.Cryptography.RandomNumberGenerator]</span><span class="p">::</span><span class="n">GetBytes</span><span class="p">(</span><span class="n">32</span><span class="p">)).</span><span class="n">Replace</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">,</span><span class="s1">&#39;-&#39;</span><span class="p">).</span><span class="n">Replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+
+<span class="c"># API key</span>
+<span class="no">[System.Convert]</span><span class="p">::</span><span class="n">ToHexString</span><span class="p">(</span><span class="no">[System.Security.Cryptography.RandomNumberGenerator]</span><span class="p">::</span><span class="n">GetBytes</span><span class="p">(</span><span class="n">16</span><span class="p">)).</span><span class="n">ToLower</span><span class="p">()</span>
+</code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition danger">
 <p class="admonition-title">API_KEY has no fallback</p>
 <p>Unlike <code>SECRET_KEY</code> (which falls back to a weak dev default), <code>API_KEY</code> has no default value. The agent service will crash at startup if it is not set.</p>
