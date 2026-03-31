@@ -2276,7 +2276,7 @@ if __name__ == "__main__":
                  ip = socket.gethostbyname(hostname)
              except Exception:
                  ip = "127.0.0.1"
-             sans = ["localhost", "master-of-puppets", "agent", "puppeteer-agent-1", hostname, ip]
+             sans = ["localhost", "master-of-puppets", "agent", "puppeteer-agent-1", "host.docker.internal", hostname, ip]
              # Include the AGENT_URL host/IP in the SAN so remote nodes can connect
              agent_url = os.getenv("AGENT_URL", "")
              if agent_url:
