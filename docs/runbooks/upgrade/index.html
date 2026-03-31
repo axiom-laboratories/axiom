@@ -1580,6 +1580,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v170-scale-hardening-operations-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v17.0 Scale Hardening — Operations Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v17.0 Scale Hardening — Operations Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#db-connection-pool-asyncpg_pool_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DB Connection Pool (ASYNCPG_POOL_SIZE)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apscheduler-version-pin-31040" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APScheduler Version Pin (&gt;=3.10,&lt;4.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v170-correctness-thresholds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v17.0 Correctness Thresholds
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rollback-procedure" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2207,6 +2257,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v170-scale-hardening-operations-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v17.0 Scale Hardening — Operations Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v17.0 Scale Hardening — Operations Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#db-connection-pool-asyncpg_pool_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DB Connection Pool (ASYNCPG_POOL_SIZE)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apscheduler-version-pin-31040" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APScheduler Version Pin (&gt;=3.10,&lt;4.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v170-correctness-thresholds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v17.0 Correctness Thresholds
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rollback-procedure" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2613,8 +2713,31 @@ curl<span class="w"> </span>-sk<span class="w"> </span>https://localhost:8001/ap
 <td>Scheduling health and data management</td>
 <td><code>execution_records.pinned</code>, <code>scheduled_jobs.allow_overlap</code>, <code>scheduled_jobs.dispatch_timeout_minutes</code>, <code>jobs.dispatch_timeout_minutes</code>; new tables: <code>scheduled_fire_log</code>, <code>job_templates</code></td>
 </tr>
+<tr>
+<td><code>migration_v44.sql</code></td>
+<td>Dispatch correctness index</td>
+<td><code>CREATE INDEX CONCURRENTLY ix_jobs_status_created_at ON jobs (status, created_at)</code></td>
+</tr>
 </tbody>
 </table>
+<div class="admonition warning">
+<p class="admonition-title">migration_v44.sql — CONCURRENTLY transaction restriction</p>
+<p><code>CREATE INDEX CONCURRENTLY</code> cannot run inside a transaction block.</p>
+<p><strong>Do not use:</strong> <code>psql -1 -f migration_v44.sql</code> (the <code>-1</code> flag wraps in <code>BEGIN/COMMIT</code>)</p>
+<p><strong>Correct invocation:</strong>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>puppeteer-db-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>puppet<span class="w"> </span>puppet_db<span class="w"> </span>&lt;<span class="w"> </span>puppeteer/migration_v44.sql
+</code></pre></div></p>
+<p><strong>Pre-flight check</strong> (confirm jobs table exists before running):
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">jobs</span><span class="p">;</span>
+</code></pre></div></p>
+<p><strong>Validity confirmation</strong> (run after to confirm index was created):
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">indexname</span><span class="p">,</span><span class="w"> </span><span class="n">indexdef</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">pg_indexes</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">tablename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;jobs&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">indexname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;ix_jobs_status_created_at&#39;</span><span class="p">;</span>
+</code></pre></div></p>
+<p><strong>Naming note:</strong> Despite the v17.0 milestone name, this migration is <code>migration_v44.sql</code> — the <code>migration_v17.sql</code> filename was already used in an earlier release (Phase 4 — operator_tags on nodes).</p>
+</div>
 <h3 id="sqlite-note">SQLite note</h3>
 <p>Migration files use PostgreSQL's <code>IF NOT EXISTS</code> syntax on <code>ALTER TABLE</code>, which SQLite does not support. For local development with SQLite, the standard workflow is to delete <code>jobs.db</code> and let <code>create_all</code> rebuild it. If you need to preserve a local SQLite database, the SQL comments inside each migration file include the equivalent bare <code>ALTER TABLE</code> statements without guards.</p>
 <hr />
@@ -2642,6 +2765,96 @@ curl<span class="w"> </span>-sk<span class="w"> </span>https://localhost:8001/ap
 <p>[ ] <strong>Run a smoke job</strong> — dispatch a simple job to a known-good node and confirm it completes with status <code>COMPLETED</code></p>
 </li>
 </ul>
+<hr />
+<h2 id="v170-scale-hardening-operations-reference">v17.0 Scale Hardening — Operations Reference</h2>
+<p>This section documents the operational parameters introduced in v17.0 for database connection pool tuning and APScheduler stability.</p>
+<h3 id="db-connection-pool-asyncpg_pool_size">DB Connection Pool (<code>ASYNCPG_POOL_SIZE</code>)</h3>
+<p>Axiom uses SQLAlchemy's <code>QueuePool</code> backed by asyncpg. The pool is configured at startup via environment variables. The defaults suit most single-host deployments; adjust when running multiple Gunicorn/Uvicorn workers or under high concurrent load.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Env var</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pool_size</code></td>
+<td>20</td>
+<td><code>ASYNCPG_POOL_SIZE</code></td>
+</tr>
+<tr>
+<td><code>max_overflow</code></td>
+<td>10</td>
+<td>(hardcoded)</td>
+</tr>
+<tr>
+<td><code>pool_timeout</code></td>
+<td>30s</td>
+<td>(hardcoded)</td>
+</tr>
+<tr>
+<td><code>pool_recycle</code></td>
+<td>300s</td>
+<td>(hardcoded)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tuning formula:</strong></p>
+<div class="highlight"><pre><span></span><code>pool_size ≤ max_connections / worker_count
+</code></pre></div>
+<ul>
+<li><code>max_connections</code> is the PostgreSQL server limit (default 100 on most distros; check with <code>SHOW max_connections;</code>)</li>
+<li><code>worker_count</code> is the number of Uvicorn/Gunicorn worker processes running the agent service (1 in the default Docker Compose setup)</li>
+<li>The default <code>pool_size=20</code> leaves headroom for <code>max_overflow=10</code> and other DB clients</li>
+</ul>
+<p><strong>Example — 4-worker deployment with Postgres max_connections=100:</strong></p>
+<div class="highlight"><pre><span></span><code>pool_size ≤ 100 / 4 = 25   →   set ASYNCPG_POOL_SIZE=20 (conservative)
+</code></pre></div>
+<p>To override, set in your <code>puppeteer/.env</code> or <code>compose.server.yaml</code> environment block:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">environment</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ASYNCPG_POOL_SIZE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;20&quot;</span>
+</code></pre></div>
+<p><strong>Live pool metrics</strong> are available at <code>GET /api/health/scale</code> (requires authentication) and are displayed in the Admin dashboard → Foundry → Repository Health section.</p>
+<h3 id="apscheduler-version-pin-31040">APScheduler Version Pin (<code>&gt;=3.10,&lt;4.0</code>)</h3>
+<p>Axiom pins APScheduler to the <code>3.x</code> series:</p>
+<div class="highlight"><pre><span></span><code>apscheduler&gt;=3.10,&lt;4.0
+</code></pre></div>
+<p><strong>Rationale:</strong> APScheduler 4.x is a complete architectural rewrite with no backward-compatible migration path. The v4 API removed <code>AsyncIOScheduler</code> and changed the job store, trigger, and executor interfaces entirely. Upgrading to 4.x would require rewriting all scheduler integration code. The <code>&lt;4.0</code> upper bound prevents accidental upgrades via <code>pip install --upgrade</code>.</p>
+<p>Do not remove or relax this pin without a dedicated migration phase.</p>
+<h3 id="v170-correctness-thresholds">v17.0 Correctness Thresholds</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Safe range</th>
+<th>Action if exceeded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pool checkout (<code>checked_out</code>)</td>
+<td>&lt; <code>pool_size</code> (20)</td>
+<td>Increase <code>ASYNCPG_POOL_SIZE</code> or reduce concurrency</td>
+</tr>
+<tr>
+<td>Overflow in use (<code>overflow</code>)</td>
+<td>0 in steady state</td>
+<td>Investigate slow queries or long-held transactions</td>
+</tr>
+<tr>
+<td>Pending job depth</td>
+<td>&lt; 50</td>
+<td>Check node availability and dispatch timeout settings</td>
+</tr>
+<tr>
+<td>APScheduler jobs</td>
+<td>1 per active job definition</td>
+<td>Investigate if count exceeds active definition count</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="rollback-procedure">Rollback procedure</h2>
 <p>If the upgrade introduces a regression:</p>
