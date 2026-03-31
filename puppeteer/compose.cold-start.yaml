@@ -11,8 +11,11 @@ version: "3"
 #      Optional: set ADMIN_PASSWORD env var or .env file to override the default.
 #
 # Usage:
-#   CE run:  docker compose -f compose.cold-start.yaml --env-file .env up -d
-#   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml --env-file .env up -d
+#   CE run:  docker compose -f compose.cold-start.yaml up -d
+#   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml up -d
+#
+#   Optional: create a .env file alongside compose.cold-start.yaml to override defaults.
+#   Docker Compose v2 reads .env automatically — no --env-file flag needed.
 #
 # No .env file required. Default credentials: admin / admin
 # You will be prompted to change the password on first login.
