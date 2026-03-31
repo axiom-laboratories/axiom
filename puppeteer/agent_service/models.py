@@ -433,3 +433,15 @@ class SchedulingHealthResponse(BaseModel):
     window: str
     aggregate: Dict[str, int]  # {fired, skipped, failed, late, missed}
     definitions: List[DefinitionHealthRow]
+
+
+# --- Scale Health (OBS-01) ---
+
+class ScaleHealthResponse(BaseModel):
+    is_postgres: bool
+    pool_size: Optional[int]
+    checked_out: Optional[int]
+    available: Optional[int]
+    overflow: Optional[int]
+    apscheduler_jobs: int
+    pending_job_depth: int

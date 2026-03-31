@@ -37,7 +37,7 @@ from .models import (
     AlertResponse,
     DispatchRequest, DispatchResponse, DispatchStatusResponse,
     BulkJobActionRequest, BulkActionResponse, BulkDiagnosisRequest,
-    SchedulingHealthResponse, DefinitionHealthRow,
+    SchedulingHealthResponse, DefinitionHealthRow, ScaleHealthResponse,
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
     SIGNING_FIELDS,
 )
