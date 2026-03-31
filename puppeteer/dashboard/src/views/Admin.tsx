@@ -872,6 +872,17 @@ const SmelterRegistryManager = () => {
         refetchInterval: 30000
     });
 
+    // scaleHealth type: { is_postgres: boolean, pool_size: number|null, checked_out: number|null, available: number|null, overflow: number|null, apscheduler_jobs: number, pending_job_depth: number } | null
+    const { data: scaleHealth } = useQuery({
+        queryKey: ['scale-health'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/health/scale');
+            if (!res.ok) return null;
+            return res.json();
+        },
+        refetchInterval: 30000
+    });
+
     const uploadMutation = useMutation({
         mutationFn: async ({ id, file }: { id: string, file: File }) => {
             const formData = new FormData();
@@ -1154,6 +1165,31 @@ const SmelterRegistryManager = () => {
                                         className="h-full bg-primary transition-all duration-500"
                                         style={{ width: `${(health.disk_used_gb / health.disk_total_gb) * 100}%` }}
                                     />
+                                </div>
+                            </div>
+                            {/* DB Pool + Scheduler metrics */}
+                            <div className="pt-2 border-t border-zinc-800/50 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-zinc-400">Pool checkout</span>
+                                    <span className="text-xs text-zinc-300 font-mono">
+                                        {scaleHealth
+                                            ? scaleHealth.is_postgres
+                                                ? `${scaleHealth.checked_out} / ${scaleHealth.pool_size}`
+                                                : 'N/A (SQLite)'
+                                            : '—'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-zinc-400">Pending jobs</span>
+                                    <span className="text-xs text-zinc-300 font-mono">
+                                        {scaleHealth != null ? scaleHealth.pending_job_depth : '—'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-zinc-400">APScheduler</span>
+                                    <span className="text-xs text-zinc-300 font-mono">
+                                        {scaleHealth != null ? `${scaleHealth.apscheduler_jobs} jobs active` : '—'}
+                                    </span>
                                 </div>
                             </div>
                             <div className="pt-2 border-t border-zinc-800/50">
