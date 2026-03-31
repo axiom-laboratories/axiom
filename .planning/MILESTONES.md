@@ -1,5 +1,14 @@
 # Milestones
 
+## v17.0 Scale Hardening (Shipped: 2026-03-31)
+
+**Phases completed:** 5 phases, 6 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v16.1 PR Merge & Backlog Closure (Shipped: 2026-03-30)
 
 **Phases completed:** 6 phases, 7 plans, 3 tasks

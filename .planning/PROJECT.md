@@ -12,19 +12,9 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v17.0 — Scale Hardening
+## Current Milestone: v18.0 — Planning
 
-**Goal:** Extend the reliable operation envelope from ~10 nodes / ~50 pending jobs to 20+ nodes / 200+ pending jobs / 1,000 scheduled definitions / 100 cron fires per minute without correctness regressions.
-
-**Target features:**
-- Asyncpg connection pool right-sized for the target node count
-- Composite DB index on `(status, created_at)` for the job candidate query
-- `SELECT FOR UPDATE SKIP LOCKED` on job dispatch to eliminate double-assignment races
-- Incremental `sync_scheduler()` — per-definition add/remove instead of full rebuild
-- APScheduler version pinned; misfire grace time tuned for burst load
-- Dedicated dispatcher worker process (or equivalent isolation) to decouple cron firing from the HTTP API event loop
-
-**Previous:** v16.1 shipped 2026-03-30 (PR backlog closure — signing UX, docs, APScheduler research archived)
+**Previous:** v17.0 Scale Hardening shipped 2026-03-31 (connection pool right-sizing, SKIP LOCKED dispatch correctness, diff-based scheduler sync, live observability endpoint for 20-node concurrent load)
 
 ## Requirements
 
@@ -231,14 +221,20 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ APScheduler scale limits research archived in `mop_validation/reports/` with concrete thresholds and migration path — v16.1
 - ✓ Competitor pain-point insights recorded in product notes with actionable observations — v16.1
 
-### Active — v17.0 Scale Hardening
+### Validated — v17.0 Scale Hardening
 
-- [ ] Asyncpg connection pool size right-sized for 20+ concurrent polling nodes
-- [ ] Composite DB index on `(status, created_at)` for the job candidate query
-- [ ] `SELECT FOR UPDATE SKIP LOCKED` on job dispatch to eliminate double-assignment races under burst load
-- [ ] Incremental `sync_scheduler()` — per-definition add/remove instead of full O(N) rebuild
-- [ ] APScheduler version pinned; `misfire_grace_time` tuned for burst load scenarios
-- [ ] Dedicated dispatcher worker process (or equivalent isolation) to decouple cron firing from HTTP API event loop
+- ✓ `apscheduler>=3.10,<4.0` pinned in `requirements.txt`; startup assertion fires if v4 wheel installed — v17.0
+- ✓ `IS_POSTGRES` boolean exported from `db.py`; importable by `job_service.py` and `scheduler_service.py` — v17.0
+- ✓ `AsyncIOScheduler` constructed with global `job_defaults` (`misfire_grace_time=60`, `coalesce=True`, `max_instances=1`) — v17.0
+- ✓ asyncpg pool right-sized: `pool_size=20`, `max_overflow=10`, `pool_timeout=30`, `pool_recycle=300`, `pool_pre_ping=True` — v17.0
+- ✓ `ASYNCPG_POOL_SIZE` env var tunes pool size without code change; documented in `.env.example` — v17.0
+- ✓ Composite index `ix_jobs_status_created_at` on `(status, created_at)` in `Job` model; `migration_v44.sql` for existing deployments — v17.0
+- ✓ `SELECT FOR UPDATE SKIP LOCKED` in `pull_work()` on Postgres; SQLite path uses unguarded query — v17.0
+- ✓ Diff-based `sync_scheduler()`: internal `__`-prefixed jobs protected; only affected APScheduler job modified per CRUD op — v17.0
+- ✓ `_make_cron_callback()` returns sync closure calling `asyncio.create_task()` — cron fires return immediately, no event-loop blocking — v17.0
+- ✓ `GET /health/scale` endpoint: pool stats, APScheduler job count, pending job depth; null-safe on SQLite — v17.0
+- ✓ Admin Repository Health card shows live pool checkout, pending jobs, APScheduler rows — v17.0
+- ✓ `upgrade.md` updated with `migration_v44.sql` entry, `CONCURRENTLY` transaction-block caveat, v17.0 ops reference — v17.0
 
 ### Active — Future Milestones
 
@@ -261,7 +257,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, and has a complete operator readiness surface (v15.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access.
+Codebase is functional, deployed, security-hardened, commercially ready, and scale-hardened (v17.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. Core LOC ~6,600 across key service files. v17.0 shipped 2026-03-31.
 
 Documentation site lives at `https://axiom-laboratories.github.io/axiom/docs/` (GitHub Pages, subtree deploy via `ghp-import`). Marketing homepage lives at `https://axiom-laboratories.github.io/axiom/`. Both auto-deploy from `main` via separate GitHub Actions jobs in `gh-pages-deploy.yml`. MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference auto-generated from FastAPI OpenAPI schema at container build time.
 
@@ -360,6 +356,15 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `openapi.json` pre-committed snapshot at 116 routes | `validate_docs.py` needs deterministic input; no running stack required for CI gate; operator runs `generate_openapi.py` locally to refresh | ✓ Good |
 | CLI regex in `validate_docs.py` restricted to lowercase tokens; unknown first-words silently skipped | Prevents prose descriptions like `axiom-push CLI guide` from generating spurious FAIL results | ✓ Good |
 | Screenshot directories committed via `.gitkeep` before PNGs exist | Structure-first deploy; screenshots committed separately by operator after running `capture_screenshots.py` on a live stack | ✓ Good |
+| Two-phase SKIP LOCKED (50-row scan + FOR UPDATE on chosen row) | Locks only the chosen candidate, not the full scan window — minimises contention at high concurrency | ✓ Good |
+| `migration_v44.sql` uses `CREATE INDEX CONCURRENTLY` | Zero-downtime index creation on live Postgres; cannot run inside a transaction block (psql `-1` flag must not be used) | ✓ Good |
+| `_pool_kwargs` module-level (not function-scoped) | Allows test imports without triggering asyncpg side effects at import time | ✓ Good |
+| `require_auth` (JWT only) for `/api/health/scale`, no RBAC gate | Scale metrics are observability-only with no sensitive data — any authenticated user can view | ✓ Good |
+| `upgrade.md` symlinked from `puppeteer/upgrade.md` to `docs/docs/runbooks/upgrade.md` | Test path resolves `puppeteer/upgrade.md`; symlink avoids content duplication | ✓ Good |
+
+## Previous State — v17.0 Complete (2026-03-31)
+
+Axiom v17.0 delivered Scale Hardening — 5 phases (96–100), 6 plans, all 19/19 requirements satisfied. asyncpg connection pool right-sized for 20 concurrent nodes (`pool_size=20`, tunable via `ASYNCPG_POOL_SIZE`). `SELECT FOR UPDATE SKIP LOCKED` eliminates double-assignment races on Postgres with composite index `ix_jobs_status_created_at` and `migration_v44.sql` for existing deployments. Diff-based `sync_scheduler()` replaces full `remove_all_jobs()` rebuild — internal `__`-prefixed jobs protected from CRUD sync. `_make_cron_callback()` wraps cron fires in `asyncio.create_task()` so burst cron load cannot block HTTP heartbeats. `GET /health/scale` endpoint and Admin Repository Health card provide live operational visibility. 52 files changed, 6,255 insertions.
 
 ## Previous State — v16.1 Complete (2026-03-30)
 
@@ -404,4 +409,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-30 after v16.1 milestone — PR Merge & Backlog Closure*
+*Last updated: 2026-03-31 after v17.0 milestone — Scale Hardening*

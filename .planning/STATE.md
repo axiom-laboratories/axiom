@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v17.0
-milestone_name: — Scale Hardening
-status: completed
-stopped_at: Completed 100-02-PLAN.md
-last_updated: "2026-03-31T08:54:57.724Z"
-last_activity: "2026-03-31 — Phase 100 Plan 02 complete: Admin scale metrics (OBS-02), upgrade.md migration_v44 entry + CONCURRENTLY caveat (DOCS-01), v17.0 Scale Hardening section (DOCS-02); all 9 OBS tests pass"
+milestone: v18.0
+milestone_name: — Planning Next Milestone
+status: planning
+stopped_at: v17.0 milestone complete
+last_updated: "2026-03-31"
+last_activity: "2026-03-31 — v17.0 Scale Hardening milestone closed. Planning next milestone."
 progress:
   total_phases: 5
   completed_phases: 5
@@ -21,14 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Phase 100 — Observability & Docs (v17.0 Scale Hardening final)
+**Current focus:** Planning next milestone (v18.0)
 
 ## Current Position
 
-Phase: 100 of 100 (Observability Sign-off) — COMPLETE
-Plan: 2 of 2 complete in current phase
-Status: Phase 100 complete — all OBS/DOCS requirements delivered; v17.0 Scale Hardening milestone ready for sign-off
-Last activity: 2026-03-31 — Phase 100 Plan 02 complete: Admin scale metrics (OBS-02), upgrade.md migration_v44 entry + CONCURRENTLY caveat (DOCS-01), v17.0 Scale Hardening section (DOCS-02); all 9 OBS tests pass
+Phase: v17.0 complete — all 5 phases, 6 plans, 19/19 requirements delivered
+Status: Milestone closed 2026-03-31. Ready to plan v18.0.
+Last activity: 2026-03-31 — v17.0 Scale Hardening milestone closed. All requirements satisfied.
 
 Progress: [██████████] 100%
 

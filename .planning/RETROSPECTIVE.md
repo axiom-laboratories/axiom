@@ -550,6 +550,42 @@
 - ~46 commits, ~65 files changed
 - No new backend/frontend features — PR merge + docs + housekeeping; minimal code-review overhead
 
+## Milestone: v17.0 — Scale Hardening
+
+**Shipped:** 2026-03-31
+**Phases:** 5 (96–100) | **Plans:** 6 | **Requirements:** 19/19
+
+### What Was Built
+- APScheduler pinned to `>=3.10,<4.0` with startup assertion; `IS_POSTGRES` flag exported from `db.py`; global `job_defaults` (`misfire_grace_time=60`, `coalesce=True`, `max_instances=1`) set at constructor level
+- asyncpg pool right-sized for 20 concurrent nodes (`pool_size=20`, `max_overflow=10`, `pool_timeout=30`, `pool_recycle=300`, `pool_pre_ping=True`); tunable via `ASYNCPG_POOL_SIZE` env var
+- Two-phase `SELECT FOR UPDATE SKIP LOCKED` in `pull_work()` on Postgres: 50-row unlocked scan + FOR UPDATE on chosen row; composite index `ix_jobs_status_created_at`; `migration_v44.sql` for existing deployments
+- Diff-based `sync_scheduler()`: internal `__`-prefixed jobs protected from CRUD sync; only affected APScheduler job modified per operation; `asyncio.create_task()` cron callback via `_make_cron_callback()`
+- `GET /health/scale` endpoint returning pool stats, APScheduler job count, pending job depth; null-safe on SQLite; Admin Repository Health card shows live metrics; `upgrade.md` gains `migration_v44` entry with `CONCURRENTLY` caveat
+
+### What Worked
+- Agent-driven planning + execution: each phase had a clear, bounded goal — phases 96–100 executed cleanly with no gap-closure plans needed
+- Parallel phase independence: Phase 99 (Scheduler Hardening) could be planned immediately after Phase 96 without waiting for 97/98 — the dependency graph was correctly identified upfront
+- The two-phase SKIP LOCKED design (unlocked scan + locked pick) was identified in the design phase and implemented correctly first time — no contention regression
+
+### What Was Inefficient
+- REQUIREMENTS.md traceability was not updated incrementally after each phase — requirements stayed in "Active" state throughout the milestone and were only moved to "Validated" at milestone close
+- The `CONCURRENTLY` transaction-block caveat for `migration_v44.sql` was not identified until the observability/docs phase (Phase 100) — it should be caught at the migration authoring step
+
+### Patterns Established
+- `IS_POSTGRES` as a module-level boolean (not a function check) is the correct pattern for dialect-conditional code — no asyncpg import side-effects at test time
+- `_pool_kwargs` at module level (not function-scoped) enables clean test imports; `max_overflow` hardcoded keeps operator tuning surface minimal
+- `CREATE INDEX CONCURRENTLY` migrations must carry an explicit comment warning that psql `-1` (single-transaction mode) cannot be used — this is a recurring operational gotcha
+
+### Key Lessons
+- Always test Postgres-path features through the actual Caddy proxy layer, not just FastAPI's `TestClient` — proxy routing can mask correctness issues that only surface at integration time
+- APScheduler v4 is a complete rewrite with no migration path — version pinning is a hard prerequisite before any scheduler code changes; document the rationale in the pin itself
+- The `CONCURRENTLY` caveat for index creation should be part of the migration authoring checklist, not discovered during docs review
+
+### Cost Observations
+- 5 phases, 6 plans, 3-day delivery (2026-03-29 → 2026-03-31)
+- 52 files changed, 6,255 insertions, 89 deletions
+- Sonnet model throughout; no gap-closure plans required — clean first-pass execution across all phases
+
 ## Milestone: v16.0 — Competitive Observability
 
 **Shipped:** 2026-03-30
