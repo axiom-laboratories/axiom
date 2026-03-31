@@ -182,6 +182,32 @@ docker exec -i puppeteer-db-1 \
 | `migration_v40.sql` / `migration_v41.sql` | Job resubmit traceability | `jobs.originating_guid` (v40 and v41 are equivalent; applying either is sufficient) |
 | `migration_v42.sql` | DRAINING node status + explicit node targeting | Documentation-only for DRAINING; `jobs.target_node_id` |
 | `migration_v43.sql` | Scheduling health and data management | `execution_records.pinned`, `scheduled_jobs.allow_overlap`, `scheduled_jobs.dispatch_timeout_minutes`, `jobs.dispatch_timeout_minutes`; new tables: `scheduled_fire_log`, `job_templates` |
+| `migration_v44.sql` | Dispatch correctness index | `CREATE INDEX CONCURRENTLY ix_jobs_status_created_at ON jobs (status, created_at)` |
+
+!!! warning "migration_v44.sql — CONCURRENTLY transaction restriction"
+    `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block.
+
+    **Do not use:** `psql -1 -f migration_v44.sql` (the `-1` flag wraps in `BEGIN/COMMIT`)
+
+    **Correct invocation:**
+    ```bash
+    docker exec -i puppeteer-db-1 \
+      psql -U puppet puppet_db < puppeteer/migration_v44.sql
+    ```
+
+    **Pre-flight check** (confirm jobs table exists before running):
+    ```sql
+    SELECT COUNT(*) FROM jobs;
+    ```
+
+    **Validity confirmation** (run after to confirm index was created):
+    ```sql
+    SELECT indexname, indexdef
+    FROM pg_indexes
+    WHERE tablename = 'jobs' AND indexname = 'ix_jobs_status_created_at';
+    ```
+
+    **Naming note:** Despite the v17.0 milestone name, this migration is `migration_v44.sql` — the `migration_v17.sql` filename was already used in an earlier release (Phase 4 — operator_tags on nodes).
 
 ### SQLite note
 
