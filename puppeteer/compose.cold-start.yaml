@@ -64,7 +64,7 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PYTHONUNBUFFERED=1
       - AGENT_URL=${AGENT_URL:-https://localhost:8001}
-      - NODE_IMAGE=${NODE_IMAGE:-localhost/master-of-puppets-node:latest}
+      - NODE_IMAGE=${NODE_IMAGE:-ghcr.io/axiom-laboratories/axiom-node:latest}
       - NODE_EXECUTION_MODE=${NODE_EXECUTION_MODE:-auto}
       - AXIOM_LICENCE_KEY=${AXIOM_LICENCE_KEY:-}
     ports:

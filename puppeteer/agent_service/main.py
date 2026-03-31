@@ -254,7 +254,7 @@ async def get_node_compose(token: str, mounts: Optional[str] = None, tags: Optio
 version: '3.8'
 services:
   puppet:
-    image: {os.getenv("NODE_IMAGE", "192.168.50.148:5000/puppet-node:latest")}
+    image: {os.getenv("NODE_IMAGE", "ghcr.io/axiom-laboratories/axiom-node:latest")}
     network_mode: host
     environment:
       - AGENT_URL={os.getenv("AGENT_URL", "https://localhost:8001")}
