@@ -145,3 +145,51 @@ describe('Admin LicenceSection', () => {
         expect(screen.queryByText('Features')).toBeNull();
     });
 });
+
+describe('Tab visibility by licence tier', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockAuthFetch.mockResolvedValue({
+            ok: true,
+            json: async () => [],
+        });
+    });
+
+    it('hides EE tabs in CE mode', () => {
+        mockUseLicence.mockReturnValue(ceLicence());
+        renderWithProviders(<Admin />);
+
+        expect(screen.queryByRole('tab', { name: /smelter registry/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /bom explorer/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /tools/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /artifact vault/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /rollouts/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /automation/i })).not.toBeInTheDocument();
+    });
+
+    it('shows Enterprise upgrade tab in CE mode', () => {
+        mockUseLicence.mockReturnValue(ceLicence());
+        renderWithProviders(<Admin />);
+
+        expect(screen.getByRole('tab', { name: /enterprise/i })).toBeInTheDocument();
+    });
+
+    it('shows all EE tabs in EE mode', () => {
+        mockUseLicence.mockReturnValue(enterpriseLicence());
+        renderWithProviders(<Admin />);
+
+        expect(screen.getByRole('tab', { name: /smelter registry/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /bom explorer/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /tools/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /artifact vault/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /rollouts/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /automation/i })).toBeInTheDocument();
+    });
+
+    it('does not show Enterprise upgrade tab in EE mode', () => {
+        mockUseLicence.mockReturnValue(enterpriseLicence());
+        renderWithProviders(<Admin />);
+
+        expect(screen.queryByRole('tab', { name: /^\+ enterprise$/i })).not.toBeInTheDocument();
+    });
+});
