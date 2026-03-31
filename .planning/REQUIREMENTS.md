@@ -36,13 +36,13 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 ### Observability
 
 - [x] **OBS-01**: `GET /health/scale` endpoint returns pool stats (`pool_size`, `checked_out`, `available`, `overflow`), APScheduler job count, and current pending job depth
-- [ ] **OBS-02**: Admin dashboard surfaces pool checkout count and pending job depth (extend existing Admin health section — no new page required)
+- [x] **OBS-02**: Admin dashboard surfaces pool checkout count and pending job depth (extend existing Admin health section — no new page required)
 - [ ] **OBS-03**: Integration test verifies zero double-assignment under 5 concurrent `pull_work()` calls against a real Postgres session (not SQLite)
 
 ### Documentation
 
-- [ ] **DOCS-01**: `migration_v17.sql` steps added to upgrade runbook — includes pre-flight check, `CONCURRENTLY` caveat (cannot run in transaction block), and validity confirmation query
-- [ ] **DOCS-02**: Scale limits section added/updated in operations docs — documents v17.0 thresholds, `ASYNCPG_POOL_SIZE` tuning formula (`pool_size ≤ max_connections / worker_count`), and APScheduler pin rationale
+- [x] **DOCS-01**: `migration_v17.sql` steps added to upgrade runbook — includes pre-flight check, `CONCURRENTLY` caveat (cannot run in transaction block), and validity confirmation query
+- [x] **DOCS-02**: Scale limits section added/updated in operations docs — documents v17.0 thresholds, `ASYNCPG_POOL_SIZE` tuning formula (`pool_size ≤ max_connections / worker_count`), and APScheduler pin rationale
 
 ## Future Requirements
 
@@ -87,9 +87,9 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 | SCHED-02 | Phase 99 | Complete |
 | SCHED-03 | Phase 99 | Complete |
 | OBS-01 | Phase 100 | Complete |
-| OBS-02 | Phase 100 | Pending |
-| DOCS-01 | Phase 100 | Pending |
-| DOCS-02 | Phase 100 | Pending |
+| OBS-02 | Phase 100 | Complete |
+| DOCS-01 | Phase 100 | Complete |
+| DOCS-02 | Phase 100 | Complete |
 
 **Coverage:**
 - v17.0 requirements: 19 total

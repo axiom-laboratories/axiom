@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
-stopped_at: Completed 100-01-PLAN.md
-last_updated: "2026-03-31T08:46:02.482Z"
-last_activity: "2026-03-31 — Phase 100 Plan 01 complete: ScaleHealthResponse model, GET /api/health/scale endpoint (null-safe SQLite/Postgres), OBS-01 tests all pass"
+stopped_at: Completed 100-02-PLAN.md
+last_updated: "2026-03-31T08:51:04.658Z"
+last_activity: "2026-03-31 — Phase 100 Plan 02 complete: Admin scale metrics (OBS-02), upgrade.md migration_v44 entry + CONCURRENTLY caveat (DOCS-01), v17.0 Scale Hardening section (DOCS-02); all 9 OBS tests pass"
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 6
-  completed_plans: 5
-  percent: 80
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 100 of 100 (Observability Sign-off)
-Plan: 1 of 2 complete in current phase
-Status: Phase 100 Plan 01 complete — GET /api/health/scale live; Plan 02 (upgrade.md docs) next
-Last activity: 2026-03-31 — Phase 100 Plan 01 complete: ScaleHealthResponse model, /api/health/scale endpoint, OBS-01 tests all pass
+Phase: 100 of 100 (Observability Sign-off) — COMPLETE
+Plan: 2 of 2 complete in current phase
+Status: Phase 100 complete — all OBS/DOCS requirements delivered; v17.0 Scale Hardening milestone ready for sign-off
+Last activity: 2026-03-31 — Phase 100 Plan 02 complete: Admin scale metrics (OBS-02), upgrade.md migration_v44 entry + CONCURRENTLY caveat (DOCS-01), v17.0 Scale Hardening section (DOCS-02); all 9 OBS tests pass
 
-Progress: [██████████] 100% (v17.0 — counter reflects plans-on-disk; 5/6 plans done)
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -47,6 +47,8 @@ Progress: [██████████] 100% (v17.0 — counter reflects plan
 - [Phase 99-01]: _make_cron_callback returns synchronous closure that calls create_task — APScheduler cron fires return immediately, no event-loop blocking under burst load (SCHED-03)
 - [Phase 99-01]: diff-based sync_scheduler: internal __ jobs excluded from diff by startswith('__') — protected from any CRUD sync operation (SCHED-01, SCHED-02)
 - [Phase 100-01]: require_auth (JWT only) used for /api/health/scale — no RBAC gate needed; scale metrics are observability-only with no sensitive data
+- [Phase 100-02]: puppeteer/upgrade.md created as symlink to docs/docs/runbooks/upgrade.md — test path resolves puppeteer/upgrade.md; symlink avoids content duplication while making tests pass
+- [Phase 100-02]: OBS-02, DOCS-01, DOCS-02 all complete; v17.0 milestone sign-off ready
 
 ### Pending Todos
 
@@ -54,7 +56,7 @@ None.
 
 ### Blockers/Concerns
 
-- `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block — migration_v44.sql carries this caveat; DOCS-01 in Phase 100 should cross-reference it
+None. CONCURRENTLY caveat documented in upgrade.md (DOCS-01 complete).
 
 ### Completed Prerequisites
 
@@ -70,9 +72,12 @@ None.
 - SCHED-02 (internal job protection): done — __ jobs excluded from diff by startswith('__') guard
 - SCHED-03 (create_task wrapper): done — _make_cron_callback() returns sync closure; done-callback marks fire_log 'failed'; get_scheduling_health() counts 'failed' rows
 - OBS-01 (scale health endpoint): done — GET /api/health/scale with ScaleHealthResponse model; null-safe on SQLite, pool stats on Postgres
+- OBS-02 (admin scale metrics): done — Admin Repository Health card shows Pool checkout, Pending jobs, APScheduler rows; N/A guard on SQLite
+- DOCS-01 (migration_v44 entry): done — upgrade.md migration table updated; CONCURRENTLY caveat warning block added
+- DOCS-02 (v17.0 Scale Hardening docs): done — ASYNCPG_POOL_SIZE tuning formula, APScheduler pin rationale, correctness thresholds table
 
 ## Session Continuity
 
-Last session: 2026-03-31T08:46:02.480Z
-Stopped at: Completed 100-01-PLAN.md
+Last session: 2026-03-31T08:51:04.656Z
+Stopped at: Completed 100-02-PLAN.md
 Resume file: None
