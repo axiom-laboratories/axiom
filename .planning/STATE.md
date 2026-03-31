@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v18.0
-milestone_name: — Planning Next Milestone
+milestone_name: First-User Experience & E2E Validation
 status: planning
-stopped_at: v17.0 milestone complete
+stopped_at: Defining requirements
 last_updated: "2026-03-31"
-last_activity: "2026-03-31 — v17.0 Scale Hardening milestone closed. Planning next milestone."
+last_activity: "2026-03-31 — Milestone v18.0 started. Defining requirements."
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,13 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone (v18.0)
+**Current focus:** v18.0 — First-User Experience & E2E Validation
 
 ## Current Position
 
-Phase: v17.0 complete — all 5 phases, 6 plans, 19/19 requirements delivered
-Status: Milestone closed 2026-03-31. Ready to plan v18.0.
-Last activity: 2026-03-31 — v17.0 Scale Hardening milestone closed. All requirements satisfied.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-31 — Milestone v18.0 started
 
 Progress: [██████████] 100%
 

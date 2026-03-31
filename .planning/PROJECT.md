@@ -12,7 +12,15 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v18.0 — Planning
+## Current Milestone: v18.0 — First-User Experience & E2E Validation
+
+**Goal:** Deliver a friction-free cold-start experience for a new user on both Linux and Windows, validated end-to-end as a potential customer, with CE UI cleaned up to remove confusing EE-only elements.
+
+**Target features:**
+- E2E cold-start validation on Linux (fresh deploy, first-user persona, all flows exercised)
+- E2E cold-start validation on Windows (same persona, dwight/Windows stack)
+- CE admin/settings page: hide or remove EE-gated controls to reduce confusion
+- Fix any first-user friction found during the E2E runs
 
 **Previous:** v17.0 Scale Hardening shipped 2026-03-31 (connection pool right-sizing, SKIP LOCKED dispatch correctness, diff-based scheduler sync, live observability endpoint for 20-node concurrent load)
 
