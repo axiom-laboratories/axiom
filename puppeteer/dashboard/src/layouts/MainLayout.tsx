@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -31,10 +31,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { getUser, logout } from '../auth';
+import { getUser, logout, setToken } from '../auth';
 import { useFeatures } from '../hooks/useFeatures';
 import { useLicence } from '../hooks/useLicence';
 import { NotificationBell } from '@/components/NotificationBell';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { authenticatedFetch } from '../auth';
 
 const MainLayout = () => {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -151,6 +153,48 @@ const MainLayout = () => {
     const isAdmin = user?.role === 'admin';
     const initial = user?.username?.[0]?.toUpperCase() ?? '?';
 
+    const [forceChangeOpen, setForceChangeOpen] = useState<boolean>(
+        () => localStorage.getItem('mop_must_change_password') === '1'
+    );
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [pwError, setPwError] = useState('');
+    const [pwLoading, setPwLoading] = useState(false);
+
+    const handleForceChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPwError('');
+        if (newPassword.length < 8) {
+            setPwError('Password must be at least 8 characters.');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            setPwError('Passwords do not match.');
+            return;
+        }
+        setPwLoading(true);
+        try {
+            const res = await authenticatedFetch('/auth/me', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: newPassword }),
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                setPwError(body.detail || 'Failed to change password.');
+                return;
+            }
+            const body = await res.json();
+            if (body.access_token) setToken(body.access_token);
+            localStorage.removeItem('mop_must_change_password');
+            setForceChangeOpen(false);
+        } catch {
+            setPwError('Network error — please try again.');
+        } finally {
+            setPwLoading(false);
+        }
+    };
+
     const GRACE_DISMISSED_KEY = 'axiom_licence_grace_dismissed';
     const [graceDismissed, setGraceDismissed] = useState<boolean>(
         () => sessionStorage.getItem(GRACE_DISMISSED_KEY) === '1'
@@ -244,6 +288,48 @@ const MainLayout = () => {
                     <Outlet />
                 </main>
             </div>
+
+            <Dialog open={forceChangeOpen} onOpenChange={() => {}}>
+                <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-700" onInteractOutside={(e) => e.preventDefault()}>
+                    <DialogHeader>
+                        <DialogTitle className="text-white">Change Your Password</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            You are using the default password. Please set a new password before continuing.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleForceChange} className="space-y-4 mt-2">
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">New Password</label>
+                            <input
+                                type="password"
+                                value={newPassword}
+                                onChange={e => setNewPassword(e.target.value)}
+                                placeholder="Min. 8 characters"
+                                className="w-full h-10 px-3 bg-zinc-800 border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-zinc-600"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Confirm Password</label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                placeholder="Repeat new password"
+                                className="w-full h-10 px-3 bg-zinc-800 border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-zinc-600"
+                            />
+                        </div>
+                        {pwError && <p className="text-sm text-red-400">{pwError}</p>}
+                        <Button
+                            type="submit"
+                            disabled={pwLoading || !newPassword || !confirmPassword}
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold"
+                        >
+                            {pwLoading ? 'Saving…' : 'Set Password'}
+                        </Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

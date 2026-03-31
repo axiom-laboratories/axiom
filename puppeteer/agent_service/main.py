@@ -723,7 +723,7 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
         data={"sub": user.username, "tv": user.token_version, "role": user.role},
         expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "must_change_password": user.must_change_password}
 
 @app.get("/auth/me", tags=["Authentication"])
 async def read_users_me(current_user: User = Depends(get_current_user)):
@@ -736,10 +736,13 @@ async def update_self(req: dict, current_user: User = Depends(get_current_user),
     new_password = req.get("password", "").strip()
     if not new_password or len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-    current_password = req.get("current_password", "")
-    if not current_password or not verify_password(current_password, current_user.password_hash):
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    # Skip current_password check only when user is in force-change mode (they just authenticated)
+    if not current_user.must_change_password:
+        current_password = req.get("current_password", "")
+        if not current_password or not verify_password(current_password, current_user.password_hash):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
     current_user.password_hash = get_password_hash(new_password)
+    current_user.must_change_password = False
     current_user.token_version = (current_user.token_version or 0) + 1
     audit(db, current_user, "user:password_changed", detail={"username": current_user.username})
     await db.commit()

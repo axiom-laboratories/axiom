@@ -113,6 +113,7 @@ class ResultReport(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+    must_change_password: bool = False
 
 class EnrollmentTokenCreate(BaseModel):
     template_id: Optional[str] = None

@@ -49,3 +49,4 @@ jobs.db
 
 # MkDocs generated site (build output — not tracked)
 docs/site/
+external_client_ed25519

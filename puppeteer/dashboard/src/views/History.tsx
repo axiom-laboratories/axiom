@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { authenticatedFetch } from '../auth';
+import { useFeatures } from '../hooks/useFeatures';
+import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 import { 
     Table, 
     TableBody, 
@@ -24,6 +26,7 @@ import { Terminal, Search, Filter } from 'lucide-react';
 import { ExecutionLogModal } from '../components/ExecutionLogModal';
 
 const History = () => {
+    const features = useFeatures();
     const [page, setPage] = useState(0);
     const [nodeId, setNodeId] = useState('');
     const [status, setStatus] = useState('ALL');
@@ -64,6 +67,10 @@ const History = () => {
             default: return 'outline';
         }
     };
+
+    if (!features.executions) {
+        return <UpgradePlaceholder feature="Execution History" description="Full audit trail of all task executions, results, and attestations across the mesh." />;
+    }
 
     return (
         <div className="space-y-6">

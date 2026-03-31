@@ -7,6 +7,7 @@ const TOKEN_KEY = 'mop_auth_token';
 export interface LoginResponse {
     access_token: string;
     token_type: string;
+    must_change_password?: boolean;
 }
 
 export interface UserJwt {
@@ -52,6 +53,11 @@ export const login = async (username: string, password: string): Promise<LoginRe
 
     const data: LoginResponse = await res.json();
     localStorage.setItem(TOKEN_KEY, data.access_token);
+    if (data.must_change_password) {
+        localStorage.setItem('mop_must_change_password', '1');
+    } else {
+        localStorage.removeItem('mop_must_change_password');
+    }
     return data;
 };
 

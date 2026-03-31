@@ -10,6 +10,7 @@ export interface Features {
   resource_limits: boolean;
   service_principals: boolean;
   api_keys: boolean;
+  executions: boolean;
 }
 
 const CE_DEFAULTS: Features = {
@@ -21,6 +22,7 @@ const CE_DEFAULTS: Features = {
   resource_limits: false,
   service_principals: false,
   api_keys: false,
+  executions: false,
 };
 
 export function useFeatures(): Features {
