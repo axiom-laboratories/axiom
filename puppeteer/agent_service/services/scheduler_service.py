@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 import json
@@ -124,29 +125,96 @@ class SchedulerService:
             await session.commit()
 
     async def sync_scheduler(self):
-        """Syncs DB ScheduledJobs with APScheduler."""
+        """Syncs DB ScheduledJobs with APScheduler using diff-based algorithm."""
         logger.info("🔄 Syncing Scheduler...")
-        self.scheduler.remove_all_jobs()
         async with db_module.AsyncSessionLocal() as session:
-            result = await session.execute(select(ScheduledJob).where(ScheduledJob.is_active == True))
-            jobs = result.scalars().all()
-            count = 0
-            for j in jobs:
-                if j.schedule_cron:
-                     try:
-                         parts = j.schedule_cron.split()
-                         if len(parts) == 5:
-                             self.scheduler.add_job(
-                                 self.execute_scheduled_job,
-                                 'cron',
-                                 args=[j.id],
-                                 minute=parts[0], hour=parts[1], day=parts[2], month=parts[3], day_of_week=parts[4],
-                                 id=j.id,
-                             )
-                             count += 1
-                     except Exception as e:
-                         logger.error(f"❌ Failed to schedule {j.name}: {e}")
+            result = await session.execute(
+                select(ScheduledJob).where(ScheduledJob.is_active == True)
+            )
+            db_jobs = result.scalars().all()
+
+        # Build desired: {id -> ScheduledJob} for active jobs with valid cron
+        desired: dict = {}
+        for j in db_jobs:
+            if j.schedule_cron:
+                parts = j.schedule_cron.split()
+                if len(parts) == 5:
+                    desired[j.id] = j
+
+        # Build current: IDs in APScheduler excluding internal jobs
+        current_ids = {
+            job.id for job in self.scheduler.get_jobs()
+            if not job.id.startswith('__')
+        }
+
+        # Remove jobs no longer desired
+        to_remove = current_ids - set(desired.keys())
+        for job_id in to_remove:
+            try:
+                self.scheduler.remove_job(job_id)
+            except Exception as e:
+                logger.warning(f"⚠️ Could not remove job {job_id}: {e}")
+
+        # Add or update all desired jobs
+        count = 0
+        for j in desired.values():
+            parts = j.schedule_cron.split()
+            try:
+                self.scheduler.add_job(
+                    self._make_cron_callback(j.id),
+                    'cron',
+                    minute=parts[0], hour=parts[1], day=parts[2],
+                    month=parts[3], day_of_week=parts[4],
+                    id=j.id,
+                    replace_existing=True,
+                )
+                count += 1
+            except Exception as e:
+                logger.error(f"❌ Failed to schedule {j.name}: {e}")
+
         logger.info(f"✅ Scheduler Synced: {count} jobs active.")
+
+    def _make_cron_callback(self, scheduled_job_id: str):
+        """Returns a synchronous APScheduler callback that spawns execute_scheduled_job as a task."""
+        def _callback():
+            try:
+                loop = asyncio.get_event_loop()
+                task = loop.create_task(self.execute_scheduled_job(scheduled_job_id))
+                task.add_done_callback(
+                    lambda t: self._on_cron_task_done(t, scheduled_job_id)
+                )
+            except Exception as e:
+                logger.error(f"❌ Failed to create task for scheduled job {scheduled_job_id}: {e}")
+        return _callback
+
+    def _on_cron_task_done(self, task: asyncio.Task, scheduled_job_id: str):
+        """Done-callback: if task raised, update the most recent fire_log row to 'failed'."""
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.error(f"❌ Scheduled job task {scheduled_job_id} raised: {exc}")
+            try:
+                loop = asyncio.get_event_loop()
+                loop.create_task(self._mark_latest_fire_failed(scheduled_job_id, str(exc)))
+            except Exception as e:
+                logger.error(f"❌ Could not schedule fire_log failure update: {e}")
+
+    async def _mark_latest_fire_failed(self, scheduled_job_id: str, error_msg: str):
+        """Update the most recent fire_log row for this job to status='failed'."""
+        from sqlalchemy import desc as _desc
+        async with db_module.AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(ScheduledFireLog)
+                .where(ScheduledFireLog.scheduled_job_id == scheduled_job_id)
+                .order_by(_desc(ScheduledFireLog.created_at))
+                .limit(1)
+            )
+            fire_log = result.scalar_one_or_none()
+            if fire_log and fire_log.status == 'fired':
+                fire_log.status = 'failed'
+                await session.commit()
+                logger.warning(f"⚠️ Marked fire_log {fire_log.id} as failed for job {scheduled_job_id}: {error_msg}")
 
     async def execute_scheduled_job(self, scheduled_job_id: str):
         """Callback for APScheduler. Creates an Execution Job from the Definition."""
@@ -299,9 +367,11 @@ class SchedulerService:
             jid = row.scheduled_job_id
             if row.status == 'fired':
                 counts[jid]["fired"] += 1
+            elif row.status == 'failed':
+                counts[jid]["fired"] += 1   # failed = attempted (counts as fired)
+                counts[jid]["failed"] += 1  # also increments failed aggregate
             elif row.status in ('skipped_draft', 'skipped_overlap'):
                 counts[jid]["skipped"] += 1
-            # 'failed' status could be added in the future
 
         # Also count FAILED Job rows dispatched from each scheduled job in the window
         failed_result = await db.execute(
