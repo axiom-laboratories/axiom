@@ -41,8 +41,6 @@ services:
 
   cert-manager:
     image: ghcr.io/axiom-laboratories/axiom-cert-manager:latest
-    build:
-      context: ./cert-manager
     ports:
       - "80:80"
       - "8443:443"
@@ -55,9 +53,6 @@ services:
     restart: always
 
   agent:
-    build:
-      context: .
-      dockerfile: Containerfile.server
     image: ghcr.io/axiom-laboratories/axiom:latest
     command: python -m agent_service.main
     restart: always
@@ -75,7 +70,6 @@ services:
     volumes:
       - certs-volume:/app/global_certs:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - ../puppets:/app/puppets:ro
       - secrets-data:/app/secrets   # Persists boot.log and licence.key across restarts
                                     # EE: Seed licence: docker cp licence.key <agent-container>:/app/secrets/
     depends_on:
@@ -86,16 +80,10 @@ services:
 
   dashboard:
     image: ghcr.io/axiom-laboratories/axiom-dashboard:latest
-    build:
-      context: ./dashboard
-      dockerfile: Containerfile
     restart: always
 
   docs:
     image: ghcr.io/axiom-laboratories/axiom-docs:latest
-    build:
-      context: ..
-      dockerfile: docs/Dockerfile
     restart: always
 
 
