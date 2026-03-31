@@ -42,16 +42,8 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
 
     The `token` field contains the full base64-encoded JOIN_TOKEN with the Root CA embedded.
 
-!!! warning "Admin password (cold-start installs)"
-    If you started Axiom using `compose.cold-start.yaml` without setting `ADMIN_PASSWORD` in your `.env` file, the admin account was created with a random password. You will not be able to log in.
-
-    Before starting the stack, create a `.env` file in the same directory as `compose.cold-start.yaml`:
-
-    ```bash
-    ADMIN_PASSWORD=your-chosen-password
-    ```
-
-    Then restart: `docker compose -f compose.cold-start.yaml --env-file .env down -v && docker compose -f compose.cold-start.yaml --env-file .env up -d`
+!!! note "Admin password (cold-start installs)"
+    If you started Axiom using `compose.cold-start.yaml`, the default login is **admin / admin**. You will be prompted to change it on first login.
 
 ---
 

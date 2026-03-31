@@ -6,17 +6,16 @@ version: "3"
 # No external service credentials required (no Cloudflare tunnel, DuckDNS, or registry).
 #
 # Quick start:
-#   1. Create a .env file with at minimum:
-#        ADMIN_PASSWORD=<choose-a-password>
-#        ENCRYPTION_KEY is optional — auto-generated and persisted to the secrets volume on first start.
-#   2. docker compose -f compose.cold-start.yaml --env-file .env up -d
+#   1. docker compose -f compose.cold-start.yaml up -d
+#      Default login: admin / admin  (you will be prompted to change it on first login)
+#      Optional: set ADMIN_PASSWORD env var or .env file to override the default.
 #
 # Usage:
 #   CE run:  docker compose -f compose.cold-start.yaml --env-file .env up -d
 #   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml --env-file .env up -d
 #
-# IMPORTANT: ADMIN_PASSWORD must be set in your .env file before first start.
-# If omitted, the admin account is created with a random password that cannot be recovered.
+# No .env file required. Default credentials: admin / admin
+# You will be prompted to change the password on first login.
 #
 # Dashboard is reachable at: https://localhost:8443
 # API is reachable at:       https://localhost:8001
@@ -58,7 +57,7 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PYTHONUNBUFFERED=1
       - AGENT_URL=${AGENT_URL:-https://localhost:8001}

@@ -60,32 +60,31 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
     === "Linux / macOS"
 
         ```bash
-        # puppeteer/secrets.env
+        # Generate the required secret values
+        SECRET_KEY=$(openssl rand -hex 32)
+        ENCRYPTION_KEY=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n=')=
+        API_KEY=$(openssl rand -hex 16)
 
-        # JWT signing secret — generate with:
-        # python -c "import secrets; print(secrets.token_hex(32))"
-        SECRET_KEY=<random-64-char-hex>
-
-        # Fernet key for encrypting secrets at rest — generate with:
-        # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-        ENCRYPTION_KEY=<fernet-key>
-
-        # Shared API key for legacy API key auth
-        API_KEY=<arbitrary-string>
-
-        # Initial admin password — seeds the admin user on first start only
-        ADMIN_PASSWORD=<initial-admin-password>
+        # Write secrets.env
+        cat > puppeteer/secrets.env <<EOF
+        SECRET_KEY=$SECRET_KEY
+        ENCRYPTION_KEY=$ENCRYPTION_KEY
+        API_KEY=$API_KEY
+        ADMIN_PASSWORD=<choose-a-strong-password>
+        EOF
         ```
 
     === "Windows (PowerShell)"
 
-        Create the file with your preferred text editor (Notepad, VS Code, etc.) or from PowerShell:
-
         ```powershell
         # Generate the required secret values
-        $SECRET_KEY     = python -c "import secrets; print(secrets.token_hex(32))"
-        $ENCRYPTION_KEY = python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-        $API_KEY        = python -c "import secrets; print(secrets.token_urlsafe(32))"
+        $SECRET_KEY     = [System.Convert]::ToHexString(
+                            [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLower()
+        $ENCRYPTION_KEY = [System.Convert]::ToBase64String(
+                            [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
+                          ).Replace('+', '-').Replace('/', '_')
+        $API_KEY        = [System.Convert]::ToHexString(
+                            [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(16)).ToLower()
 
         # Write secrets.env
         @"
@@ -107,30 +106,18 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
 
 === "Quick Start"
 
-    Create a `.env` file in the same directory as `compose.cold-start.yaml`:
+    No configuration needed — the stack starts with default credentials and prompts you to change them on first login.
 
-    === "Linux / macOS"
+    Default login: **admin / admin**
 
-        ```bash
-        # .env — place in same directory as compose.cold-start.yaml
+    !!! note "ENCRYPTION_KEY is auto-generated"
+        If `ENCRYPTION_KEY` is not set, the agent generates one on first start and persists it to the `secrets-data` volume. It is reused on all subsequent restarts. For production server installs, set it explicitly so you can back it up and rotate it.
 
-        # Initial admin password — seeds the admin user on first start only
-        ADMIN_PASSWORD=<choose-a-password>
+    !!! tip "Overriding the default password"
+        To set a specific admin password instead of `admin`, create a `.env` file alongside `compose.cold-start.yaml` before first start:
         ```
-
-    === "Windows (PowerShell)"
-
-        ```powershell
-        @"
-        ADMIN_PASSWORD=<choose-a-password>
-        "@ | Set-Content -Encoding UTF8 .env
+        ADMIN_PASSWORD=your-chosen-password
         ```
-
-    !!! warning "ADMIN_PASSWORD is first-start only"
-        `ADMIN_PASSWORD` is only read when the admin user does not yet exist in the database. After the first start, changing this value has **no effect**. Use the dashboard **Users** page to change the admin password.
-
-    !!! note "ENCRYPTION_KEY is optional for Quick Start"
-        If `ENCRYPTION_KEY` is not set, the agent generates one automatically on first start and persists it to the `secrets-data` volume. It will be reused on all subsequent restarts. For production server installs where you need to back up or rotate the key, set it explicitly.
 
 ---
 
