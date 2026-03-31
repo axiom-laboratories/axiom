@@ -766,6 +766,48 @@ async def get_scheduling_health_endpoint(
     return SchedulingHealthResponse(**data, window=window)
 
 
+@app.get("/api/health/scale", response_model=ScaleHealthResponse, tags=["Health"])
+async def get_scale_health_endpoint(
+    current_user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return live pool and scheduler health metrics."""
+    from .db import engine, IS_POSTGRES
+    from .services.scheduler_service import scheduler_service
+    from sqlalchemy import func, select as sa_select
+
+    # APScheduler job count
+    apscheduler_jobs = len(scheduler_service.scheduler.get_jobs())
+
+    # Pending job depth
+    result = await db.execute(
+        sa_select(func.count(Job.guid)).where(Job.status == "PENDING")
+    )
+    pending_depth = result.scalar() or 0
+
+    if not IS_POSTGRES:
+        return ScaleHealthResponse(
+            is_postgres=False,
+            pool_size=None,
+            checked_out=None,
+            available=None,
+            overflow=None,
+            apscheduler_jobs=apscheduler_jobs,
+            pending_job_depth=pending_depth,
+        )
+
+    pool = engine.pool
+    return ScaleHealthResponse(
+        is_postgres=True,
+        pool_size=pool.size(),
+        checked_out=pool.checkedout(),
+        available=pool.checkedin(),
+        overflow=pool.overflow(),
+        apscheduler_jobs=apscheduler_jobs,
+        pending_job_depth=pending_depth,
+    )
+
+
 @app.get("/api/features", tags=["System"])
 async def get_features(request: Request):
     ctx = getattr(request.app.state, "ee", None)
