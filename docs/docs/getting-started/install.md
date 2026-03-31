@@ -116,27 +116,21 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
 
         # Initial admin password — seeds the admin user on first start only
         ADMIN_PASSWORD=<choose-a-password>
-
-        # Fernet key for encrypting secrets at rest
-        ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
         ```
 
     === "Windows (PowerShell)"
 
         ```powershell
-        $ENCRYPTION_KEY = python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-
         @"
         ADMIN_PASSWORD=<choose-a-password>
-        ENCRYPTION_KEY=$ENCRYPTION_KEY
         "@ | Set-Content -Encoding UTF8 .env
         ```
 
     !!! warning "ADMIN_PASSWORD is first-start only"
         `ADMIN_PASSWORD` is only read when the admin user does not yet exist in the database. After the first start, changing this value has **no effect**. Use the dashboard **Users** page to change the admin password.
 
-    !!! note "Generating ENCRYPTION_KEY"
-        Run the `python -c "..."` command above in your shell and paste the output as the value. The key must be a valid Fernet key (43 URL-safe base64 characters followed by `=`).
+    !!! note "ENCRYPTION_KEY is optional for Quick Start"
+        If `ENCRYPTION_KEY` is not set, the agent generates one automatically on first start and persists it to the `secrets-data` volume. It will be reused on all subsequent restarts. For production server installs where you need to back up or rotate the key, set it explicitly.
 
 ---
 

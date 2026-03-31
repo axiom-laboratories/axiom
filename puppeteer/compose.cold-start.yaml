@@ -8,7 +8,7 @@ version: "3"
 # Quick start:
 #   1. Create a .env file with at minimum:
 #        ADMIN_PASSWORD=<choose-a-password>
-#        ENCRYPTION_KEY=<32-char-fernet-key>  # generate: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+#        ENCRYPTION_KEY is optional — auto-generated and persisted to the secrets volume on first start.
 #   2. docker compose -f compose.cold-start.yaml --env-file .env up -d
 #
 # Usage:

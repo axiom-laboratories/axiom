@@ -14,7 +14,18 @@ from .db import get_db, Node, AsyncSession
 load_dotenv()
 
 # Encryption Key for Secrets
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode() if os.getenv("ENCRYPTION_KEY") else Fernet.generate_key()
+def _load_or_generate_encryption_key() -> bytes:
+    if val := os.getenv("ENCRYPTION_KEY"):
+        return val.encode()
+    key_path = Path("/app/secrets/encryption.key")
+    if key_path.exists():
+        return key_path.read_bytes().strip()
+    key = Fernet.generate_key()
+    key_path.parent.mkdir(parents=True, exist_ok=True)
+    key_path.write_bytes(key)
+    return key
+
+ENCRYPTION_KEY = _load_or_generate_encryption_key()
 cipher_suite = Fernet(ENCRYPTION_KEY)
 
 
