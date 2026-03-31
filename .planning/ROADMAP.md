@@ -265,7 +265,8 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
   1. A CE user navigating the Admin settings page sees only CE-relevant tabs; EE-only tabs (Smelter Registry, BOM Explorer, Tools, Artifact Vault, Rollouts, Automation) are absent from the rendered tab list
   2. Any UI surface that previously showed an EE tab now shows a visible upgrade prompt in its place — not a blank area or a broken/empty panel
   3. No dashboard route renders a black or empty page in CE mode; every route either renders its CE content or shows a graceful feature-gate message
-**Plans**: TBD
+**Plans**:
+- [x] **101-01**: CE tab gating + upgrade panel in Admin.tsx (completed 2026-03-31)
 
 ### Phase 102: Linux E2E Validation
 **Goal**: A fresh Linux user following the Quick Start guide inside a clean LXC environment reaches a completed job with no undocumented steps and no friction points left unresolved
@@ -355,7 +356,7 @@ Phases execute in numeric order: 101 → 102 → 103
 | 98. Dispatch Correctness | v17.0 | 1/1 | Complete | 2026-03-30 |
 | 99. Scheduler Hardening | v17.0 | 1/1 | Complete | 2026-03-31 |
 | 100. Observability + Sign-off | v17.0 | 2/2 | Complete | 2026-03-31 |
-| 101. CE UX Cleanup | v18.0 | 0/TBD | Not started | - |
+| 101. CE UX Cleanup | v18.0 | 1/1 | In progress | - |
 | 102. Linux E2E Validation | v18.0 | 0/TBD | Not started | - |
 | 103. Windows E2E Validation | v18.0 | 0/TBD | Not started | - |
 
