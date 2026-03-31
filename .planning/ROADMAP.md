@@ -297,7 +297,12 @@ Plans:
   4. A node enrolls on Dwight following the documented Windows enrollment steps and appears as ONLINE in the Nodes view
   5. A PowerShell job dispatched through the dashboard runs to COMPLETED status and its output is visible
   6. Every friction point found during the Windows run is catalogued in a report and fixed before the phase is marked complete
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 103-01-PLAN.md — Docs pre-audit: add PowerShell tabs to enroll-node.md and first-job.md
+- [ ] 103-02-PLAN.md — Scaffold: paramiko helpers, Windows orchestrator, validation persona prompt
+- [ ] 103-03-PLAN.md — Live Windows golden path run on Dwight + friction catalogue
+- [ ] 103-04-PLAN.md — Fix all BLOCKERs, iterate until clean, produce READY synthesis sign-off
 
 ## Progress
 
