@@ -233,9 +233,11 @@ token  = os.environ["TOKEN"]
 body = json.dumps({
     "task_type": "script",
     "runtime":   "python",
-    "payload":   {"script_content": script},
-    "signature_id":     key_id,
-    "signature":        sig,
+    "payload":   {
+        "script_content": script,
+        "signature":      sig,       # must be inside payload so node can verify
+        "signature_id":   key_id,    # UUID of the registered public key
+    },
 })
 
 result = subprocess.run(
