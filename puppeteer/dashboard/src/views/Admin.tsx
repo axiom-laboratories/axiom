@@ -71,6 +71,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch, getUser } from '../auth';
 import { useLicence } from '../hooks/useLicence';
+import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 
 // --- Sub-components for Admin ---
 
@@ -1352,6 +1353,7 @@ const SmelterRegistryManager = () => {
 };
 
 const Admin = () => {
+    const { isEnterprise } = useLicence();
     const [joinToken, setJoinToken] = useState<string | null>(null);
     const [pubKey, setPubKey] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -1450,12 +1452,27 @@ const Admin = () => {
             <Tabs defaultValue="onboarding" className="space-y-6">
                 <TabsList className="bg-zinc-900 border border-zinc-800 p-1 h-11">
                     <TabsTrigger value="onboarding" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Onboarding</TabsTrigger>
-                    <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Smelter Registry</TabsTrigger>
-                    <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">BOM Explorer</TabsTrigger>
-                    <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Tools</TabsTrigger>
-                    <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Artifact Vault</TabsTrigger>
-                    <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Rollouts</TabsTrigger>
-                    <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Automation</TabsTrigger>
+                    {isEnterprise && (
+                        <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Smelter Registry</TabsTrigger>
+                    )}
+                    {isEnterprise && (
+                        <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">BOM Explorer</TabsTrigger>
+                    )}
+                    {isEnterprise && (
+                        <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Tools</TabsTrigger>
+                    )}
+                    {isEnterprise && (
+                        <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Artifact Vault</TabsTrigger>
+                    )}
+                    {isEnterprise && (
+                        <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Rollouts</TabsTrigger>
+                    )}
+                    {isEnterprise && (
+                        <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Automation</TabsTrigger>
+                    )}
+                    {!isEnterprise && (
+                        <TabsTrigger value="enterprise" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">+ Enterprise</TabsTrigger>
+                    )}
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Data</TabsTrigger>
                 </TabsList>
 
@@ -1570,29 +1587,72 @@ const Admin = () => {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="smelter">
-                    <SmelterRegistryManager />
-                </TabsContent>
+                {isEnterprise && (
+                    <TabsContent value="smelter">
+                        <SmelterRegistryManager />
+                    </TabsContent>
+                )}
 
-                <TabsContent value="bom">
-                    <BOMExplorer />
-                </TabsContent>
+                {isEnterprise && (
+                    <TabsContent value="bom">
+                        <BOMExplorer />
+                    </TabsContent>
+                )}
 
-                <TabsContent value="matrix">
-                    <CapabilityMatrixManager />
-                </TabsContent>
+                {isEnterprise && (
+                    <TabsContent value="matrix">
+                        <CapabilityMatrixManager />
+                    </TabsContent>
+                )}
 
-                <TabsContent value="vault">
-                    <ArtifactVault />
-                </TabsContent>
+                {isEnterprise && (
+                    <TabsContent value="vault">
+                        <ArtifactVault />
+                    </TabsContent>
+                )}
 
-                <TabsContent value="rollouts">
-                    <RolloutManager />
-                </TabsContent>
+                {isEnterprise && (
+                    <TabsContent value="rollouts">
+                        <RolloutManager />
+                    </TabsContent>
+                )}
 
-                <TabsContent value="automation">
-                    <TriggerManager />
-                </TabsContent>
+                {isEnterprise && (
+                    <TabsContent value="automation">
+                        <TriggerManager />
+                    </TabsContent>
+                )}
+
+                {!isEnterprise && (
+                    <TabsContent value="enterprise" className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <UpgradePlaceholder
+                                feature="Smelter Registry"
+                                description="Vetted ingredient catalog with CVE scanning and STRICT/WARNING enforcement for Foundry builds."
+                            />
+                            <UpgradePlaceholder
+                                feature="BOM Explorer"
+                                description="Inspect the bill-of-materials for every built puppet image — packages, layers, and provenance."
+                            />
+                            <UpgradePlaceholder
+                                feature="Tools"
+                                description="Capability matrix editor for fine-grained control over what each node can execute."
+                            />
+                            <UpgradePlaceholder
+                                feature="Artifact Vault"
+                                description="Encrypted artefact storage attached to job runs — persist outputs, binaries, and reports."
+                            />
+                            <UpgradePlaceholder
+                                feature="Rollouts"
+                                description="Staged rollout manager — deploy job definitions to node cohorts with automated health gating."
+                            />
+                            <UpgradePlaceholder
+                                feature="Automation"
+                                description="Trigger chains and event-driven automation — fire jobs in response to webhooks or schedule cascades."
+                            />
+                        </div>
+                    </TabsContent>
+                )}
 
                 <TabsContent value="data" className="space-y-6">
                     <div className="bg-zinc-800/50 rounded-lg p-6 border border-zinc-700">
