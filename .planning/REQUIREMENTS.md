@@ -29,9 +29,9 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 
 ### Scheduler
 
-- [ ] **SCHED-01**: `sync_scheduler()` replaced with diff-based algorithm — computes add/modify/remove sets from current APScheduler state vs DB state, never calls `remove_all_jobs()`
-- [ ] **SCHED-02**: Internal system jobs (IDs prefixed `__`) excluded from diff removal in `sync_scheduler()`
-- [ ] **SCHED-03**: APScheduler fire callbacks (`execute_scheduled_job`) wrapped in `asyncio.create_task()` — scheduler callback returns immediately, freeing event loop for heartbeats and WebSocket
+- [x] **SCHED-01**: `sync_scheduler()` replaced with diff-based algorithm — computes add/modify/remove sets from current APScheduler state vs DB state, never calls `remove_all_jobs()`
+- [x] **SCHED-02**: Internal system jobs (IDs prefixed `__`) excluded from diff removal in `sync_scheduler()`
+- [x] **SCHED-03**: APScheduler fire callbacks (`execute_scheduled_job`) wrapped in `asyncio.create_task()` — scheduler callback returns immediately, freeing event loop for heartbeats and WebSocket
 
 ### Observability
 
@@ -83,9 +83,9 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 | DISP-03 | Phase 98 | Pending |
 | DISP-04 | Phase 98 | Pending |
 | OBS-03 | Phase 98 | Pending |
-| SCHED-01 | Phase 99 | Pending |
-| SCHED-02 | Phase 99 | Pending |
-| SCHED-03 | Phase 99 | Pending |
+| SCHED-01 | Phase 99 | Complete |
+| SCHED-02 | Phase 99 | Complete |
+| SCHED-03 | Phase 99 | Complete |
 | OBS-01 | Phase 100 | Pending |
 | OBS-02 | Phase 100 | Pending |
 | DOCS-01 | Phase 100 | Pending |

@@ -240,7 +240,7 @@ Archive: `.planning/milestones/v16.1-ROADMAP.md`
 - [x] **Phase 96: Foundation** - APScheduler version pin and IS_POSTGRES dialect flag (completed 2026-03-30)
 - [x] **Phase 97: DB Pool Tuning** - Connection pool right-sized for 20 concurrent nodes with health checks (completed 2026-03-30)
 - [x] **Phase 98: Dispatch Correctness** - Composite index + SKIP LOCKED eliminates double-assignment races (completed 2026-03-30)
-- [ ] **Phase 99: Scheduler Hardening** - Incremental sync and dispatcher isolation fix dark window and event loop saturation
+- [x] **Phase 99: Scheduler Hardening** - Incremental sync and dispatcher isolation fix dark window and event loop saturation (completed 2026-03-31)
 - [ ] **Phase 100: Observability + Sign-off** - Health endpoint, admin dashboard metrics, and operations docs
 
 ## Phase Details
@@ -359,7 +359,7 @@ Phases execute in numeric order: 96 → 97 → 98 → 99 → 100
 | 96. Foundation | 1/1 | Complete    | 2026-03-30 | - |
 | 97. DB Pool Tuning | 1/1 | Complete    | 2026-03-30 | - |
 | 98. Dispatch Correctness | v17.0 | Complete    | 2026-03-30 | 2026-03-30 |
-| 99. Scheduler Hardening | v17.0 | 0/TBD | Not started | - |
+| 99. Scheduler Hardening | 1/1 | Complete   | 2026-03-31 | - |
 | 100. Observability + Sign-off | v17.0 | 0/TBD | Not started | - |
 
 ## Archived
