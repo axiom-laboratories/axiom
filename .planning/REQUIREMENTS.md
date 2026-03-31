@@ -35,7 +35,7 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 
 ### Observability
 
-- [ ] **OBS-01**: `GET /health/scale` endpoint returns pool stats (`pool_size`, `checked_out`, `available`, `overflow`), APScheduler job count, and current pending job depth
+- [x] **OBS-01**: `GET /health/scale` endpoint returns pool stats (`pool_size`, `checked_out`, `available`, `overflow`), APScheduler job count, and current pending job depth
 - [ ] **OBS-02**: Admin dashboard surfaces pool checkout count and pending job depth (extend existing Admin health section — no new page required)
 - [ ] **OBS-03**: Integration test verifies zero double-assignment under 5 concurrent `pull_work()` calls against a real Postgres session (not SQLite)
 
@@ -86,7 +86,7 @@ Target envelope: 20 concurrent polling nodes / 200+ pending jobs / 1,000 schedul
 | SCHED-01 | Phase 99 | Complete |
 | SCHED-02 | Phase 99 | Complete |
 | SCHED-03 | Phase 99 | Complete |
-| OBS-01 | Phase 100 | Pending |
+| OBS-01 | Phase 100 | Complete |
 | OBS-02 | Phase 100 | Pending |
 | DOCS-01 | Phase 100 | Pending |
 | DOCS-02 | Phase 100 | Pending |

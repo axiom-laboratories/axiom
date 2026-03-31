@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
-stopped_at: Phase 100 context gathered
-last_updated: "2026-03-31T08:35:16.903Z"
-last_activity: "2026-03-31 — Phase 99 Plan 01 complete: diff-based sync_scheduler, _make_cron_callback() create_task wrapper, 'failed' fire_log health aggregation"
+stopped_at: Completed 100-01-PLAN.md
+last_updated: "2026-03-31T08:46:02.482Z"
+last_activity: "2026-03-31 — Phase 100 Plan 01 complete: ScaleHealthResponse model, GET /api/health/scale endpoint (null-safe SQLite/Postgres), OBS-01 tests all pass"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
   percent: 80
 ---
 
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 ## Current Position
 
-Phase: 99 of 100 (Scheduler Hardening)
-Plan: 1 of 1 in current phase (phase complete)
-Status: Phase 99 complete — ready for Phase 100
-Last activity: 2026-03-31 — Phase 99 Plan 01 complete: diff-based sync_scheduler, _make_cron_callback() create_task wrapper, 'failed' fire_log health aggregation
+Phase: 100 of 100 (Observability Sign-off)
+Plan: 1 of 2 complete in current phase
+Status: Phase 100 Plan 01 complete — GET /api/health/scale live; Plan 02 (upgrade.md docs) next
+Last activity: 2026-03-31 — Phase 100 Plan 01 complete: ScaleHealthResponse model, /api/health/scale endpoint, OBS-01 tests all pass
 
-Progress: [████████░░] 80% (v17.0 — 4/5 phases done)
+Progress: [██████████] 100% (v17.0 — counter reflects plans-on-disk; 5/6 plans done)
 
 ## Accumulated Context
 
@@ -46,6 +46,7 @@ Progress: [████████░░] 80% (v17.0 — 4/5 phases done)
 - [Phase 98-01]: migration_v44.sql uses CONCURRENTLY — must not run inside psql -1 transaction wrapper; caveat comment added to migration file
 - [Phase 99-01]: _make_cron_callback returns synchronous closure that calls create_task — APScheduler cron fires return immediately, no event-loop blocking under burst load (SCHED-03)
 - [Phase 99-01]: diff-based sync_scheduler: internal __ jobs excluded from diff by startswith('__') — protected from any CRUD sync operation (SCHED-01, SCHED-02)
+- [Phase 100-01]: require_auth (JWT only) used for /api/health/scale — no RBAC gate needed; scale metrics are observability-only with no sensitive data
 
 ### Pending Todos
 
@@ -68,9 +69,10 @@ None.
 - SCHED-01 (diff-based sync): done — sync_scheduler() never calls remove_all_jobs(); uses diff algorithm with replace_existing=True
 - SCHED-02 (internal job protection): done — __ jobs excluded from diff by startswith('__') guard
 - SCHED-03 (create_task wrapper): done — _make_cron_callback() returns sync closure; done-callback marks fire_log 'failed'; get_scheduling_health() counts 'failed' rows
+- OBS-01 (scale health endpoint): done — GET /api/health/scale with ScaleHealthResponse model; null-safe on SQLite, pool stats on Postgres
 
 ## Session Continuity
 
-Last session: 2026-03-31T08:35:16.900Z
-Stopped at: Phase 100 context gathered
-Resume file: .planning/phases/100-observability-sign-off/100-CONTEXT.md
+Last session: 2026-03-31T08:46:02.480Z
+Stopped at: Completed 100-01-PLAN.md
+Resume file: None
