@@ -40,7 +40,7 @@ services:
       retries: 5
 
   cert-manager:
-    image: localhost/app_cert-manager:v3
+    image: ghcr.io/axiom-laboratories/axiom-cert-manager:latest
     build:
       context: ./cert-manager
     ports:
@@ -58,7 +58,7 @@ services:
     build:
       context: .
       dockerfile: Containerfile.server
-    image: localhost/master-of-puppets-server:v3
+    image: ghcr.io/axiom-laboratories/axiom:latest
     command: python -m agent_service.main
     restart: always
     environment:
@@ -85,14 +85,14 @@ services:
         condition: service_started
 
   dashboard:
-    image: localhost/master-of-puppets-dashboard:v3
+    image: ghcr.io/axiom-laboratories/axiom-dashboard:latest
     build:
       context: ./dashboard
       dockerfile: Containerfile
     restart: always
 
   docs:
-    image: localhost/master-of-puppets-docs:v1
+    image: ghcr.io/axiom-laboratories/axiom-docs:latest
     build:
       context: ..
       dockerfile: docs/Dockerfile

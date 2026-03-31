@@ -89,8 +89,8 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
+      - name: Extract metadata (agent)
+        id: meta-agent
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/axiom-laboratories/axiom
@@ -99,14 +99,80 @@ jobs:
           tags: |
             type=ref,event=tag
 
-      - name: Build and push multi-arch image
+      - name: Build and push agent image
         uses: docker/build-push-action@v6
         with:
           context: puppeteer
           file: puppeteer/Containerfile.server
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-agent.outputs.tags }}
+          labels: ${{ steps.meta-agent.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata (cert-manager)
+        id: meta-cert-manager
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/axiom-laboratories/axiom-cert-manager
+          flavor: |
+            latest=auto
+          tags: |
+            type=ref,event=tag
+
+      - name: Build and push cert-manager image
+        uses: docker/build-push-action@v6
+        with:
+          context: puppeteer/cert-manager
+          file: puppeteer/cert-manager/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-cert-manager.outputs.tags }}
+          labels: ${{ steps.meta-cert-manager.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata (dashboard)
+        id: meta-dashboard
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/axiom-laboratories/axiom-dashboard
+          flavor: |
+            latest=auto
+          tags: |
+            type=ref,event=tag
+
+      - name: Build and push dashboard image
+        uses: docker/build-push-action@v6
+        with:
+          context: puppeteer/dashboard
+          file: puppeteer/dashboard/Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-dashboard.outputs.tags }}
+          labels: ${{ steps.meta-dashboard.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata (docs)
+        id: meta-docs
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/axiom-laboratories/axiom-docs
+          flavor: |
+            latest=auto
+          tags: |
+            type=ref,event=tag
+
+      - name: Build and push docs image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docs/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-docs.outputs.tags }}
+          labels: ${{ steps.meta-docs.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
