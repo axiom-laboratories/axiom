@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v18.0
 milestone_name: — First-User Experience & E2E Validation
-status: in-progress
-stopped_at: "Checkpoint:human-verify in 102-02-PLAN.md — awaiting review of FRICTION-LNX-102.md"
-last_updated: "2026-03-31T21:02:08.715Z"
-last_activity: "2026-03-31 — Plan 102-02 executed (golden path run, 1 BLOCKER found: --env-file .env)"
+status: completed
+stopped_at: "Completed 102-02-PLAN.md — ready for 102-03 (friction fix)"
+last_updated: "2026-03-31T21:15:00Z"
+last_activity: "2026-03-31 — Plan 102-02 complete; user reviewed checkpoint; direction: remove --env-file .env from compose (self-contained)"
 progress:
   total_phases: 3
   completed_phases: 1
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 102 of 103 (Linux E2E Validation) — IN PROGRESS
-Plan: 102-02 at checkpoint:human-verify (2 of 3 plans done in phase 102)
-Status: Golden path run complete; 1 BLOCKER found; awaiting human review at checkpoint
-Last activity: 2026-03-31 — Plan 102-02 executed (golden path run in LXC, 1 BLOCKER: --env-file .env in Quick Start compose command)
+Plan: 102-02 COMPLETE — ready for 102-03 (friction fix plan)
+Status: Golden path run complete; 1 BLOCKER identified and user direction recorded; Plan 02 closed
+Last activity: 2026-03-31 — Plan 102-02 closed after checkpoint review; user direction: remove --env-file .env from compose (self-contained)
 
 Progress: [█░░░░░░░░░] ~5%
 
@@ -54,6 +54,7 @@ Progress: [█░░░░░░░░░] ~5%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 102-linux-e2e-validation P02 | 1 | 66 min | 66 min |
+| Phase 102-linux-e2e-validation P02 | 66 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,7 @@ Progress: [█░░░░░░░░░] ~5%
 - [102-02]: chromium-browser excluded from LXC apt install — pulls snapd which stalls inside LXC; Playwright chromium installed separately via playwright install chromium
 - [102-02]: Claude subagent must run as non-root user — UID 0 blocks --dangerously-skip-permissions; validator user created in LXC with docker group membership
 - [102-02]: FRICTION finding: Quick Start compose command hard-codes --env-file .env which fails with no .env file — this is the BLOCKER for Plan 03
+- [102-02 checkpoint]: User direction — remove --env-file .env from compose flow; compose must be self-contained with no external env file required
 
 ### Pending Todos
 
@@ -77,10 +79,10 @@ None.
 
 ### Blockers/Concerns
 
-FRICTION-LNX-102.md BLOCKER: Quick Start compose command uses `--env-file .env` flag but no .env file is created in Quick Start instructions. First user gets immediate fatal error. Fix: remove `--env-file .env` from compose command in docs, OR add a step to create the .env file.
+FRICTION-LNX-102.md BLOCKER (actioned): Quick Start compose command uses `--env-file .env` but no .env file is created in Quick Start instructions. User direction: remove the flag entirely. Plan 03 will implement this fix.
 
 ## Session Continuity
 
-Last session: 2026-03-31T21:02:08.713Z
-Stopped at: Checkpoint:human-verify in 102-02-PLAN.md — review FRICTION-LNX-102.md
-Resume file: .planning/phases/102-linux-e2e-validation/102-02-PLAN.md (Task 3 — checkpoint response)
+Last session: 2026-03-31T21:15:00Z
+Stopped at: Completed 102-02-PLAN.md — ready for 102-03 (friction fix)
+Resume file: .planning/phases/102-linux-e2e-validation/102-03-PLAN.md
