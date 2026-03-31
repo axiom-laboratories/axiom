@@ -1987,13 +1987,9 @@
 </div>
 </div>
 </div>
-<div class="admonition warning">
+<div class="admonition note">
 <p class="admonition-title">Admin password (cold-start installs)</p>
-<p>If you started Axiom using <code>compose.cold-start.yaml</code> without setting <code>ADMIN_PASSWORD</code> in your <code>.env</code> file, the admin account was created with a random password. You will not be able to log in.</p>
-<p>Before starting the stack, create a <code>.env</code> file in the same directory as <code>compose.cold-start.yaml</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>your-chosen-password
-</code></pre></div>
-<p>Then restart: <code>docker compose -f compose.cold-start.yaml --env-file .env down -v &amp;&amp; docker compose -f compose.cold-start.yaml --env-file .env up -d</code></p>
+<p>If you started Axiom using <code>compose.cold-start.yaml</code>, the default login is <strong>admin / admin</strong>. You will be prompted to change it on first login.</p>
 </div>
 <hr />
 <h2 id="step-2-configure-node-connectivity">Step 2: Configure node connectivity</h2>

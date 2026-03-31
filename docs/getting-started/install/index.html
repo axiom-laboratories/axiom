@@ -2064,29 +2064,29 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Linux / macOS</label><label for="__tabbed_5_2">Windows (PowerShell)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="c1"># puppeteer/secrets.env</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Generate the required secret values</span>
+<span class="nv">SECRET_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span><span class="k">)</span>
+<span class="nv">ENCRYPTION_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">32</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;+/&#39;</span><span class="w"> </span><span class="s1">&#39;-_&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\n=&#39;</span><span class="k">)</span><span class="o">=</span>
+<span class="nv">API_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span><span class="k">)</span>
 
-<span class="c1"># JWT signing secret — generate with:</span>
-<span class="c1"># python -c &quot;import secrets; print(secrets.token_hex(32))&quot;</span>
-<span class="nv">SECRET_KEY</span><span class="o">=</span>&lt;random-64-char-hex&gt;
-
-<span class="c1"># Fernet key for encrypting secrets at rest — generate with:</span>
-<span class="c1"># python -c &quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span>
-<span class="nv">ENCRYPTION_KEY</span><span class="o">=</span>&lt;fernet-key&gt;
-
-<span class="c1"># Shared API key for legacy API key auth</span>
-<span class="nv">API_KEY</span><span class="o">=</span>&lt;arbitrary-string&gt;
-
-<span class="c1"># Initial admin password — seeds the admin user on first start only</span>
-<span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>&lt;initial-admin-password&gt;
+<span class="c1"># Write secrets.env</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>puppeteer/secrets.env<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">SECRET_KEY=$SECRET_KEY</span>
+<span class="s">ENCRYPTION_KEY=$ENCRYPTION_KEY</span>
+<span class="s">API_KEY=$API_KEY</span>
+<span class="s">ADMIN_PASSWORD=&lt;choose-a-strong-password&gt;</span>
+<span class="s">EOF</span>
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<p>Create the file with your preferred text editor (Notepad, VS Code, etc.) or from PowerShell:</p>
 <div class="highlight"><pre><span></span><code><span class="c"># Generate the required secret values</span>
-<span class="nv">$SECRET_KEY</span>     <span class="p">=</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import secrets; print(secrets.token_hex(32))&quot;</span>
-<span class="nv">$ENCRYPTION_KEY</span> <span class="p">=</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())&quot;</span>
-<span class="nv">$API_KEY</span>        <span class="p">=</span> <span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import secrets; print(secrets.token_urlsafe(32))&quot;</span>
+<span class="nv">$SECRET_KEY</span>     <span class="p">=</span> <span class="no">[System.Convert]</span><span class="p">::</span><span class="n">ToHexString</span><span class="p">(</span>
+                    <span class="no">[System.Security.Cryptography.RandomNumberGenerator]</span><span class="p">::</span><span class="n">GetBytes</span><span class="p">(</span><span class="n">32</span><span class="p">)).</span><span class="n">ToLower</span><span class="p">()</span>
+<span class="nv">$ENCRYPTION_KEY</span> <span class="p">=</span> <span class="no">[System.Convert]</span><span class="p">::</span><span class="n">ToBase64String</span><span class="p">(</span>
+                    <span class="no">[System.Security.Cryptography.RandomNumberGenerator]</span><span class="p">::</span><span class="n">GetBytes</span><span class="p">(</span><span class="n">32</span><span class="p">)</span>
+                  <span class="p">).</span><span class="n">Replace</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">).</span><span class="n">Replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+<span class="nv">$API_KEY</span>        <span class="p">=</span> <span class="no">[System.Convert]</span><span class="p">::</span><span class="n">ToHexString</span><span class="p">(</span>
+                    <span class="no">[System.Security.Cryptography.RandomNumberGenerator]</span><span class="p">::</span><span class="n">GetBytes</span><span class="p">(</span><span class="n">16</span><span class="p">)).</span><span class="n">ToLower</span><span class="p">()</span>
 
 <span class="c"># Write secrets.env</span>
 <span class="sh">@&quot;</span>
@@ -2113,31 +2113,17 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 </div>
 </div>
 <div class="tabbed-block">
-<p>Create a <code>.env</code> file in the same directory as <code>compose.cold-start.yaml</code>:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">Linux / macOS</label><label for="__tabbed_6_2">Windows (PowerShell)</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="c1"># .env — place in same directory as compose.cold-start.yaml</span>
-
-<span class="c1"># Initial admin password — seeds the admin user on first start only</span>
-<span class="nv">ADMIN_PASSWORD</span><span class="o">=</span>&lt;choose-a-password&gt;
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="sh">@&quot;</span>
-<span class="sh">ADMIN_PASSWORD=&lt;choose-a-password&gt;</span>
-<span class="sh">&quot;@</span> <span class="p">|</span> <span class="nb">Set-Content</span> <span class="n">-Encoding</span> <span class="n">UTF8</span> <span class="p">.</span><span class="n">env</span>
-</code></pre></div>
-</div>
-</div>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">ADMIN_PASSWORD is first-start only</p>
-<p><code>ADMIN_PASSWORD</code> is only read when the admin user does not yet exist in the database. After the first start, changing this value has <strong>no effect</strong>. Use the dashboard <strong>Users</strong> page to change the admin password.</p>
-</div>
+<p>No configuration needed — the stack starts with default credentials and prompts you to change them on first login.</p>
+<p>Default login: <strong>admin / admin</strong></p>
 <div class="admonition note">
-<p class="admonition-title">ENCRYPTION_KEY is optional for Quick Start</p>
-<p>If <code>ENCRYPTION_KEY</code> is not set, the agent generates one automatically on first start and persists it to the <code>secrets-data</code> volume. It will be reused on all subsequent restarts. For production server installs where you need to back up or rotate the key, set it explicitly.</p>
+<p class="admonition-title">ENCRYPTION_KEY is auto-generated</p>
+<p>If <code>ENCRYPTION_KEY</code> is not set, the agent generates one on first start and persists it to the <code>secrets-data</code> volume. It is reused on all subsequent restarts. For production server installs, set it explicitly so you can back it up and rotate it.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Overriding the default password</p>
+<p>To set a specific admin password instead of <code>admin</code>, create a <code>.env</code> file alongside <code>compose.cold-start.yaml</code> before first start:
+<div class="highlight"><pre><span></span><code>ADMIN_PASSWORD=your-chosen-password
+</code></pre></div></p>
 </div>
 </div>
 </div>
@@ -2145,7 +2131,7 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <hr />
 <h2 id="step-3-start-the-stack">Step 3: Start the stack</h2>
 <p>Docker Compose works identically on Windows, Linux, and macOS. The commands below are the same on all platforms — run them from PowerShell, Command Prompt, Git Bash, or a WSL2 shell.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">Server Install</label><label for="__tabbed_7_2">Quick Start</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">Server Install</label><label for="__tabbed_6_2">Quick Start</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>puppeteer/compose.server.yaml<span class="w"> </span>up<span class="w"> </span>-d
@@ -2165,7 +2151,7 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 </div>
 <hr />
 <h2 id="step-4-verify">Step 4: Verify</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">Server Install</label><label for="__tabbed_8_2">Quick Start</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">Server Install</label><label for="__tabbed_7_2">Quick Start</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Check that all containers are running:</p>
@@ -2184,7 +2170,7 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <div class="admonition note">
 <p class="admonition-title">TLS certificate warning</p>
 <p>The Root CA is auto-generated on first start. Your browser will show a certificate warning because it does not trust the self-signed CA yet. To install the CA in your browser and system trust store:</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="9:3"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><input id="__tabbed_9_3" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1">Linux</label><label for="__tabbed_9_2">macOS</label><label for="__tabbed_9_3">Windows</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:3"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><input id="__tabbed_8_3" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">Linux</label><label for="__tabbed_8_2">macOS</label><label for="__tabbed_8_3">Windows</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Visit <code>https://your-host/system/root-ca-installer</code> and run the downloaded script. The script installs the Root CA into the OS trust store and into Chrome and Firefox's NSS databases.</p>
@@ -2268,13 +2254,13 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <li><code>executions</code> — execution history and attestation log</li>
 </ul>
 <h3 id="verify-ee-is-active">Verify EE is active</h3>
-<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1">Dashboard</label><label for="__tabbed_10_2">CLI</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1">Dashboard</label><label for="__tabbed_9_2">CLI</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Open the dashboard in your browser. The sidebar shows a <strong>CE</strong> or <strong>EE</strong> badge — it switches from <strong>CE</strong> to <strong>EE</strong> once the key is loaded and valid.</p>
 </div>
 <div class="tabbed-block">
-<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="__tabbed_11_1">Linux / macOS</label><label for="__tabbed_11_2">Windows (PowerShell)</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1">Linux / macOS</label><label for="__tabbed_10_2">Windows (PowerShell)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sk<span class="w"> </span>https://&lt;your-orchestrator&gt;:8001/api/features
