@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
-stopped_at: Phase 98 Plan 01 complete
-last_updated: "2026-03-30T21:51:23.981Z"
+stopped_at: Phase 99 context gathered
+last_updated: "2026-03-31T08:01:53.460Z"
 last_activity: "2026-03-30 — Phase 98 Plan 01 complete: SKIP LOCKED in pull_work(), composite index ix_jobs_status_created_at, migration_v44.sql"
 progress:
   total_phases: 5
@@ -66,6 +66,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T22:45:00.000Z
-Stopped at: Phase 98 Plan 01 complete
-Resume file: .planning/phases/98-dispatch-correctness/98-01-SUMMARY.md
+Last session: 2026-03-31T08:01:53.458Z
+Stopped at: Phase 99 context gathered
+Resume file: .planning/phases/99-scheduler-hardening/99-CONTEXT.md
