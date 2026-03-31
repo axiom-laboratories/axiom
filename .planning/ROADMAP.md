@@ -360,7 +360,7 @@ Phases execute in numeric order: 96 → 97 → 98 → 99 → 100
 | 97. DB Pool Tuning | 1/1 | Complete    | 2026-03-30 | - |
 | 98. Dispatch Correctness | v17.0 | Complete    | 2026-03-30 | 2026-03-30 |
 | 99. Scheduler Hardening | 1/1 | Complete    | 2026-03-31 | - |
-| 100. Observability + Sign-off | 2/2 | Complete   | 2026-03-31 | - |
+| 100. Observability + Sign-off | 2/2 | Complete    | 2026-03-31 | - |
 
 ## Archived
 

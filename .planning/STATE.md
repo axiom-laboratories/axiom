@@ -4,7 +4,7 @@ milestone: v17.0
 milestone_name: — Scale Hardening
 status: completed
 stopped_at: Completed 100-02-PLAN.md
-last_updated: "2026-03-31T08:51:04.658Z"
+last_updated: "2026-03-31T08:54:57.724Z"
 last_activity: "2026-03-31 — Phase 100 Plan 02 complete: Admin scale metrics (OBS-02), upgrade.md migration_v44 entry + CONCURRENTLY caveat (DOCS-01), v17.0 Scale Hardening section (DOCS-02); all 9 OBS tests pass"
 progress:
   total_phases: 5
