@@ -859,6 +859,7 @@ const SmelterRegistryManager = () => {
         queryKey: ['smelter-ingredients'],
         queryFn: async () => {
             const res = await authenticatedFetch('/api/smelter/ingredients');
+            if (!res.ok) return [];
             return res.json();
         }
     });

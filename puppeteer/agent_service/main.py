@@ -766,7 +766,7 @@ async def get_scheduling_health_endpoint(
     return SchedulingHealthResponse(**data, window=window)
 
 
-@app.get("/api/health/scale", response_model=ScaleHealthResponse, tags=["Health"])
+@app.get("/health/scale", response_model=ScaleHealthResponse, tags=["Health"])
 async def get_scale_health_endpoint(
     current_user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),

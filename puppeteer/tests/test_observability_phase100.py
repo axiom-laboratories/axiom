@@ -105,7 +105,7 @@ def test_scale_health_endpoint_returns_200(db_session):
 
     try:
         client = TestClient(app)
-        response = client.get("/api/health/scale")
+        response = client.get("/health/scale")
         assert response.status_code == 200, (
             f"Expected 200, got {response.status_code}: {response.text}"
         )
@@ -128,7 +128,7 @@ def test_scale_health_sqlite_returns_nulls(db_session):
 
     try:
         client = TestClient(app)
-        response = client.get("/api/health/scale")
+        response = client.get("/health/scale")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
 
         data = response.json()
@@ -156,7 +156,7 @@ def test_scale_health_apscheduler_jobs_non_negative(db_session):
 
     try:
         client = TestClient(app)
-        response = client.get("/api/health/scale")
+        response = client.get("/health/scale")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
 
         data = response.json()
@@ -185,7 +185,7 @@ def test_scale_health_pending_depth_non_negative(db_session):
 
     try:
         client = TestClient(app)
-        response = client.get("/api/health/scale")
+        response = client.get("/health/scale")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
 
         data = response.json()
