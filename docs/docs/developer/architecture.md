@@ -392,12 +392,18 @@ Sensitive job payloads and secrets stored in the database are encrypted using Fe
 
 - The `ENCRYPTION_KEY` environment variable must hold a valid Fernet key.
 - Encryption and decryption are handled in `security.py` via `fernet_encrypt()` and `fernet_decrypt()`.
-- If `ENCRYPTION_KEY` is not set, the service will auto-generate one at startup — but this key is lost on restart, making all previously encrypted data unreadable. **Always set `ENCRYPTION_KEY` explicitly in production.**
+- If `ENCRYPTION_KEY` is not set, the service auto-generates one on first start and persists it to `/app/secrets/encryption.key`. It is reloaded from disk on subsequent restarts. For production, set it explicitly so you can back it up and rotate it independently. **If you change `ENCRYPTION_KEY` on an existing deployment, all stored secrets become unreadable.**
 
 !!! tip "Generating a Fernet key"
-    ```bash
-    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-    ```
+    === "Linux / macOS"
+        ```bash
+        openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n='
+        # append a trailing = to the output
+        ```
+    === "Windows (PowerShell)"
+        ```powershell
+        [System.Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).Replace('+','-').Replace('/','_')
+        ```
 
 ---
 

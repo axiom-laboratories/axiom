@@ -35,25 +35,38 @@ DATABASE_URL=postgresql+asyncpg://puppet:password@db/puppet_db
 
 ## Secret Generation
 
-Three secrets must be set before first start:
+Three secrets must be set before first start. All commands use `openssl` (available on Linux, macOS, and Windows via Git Bash or WSL2) — no Python required.
 
 **JWT signing key** — used to sign all operator session tokens:
 ```bash
-python -c "import secrets; print(secrets.token_hex(32))"
+openssl rand -hex 32
 # → paste result into SECRET_KEY=
 ```
 
 **Fernet encryption key** — encrypts node join tokens and secrets at rest:
 ```bash
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-# → paste result into ENCRYPTION_KEY=
+openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n='
+# → paste result into ENCRYPTION_KEY= (append a trailing = to the output)
 ```
 
 **API key** — required by the agent service (crashes at import if absent):
 ```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+openssl rand -hex 16
 # → paste result into API_KEY=
 ```
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    # JWT signing key
+    [System.Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLower()
+
+    # Fernet encryption key
+    [System.Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).Replace('+','-').Replace('/','_')
+
+    # API key
+    [System.Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(16)).ToLower()
+    ```
 
 !!! danger "API_KEY has no fallback"
     Unlike `SECRET_KEY` (which falls back to a weak dev default), `API_KEY` has no default value. The agent service will crash at startup if it is not set.

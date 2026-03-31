@@ -49,7 +49,6 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
 
     ```bash
     ADMIN_PASSWORD=your-chosen-password
-    ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     ```
 
     Then restart: `docker compose -f compose.cold-start.yaml --env-file .env down -v && docker compose -f compose.cold-start.yaml --env-file .env up -d`

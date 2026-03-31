@@ -137,7 +137,7 @@ Then edit `puppeteer/.env` and fill in the required values:
 | Variable | Required | Purpose | Example / How to Generate |
 |---|---|---|---|
 | `API_KEY` | **Required** | Shared API key for legacy API key auth. `security.py` calls `sys.exit(1)` at import time if this is missing — the service **will not start** without it. | `openssl rand -hex 32` |
-| `ENCRYPTION_KEY` | **Required** (unstable if absent) | Fernet key for job secrets encrypted at rest. If you change this after deployment, all stored secrets become unreadable. | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `ENCRYPTION_KEY` | **Required** (unstable if absent) | Fernet key for job secrets encrypted at rest. If you change this after deployment, all stored secrets become unreadable. | `openssl rand -base64 32 \| tr '+/' '-_' \| tr -d '\n='` (append a trailing `=`) |
 | `SECRET_KEY` | Recommended | JWT signing key. Defaults to a weak dev value — always override in production. | `openssl rand -hex 32` |
 | `ADMIN_PASSWORD` | Recommended | Initial admin account password. Only used on **first** startup if the admin user does not yet exist. The database password is the source of truth after that. | Any secure password |
 | `DATABASE_URL` | Optional | Database connection string. Defaults to SQLite (`jobs.db`) if absent. | `postgresql+asyncpg://user:pass@host/db` |
@@ -173,7 +173,7 @@ pip install aiosqlite  # required for SQLite local dev — NOT included in requi
 
 ```bash
 export API_KEY=dev-key
-export ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+export ENCRYPTION_KEY=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n=')=
 export SECRET_KEY=dev-secret-key
 ```
 
