@@ -20,7 +20,7 @@
 - ✅ **v16.0 — Competitive Observability** — Phases 87–91 (shipped 2026-03-30)
 - ✅ **v16.1 — PR Merge & Backlog Closure** — Phases 92–95 (shipped 2026-03-30)
 - ✅ **v17.0 �� Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
-- 🚧 **v18.0 — First-User Experience & E2E Validation** — Phases 101–103 (in progress)
+- 🚧 **v18.0 — First-User Experience & E2E Validation** — Phases 101–104 (in progress)
 
 ## Phases
 
@@ -254,6 +254,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 - [x] **Phase 101: CE UX Cleanup** — Hide EE-only tabs in CE mode, add upgrade prompts, verify no black pages (completed 2026-03-31)
 - [ ] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed
 - [ ] **Phase 103: Windows E2E Validation** — Dwight SSH cold-start through first PowerShell job; all friction catalogued and fixed
+- [ ] **Phase 104: PR Review and Merge** — Review, clean, and squash-merge PRs #17, #18, #19; fix History.test.tsx; close milestone
 
 ## Phase Details
 
@@ -307,7 +308,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 101 → 102 → 103
+Phases execute in numeric order: 101 → 102 → 103 → 104
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -369,9 +370,22 @@ Phases execute in numeric order: 101 → 102 → 103
 | 101. CE UX Cleanup | v18.0 | Complete    | 2026-03-31 | 2026-03-31 |
 | 102. Linux E2E Validation | v18.0 | 0/TBD | Not started | - |
 | 103. Windows E2E Validation | 1/4 | In Progress|  | - |
+| 104. PR Review and Merge | v18.0 | 0/3 | Not started | - |
 
 ## Archived
 
 - ✅ **v16.1 — PR Merge & Backlog Closure** (Phases 92–95) — shipped 2026-03-30 → `.planning/milestones/v16.1-ROADMAP.md`
 - ✅ **v14.3 — Security Hardening + EE Licensing** (Phases 72–76) — shipped 2026-03-27 → `.planning/milestones/v14.3-ROADMAP.md`
 - ✅ **v14.2 — Docs on GitHub Pages** (Phase 71) — shipped 2026-03-26 → `.planning/milestones/v14.2-ROADMAP.md`
+
+### Phase 104: PR Review and Merge
+
+**Goal:** Review, clean up, and squash-merge three open PRs (#17, #18, #19) into main; fix pre-existing test failures; close milestone v18.0
+**Requirements**: PR17-MERGE, PR19-MERGE, PR18-MERGE, TEST-FIX, CLEANUP, MILESTONE-CLOSE
+**Depends on:** Phase 103
+**Plans:** 3 plans
+
+Plans:
+- [ ] 104-01-PLAN.md — Clean and merge PR #17 (WebSocket fix) + rebase and merge PR #19 (Linux E2E)
+- [ ] 104-02-PLAN.md — Rebase and merge PR #18 (Windows E2E)
+- [ ] 104-03-PLAN.md — Fix History.test.tsx, clean up branches/worktrees, close milestone v18.0
