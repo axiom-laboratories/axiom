@@ -211,17 +211,16 @@ ip route | awk '/default/ {print $3}'
           JOIN_TOKEN: <paste-your-enhanced-token-here>
           ROOT_CA_PATH: /app/secrets/root_ca.crt
           EXECUTION_MODE: docker
-          DOCKER_HOST: npipe:////./pipe/docker_engine
         volumes:
           - node-secrets:/app/secrets
-          - //./pipe/docker_engine://./pipe/docker_engine
+          - /var/run/docker.sock:/var/run/docker.sock
 
     volumes:
       node-secrets:
     ```
 
-    !!! tip "Windows Docker socket path"
-        On Windows, Docker Desktop uses a named pipe instead of a Unix socket. The volume mapping `//./pipe/docker_engine://./pipe/docker_engine` and `DOCKER_HOST: npipe:////./pipe/docker_engine` are required so the node container can reach the host Docker daemon.
+    !!! tip "Docker socket on Windows"
+        Even though you are on Windows, the node container runs as a Linux container inside Docker Desktop's WSL2 VM. The VM exposes the Docker socket at the standard Unix path `/var/run/docker.sock`. Do **not** use the Windows named pipe (`//./pipe/docker_engine`) — Linux containers cannot access Windows named pipes.
 
     Then start the node (the `docker compose` command works identically in PowerShell):
 

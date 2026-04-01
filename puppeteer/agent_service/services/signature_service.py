@@ -1,4 +1,5 @@
 import logging
+import os
 import uuid
 import base64
 from typing import List, Optional
@@ -10,6 +11,9 @@ from ..db import Signature, AsyncSession, User
 from ..models import SignatureCreate, SignatureResponse
 
 logger = logging.getLogger(__name__)
+
+# Node-facing verification key paths (nodes download from GET /verification-key)
+_VERIFICATION_KEY_PATHS = ["/app/secrets/verification.key", "secrets/verification.key"]
 
 class SignatureService:
     @staticmethod
@@ -30,6 +34,21 @@ class SignatureService:
         db.add(new_sig)
         await db.commit()
         await db.refresh(new_sig)
+
+        # Propagate the registered public key to the node-facing verification
+        # key file so that GET /verification-key serves it and nodes download
+        # it on their next poll cycle.
+        for key_path in _VERIFICATION_KEY_PATHS:
+            parent = os.path.dirname(key_path)
+            if os.path.isdir(parent):
+                try:
+                    with open(key_path, "w") as f:
+                        f.write(sig_req.public_key)
+                    logger.info(f"Updated node-facing verification key at {key_path}")
+                except OSError as e:
+                    logger.warning(f"Could not update verification key at {key_path}: {e}")
+                break
+
         return new_sig
 
     @staticmethod

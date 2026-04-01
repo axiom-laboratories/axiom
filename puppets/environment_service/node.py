@@ -286,12 +286,24 @@ def heartbeat_loop():
         
     upgrade_mgr = UpgradeManager("secrets/verification.key", CERT_FILE, KEY_FILE)
     pending_upgrade_result = None
+    _hb_count = 0
 
     with httpx.Client(
-        verify=VERIFY_SSL, 
+        verify=VERIFY_SSL,
         cert=(CERT_FILE, KEY_FILE)
     ) as client:
         while True:
+            # Periodically re-fetch the verification key so that keys
+            # registered via POST /signatures after node boot are picked up.
+            _hb_count += 1
+            if _hb_count % 2 == 0:
+                try:
+                    vk_resp = client.get(f"{AGENT_URL}/verification-key", timeout=10)
+                    if vk_resp.status_code == 200:
+                        with open("secrets/verification.key", "wb") as _vkf:
+                            _vkf.write(vk_resp.content)
+                except Exception:
+                    pass  # Non-critical; will retry on next cycle
             try:
                 stats = {
                     "cpu": psutil.cpu_percent(interval=None),
@@ -547,6 +559,14 @@ class Node:
             "bash":       lambda p: ["bash", p],
             "powershell": lambda p: ["pwsh", p],
         }
+        # Stdin variants: read script from stdin instead of a file mount.
+        # Used when running in docker/podman mode to avoid sibling container
+        # bind-mount issues (the node's /tmp is not visible to the host daemon).
+        RUNTIME_CMD_STDIN = {
+            "python":     lambda: ["python", "-"],
+            "bash":       lambda: ["bash", "-s"],
+            "powershell": lambda: ["pwsh", "-Command", "-"],
+        }
 
         if task_type == "script":
             runtime = payload.get("runtime", "python")
@@ -617,25 +637,62 @@ class Node:
             hostname = socket.gethostname()
 
             try:
-                # Write script to temp file and mount it into the container
-                with open(tmp_path, "w") as f:
-                    f.write(script)
-                mounts.append(f"{tmp_path}:{tmp_path}:ro")
-
                 default_img = "python:3.12-alpine" if os.name == 'nt' else "localhost/master-of-puppets-node:latest"
                 image = os.getenv("JOB_IMAGE", default_img)
-                cmd = cmd_builder(tmp_path)
 
-                result = await self.runtime_engine.run(
-                    image=image,
-                    command=cmd,
-                    env=env,
-                    mounts=mounts,
-                    network_ref=hostname,
-                    memory_limit=memory_limit,
-                    cpu_limit=cpu_limit,
-                    timeout=timeout_secs,
-                )
+                # Prefer passing script via stdin to avoid Docker sibling
+                # container bind-mount issues (the node's /tmp is inside an
+                # overlay filesystem that the host Docker daemon cannot see).
+                # Fall back to file mount for direct execution mode.
+                execution_mode = os.getenv("EXECUTION_MODE", "auto").lower()
+                if execution_mode in ("docker", "podman", "auto"):
+                    # Stdin mode: pipe script content into the container
+                    stdin_cmd = RUNTIME_CMD_STDIN.get(runtime, RUNTIME_CMD_STDIN.get("python"))
+                    if stdin_cmd:
+                        cmd = stdin_cmd()
+                        result = await self.runtime_engine.run(
+                            image=image,
+                            command=cmd,
+                            env=env,
+                            mounts=mounts,
+                            network_ref=hostname,
+                            input_data=script,
+                            memory_limit=memory_limit,
+                            cpu_limit=cpu_limit,
+                            timeout=timeout_secs,
+                        )
+                    else:
+                        # Unknown runtime, fall back to file mount
+                        with open(tmp_path, "w") as f:
+                            f.write(script)
+                        mounts.append(f"{tmp_path}:{tmp_path}:ro")
+                        cmd = cmd_builder(tmp_path)
+                        result = await self.runtime_engine.run(
+                            image=image,
+                            command=cmd,
+                            env=env,
+                            mounts=mounts,
+                            network_ref=hostname,
+                            memory_limit=memory_limit,
+                            cpu_limit=cpu_limit,
+                            timeout=timeout_secs,
+                        )
+                else:
+                    # Direct execution mode: file mount works fine
+                    with open(tmp_path, "w") as f:
+                        f.write(script)
+                    mounts.append(f"{tmp_path}:{tmp_path}:ro")
+                    cmd = cmd_builder(tmp_path)
+                    result = await self.runtime_engine.run(
+                        image=image,
+                        command=cmd,
+                        env=env,
+                        mounts=mounts,
+                        network_ref=hostname,
+                        memory_limit=memory_limit,
+                        cpu_limit=cpu_limit,
+                        timeout=timeout_secs,
+                    )
 
                 success = (result["exit_code"] == 0)
 
