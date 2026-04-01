@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 106 context gathered
-last_updated: "2026-04-01T18:46:54.299Z"
-last_activity: "2026-04-01 — Plan 105-02 executed: Restored PowerShell tabs in first-job.md"
+stopped_at: Completed 106-01-PLAN.md
+last_updated: "2026-04-01T18:52:22.095Z"
+last_activity: "2026-04-01 — Plan 106-01 executed: Fixed docs signing pipeline (3 gaps)"
 progress:
   total_phases: 7
-  completed_phases: 5
-  total_plans: 14
-  completed_plans: 14
+  completed_phases: 6
+  total_plans: 15
+  completed_plans: 15
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 105 of 105 (Windows Signing Pipeline Fix) — COMPLETE
-Plan: 105-02 complete (2 of 2 plans done)
-Status: Phase 105 complete. All 3 v18.0 audit gaps closed.
-Last activity: 2026-04-01 — Plan 105-02 executed: Restored PowerShell tabs in first-job.md
+Phase: 106 of 106 (Fix Docs Signing Pipeline) — COMPLETE
+Plan: 106-01 complete (1 of 1 plans done)
+Status: Phase 106 complete. signature_id field name and -SkipCertificateCheck fixes applied to first-job.md.
+Last activity: 2026-04-01 — Plan 106-01 executed: Fixed docs signing pipeline (3 gaps)
 
 Progress: [██████████] 100%
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | Phase 104 P03 | 3min | 2 tasks | 3 files |
 | Phase 105 P01 | 1min | 5 tasks | 2 files |
 | Phase 105 P02 | 2min | 6 tasks | 1 files |
+| Phase 106 P01 | 1min | 4 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,6 @@ None — all blockers resolved.
 
 ## Session Continuity
 
-Last session: 2026-04-01T18:46:54.297Z
-Stopped at: Phase 106 context gathered
-Resume file: .planning/phases/106-fix-docs-signing-pipeline/106-CONTEXT.md
+Last session: 2026-04-01T18:52:22.093Z
+Stopped at: Completed 106-01-PLAN.md
+Resume file: None

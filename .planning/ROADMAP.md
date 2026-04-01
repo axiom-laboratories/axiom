@@ -257,7 +257,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 - [x] **Phase 103: Windows E2E Validation** — Docs pre-audit and PowerShell tab additions (completed 2026-04-01)
 - [x] **Phase 104: PR Review and Merge** — Review, clean, and squash-merge PRs #17, #18, #19; fix History.test.tsx; close milestone (completed 2026-04-01)
 - [x] **Phase 105: Windows Signing Pipeline Fix** — Restore first-job.md PowerShell tabs, fix CRLF countersign, fix cold-start forced password change (completed 2026-04-01)
-- [ ] **Phase 106: Fix Docs Signing Pipeline** — Fix signature_key_id→signature_id field name, restore CRLF normalization, replace TrustAll pattern in first-job.md (gap closure)
+- [x] **Phase 106: Fix Docs Signing Pipeline** — Fix signature_key_id→signature_id field name, restore CRLF normalization, replace TrustAll pattern in first-job.md (gap closure) (completed 2026-04-01)
 
 </details>
 
@@ -366,7 +366,7 @@ Phases execute in numeric order: 101 → 102 → 103
 | 103. Windows E2E Validation | v18.0 | 1/3 | Complete | 2026-04-01 |
 | 104. PR Review & Merge | v18.0 | Complete    | 2026-04-01 | 2026-04-01 |
 | 105. Windows Signing Pipeline Fix | v18.0 | 2/2 | Complete | 2026-04-01 |
-| 106. Fix Docs Signing Pipeline | v18.0 | 0/0 | Pending | — |
+| 106. Fix Docs Signing Pipeline | 1/1 | Complete   | 2026-04-01 | — |
 
 ## Archived
 
@@ -400,4 +400,4 @@ Plans:
 **Requirements**: LNX-04, WIN-05
 **Depends on:** Phase 105
 **Gap Closure:** Closes gaps from v18.0-MILESTONE-AUDIT.md (GAP 1: field name mismatch, GAP 2: lost commit 6970440 content, both broken E2E flows)
-**Plans:** 0/0 plans complete
+**Plans:** 1/1 plans complete
