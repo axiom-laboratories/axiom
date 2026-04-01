@@ -1132,6 +1132,34 @@ async def create_job(job_req: JobCreate, current_user: User = Depends(require_au
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/jobs/{guid}", response_model=JobResponse, tags=["Jobs"])
+async def get_job(guid: str, current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
+    """Retrieve a single job by its GUID."""
+    result = await db.execute(select(Job).where(Job.guid == guid))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    payload = job.payload if isinstance(job.payload, dict) else json.loads(job.payload or '{}')
+    result_val = job.result if isinstance(job.result, dict) else json.loads(job.result or 'null') if job.result else None
+    target_tags = job.target_tags if isinstance(job.target_tags, list) else json.loads(job.target_tags or 'null') if job.target_tags else None
+    return JobResponse(
+        guid=job.guid,
+        status=job.status,
+        payload=payload,
+        result=result_val,
+        node_id=job.node_id,
+        started_at=job.started_at,
+        duration_seconds=job.duration_seconds,
+        target_tags=target_tags,
+        task_type=job.task_type,
+        display_type=getattr(job, 'display_type', None),
+        name=getattr(job, 'name', None),
+        created_by=getattr(job, 'created_by', None),
+        created_at=job.created_at,
+        runtime=getattr(job, 'runtime', None),
+        originating_guid=getattr(job, 'originating_guid', None),
+    )
+
 @app.patch("/jobs/{guid}/cancel", tags=["Jobs"])
 async def cancel_job(guid: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Job).where(Job.guid == guid))
