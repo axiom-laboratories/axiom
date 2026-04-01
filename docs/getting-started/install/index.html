@@ -2123,7 +2123,8 @@ cat<span class="w"> </span>&gt;<span class="w"> </span>puppeteer/secrets.env<spa
 <p class="admonition-title">Overriding the default password</p>
 <p>To set a specific admin password instead of <code>admin</code>, create a <code>.env</code> file alongside <code>compose.cold-start.yaml</code> before first start:
 <div class="highlight"><pre><span></span><code>ADMIN_PASSWORD=your-chosen-password
-</code></pre></div></p>
+</code></pre></div>
+Docker Compose v2 reads <code>.env</code> automatically — no <code>--env-file</code> flag needed.</p>
 </div>
 </div>
 </div>
@@ -2139,7 +2140,7 @@ cat<span class="w"> </span>&gt;<span class="w"> </span>puppeteer/secrets.env<spa
 <p>This starts: Caddy (reverse proxy + TLS), the Agent Service (API on port 8001), the Model Service (port 8000), and PostgreSQL.</p>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>compose.cold-start.yaml<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span>up<span class="w"> </span>-d
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>compose.cold-start.yaml<span class="w"> </span>up<span class="w"> </span>-d
 </code></pre></div>
 <p>This starts: Caddy (reverse proxy + TLS, port 8443), the Agent Service (port 8001), and PostgreSQL.</p>
 </div>

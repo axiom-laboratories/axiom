@@ -2078,21 +2078,35 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <p>Create <code>node-compose.yaml</code> with the following content, substituting your JOIN_TOKEN and AGENT_URL:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">puppet-node</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">localhost/master-of-puppets-node:latest</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/axiom-laboratories/axiom-node:latest</span>
 <span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">NODE_TAGS</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">general,linux</span>
 <span class="w">      </span><span class="nt">JOB_IMAGE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker.io/library/python:3.12-alpine</span>
-<span class="w">      </span><span class="nt">AGENT_URL</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://172.17.0.1:8001</span>
+<span class="w">      </span><span class="nt">AGENT_URL</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://agent:8001</span>
 <span class="w">      </span><span class="nt">JOIN_TOKEN</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;paste-your-enhanced-token-here&gt;</span>
 <span class="w">      </span><span class="nt">ROOT_CA_PATH</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/app/secrets/root_ca.crt</span>
 <span class="w">      </span><span class="nt">EXECUTION_MODE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker</span>
 <span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node-secrets:/app/secrets</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp:/tmp</span><span class="w">    </span><span class="c1"># Shared with job runner containers</span>
+<span class="w">    </span><span class="nt">networks</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">axiom_default</span>
 
 <span class="nt">volumes</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">node-secrets</span><span class="p">:</span>
+
+<span class="nt">networks</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">axiom_default</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">external</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Network name</p>
+<p>The <code>axiom_default</code> network is created automatically when you run <code>compose.cold-start.yaml</code>.
+The network name is derived from the directory you placed the compose file in — if the file is
+in a directory other than the default, you may see a different prefix. Run
+<code>docker network ls | grep default</code> to find the exact name and update <code>axiom_default</code> accordingly.</p>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">EXECUTION_MODE=docker</p>
 <p>When the node container runs inside Docker, set <code>EXECUTION_MODE=docker</code>. This tells the node to spawn job containers using the host's Docker daemon via the mounted socket (<code>/var/run/docker.sock</code>).</p>
@@ -2100,17 +2114,25 @@ docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> 
 <div class="highlight"><pre><span></span><code><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node-secrets:/app/secrets</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp:/tmp</span>
 </code></pre></div>
 <p>Then update your compose to mount the socket:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">puppet-node</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">localhost/master-of-puppets-node:latest</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/axiom-laboratories/axiom-node:latest</span>
 <span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
 <span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">EXECUTION_MODE</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker</span>
+<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">AGENT_URL</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://agent:8001</span>
+<span class="w">      </span><span class="nt">EXECUTION_MODE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker</span>
 <span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node-secrets:/app/secrets</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp:/tmp</span>
+<span class="w">    </span><span class="nt">networks</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">axiom_default</span>
+<span class="nt">networks</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">axiom_default</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">external</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
 </div>
 <p>Then start the node:</p>
