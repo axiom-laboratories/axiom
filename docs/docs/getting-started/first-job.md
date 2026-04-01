@@ -43,6 +43,39 @@ Every job must be signed before dispatch. Generate a keypair once — the privat
     openssl pkey -in signing.key -pubout -out verification.key
     ```
 
+=== "Windows (PowerShell)"
+
+    PowerShell does not support bash heredocs. Save the key generation script to a file first, then run it:
+
+    ```powershell
+    $script = @'
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+
+    key = Ed25519PrivateKey.generate()
+
+    with open("signing.key", "wb") as f:
+        f.write(key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption()
+        ))
+
+    with open("verification.key", "wb") as f:
+        f.write(key.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo
+        ))
+
+    print("Done. Upload verification.key to Axiom, keep signing.key private.")
+    '@
+    $script | Out-File -Encoding utf8 gen_key.py
+    python gen_key.py
+    ```
+
+    !!! note "cryptography library"
+        If `python gen_key.py` fails with an import error, install first: `pip install cryptography`
+
 This produces `signing.key` (private — keep safe) and `verification.key` (public — upload to Axiom).
 
 !!! warning "Never commit signing.key"
