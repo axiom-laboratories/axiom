@@ -1,5 +1,20 @@
 # Milestones
 
+## v18.0 First-User Experience & E2E Validation (Shipped: 2026-04-01)
+
+**Phases completed:** 6 phases (101–106), 15 plans
+**Stats:** 65 files changed, +7,888 / -147 lines | 82 commits | 2 days (2026-03-31 → 2026-04-01)
+
+**Key accomplishments:**
+- Phase 101 — CE UX cleanup: 6 EE-only Admin tabs gated behind `isEnterprise`; `+ Enterprise` upgrade panel with `UpgradePlaceholder` cards; no blank pages in CE mode; 4 vitest assertions covering CE/EE tab visibility
+- Phase 102 — Linux E2E validation: Fresh LXC cold-start through first completed job following only Quick Start guide; 4 BLOCKERs found and fixed (--env-file removal, countersign wiring, /tmp DinD mount, GHCR node image); `synthesise_friction.py` reusable for cross-platform E2E
+- Phase 103 — Windows E2E validation: Dwight SSH cold-start with PowerShell-only docs; 8 BLOCKERs found and fixed across 8 iterative runs; complete PowerShell tabs in enroll-node.md and first-job.md; CRLF normalization in node.py
+- Phase 104 — PR merge: PRs #17 (WebSocket fix), #18 (Windows E2E), #19 (Linux E2E) squash-merged; History.test.tsx fixed (missing useFeatures mock); stale branches/worktrees cleaned; full vitest suite 64/64 pass
+- Phase 105 — Windows signing pipeline fix: CRLF→LF normalization in main.py create_job before both user-sig verification and countersigning; admin bootstrap always forces password change; CRLF countersign symmetry unit test; PowerShell tabs restored to first-job.md
+- Phase 106 — Docs signing pipeline fix: `signature_key_id`→`signature_id` field name corrected in both Linux curl and PowerShell snippets; deprecated TrustAll .NET pattern replaced with `-SkipCertificateCheck`; client-side CRLF normalization in signing script
+
+---
+
 ## v17.0 Scale Hardening (Shipped: 2026-03-31)
 
 **Phases completed:** 5 phases, 6 plans, 0 tasks

@@ -493,6 +493,48 @@
 - 86 commits, 175 files changed, 27,147 insertions — primarily tooling scripts and documentation
 - No backend/frontend code changes — tooling-only milestone achieved clean execution budget
 
+## Milestone: v18.0 — First-User Experience & E2E Validation
+
+**Shipped:** 2026-04-01
+**Phases:** 6 (101–106) | **Plans:** 15 | **Requirements:** 15/15
+
+### What Was Built
+- Phase 101: CE UX cleanup — 6 EE-only Admin tabs gated behind `isEnterprise`; `+ Enterprise` upgrade panel with UpgradePlaceholder cards; no blank pages in CE mode
+- Phase 102: Linux E2E validation — fresh LXC cold-start through first completed job; 4 BLOCKERs found and fixed; reusable `synthesise_friction.py` with `--files` flag
+- Phase 103: Windows E2E validation — Dwight SSH cold-start with PowerShell-only docs; 8 BLOCKERs across 8 iterative runs; complete PowerShell tabs in all getting-started docs
+- Phase 104: PR merge — PRs #17 (WebSocket fix), #18 (Windows E2E), #19 (Linux E2E) squash-merged; History.test.tsx fixed; full vitest suite 64/64 pass
+- Phase 105: CRLF countersign fix — server-side normalization before user-sig verification and countersigning; admin bootstrap forced password change; PowerShell tabs in first-job.md
+- Phase 106: Docs signing pipeline fix — `signature_key_id`→`signature_id` field name; TrustAll→`-SkipCertificateCheck`; client-side CRLF normalization in signing snippet
+
+### What Worked
+- Milestone audit caught real integration gaps that phase verification missed: `signature_key_id` vs `signature_id` field name mismatch was invisible to LXC validation (which used internal scripts with the correct field name)
+- Iterative FRICTION run approach (8 runs on Windows) was effective at shaking out cumulative issues — each run built on the previous fixes
+- Gap-closure phases (105, 106) were correctly scoped to one audit gap each — fast execution (1-2 min per plan), no scope creep
+- The three-source requirements cross-reference (VERIFICATION + SUMMARY frontmatter + REQUIREMENTS.md traceability) caught documentation gaps that single-source checks missed
+
+### What Was Inefficient
+- Commit `6970440` (CRLF signing normalization) was lost during PR #18 rebase — three separate phases (103, 105, 106) each partially addressed the same underlying issue before it was fully resolved
+- The integration checker on the final audit found a gap (client-side CRLF in signing snippet) that should have been caught during Phase 105's verification — the "server handles CRLF transparently" framing was correct for countersign→node but wrong for user-sig→server-verify
+- Phase 103 ran 8 iterative friction runs against a remote Windows host — the feedback loop was slow (SSH + Docker restart cycles); a local Windows dev environment would have been faster
+- LNX-06 and WIN-06 never made it into SUMMARY frontmatter despite being verified — the verification step catches this but it shouldn't be needed
+
+### Patterns Established
+- CRLF normalization must be applied at all three layers: (1) client signing script normalizes before signing, (2) server normalizes before user-sig verification and countersigning, (3) node normalizes before countersig verification
+- `must_change_password=True` forced at admin bootstrap with `ADMIN_SKIP_FORCE_CHANGE` opt-out — explicit flag is safer than inferring from password value
+- Milestone audit after gap-closure phases: re-run the audit to verify the gaps are actually closed — don't assume the fix addresses all dimensions of the original gap
+- First-user validation personas must test the exact doc snippets, not equivalent internal scripts — the LXC validation masked the `signature_key_id` bug because it bypassed the docs
+
+### Key Lessons
+- Lost commits during PR rebase are a recurring risk: the same fix (CRLF normalization) was implemented, lost, and reimplemented across three phases — a pre-merge `git diff` against the audit gap list would have caught this
+- Integration checker agents are worth their cost: the final audit's integration check found the client-side CRLF gap that three prior phases and two human reviews missed
+- "Server handles it transparently" is only true if you control both endpoints — when the user is one endpoint (signing script in docs), the server can't retroactively fix what was signed with wrong bytes
+
+### Cost Observations
+- 6 phases, 15 plans, 2-day delivery (2026-03-31 → 2026-04-01)
+- 82 commits, 65 files changed, 7,888 insertions
+- 3 gap-closure phases (104, 105, 106) were needed after the initial 3 validation phases — 50% of phases were remediation
+- Integration checker agent (sonnet) found the final gap that manual review missed
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -513,6 +555,8 @@
 | v15.0 | 5 | 11 | Operator readiness milestone; tooling-only (no DB/API changes); Wave 0 TDD for job corpus; static OpenAPI snapshot for CI-safe docs validation |
 | v16.0 | 5 | 9 | Competitive observability milestone; 5 new features across backend + frontend; audit-before-close caught stale requirements traceability |
 | v16.1 | 4 | 7 | PR backlog closure + docs quality; parallel PR merge + retroactive Nyquist compliance; 1-day turnaround |
+| v17.0 | 5 | 6 | Scale hardening; clean first-pass execution across all phases; no gap-closure plans needed |
+| v18.0 | 6 | 15 | E2E validation milestone; 50% phases were gap-closure; integration checker found final gap; lost-commit risk pattern |
 
 ## Milestone: v16.1 — PR Merge & Backlog Closure
 

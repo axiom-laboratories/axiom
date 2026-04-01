@@ -12,17 +12,11 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v18.0 — First-User Experience & E2E Validation
+## Current State
 
-**Goal:** Deliver a friction-free cold-start experience for a new user on both Linux and Windows, validated end-to-end as a potential customer, with CE UI cleaned up to remove confusing EE-only elements.
-
-**Target features:**
-- E2E cold-start validation on Linux (fresh deploy, first-user persona, all flows exercised)
-- E2E cold-start validation on Windows (same persona, dwight/Windows stack)
-- CE admin/settings page: hide or remove EE-gated controls to reduce confusion
-- Fix any first-user friction found during the E2E runs
-
-**Previous:** v17.0 Scale Hardening shipped 2026-03-31 (connection pool right-sizing, SKIP LOCKED dispatch correctness, diff-based scheduler sync, live observability endpoint for 20-node concurrent load)
+**Latest shipped:** v18.0 First-User Experience & E2E Validation (2026-04-01)
+**Previous:** v17.0 Scale Hardening (2026-03-31)
+**Next milestone:** Not yet planned — use `/gsd:new-milestone` to start
 
 ## Requirements
 
@@ -229,6 +223,17 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ APScheduler scale limits research archived in `mop_validation/reports/` with concrete thresholds and migration path — v16.1
 - ✓ Competitor pain-point insights recorded in product notes with actionable observations — v16.1
 
+### Validated — v18.0 First-User Experience & E2E Validation
+
+- ✓ CE admin page hides 6 EE-only tabs behind `isEnterprise` gate; `+ Enterprise` upgrade panel replaces them — v18.0
+- ✓ No dashboard route renders blank in CE mode — all EE surfaces show UpgradePlaceholder or redirect — v18.0
+- ✓ Linux cold-start validated end-to-end in fresh LXC — Quick Start guide is self-contained, no undocumented commands — v18.0
+- ✓ Admin/admin forced password change on first login (Linux + Windows) — `must_change_password=True` at bootstrap — v18.0
+- ✓ Node enrollment works from docs alone (Linux + Windows) — GHCR image, `/tmp:/tmp` DinD mount, correct network name — v18.0
+- ✓ First job dispatches and completes with output visible (Linux + Windows) — `signature_id` field, CRLF normalization client+server+node, `-SkipCertificateCheck` — v18.0
+- ✓ All CE features accessible and functional from dashboard — v18.0
+- ✓ All friction from Linux and Windows E2E runs catalogued and fixed — v18.0
+
 ### Validated — v17.0 Scale Hardening
 
 - ✓ `apscheduler>=3.10,<4.0` pinned in `requirements.txt`; startup assertion fires if v4 wheel installed — v17.0
@@ -265,13 +270,13 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, and scale-hardened (v17.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. Core LOC ~6,600 across key service files. v17.0 shipped 2026-03-31.
+Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), and first-user-validated (v18.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. Core LOC ~6,600 across key service files. v18.0 shipped 2026-04-01.
 
 Documentation site lives at `https://axiom-laboratories.github.io/axiom/docs/` (GitHub Pages, subtree deploy via `ghp-import`). Marketing homepage lives at `https://axiom-laboratories.github.io/axiom/`. Both auto-deploy from `main` via separate GitHub Actions jobs in `gh-pages-deploy.yml`. MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference auto-generated from FastAPI OpenAPI schema at container build time.
 
 CLI is `axiom-push` — installable as `axiom-sdk` Python package. `axiom-push init` is the zero-ceremony onboarding path (login + Ed25519 keypair + server registration in one command). Credentials stored in `~/.axiom/`. GitHub Actions CI/CD for multi-arch GHCR images and PyPI via OIDC Trusted Publisher. Version derived from git tags via `setuptools-scm`.
 
-Getting-started docs (install → enroll-node → first-job) verified against a real cold-start flow. `compose.cold-start.yaml` contains only 5 core services — no phantom test nodes. Both CE and EE paths documented end-to-end.
+Getting-started docs (install → enroll-node → first-job) validated end-to-end against real cold-start flows on both Linux (LXC) and Windows (Dwight). `compose.cold-start.yaml` contains only 5 core services — no phantom test nodes. Both CE and EE paths documented end-to-end. CRLF signing normalization applied at all three layers (client signing script, server create_job, node verify).
 
 EE licence system fully operational: `tools/generate_licence.py` generates offline; `licence_service.py` validates at startup with VALID/GRACE/EXPIRED/CE state machine; grace period enforced; DEGRADED_CE banner visible to admins in dashboard. All 6 CodeQL alerts closed.
 
@@ -370,6 +375,10 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `require_auth` (JWT only) for `/api/health/scale`, no RBAC gate | Scale metrics are observability-only with no sensitive data — any authenticated user can view | ✓ Good |
 | `upgrade.md` symlinked from `puppeteer/upgrade.md` to `docs/docs/runbooks/upgrade.md` | Test path resolves `puppeteer/upgrade.md`; symlink avoids content duplication | ✓ Good |
 
+## Previous State — v18.0 Complete (2026-04-01)
+
+Axiom v18.0 delivered First-User Experience & E2E Validation — 6 phases (101–106), 15 plans, all 15/15 requirements satisfied. CE dashboard cleaned up: 6 EE-only Admin tabs gated behind `isEnterprise`, upgrade panel with `UpgradePlaceholder` cards. Linux cold-start validated end-to-end in a fresh LXC container — 4 BLOCKERs found and fixed (--env-file removal, countersign wiring, /tmp DinD mount, GHCR node image). Windows cold-start validated on Dwight — 8 BLOCKERs across 8 iterative runs, all fixed. Full signing pipeline fixed: `signature_id` field name, CRLF normalization at client+server+node layers, TrustAll replaced with `-SkipCertificateCheck`. PRs #17/#18/#19 merged; History.test.tsx fixed; full vitest suite 64/64 pass. 65 files changed, +7,888 lines.
+
 ## Previous State — v17.0 Complete (2026-03-31)
 
 Axiom v17.0 delivered Scale Hardening — 5 phases (96–100), 6 plans, all 19/19 requirements satisfied. asyncpg connection pool right-sized for 20 concurrent nodes (`pool_size=20`, tunable via `ASYNCPG_POOL_SIZE`). `SELECT FOR UPDATE SKIP LOCKED` eliminates double-assignment races on Postgres with composite index `ix_jobs_status_created_at` and `migration_v44.sql` for existing deployments. Diff-based `sync_scheduler()` replaces full `remove_all_jobs()` rebuild — internal `__`-prefixed jobs protected from CRUD sync. `_make_cron_callback()` wraps cron fires in `asyncio.create_task()` so burst cron load cannot block HTTP heartbeats. `GET /health/scale` endpoint and Admin Repository Health card provide live operational visibility. 52 files changed, 6,255 insertions.
@@ -417,4 +426,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-03-31 after v17.0 milestone — Scale Hardening*
+*Last updated: 2026-04-01 after v18.0 milestone — First-User Experience & E2E Validation*

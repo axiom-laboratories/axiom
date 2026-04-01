@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: completed
 stopped_at: Completed 106-01-PLAN.md
-last_updated: "2026-04-01T18:54:26.983Z"
+last_updated: "2026-04-01T19:13:33.117Z"
 last_activity: "2026-04-01 — Plan 106-01 executed: Fixed docs signing pipeline (3 gaps)"
 progress:
   total_phases: 7
@@ -18,16 +18,15 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-31)
+See: .planning/PROJECT.md (updated 2026-04-01)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v18.0 — First-User Experience & E2E Validation (COMPLETE)
+**Current focus:** v18.0 shipped — planning next milestone
 
 ## Current Position
 
-Phase: 106 of 106 (Fix Docs Signing Pipeline) — COMPLETE
-Plan: 106-01 complete (1 of 1 plans done)
-Status: Phase 106 complete. signature_id field name and -SkipCertificateCheck fixes applied to first-job.md.
+Milestone v18.0 complete and archived. All 15/15 requirements satisfied.
+Next: `/gsd:new-milestone` to start the next milestone.
 Last activity: 2026-04-01 — Plan 106-01 executed: Fixed docs signing pipeline (3 gaps)
 
 Progress: [██████████] 100%

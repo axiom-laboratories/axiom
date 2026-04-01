@@ -313,7 +313,7 @@ openssl pkey -in signing.key -pubout -out verification.key
         key = serialization.load_pem_private_key(f.read(), password=None)
 
     with open(sys.argv[1], "rb") as f:
-        script_bytes = f.read()
+        script_bytes = f.read().replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
     sig = key.sign(script_bytes)
     print(base64.b64encode(sig).decode())
