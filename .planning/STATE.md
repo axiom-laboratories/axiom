@@ -73,6 +73,10 @@ Progress: [█░░░░░░░░░] ~5%
 - [102-02]: FRICTION finding: Quick Start compose command hard-codes --env-file .env which fails with no .env file — this is the BLOCKER for Plan 03
 - [102-02 checkpoint]: User direction — remove --env-file .env from compose flow; compose must be self-contained with no external env file required
 
+### Roadmap Evolution
+
+- Phase 104 added: PR Review & Merge — Review and merge PRs #17 (WebSocket fix), #18 (Windows E2E), #19 (Linux E2E) into main
+
 ### Pending Todos
 
 None.
