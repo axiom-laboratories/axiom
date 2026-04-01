@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v18.0
 milestone_name: — First-User Experience & E2E Validation
-status: Synthesis report READY — all BLOCKERs fixed in source, images pushed to GHCR. Dwight offline during session so final clean run deferred.
-stopped_at: Completed 103-04-PLAN.md — synthesis READY, Dwight offline for clean run
-last_updated: "2026-04-01T09:43:12.204Z"
-last_activity: 2026-04-01 — Plan 103-04 executed (CRLF fix, TrustAll update, GET /jobs/{guid} route, synthesis READY)
+status: in-progress
+stopped_at: Completed 104-01-PLAN.md — PRs #17 and #19 merged
+last_updated: "2026-04-01T12:58:00Z"
+last_activity: "2026-04-01 — Plan 104-01 executed: merged PR #17 (WebSocket fix) and PR #19 (Linux E2E) to main"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 2
   total_plans: 9
-  completed_plans: 6
-  percent: 100
+  completed_plans: 5
+  percent: 55
 ---
 
 # Project State
@@ -25,34 +25,36 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 103 of 103 (Windows E2E Validation) — COMPLETE
-Plan: 103-04 complete (4 of 4 plans done)
-Status: Synthesis report READY — all BLOCKERs fixed in source, images pushed to GHCR. Dwight offline during session so final clean run deferred.
-Last activity: 2026-04-01 — Plan 103-04 executed (CRLF fix, TrustAll update, GET /jobs/{guid} route, synthesis READY)
+Phase: 104 of 104 (PR Review & Merge) — IN PROGRESS
+Plan: 104-01 complete (1 of 3 plans done)
+Status: PRs #17 and #19 merged to main; PR #18 and cleanup remain
+Last activity: 2026-04-01 — Plan 104-01 executed: merged PR #17 (WebSocket fix) and PR #19 (Linux E2E) to main
 
-Progress: [██████████] 100%
+Progress: [█████░░░░░] ~55%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4 (this milestone)
-- Average duration: 18 min
-- Total execution time: 72 min
+- Total plans completed: 2 (this milestone)
+- Average duration: 13 min
+- Total execution time: 25 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 101-ce-ux-cleanup | 2 | 25 min | 13 min |
-| 103-windows-e2e-validation | 2 | 47 min | 24 min |
 
 **Recent Trend:**
-- Last 5 plans: 101-01 (15 min), 101-02 (10 min), 103-01 (32 min), 103-02 (5 min)
+- Last 5 plans: 101-01 (15 min), 101-02 (10 min)
 - Trend: —
 
 *Updated after each plan completion*
-| Phase 103 P03 | 66 | 2 tasks | 1 files |
-| Phase 103 P04 | 70 | 3 tasks | 8 files |
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 102-linux-e2e-validation P02 | 1 | 66 min | 66 min |
+| 104-pr-review-merge P01 | 1 | 3 min | 3 min |
 
 ## Accumulated Context
 
@@ -64,27 +66,31 @@ Progress: [██████████] 100%
 - [101-01]: isEnterprise destructured at Admin component scope; EE tabs gated with {isEnterprise && (...)} on both TabsTrigger and TabsContent; + Enterprise CE upgrade panel renders UpgradePlaceholder grid
 - [101-01]: Playwright confirmed CE tab bar = [Onboarding][+ Enterprise][Data], 6 EE tabs absent, upgrade panel shows 6 UpgradePlaceholder instances
 - [101-02]: Tab visibility tests use queryByRole/getByRole with licence mock; exact regex /^\+ enterprise$/i used for EE-mode absence to avoid false positives from licence badge text
-- [103-01]: Option B tab renamed to include OS qualifier so Windows tab can coexist as a parallel MkDocs Material tab without nesting
-- [103-01]: Windows job signing uses Python cryptography library (no openssl dependency) matching key generation approach
-- [103-01]: PowerShell TLS bypass pattern (add-type TrustAll) used consistently — later replaced with -SkipCertificateCheck in all Windows doc tabs (Plan 04)
-- [103-02]: invoke_subagent.ps1 reads prompt via Get-Content from disk rather than inline -Command — avoids PowerShell multi-line quoting failures
-- [103-02]: dwight_exec wraps all commands in pwsh -NoProfile -NonInteractive -Command — Windows OpenSSH defaults to cmd.exe
-- [103-03]: Docker Desktop credential store error via SSH is a test infrastructure limitation (not a product BLOCKER for real users) — must be documented in install.md as expected behavior
-- [103-03]: FRICTION-WIN-103.md BLOCKER: docker pull fails over SSH because docker-credential-desktop requires Windows session token not available in SSH context — no simple programmatic workaround found
-- [103-04]: CRLF normalization added to node.py (verify) and first-job.md Windows signing script — both must normalize so signature matches
-- [103-04]: synthesise_friction.py verdict patched — Fixed-during-run BLOCKERs treated as READY when source updated (not just runtime workaround)
-- [103-04]: GET /jobs/{guid} route added to main.py — previously only list/cancel/retry routes existed under /jobs/
+- [102-01]: Exit code 2 used for pre-flight image-unreachable failure (vs exit 1 for run failure) to distinguish failure modes
+- [102-01]: synthesise_friction.py _derive_edition() derives edition from filename stem (CE/EE by keyword, else run prefix like LNX) enabling cross-phase reuse
+- [102-02]: chromium-browser excluded from LXC apt install — pulls snapd which stalls inside LXC; Playwright chromium installed separately via playwright install chromium
+- [102-02]: Claude subagent must run as non-root user — UID 0 blocks --dangerously-skip-permissions; validator user created in LXC with docker group membership
+- [102-02]: FRICTION finding: Quick Start compose command hard-codes --env-file .env which fails with no .env file — this is the BLOCKER for Plan 03
+- [102-02 checkpoint]: User direction — remove --env-file .env from compose flow; compose must be self-contained with no external env file required
+
+- [104-01]: Cherry-picked useWebSocket.ts onto clean branch to strip .planning/ contamination from PR #17
+- [104-01]: Code review of deps.py/main.py sufficient without Docker stack test — straightforward async audit fix and countersign addition
+- [104-01]: Merge queue handles merge strategy (merge commit); functionally equivalent to squash for single-commit branches
+
+### Roadmap Evolution
+
+- Phase 104 added: PR Review & Merge — Review and merge PRs #17 (WebSocket fix), #18 (Windows E2E), #19 (Linux E2E) into main
 
 ### Pending Todos
 
-- [103-04]: Run `python3 run_windows_e2e.py` on Linux host when Dwight is back online to confirm clean pass
+None.
 
 ### Blockers/Concerns
 
-- [103-04]: Dwight (192.168.50.149) was offline during Plan 04 execution — clean E2E run on Dwight deferred. All fixes committed and images pushed to GHCR.
+FRICTION-LNX-102.md BLOCKER (actioned): Quick Start compose command uses `--env-file .env` but no .env file is created in Quick Start instructions. User direction: remove the flag entirely. Plan 03 will implement this fix.
 
 ## Session Continuity
 
-Last session: 2026-04-01T07:06:15.031Z
-Stopped at: Completed 103-04-PLAN.md — synthesis READY, Dwight offline for clean run
-Resume file: None
+Last session: 2026-04-01T12:58:00Z
+Stopped at: Completed 104-01-PLAN.md — PRs #17 and #19 merged
+Resume file: .planning/phases/104-review-the-three-existing-prs-for-axiom-and-get-the-code-merged/104-02-PLAN.md
