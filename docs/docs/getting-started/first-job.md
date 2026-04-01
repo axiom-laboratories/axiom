@@ -291,22 +291,15 @@ openssl pkey -in signing.key -pubout -out verification.key
 
 === "Windows (PowerShell)"
 
-    Set `$TOKEN` by logging in first (disable TLS validation for self-signed certs):
+    Set `$TOKEN` by logging in first:
     ```powershell
-    # Disable TLS validation for self-signed cert
-    add-type @"
-        using System.Net;
-        using System.Security.Cryptography.X509Certificates;
-        public class TrustAll : ICertificatePolicy {
-            public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem) { return true; }
-        }
-    "@
-    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAll
+    # For self-signed certs, use -SkipCertificateCheck on each request below
 
     $response = Invoke-RestMethod -Method POST `
         -Uri "https://<your-orchestrator>:8001/auth/login" `
         -ContentType "application/x-www-form-urlencoded" `
-        -Body "username=admin&password=<your-password>"
+        -Body "username=admin&password=<your-password>" `
+        -SkipCertificateCheck
     $TOKEN = $response.access_token
     ```
 
@@ -335,14 +328,15 @@ openssl pkey -in signing.key -pubout -out verification.key
     $body = @{
         script_content = $scriptContent
         signature = $SIG
-        signature_key_id = "<your-key-id>"
+        signature_id = "<your-key-id>"
     } | ConvertTo-Json
 
     Invoke-RestMethod -Method POST `
         -Uri "https://<your-orchestrator>:8001/jobs" `
         -Headers @{Authorization = "Bearer $TOKEN"} `
         -ContentType "application/json" `
-        -Body $body
+        -Body $body `
+        -SkipCertificateCheck
     ```
 
 Replace `<your-orchestrator>`, `<your-password>`, and `<your-key-id>` with your actual values.
