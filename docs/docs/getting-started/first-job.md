@@ -146,13 +146,41 @@ Copy the printed command — your Key ID is already substituted in.
 
 ## Step 2: Write a test script
 
-Create `hello.py`:
+=== "Linux / macOS"
 
-```python
-print("Hello from Axiom!")
-import platform
-print(f"Running on {platform.node()} ({platform.system()})")
-```
+    Create `hello.py`:
+
+    ```python
+    print("Hello from Axiom!")
+    import platform
+    print(f"Running on {platform.node()} ({platform.system()})")
+    ```
+
+=== "Windows (PowerShell)"
+
+    Create `hello.py` (Python works on all nodes — recommended for the CE getting started path):
+
+    ```powershell
+    @'
+    print("Hello from Axiom!")
+    import platform
+    print(f"Running on {platform.node()} ({platform.system()})")
+    '@ | Out-File -Encoding utf8 hello.py
+    ```
+
+    Alternatively, create a PowerShell script `hello.ps1` for use on Windows-capable nodes:
+
+    ```powershell
+    @'
+    Write-Host "Hello from Axiom on Windows!"
+    Write-Host "Running on $env:COMPUTERNAME"
+    '@ | Out-File -Encoding utf8 hello.ps1
+    ```
+
+    !!! note "PowerShell scripts on nodes"
+        The node's job runner executes the script content via Python subprocess. PowerShell scripts work when the node image has `pwsh` in PATH. The default CE node image uses Python — use `hello.py` (Python) for CE. For Windows-capable nodes, PowerShell scripts run as expected.
+
+        **For this Getting Started guide**, use `hello.py` — it works on all nodes. The PowerShell signing path below works with any script file.
 
 ---
 
