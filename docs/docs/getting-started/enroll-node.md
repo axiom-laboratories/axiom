@@ -145,6 +145,7 @@ ip route | awk '/default/ {print $3}'
         volumes:
           - node-secrets:/app/secrets
           - /var/run/docker.sock:/var/run/docker.sock
+          - /tmp:/tmp    # Shared with job runner containers
         networks:
           - axiom_default
 
@@ -171,6 +172,7 @@ ip route | awk '/default/ {print $3}'
         volumes:
           - node-secrets:/app/secrets
           - /var/run/docker.sock:/var/run/docker.sock
+          - /tmp:/tmp
         ```
 
         Then update your compose to mount the socket:
@@ -186,6 +188,7 @@ ip route | awk '/default/ {print $3}'
             volumes:
               - node-secrets:/app/secrets
               - /var/run/docker.sock:/var/run/docker.sock
+              - /tmp:/tmp
             networks:
               - axiom_default
         networks:
