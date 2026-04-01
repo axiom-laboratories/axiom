@@ -1,304 +1,240 @@
 # Feature Research
 
-**Domain:** Scale Hardening — High-throughput job dispatch, scheduler isolation, and DB queue correctness (Axiom v17.0)
-**Researched:** 2026-03-30
-**Confidence:** HIGH (well-established patterns from PostgreSQL queue literature and APScheduler docs; SQLite dual-mode constraints verified)
+**Domain:** Package management / image-building platform (Foundry/Smelter pipeline, air-gapped orchestration)
+**Researched:** 2026-04-01
+**Confidence:** MEDIUM-HIGH
+**Milestone:** v19.0 Foundry Improvements
 
 ---
 
-## Scope
+## Context
 
-Four capability areas for v17.0. Each covers: what high-throughput job systems do in this tier, what operators can observe, what configuration surface should be exposed, what stays internal, and what SQLite/Postgres dual-mode constraints apply.
+Axiom's Foundry pipeline already ships:
+- 5-step wizard: compose Node Images from Image Recipes (runtime + network blueprints)
+- Smelter Registry: vetted ingredient catalog, CVE scanning (pip-audit), STRICT/WARNING enforcement
+- PyPI mirror (devpi) + APT mirror (apt-cacher-ng) as compose sidecars, air-gapped upload
+- Blueprint/Tool create + delete (no edit)
+- Approved OS list: create + delete (no edit)
+- Smelt-Check post-build validation, JSON BOM, image lifecycle (ACTIVE/DEPRECATED/REVOKED)
+- `PATCH /api/capability-matrix/{id}` already exists (Tool Recipe edit backend exists)
 
-Target scale: 20 nodes, 200+ pending jobs, 1,000 scheduled definitions, 100 cron fires/minute.
-
----
-
-## Capability 1: DB Connection Pool Right-Sizing
-
-**Context:** The current asyncpg pool (via SQLAlchemy async) defaults to 5 connections. At 20 nodes polling every few seconds plus HTTP traffic plus cron fires, this pools exhausts under concurrent load and queries serialize. The fix is raising `pool_size` and `max_overflow` to match the actual concurrency footprint.
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Notes | SQLite impact |
-|---------|--------------|------------|-------|---------------|
-| Pool size ≥ 20 connections | Standard formula: N cores × 2 + disk spindles; 20 nodes polling = 20+ near-simultaneous queries | LOW | SQLAlchemy async `create_async_engine(pool_size=20, max_overflow=10)` in `db.py` | SQLite ignores pool_size (single writer; no pool semantics); guard with `if "postgresql" in DATABASE_URL` |
-| `pool_pre_ping=True` | Prevents stale connection errors after DB restart or idle timeout | LOW | Already a supported kwarg on `create_async_engine` | N/A for SQLite |
-| Idle connection timeout (`pool_recycle`) | Long-lived connections fail silently in containerised Postgres when TCP keepalives expire | LOW | `pool_recycle=300` (5 min) is a safe default; configurable via env var | N/A for SQLite |
-| `max_overflow` capped at 2× pool_size | Prevents unbounded connection storm under sudden burst | LOW | `max_overflow=10` with `pool_size=20` = 30 max connections | N/A |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| `AXIOM_DB_POOL_SIZE` and `AXIOM_DB_MAX_OVERFLOW` env vars | Operators deploying on constrained Postgres (e.g., Postgres 15 with `max_connections=100` shared across services) need to tune without forking compose files | LOW | Read in `db.py`; fallback to `pool_size=20, max_overflow=10`; document in `.env.example` |
-| Pool exhaustion logged as WARN with current stats | Without visibility, pool starvation looks like random slowness; a WARN at checkout-timeout threshold surfaces the issue | MEDIUM | SQLAlchemy `QueuePool` emits events; hook `checkout` to log when pool is exhausted |
-| Health endpoint includes pool stats | `GET /health/scheduling` already exists; extend with `db_pool_size`, `db_pool_checked_out` | MEDIUM | Uses `engine.pool.status()` or `engine.pool.checkedout()` |
-
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| PgBouncer as sidecar | "Better connection pooling" | Adds a service to maintain; adds auth configuration complexity; SQLAlchemy's built-in pool handles the target scale cleanly | Only add PgBouncer if Postgres is shared across multiple services and `max_connections` is genuinely constrained |
-| Unbounded `max_overflow=0` (no overflow) | "Predictable" | Under burst load this causes HTTP 500s on all requests when pool is full instead of queuing | Allow overflow; set it to a bounded value |
-| Per-request DB connection (no pooling) | Simpler to reason about | Creates one connection per request; 20 nodes × poll interval means hundreds of connections/sec; Postgres crashes above ~200 active connections | Pool is non-negotiable at this tier |
-
-### Operator-Visible Impact
-
-- Before: intermittent slow responses under concurrent node polling; no visibility into why
-- After: consistent response times; `GET /health/scheduling` shows `db_pool_checked_out: 8/20`; WARN log if pool exhaustion is observed
-
-### Configuration to Expose
-
-| Env Var | Default | Purpose |
-|---------|---------|---------|
-| `AXIOM_DB_POOL_SIZE` | `20` | asyncpg pool minimum connections |
-| `AXIOM_DB_MAX_OVERFLOW` | `10` | Connections above pool_size allowed during burst |
-| `AXIOM_DB_POOL_RECYCLE` | `300` | Seconds before idle connection is recycled |
+This research covers only NEW v19.0 features.
 
 ---
 
-## Capability 2: Dispatch Correctness — Composite Index + SELECT FOR UPDATE SKIP LOCKED
+## Feature Landscape
 
-**Context:** The current job candidate query does a full table scan (`WHERE status = 'pending' ORDER BY created_at`) and has no row-level locking. Two nodes polling simultaneously can both read the same PENDING job row and both claim it before either commits — double-assignment. At 200+ pending jobs and 20 polling nodes, this race window is large enough to be hit in normal operation. Two changes are needed: a composite index to speed up candidate selection, and `SELECT FOR UPDATE SKIP LOCKED` to make the claim atomic.
+### Table Stakes (Users Expect These)
 
-### Table Stakes
+Features users of image-building / package-management platforms expect. Missing these = product feels incomplete or untrustworthy.
 
-| Feature | Why Expected | Complexity | Notes | SQLite impact |
-|---------|--------------|------------|-------|---------------|
-| Composite index on `(status, created_at)` | Without this index, every `/work/pull` does a full `jobs` table scan; at 200+ rows this degrades linearly | LOW | `CREATE INDEX IF NOT EXISTS idx_jobs_status_created ON jobs (status, created_at)` in `init_db()` or migration file | SQLite supports composite indexes; identical DDL works on both |
-| `SELECT FOR UPDATE SKIP LOCKED` on dispatch | Eliminates double-assignment race; each polling node atomically claims a job row or skips it | MEDIUM | Requires raw SQL in `job_service.py`; ORM does not generate `SKIP LOCKED` via standard query API; use `text()` or SQLAlchemy `with_for_update(skip_locked=True)` | **SQLite does not support FOR UPDATE.** SQLite's write serialization (only one writer at a time) provides equivalent correctness but different syntax; must branch on dialect |
-| Dialect-conditional dispatch path | Maintain correctness on both SQLite (dev) and Postgres (prod) | MEDIUM | `if engine.dialect.name == "postgresql": use SKIP LOCKED else: BEGIN IMMEDIATE` serialization; SQLite write lock via `PRAGMA journal_mode=WAL` + `BEGIN IMMEDIATE` is equivalent for single-process dev | Necessary; cannot drop SQLite support |
-| Transaction wraps SELECT + UPDATE atomically | The SELECT and the status UPDATE must be in the same transaction; not two separate round-trips | LOW | Standard within `async with session.begin()` | Both dialects |
+| Feature | Why Expected | Complexity | Dependencies on Existing Infrastructure |
+|---------|--------------|------------|-----------------------------------------|
+| Edit Image Recipe (blueprint) | Any CRUD surface is broken without edit; create+delete only creates orphaned configs | LOW | `POST /api/blueprints` exists; need `PATCH /api/blueprints/{id}` backend + wizard-style modal frontend |
+| Edit Tool Recipe (capability-matrix entry) | PATCH endpoint already exists in `foundry_router.py`; UI has no edit button | LOW | Backend done; frontend gap only — add edit modal matching create flow |
+| Edit Approved OS entry | Name/family/version of an OS entry must be correctable without delete+recreate | LOW | `POST /api/approved-os` + `DELETE` exist; need `PATCH /api/approved-os/{id}` + inline form |
+| Runtime dependency confirmation dialog | Users must confirm which packages get pulled before a build commits; prevents surprise failures mid-build | MEDIUM | Requires calling `validate_blueprint()` in `smelter_service.py` before build; modal shows validated package list |
+| Package list for transitive deps visible pre-build | pip's resolver pulls far more than what's listed — operators need to see what will actually be installed | MEDIUM | Depends on transitive resolution backend (see Differentiators) |
 
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| `EXPLAIN ANALYZE` captured in DEBUG log on first dispatch | Operators with direct Postgres access can confirm the index is being used | LOW | One-time on startup; log the plan; no runtime overhead |
-| Dispatch metrics in health endpoint | `GET /health/scheduling` includes `dispatch_claimed_last_minute`, `dispatch_skipped_locked_last_minute` | MEDIUM | Track counts in memory; reset every minute; surfaces contention at scale |
-| Priority column + `ORDER BY priority DESC, created_at ASC` | Once index exists, adding priority ordering is a single `ORDER BY` change that already uses the composite index if `priority` is prepended | MEDIUM | Add `priority` to composite index as `(status, priority DESC, created_at)` if priority column exists |
-
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Application-level optimistic locking (CAS on status column) | "Avoids raw SQL" | Creates a retry loop at the application layer; under high contention many workers waste round-trips; SKIP LOCKED does this in the database with zero retry overhead | Use SKIP LOCKED |
-| Redis-based distributed lock for dispatch | "Proper distributed locking" | Adds a new service dependency for a problem Postgres solves natively; Redis lock timeouts add their own failure modes | Postgres SKIP LOCKED is the right tool |
-| `NOWAIT` instead of `SKIP LOCKED` | "Faster to fail than skip" | NOWAIT raises an error when a row is locked; the caller must catch and retry; SKIP LOCKED silently skips to the next available row — exactly what a queue consumer needs | SKIP LOCKED |
-
-### Operator-Visible Impact
-
-- Before: occasional duplicate jobs visible in execution history; two `RUNNING` records for the same job ID; nodes receiving the same job payload
-- After: each job claimed exactly once; no duplicate execution records; dispatch path is faster on large job backlogs
-- SQLite dev behaviour unchanged (correctness guaranteed by write serialization)
-
-### Configuration to Expose
-
-None — this is an internal correctness fix. No operator-facing knobs. Document in ARCHITECTURE.md and migration notes only.
-
-### Migration Note
-
-The composite index is non-destructive and can be added online (`CREATE INDEX CONCURRENTLY` on Postgres; `CREATE INDEX IF NOT EXISTS` on SQLite). Include in `migration_v17.sql`.
+**Rationale:** The first three are pure CRUD completeness gaps — the backend patterns exist and all three are LOW complexity. The last two become table stakes once operators have been burned by silent dep surprises or audit failures.
 
 ---
 
-## Capability 3: Incremental Scheduler Sync
+### Differentiators (Competitive Advantage)
 
-**Context:** `sync_scheduler()` currently rebuilds the entire APScheduler job set on every definition change — remove all, re-add all. At 1,000 scheduled definitions, this full rebuild pauses the scheduler (APScheduler acquires an internal lock during `remove_all_jobs()`), blocks the asyncio event loop for tens of milliseconds, and drops any cron that fires during the rebuild window. The fix is a per-definition add/modify/remove operation that only touches the changed definition.
+Features that make Axiom's Foundry pipeline stand apart from "bring your own Dockerfile."
 
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Notes | SQLite impact |
-|---------|--------------|------------|-------|---------------|
-| Per-definition `scheduler.add_job()` / `scheduler.reschedule_job()` / `scheduler.remove_job()` | Removes O(N) rebuild; each change is O(1) | MEDIUM | Compare DB definition ID+cron expression against in-memory scheduler jobs; only sync the delta | None; same APScheduler API on both |
-| `misfire_grace_time` tuned for burst load | Default is 1 second; at 100 fires/min a scheduler restart that takes 2 seconds will drop 3+ fires | LOW | Set `misfire_grace_time=30` at the scheduler level; overridable per-job on high-frequency definitions | Same |
-| `coalesce=True` default on scheduler | Prevents cascade of missed fires triggering in rapid succession after scheduler recovery | LOW | `scheduler.configure(job_defaults={'coalesce': True, 'misfire_grace_time': 30})` | Same |
-| APScheduler version pinned | APScheduler 3.x and 4.x have incompatible APIs; pinning prevents silent breakage | LOW | Pin `apscheduler>=3.10,<4.0` in `requirements.txt`; document the 4.x migration path as a future item | Same |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Scheduler health endpoint shows rebuild duration | `GET /health/scheduling` includes `last_sync_duration_ms`; high values indicate rebuild is still being triggered | LOW | Time `sync_scheduler()` on each call; store last value; surface in health endpoint |
-| In-memory definition hash cache | On definition read, compare cron expression + target + enabled flag hash against last-synced hash; skip sync if unchanged | MEDIUM | Prevents spurious syncs on read-only admin operations that touch the DB row without changing schedule |
-| `max_instances` configurable per definition | Prevents a slow job from spawning 100+ running instances when it falls behind | LOW | Expose `max_instances` field on `ScheduledJob` model; passed to `scheduler.add_job(max_instances=N)` |
-
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| APScheduler 4.x migration | "Use the modern version" | APScheduler 4.x rewrites the API entirely; every `add_job()` call site changes; SQLAlchemy jobstore APIs differ; high risk for a hardening milestone | Pin 3.x; plan migration as a separate milestone after hardening is proven |
-| DB-backed APScheduler jobstore | "Persistent scheduler across restarts" | APScheduler's DB jobstore adds a second writer to the jobs table, complicating the SKIP LOCKED dispatch logic; at 1,000 definitions the in-memory store is sufficient | Keep in-memory store; rebuild from DB definitions on startup (already the current pattern) |
-| Distributed multi-process scheduler | "Horizontal scale" | Requires a distributed lock (e.g., pg_advisory_lock) to prevent duplicate fires from two scheduler instances; adds significant complexity for a target of 20 nodes | Single-process scheduler is correct at this tier |
-
-### Operator-Visible Impact
-
-- Before: creating/editing a definition causes all cron fires to pause for ~50–200ms; visible as LATE entries in the scheduling health log at 1,000 definitions
-- After: definition edits are instant; no pause; `last_sync_duration_ms` drops from hundreds of ms to single-digit ms
-- `max_instances` field on definitions lets operators prevent runaway job fan-out
-
-### Configuration to Expose
-
-| Env Var | Default | Purpose |
-|---------|---------|---------|
-| `AXIOM_SCHEDULER_MISFIRE_GRACE_SEC` | `30` | Seconds a cron job can be late before being dropped |
-| `AXIOM_SCHEDULER_COALESCE` | `true` | Roll up missed fires into one when scheduler recovers |
-
-Field on `ScheduledJob` model:
-
-| Field | Default | Purpose |
-|-------|---------|---------|
-| `max_instances` | `1` | Maximum concurrent running instances of this cron job |
+| Feature | Value Proposition | Complexity | Dependencies | User Value | Impl Cost |
+|---------|-------------------|------------|-------------|-----------|-----------|
+| Transitive dependency resolution + tree viewer | Show the full resolved dep graph before a build, not just direct deps; CVE scan the full tree; operators can make informed approve/reject decisions | HIGH | New `pipdeptree`/`pip-compile` call in `foundry_service.py`; new `POST /api/blueprints/{id}/resolve` endpoint; new DepTree UI component | HIGH | HIGH |
+| CVE scanning of transitive deps | pip-audit already scans BOM post-build; scanning transitive deps PRE-build lets operators block before committing image storage | MEDIUM | pip-audit already integrated in `smelter_service.scan_vulnerabilities()`; extend to accept a resolved dep list rather than an installed environment | HIGH | MEDIUM |
+| Multi-ecosystem mirror expansion: apk (Alpine) | Alpine-based images cannot use apt-cacher-ng; apk needs a separate proxy (squid+ssl-bump or a custom apk-cacher) | HIGH | New compose sidecar; new `_mirror_apk()` in `mirror_service.py`; Admin mirror-config PATCH already exists | HIGH | HIGH |
+| Multi-ecosystem mirror expansion: npm (Verdaccio) | Node.js tools in images (linters, runners) need npm packages; Verdaccio is a proven, Docker-native npm proxy | MEDIUM | New compose sidecar (Verdaccio); new `_mirror_npm()` in `mirror_service.py`; Admin UI mirror toggle | MEDIUM | MEDIUM |
+| Multi-ecosystem mirror expansion: Conda | Data science node images require conda/mamba; `conda-mirror` is the standard tool for air-gap | HIGH | New compose sidecar; significant storage footprint; conda repodata is large | HIGH | HIGH |
+| Multi-ecosystem mirror expansion: NuGet (BaGet) | PowerShell nodes using `Install-Package` need a NuGet proxy; BaGet is lightweight, Docker-first | MEDIUM | BaGet docker image available; new compose sidecar; `_mirror_nuget()` in `mirror_service.py` | MEDIUM | MEDIUM |
+| Multi-ecosystem mirror expansion: OCI pull-through | Node images reference base images from Docker Hub/GHCR; an OCI pull-through cache (e.g., Zot, or Docker's registry:2) reduces external pulls and makes air-gap reliable | HIGH | New compose sidecar; `skopeo sync` for pre-seeding; Foundry needs to know local registry URL | HIGH | HIGH |
+| Script Analyzer (auto-detect deps from script) | Operator pastes a script and Foundry detects `import requests`, `apt-get install curl` etc. and suggests needed packages | HIGH | New `POST /api/foundry/analyze-script` endpoint; AST-based parsing for Python (`ast` stdlib), regex for Bash/PowerShell; maps module names to PyPI/apt package names | HIGH | HIGH |
+| Curated Bundles (pre-defined package sets) | "Data Science bundle" or "DevOps toolbox" reduces time-to-image for common personas; operators do not need to know package names | MEDIUM | New `Bundle` DB table; CRUD endpoint; Bundle selection step in wizard; seeded with 4-6 vetted bundles | HIGH | MEDIUM |
+| Starter Templates (pre-built Node Images) | Seed a few complete templates (Python ML, Bash ops, PowerShell admin) so operators do not start from a blank wizard | LOW | Startup seeder or admin-importable JSON; no new tables needed; builds on existing wizard | HIGH | LOW |
+| Plain-language search across recipes/ingredients | Operators search "machine learning" and get Python + numpy/pandas recipes, not a blank results page | MEDIUM | New full-text index or embedding on ingredient descriptions; `GET /api/foundry/search-packages` already exists but is package-name exact | MEDIUM | MEDIUM |
+| Simplified naming (human-readable slugs) | Auto-generate display names from OS+packages rather than requiring operators to invent names | LOW | Server-side name suggestion on Blueprint create; pure UX addition, no schema change required | MEDIUM | LOW |
+| Role-based Foundry view (operator vs developer) | Operators see Starter Templates + Bundle picker; developers see raw YAML/JSON editor mode | MEDIUM | Feature-flag per role; conditional UI rendering; no backend change | MEDIUM | MEDIUM |
 
 ---
 
-## Capability 4: Scheduler Process Isolation
+### Anti-Features (Commonly Requested, Often Problematic)
 
-**Context:** APScheduler's `AsyncIOScheduler` runs its fire callbacks directly on the uvicorn event loop. Each cron fire dispatches a job (DB write), and at 100 fires/min this is ~1.7 fires/second competing with HTTP requests and WebSocket heartbeats on the same event loop. Under burst load (e.g., hourly job burst at :00) the event loop saturates: heartbeat ACKs arrive late, nodes flip OFFLINE, HTTP responses stall. The fix is decoupling the scheduler from the HTTP-serving event loop.
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Notes | SQLite impact |
-|---------|--------------|------------|-------|---------------|
-| Scheduler fires in an isolated context | High-throughput job systems universally separate scheduling (tick/fire) from request serving | HIGH | Two options: (a) `run_in_executor` with `ThreadPoolExecutor` for the fire callback; (b) separate OS process via `multiprocessing`. Option (a) is lower risk and sufficient at this tier | SQLite writer serialization means a separate process needs careful IPC; ThreadPoolExecutor is safer for dual-mode |
-| Fire callback is non-blocking (no sync DB calls) | If the fire callback does a synchronous DB write on the event loop thread, isolation provides no benefit | MEDIUM | Ensure `dispatch_scheduled_job()` is a proper `async def`; all DB calls use `await session.execute()` | Same requirement |
-| Event loop lag metric in health endpoint | Without measurement, saturation is invisible | MEDIUM | Track time between asyncio heartbeat ticks; `GET /health/scheduling` includes `event_loop_lag_ms_p95` | Same |
-| Graceful degradation: cron fires queue in memory if DB is slow | At 100 fires/min, a 2-second DB stall means 3 fires back up; they should not block the next fire | MEDIUM | APScheduler `coalesce=True` handles this at the scheduler level; see Capability 3 | Same |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| `AXIOM_SCHEDULER_EXECUTOR` env var (`inline` / `thread`) | Operators can choose `inline` for dev (simpler debugging) and `thread` for prod (isolation) | LOW | Default `thread`; `inline` reproduces current behaviour for local dev/SQLite scenarios |
-| Thread executor pool size configurable | At 100 fires/min the thread pool needs enough slots to handle burst; default 4 threads is reasonable | LOW | `AXIOM_SCHEDULER_THREAD_WORKERS=4` env var; passed to `ThreadPoolExecutor(max_workers=N)` |
-| Separate process option documented as advanced | A separate process (`multiprocessing.Process`) provides true CPU isolation but requires IPC design (shared DB as message bus); document as a future option | LOW | Documentation only for v17.0; implementation deferred |
-
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Celery for scheduling | "Industry standard" | Adds Redis/RabbitMQ broker dependency, Celery worker containers, and a completely different task serialization model; massively disproportionate to the target of 100 fires/min | APScheduler with ThreadPoolExecutor isolates the event loop without new dependencies |
-| Gunicorn multi-worker process | "Easy horizontal scale" | Multiple uvicorn workers means multiple APScheduler instances; each fires its own cron, causing duplicate dispatches without distributed locking | Stay single process for the scheduler; scale stateless HTTP separately if needed |
-| asyncio.create_task() for fire callbacks | "Keeps everything on one event loop cleanly" | The problem IS the event loop being saturated; adding more tasks makes it worse | Move to ThreadPoolExecutor to give the fire callbacks OS-level threads off the event loop |
-
-### Operator-Visible Impact
-
-- Before: under burst cron load (e.g., 20 jobs scheduled at :00), heartbeat WebSocket messages stall; nodes show as OFFLINE briefly; dashboard WebSocket reconnects
-- After: event loop stays responsive; heartbeats acknowledged on time; `event_loop_lag_ms_p95` < 50ms under burst load
-- No dashboard UX changes; improvement is observable via health endpoint and node online/offline stability
-
-### Configuration to Expose
-
-| Env Var | Default | Purpose |
-|---------|---------|---------|
-| `AXIOM_SCHEDULER_EXECUTOR` | `thread` | `inline` (dev, event loop) or `thread` (prod, ThreadPoolExecutor) |
-| `AXIOM_SCHEDULER_THREAD_WORKERS` | `4` | Thread pool size for cron fire callbacks |
+| Feature | Why Requested | Why Problematic | Better Approach |
+|---------|---------------|-----------------|-----------------|
+| Automatic dependency pinning in the UI (lock-file generation) | Operators want "freeze my deps" without understanding implications | Lock files created by the server without context of target platform produce false confidence; pins break on next build when transitive deps conflict | Show the resolved dep list pre-build (tree viewer); let operators review it; do not auto-pin server-side |
+| Full conda channel sync (all platforms/versions) | Completeness instinct | A single conda-forge channel sync is 500 GB+; destroys storage and sync time | Offer filtered sync (platform-specific, version-pinned, or allow-list driven) — same pattern used by EKS Anywhere curated packages |
+| Real-time dep resolution during wizard typing | Responsive UX seems better | pip resolver is slow (2-10s per call); blocking UX on every keystroke; creates load spikes | Trigger resolution on explicit "Resolve" button click, not on every change |
+| Auto-suggest CVE fixes (auto-upgrade transitive deps) | "Fix it for me" appeal | Server has no context about what version constraints the operator actually needs; an "auto-fix" can silently break compatibility | Show CVE + affected version range + recommended version; let operator decide; document why |
+| Single unified mirror management UI for all ecosystems simultaneously | Seems simpler | Each ecosystem has fundamentally different sync models (PyPI=Simple API, APT=ftpsync, npm=REST, conda=repodata.json, OCI=content-addressable); forcing one UI creates leaky abstractions | Per-ecosystem tabs with ecosystem-specific controls and status; unified health summary card is fine |
+| Script Analyzer as a hard gate (block build if unrecognized imports) | Security instinct | Static analysis for Bash is inherently imprecise; false positives block legitimate builds | Use as a soft suggestion ("these imports were detected — consider adding these packages"); never block |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Capability 1: DB Pool Right-Sizing]
-    prerequisite for --> [Capability 2: SKIP LOCKED] (SKIP LOCKED requires connections
-                         to be available when multiple nodes poll simultaneously)
-    prerequisite for --> [Capability 4: Scheduler Isolation] (fire callback threads
-                         each need a DB connection)
+Edit Image Recipe (frontend)
+    └──requires──> PATCH /api/blueprints/{id} (backend — not yet built)
 
-[Capability 2: Dispatch Correctness — Index + SKIP LOCKED]
-    requires         --> Postgres dialect branch (dual-mode SQLite/Postgres)
-    requires         --> transaction context in job_service.py dispatch path
-    enhances         --> [Capability 1] (index makes pool connections return faster)
+Edit Tool Recipe (frontend)
+    └──uses──> PATCH /api/capability-matrix/{id} (backend — ALREADY EXISTS)
 
-[Capability 3: Incremental Scheduler Sync]
-    independent from --> [Capability 2] (different code paths)
-    enhances         --> [Capability 4] (smaller sync operations mean less time
-                         holding the scheduler lock during fire window)
+Edit Approved OS (frontend + backend)
+    └──requires──> PATCH /api/approved-os/{id} (backend — not yet built)
 
-[Capability 4: Scheduler Process Isolation]
-    requires         --> [Capability 1] (needs pool to handle dispatcher threads)
-    enhanced by      --> [Capability 3] (incremental sync reduces lock contention
-                         competing with fire callback threads)
+Transitive Dependency Resolution (pre-build)
+    └──requires──> new POST /api/blueprints/{id}/resolve endpoint
+    └──enables──> CVE scan of transitive deps (pre-build)
+    └──enables──> Dep Tree viewer in wizard
+    └──enables──> Script Analyzer suggestions shown with resolved count
+
+Script Analyzer
+    └──requires──> POST /api/foundry/analyze-script (new endpoint)
+    └──enhances──> Curated Bundles (can map detected imports to bundles)
+
+Curated Bundles
+    └──requires──> Bundle DB table + CRUD (new)
+    └──enhances──> Starter Templates (templates can reference bundles)
+    └──requires (to be useful)──> Plain-language search
+
+Starter Templates
+    └──requires──> Existing wizard + Image Recipe CRUD (already built)
+    └──enhances──> Role-based Foundry view (operators land on starter templates)
+
+apk mirror
+    └──requires──> Alpine Approved OS entries (already have Approved OS table)
+    └──requires──> New compose sidecar (alpine-pkg-cacher or squid)
+    └──enables──> Alpine-based Node Images with reliable air-gap
+
+OCI pull-through mirror
+    └──requires──> Local OCI registry sidecar (Zot or registry:2)
+    └──enables──> base image pulls air-gapped during foundry build
+
+npm mirror (Verdaccio)
+    └──requires──> Verdaccio compose sidecar
+    └──enables──> Node.js tool installation in images
+
+Conda mirror
+    └──requires──> conda-mirror + large storage allocation
+    └──conflicts──> storage budget (HIGH cost; defer unless data science is a priority)
+
+NuGet mirror (BaGet)
+    └──requires──> BaGet compose sidecar
+    └──enables──> PowerShell package install in images
+    └──enhances──> existing PowerShell node support
+
+Role-based Foundry view
+    └──requires──> Starter Templates (operator path needs something to show)
+    └──requires──> Curated Bundles (developer vs operator distinction only useful with bundles)
 ```
 
 ### Dependency Notes
 
-- **Capability 1 should be built first.** Pool starvation will mask correctness wins from Capability 2 and perf wins from Capability 4 if not addressed first.
-- **Capability 2 is the highest correctness risk.** The dialect branch for SKIP LOCKED vs SQLite serialization is the most error-prone piece; it needs dedicated testing.
-- **Capabilities 3 and 4 are independently deliverable** after Capability 1. They address different bottlenecks (scheduler rebuild time vs event loop saturation) with no shared code paths.
-- **SQLite dual-mode is a constraint throughout.** Every DB-layer change must be gated on `engine.dialect.name`. Failing to do this will break local dev and the CI suite.
+- **Transitive resolution enables CVE pre-build scanning:** The most impactful security improvement in this milestone builds on top of transitive resolution. Build transitive resolution first.
+- **Script Analyzer is standalone:** It can be built without transitive resolution (it produces a suggested package list, not a resolved tree). But they compose well.
+- **Edit CRUD gaps are independent:** No cross-dependencies between edit-blueprint, edit-tool-recipe, and edit-approved-os. All three can be built in parallel.
+- **Mirror sidecars are independent of each other:** npm, apk, Conda, NuGet, OCI can be developed and shipped independently. Each is its own compose service + `_mirror_*()` method.
+- **Curated Bundles + Starter Templates are a UX pair:** Bundles define package groups; Starter Templates compose bundles into ready-to-build recipes. Both together achieve the non-developer operator goal.
 
 ---
 
 ## MVP Definition
 
-### Launch With (v17.0)
+This is a subsequent milestone — "MVP" means the minimum slice needed to make this milestone useful to operators, not a product launch.
 
-All four capabilities are in scope. Recommended build order based on dependencies and risk:
+### Launch With (v19.0 Core)
 
-- [ ] Capability 1: DB pool right-sizing — `pool_size=20, max_overflow=10, pool_recycle=300, pool_pre_ping=True`; env vars in `.env.example`; health endpoint DB pool stats
-- [ ] Capability 2: Composite index + SKIP LOCKED — `migration_v17.sql` with index DDL; dialect-conditional dispatch in `job_service.py`; correctness test for concurrent dispatch
-- [ ] Capability 3: Incremental scheduler sync — per-definition add/modify/remove in `scheduler_service.py`; misfire grace + coalesce defaults tuned; `max_instances` field on `ScheduledJob`
-- [ ] Capability 4: Scheduler thread isolation — fire callbacks routed to `ThreadPoolExecutor`; `AXIOM_SCHEDULER_EXECUTOR` env var; `event_loop_lag_ms_p95` in health endpoint
+- [ ] **Edit Image Recipe** — zero friction, existing pattern from create; unblocks operators stuck with wrong blueprint configs
+- [ ] **Edit Tool Recipe (UI)** — backend already exists; purely frontend; quick win
+- [ ] **Edit Approved OS** — rounds out Foundry CRUD completeness
+- [ ] **Transitive dependency resolution + tree viewer** — headline feature; pre-build visibility into full dep graph; CVE scan the tree
+- [ ] **Curated Bundles** — 4-6 seeded bundles (data-science, devops-bash, powershell-admin, network-ops); Bundle picker in wizard
+- [ ] **npm mirror (Verdaccio)** — most broadly applicable new ecosystem; Node.js tools common in ops images; low storage footprint vs Conda/OCI
 
-### Add After Validation (v17.x)
+### Add After Validation (v19.x)
 
-- [ ] Priority queue ordering — extend composite index to `(status, priority DESC, created_at)` once dispatch correctness is proven
-- [ ] Dispatcher metrics dashboard panel — visualise `dispatch_claimed_last_minute`, `event_loop_lag_ms_p95` in the existing scheduling health tab
-- [ ] Separate process scheduler — full OS-level isolation via `multiprocessing`; requires IPC design; defer until thread isolation proves insufficient
+- [ ] **Script Analyzer** — high value but HIGH complexity for Bash/PowerShell parsing accuracy; add after core CRUD ships
+- [ ] **OCI pull-through mirror** — high value for air-gap completeness; HIGH complexity; add when base pipeline is stable
+- [ ] **NuGet mirror (BaGet)** — needed for PowerShell-heavy shops; MEDIUM complexity; add alongside OCI mirror work
+- [ ] **Starter Templates (seeded)** — LOW complexity; add after bundles validated; operators need bundles first to make templates useful
+- [ ] **apk mirror** — needed for Alpine images; HIGH complexity (ssl-bump or custom cacher); add when Alpine OS family adoption is confirmed
+- [ ] **Role-based Foundry view** — low backend cost, MEDIUM frontend; add after bundles + starter templates are present
 
-### Future Consideration (v18+)
+### Future Consideration (v20+)
 
-- [ ] APScheduler 4.x migration — new API, async-native, better distributed support; blocked by API incompatibility with current 3.x codebase
-- [ ] PgBouncer sidecar — only warranted if Postgres is shared with other services and `max_connections` is the binding constraint
-- [ ] Horizontal scaling (multiple uvicorn workers + distributed scheduler lock) — only needed beyond 50+ nodes; requires `pg_advisory_lock` or equivalent
+- [ ] **Conda mirror** — HIGH storage/complexity; only if data science becomes an explicit ICP segment
+- [ ] **Plain-language semantic search** — requires embedding infrastructure or search index; defer until package catalog grows large enough to need it
+- [ ] **Simplified auto-naming** — minor UX polish; not urgent
 
 ---
 
 ## Feature Prioritization Matrix
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| DB pool right-sizing (Cap 1) | HIGH — eliminates root cause of intermittent slowness | LOW | P1 |
-| Composite index + SKIP LOCKED (Cap 2) | HIGH — eliminates correctness bug; double-assignment is data integrity failure | MEDIUM | P1 |
-| Incremental scheduler sync (Cap 3) | MEDIUM — observable only at 1,000 definitions; affects cron fire reliability | MEDIUM | P1 |
-| Scheduler thread isolation (Cap 4) | MEDIUM — observable under burst cron load; node online/offline stability | HIGH | P1 |
-| Priority queue ordering | MEDIUM — operator convenience | LOW | P2 |
-| `event_loop_lag_ms_p95` metric | MEDIUM — observability without it is blind | LOW | P2 |
-| Separate process scheduler | LOW — overkill at 20 nodes | HIGH | P3 |
-| APScheduler 4.x migration | LOW for v17.0 scope | HIGH | P3 |
+| Feature | User Value | Implementation Cost | Priority | Existing Infrastructure |
+|---------|------------|---------------------|----------|------------------------|
+| Edit Image Recipe (blueprint) | HIGH | LOW | P1 | POST/DELETE exists; need PATCH backend + modal |
+| Edit Tool Recipe (UI only) | HIGH | LOW | P1 | PATCH backend already exists |
+| Edit Approved OS | MEDIUM | LOW | P1 | POST/DELETE exists; need PATCH + inline form |
+| Transitive dep resolution + tree viewer | HIGH | HIGH | P1 | pip-audit + pipdeptree available; new endpoint needed |
+| CVE scan transitive deps (pre-build) | HIGH | MEDIUM | P1 | pip-audit integration exists; extend to pre-build list |
+| Runtime dep confirmation dialog | HIGH | MEDIUM | P1 | `validate_blueprint()` exists in smelter_service; wrap in modal |
+| Curated Bundles | HIGH | MEDIUM | P1 | New Bundle table; no prior infrastructure |
+| npm mirror (Verdaccio) | MEDIUM | MEDIUM | P2 | mirror_service + Admin UI pattern established |
+| Script Analyzer | HIGH | HIGH | P2 | New endpoint; AST parsing stdlib available |
+| NuGet mirror (BaGet) | MEDIUM | MEDIUM | P2 | Same pattern as npm mirror |
+| Starter Templates (seeded) | HIGH | LOW | P2 | Wizard + template CRUD already built |
+| OCI pull-through mirror | HIGH | HIGH | P2 | skopeo available; new registry sidecar needed |
+| apk mirror | MEDIUM | HIGH | P3 | No prior infrastructure for Alpine pkg caching |
+| Role-based Foundry view | MEDIUM | MEDIUM | P3 | Feature-flag pattern used elsewhere in app |
+| Plain-language search | MEDIUM | HIGH | P3 | search-packages endpoint exists; needs semantic layer |
+| Simplified auto-naming | LOW | LOW | P3 | Pure UX sugar |
+| Conda mirror | MEDIUM | HIGH | P3 | High storage; LOW operator demand unless data science ICP |
+
+**Priority key:**
+- P1: Core of v19.0 — Foundry CRUD completeness + transitive resolution + bundles
+- P2: High-value additions — new ecosystems + script analyzer + starter templates
+- P3: Future enhancements — defer to v20+
 
 ---
 
 ## Competitor Feature Analysis
 
-How comparable systems handle the same scale tier:
+Reference platforms: Posit Package Manager, JFrog Artifactory, Nexus Repository, Pulp (Foreman/Katello).
 
-| Feature | Solid Queue (Rails) | BullMQ (Node.js) | Temporal (Go) | Axiom v17.0 Approach |
-|---------|---------------------|------------------|---------------|----------------------|
-| Dispatch correctness | `FOR UPDATE SKIP LOCKED` — core design | Redis atomic operations | DB-backed with optimistic locking | `FOR UPDATE SKIP LOCKED` on Postgres; dialect branch for SQLite |
-| Connection pool | ActiveRecord pool, configurable | ioredis connection pool | gRPC connection pool | asyncpg via SQLAlchemy; env-var configurable |
-| Scheduler isolation | Separate Solid Queue dispatcher process | Separate BullMQ worker process | Separate workflow worker | ThreadPoolExecutor in same process (sufficient for target scale) |
-| Incremental sync | Jobs stored in DB; no in-memory rebuild | Redis entries modified individually | Workflow definitions versioned individually | Per-definition add/modify/remove; no full rebuild |
-| Misfire handling | configurable `discard_after` | `removeOnFail`, `removeOnComplete` | Retry policies per workflow | `misfire_grace_time=30`, `coalesce=True` defaults |
+| Feature | Posit Package Manager | JFrog Artifactory | Nexus Repository | Axiom Approach |
+|---------|----------------------|-------------------|-----------------|----------------|
+| Transitive dep resolution | YES — full tree view with CVE overlay | YES — Xray scans full dep graph | YES — via IQ Server | Build into pre-build wizard step; operator must confirm tree |
+| Multi-ecosystem mirroring | PyPI + CRAN + Conda | All major ecosystems | All major ecosystems | Incremental: PyPI+APT today; add npm+NuGet+OCI+apk; skip Conda unless demanded |
+| Curated repos / allow-lists | YES — "curated PyPI" feature | YES — include/exclude rules | YES — route rules | Curated Bundles as a simpler mental model; allow-list already in Smelter Registry |
+| Script analysis / import detection | NO | NO | NO | Differentiator — no competitor does this in the image build flow |
+| Air-gap first design | Partial (offline mode) | Complex setup | Complex setup | Native design constraint; mirrors + BUILD in same compose stack |
+| RBAC on mirror management | YES | YES (complex) | YES (complex) | Already have role-gated Admin config; extend to mirror tabs |
+
+**Key differentiation opportunity:** Script Analyzer (detect deps from script text) is not offered by any major competitor in the image-build workflow. If Axiom ships this well, it becomes a genuine differentiator for operators who are not packaging experts.
 
 ---
 
 ## Sources
 
-- [PostgreSQL SKIP LOCKED documentation (inferable.ai)](https://www.inferable.ai/blog/posts/postgres-skip-locked) — SKIP LOCKED implementation pattern, transaction handling; confidence HIGH
-- [Postgres queue scaling to 100K events (RudderStack)](https://www.rudderstack.com/blog/scaling-postgres-queue/) — composite index patterns for queue workloads; confidence HIGH
-- [APScheduler 3.x user guide](https://apscheduler.readthedocs.io/en/3.x/userguide.html) — `misfire_grace_time`, `coalesce`, executor configuration; confidence HIGH (official docs)
-- [APScheduler executor asyncio issue #304](https://github.com/agronholm/apscheduler/issues/304) — ThreadPoolExecutor default behaviour on AsyncIOScheduler; confidence HIGH
-- [asyncpg connection pool best practices (2025, johal.in)](https://www.johal.in/gino-asyncpg-connection-pool-best-practices-2025/) — pool_size formulas, idle timeout; confidence MEDIUM
-- [SQLite transaction types (SQLite docs)](https://docs.sqlitecloud.io/docs/sqlite/lang_transaction) — BEGIN IMMEDIATE for write serialization; confidence HIGH (official docs)
-- [SQLite FOR UPDATE absence (SQLAlchemy group)](https://groups.google.com/g/sqlalchemy/c/RIBdLP_s6hk) — confirmed SQLite does not support FOR UPDATE; writer serialization is the SQLite equivalent; confidence HIGH
-- [Solid Queue SKIP LOCKED walkthrough (BigBinary)](https://www.bigbinary.com/blog/solid-queue) — production job queue using SKIP LOCKED at scale; confidence HIGH
-- [APScheduler scale-out issue #514](https://github.com/agronholm/apscheduler/issues/514) — confirmed AsyncIOScheduler cannot scale to more than 1 CPU without process isolation; confidence HIGH
-- Axiom codebase: `puppeteer/agent_service/services/job_service.py`, `scheduler_service.py`, `db.py`, `main.py` — primary source; confidence HIGH
+- [pip dependency resolution — official pip docs](https://pip.pypa.io/en/stable/topics/dependency-resolution/)
+- [pip-audit — PyPA official auditing tool](https://pypi.org/project/pip-audit/)
+- [pipdeptree — dependency tree visualization](https://pypi.org/project/pipdeptree/)
+- [Package Manager Mirroring landscape (2026)](https://nesbitt.io/2026/03/20/package-manager-mirroring.html)
+- [The Package Management Landscape (2026)](https://nesbitt.io/2026/01/03/the-package-management-landscape.html)
+- [Verdaccio — npm local registry proxy](https://www.verdaccio.org/)
+- [conda-mirror — mirror upstream conda channels](https://pypi.org/project/conda-mirror/)
+- [Skopeo — OCI image sync for air-gap](https://developers.redhat.com/articles/2025/09/24/skopeo-unsung-hero-linux-container-tools)
+- [FawltyDeps — import/dep mismatch detection](https://github.com/tweag/FawltyDeps)
+- [Posit Package Manager — curated PyPI repos](https://posit.co/blog/posit-package-manager-2023-04-0/)
+- [EKS Anywhere Curated Packages pattern](https://anywhere.eks.amazonaws.com/docs/packages/)
+- Existing codebase: `ee/routers/foundry_router.py`, `services/smelter_service.py`, `services/mirror_service.py`
 
 ---
 
-*Feature research for: Axiom v17.0 Scale Hardening*
-*Researched: 2026-03-30*
+*Feature research for: Axiom v19.0 Foundry Improvements*
+*Researched: 2026-04-01*
