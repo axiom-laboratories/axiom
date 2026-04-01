@@ -147,19 +147,24 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))
         if not result.scalar_one_or_none():
-            admin_password = os.getenv("ADMIN_PASSWORD", "admin")
-            using_default = admin_password == "admin" and not os.getenv("ADMIN_PASSWORD")
+            admin_password = os.getenv("ADMIN_PASSWORD", "").strip()
+            if not admin_password:
+                # Auto-generate a random password — user must change it on first login
+                import secrets as _secrets
+                admin_password = _secrets.token_urlsafe(16)
+                force_change = True
+                logger.warning("Admin bootstrapped with auto-generated password: %s", admin_password)
+                logger.warning("You will be prompted to change it on first login.")
+            else:
+                force_change = False
+                logger.info("Bootstrapped Admin User with provided password")
             admin_user = User(
                 username="admin",
                 password_hash=get_password_hash(admin_password),
-                must_change_password=using_default,
+                must_change_password=force_change,
             )
             db.add(admin_user)
             await db.commit()
-            if using_default:
-                logger.warning("Admin bootstrapped with default password 'admin' — user will be prompted to change it on first login.")
-            else:
-                logger.info("Bootstrapped Admin User")
 
     # Guard against silent APScheduler v4 install (v4 is a complete rewrite)
     import importlib.metadata as _importlib_metadata
