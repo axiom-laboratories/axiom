@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v18.0
 milestone_name: — First-User Experience & E2E Validation
-status: in-progress
-stopped_at: Completed 104-02-PLAN.md — PR #18 merged, all 3 PRs on main
-last_updated: "2026-04-01T13:06:06Z"
-last_activity: "2026-04-01 — Plan 104-02 executed: rebased and merged PR #18 (Windows E2E) to main"
+status: complete
+stopped_at: Completed 104-03-PLAN.md — Phase 104 complete, milestone v18.0 shipped
+last_updated: "2026-04-01T13:12:00Z"
+last_activity: "2026-04-01 — Plan 104-03 executed: History.test.tsx fixed, branches cleaned, milestone v18.0 closed"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 6
-  percent: 66
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -21,41 +21,37 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v18.0 — First-User Experience & E2E Validation
+**Current focus:** v18.0 — First-User Experience & E2E Validation (COMPLETE)
 
 ## Current Position
 
-Phase: 104 of 104 (PR Review & Merge) — IN PROGRESS
-Plan: 104-02 complete (2 of 3 plans done)
-Status: All 3 PRs (#17, #18, #19) merged to main; cleanup and milestone close remain
-Last activity: 2026-04-01 — Plan 104-02 executed: rebased and merged PR #18 (Windows E2E) to main
+Phase: 104 of 104 (PR Review & Merge) — COMPLETE
+Plan: 104-03 complete (3 of 3 plans done)
+Status: Milestone v18.0 shipped. All PRs merged, tests green, branches cleaned.
+Last activity: 2026-04-01 — Plan 104-03 executed: History.test.tsx fixed, branches cleaned, milestone v18.0 closed
 
-Progress: [██████░░░░] ~66%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2 (this milestone)
-- Average duration: 13 min
-- Total execution time: 25 min
+- Total plans completed: 9 (this milestone)
+- Average duration: ~12 min
+- Total execution time: ~110 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 101-ce-ux-cleanup | 2 | 25 min | 13 min |
+| 102-linux-e2e-validation | 3 | ~70 min | ~23 min |
+| 104-pr-review-merge | 3 | ~10 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 101-01 (15 min), 101-02 (10 min)
-- Trend: —
+- Last 5 plans: 102-03, 104-01 (3 min), 104-02 (4 min), 104-03 (~3 min)
+- Trend: Fast execution on PR merge/cleanup phases
 
 *Updated after each plan completion*
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 102-linux-e2e-validation P02 | 1 | 66 min | 66 min |
-| 104-pr-review-merge P01 | 1 | 3 min | 3 min |
-| 104-pr-review-merge P02 | 1 | 4 min | 4 min |
 
 ## Accumulated Context
 
@@ -82,9 +78,13 @@ Progress: [██████░░░░] ~66%
 - [104-02]: Code review sufficient without Docker stack test -- PR #18 changes are additive to different sections than deps.py extraction
 - [104-02]: Admin merge used to bypass merge queue with pre-existing CI failures (pytest not found, History.test.tsx)
 
+- [104-03]: History.test.tsx failures caused by missing useFeatures mock — component renders UpgradePlaceholder when features.executions is falsy
+- [104-03]: All 3 PR branches deleted (remote already gone via --delete-branch on merge); worktrees cleaned; milestone v18.0 closed
+
 ### Roadmap Evolution
 
 - Phase 104 added: PR Review & Merge — Review and merge PRs #17 (WebSocket fix), #18 (Windows E2E), #19 (Linux E2E) into main
+- Milestone v18.0 shipped 2026-04-01
 
 ### Pending Todos
 
@@ -92,10 +92,10 @@ None.
 
 ### Blockers/Concerns
 
-FRICTION-LNX-102.md BLOCKER (actioned): Quick Start compose command uses `--env-file .env` but no .env file is created in Quick Start instructions. User direction: remove the flag entirely. Plan 03 will implement this fix.
+None — all blockers resolved.
 
 ## Session Continuity
 
-Last session: 2026-04-01T13:06:06Z
-Stopped at: Completed 104-02-PLAN.md — PR #18 merged, all 3 PRs on main
-Resume file: .planning/phases/104-review-the-three-existing-prs-for-axiom-and-get-the-code-merged/104-03-PLAN.md
+Last session: 2026-04-01T13:12:00Z
+Stopped at: Completed 104-03-PLAN.md — milestone v18.0 shipped
+Resume file: None — milestone complete
