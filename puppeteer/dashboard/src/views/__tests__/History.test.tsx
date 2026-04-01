@@ -11,6 +11,21 @@ vi.mock('../../auth', () => ({
     authenticatedFetch: (...args: any[]) => mockAuthFetch(...args),
 }));
 
+// Mock useFeatures — enable executions so the real UI renders (not the UpgradePlaceholder)
+vi.mock('../../hooks/useFeatures', () => ({
+    useFeatures: () => ({
+        executions: true,
+        audit: false,
+        foundry: false,
+        webhooks: false,
+        triggers: false,
+        rbac: false,
+        resource_limits: false,
+        service_principals: false,
+        api_keys: false,
+    }),
+}));
+
 // Mock ExecutionLogModal to avoid nested fetch complexity
 vi.mock('../../components/ExecutionLogModal', () => ({
     ExecutionLogModal: () => null,
