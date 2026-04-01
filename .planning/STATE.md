@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v18.0
 milestone_name: — First-User Experience & E2E Validation
 status: verifying
-stopped_at: Completed 103-03-PLAN.md
-last_updated: "2026-03-31T21:53:07.140Z"
+stopped_at: Completed 103-04-PLAN.md — synthesis READY, Dwight offline for clean run
+last_updated: "2026-04-01T07:06:15.034Z"
 last_activity: "2026-03-31 — Plan 103-03 executed (Windows golden path run — BLOCKER: Docker Desktop credential store SSH limitation)"
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 9
-  completed_plans: 5
+  completed_plans: 6
   percent: 10
 ---
 
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 103 of 103 (Windows E2E Validation) — IN PROGRESS
-Plan: 103-03 complete (3 of 4 plans done)
-Status: Checkpoint:human-verify reached — FRICTION-WIN-103.md written, 1 BLOCKER found (Docker Desktop credential store via SSH); 103-04 is next
-Last activity: 2026-03-31 — Plan 103-03 executed (Windows golden path run — BLOCKER: Docker Desktop credential store SSH limitation)
+Phase: 103 of 103 (Windows E2E Validation) — COMPLETE
+Plan: 103-04 complete (4 of 4 plans done)
+Status: Synthesis report READY — all BLOCKERs fixed in source, images pushed to GHCR. Dwight offline during session so final clean run deferred.
+Last activity: 2026-04-01 — Plan 103-04 executed (CRLF fix, TrustAll update, GET /jobs/{guid} route, synthesis READY)
 
-Progress: [██░░░░░░░░] ~10%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [██░░░░░░░░] ~10%
 
 *Updated after each plan completion*
 | Phase 103 P03 | 66 | 2 tasks | 1 files |
+| Phase 103 P04 | 70 | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -65,22 +66,25 @@ Progress: [██░░░░░░░░] ~10%
 - [101-02]: Tab visibility tests use queryByRole/getByRole with licence mock; exact regex /^\+ enterprise$/i used for EE-mode absence to avoid false positives from licence badge text
 - [103-01]: Option B tab renamed to include OS qualifier so Windows tab can coexist as a parallel MkDocs Material tab without nesting
 - [103-01]: Windows job signing uses Python cryptography library (no openssl dependency) matching key generation approach
-- [103-01]: PowerShell TLS bypass pattern (add-type TrustAll) used consistently across all Invoke-RestMethod calls to self-signed endpoints
+- [103-01]: PowerShell TLS bypass pattern (add-type TrustAll) used consistently — later replaced with -SkipCertificateCheck in all Windows doc tabs (Plan 04)
 - [103-02]: invoke_subagent.ps1 reads prompt via Get-Content from disk rather than inline -Command — avoids PowerShell multi-line quoting failures
 - [103-02]: dwight_exec wraps all commands in pwsh -NoProfile -NonInteractive -Command — Windows OpenSSH defaults to cmd.exe
 - [103-03]: Docker Desktop credential store error via SSH is a test infrastructure limitation (not a product BLOCKER for real users) — must be documented in install.md as expected behavior
 - [103-03]: FRICTION-WIN-103.md BLOCKER: docker pull fails over SSH because docker-credential-desktop requires Windows session token not available in SSH context — no simple programmatic workaround found
+- [103-04]: CRLF normalization added to node.py (verify) and first-job.md Windows signing script — both must normalize so signature matches
+- [103-04]: synthesise_friction.py verdict patched — Fixed-during-run BLOCKERs treated as READY when source updated (not just runtime workaround)
+- [103-04]: GET /jobs/{guid} route added to main.py — previously only list/cancel/retry routes existed under /jobs/
 
 ### Pending Todos
 
-None.
+- [103-04]: Run `python3 run_windows_e2e.py` on Linux host when Dwight is back online to confirm clean pass
 
 ### Blockers/Concerns
 
-- [103-03]: Docker Desktop requires interactive Windows session for image pulls — `compose up` via SSH fails. Stack must be started manually on Dwight before WIN-03/04/05 can be validated. Plan 04 addresses this.
+- [103-04]: Dwight (192.168.50.149) was offline during Plan 04 execution — clean E2E run on Dwight deferred. All fixes committed and images pushed to GHCR.
 
 ## Session Continuity
 
-Last session: 2026-03-31T21:53:07.138Z
-Stopped at: Completed 103-03-PLAN.md
+Last session: 2026-04-01T07:06:15.031Z
+Stopped at: Completed 103-04-PLAN.md — synthesis READY, Dwight offline for clean run
 Resume file: None

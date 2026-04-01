@@ -253,7 +253,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 
 - [x] **Phase 101: CE UX Cleanup** — Hide EE-only tabs in CE mode, add upgrade prompts, verify no black pages (completed 2026-03-31)
 - [ ] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed
-- [ ] **Phase 103: Windows E2E Validation** — Dwight SSH cold-start through first PowerShell job; all friction catalogued and fixed
+- [x] **Phase 103: Windows E2E Validation** — Dwight SSH cold-start through first PowerShell job; all friction catalogued and fixed (completed 2026-04-01)
 
 ## Phase Details
 
@@ -368,7 +368,7 @@ Phases execute in numeric order: 101 → 102 → 103
 | 100. Observability + Sign-off | v17.0 | 2/2 | Complete | 2026-03-31 |
 | 101. CE UX Cleanup | v18.0 | Complete    | 2026-03-31 | 2026-03-31 |
 | 102. Linux E2E Validation | v18.0 | 0/TBD | Not started | - |
-| 103. Windows E2E Validation | 3/4 | In Progress|  | - |
+| 103. Windows E2E Validation | 4/4 | Complete   | 2026-04-01 | - |
 
 ## Archived
 
