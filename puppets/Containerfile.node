@@ -41,4 +41,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY environment_service/node.py .
 COPY environment_service/runtime.py .
 
-CMD ["python", "node.py"]
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "-u", "node.py"]

@@ -44,23 +44,14 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
 
 === "Windows (PowerShell)"
 
-    Log in to get a JWT. PowerShell's `Invoke-RestMethod` requires TLS validation to be disabled for self-signed certificates:
+    Log in to get a JWT. Use `-SkipCertificateCheck` to allow connections to the self-signed certificate (PowerShell 7+ required):
 
     ```powershell
-    # Disable TLS validation for self-signed cert
-    add-type @"
-        using System.Net;
-        using System.Security.Cryptography.X509Certificates;
-        public class TrustAll : ICertificatePolicy {
-            public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem) { return true; }
-        }
-    "@
-    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAll
-
     $response = Invoke-RestMethod -Method POST `
         -Uri "https://<your-orchestrator>:8001/auth/login" `
         -ContentType "application/x-www-form-urlencoded" `
-        -Body "username=admin&password=<your-password>"
+        -Body "username=admin&password=<your-password>" `
+        -SkipCertificateCheck
     $TOKEN = $response.access_token
     ```
 
@@ -69,7 +60,8 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
     ```powershell
     $tokenResponse = Invoke-RestMethod -Method POST `
         -Uri "https://<your-orchestrator>:8001/admin/generate-token" `
-        -Headers @{Authorization = "Bearer $TOKEN"}
+        -Headers @{Authorization = "Bearer $TOKEN"} `
+        -SkipCertificateCheck
     $JOIN_TOKEN = $tokenResponse.token
     Write-Host "JOIN_TOKEN: $JOIN_TOKEN"
     ```
@@ -211,7 +203,7 @@ ip route | awk '/default/ {print $3}'
     ```yaml
     services:
       puppet-node:
-        image: localhost/master-of-puppets-node:latest
+        image: ghcr.io/axiom-laboratories/axiom-node:latest
         environment:
           NODE_TAGS: general,windows
           JOB_IMAGE: docker.io/library/python:3.12-alpine
@@ -219,17 +211,16 @@ ip route | awk '/default/ {print $3}'
           JOIN_TOKEN: <paste-your-enhanced-token-here>
           ROOT_CA_PATH: /app/secrets/root_ca.crt
           EXECUTION_MODE: docker
-          DOCKER_HOST: npipe:////./pipe/docker_engine
         volumes:
           - node-secrets:/app/secrets
-          - //./pipe/docker_engine://./pipe/docker_engine
+          - /var/run/docker.sock:/var/run/docker.sock
 
     volumes:
       node-secrets:
     ```
 
-    !!! tip "Windows Docker socket path"
-        On Windows, Docker Desktop uses a named pipe instead of a Unix socket. The volume mapping `//./pipe/docker_engine://./pipe/docker_engine` and `DOCKER_HOST: npipe:////./pipe/docker_engine` are required so the node container can reach the host Docker daemon.
+    !!! tip "Docker socket on Windows"
+        Even though you are on Windows, the node container runs as a Linux container inside Docker Desktop's WSL2 VM. The VM exposes the Docker socket at the standard Unix path `/var/run/docker.sock`. Do **not** use the Windows named pipe (`//./pipe/docker_engine`) — Linux containers cannot access Windows named pipes.
 
     Then start the node (the `docker compose` command works identically in PowerShell):
 

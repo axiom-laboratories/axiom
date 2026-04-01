@@ -177,3 +177,25 @@ jobs:
           labels: ${{ steps.meta-docs.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Extract metadata (node)
+        id: meta-node
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/axiom-laboratories/axiom-node
+          flavor: |
+            latest=auto
+          tags: |
+            type=ref,event=tag
+
+      - name: Build and push node image
+        uses: docker/build-push-action@v6
+        with:
+          context: puppets
+          file: puppets/Containerfile.node
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-node.outputs.tags }}
+          labels: ${{ steps.meta-node.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

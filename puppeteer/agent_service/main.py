@@ -147,19 +147,24 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))
         if not result.scalar_one_or_none():
-            admin_password = os.getenv("ADMIN_PASSWORD", "admin")
-            using_default = admin_password == "admin" and not os.getenv("ADMIN_PASSWORD")
+            admin_password = os.getenv("ADMIN_PASSWORD", "").strip()
+            if not admin_password:
+                # Auto-generate a random password — user must change it on first login
+                import secrets as _secrets
+                admin_password = _secrets.token_urlsafe(16)
+                force_change = True
+                logger.warning("Admin bootstrapped with auto-generated password: %s", admin_password)
+                logger.warning("You will be prompted to change it on first login.")
+            else:
+                force_change = False
+                logger.info("Bootstrapped Admin User with provided password")
             admin_user = User(
                 username="admin",
                 password_hash=get_password_hash(admin_password),
-                must_change_password=using_default,
+                must_change_password=force_change,
             )
             db.add(admin_user)
             await db.commit()
-            if using_default:
-                logger.warning("Admin bootstrapped with default password 'admin' — user will be prompted to change it on first login.")
-            else:
-                logger.info("Bootstrapped Admin User")
 
     # Guard against silent APScheduler v4 install (v4 is a complete rewrite)
     import importlib.metadata as _importlib_metadata
@@ -1131,6 +1136,34 @@ async def create_job(job_req: JobCreate, current_user: User = Depends(require_au
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/jobs/{guid}", response_model=JobResponse, tags=["Jobs"])
+async def get_job(guid: str, current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
+    """Retrieve a single job by its GUID."""
+    result = await db.execute(select(Job).where(Job.guid == guid))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    payload = job.payload if isinstance(job.payload, dict) else json.loads(job.payload or '{}')
+    result_val = job.result if isinstance(job.result, dict) else json.loads(job.result or 'null') if job.result else None
+    target_tags = job.target_tags if isinstance(job.target_tags, list) else json.loads(job.target_tags or 'null') if job.target_tags else None
+    return JobResponse(
+        guid=job.guid,
+        status=job.status,
+        payload=payload,
+        result=result_val,
+        node_id=job.node_id,
+        started_at=job.started_at,
+        duration_seconds=job.duration_seconds,
+        target_tags=target_tags,
+        task_type=job.task_type,
+        display_type=getattr(job, 'display_type', None),
+        name=getattr(job, 'name', None),
+        created_by=getattr(job, 'created_by', None),
+        created_at=job.created_at,
+        runtime=getattr(job, 'runtime', None),
+        originating_guid=getattr(job, 'originating_guid', None),
+    )
 
 @app.patch("/jobs/{guid}/cancel", tags=["Jobs"])
 async def cancel_job(guid: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
@@ -2276,7 +2309,7 @@ if __name__ == "__main__":
                  ip = socket.gethostbyname(hostname)
              except Exception:
                  ip = "127.0.0.1"
-             sans = ["localhost", "master-of-puppets", "agent", "puppeteer-agent-1", hostname, ip]
+             sans = ["localhost", "master-of-puppets", "agent", "puppeteer-agent-1", "host.docker.internal", hostname, ip]
              # Include the AGENT_URL host/IP in the SAN so remote nodes can connect
              agent_url = os.getenv("AGENT_URL", "")
              if agent_url:

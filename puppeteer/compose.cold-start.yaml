@@ -7,8 +7,10 @@ version: "3"
 #
 # Quick start:
 #   1. docker compose -f compose.cold-start.yaml up -d
-#      Default login: admin / admin  (you will be prompted to change it on first login)
-#      Optional: set ADMIN_PASSWORD env var or .env file to override the default.
+#      A random admin password is generated on first boot — check the agent logs:
+#        docker logs <agent-container> 2>&1 | grep "Admin password"
+#      You will be prompted to change it on first login.
+#      Optional: set ADMIN_PASSWORD env var or .env file to choose your own.
 #
 # Usage:
 #   CE run:  docker compose -f compose.cold-start.yaml up -d
@@ -17,8 +19,8 @@ version: "3"
 #   Optional: create a .env file alongside compose.cold-start.yaml to override defaults.
 #   Docker Compose v2 reads .env automatically — no --env-file flag needed.
 #
-# No .env file required. Default credentials: admin / admin
-# You will be prompted to change the password on first login.
+# No .env file required. Admin password is auto-generated on first boot.
+# You will be prompted to change it on first login.
 #
 # Dashboard is reachable at: https://localhost:8443
 # API is reachable at:       https://localhost:8001
@@ -60,7 +62,7 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-puppet}:${POSTGRES_PASSWORD:-masterpassword}@db/${POSTGRES_DB:-puppet_db}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PYTHONUNBUFFERED=1
       - AGENT_URL=${AGENT_URL:-https://localhost:8001}
