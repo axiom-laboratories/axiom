@@ -99,12 +99,12 @@ See `.planning/milestones/` for detailed archive of each milestone.
   3. Admin can list, add, edit, and remove Approved OS entries from a dedicated section without using the API directly
   4. Operator sees a confirmation dialog listing all runtime tool dependencies before a blueprint build commits
   5. The ingredient model has an explicit ecosystem enum column (PYPI, APT, APK, OCI, NPM, CONDA, NUGET) and all new tables (ingredient_dependencies, curated_bundles, curated_bundle_items) exist in the schema
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 107-01: DB schema migrations and ecosystem enum
-- [ ] 107-02: Blueprint edit with optimistic locking
-- [ ] 107-03: Tool recipe edit UI + Approved OS management + dep confirmation dialog
+- [ ] 107-01-PLAN.md — Schema migration + new tables + backend CRUD endpoints
+- [ ] 107-02-PLAN.md — Blueprint edit mode + dep confirmation dialog
+- [ ] 107-03-PLAN.md — Tool recipe edit UI + Approved OS tab
 
 ### Phase 108: Transitive Dependency Resolution
 **Goal**: The mirror pipeline downloads complete dependency trees so air-gapped STRICT builds succeed without internet access
