@@ -620,3 +620,174 @@ class ApprovedIngredientUpdate(BaseModel):
 class MirrorConfigUpdate(BaseModel):
     pypi_mirror_url: Optional[str] = None
     apt_mirror_url: Optional[str] = None
+
+
+# --- User Management (EE) ---
+
+ALLOWED_ROLES = {"admin", "operator", "viewer"}
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str = "viewer"
+
+
+class UserResponse(BaseModel):
+    id: Optional[str] = None
+    username: str
+    role: str
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class PermissionGrant(BaseModel):
+    permission: str
+
+
+# --- Signing Keys (EE) ---
+
+class UserSigningKeyCreate(BaseModel):
+    name: str
+    public_key_pem: Optional[str] = None
+
+
+class UserSigningKeyResponse(BaseModel):
+    id: str
+    name: str
+    public_key_pem: str
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class UserSigningKeyGeneratedResponse(BaseModel):
+    id: str
+    name: str
+    public_key_pem: str
+    private_key_pem: str
+    created_at: Optional[datetime] = None
+
+
+# --- API Keys (EE) ---
+
+class UserApiKeyCreate(BaseModel):
+    name: str
+    expires_in_days: Optional[int] = None
+
+
+class UserApiKeyResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class UserApiKeyCreatedResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    raw_key: str
+    expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+# --- Service Principals (EE) ---
+
+class ServicePrincipalCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    role: str = "operator"
+    expires_in_days: Optional[int] = None
+
+
+class ServicePrincipalResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    role: str
+    client_id: str
+    is_active: bool = True
+    created_by: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ServicePrincipalCreatedResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    role: str
+    client_id: str
+    client_secret: str
+    is_active: bool = True
+    created_by: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+class ServicePrincipalUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class ServicePrincipalTokenRequest(BaseModel):
+    client_id: str
+    client_secret: str
+
+
+class ServicePrincipalRotateResponse(BaseModel):
+    client_id: str
+    client_secret: str
+
+
+# --- Webhooks (EE) ---
+
+class WebhookCreate(BaseModel):
+    url: str
+    events: List[str] = []
+
+
+class WebhookResponse(BaseModel):
+    id: Optional[int] = None
+    url: str
+    events: Optional[str] = None
+    secret: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+# --- Triggers (EE) ---
+
+class TriggerCreate(BaseModel):
+    name: str
+    slug: str
+    job_definition_id: str
+
+
+class TriggerResponse(BaseModel):
+    id: Optional[str] = None
+    name: str
+    slug: str
+    job_definition_id: Optional[str] = None
+    token: Optional[str] = None
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class TriggerUpdate(BaseModel):
+    is_active: Optional[bool] = None
