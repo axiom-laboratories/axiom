@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Plan 105-01 executed. CRLF normalization + forced password change applied.
+status: completed
 stopped_at: Completed 105-02-PLAN.md
-last_updated: "2026-04-01T14:02:48.855Z"
-last_activity: "2026-04-01 — Plan 105-01 executed: CRLF countersign fix + admin bootstrap forced password change"
+last_updated: "2026-04-01T14:06:25.288Z"
+last_activity: "2026-04-01 — Plan 105-02 executed: Restored PowerShell tabs in first-job.md"
 progress:
   total_phases: 6
   completed_phases: 5
