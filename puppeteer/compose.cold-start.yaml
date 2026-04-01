@@ -11,8 +11,11 @@ version: "3"
 #      Optional: set ADMIN_PASSWORD env var or .env file to override the default.
 #
 # Usage:
-#   CE run:  docker compose -f compose.cold-start.yaml --env-file .env up -d
-#   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml --env-file .env up -d
+#   CE run:  docker compose -f compose.cold-start.yaml up -d
+#   EE run:  AXIOM_LICENCE_KEY=<your_key> docker compose -f compose.cold-start.yaml up -d
+#
+#   Optional: create a .env file alongside compose.cold-start.yaml to override defaults.
+#   Docker Compose v2 reads .env automatically — no --env-file flag needed.
 #
 # No .env file required. Default credentials: admin / admin
 # You will be prompted to change the password on first login.
@@ -61,7 +64,7 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PYTHONUNBUFFERED=1
       - AGENT_URL=${AGENT_URL:-https://localhost:8001}
-      - NODE_IMAGE=${NODE_IMAGE:-localhost/master-of-puppets-node:latest}
+      - NODE_IMAGE=${NODE_IMAGE:-ghcr.io/axiom-laboratories/axiom-node:latest}
       - NODE_EXECUTION_MODE=${NODE_EXECUTION_MODE:-auto}
       - AXIOM_LICENCE_KEY=${AXIOM_LICENCE_KEY:-}
     ports:
@@ -92,3 +95,7 @@ volumes:
   caddy_data:
   caddy_config:
   secrets-data:   # Agent secrets persistence (boot.log, licence.key)
+
+networks:
+  default:
+    name: axiom_default   # Stable name so node compose files can attach with networks.axiom_default.external: true

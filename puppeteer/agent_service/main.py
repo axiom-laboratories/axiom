@@ -254,7 +254,7 @@ async def get_node_compose(token: str, mounts: Optional[str] = None, tags: Optio
 version: '3.8'
 services:
   puppet:
-    image: {os.getenv("NODE_IMAGE", "192.168.50.148:5000/puppet-node:latest")}
+    image: {os.getenv("NODE_IMAGE", "ghcr.io/axiom-laboratories/axiom-node:latest")}
     network_mode: host
     environment:
       - AGENT_URL={os.getenv("AGENT_URL", "https://localhost:8001")}
@@ -1081,6 +1081,49 @@ async def create_job(job_req: JobCreate, current_user: User = Depends(require_au
     try:
         # SRCH-03: stamp submitter username so Jobs view can filter by creator
         job_req = job_req.model_copy(update={"created_by": current_user.username})
+
+        # SEC-JOB: If the payload carries a user signature, verify it server-side
+        # against the registered public key, then countersign with the server's own
+        # Ed25519 signing key so the node can verify using its cached verification.key.
+        payload_dict = dict(job_req.payload)
+        user_sig = payload_dict.get("signature")
+        sig_id = payload_dict.get("signature_id")
+        script_content = payload_dict.get("script_content")
+
+        if user_sig and sig_id and script_content:
+            # 1. Verify user's signature against the registered public key
+            sig_result = await db.execute(select(Signature).where(Signature.id == sig_id))
+            sig_rec = sig_result.scalar_one_or_none()
+            if not sig_rec:
+                raise HTTPException(status_code=422, detail=f"Signature key ID '{sig_id}' not found in registry")
+            try:
+                from .services.signature_service import SignatureService as _SS
+                _SS.verify_payload_signature(sig_rec.public_key, user_sig, script_content)
+            except Exception as _ve:
+                raise HTTPException(status_code=422, detail=f"Signature verification failed: {_ve}")
+
+            # 2. Countersign script with the server's Ed25519 signing key so the
+            #    node can verify using its fetched verification.key (which is the
+            #    server's public counterpart).
+            _signing_key_path = "/app/secrets/signing.key"
+            if not os.path.exists(_signing_key_path):
+                _signing_key_path = "secrets/signing.key"
+            if os.path.exists(_signing_key_path):
+                try:
+                    from cryptography.hazmat.primitives.asymmetric import ed25519 as _ed
+                    from cryptography.hazmat.primitives import serialization as _ser
+                    import base64 as _b64
+                    with open(_signing_key_path, "rb") as _f:
+                        _sk = _ser.load_pem_private_key(_f.read(), password=None)
+                    _server_sig = _b64.b64encode(_sk.sign(script_content.encode("utf-8"))).decode("ascii")
+                    # Replace user signature with server countersignature so node verifies correctly
+                    payload_dict["signature"] = _server_sig
+                    job_req = job_req.model_copy(update={"payload": payload_dict})
+                except Exception as _se:
+                    # Non-fatal: log and continue without countersignature
+                    import logging as _log
+                    _log.getLogger(__name__).warning("Server countersign failed: %s", _se)
+
         result = await JobService.create_job(job_req, db)
         await ws_manager.broadcast("job:created", {"guid": result["guid"], "status": "PENDING", "task_type": job_req.task_type})
         return result

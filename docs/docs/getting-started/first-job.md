@@ -43,39 +43,6 @@ Every job must be signed before dispatch. Generate a keypair once — the privat
     openssl pkey -in signing.key -pubout -out verification.key
     ```
 
-=== "Windows (PowerShell)"
-
-    PowerShell does not support bash heredocs. Save the key generation script to a file first, then run it:
-
-    ```powershell
-    $script = @'
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    from cryptography.hazmat.primitives import serialization
-
-    key = Ed25519PrivateKey.generate()
-
-    with open("signing.key", "wb") as f:
-        f.write(key.private_bytes(
-            serialization.Encoding.PEM,
-            serialization.PrivateFormat.PKCS8,
-            serialization.NoEncryption()
-        ))
-
-    with open("verification.key", "wb") as f:
-        f.write(key.public_key().public_bytes(
-            serialization.Encoding.PEM,
-            serialization.PublicFormat.SubjectPublicKeyInfo
-        ))
-
-    print("Done. Upload verification.key to Axiom, keep signing.key private.")
-    '@
-    $script | Out-File -Encoding utf8 gen_key.py
-    python gen_key.py
-    ```
-
-    !!! note "cryptography library"
-        If `python gen_key.py` fails with an import error, install first: `pip install cryptography`
-
 This produces `signing.key` (private — keep safe) and `verification.key` (public — upload to Axiom).
 
 !!! warning "Never commit signing.key"
@@ -146,41 +113,13 @@ Copy the printed command — your Key ID is already substituted in.
 
 ## Step 2: Write a test script
 
-=== "Linux / macOS"
+Create `hello.py`:
 
-    Create `hello.py`:
-
-    ```python
-    print("Hello from Axiom!")
-    import platform
-    print(f"Running on {platform.node()} ({platform.system()})")
-    ```
-
-=== "Windows (PowerShell)"
-
-    Create `hello.py` (Python works on all nodes — recommended for the CE getting started path):
-
-    ```powershell
-    @'
-    print("Hello from Axiom!")
-    import platform
-    print(f"Running on {platform.node()} ({platform.system()})")
-    '@ | Out-File -Encoding utf8 hello.py
-    ```
-
-    Alternatively, create a PowerShell script `hello.ps1` for use on Windows-capable nodes:
-
-    ```powershell
-    @'
-    Write-Host "Hello from Axiom on Windows!"
-    Write-Host "Running on $env:COMPUTERNAME"
-    '@ | Out-File -Encoding utf8 hello.ps1
-    ```
-
-    !!! note "PowerShell scripts on nodes"
-        The node's job runner executes the script content via Python subprocess. PowerShell scripts work when the node image has `pwsh` in PATH. The default CE node image uses Python — use `hello.py` (Python) for CE. For Windows-capable nodes, PowerShell scripts run as expected.
-
-        **For this Getting Started guide**, use `hello.py` — it works on all nodes. The PowerShell signing path below works with any script file.
+```python
+print("Hello from Axiom!")
+import platform
+print(f"Running on {platform.node()} ({platform.system()})")
+```
 
 ---
 
@@ -269,78 +208,53 @@ openssl pkey -in signing.key -pubout -out verification.key
 !!! danger "Register before dispatching"
     Job creation fails with a `422` signature validation error if no public key is registered.
 
-### Sign and submit
+### Sign and submit with curl
 
-=== "Linux / macOS"
+The safest approach is to use Python to build the JSON body — this avoids shell quoting issues with multi-line scripts and base64 signatures.
 
-    Set `$TOKEN` by logging in first:
-    ```bash
-    TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
-      -H 'Content-Type: application/x-www-form-urlencoded' \
-      -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
-    ```
+```bash
+# 1. Get an auth token
+TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-    Sign and submit with curl:
-    ```bash
-    SIG=$(openssl pkeyutl -sign -inkey signing.key -rawin -in hello.py | base64 -w0)
-    curl -sk -X POST https://<your-orchestrator>:8001/jobs \
-      -H "Authorization: Bearer $TOKEN" \
-      -H "Content-Type: application/json" \
-      -d "{\"script_content\": \"$(cat hello.py | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')\", \"signature\": \"$SIG\", \"signature_key_id\": \"<key-id>\"}"
-    ```
+# 2. Sign the script
+SIG=$(openssl pkeyutl -sign -inkey signing.key -rawin -in hello.py | base64 -w0)
 
-=== "Windows (PowerShell)"
+# 3. Build and send the JSON body using Python to handle escaping correctly
+python3 - <<'EOF'
+import json, subprocess, os, sys
 
-    Set `$TOKEN` by logging in first (disable TLS validation for self-signed certs):
-    ```powershell
-    # Disable TLS validation for self-signed cert
-    add-type @"
-        using System.Net;
-        using System.Security.Cryptography.X509Certificates;
-        public class TrustAll : ICertificatePolicy {
-            public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem) { return true; }
-        }
-    "@
-    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAll
+script = open("hello.py").read()
+sig    = os.environ["SIG"]
+key_id = "<your-key-id>"   # replace with the Key ID from Step 0
+token  = os.environ["TOKEN"]
 
-    $response = Invoke-RestMethod -Method POST `
-        -Uri "https://<your-orchestrator>:8001/auth/login" `
-        -ContentType "application/x-www-form-urlencoded" `
-        -Body "username=admin&password=<your-password>"
-    $TOKEN = $response.access_token
-    ```
+body = json.dumps({
+    "task_type": "script",
+    "runtime":   "python",
+    "payload":   {
+        "script_content": script,
+        "signature":      sig,       # must be inside payload so node can verify
+        "signature_id":   key_id,    # UUID of the registered public key
+    },
+})
 
-    Sign the script using Python (the same `cryptography` library used for key generation):
-    ```powershell
-    $signScript = @'
-    import base64, sys
-    from cryptography.hazmat.primitives import serialization
+result = subprocess.run(
+    ["curl", "-sk", "-X", "POST",
+     "https://<your-orchestrator>:8001/jobs",
+     "-H", f"Authorization: Bearer {token}",
+     "-H", "Content-Type: application/json",
+     "-d", body],
+    capture_output=True, text=True,
+)
+print(result.stdout)
+if result.returncode != 0:
+    print(result.stderr, file=sys.stderr)
+EOF
+```
 
-    with open("signing.key", "rb") as f:
-        key = serialization.load_pem_private_key(f.read(), password=None)
+Replace `<your-orchestrator>`, `<your-password>`, and `<your-key-id>` with your actual values.
 
-    with open(sys.argv[1], "rb") as f:
-        script_bytes = f.read()
-
-    sig = key.sign(script_bytes)
-    print(base64.b64encode(sig).decode())
-    '@
-    $signScript | Out-File -Encoding utf8 sign_script.py
-    $SIG = python sign_script.py hello.py
-    ```
-
-    Submit the job via `Invoke-RestMethod`:
-    ```powershell
-    $scriptContent = Get-Content -Raw hello.py
-    $body = @{
-        script_content = $scriptContent
-        signature = $SIG
-        signature_key_id = "<your-key-id>"
-    } | ConvertTo-Json
-
-    Invoke-RestMethod -Method POST `
-        -Uri "https://<your-orchestrator>:8001/jobs" `
-        -Headers @{Authorization = "Bearer $TOKEN"} `
-        -ContentType "application/json" `
-        -Body $body
-    ```
+!!! tip "Key ID format"
+    The Key ID is a UUID (e.g. `550e8400-e29b-41d4-a716-446655440000`). Find it on the **Signatures** page in the dashboard after registering your public key.

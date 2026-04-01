@@ -118,6 +118,7 @@ This guide uses Docker Compose (v2) — the recommended path for both homelab an
         ```
         ADMIN_PASSWORD=your-chosen-password
         ```
+        Docker Compose v2 reads `.env` automatically — no `--env-file` flag needed.
 
 ---
 
@@ -136,7 +137,7 @@ Docker Compose works identically on Windows, Linux, and macOS. The commands belo
 === "Quick Start"
 
     ```bash
-    docker compose -f compose.cold-start.yaml --env-file .env up -d
+    docker compose -f compose.cold-start.yaml up -d
     ```
 
     This starts: Caddy (reverse proxy + TLS, port 8443), the Agent Service (port 8001), and PostgreSQL.
