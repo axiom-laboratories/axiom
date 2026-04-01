@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: completed
-stopped_at: Completed 106-01-PLAN.md
-last_updated: "2026-04-01T19:13:33.117Z"
-last_activity: "2026-04-01 — Plan 106-01 executed: Fixed docs signing pipeline (3 gaps)"
+milestone: v19.0
+milestone_name: Foundry Improvements
+status: active
+stopped_at: null
+last_updated: "2026-04-01T20:00:00.000Z"
+last_activity: "2026-04-01 — Milestone v19.0 started"
 progress:
-  total_phases: 7
-  completed_phases: 6
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,15 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-01)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
-**Current focus:** v18.0 shipped — planning next milestone
+**Current focus:** v19.0 Foundry Improvements
 
 ## Current Position
 
-Milestone v18.0 complete and archived. All 15/15 requirements satisfied.
-Next: `/gsd:new-milestone` to start the next milestone.
-Last activity: 2026-04-01 — Plan 106-01 executed: Fixed docs signing pipeline (3 gaps)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-01 — Milestone v19.0 started
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -91,7 +92,53 @@ Progress: [██████████] 100%
 
 ### Pending Todos
 
-None.
+**CRITICAL: Transitive Dependency Resolution** (air-gapped STRICT deployments broken without this):
+
+Context: `mirror_service.py:66` uses `pip download --no-deps`, so only the named package is mirrored. But `foundry_service.py:130` runs `pip install` WITHOUT `--no-deps`, so pip tries to resolve the full dependency tree at build time. In air-gapped STRICT mode the build fails because transitive deps aren't in the local mirror. This only works today because WARNING mode falls through to public PyPI, or devpi's caching proxy fetches deps on-demand when internet is available.
+
+- [ ] **mirror_service: resolve and mirror transitive deps** — change `_mirror_pypi()` in `mirror_service.py:52-85` to run `pip download` WITHOUT `--no-deps` in a throwaway container. Parse the downloaded filenames to discover the full dependency tree. Auto-create `ApprovedIngredient` records for each transitive dep with a `parent_ingredient_id` foreign key linking back to the original package. Mirror all of them.
+- [ ] **Smelter API: dependency discovery endpoint** — new endpoint `POST /api/smelter/ingredients/{id}/resolve-deps` that returns the full transitive tree before committing. The Smelter UI shows e.g. "flask requires 5 additional packages: Werkzeug, Jinja2, MarkupSafe, itsdangerous, click" with one-click "Approve All". Reuses the `deps_to_confirm` pattern already implemented for Tool dependencies in `foundry_router.py:64-88`.
+- [ ] **Extend dep resolution to all ecosystems** — same pattern per ecosystem: npm (`npm install --dry-run --json`), Conda (`conda create --dry-run --json`), APT (`apt-get install -s <pkg>` and parse "Inst" lines), apk (`apk add --simulate <pkg>`). Each runs in a throwaway container matching the target OS family and returns a structured dep list for bulk approval in the UI.
+- [ ] **CVE scan: include transitive deps** — `smelter_service.py:103` runs `pip-audit --no-deps`. Remove `--no-deps` so the scan covers the full resolved tree. A vulnerable transitive dep (e.g. a CVE in MarkupSafe pulled by Jinja2 pulled by Flask) is currently invisible.
+- [ ] **Smelter UI: dependency tree viewer** — in the ingredient table, show a tree icon on packages that were auto-approved as transitive deps. Clicking it shows the provenance chain (e.g. "MarkupSafe ← Jinja2 ← flask"). Helps operators understand why a package is in their registry.
+
+**EE Dashboard GUI Gaps** (found during package mirrors course audit, 2026-04-01):
+
+Context: Audit of `Templates.tsx`, `Admin.tsx`, and EE routers against all API endpoints. Most operations have full GUI coverage. These are the gaps where the API supports an operation but the dashboard doesn't expose it.
+
+- [ ] **Edit Blueprint** — `Templates.tsx` BlueprintWizard supports create + view (JSON modal) + delete, but no edit flow. The API also lacks a PATCH endpoint for blueprints (`foundry_router.py` has POST and DELETE only). Need: (a) add `PATCH /api/blueprints/{id}` to foundry_router, (b) add "Edit" button on blueprint rows that reopens the wizard pre-populated with current definition. Current workaround: delete and recreate.
+- [ ] **Edit Tool Recipe** — API supports `PATCH /api/capability-matrix/{id}` (`foundry_router.py`), but `Templates.tsx` Tools tab only has Add + Delete. Need: edit dialog/form that loads current recipe fields (injection_recipe, validation_cmd, runtime_dependencies) into editable inputs.
+- [ ] **Approved OS Management** — `foundry_router.py` exposes `GET/POST/DELETE /api/approved-os` for managing base OS images (e.g. `debian:12-slim`, `alpine:3.20`). No admin tab in `Admin.tsx` or `Templates.tsx` exposes this. Need: dedicated section in the Foundry or Admin page to list/add/remove approved base images.
+- [ ] **Blueprint Runtime Dependency Confirmation** — when `foundry_router.py:80-81` returns `{"error": "deps_required", "deps_to_confirm": [...]}`, the BlueprintWizard doesn't display a confirmation dialog. Must use API directly with `confirmed_deps` array. Need: a modal in Step 4 (Tools) that shows required tool dependencies and lets the operator confirm.
+
+**Mirror Ecosystem Expansion** (from package mirrors course design, 2026-04-01):
+
+Context: Currently only PyPI mirroring is implemented (`mirror_service.py:52-85`). APT has a placeholder function (`mirror_service.py:88-95`). The Smelter ingredient model uses `os_family` (DEBIAN/ALPINE/FEDORA) which doesn't accommodate ecosystem-level packages like Docker images, npm, or Conda. The course at `docs/docs/quick-ref/package-mirrors-course.html` documents the target architecture with 7 ecosystems. All mirror backends are permissively licensed (MIT/BSD/Apache-2.0) — no commercial licensing issues when referenced via compose (user pulls images themselves).
+
+- [ ] **Smelter: expand `os_family` to `ecosystem`** — `ApprovedIngredient` model in EE DB uses `os_family` (DEBIAN/ALPINE/FEDORA). Add a `package_type` or `ecosystem` enum field: PYPI, APT, APK, OCI, NPM, CONDA, NUGET. Keep `os_family` for backwards compat but route mirror logic on `ecosystem`. Update `smelter_service.py` validation and `smelter_router.py` endpoints.
+- [ ] **mirror_service: implement `_mirror_apt()`** — placeholder at `mirror_service.py:88-95`. Run `apt-get download <pkg>=<version>` in a throwaway `debian:12-slim` container. Route through apt-cacher-ng (`apt-mirror:3142`) to warm the cache. Update `mirror_status` on the ingredient.
+- [ ] **mirror_service: implement `_mirror_apk()`** — new function. Run `apk fetch <pkg>=<version>` in a throwaway `alpine:3.20` container. Route through nginx apk-cache (`apk-cache:3143`) to warm the cache. Requires the apk-cache compose service to exist first.
+- [ ] **mirror_service: implement `_mirror_oci()`** — new function. Run `docker pull <image>:<tag>` through the registry:2 pull-through cache (`registry-cache:5000`). The pull itself warms the cache. Verify the image layers are stored in the `registry-cache-data` volume.
+- [ ] **mirror_service: implement `_mirror_npm()`** — new function. Run `npm pack <pkg>@<version>` in a throwaway `node:20-slim` container to download the tarball, then publish to Verdaccio (`verdaccio:4873`) via `npm publish`. Or configure Verdaccio as an uplink to npmjs.com so it caches on first fetch (simpler).
+- [ ] **mirror_service: implement `_mirror_conda()`** — new function. Run `conda create --download-only -n tmp <pkg>=<version>` in a throwaway `continuumio/miniconda3` container. Packages land in `/opt/conda/pkgs/`. Copy to the local conda mirror directory served by nginx. Respect channel selection (conda-forge vs defaults).
+- [ ] **mirror_service: implement `_mirror_nuget()`** — new function. Download `.nupkg` from PSGallery via `curl -L "https://www.powershellgallery.com/api/v2/package/<name>/<version>"`. Push to BaGet (`baget:5555`) via `PUT /api/v2/package` with the API key from config.
+- [ ] **Smelter UI: Conda channel selector** — when ecosystem=CONDA, show a dropdown: "conda-forge" (default, recommended) or "Anaconda defaults". Store the selected channel on the ingredient record. `_mirror_conda()` uses this to set the `-c` flag.
+- [ ] **Foundry UI: Anaconda ToS warning** — in `Templates.tsx` BlueprintWizard Step 3 (Packages), when a CONDA ingredient sourced from the Anaconda default channel is added to the recipe, show an amber callout: "Anaconda's Terms of Service require a commercial licence for organisations with 200+ employees. Consider using conda-forge instead." No hard block — just a visible warning. Suppress the warning for conda-forge-sourced ingredients.
+- [ ] **Smelter UI: mirror URL config for new ecosystems** — the existing Mirror Configuration form in `Admin.tsx` Smelter Registry tab has PyPI and APT URL fields. Add fields for: apk mirror URL, OCI registry URL, Verdaccio URL, Conda mirror URL. Store in Config table alongside existing `pypi_mirror_url` / `apt_mirror_url`.
+- [ ] **compose.server.yaml: add mirror services** — add compose service definitions for: `apk-cache` (nginx:alpine with `apk-cache.conf`, port 3143, volume `apk-cache-data`), `registry-cache` (registry:2 with `REGISTRY_PROXY_REMOTEURL`, port 5000, volume `registry-cache-data`), `verdaccio` (verdaccio/verdaccio:5, port 4873, volume `verdaccio-data`), `baget` (loicsharma/baget, port 5555, volume `baget-data`). Conda mirror via nginx reverse proxy to conda-forge.org (same pattern as apk-cache). All services optional — only started if the operator enables the corresponding mirror.
+
+**Operator UX: Non-Developer Accessibility** (from package mirrors course discussion, 2026-04-01):
+
+Context: The Foundry/Smelter workflow assumes the operator knows package names, ecosystems, and version constraints. Service desk staff and sysadmins typically know "I need a node that runs our inventory script" — not "I need openpyxl>=3.1 from PyPI". These features make the system accessible to non-developers.
+
+- [ ] **Script Analyzer** — new endpoint `POST /api/foundry/analyze-script` that accepts a script body + runtime hint (python/bash/powershell/node). For Python: parse AST for `import` statements, map to PyPI package names (using a known stdlib exclusion list + importlib metadata). For Node: parse `require()` / `import from`. For PowerShell: parse `Import-Module`. Return a structured list of `{name, ecosystem, suggested_version}`. Dashboard: new "Analyze Script" button in the Foundry that opens a paste/upload dialog, shows results, and offers "Approve All & Build" which chains Smelter approval → mirror sync → blueprint creation → build in one flow.
+- [ ] **Curated Package Bundles** — new `PackageBundle` DB model: `{id, name, description, packages: JSON[{name, ecosystem, version}]}`. Seed 5 bundles on startup: Data Science (numpy, pandas, scikit-learn, matplotlib, jupyter), Web/API (requests, flask, beautifulsoup4, lxml), Network Ops (paramiko, netmiko, nmap, dnspython), File Processing (openpyxl, Pillow, PyPDF2, python-docx), Windows Automation (Pester, PSScriptAnalyzer, ImportExcel). Dashboard: "Browse Bundles" in Foundry with one-click "Add Bundle" that bulk-approves all packages (with transitive deps) and creates a blueprint.
+- [ ] **Pre-built Starter Templates** — ship "Golden Image" template definitions as seed data. On first EE startup, create templates for: Python General, Python Data Science, Network Tools, Windows Automation. Each combines a seeded runtime blueprint + default network blueprint. Dashboard: "Template Gallery" view where non-technical operators pick from pre-built options and click Deploy instead of using the wizard.
+- [ ] **One-click mirror provisioning** — new Admin section: "Mirror Infrastructure". Shows each mirror type (PyPI, APT, apk, OCI, npm, Conda, NuGet) with an Enable/Disable toggle. Enabling a mirror triggers the agent service to `docker run` the corresponding container (using the Docker socket already mounted for Foundry builds). Stores state in Config table. Eliminates compose file editing entirely — the operator enables mirrors through the dashboard and the system handles container lifecycle.
+- [ ] **Plain-language package search** — enhance the Smelter "Add Ingredient" dialog with a search field that queries a package description index. For PyPI: use the PyPI JSON API (`/pypi/<pkg>/json`) to fetch summary fields. Show results like "openpyxl — A Python library to read/write Excel xlsx files" when the operator types "excel". Auto-detect ecosystem from the search source. Fallback: if no index is available (air-gapped), search only already-approved ingredients by name substring.
+- [ ] **Simplified UI naming** — rename user-facing labels across `Templates.tsx` and `Admin.tsx`: "Runtime Image Recipe" → "Software Profile", "Network Image Recipe" → "Network Policy", "Ingredient" → "Package", "Capability Matrix" / "Tool" → "Add-on Tool", "Smelter Registry" → "Package Registry", "Enforcement Mode" → "Approval Policy". Keep API field names unchanged for backwards compat. This is a pure UI rename — no backend changes.
+- [ ] **Role-based simplified view** — add a `ui_mode` preference per user (stored in User model or localStorage): "standard" (current full UI) or "simplified". In simplified mode, the Foundry page shows only: (a) Template Gallery (pick a starter), (b) "Upload Script" (triggers Script Analyzer flow), (c) "My Node Images" (templates the user has built). The full Smelter/Blueprint/Tool views are hidden. Admin role always sees full UI. Operator/viewer roles default to simplified but can toggle.
+- [ ] **Template catalog with usage stats** — extend `PuppetTemplate` model with `created_by`, `used_by_nodes_count` (computed from enrolled nodes), `last_used_at`. Dashboard: "Template Catalog" view with columns: name, creator, last built, nodes using it, status. Sort by usage count so proven templates surface first. Service desk picks from the catalog instead of building from scratch.
 
 ### Blockers/Concerns
 

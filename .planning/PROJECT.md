@@ -12,11 +12,21 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
+## Current Milestone: v19.0 Foundry Improvements
+
+**Goal:** Make the Foundry/Smelter pipeline production-grade for air-gapped deployments — transitive dependency resolution, full CRUD on all Foundry entities, multi-ecosystem mirror support, and operator-friendly UX for non-developers.
+
+**Target features:**
+- Transitive dependency resolution (mirror full dep trees, CVE scan transitive deps, UI tree viewer)
+- EE Dashboard GUI completeness (Edit Blueprint, Edit Tool Recipe, Approved OS Management, Runtime Dep Confirmation)
+- Mirror ecosystem expansion (APT, apk, OCI, npm, Conda, NuGet backends + compose services + Admin config)
+- Operator UX (Script Analyzer, Curated Bundles, Starter Templates, plain-language search, simplified naming, role-based views)
+
 ## Current State
 
 **Latest shipped:** v18.0 First-User Experience & E2E Validation (2026-04-01)
 **Previous:** v17.0 Scale Hardening (2026-03-31)
-**Next milestone:** Not yet planned — use `/gsd:new-milestone` to start
+**Current:** v19.0 Foundry Improvements (in progress)
 
 ## Requirements
 
@@ -426,4 +436,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
 
 ---
-*Last updated: 2026-04-01 after v18.0 milestone — First-User Experience & E2E Validation*
+*Last updated: 2026-04-01 after v19.0 milestone started — Foundry Improvements*
