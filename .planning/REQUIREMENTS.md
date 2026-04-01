@@ -9,9 +9,9 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Foundry CRUD Completeness
 
-- [ ] **CRUD-01**: Operator can edit an existing Image Recipe (blueprint) via a pre-populated wizard modal, with optimistic locking (version column + 409 on conflict)
+- [x] **CRUD-01**: Operator can edit an existing Image Recipe (blueprint) via a pre-populated wizard modal, with optimistic locking (version column + 409 on conflict)
 - [ ] **CRUD-02**: Operator can edit an existing Tool Recipe via an edit dialog using the existing PATCH endpoint
-- [ ] **CRUD-03**: Admin can list, add, edit, and remove Approved OS entries from a dedicated section in the Foundry or Admin page
+- [x] **CRUD-03**: Admin can list, add, edit, and remove Approved OS entries from a dedicated section in the Foundry or Admin page
 - [ ] **CRUD-04**: Operator sees a confirmation dialog showing all runtime dependencies before a blueprint build commits
 
 ### Dependency Resolution
@@ -32,7 +32,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **MIRR-07**: All mirror sidecars defined as compose services with opt-in profiles (not started by default)
 - [ ] **MIRR-08**: Admin mirror configuration UI includes URL fields for all new ecosystems (apk, OCI, Verdaccio, Conda, BaGetter)
 - [ ] **MIRR-09**: Operator can enable/disable mirror services from the Admin dashboard (one-click provisioning via Docker socket)
-- [ ] **MIRR-10**: Smelter ingredient model has an explicit ecosystem enum (PYPI, APT, APK, OCI, NPM, CONDA, NUGET) alongside existing os_family
+- [x] **MIRR-10**: Smelter ingredient model has an explicit ecosystem enum (PYPI, APT, APK, OCI, NPM, CONDA, NUGET) alongside existing os_family
 
 ### Operator UX
 
@@ -75,9 +75,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CRUD-01 | Phase 107 | Pending |
+| CRUD-01 | Phase 107 | Complete |
 | CRUD-02 | Phase 107 | Pending |
-| CRUD-03 | Phase 107 | Pending |
+| CRUD-03 | Phase 107 | Complete |
 | CRUD-04 | Phase 107 | Pending |
 | DEP-01 | Phase 108 | Pending |
 | DEP-02 | Phase 110 | Pending |
@@ -92,7 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIRR-07 | Phase 109 | Pending |
 | MIRR-08 | Phase 112 | Pending |
 | MIRR-09 | Phase 112 | Pending |
-| MIRR-10 | Phase 107 | Pending |
+| MIRR-10 | Phase 107 | Complete |
 | UX-01 | Phase 113 | Pending |
 | UX-02 | Phase 114 | Pending |
 | UX-03 | Phase 114 | Pending |
