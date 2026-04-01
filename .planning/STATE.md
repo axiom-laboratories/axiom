@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 105 (Windows Signing Pipeline Fix) — IN PROGRESS
-Plan: 105-01 complete (1 of 2 plans done)
-Status: Plan 105-01 executed. CRLF normalization + forced password change applied.
-Last activity: 2026-04-01 — Plan 105-01 executed: CRLF countersign fix + admin bootstrap forced password change
+Phase: 105 of 105 (Windows Signing Pipeline Fix) — COMPLETE
+Plan: 105-02 complete (2 of 2 plans done)
+Status: Phase 105 complete. All 3 v18.0 audit gaps closed.
+Last activity: 2026-04-01 — Plan 105-02 executed: Restored PowerShell tabs in first-job.md
 
 Progress: [██████████] 100%
 
