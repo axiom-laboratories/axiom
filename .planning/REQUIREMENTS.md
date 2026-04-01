@@ -17,7 +17,7 @@
 - [x] **LNX-01**: Fresh Linux cold-start deployment completes inside an LXC container (clean environment) without deviating from the Quick Start guide
 - [x] **LNX-02**: Admin/admin first login triggers forced password change prompt, which completes successfully
 - [x] **LNX-03**: Node enrollment succeeds following the documentation steps
-- [x] **LNX-04**: First job (Python or Bash) dispatches, executes, and shows output in the dashboard
+- [ ] **LNX-04**: First job (Python or Bash) dispatches, executes, and shows output in the dashboard
 - [x] **LNX-05**: All documented CE features are accessible and functional from the dashboard
 - [x] **LNX-06**: All friction found during the Linux run is catalogued and fixed
 
@@ -27,7 +27,7 @@
 - [x] **WIN-02**: Windows stack uses PowerShell (PWSH) — not CMD — for all shell interactions
 - [x] **WIN-03**: Admin/admin first login triggers forced password change prompt, which completes successfully
 - [x] **WIN-04**: Node enrollment succeeds on Dwight following documentation
-- [x] **WIN-05**: First PowerShell job dispatches, executes, and shows output
+- [ ] **WIN-05**: First PowerShell job dispatches, executes, and shows output
 - [x] **WIN-06**: All friction found during the Windows run is catalogued and fixed
 
 ## Future Requirements
@@ -52,14 +52,14 @@
 | LNX-01 | Phase 102 | Complete |
 | LNX-02 | Phase 102 | Complete |
 | LNX-03 | Phase 102 | Complete |
-| LNX-04 | Phase 102 | Complete |
+| LNX-04 | Phase 106 | Pending |
 | LNX-05 | Phase 102 | Complete |
 | LNX-06 | Phase 102 | Complete |
 | WIN-01 | Phase 103 | Complete |
 | WIN-02 | Phase 103 | Complete |
 | WIN-03 | Phase 105 | Complete |
 | WIN-04 | Phase 103 | Complete |
-| WIN-05 | Phase 105 | Complete |
+| WIN-05 | Phase 106 | Pending |
 | WIN-06 | Phase 103 | Complete |
 
 **Coverage:**
@@ -67,7 +67,7 @@
 - Mapped to phases: 15
 - Unmapped: 0 ✓
 - Satisfied: 13/15
-- Gap closure (Phase 105): 2
+- Gap closure (Phase 106): 2
 
 ---
 *Requirements defined: 2026-03-31*

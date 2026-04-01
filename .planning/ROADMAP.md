@@ -20,7 +20,7 @@
 - ✅ **v16.0 — Competitive Observability** — Phases 87–91 (shipped 2026-03-30)
 - ✅ **v16.1 — PR Merge & Backlog Closure** — Phases 92–95 (shipped 2026-03-30)
 - ✅ **v17.0 �� Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
-- ◆ **v18.0 — First-User Experience & E2E Validation** — Phases 101–105 (gap closure in progress)
+- ◆ **v18.0 — First-User Experience & E2E Validation** — Phases 101–106 (gap closure in progress)
 
 ## Phases
 
@@ -248,7 +248,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>◆ v18.0 — First-User Experience & E2E Validation (Phases 101–105) — Gap Closure</summary>
+<summary>◆ v18.0 — First-User Experience & E2E Validation (Phases 101–106) — Gap Closure</summary>
 
 **Milestone Goal:** A first-time user on Linux or Windows can follow the Quick Start guide from cold start to a completed job with zero undocumented friction. The CE dashboard presents only CE-relevant UI.
 
@@ -257,6 +257,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 - [x] **Phase 103: Windows E2E Validation** — Docs pre-audit and PowerShell tab additions (completed 2026-04-01)
 - [x] **Phase 104: PR Review and Merge** — Review, clean, and squash-merge PRs #17, #18, #19; fix History.test.tsx; close milestone (completed 2026-04-01)
 - [x] **Phase 105: Windows Signing Pipeline Fix** — Restore first-job.md PowerShell tabs, fix CRLF countersign, fix cold-start forced password change (completed 2026-04-01)
+- [ ] **Phase 106: Fix Docs Signing Pipeline** — Fix signature_key_id→signature_id field name, restore CRLF normalization, replace TrustAll pattern in first-job.md (gap closure)
 
 </details>
 
@@ -364,7 +365,8 @@ Phases execute in numeric order: 101 → 102 → 103
 | 102. Linux E2E Validation | v18.0 | 3/3 | Complete | 2026-04-01 |
 | 103. Windows E2E Validation | v18.0 | 1/3 | Complete | 2026-04-01 |
 | 104. PR Review & Merge | v18.0 | Complete    | 2026-04-01 | 2026-04-01 |
-| 105. Windows Signing Pipeline Fix | 2/2 | Complete    | 2026-04-01 | — |
+| 105. Windows Signing Pipeline Fix | v18.0 | 2/2 | Complete | 2026-04-01 |
+| 106. Fix Docs Signing Pipeline | v18.0 | 0/0 | Pending | — |
 
 ## Archived
 
@@ -391,3 +393,11 @@ Plans:
 **Depends on:** Phase 104
 **Gap Closure:** Closes gaps from v18.0-MILESTONE-AUDIT.md
 **Plans:** 2/2 plans complete
+
+### Phase 106: Fix Docs Signing Pipeline
+
+**Goal:** Close remaining v18.0 audit gaps — fix the signature field name mismatch that breaks both Linux and Windows docs-following signing pipelines, restore lost CRLF normalization, and replace deprecated TrustAll pattern
+**Requirements**: LNX-04, WIN-05
+**Depends on:** Phase 105
+**Gap Closure:** Closes gaps from v18.0-MILESTONE-AUDIT.md (GAP 1: field name mismatch, GAP 2: lost commit 6970440 content, both broken E2E flows)
+**Plans:** 0/0 plans complete
