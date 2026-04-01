@@ -252,7 +252,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 **Milestone Goal:** A first-time user on Linux or Windows can follow the Quick Start guide from cold start to a completed job with zero undocumented friction. The CE dashboard presents only CE-relevant UI.
 
 - [x] **Phase 101: CE UX Cleanup** — Hide EE-only tabs in CE mode, add upgrade prompts, verify no black pages (completed 2026-03-31)
-- [ ] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed
+- [x] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed (completed 2026-04-01)
 - [ ] **Phase 103: Windows E2E Validation** — Dwight SSH cold-start through first PowerShell job; all friction catalogued and fixed
 
 ## Phase Details
@@ -362,7 +362,7 @@ Phases execute in numeric order: 101 → 102 → 103
 | 99. Scheduler Hardening | v17.0 | 1/1 | Complete | 2026-03-31 |
 | 100. Observability + Sign-off | v17.0 | 2/2 | Complete | 2026-03-31 |
 | 101. CE UX Cleanup | v18.0 | Complete    | 2026-03-31 | 2026-03-31 |
-| 102. Linux E2E Validation | 2/3 | In Progress|  | - |
+| 102. Linux E2E Validation | 3/3 | Complete   | 2026-04-01 | - |
 | 103. Windows E2E Validation | v18.0 | 0/TBD | Not started | - |
 
 ## Archived
