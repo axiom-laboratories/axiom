@@ -75,37 +75,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CRUD-01 | — | Pending |
-| CRUD-02 | — | Pending |
-| CRUD-03 | — | Pending |
-| CRUD-04 | — | Pending |
-| DEP-01 | — | Pending |
-| DEP-02 | — | Pending |
-| DEP-03 | — | Pending |
-| DEP-04 | — | Pending |
-| MIRR-01 | — | Pending |
-| MIRR-02 | — | Pending |
-| MIRR-03 | — | Pending |
-| MIRR-04 | — | Pending |
-| MIRR-05 | — | Pending |
-| MIRR-06 | — | Pending |
-| MIRR-07 | — | Pending |
-| MIRR-08 | — | Pending |
-| MIRR-09 | — | Pending |
-| MIRR-10 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
-| UX-03 | — | Pending |
-| UX-04 | — | Pending |
-| UX-05 | — | Pending |
-| UX-06 | — | Pending |
-| UX-07 | — | Pending |
+| CRUD-01 | Phase 107 | Pending |
+| CRUD-02 | Phase 107 | Pending |
+| CRUD-03 | Phase 107 | Pending |
+| CRUD-04 | Phase 107 | Pending |
+| DEP-01 | Phase 108 | Pending |
+| DEP-02 | Phase 110 | Pending |
+| DEP-03 | Phase 110 | Pending |
+| DEP-04 | Phase 110 | Pending |
+| MIRR-01 | Phase 109 | Pending |
+| MIRR-02 | Phase 109 | Pending |
+| MIRR-03 | Phase 111 | Pending |
+| MIRR-04 | Phase 111 | Pending |
+| MIRR-05 | Phase 111 | Pending |
+| MIRR-06 | Phase 112 | Pending |
+| MIRR-07 | Phase 109 | Pending |
+| MIRR-08 | Phase 112 | Pending |
+| MIRR-09 | Phase 112 | Pending |
+| MIRR-10 | Phase 107 | Pending |
+| UX-01 | Phase 113 | Pending |
+| UX-02 | Phase 114 | Pending |
+| UX-03 | Phase 114 | Pending |
+| UX-04 | Phase 115 | Pending |
+| UX-05 | Phase 115 | Pending |
+| UX-06 | Phase 115 | Pending |
+| UX-07 | Phase 115 | Pending |
 
 **Coverage:**
 - v19.0 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️
+- Mapped to phases: 25
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-01*
-*Last updated: 2026-04-01 after initial definition*
+*Last updated: 2026-04-01 after roadmap creation*
