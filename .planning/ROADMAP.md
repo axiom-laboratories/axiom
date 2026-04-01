@@ -20,7 +20,7 @@
 - ✅ **v16.0 — Competitive Observability** — Phases 87–91 (shipped 2026-03-30)
 - ✅ **v16.1 — PR Merge & Backlog Closure** — Phases 92–95 (shipped 2026-03-30)
 - ✅ **v17.0 �� Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
-- ✅ **v18.0 — First-User Experience & E2E Validation** — Phases 101–104 (shipped 2026-04-01)
+- ◆ **v18.0 — First-User Experience & E2E Validation** — Phases 101–105 (gap closure in progress)
 
 ## Phases
 
@@ -248,7 +248,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>✅ v18.0 — First-User Experience & E2E Validation (Phases 101–104) — SHIPPED 2026-04-01</summary>
+<summary>◆ v18.0 — First-User Experience & E2E Validation (Phases 101–105) — Gap Closure</summary>
 
 **Milestone Goal:** A first-time user on Linux or Windows can follow the Quick Start guide from cold start to a completed job with zero undocumented friction. The CE dashboard presents only CE-relevant UI.
 
@@ -256,6 +256,7 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
 - [x] **Phase 102: Linux E2E Validation** — LXC clean-environment cold-start through first job; all friction catalogued and fixed (completed 2026-04-01)
 - [x] **Phase 103: Windows E2E Validation** — Docs pre-audit and PowerShell tab additions (completed 2026-04-01)
 - [x] **Phase 104: PR Review and Merge** — Review, clean, and squash-merge PRs #17, #18, #19; fix History.test.tsx; close milestone (completed 2026-04-01)
+- [ ] **Phase 105: Windows Signing Pipeline Fix** — Restore first-job.md PowerShell tabs, fix CRLF countersign, fix cold-start forced password change
 
 </details>
 
@@ -363,6 +364,7 @@ Phases execute in numeric order: 101 → 102 → 103
 | 102. Linux E2E Validation | v18.0 | 3/3 | Complete | 2026-04-01 |
 | 103. Windows E2E Validation | v18.0 | 1/3 | Complete | 2026-04-01 |
 | 104. PR Review & Merge | v18.0 | Complete    | 2026-04-01 | 2026-04-01 |
+| 105. Windows Signing Pipeline Fix | v18.0 | 0/0 | Pending | — |
 
 ## Archived
 
@@ -381,3 +383,11 @@ Plans:
 - [x] 104-01: Clean and merge PR #17 + PR #19 (3 min)
 - [x] 104-02: Merge PR #18 (Windows E2E) (4 min)
 - [x] 104-03: Cleanup and milestone close (completed 2026-04-01)
+
+### Phase 105: Windows Signing Pipeline Fix
+
+**Goal:** Close v18.0 audit gaps — restore Windows first-job documentation, fix CRLF countersign asymmetry, and fix cold-start forced password change
+**Requirements**: WIN-05, WIN-03
+**Depends on:** Phase 104
+**Gap Closure:** Closes gaps from v18.0-MILESTONE-AUDIT.md
+**Plans:** 0/0 plans complete
