@@ -239,6 +239,132 @@ class Ping(Base):
     message: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+# --- EE Models (Foundry / Smelter) ---
+# These are used by EE routers and services. They share the same Base so
+# that create_all creates them alongside CE tables.
+
+
+class Blueprint(Base):
+    __tablename__ = "blueprints"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    type: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # RUNTIME, NETWORK
+    name: Mapped[Optional[str]] = mapped_column(String, unique=True, nullable=True)
+    definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON blob
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    os_family: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+
+class PuppetTemplate(Base):
+    __tablename__ = "puppet_templates"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    friendly_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    runtime_blueprint_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    network_blueprint_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    canonical_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    current_image_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_built_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_compliant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    status: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # DRAFT, ACTIVE, DEPRECATED, REVOKED
+    bom_captured: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
+
+
+class CapabilityMatrix(Base):
+    __tablename__ = "capability_matrix"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    base_os_family: Mapped[str] = mapped_column(String, nullable=False)
+    tool_id: Mapped[str] = mapped_column(String, nullable=False)
+    injection_recipe: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    validation_cmd: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    artifact_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    runtime_dependencies: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON list
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ApprovedOS(Base):
+    __tablename__ = "approved_os"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    image_uri: Mapped[str] = mapped_column(String, nullable=False)
+    os_family: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ApprovedIngredient(Base):
+    __tablename__ = "approved_ingredients"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    version_constraint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    os_family: Mapped[str] = mapped_column(String(50), nullable=False)
+    ecosystem: Mapped[str] = mapped_column(String(20), default="PYPI", server_default="PYPI")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_vulnerable: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
+    vulnerability_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    mirror_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="PENDING")
+    mirror_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class IngredientDependency(Base):
+    """Tracks transitive dependencies between approved ingredients (Phase 108)."""
+    __tablename__ = "ingredient_dependencies"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    parent_id: Mapped[str] = mapped_column(String(36), index=True)
+    child_id: Mapped[str] = mapped_column(String(36), index=True)
+    dependency_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    version_constraint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    ecosystem: Mapped[str] = mapped_column(String(20), nullable=False)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('parent_id', 'child_id', 'ecosystem', name='uq_ingredient_dep'),
+    )
+
+
+class CuratedBundle(Base):
+    """Pre-built package bundles for Phase 114 (curated bundles UX)."""
+    __tablename__ = "curated_bundles"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ecosystem: Mapped[str] = mapped_column(String(20), nullable=False)
+    os_family: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
+
+class CuratedBundleItem(Base):
+    """Individual package in a curated bundle."""
+    __tablename__ = "curated_bundle_items"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    bundle_id: Mapped[str] = mapped_column(String(36), index=True)
+    ingredient_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    version_constraint: Mapped[str] = mapped_column(String(255), default="*")
+
+
+class ImageBOM(Base):
+    """Bill of Materials for a built template image."""
+    __tablename__ = "image_bom"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    template_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    packages: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    layers: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    captured_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class PackageIndex(Base):
+    """Index of packages across all built images for fleet search."""
+    __tablename__ = "package_index"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    version: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    template_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    image_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

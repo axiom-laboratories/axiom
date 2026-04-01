@@ -446,3 +446,177 @@ class ScaleHealthResponse(BaseModel):
     overflow: Optional[int]
     apscheduler_jobs: int
     pending_job_depth: int
+
+
+# --- Foundry / EE Pydantic Models ---
+
+class BlueprintCreate(BaseModel):
+    type: str  # RUNTIME, NETWORK
+    name: str
+    definition: Dict
+    os_family: Optional[str] = None
+    confirmed_deps: Optional[List[str]] = None
+
+    @field_validator('os_family', mode='before')
+    @classmethod
+    def normalize_os_family(cls, v):
+        return v.upper() if isinstance(v, str) else v
+
+
+class BlueprintResponse(BaseModel):
+    id: str
+    type: Optional[str] = None
+    name: Optional[str] = None
+    definition: Dict
+    version: int = 1
+    created_at: Optional[datetime] = None
+    os_family: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class BlueprintUpdate(BaseModel):
+    """Partial update for blueprint edit with optimistic locking."""
+    name: Optional[str] = None
+    definition: Optional[Dict] = None
+    os_family: Optional[str] = None
+    confirmed_deps: Optional[List[str]] = None
+    version: int  # REQUIRED for optimistic locking
+
+    @field_validator('os_family', mode='before')
+    @classmethod
+    def normalize_os_family(cls, v):
+        return v.upper() if isinstance(v, str) else v
+
+
+class PuppetTemplateCreate(BaseModel):
+    friendly_name: str
+    runtime_blueprint_id: str
+    network_blueprint_id: str
+
+
+class PuppetTemplateResponse(BaseModel):
+    id: str
+    friendly_name: Optional[str] = None
+    runtime_blueprint_id: Optional[str] = None
+    network_blueprint_id: Optional[str] = None
+    canonical_id: Optional[str] = None
+    current_image_uri: Optional[str] = None
+    last_built_image: Optional[str] = None
+    last_built_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    is_compliant: Optional[bool] = True
+    status: Optional[str] = "DRAFT"
+    bom_captured: Optional[bool] = False
+
+    model_config = {"from_attributes": True}
+
+
+class ImageBuildRequest(BaseModel):
+    template_id: Optional[str] = None
+    base_os: Optional[str] = None
+    packages: Optional[Dict] = None
+
+
+class ImageResponse(BaseModel):
+    image_uri: Optional[str] = None
+    status: str = "PENDING"
+    build_log: Optional[str] = None
+
+
+class CapabilityMatrixEntry(BaseModel):
+    id: Optional[int] = None
+    base_os_family: str
+    tool_id: str
+    injection_recipe: Optional[str] = None
+    validation_cmd: Optional[str] = None
+    artifact_id: Optional[str] = None
+    runtime_dependencies: Optional[List[str]] = None
+    is_active: Optional[bool] = True
+
+    model_config = {"from_attributes": True}
+
+
+class CapabilityMatrixUpdate(BaseModel):
+    base_os_family: Optional[str] = None
+    tool_id: Optional[str] = None
+    injection_recipe: Optional[str] = None
+    validation_cmd: Optional[str] = None
+    artifact_id: Optional[str] = None
+    runtime_dependencies: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+
+class ImageBOMResponse(BaseModel):
+    id: int
+    template_id: str
+    packages: Optional[str] = None
+    layers: Optional[str] = None
+    captured_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class PackageIndexResponse(BaseModel):
+    id: int
+    name: str
+    version: Optional[str] = None
+    template_id: Optional[str] = None
+    image_uri: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ApprovedOSResponse(BaseModel):
+    id: Optional[int] = None
+    name: str
+    image_uri: str
+    os_family: str
+    is_active: Optional[bool] = True
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ApprovedOSUpdate(BaseModel):
+    """Partial update for approved OS edit."""
+    name: Optional[str] = None
+    image_uri: Optional[str] = None
+    os_family: Optional[str] = None
+
+
+class ApprovedIngredientCreate(BaseModel):
+    name: str
+    version_constraint: Optional[str] = "*"
+    sha256: Optional[str] = None
+    os_family: str = "DEBIAN"
+    ecosystem: str = "PYPI"
+
+
+class ApprovedIngredientResponse(BaseModel):
+    id: str
+    name: str
+    version_constraint: Optional[str] = None
+    sha256: Optional[str] = None
+    os_family: str
+    ecosystem: str = "PYPI"
+    is_active: bool = True
+    is_vulnerable: Optional[bool] = False
+    vulnerability_report: Optional[str] = None
+    mirror_status: Optional[str] = "PENDING"
+    mirror_path: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ApprovedIngredientUpdate(BaseModel):
+    name: Optional[str] = None
+    version_constraint: Optional[str] = None
+    os_family: Optional[str] = None
+    ecosystem: Optional[str] = None
+
+
+class MirrorConfigUpdate(BaseModel):
+    pypi_mirror_url: Optional[str] = None
+    apt_mirror_url: Optional[str] = None
