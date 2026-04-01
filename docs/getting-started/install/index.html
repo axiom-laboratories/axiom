@@ -2150,6 +2150,14 @@ Docker Compose v2 reads <code>.env</code> automatically — no <code>--env-file<
 <p class="admonition-title">Windows: Docker Desktop must be running</p>
 <p>Unlike Linux where Docker Engine runs as a background service, on Windows Docker Desktop must be open (visible in the system tray) before any <code>docker</code> or <code>docker compose</code> commands will work. If you see <code>error during connect: ... Is the docker daemon running?</code>, open Docker Desktop and wait for it to finish starting.</p>
 </div>
+<div class="admonition warning">
+<p class="admonition-title">Windows: Run <code>docker compose up</code> from an interactive PowerShell session</p>
+<p>On Windows, Docker Desktop uses a <strong>credential helper</strong> (<code>docker-credential-desktop</code>) that requires an interactive Windows session to access the credential store. If you run <code>docker compose up</code> over a remote session (SSH, WinRM, Task Scheduler, or any non-interactive context), the credential helper will fail with an error such as:</p>
+<div class="highlight"><pre><span></span><code>error getting credentials - err: exit status 1, out: ``
+</code></pre></div>
+<p><strong>Always run <code>docker compose up</code> from an interactive PowerShell or Command Prompt window</strong> opened directly on the Windows machine (not via SSH or remoting).</p>
+<p>If you need to automate the startup (e.g. for a homelab auto-start), pre-pull all images in an interactive session first, then they will be available locally and no credential lookup is needed at <code>compose up</code> time. Alternatively, you can disable the credential helper for public images by editing <code>%USERPROFILE%\.docker\config.json</code> and removing the <code>"credsStore"</code> key.</p>
+</div>
 <hr />
 <h2 id="step-4-verify">Step 4: Verify</h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">Server Install</label><label for="__tabbed_7_2">Quick Start</label></div>
