@@ -286,7 +286,7 @@ openssl pkey -in signing.key -pubout -out verification.key
     curl -sk -X POST https://<your-orchestrator>:8001/jobs \
       -H "Authorization: Bearer $TOKEN" \
       -H "Content-Type: application/json" \
-      -d "{\"script_content\": \"$(cat hello.py | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')\", \"signature\": \"$SIG\", \"signature_key_id\": \"<key-id>\"}"
+      -d "{\"script_content\": \"$(cat hello.py | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')\", \"signature\": \"$SIG\", \"signature_id\": \"<key-id>\"}"
     ```
 
 === "Windows (PowerShell)"
