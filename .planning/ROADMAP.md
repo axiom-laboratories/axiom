@@ -282,9 +282,9 @@ Archive: `.planning/milestones/v17.0-ROADMAP.md`
   6. Every friction point found during the Linux run is catalogued in a report and fixed before the phase is marked complete
 **Plans**: 3 plans
 Plans:
-- [ ] 102-01-PLAN.md — Validation infrastructure (orchestrator, persona prompt, synthesise_friction.py patch)
-- [ ] 102-02-PLAN.md — Live golden path run in fresh LXC + friction catalogue
-- [ ] 102-03-PLAN.md — Fix all BLOCKERs, iterate until clean, produce READY synthesis sign-off
+- [x] 102-01-PLAN.md — Validation infrastructure (orchestrator, persona prompt, synthesise_friction.py patch) (completed 2026-04-01)
+- [x] 102-02-PLAN.md — Live golden path run in fresh LXC + friction catalogue (completed 2026-04-01)
+- [x] 102-03-PLAN.md — Fix all BLOCKERs, iterate until clean, produce READY synthesis sign-off (completed 2026-04-01)
 
 ### Phase 103: Windows E2E Validation
 **Goal**: A fresh Windows user following the Quick Start (Windows) guide on Dwight reaches a completed PowerShell job with no undocumented steps and no friction points left unresolved
@@ -362,7 +362,7 @@ Phases execute in numeric order: 101 → 102 → 103
 | 99. Scheduler Hardening | v17.0 | 1/1 | Complete | 2026-03-31 |
 | 100. Observability + Sign-off | v17.0 | 2/2 | Complete | 2026-03-31 |
 | 101. CE UX Cleanup | v18.0 | Complete    | 2026-03-31 | 2026-03-31 |
-| 102. Linux E2E Validation | 3/3 | Complete   | 2026-04-01 | - |
+| 102. Linux E2E Validation | 3/3 | Complete    | 2026-04-01 | - |
 | 103. Windows E2E Validation | v18.0 | 0/TBD | Not started | - |
 
 ## Archived
