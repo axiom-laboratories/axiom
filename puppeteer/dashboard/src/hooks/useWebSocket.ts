@@ -12,6 +12,7 @@ type WsHandler = (event: string, data: unknown) => void;
 export function useWebSocket(onMessage: WsHandler) {
     const wsRef = useRef<WebSocket | null>(null);
     const retryRef = useRef<ReturnType<typeof setTimeout>>();
+    const pingRef = useRef<ReturnType<typeof setInterval>>();
     const mountedRef = useRef(true);
     const delayRef = useRef(1000);
     const handlerRef = useRef(onMessage);
@@ -34,10 +35,11 @@ export function useWebSocket(onMessage: WsHandler) {
 
         ws.onopen = () => {
             delayRef.current = 1000; // reset back-off
-            // Keepalive ping
-            const ping = setInterval(() => {
+            // Keepalive ping — stored in ref so cleanup can clear it explicitly
+            clearInterval(pingRef.current);
+            pingRef.current = setInterval(() => {
                 if (ws.readyState === WebSocket.OPEN) ws.send('ping');
-                else clearInterval(ping);
+                else clearInterval(pingRef.current);
             }, 20_000);
         };
 
@@ -48,7 +50,13 @@ export function useWebSocket(onMessage: WsHandler) {
             } catch { /* pong or unexpected frame */ }
         };
 
-        ws.onclose = ws.onerror = () => {
+        // onerror always fires immediately before onclose — using the same handler for
+        // both would schedule two retries and orphan the first timer. Keep onerror as a
+        // no-op and let onclose be the single scheduling point.
+        ws.onerror = () => { /* handled by onclose */ };
+
+        ws.onclose = () => {
+            clearInterval(pingRef.current);
             if (!mountedRef.current) return;
             retryRef.current = setTimeout(() => {
                 delayRef.current = Math.min(delayRef.current * 2, 30_000);
@@ -63,6 +71,7 @@ export function useWebSocket(onMessage: WsHandler) {
         return () => {
             mountedRef.current = false;
             clearTimeout(retryRef.current);
+            clearInterval(pingRef.current);
             wsRef.current?.close();
         };
     }, [connect]);
