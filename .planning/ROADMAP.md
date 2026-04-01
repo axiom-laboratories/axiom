@@ -366,7 +366,7 @@ Phases execute in numeric order: 101 → 102 → 103
 | 103. Windows E2E Validation | v18.0 | 1/3 | Complete | 2026-04-01 |
 | 104. PR Review & Merge | v18.0 | Complete    | 2026-04-01 | 2026-04-01 |
 | 105. Windows Signing Pipeline Fix | v18.0 | 2/2 | Complete | 2026-04-01 |
-| 106. Fix Docs Signing Pipeline | 1/1 | Complete   | 2026-04-01 | — |
+| 106. Fix Docs Signing Pipeline | 1/1 | Complete    | 2026-04-01 | — |
 
 ## Archived
 
