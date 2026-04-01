@@ -156,7 +156,10 @@ async def lifespan(app: FastAPI):
                 logger.warning("Admin bootstrapped with auto-generated password: %s", admin_password)
                 logger.warning("You will be prompted to change it on first login.")
             else:
-                force_change = False
+                skip_force = os.getenv("ADMIN_SKIP_FORCE_CHANGE", "").strip().lower() == "true"
+                force_change = not skip_force
+                if skip_force:
+                    logger.info("ADMIN_SKIP_FORCE_CHANGE is set — skipping forced password change")
                 logger.info("Bootstrapped Admin User with provided password")
             admin_user = User(
                 username="admin",
