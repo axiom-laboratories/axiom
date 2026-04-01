@@ -44,23 +44,14 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
 
 === "Windows (PowerShell)"
 
-    Log in to get a JWT. PowerShell's `Invoke-RestMethod` requires TLS validation to be disabled for self-signed certificates:
+    Log in to get a JWT. Use `-SkipCertificateCheck` to allow connections to the self-signed certificate (PowerShell 7+ required):
 
     ```powershell
-    # Disable TLS validation for self-signed cert
-    add-type @"
-        using System.Net;
-        using System.Security.Cryptography.X509Certificates;
-        public class TrustAll : ICertificatePolicy {
-            public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem) { return true; }
-        }
-    "@
-    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAll
-
     $response = Invoke-RestMethod -Method POST `
         -Uri "https://<your-orchestrator>:8001/auth/login" `
         -ContentType "application/x-www-form-urlencoded" `
-        -Body "username=admin&password=<your-password>"
+        -Body "username=admin&password=<your-password>" `
+        -SkipCertificateCheck
     $TOKEN = $response.access_token
     ```
 
@@ -69,7 +60,8 @@ Nodes self-enroll over mTLS — they generate a certificate signing request and 
     ```powershell
     $tokenResponse = Invoke-RestMethod -Method POST `
         -Uri "https://<your-orchestrator>:8001/admin/generate-token" `
-        -Headers @{Authorization = "Bearer $TOKEN"}
+        -Headers @{Authorization = "Bearer $TOKEN"} `
+        -SkipCertificateCheck
     $JOIN_TOKEN = $tokenResponse.token
     Write-Host "JOIN_TOKEN: $JOIN_TOKEN"
     ```
