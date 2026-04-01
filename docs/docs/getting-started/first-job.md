@@ -269,51 +269,81 @@ openssl pkey -in signing.key -pubout -out verification.key
 !!! danger "Register before dispatching"
     Job creation fails with a `422` signature validation error if no public key is registered.
 
-### Sign and submit with curl
+### Sign and submit
 
-The safest approach is to use Python to build the JSON body — this avoids shell quoting issues with multi-line scripts and base64 signatures.
+=== "Linux / macOS"
 
-```bash
-# 1. Get an auth token
-TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+    Set `$TOKEN` by logging in first:
+    ```bash
+    TOKEN=$(curl -sk -X POST https://<your-orchestrator>:8001/auth/login \
+      -H 'Content-Type: application/x-www-form-urlencoded' \
+      -d 'username=admin&password=<your-password>' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+    ```
 
-# 2. Sign the script
-SIG=$(openssl pkeyutl -sign -inkey signing.key -rawin -in hello.py | base64 -w0)
+    Sign and submit with curl:
+    ```bash
+    SIG=$(openssl pkeyutl -sign -inkey signing.key -rawin -in hello.py | base64 -w0)
+    curl -sk -X POST https://<your-orchestrator>:8001/jobs \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "{\"script_content\": \"$(cat hello.py | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')\", \"signature\": \"$SIG\", \"signature_key_id\": \"<key-id>\"}"
+    ```
 
-# 3. Build and send the JSON body using Python to handle escaping correctly
-python3 - <<'EOF'
-import json, subprocess, os, sys
+=== "Windows (PowerShell)"
 
-script = open("hello.py").read()
-sig    = os.environ["SIG"]
-key_id = "<your-key-id>"   # replace with the Key ID from Step 0
-token  = os.environ["TOKEN"]
+    Set `$TOKEN` by logging in first (disable TLS validation for self-signed certs):
+    ```powershell
+    # Disable TLS validation for self-signed cert
+    add-type @"
+        using System.Net;
+        using System.Security.Cryptography.X509Certificates;
+        public class TrustAll : ICertificatePolicy {
+            public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem) { return true; }
+        }
+    "@
+    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAll
 
-body = json.dumps({
-    "task_type": "script",
-    "runtime":   "python",
-    "payload":   {
-        "script_content": script,
-        "signature":      sig,       # must be inside payload so node can verify
-        "signature_id":   key_id,    # UUID of the registered public key
-    },
-})
+    $response = Invoke-RestMethod -Method POST `
+        -Uri "https://<your-orchestrator>:8001/auth/login" `
+        -ContentType "application/x-www-form-urlencoded" `
+        -Body "username=admin&password=<your-password>"
+    $TOKEN = $response.access_token
+    ```
 
-result = subprocess.run(
-    ["curl", "-sk", "-X", "POST",
-     "https://<your-orchestrator>:8001/jobs",
-     "-H", f"Authorization: Bearer {token}",
-     "-H", "Content-Type: application/json",
-     "-d", body],
-    capture_output=True, text=True,
-)
-print(result.stdout)
-if result.returncode != 0:
-    print(result.stderr, file=sys.stderr)
-EOF
-```
+    Sign the script using Python (the same `cryptography` library used for key generation):
+    ```powershell
+    $signScript = @'
+    import base64, sys
+    from cryptography.hazmat.primitives import serialization
+
+    with open("signing.key", "rb") as f:
+        key = serialization.load_pem_private_key(f.read(), password=None)
+
+    with open(sys.argv[1], "rb") as f:
+        script_bytes = f.read()
+
+    sig = key.sign(script_bytes)
+    print(base64.b64encode(sig).decode())
+    '@
+    $signScript | Out-File -Encoding utf8 sign_script.py
+    $SIG = python sign_script.py hello.py
+    ```
+
+    Submit the job via `Invoke-RestMethod`:
+    ```powershell
+    $scriptContent = Get-Content -Raw hello.py
+    $body = @{
+        script_content = $scriptContent
+        signature = $SIG
+        signature_key_id = "<your-key-id>"
+    } | ConvertTo-Json
+
+    Invoke-RestMethod -Method POST `
+        -Uri "https://<your-orchestrator>:8001/jobs" `
+        -Headers @{Authorization = "Bearer $TOKEN"} `
+        -ContentType "application/json" `
+        -Body $body
+    ```
 
 Replace `<your-orchestrator>`, `<your-password>`, and `<your-key-id>` with your actual values.
 
