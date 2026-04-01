@@ -192,4 +192,21 @@ describe('Tab visibility by licence tier', () => {
 
         expect(screen.queryByRole('tab', { name: /^\+ enterprise$/i })).not.toBeInTheDocument();
     });
+
+    it('CE mode: Onboarding tab content renders and no EE TabsContent is shown (CEUX-03)', () => {
+        mockUseLicence.mockReturnValue(ceLicence());
+        renderWithProviders(<Admin />);
+
+        // Default tab (Onboarding) must render its content — not a blank page
+        expect(screen.getByText('Node Enrollment')).toBeInTheDocument();
+
+        // None of the six EE TabsContent blocks render any content in CE mode.
+        // Each EE TabsContent is gated with {isEnterprise && (...)} so these
+        // feature-specific headings must be absent from the DOM.
+        expect(screen.queryByText('Smelter Registry')).not.toBeInTheDocument();
+        expect(screen.queryByText('BOM Explorer')).not.toBeInTheDocument();
+        expect(screen.queryByText('Artifact Vault')).not.toBeInTheDocument();
+        expect(screen.queryByText('Rollouts')).not.toBeInTheDocument();
+        expect(screen.queryByText('Automation')).not.toBeInTheDocument();
+    });
 });
