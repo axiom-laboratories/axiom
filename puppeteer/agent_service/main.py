@@ -1095,6 +1095,12 @@ async def create_job(job_req: JobCreate, current_user: User = Depends(require_au
         sig_id = payload_dict.get("signature_id")
         script_content = payload_dict.get("script_content")
 
+        # WIN-05: Normalize CRLF → LF before signature verification and countersigning.
+        # This matches the normalization in node.py (line 585) so both sides agree on bytes.
+        if script_content:
+            script_content = script_content.replace('\r\n', '\n').replace('\r', '\n')
+            payload_dict["script_content"] = script_content
+
         if user_sig and sig_id and script_content:
             # 1. Verify user's signature against the registered public key
             sig_result = await db.execute(select(Signature).where(Signature.id == sig_id))
