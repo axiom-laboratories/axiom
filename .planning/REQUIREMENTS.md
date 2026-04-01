@@ -25,9 +25,9 @@
 
 - [x] **WIN-01**: Fresh Windows cold-start deployment completes on Dwight (SSH, credentials from `mop_validation/secrets.env`) via Docker stack, following the Quick Start (Windows) guide
 - [x] **WIN-02**: Windows stack uses PowerShell (PWSH) — not CMD — for all shell interactions
-- [ ] **WIN-03**: Admin/admin first login triggers forced password change prompt, which completes successfully
+- [x] **WIN-03**: Admin/admin first login triggers forced password change prompt, which completes successfully
 - [x] **WIN-04**: Node enrollment succeeds on Dwight following documentation
-- [ ] **WIN-05**: First PowerShell job dispatches, executes, and shows output
+- [x] **WIN-05**: First PowerShell job dispatches, executes, and shows output
 - [x] **WIN-06**: All friction found during the Windows run is catalogued and fixed
 
 ## Future Requirements
@@ -57,9 +57,9 @@
 | LNX-06 | Phase 102 | Complete |
 | WIN-01 | Phase 103 | Complete |
 | WIN-02 | Phase 103 | Complete |
-| WIN-03 | Phase 105 | Pending |
+| WIN-03 | Phase 105 | Complete |
 | WIN-04 | Phase 103 | Complete |
-| WIN-05 | Phase 105 | Pending |
+| WIN-05 | Phase 105 | Complete |
 | WIN-06 | Phase 103 | Complete |
 
 **Coverage:**

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Milestone v18.0 shipped. All PRs merged, tests green, branches cleaned.
-stopped_at: Phase 105 context gathered
-last_updated: "2026-04-01T13:54:08.585Z"
-last_activity: "2026-04-01 — Plan 104-03 executed: History.test.tsx fixed, branches cleaned, milestone v18.0 closed"
+status: Plan 105-01 executed. CRLF normalization + forced password change applied.
+stopped_at: Completed 105-02-PLAN.md
+last_updated: "2026-04-01T14:02:48.855Z"
+last_activity: "2026-04-01 — Plan 105-01 executed: CRLF countersign fix + admin bootstrap forced password change"
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  completed_phases: 5
+  total_plans: 14
+  completed_plans: 14
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 104 of 104 (PR Review & Merge) — COMPLETE
-Plan: 104-03 complete (3 of 3 plans done)
-Status: Milestone v18.0 shipped. All PRs merged, tests green, branches cleaned.
-Last activity: 2026-04-01 — Plan 104-03 executed: History.test.tsx fixed, branches cleaned, milestone v18.0 closed
+Phase: 105 (Windows Signing Pipeline Fix) — IN PROGRESS
+Plan: 105-01 complete (1 of 2 plans done)
+Status: Plan 105-01 executed. CRLF normalization + forced password change applied.
+Last activity: 2026-04-01 — Plan 105-01 executed: CRLF countersign fix + admin bootstrap forced password change
 
 Progress: [██████████] 100%
 
@@ -53,6 +53,8 @@ Progress: [██████████] 100%
 
 *Updated after each plan completion*
 | Phase 104 P03 | 3min | 2 tasks | 3 files |
+| Phase 105 P01 | 1min | 5 tasks | 2 files |
+| Phase 105 P02 | 2min | 6 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -97,6 +99,6 @@ None — all blockers resolved.
 
 ## Session Continuity
 
-Last session: 2026-04-01T13:54:08.582Z
-Stopped at: Phase 105 context gathered
-Resume file: .planning/phases/105-windows-signing-pipeline-fix/105-CONTEXT.md
+Last session: 2026-04-01T14:02:48.852Z
+Stopped at: Completed 105-02-PLAN.md
+Resume file: None
