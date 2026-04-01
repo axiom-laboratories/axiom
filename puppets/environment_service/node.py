@@ -552,11 +552,17 @@ class Node:
             runtime = payload.get("runtime", "python")
             script = payload.get("script_content")
             secrets = payload.get("secrets", {})
-            signature = payload.get("signature")
+            # Accept both "signature_payload" (current API field name) and legacy "signature"
+            signature = payload.get("signature_payload") or payload.get("signature")
 
             if not script or not signature:
                 await self.report_result(guid, False, {"error": "Missing script or signature"}, security_rejected=True)
                 return
+
+            # Normalize CRLF to LF before signing verification so that scripts written
+            # on Windows (which use CRLF line endings) verify correctly on Linux nodes.
+            # The signer on Windows must also normalize before signing for this to match.
+            script_for_verify = script.replace('\r\n', '\n').replace('\r', '\n')
 
             # Verify Signature — identical path to previous python_script branch
             if not os.path.exists(self.verify_key_path):
@@ -570,7 +576,7 @@ class Node:
                     public_key = serialization.load_pem_public_key(public_key_bytes)
 
                 sig_bytes = base64.b64decode(signature)
-                public_key.verify(sig_bytes, script.encode('utf-8'))
+                public_key.verify(sig_bytes, script_for_verify.encode('utf-8'))
                 print(f"[{self.node_id}] ✅ Signature Verified for Job {guid}")
             except Exception as e:
                 print(f"[{self.node_id}] ❌ Signature Verification FAILED for Job {guid}: {e}")
@@ -578,7 +584,7 @@ class Node:
                 return
 
             # Compute SHA-256 of script before execution for attestation
-            script_hash = hashlib.sha256(script.encode('utf-8')).hexdigest()
+            script_hash = hashlib.sha256(script_for_verify.encode('utf-8')).hexdigest()
 
             # Determine file extension and container command from runtime
             ext = RUNTIME_EXT.get(runtime, "py")
