@@ -66,7 +66,7 @@ from .services.signature_service import SignatureService
 from .services.scheduler_service import scheduler_service
 from .services.pki_service import pki_service
 from .services.alert_service import AlertService
-from .services.licence_service import load_licence, check_and_record_boot, reload_licence, LicenceState, LicenceStatus, LicenceError
+from .services.licence_service import load_licence, check_and_record_boot, reload_licence, check_licence_expiry, LicenceState, LicenceStatus, LicenceError
 
 load_dotenv()
 
@@ -195,7 +195,28 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(60) # Check every minute
 
     asyncio.create_task(monitor_nodes())
-    
+
+    # Background licence expiry checker (Phase 116, Task 5)
+    async def check_licence_expiry_bg():
+        """Check licence expiry status every 60 seconds and update app.state.licence_state on transitions."""
+        while True:
+            try:
+                await asyncio.sleep(60)
+                if not app.state.licence_state:
+                    continue
+                new_status = check_licence_expiry(app.state.licence_state)
+                if new_status != app.state.licence_state.status:
+                    old_status = app.state.licence_state.status
+                    app.state.licence_state.status = new_status
+                    logger.warning(
+                        f"Licence status transitioned: {old_status.value} → {new_status.value}"
+                    )
+                    # Note: Wave 2 will add broadcast_ws_event + audit logging for transitions
+            except Exception as e:
+                logger.error(f"Licence expiry check failed: {e}")
+
+    asyncio.create_task(check_licence_expiry_bg())
+
     yield
     # Shutdown logic
     scheduler_service.scheduler.shutdown()
