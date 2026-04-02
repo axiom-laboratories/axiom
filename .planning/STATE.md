@@ -69,7 +69,9 @@ Progress: [█░░░░░░░░░] 7%
 
 ### Pending Todos
 
-None yet.
+2 pending:
+- **Hot-reload EE licence at runtime** (api) — 2026-04-02
+- **Fix missing mirror_log column on approved_ingredients table** (api) — 2026-04-02
 
 ### Blockers/Concerns
 
