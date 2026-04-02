@@ -71,7 +71,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch, getUser } from '../auth';
 import { useLicence } from '../hooks/useLicence';
+import { useWebSocket, LicenceStatusChangeData } from '../hooks/useWebSocket';
 import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
+import { LicenceStatus } from '../components/LicenceStatus';
+import { LicenceReloadButton } from '../components/LicenceReloadButton';
+import { GracePeriodBanner } from '../components/GracePeriodBanner';
 
 // --- Sub-components for Admin ---
 
@@ -152,6 +156,68 @@ const LicenceSection = () => {
                     </p>
                 )}
             </div>
+        </div>
+    );
+};
+
+// Licence tab content component with WebSocket updates
+const LicenceTabContent = () => {
+    const queryClient = useQueryClient();
+    const licence = useLicence();
+    const [lastReloadTime, setLastReloadTime] = useState<string | null>(null);
+
+    // Subscribe to licence status changes via WebSocket
+    const handleLicenceStatusChanged = (data: LicenceStatusChangeData) => {
+        // Invalidate the licence query to trigger a refresh
+        queryClient.invalidateQueries({ queryKey: ['licence'] });
+        setLastReloadTime(new Date().toLocaleTimeString());
+        toast.info(`Licence updated: ${data.old_status} → ${data.new_status}`);
+    };
+
+    // Setup WebSocket listener
+    useWebSocket(() => {}, handleLicenceStatusChanged);
+
+    const expiryDate = licence.status !== 'expired' && licence.status !== 'ce'
+        ? new Date(Date.now() + licence.days_until_expiry * 24 * 60 * 60 * 1000).toLocaleDateString(
+            undefined,
+            { year: 'numeric', month: 'short', day: 'numeric' }
+          )
+        : undefined;
+
+    return (
+        <div className="space-y-6">
+            {licence.status === 'grace' && (
+                <GracePeriodBanner
+                    daysRemaining={licence.days_until_expiry}
+                    expiryDate={expiryDate}
+                    onDismiss={() => setLastReloadTime(new Date().toLocaleTimeString())}
+                />
+            )}
+
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <h2 className="text-lg font-semibold text-white">Licence Management</h2>
+                    <p className="text-sm text-zinc-500 mt-1">View and manage your licence status and settings.</p>
+                </div>
+                <LicenceReloadButton
+                    isAdmin={true}
+                    onReloadSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['licence'] });
+                        setLastReloadTime(new Date().toLocaleTimeString());
+                    }}
+                />
+            </div>
+
+            <LicenceStatus
+                status={licence.status}
+                tier={licence.tier}
+                organization={licence.customer_id || undefined}
+                customerID={licence.customer_id || undefined}
+                nodeLimit={licence.node_limit}
+                daysUntilExpiry={licence.days_until_expiry}
+                expiryDate={expiryDate}
+                lastReloadTime={lastReloadTime ? `${lastReloadTime}` : undefined}
+            />
         </div>
     );
 };
@@ -1473,6 +1539,7 @@ const Admin = () => {
                     {!isEnterprise && (
                         <TabsTrigger value="enterprise" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">+ Enterprise</TabsTrigger>
                     )}
+                    <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Licence</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Data</TabsTrigger>
                 </TabsList>
 
@@ -1653,6 +1720,10 @@ const Admin = () => {
                         </div>
                     </TabsContent>
                 )}
+
+                <TabsContent value="licence" className="space-y-6">
+                    <LicenceTabContent />
+                </TabsContent>
 
                 <TabsContent value="data" className="space-y-6">
                     <div className="bg-zinc-800/50 rounded-lg p-6 border border-zinc-700">
