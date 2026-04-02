@@ -34,6 +34,7 @@ import {
 import { getUser, logout, setToken } from '../auth';
 import { useFeatures } from '../hooks/useFeatures';
 import { useLicence } from '../hooks/useLicence';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { authenticatedFetch } from '../auth';
@@ -47,7 +48,7 @@ const MainLayout = () => {
         <NavLink
             to={to}
             className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-zinc-800 hover:text-white ${isActive ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400"
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-muted hover:text-foreground ${isActive ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground"
                 }`
             }
             onClick={() => setIsMobileOpen(false)}
@@ -62,14 +63,14 @@ const MainLayout = () => {
         <NavLink
             to={to}
             className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-zinc-800 hover:text-white ${isActive ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400"}`
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-muted hover:text-foreground ${isActive ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground"}`
             }
             onClick={() => setIsMobileOpen(false)}
             aria-label={label}
         >
             <Icon className="h-4 w-4 shrink-0" />
             <span className="flex-1">{label}</span>
-            {!enabled && <Lock className="h-3 w-3 text-zinc-600 shrink-0" />}
+            {!enabled && <Lock className="h-3 w-3 text-muted shrink-0" />}
         </NavLink>
     );
 
@@ -86,7 +87,7 @@ const MainLayout = () => {
             <div className="flex-1 overflow-auto px-4 pb-4">
                 <nav className="space-y-1.5">
                     <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
-                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-muted-foreground uppercase tracking-widest">
                         Monitoring
                     </div>
                     <NavItem to="/nodes" icon={Server} label="Nodes" />
@@ -95,17 +96,17 @@ const MainLayout = () => {
                     <NavItem to="/history" icon={HistoryIcon} label="History" />
                     <NavItem to="/scheduled-jobs" icon={CalendarClock} label="Scheduled Jobs" />
 
-                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-muted-foreground uppercase tracking-widest">
                         Security
                     </div>
                     <NavItem to="/signatures" icon={ShieldCheck} label="Signing Keys" />
 
-                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-muted-foreground uppercase tracking-widest">
                         Foundry
                     </div>
                     <NavItemEE to="/templates" icon={Boxes} label="Templates" enabled={features.foundry} />
 
-                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-muted-foreground uppercase tracking-widest">
                         System
                     </div>
                     <NavItem to="/admin" icon={Settings} label="Settings" />
@@ -114,14 +115,14 @@ const MainLayout = () => {
                     <NavItemEE to="/webhooks" icon={Webhook} label="Webhooks" enabled={features.webhooks} />
                     <NavItemEE to="/audit" icon={ScrollText} label="Audit Log" enabled={features.audit} />
 
-                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 pb-1 px-3 text-2xs font-bold text-muted-foreground uppercase tracking-widest">
                         Documentation
                     </div>
                     <a
                         href="/docs/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-zinc-800 hover:text-white text-zinc-400"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-muted hover:text-foreground text-muted-foreground"
                         aria-label="Documentation"
                     >
                         <BookOpen className="h-4 w-4 shrink-0" />
@@ -129,8 +130,8 @@ const MainLayout = () => {
                     </a>
                 </nav>
             </div>
-            <div className="p-6 border-t border-zinc-900">
-                <div className="flex items-center justify-between text-xs font-medium text-zinc-500">
+            <div className="p-6 border-t border-muted space-y-4">
+                <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                         v1.2.0 • Online
@@ -143,6 +144,9 @@ const MainLayout = () => {
                     }`}>
                         {licence.isEnterprise ? 'EE' : 'CE'}
                     </span>
+                </div>
+                <div className="flex justify-center">
+                    <ThemeToggle />
                 </div>
             </div>
         </div>
@@ -209,43 +213,43 @@ const MainLayout = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-full bg-zinc-975 text-white">
+        <div className="flex min-h-screen w-full bg-background text-foreground">
             {/* Desktop Sidebar */}
-            <aside className="hidden border-r border-zinc-900 w-64 shrink-0 md:block bg-zinc-975" role="navigation" aria-label="Main Sidebar">
+            <aside className="hidden border-r border-muted w-64 shrink-0 md:block bg-secondary" role="navigation" aria-label="Main Sidebar">
                 <SidebarContent />
             </aside>
 
             {/* Mobile Sidebar & Main Content */}
             <div className="flex flex-col flex-1 min-w-0">
-                <header className="flex h-16 items-center gap-4 border-b border-zinc-900 bg-zinc-975 px-4 lg:px-6 sticky top-0 z-10">
+                <header className="flex h-16 items-center gap-4 border-b border-muted bg-secondary px-4 lg:px-6 sticky top-0 z-10">
                     <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="shrink-0 md:hidden hover:bg-zinc-800">
+                            <Button variant="ghost" size="icon" className="shrink-0 md:hidden hover:bg-muted">
                                 <Menu className="h-5 w-5" />
                                 <span className="sr-only">Toggle navigation</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col p-4 bg-zinc-975 border-r-zinc-900 w-72" aria-label="Mobile Menu">
+                        <SheetContent side="left" className="flex flex-col p-4 bg-secondary border-r-muted w-72" aria-label="Mobile Menu">
                             <SidebarContent />
                         </SheetContent>
                     </Sheet>
 
                     <div className="flex-1 flex items-center justify-between">
-                        <h1 className="text-sm font-semibold text-zinc-400 md:hidden">Puppeteer</h1>
+                        <h1 className="text-sm font-semibold text-muted-foreground md:hidden">Puppeteer</h1>
                         <div>{/* Spacer or search */}</div>
                         <div className="flex items-center gap-2">
                             <NotificationBell />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-800" aria-label="User menu">
+                                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted" aria-label="User menu">
                                         <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
                                             <span className="text-xs font-bold text-primary">{initial}</span>
                                         </div>
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuLabel className="text-zinc-500 font-normal">
-                                        Signed in as <span className="text-white font-medium">{user?.username}</span>
+                                    <DropdownMenuLabel className="text-muted-foreground font-normal">
+                                        Signed in as <span className="text-foreground font-medium">{user?.username}</span>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => navigate('/account')}>
