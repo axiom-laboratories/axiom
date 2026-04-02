@@ -18,10 +18,7 @@ export function ThemeToggle() {
       onClick={handleToggle}
       className={cn(
         'flex items-center gap-1 rounded-full p-1 transition-colors duration-200',
-        isLight
-          ? 'bg-stone-100'
-          : 'bg-zinc-800',
-        'hover:bg-opacity-80'
+        'bg-muted hover:bg-muted/80'
       )}
       aria-label={`Switch to ${isLight ? 'dark' : 'light'} mode`}
     >
