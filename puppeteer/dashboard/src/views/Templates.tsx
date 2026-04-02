@@ -67,6 +67,15 @@ interface ToolMatrix {
     is_active: boolean;
 }
 
+interface ApprovedOS {
+    id: string;
+    name: string;
+    image_uri: string;
+    os_family: string;
+    is_active: boolean;
+    created_at: string;
+}
+
 const StatusBadge = ({ status }: { status?: string }) => {
     switch (status) {
         case 'ACTIVE':
@@ -329,7 +338,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
     );
 };
 
-const BlueprintItem = ({ blueprint }: { blueprint: Blueprint }) => {
+const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (blueprint: Blueprint) => void }) => {
     const queryClient = useQueryClient();
     const [jsonOpen, setJsonOpen] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -400,6 +409,17 @@ const BlueprintItem = ({ blueprint }: { blueprint: Blueprint }) => {
                     </div>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onEdit && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-zinc-500 hover:text-primary hover:bg-primary/10 rounded-lg"
+                            onClick={() => onEdit(blueprint)}
+                            title="Edit blueprint"
+                        >
+                            <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -450,7 +470,20 @@ const Templates = () => {
     const queryClient = useQueryClient();
     const [isTemplateOpen, setIsTemplateOpen] = useState(false);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [editingBlueprint, setEditingBlueprint] = useState<Blueprint | null>(null);
     const [showAddTool, setShowAddTool] = useState(false);
+
+    const handleEditBlueprint = async (blueprint: Blueprint) => {
+        try {
+            const res = await authenticatedFetch(`/api/blueprints/${blueprint.id}`);
+            if (!res.ok) throw new Error('Failed to fetch blueprint');
+            const full = await res.json();
+            setEditingBlueprint(full);
+            setIsWizardOpen(true);
+        } catch (e: any) {
+            toast.error(e.message || 'Failed to load blueprint for editing');
+        }
+    };
     const [newTool, setNewTool] = useState({
         tool_id: '', base_os_family: 'DEBIAN' as 'DEBIAN' | 'ALPINE',
         validation_cmd: '', injection_recipe: '', runtime_dependencies: [] as string[],
@@ -464,6 +497,12 @@ const Templates = () => {
         validation_cmd: '', injection_recipe: '', runtime_dependencies: [] as string[],
     });
     const [editDepInput, setEditDepInput] = useState('');
+
+    // Approved OS state
+    const [showAddOS, setShowAddOS] = useState(false);
+    const [newOS, setNewOS] = useState({ name: '', image_uri: '', os_family: 'DEBIAN' });
+    const [editingOSId, setEditingOSId] = useState<string | null>(null);
+    const [osEditForm, setOsEditForm] = useState({ name: '', image_uri: '', os_family: 'DEBIAN' });
 
     const { data: templates = [], isLoading: loadingTemplates } = useQuery<Template[]>({
         queryKey: ['templates'],
@@ -599,6 +638,95 @@ const Templates = () => {
         editToolMutation.mutate({ id: editingTool.id, data });
     };
 
+    // Approved OS queries and mutations
+    const { data: approvedOSList = [] } = useQuery<ApprovedOS[]>({
+        queryKey: ['approved-os'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/approved-os');
+            return await res.json();
+        }
+    });
+
+    const addOSMutation = useMutation({
+        mutationFn: async (entry: { name: string; image_uri: string; os_family: string }) => {
+            const res = await authenticatedFetch('/api/approved-os', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to create OS entry');
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['approved-os'] });
+            toast.success('Approved OS entry created');
+            setShowAddOS(false);
+            setNewOS({ name: '', image_uri: '', os_family: 'DEBIAN' });
+        },
+        onError: (e: Error) => toast.error(`Create failed: ${e.message}`),
+    });
+
+    const editOSMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+            const res = await authenticatedFetch(`/api/approved-os/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to update OS entry');
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['approved-os'] });
+            toast.success('OS entry updated');
+            setEditingOSId(null);
+        },
+        onError: (e: Error) => toast.error(`Update failed: ${e.message}`),
+    });
+
+    const deleteOSMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const res = await authenticatedFetch(`/api/approved-os/${id}`, { method: 'DELETE' });
+            if (res.status === 409) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Cannot delete: referenced by a blueprint');
+            }
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to delete OS entry');
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['approved-os'] });
+            toast.success('OS entry removed');
+        },
+        onError: (e: Error) => toast.error(e.message),
+    });
+
+    const startOSEdit = (os: ApprovedOS) => {
+        setEditingOSId(os.id);
+        setOsEditForm({ name: os.name, image_uri: os.image_uri, os_family: os.os_family });
+    };
+
+    const handleOSEditSave = (os: ApprovedOS) => {
+        const data: Record<string, unknown> = {};
+        if (osEditForm.name !== os.name) data.name = osEditForm.name;
+        if (osEditForm.image_uri !== os.image_uri) data.image_uri = osEditForm.image_uri;
+        if (osEditForm.os_family !== os.os_family) data.os_family = osEditForm.os_family;
+        if (Object.keys(data).length === 0) {
+            toast.info('No changes to save');
+            setEditingOSId(null);
+            return;
+        }
+        editOSMutation.mutate({ id: os.id, data });
+    };
+
     const baseUpdatedAt = baseImageData?.base_node_image_updated_at ?? null;
     const runtimeBlueprints = blueprints.filter((b: Blueprint) => b.type === 'RUNTIME');
     const networkBlueprints = blueprints.filter((b: Blueprint) => b.type === 'NETWORK');
@@ -638,6 +766,10 @@ const Templates = () => {
                             <Wrench className="mr-1 h-3.5 w-3.5" />
                             Tools ({tools.length})
                         </TabsTrigger>
+                        <TabsTrigger value="approved-os">
+                            <Monitor className="mr-1 h-3.5 w-3.5" />
+                            Approved OS ({approvedOSList.length})
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="templates">
@@ -674,7 +806,7 @@ const Templates = () => {
                         </div>
                         {runtimeBlueprints.length > 0 ? (
                             <div className="space-y-3">
-                                {runtimeBlueprints.map(b => <BlueprintItem key={b.id} blueprint={b} />)}
+                                {runtimeBlueprints.map(b => <BlueprintItem key={b.id} blueprint={b} onEdit={handleEditBlueprint} />)}
                             </div>
                         ) : (
                             <BlueprintEmptyState type="RUNTIME" />
@@ -693,7 +825,7 @@ const Templates = () => {
                         </div>
                         {networkBlueprints.length > 0 ? (
                             <div className="space-y-3">
-                                {networkBlueprints.map(b => <BlueprintItem key={b.id} blueprint={b} />)}
+                                {networkBlueprints.map(b => <BlueprintItem key={b.id} blueprint={b} onEdit={handleEditBlueprint} />)}
                             </div>
                         ) : (
                             <BlueprintEmptyState type="NETWORK" />
@@ -939,9 +1071,13 @@ const Templates = () => {
                 </Tabs>
             )}
 
-            <BlueprintWizard 
-                open={isWizardOpen} 
-                onOpenChange={setIsWizardOpen} 
+            <BlueprintWizard
+                open={isWizardOpen}
+                onOpenChange={(open) => {
+                    setIsWizardOpen(open);
+                    if (!open) setEditingBlueprint(null);
+                }}
+                editBlueprint={editingBlueprint}
             />
             <CreateTemplateDialog open={isTemplateOpen} onOpenChange={setIsTemplateOpen} />
 

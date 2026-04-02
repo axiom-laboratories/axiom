@@ -27,6 +27,16 @@ import {
     DialogDescription,
     DialogFooter
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,9 +44,19 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { authenticatedFetch } from '@/auth';
 
+interface EditBlueprint {
+    id: string;
+    name: string;
+    type: string;
+    definition: any;
+    version: number;
+    os_family?: string;
+}
+
 interface BlueprintWizardProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    editBlueprint?: EditBlueprint | null;
 }
 
 interface Composition {
@@ -63,11 +83,16 @@ const DEFAULT_COMPOSITION: Composition = {
     tools: []
 };
 
-const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange }) => {
+const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, editBlueprint }) => {
     const queryClient = useQueryClient();
     const [step, setStep] = useState(1);
     const [composition, setComposition] = useState<Composition>(DEFAULT_COMPOSITION);
     const [isAdvanced, setIsAdvanced] = useState(false);
+    const [pendingDeps, setPendingDeps] = useState<string[]>([]);
+    const [showDepDialog, setShowDepDialog] = useState(false);
+    const [pendingPayload, setPendingPayload] = useState<any>(null);
+
+    const isEditMode = !!editBlueprint;
 
     // --- Data Fetching ---
     const { data: blueprints = [] } = useQuery({
@@ -79,14 +104,39 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
         enabled: open
     });
 
-    // Reset wizard when opening
+    // Reset wizard when opening — pre-populate in edit mode
     useEffect(() => {
         if (open) {
-            setStep(1);
-            setComposition(DEFAULT_COMPOSITION);
+            setPendingDeps([]);
+            setShowDepDialog(false);
+            setPendingPayload(null);
             setIsAdvanced(false);
+
+            if (editBlueprint) {
+                try {
+                    const def = typeof editBlueprint.definition === 'string'
+                        ? JSON.parse(editBlueprint.definition)
+                        : editBlueprint.definition;
+                    setComposition({
+                        name: editBlueprint.name,
+                        type: editBlueprint.type as 'RUNTIME' | 'NETWORK',
+                        os_family: editBlueprint.os_family || 'DEBIAN',
+                        base_os: def.base_os || 'debian-12-slim',
+                        packages: def.packages || { python: [], system: [] },
+                        tools: (def.tools || []).map((t: any) => t.id),
+                    });
+                    setStep(1);
+                } catch {
+                    toast.error('Failed to parse blueprint definition for editing');
+                    setComposition(DEFAULT_COMPOSITION);
+                    setStep(1);
+                }
+            } else {
+                setStep(1);
+                setComposition(DEFAULT_COMPOSITION);
+            }
         }
-    }, [open]);
+    }, [open, editBlueprint]);
 
     const handleClone = (blueprint: any) => {
         try {
@@ -133,26 +183,63 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
         enabled: open
     });
 
-    const createMutation = useMutation({
+    const saveMutation = useMutation({
         mutationFn: async (payload: any) => {
-            const res = await authenticatedFetch('/api/blueprints', {
-                method: 'POST',
+            const url = isEditMode
+                ? `/api/blueprints/${editBlueprint!.id}`
+                : '/api/blueprints';
+            const method = isEditMode ? 'PATCH' : 'POST';
+
+            const body = isEditMode
+                ? { ...payload, version: editBlueprint!.version }
+                : payload;
+
+            const res = await authenticatedFetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(body)
             });
+
+            if (res.status === 422) {
+                const err = await res.json();
+                if (err.detail?.error === 'deps_required') {
+                    // Store deps for confirmation dialog
+                    setPendingDeps(err.detail.deps_to_confirm || []);
+                    setPendingPayload(body);
+                    setShowDepDialog(true);
+                    return { __depsRequired: true };
+                }
+                throw new Error(typeof err.detail === 'string' ? err.detail : 'Validation error');
+            }
+
+            if (res.status === 409) {
+                toast.error('Blueprint was modified by another user. Your changes were not saved.');
+                onOpenChange(false);
+                return { __conflict: true };
+            }
+
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.detail || 'Failed to create blueprint');
+                throw new Error(err.detail || `Failed to ${isEditMode ? 'update' : 'create'} blueprint`);
             }
             return res.json();
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
+            if (data?.__depsRequired || data?.__conflict) return;
             queryClient.invalidateQueries({ queryKey: ['blueprints'] });
-            toast.success('Image Recipe created successfully');
+            toast.success(isEditMode ? 'Image Recipe updated successfully' : 'Image Recipe created successfully');
             onOpenChange(false);
         },
         onError: (e: Error) => toast.error(e.message)
     });
+
+    const handleConfirmDeps = () => {
+        setShowDepDialog(false);
+        if (pendingPayload) {
+            const withDeps = { ...pendingPayload, confirmed_deps: pendingDeps };
+            saveMutation.mutate(withDeps);
+        }
+    };
 
     const getFinalJson = () => {
         return {
@@ -176,7 +263,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
     };
 
     const handleFinish = () => {
-        createMutation.mutate(getFinalJson());
+        saveMutation.mutate(getFinalJson());
     };
 
     const nextStep = () => setStep(s => Math.min(s + 1, 5));
@@ -528,7 +615,6 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
                             <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
                                 <SelectItem value="DEBIAN">DEBIAN</SelectItem>
                                 <SelectItem value="ALPINE">ALPINE</SelectItem>
-                                <SelectItem value="FEDORA">FEDORA</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -566,6 +652,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
     );
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl bg-zinc-925 border-zinc-800 text-white">
                 <DialogHeader>
@@ -575,7 +662,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
                                 <Layers className="h-4 w-4 text-primary" />
                             </div>
                             <div>
-                                <DialogTitle>Foundry Wizard</DialogTitle>
+                                <DialogTitle>{isEditMode ? 'Edit Image Recipe' : 'Create Image Recipe'}</DialogTitle>
                                 <DialogDescription>
                                     Step {step} of 5: {
                                         step === 1 ? 'Identity' : 
@@ -634,7 +721,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
                 </div>
 
                 <DialogFooter className="border-t border-zinc-800/50 pt-4">
-                    <Button variant="ghost" onClick={() => step > 1 ? prevStep() : onOpenChange(false)} disabled={createMutation.isPending}>
+                    <Button variant="ghost" onClick={() => step > 1 ? prevStep() : onOpenChange(false)} disabled={saveMutation.isPending}>
                         {step === 1 ? 'Cancel' : 'Back'}
                     </Button>
                     {!isAdvanced && (
@@ -655,12 +742,12 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
                             <Button 
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                                 onClick={handleFinish}
-                                disabled={createMutation.isPending}
+                                disabled={saveMutation.isPending}
                             >
-                                {createMutation.isPending ? (
-                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+                                {saveMutation.isPending ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {isEditMode ? 'Saving...' : 'Creating...'}</>
                                 ) : (
-                                    <><Check className="mr-2 h-4 w-4" /> Create Image Recipe</>
+                                    <><Check className="mr-2 h-4 w-4" /> {isEditMode ? 'Save Changes' : 'Create Image Recipe'}</>
                                 )}
                             </Button>
                         )
@@ -669,14 +756,33 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange })
                         <Button 
                             className="bg-primary hover:bg-primary/90 text-white font-bold"
                             onClick={handleFinish}
-                            disabled={createMutation.isPending}
+                            disabled={saveMutation.isPending}
                         >
-                            Save Image Recipe
+                            {isEditMode ? 'Save Changes' : 'Save Image Recipe'}
                         </Button>
                     )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <AlertDialog open={showDepDialog} onOpenChange={setShowDepDialog}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Required Dependencies</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        These tools are required by your selected tools:
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <ul className="list-disc pl-6 my-4">
+                    {pendingDeps.map(dep => <li key={dep}>{dep}</li>)}
+                </ul>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmDeps}>Add and Save</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 };
 
