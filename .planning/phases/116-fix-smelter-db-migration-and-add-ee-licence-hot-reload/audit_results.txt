@@ -1,0 +1,46 @@
+# AUDIT RESULTS: EE Model Schema vs DB Schema (Phase 107 vs migration_v46.sql)
+
+## Summary
+Audit of EE models in puppeteer/agent_service/db.py against migration_v46.sql reveals ONE CRITICAL MISSING COLUMN:
+
+## Missing Columns (Model has field, migration lacks column creation)
+
+### 1. ApprovedIngredient.mirror_log
+- Model definition (db.py line 295-309): NO mirror_log field present
+- Migration coverage: MISSING from migration_v46.sql
+- Impact: HIGH - This column is referenced in Phase 115/116 context (Smelter mirror service)
+- Type: TEXT (nullable, expected to store JSON log of mirror operations)
+- Fix: ADD COLUMN mirror_log TEXT in migration_v46.sql
+- Status: MUST ADD
+
+## Verified (Model ↔ Migration Match)
+
+### ApprovedIngredient
+- id (String/36) ✓ in migration via id VARCHAR(36)
+- name (String/255) ✓
+- version_constraint (String/255, nullable) ✓
+- sha256 (String/64, nullable) ✓
+- os_family (String/50) ✓
+- ecosystem (String/20) ✓ in migration
+- is_active (Boolean, default True) ✓
+- is_vulnerable (Boolean, nullable) ✓
+- vulnerability_report (Text, nullable) ✓
+- mirror_status (String/20, default PENDING) ✓
+- mirror_path (String, nullable) ✓
+- created_at (DateTime, default utcnow) ✓
+
+### IngredientDependency
+- All fields present in migration_v46.sql ✓
+
+### CuratedBundle
+- All fields present in migration_v46.sql ✓
+
+### CuratedBundleItem
+- All fields present in migration_v46.sql ✓
+
+## Additional EE Models (Blueprint, PuppetTemplate, CapabilityMatrix, ApprovedOS, ImageBOM, PackageIndex, Trigger)
+- These tables exist in db.py but are NOT in migration_v46.sql scope (different migration history)
+- Should be verified separately but are out of scope for this audit (created by different migrations)
+
+## Recommendation
+Create migration_v47.sql (or append to v46.sql) to add mirror_log column to approved_ingredients table.
