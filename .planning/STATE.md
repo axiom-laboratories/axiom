@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Completed 107-02-PLAN.md
-last_updated: "2026-04-02T06:46:30Z"
+stopped_at: Phase 116 context gathered
+last_updated: "2026-04-02T19:37:14.632Z"
 last_activity: 2026-04-02 -- Completed 107-02-PLAN.md
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 0
   total_plans: 3
   completed_plans: 2
@@ -53,6 +53,10 @@ Progress: [█░░░░░░░░░] 7%
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 116 added: Fix smelter DB migration and add EE licence hot-reload
+
 ### Key Decisions
 
 - [v19.0 Roadmap]: DB schema + CRUD completeness combined in Phase 107 -- schema changes unblock everything, CRUD is low complexity and independent
@@ -80,6 +84,6 @@ Progress: [█░░░░░░░░░] 7%
 
 ## Session Continuity
 
-Last session: 2026-04-02T06:46:30Z
-Stopped at: Completed 107-02-PLAN.md
-Resume file: .planning/phases/107-schema-foundation-crud-completeness/107-03-PLAN.md
+Last session: 2026-04-02T19:37:14.629Z
+Stopped at: Phase 116 context gathered
+Resume file: .planning/phases/116-fix-smelter-db-migration-and-add-ee-licence-hot-reload/116-CONTEXT.md
