@@ -305,6 +305,7 @@ class ApprovedIngredient(Base):
     vulnerability_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     mirror_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="PENDING")
     mirror_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    mirror_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Phase 116: JSON log of mirror operations
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

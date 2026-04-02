@@ -39,3 +39,6 @@ CREATE TABLE IF NOT EXISTS curated_bundle_items (
     version_constraint VARCHAR(255) DEFAULT '*'
 );
 CREATE INDEX IF NOT EXISTS ix_bundle_items_bundle ON curated_bundle_items(bundle_id);
+
+-- 5. Add mirror_log column to approved_ingredients (Phase 116 fix)
+ALTER TABLE approved_ingredients ADD COLUMN IF NOT EXISTS mirror_log TEXT;
