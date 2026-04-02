@@ -230,6 +230,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
+| 117. Light Mode Implementation | 4/5 | In Progress | 2026-04-02 |
 | 107. Schema Foundation + CRUD Completeness | 2/3 | In Progress|  |
 | 108. Transitive Dependency Resolution | 0/2 | Not started | - |
 | 109. APT + apk Mirrors + Compose Profiles | 0/2 | Not started | - |
@@ -269,10 +270,10 @@ Plans:
 
 Plans:
 - [x] 117-00-PLAN.md — Test infrastructure foundation (Wave 0 TDD RED phase) — completed 2026-04-02
-- [ ] 117-01-PLAN.md — CSS variables foundation + FOWT prevention (Wave 1)
-- [ ] 117-02-PLAN.md — Theme provider hook + toggle component (Wave 2)
-- [ ] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 2)
-- [ ] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 3)
+- [x] 117-01-PLAN.md — CSS variables foundation + FOWT prevention (Wave 1) — completed 2026-04-02
+- [x] 117-02-PLAN.md — Theme provider hook + toggle component (Wave 2) — completed 2026-04-02
+- [x] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 3) — completed 2026-04-02
+- [ ] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 4)
 
 **Wave Structure:**
 - Wave 0: Comprehensive test coverage defining expected behavior (TDD RED phase) — completed 2026-04-02

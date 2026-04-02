@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 117 Plan 01 completed
-last_updated: "2026-04-02T22:50:00.000Z"
-last_activity: 2026-04-02 -- Completed 117-01-PLAN.md (CSS Variables & Tailwind Foundation)
+stopped_at: Phase 117 Plan 02 completed
+last_updated: "2026-04-02T21:53:19.000Z"
+last_activity: 2026-04-02 -- Completed 117-02-PLAN.md (Theme Toggle & State Management)
 progress:
   total_phases: 11
   completed_phases: 1
   total_plans: 5
-  completed_plans: 2
-  percent: 40
+  completed_plans: 4
+  percent: 75
 ---
 
 # Project State
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 ## Current Position
 
 Phase: 117 of 11 (117 - Implement Light Mode with Dark Mode Toggle)
-Plan: 2 of 5 in current phase (COMPLETED 117-01)
+Plan: 4 of 5 in current phase (COMPLETED 117-03)
 Status: executing
-Last activity: 2026-04-02 -- Completed 117-01-PLAN.md (CSS Variables & Tailwind Foundation)
+Last activity: 2026-04-02 -- Completed 117-03-PLAN.md (Theme-Aware Dashboard Styling)
 
-Progress: [██████████] 40%
+Progress: [████████████████] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4 (this milestone)
-- Average duration: 7min
-- Total execution time: 0.45 hours
+- Total plans completed: 5 (this milestone)
+- Average duration: 8min
+- Total execution time: 0.68 hours
 
 **By Phase:**
 
@@ -45,11 +45,11 @@ Progress: [██████████] 40%
 |-------|-------|-------|----------|
 | 107 | 2/3 | 13min | 7min |
 | 116 | 2/2 | 80min | 40min |
-| 117 | 2/5 | 25min | 12min |
+| 117 | 4/5 | 135min | 34min |
 
 **Recent Trend:**
-- Last 5 plans: 107-01 (9min), 107-02 (4min), 116-01 (45min), 116-02 (35min), 117-00 (15min)
-- Trend: stable (test infrastructure work is medium complexity)
+- Last 6 plans: 116-01 (45min), 116-02 (35min), 117-00 (15min), 117-01 (11min), 117-02 (8min), 117-03 (135min)
+- Trend: 117-03 required intensive refactoring across 14 files (9 view files + layout/hook/toggle/dialog/app)
 
 *Updated after each plan completion*
 
@@ -79,15 +79,50 @@ Progress: [██████████] 40%
 - [117-00]: localStorage key is 'mop_theme' with values 'dark' | 'light'; DOM class is '.dark' on document.documentElement
 - [117-00]: FOWT prevention via inline script in index.html that runs before React hydration; theme toggle placement in sidebar footer (post-auth only)
 
+- [117-02]: Use React Context API for theme state (sufficient for app-wide state, no Redux needed)
+- [117-02]: .dark class pattern follows Tailwind's darkMode: ["class"] configuration (standard approach)
+- [117-02]: Hydration-safe: mounted state prevents hydration mismatches on initial render
+- [117-02]: Toaster notifications made theme-aware: dynamic theme prop based on user's selection
+- [117-02]: Fixed FOWT prevention script to use .dark class (Plan 01 used incorrect .light class)
+- [117-02]: Auto-wrapped tests with ThemeProvider (needed for hook to work without throwing)
+
 ### Pending Todos
 
-0 pending (Phase 117-00 completed test infrastructure):
+0 pending (all Phase 117-01 through 117-03 completed):
 - ~~**Create comprehensive test coverage for theme system** (frontend)~~ — 2026-04-02 ✓ DONE
-- **Implement useTheme hook + ThemeProvider** (Wave 1-02) — pending
-- **Implement CSS variables and FOWT prevention** (Wave 1-01) — pending
-- **Migrate UI components to theme-aware styling** (Wave 1-03) — pending
+- ~~**Implement useTheme hook + ThemeProvider** (Wave 2)~~ — 2026-04-02 ✓ DONE
+- ~~**Implement CSS variables and FOWT prevention** (Wave 1)~~ — 2026-04-02 ✓ DONE
+- ~~**Migrate UI components to theme-aware styling** (Wave 3)~~ — 2026-04-02 ✓ DONE
 
 ### Completed in Phase 117
+
+**Plan 117-03 (Theme-Aware Dashboard Styling - Wave 3):**
+- Refactored MainLayout.tsx: sidebar, header, main container, dialog, nav items all using CSS variables
+- Updated Dialog overlay: bg-black/60 light mode, dark:bg-black/80 dark mode
+- Updated ThemeToggle: bg-muted instead of hardcoded colors
+- Batch updated 8 dashboard views: Dashboard, Nodes, Jobs, JobDefinitions, Templates, Signatures, Users, AuditLog
+- Replaced 10+ hardcoded dark classes with theme-aware utilities across all views
+- Updated Recharts tooltips to use CSS variables for theme-aware styling
+- Dynamic Sonner Toaster: theme prop synced with useTheme hook via AppContent wrapper
+- Build verified: no TypeScript errors, 2870 modules transformed successfully
+- 8 commits with atomic, descriptive messages
+
+**Plan 117-02 (Theme Toggle & State Management - Wave 2):**
+- useTheme hook with Context API for state management (49 lines)
+- ThemeProvider component for app-wide theme state
+- ThemeToggle component with Sun/Moon icons and slider styling (54 lines)
+- localStorage persistence with key "mop_theme" (values: 'light' | 'dark')
+- Hydration-safe component initialization (mounted state check)
+- Toaster component made theme-aware (dynamic theme prop)
+- FOWT prevention script fixed to use .dark class
+- All 13 theme-related tests passing (6 useTheme + 7 ThemeToggle)
+- Build verified with no errors
+
+**Plan 117-01 (CSS Variables & Tailwind Foundation - Wave 1):**
+- CSS variable restructuring for light/dark theme switching
+- Tailwind config extended with warm stone palette
+- FOWT prevention inline script in index.html
+- All 3 tasks completed successfully
 
 **Plan 117-00 (Test Infrastructure - Wave 0):**
 - useTheme hook unit tests (7 tests)
@@ -95,7 +130,7 @@ Progress: [██████████] 40%
 - CSS variables integration tests (9 tests)
 - ThemeProvider context tests (5 tests)
 - Playwright E2E tests for theme toggle (1 comprehensive test in Test 9)
-- Total: 28 tests in RED state, defining expected behavior for subsequent waves
+- Total: 28 tests in RED state, defining expected behavior
 
 ### Completed in Phase 116
 
@@ -122,6 +157,6 @@ Progress: [██████████] 40%
 
 ## Session Continuity
 
-Last session: 2026-04-02T21:23:40.694Z
-Stopped at: Phase 117 context gathered
-Ready for: Phase 117+ (next phase in roadmap)
+Last session: 2026-04-02T22:50:00.000Z
+Stopped at: Plan 117-03 completed (Theme-Aware Dashboard Styling)
+Ready for: Plan 117-04 verification or Phase 118 (next phase in roadmap)
