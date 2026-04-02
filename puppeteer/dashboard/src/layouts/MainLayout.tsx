@@ -140,7 +140,7 @@ const MainLayout = () => {
                         licence.status === 'expired' ? 'bg-red-500/20 text-red-400'
                         : licence.status === 'grace'  ? 'bg-amber-500/20 text-amber-400'
                         : licence.isEnterprise        ? 'bg-indigo-500/20 text-indigo-400'
-                        :                               'bg-zinc-700/50 text-zinc-400'
+                        :                               'bg-muted text-muted-foreground'
                     }`}>
                         {licence.isEnterprise ? 'EE' : 'CE'}
                     </span>
@@ -294,33 +294,33 @@ const MainLayout = () => {
             </div>
 
             <Dialog open={forceChangeOpen} onOpenChange={() => {}}>
-                <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-700" onInteractOutside={(e) => e.preventDefault()}>
+                <DialogContent className="sm:max-w-md bg-card border-muted" onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader>
-                        <DialogTitle className="text-white">Change Your Password</DialogTitle>
-                        <DialogDescription className="text-zinc-400">
+                        <DialogTitle className="text-foreground">Change Your Password</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
                             You are using the default password. Please set a new password before continuing.
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleForceChange} className="space-y-4 mt-2">
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">New Password</label>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">New Password</label>
                             <input
                                 type="password"
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
                                 placeholder="Min. 8 characters"
-                                className="w-full h-10 px-3 bg-zinc-800 border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-zinc-600"
+                                className="w-full h-10 px-3 bg-card border border-muted text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground"
                                 autoFocus
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Confirm Password</label>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confirm Password</label>
                             <input
                                 type="password"
                                 value={confirmPassword}
                                 onChange={e => setConfirmPassword(e.target.value)}
                                 placeholder="Repeat new password"
-                                className="w-full h-10 px-3 bg-zinc-800 border border-zinc-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-zinc-600"
+                                className="w-full h-10 px-3 bg-card border border-muted text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground"
                             />
                         </div>
                         {pwError && <p className="text-sm text-red-400">{pwError}</p>}
