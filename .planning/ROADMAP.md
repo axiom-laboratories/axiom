@@ -256,3 +256,34 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 Plans:
 - [x] TBD (run /gsd:plan-phase 116 to break down) (completed 2026-04-02)
+
+### Phase 117: Implement light mode with a light mode/dark mode toggle, whilst keeping the brand identity
+
+**Goal:** Add a complete light theme to the React dashboard with a user-facing toggle in the sidebar footer, preserving the existing dark theme as the default and maintaining brand identity across both modes.
+
+**Depends on:** Phase 116
+
+**Requirements**: None specified
+
+**Plans:** 4 plans
+
+Plans:
+- [x] 117-01-PLAN.md — CSS variables foundation + FOWT prevention (Wave 1)
+- [x] 117-02-PLAN.md — Theme provider hook + toggle component (Wave 2)
+- [x] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 2)
+- [x] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 3)
+
+**Wave Structure:**
+- Wave 1: CSS variables, FOWT script, Tailwind config (foundational)
+- Wave 2: Theme provider, toggle component, component styling updates (parallelizable)
+- Wave 3: Visual verification checkpoint (blocks execution until approved)
+
+**Success Criteria:**
+- Light mode palette (warm stone colors) renders correctly on all dashboard views
+- Dark mode unchanged from existing behavior (no regressions)
+- Theme toggle appears in sidebar footer with sun/moon icons and pink slider dot
+- Theme persists to localStorage and is restored on page reload
+- FOWT prevention prevents theme flash on page load
+- All interactive components (charts, modals, toasts, badges) are theme-aware
+- Brand identity invariants preserved (pink primary, Fira fonts, focus ring color)
+
