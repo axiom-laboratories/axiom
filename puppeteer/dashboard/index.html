@@ -6,13 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       // FOWT prevention: read localStorage and set theme class before React hydrates
+      // Tailwind darkMode: ["class"] means .dark class = dark mode, no class = light mode
       (function() {
         const stored = localStorage.getItem('mop_theme');
         const theme = stored === 'light' ? 'light' : 'dark';
-        if (theme === 'light') {
-          document.documentElement.classList.add('light');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
         } else {
-          document.documentElement.classList.remove('light');
+          document.documentElement.classList.remove('dark');
         }
       })();
     </script>
