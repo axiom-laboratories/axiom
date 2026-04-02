@@ -59,32 +59,32 @@ const AuditLog = () => {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                         <ScrollText className="h-5 w-5 text-primary" />
                         Audit Log
                     </h1>
-                    <p className="text-zinc-500 text-sm mt-1">Security-relevant actions, most recent first.</p>
+                    <p className="text-muted-foreground text-sm mt-1">Security-relevant actions, most recent first.</p>
                 </div>
             </div>
 
-            <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950/20">
+            <div className="rounded-xl border border-muted overflow-hidden bg-zinc-950/20">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="bg-zinc-900 border-b border-zinc-800">
-                            <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 w-44">Timestamp</th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 w-28">User</th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 w-40">Action</th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 w-40">Resource</th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500">Detail</th>
+                        <tr className="bg-secondary border-b border-muted">
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground w-44">Timestamp</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground w-28">User</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground w-40">Action</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground w-40">Resource</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Detail</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading && entries.length === 0 ? (
                             Array.from({ length: 8 }).map((_, i) => (
-                                <tr key={i} className="border-b border-zinc-800/50">
+                                <tr key={i} className="border-b border-muted/50">
                                     {Array.from({ length: 5 }).map((_, j) => (
                                         <td key={j} className="px-4 py-3">
-                                            <div className="h-3 rounded bg-zinc-800 animate-pulse w-3/4" />
+                                            <div className="h-3 rounded bg-muted animate-pulse w-3/4" />
                                         </td>
                                     ))}
                                 </tr>
@@ -97,11 +97,11 @@ const AuditLog = () => {
                             </tr>
                         ) : (
                             entries.map(entry => (
-                                <tr key={entry.id} className={`border-b border-zinc-800/40 hover:bg-zinc-900/40 transition-colors ${isPlaceholderData ? 'opacity-50' : ''}`}>
-                                    <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-500">
+                                <tr key={entry.id} className={`border-b border-muted/40 hover:bg-secondary/40 transition-colors ${isPlaceholderData ? 'opacity-50' : ''}`}>
+                                    <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
                                         {new Date(entry.timestamp).toLocaleString()}
                                     </td>
-                                    <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-300">
+                                    <td className="px-4 py-2.5 font-mono text-[11px] text-foreground">
                                         {entry.username.startsWith('sp:') ? (
                                             <span className="flex items-center gap-1.5">
                                                 <Bot className="h-3.5 w-3.5 text-blue-400" />
@@ -110,11 +110,11 @@ const AuditLog = () => {
                                         ) : entry.username}
                                     </td>
                                     <td className="px-4 py-2.5 font-mono text-[11px]">
-                                        <span className={ACTION_COLOR[entry.action] ?? 'text-zinc-400'}>
+                                        <span className={ACTION_COLOR[entry.action] ?? 'text-muted-foreground'}>
                                             {entry.action}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-500 truncate max-w-[160px]">
+                                    <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground truncate max-w-[160px]">
                                         {entry.resource_id ?? '—'}
                                     </td>
                                     <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-600 truncate max-w-[300px]">
@@ -125,13 +125,13 @@ const AuditLog = () => {
                         )}
                     </tbody>
                 </table>
-                <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800 bg-zinc-900/30">
-                    <span className="text-xs text-zinc-500">Page {page + 1}</span>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-muted bg-secondary/30">
+                    <span className="text-xs text-muted-foreground">Page {page + 1}</span>
                     <div className="flex gap-2">
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 text-xs text-zinc-400 hover:text-white"
+                            className="h-8 text-xs text-muted-foreground hover:text-foreground"
                             disabled={page === 0}
                             onClick={() => setPage(p => p - 1)}
                         >
@@ -140,7 +140,7 @@ const AuditLog = () => {
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 text-xs text-zinc-400 hover:text-white"
+                            className="h-8 text-xs text-muted-foreground hover:text-foreground"
                             disabled={entries.length < PAGE_SIZE}
                             onClick={() => setPage(p => p + 1)}
                         >

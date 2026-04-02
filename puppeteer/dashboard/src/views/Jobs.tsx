@@ -153,9 +153,9 @@ const StatusIcon = ({ status }: { status: string }) => {
         case 'assigned': return <Timer className="h-4 w-4 text-yellow-500 animate-pulse" />;
         case 'retrying': return <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />;
         case 'dead_letter': return <Skull className="h-4 w-4 text-rose-800" />;
-        case 'blocked': return <Lock className="h-4 w-4 text-zinc-500" />;
+        case 'blocked': return <Lock className="h-4 w-4 text-muted-foreground" />;
         case 'cancelled': return <Ban className="h-4 w-4 text-zinc-600" />;
-        default: return <Clock className="h-4 w-4 text-zinc-500" />;
+        default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
 };
 
@@ -290,13 +290,13 @@ const JobDetailPanel = ({
 
     return (
         <Sheet open={open} onOpenChange={onClose}>
-            <SheetContent className="bg-zinc-900 border-zinc-800 text-white w-full sm:max-w-xl overflow-y-auto">
-                <SheetHeader className="pb-4 border-b border-zinc-800">
-                    <SheetTitle className="text-white flex items-center gap-2">
+            <SheetContent className="bg-secondary border-muted text-foreground w-full sm:max-w-xl overflow-y-auto">
+                <SheetHeader className="pb-4 border-b border-muted">
+                    <SheetTitle className="text-foreground flex items-center gap-2">
                         <StatusIcon status={job.status} />
                         Job Detail
                     </SheetTitle>
-                    <SheetDescription className="font-mono text-zinc-500 text-xs break-all">
+                    <SheetDescription className="font-mono text-muted-foreground text-xs break-all">
                         {job.guid}
                     </SheetDescription>
                 </SheetHeader>
@@ -336,7 +336,7 @@ const JobDetailPanel = ({
                         <div className="flex gap-2">
                             {resubmitConfirming ? (
                                 <div className="flex gap-2 items-center flex-1">
-                                    <span className="text-xs text-zinc-400">Confirm resubmit?</span>
+                                    <span className="text-xs text-muted-foreground">Confirm resubmit?</span>
                                     <Button size="sm" variant="ghost" onClick={() => setResubmitConfirming(false)}>Cancel</Button>
                                     <Button size="sm" onClick={() => { onResubmit(job.guid); setResubmitConfirming(false); }}>Confirm</Button>
                                 </div>
@@ -354,7 +354,7 @@ const JobDetailPanel = ({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1 border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                                    className="flex-1 border-muted text-foreground hover:bg-muted"
                                     onClick={() => onEditResubmit(job)}
                                 >
                                     <Terminal className="mr-2 h-3.5 w-3.5" /> Edit &amp; Resubmit
@@ -373,14 +373,14 @@ const JobDetailPanel = ({
                     {/* Inline output */}
                     <section className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                                 <Terminal className="h-3 w-3" /> Output
                             </h3>
                             {executions && executions.length > 0 && (
                                 <button
                                     onClick={handleExportCsv}
                                     disabled={exportingCsv}
-                                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                                     title="Download execution records as CSV"
                                 >
                                     <Download className="h-3 w-3" />
@@ -395,21 +395,21 @@ const JobDetailPanel = ({
                         ) : outputLines.length > 0 ? (
                             <div className="bg-black/50 rounded-lg p-3 overflow-auto max-h-48 space-y-0.5 font-mono text-[11px]">
                                 {outputLines.map((l, i) => (
-                                    <div key={i} className="flex gap-4 group hover:bg-zinc-900/50 px-2 py-0.5 rounded">
+                                    <div key={i} className="flex gap-4 group hover:bg-secondary/50 px-2 py-0.5 rounded">
                                         <span className="text-zinc-700 shrink-0">
                                             {new Date(l.t).toLocaleTimeString('en-GB', { hour12: false })}
                                         </span>
                                         <span className={`shrink-0 ${l.stream === 'stderr' ? 'text-amber-500/80' : 'text-zinc-600'}`}>
                                             [{l.stream.slice(0, 3).toUpperCase()}]
                                         </span>
-                                        <span className={l.stream === 'stderr' ? 'text-amber-200' : 'text-zinc-300'}>
+                                        <span className={l.stream === 'stderr' ? 'text-amber-200' : 'text-foreground'}>
                                             {l.line}
                                         </span>
                                     </div>
                                 ))}
                             </div>
                         ) : latestExecution?.stdout || latestExecution?.stderr ? (
-                            <pre className="bg-black/50 rounded-lg p-3 overflow-auto max-h-48 text-xs text-zinc-300 font-mono whitespace-pre-wrap">
+                            <pre className="bg-black/50 rounded-lg p-3 overflow-auto max-h-48 text-xs text-foreground font-mono whitespace-pre-wrap">
                                 {latestExecution.stdout}{latestExecution.stderr}
                             </pre>
                         ) : (
@@ -420,16 +420,16 @@ const JobDetailPanel = ({
                     {/* Execution Records table with pin toggles */}
                     {executions && executions.length > 0 && (
                         <section className="space-y-2">
-                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Execution Records</h3>
-                            <div className="rounded-lg border border-zinc-800 overflow-hidden">
+                            <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">Execution Records</h3>
+                            <div className="rounded-lg border border-muted overflow-hidden">
                                 <table className="w-full text-xs">
-                                    <thead className="bg-zinc-900/50">
-                                        <tr className="border-b border-zinc-800">
-                                            <th className="w-7 pl-2 py-1.5 text-left text-zinc-500"></th>
-                                            <th className="px-2 py-1.5 text-left text-zinc-500">Status</th>
-                                            <th className="px-2 py-1.5 text-left text-zinc-500">Attempt</th>
-                                            <th className="px-2 py-1.5 text-left text-zinc-500">Started</th>
-                                            <th className="px-2 py-1.5 text-left text-zinc-500">Duration</th>
+                                    <thead className="bg-secondary/50">
+                                        <tr className="border-b border-muted">
+                                            <th className="w-7 pl-2 py-1.5 text-left text-muted-foreground"></th>
+                                            <th className="px-2 py-1.5 text-left text-muted-foreground">Status</th>
+                                            <th className="px-2 py-1.5 text-left text-muted-foreground">Attempt</th>
+                                            <th className="px-2 py-1.5 text-left text-muted-foreground">Started</th>
+                                            <th className="px-2 py-1.5 text-left text-muted-foreground">Duration</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -444,13 +444,13 @@ const JobDetailPanel = ({
                                                         title={rec.pinned ? 'Unpin' : 'Pin'}
                                                         className="flex items-center"
                                                     >
-                                                        <Pin className={`h-3 w-3 ${rec.pinned ? 'fill-amber-500 text-amber-500' : 'text-zinc-500 hover:text-zinc-300'}`} />
+                                                        <Pin className={`h-3 w-3 ${rec.pinned ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground hover:text-foreground'}`} />
                                                     </button>
                                                 </td>
-                                                <td className="px-2 py-1.5 font-mono text-zinc-300 capitalize">{(rec.status || '—').toLowerCase()}</td>
-                                                <td className="px-2 py-1.5 text-zinc-400">{rec.attempt_number ?? 1}</td>
-                                                <td className="px-2 py-1.5 text-zinc-400">{rec.started_at ? new Date(rec.started_at).toLocaleTimeString() : '—'}</td>
-                                                <td className="px-2 py-1.5 text-zinc-400">{rec.duration_s != null ? `${rec.duration_s.toFixed(1)}s` : '—'}</td>
+                                                <td className="px-2 py-1.5 font-mono text-foreground capitalize">{(rec.status || '—').toLowerCase()}</td>
+                                                <td className="px-2 py-1.5 text-muted-foreground">{rec.attempt_number ?? 1}</td>
+                                                <td className="px-2 py-1.5 text-muted-foreground">{rec.started_at ? new Date(rec.started_at).toLocaleTimeString() : '—'}</td>
+                                                <td className="px-2 py-1.5 text-muted-foreground">{rec.duration_s != null ? `${rec.duration_s.toFixed(1)}s` : '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -462,14 +462,14 @@ const JobDetailPanel = ({
                     {/* Node health snapshot */}
                     {nodeHealth && (
                         <section className="space-y-2">
-                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Node Health at Execution</h3>
+                            <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">Node Health at Execution</h3>
                             <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-zinc-800">
-                                    <span className="text-zinc-500 block">CPU</span>
+                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-muted">
+                                    <span className="text-muted-foreground block">CPU</span>
                                     <span className="text-zinc-200 font-mono font-medium">{nodeHealth.cpu.toFixed(1)}%</span>
                                 </div>
-                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-zinc-800">
-                                    <span className="text-zinc-500 block">RAM</span>
+                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-muted">
+                                    <span className="text-muted-foreground block">RAM</span>
                                     <span className="text-zinc-200 font-mono font-medium">{nodeHealth.ram.toFixed(1)}%</span>
                                 </div>
                             </div>
@@ -479,9 +479,9 @@ const JobDetailPanel = ({
 
                     {/* Metadata */}
                     <section className="space-y-3">
-                        <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Metadata</h3>
+                        <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">Metadata</h3>
                         <div className="grid grid-cols-2 gap-y-2 text-sm">
-                            <span className="text-zinc-500">Status</span>
+                            <span className="text-muted-foreground">Status</span>
                             <div className="w-fit">
                                 {job.status.toLowerCase() === 'retrying' ? (
                                     <Badge className="border border-amber-500/60 text-amber-400 bg-amber-500/10 capitalize">retrying</Badge>
@@ -493,55 +493,55 @@ const JobDetailPanel = ({
                             </div>
                             {job.status === 'RETRYING' && retryCountdown && (
                                 <>
-                                    <span className="text-zinc-500">Next Attempt</span>
+                                    <span className="text-muted-foreground">Next Attempt</span>
                                     <span className="text-amber-400 text-sm font-mono">{retryCountdown}</span>
                                 </>
                             )}
                             {job.max_retries && job.max_retries > 0 && (
                                 <>
-                                    <span className="text-zinc-500">Attempt</span>
-                                    <span className="text-zinc-300">{(job.retry_count ?? 0) + 1} / {job.max_retries + 1}</span>
+                                    <span className="text-muted-foreground">Attempt</span>
+                                    <span className="text-foreground">{(job.retry_count ?? 0) + 1} / {job.max_retries + 1}</span>
                                 </>
                             )}
-                            <span className="text-zinc-500">Type</span>
-                            <span className="font-mono text-zinc-300">{job.display_type ?? job.task_type ?? '—'}</span>
-                            <span className="text-zinc-500">Node</span>
-                            <span className="font-mono text-zinc-300 truncate">{job.node_id || '—'}</span>
-                            <span className="text-zinc-500">Started</span>
-                            <span className="text-zinc-300">{job.started_at ? new Date(job.started_at).toLocaleString() : '—'}</span>
-                            <span className="text-zinc-500">Duration</span>
-                            <span className="text-zinc-300">{job.duration_seconds != null ? `${job.duration_seconds.toFixed(2)}s` : '—'}</span>
+                            <span className="text-muted-foreground">Type</span>
+                            <span className="font-mono text-foreground">{job.display_type ?? job.task_type ?? '—'}</span>
+                            <span className="text-muted-foreground">Node</span>
+                            <span className="font-mono text-foreground truncate">{job.node_id || '—'}</span>
+                            <span className="text-muted-foreground">Started</span>
+                            <span className="text-foreground">{job.started_at ? new Date(job.started_at).toLocaleString() : '—'}</span>
+                            <span className="text-muted-foreground">Duration</span>
+                            <span className="text-foreground">{job.duration_seconds != null ? `${job.duration_seconds.toFixed(2)}s` : '—'}</span>
                             {job.originating_guid && (
                                 <>
-                                    <span className="text-zinc-500">Resubmitted from</span>
-                                    <span className="font-mono text-zinc-400 text-xs break-all">{job.originating_guid}</span>
+                                    <span className="text-muted-foreground">Resubmitted from</span>
+                                    <span className="font-mono text-muted-foreground text-xs break-all">{job.originating_guid}</span>
                                 </>
                             )}
                             {job.target_tags && job.target_tags.length > 0 && (
                                 <>
-                                    <span className="text-zinc-500">Tags</span>
+                                    <span className="text-muted-foreground">Tags</span>
                                     <div className="flex flex-wrap gap-1">
                                         {job.target_tags.map(t => (
-                                            <span key={t} className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] border border-zinc-700 text-zinc-400">{t}</span>
+                                            <span key={t} className="px-1.5 py-0.5 rounded bg-muted text-[10px] border border-muted text-muted-foreground">{t}</span>
                                         ))}
                                     </div>
                                 </>
                             )}
                             {job.depends_on && job.depends_on.length > 0 && (
                                 <>
-                                    <span className="text-zinc-500">Depends On</span>
+                                    <span className="text-muted-foreground">Depends On</span>
                                     <div className="flex flex-col gap-1.5">
                                         {job.depends_on.map((dep: any, idx: number) => {
                                             if (typeof dep === 'string') {
                                                 return (
-                                                    <span key={idx} className="px-1.5 py-0.5 rounded bg-zinc-900/50 text-[10px] border border-zinc-800 text-zinc-500 font-mono w-fit">
+                                                    <span key={idx} className="px-1.5 py-0.5 rounded bg-secondary/50 text-[10px] border border-muted text-muted-foreground font-mono w-fit">
                                                         Job: {dep.slice(0, 8)}... (COMPLETED)
                                                     </span>
                                                 );
                                             }
                                             if (dep.type === 'job') {
                                                 return (
-                                                    <span key={idx} className="px-1.5 py-0.5 rounded bg-zinc-900/50 text-[10px] border border-zinc-800 text-zinc-500 font-mono w-fit">
+                                                    <span key={idx} className="px-1.5 py-0.5 rounded bg-secondary/50 text-[10px] border border-muted text-muted-foreground font-mono w-fit">
                                                         Job: {dep.ref.slice(0, 8)}... ({dep.condition || 'COMPLETED'})
                                                     </span>
                                                 );
@@ -564,7 +564,7 @@ const JobDetailPanel = ({
                     {/* Result */}
                     {resultData && Object.keys(resultData).length > 0 && (
                         <section className="space-y-2">
-                            <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                                 <CheckCircle2 className="h-3 w-3 text-green-500" /> Result
                             </h3>
                             <pre className="text-xs text-green-400 font-mono bg-zinc-950 rounded-lg p-3 overflow-auto max-h-48 whitespace-pre-wrap">
@@ -584,10 +584,10 @@ const JobDetailPanel = ({
                                     <p className="text-sm text-red-400 font-medium">{flightRecorder.error}</p>
                                 )}
                                 {flightRecorder.exit_code != null && (
-                                    <p className="text-xs text-zinc-500">Exit code: <span className="font-mono text-zinc-300">{flightRecorder.exit_code}</span></p>
+                                    <p className="text-xs text-muted-foreground">Exit code: <span className="font-mono text-foreground">{flightRecorder.exit_code}</span></p>
                                 )}
                                 {flightRecorder.stack_trace && (
-                                    <pre className="text-xs text-zinc-400 font-mono overflow-auto max-h-40 whitespace-pre-wrap border-t border-zinc-800 pt-2">
+                                    <pre className="text-xs text-muted-foreground font-mono overflow-auto max-h-40 whitespace-pre-wrap border-t border-muted pt-2">
                                         {flightRecorder.stack_trace}
                                     </pre>
                                 )}
@@ -597,8 +597,8 @@ const JobDetailPanel = ({
 
                     {/* Payload */}
                     <section className="space-y-2">
-                        <h3 className="text-2xs font-bold text-zinc-500 uppercase tracking-widest">Payload</h3>
-                        <pre className="text-xs text-zinc-400 font-mono bg-zinc-950 rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap">
+                        <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">Payload</h3>
+                        <pre className="text-xs text-muted-foreground font-mono bg-zinc-950 rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap">
                             {JSON.stringify(job.payload, null, 2)}
                         </pre>
                     </section>
@@ -658,13 +658,13 @@ const MoreFiltersSheet = ({
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="right" className="bg-zinc-900 border-zinc-800 text-white w-full sm:max-w-sm overflow-y-auto">
-                <SheetHeader className="pb-4 border-b border-zinc-800">
-                    <SheetTitle className="text-white flex items-center gap-2">
+            <SheetContent side="right" className="bg-secondary border-muted text-foreground w-full sm:max-w-sm overflow-y-auto">
+                <SheetHeader className="pb-4 border-b border-muted">
+                    <SheetTitle className="text-foreground flex items-center gap-2">
                         <SlidersHorizontal className="h-4 w-4" />
                         More Filters
                     </SheetTitle>
-                    <SheetDescription className="text-zinc-500 text-xs">
+                    <SheetDescription className="text-muted-foreground text-xs">
                         Refine jobs by date, node, tags, and creator.
                     </SheetDescription>
                 </SheetHeader>
@@ -672,14 +672,14 @@ const MoreFiltersSheet = ({
                 <div className="space-y-6 pt-6">
                     {/* Date Range */}
                     <section className="space-y-3">
-                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Date Range</h3>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Date Range</h3>
                         <div className="flex flex-wrap gap-2">
                             {(['1h', '24h', '7d', '30d'] as const).map(preset => (
                                 <Button
                                     key={preset}
                                     size="sm"
                                     variant={filters.datePreset === preset ? 'default' : 'outline'}
-                                    className={`h-7 text-xs ${filters.datePreset === preset ? '' : 'border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'}`}
+                                    className={`h-7 text-xs ${filters.datePreset === preset ? '' : 'border-muted text-muted-foreground hover:text-foreground hover:border-zinc-500'}`}
                                     onClick={() => setPreset(preset)}
                                 >
                                     Last {preset}
@@ -687,41 +687,41 @@ const MoreFiltersSheet = ({
                             ))}
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs text-zinc-500">Custom from</label>
+                            <label className="text-xs text-muted-foreground">Custom from</label>
                             <Input
                                 type="datetime-local"
                                 value={filters.dateFrom ? filters.dateFrom.slice(0, 16) : ''}
                                 onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value ? new Date(e.target.value).toISOString() : '', datePreset: 'custom' }))}
-                                className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                                className="bg-muted border-muted text-foreground text-xs h-9"
                             />
-                            <label className="text-xs text-zinc-500">Custom to</label>
+                            <label className="text-xs text-muted-foreground">Custom to</label>
                             <Input
                                 type="datetime-local"
                                 value={filters.dateTo ? filters.dateTo.slice(0, 16) : ''}
                                 onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value ? new Date(e.target.value).toISOString() : '', datePreset: 'custom' }))}
-                                className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                                className="bg-muted border-muted text-foreground text-xs h-9"
                             />
                         </div>
                     </section>
 
                     {/* Target Node */}
                     <section className="space-y-3">
-                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Target Node</h3>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Target Node</h3>
                         <Input
                             placeholder="Search nodes..."
                             value={nodeSearch}
                             onChange={e => setNodeSearch(e.target.value)}
-                            className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                            className="bg-muted border-muted text-foreground text-xs h-9"
                         />
                         {filteredNodes.length > 0 && (
-                            <div className="bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden max-h-40 overflow-y-auto">
+                            <div className="bg-muted rounded-lg border border-muted overflow-hidden max-h-40 overflow-y-auto">
                                 {filteredNodes.slice(0, 20).map(n => {
                                     const label = n.hostname || n.node_id;
                                     const selected = filters.nodeId === n.node_id;
                                     return (
                                         <button
                                             key={n.node_id}
-                                            className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors ${selected ? 'bg-primary/20 text-primary' : 'text-zinc-300 hover:bg-zinc-700'}`}
+                                            className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors ${selected ? 'bg-primary/20 text-primary' : 'text-foreground hover:bg-zinc-700'}`}
                                             onClick={() => {
                                                 setFilters(f => ({ ...f, nodeId: selected ? '' : n.node_id }));
                                                 setNodeSearch('');
@@ -735,9 +735,9 @@ const MoreFiltersSheet = ({
                         )}
                         {filters.nodeId && (
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-zinc-400">Selected:</span>
+                                <span className="text-xs text-muted-foreground">Selected:</span>
                                 <span className="text-xs font-mono text-primary">{filters.nodeId.slice(0, 16)}…</span>
-                                <button onClick={() => setFilters(f => ({ ...f, nodeId: '' }))} className="text-zinc-500 hover:text-white">
+                                <button onClick={() => setFilters(f => ({ ...f, nodeId: '' }))} className="text-muted-foreground hover:text-foreground">
                                     <X className="h-3 w-3" />
                                 </button>
                             </div>
@@ -746,7 +746,7 @@ const MoreFiltersSheet = ({
 
                     {/* Target Tags */}
                     <section className="space-y-3">
-                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Target Tags</h3>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Target Tags</h3>
                         <div className="flex gap-2">
                             <Input
                                 placeholder="Add tag, press Enter"
@@ -755,18 +755,18 @@ const MoreFiltersSheet = ({
                                 onKeyDown={e => {
                                     if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput); }
                                 }}
-                                className="bg-zinc-800 border-zinc-700 text-white text-xs h-9 flex-1"
+                                className="bg-muted border-muted text-foreground text-xs h-9 flex-1"
                             />
-                            <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-400 h-9" onClick={() => addTag(tagInput)}>
+                            <Button size="sm" variant="outline" className="border-muted text-muted-foreground h-9" onClick={() => addTag(tagInput)}>
                                 Add
                             </Button>
                         </div>
                         {filters.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
                                 {filters.tags.map(tag => (
-                                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-700 text-xs text-zinc-300 border border-zinc-600">
+                                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-700 text-xs text-foreground border border-zinc-600">
                                         {tag}
-                                        <button onClick={() => setFilters(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }))} className="hover:text-white">
+                                        <button onClick={() => setFilters(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }))} className="hover:text-foreground">
                                             <X className="h-2.5 w-2.5" />
                                         </button>
                                     </span>
@@ -777,19 +777,19 @@ const MoreFiltersSheet = ({
 
                     {/* Created By */}
                     <section className="space-y-3">
-                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Created By</h3>
+                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Created By</h3>
                         <Input
                             placeholder="Username..."
                             value={filters.createdBy}
                             onChange={e => setFilters(f => ({ ...f, createdBy: e.target.value }))}
-                            className="bg-zinc-800 border-zinc-700 text-white text-xs h-9"
+                            className="bg-muted border-muted text-foreground text-xs h-9"
                         />
                     </section>
 
                     {/* Clear All */}
                     <Button
                         variant="outline"
-                        className="w-full border-zinc-700 text-zinc-400 hover:text-white"
+                        className="w-full border-muted text-muted-foreground hover:text-foreground"
                         onClick={() => {
                             setFilters(EMPTY_FILTERS);
                             setNodeSearch('');
@@ -1164,11 +1164,11 @@ const Jobs = () => {
             {/* Page header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Jobs</h1>
-                    <p className="text-sm text-zinc-500 mt-1">Dispatch and monitor task payloads.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Jobs</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Dispatch and monitor task payloads.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900" asChild>
+                    <Button variant="outline" className="border-muted bg-secondary/50 hover:bg-secondary" asChild>
                         <Link to="/audit">
                             <History className="mr-2 h-4 w-4" />
                             Audit Log
@@ -1188,31 +1188,31 @@ const Jobs = () => {
                 </div>
 
                 {/* Queue Monitor */}
-                <Card className="xl:col-span-2 bg-zinc-925 border-zinc-800/50 overflow-hidden">
+                <Card className="xl:col-span-2 bg-card border-muted/50 overflow-hidden">
                     <CardHeader className="pb-3">
                         <div className="flex flex-row items-center justify-between">
                             <div>
-                                <CardTitle className="text-lg font-bold text-white">Queue Monitor</CardTitle>
-                                <CardDescription className="text-zinc-500">Real-time status of dispatched tasks.</CardDescription>
+                                <CardTitle className="text-lg font-bold text-foreground">Queue Monitor</CardTitle>
+                                <CardDescription className="text-muted-foreground">Real-time status of dispatched tasks.</CardDescription>
                             </div>
                         </div>
 
                         {/* Bulk action bar — replaces filter bar when selection is active */}
                         {selectionActive ? (
-                            <div className="flex items-center gap-3 px-1 py-2 border-b border-zinc-800">
-                                <span className="text-sm text-zinc-300 font-medium">{selectedGuids.size} selected</span>
+                            <div className="flex items-center gap-3 px-1 py-2 border-b border-muted">
+                                <span className="text-sm text-foreground font-medium">{selectedGuids.size} selected</span>
                                 <div className="flex gap-2">
                                     {getSelectedJobs().some(j => CANCELLABLE_STATES.has(j.status)) && (
-                                        <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white" onClick={handleBulkCancel}>Cancel</Button>
+                                        <Button size="sm" variant="outline" className="border-muted text-foreground hover:text-foreground" onClick={handleBulkCancel}>Cancel</Button>
                                     )}
                                     {getSelectedJobs().some(j => j.status === 'FAILED' || j.status === 'DEAD_LETTER') && (
-                                        <Button size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white" onClick={handleBulkResubmit}>Resubmit</Button>
+                                        <Button size="sm" variant="outline" className="border-muted text-foreground hover:text-foreground" onClick={handleBulkResubmit}>Resubmit</Button>
                                     )}
                                     {getSelectedJobs().some(j => TERMINAL_STATES.has(j.status)) && (
                                         <Button size="sm" variant="destructive" onClick={handleBulkDelete}>Delete</Button>
                                     )}
                                 </div>
-                                <Button size="sm" variant="ghost" className="ml-auto text-zinc-400 hover:text-white" onClick={() => setSelectedGuids(new Set())}>
+                                <Button size="sm" variant="ghost" className="ml-auto text-muted-foreground hover:text-foreground" onClick={() => setSelectedGuids(new Set())}>
                                     Clear selection ×
                                 </Button>
                             </div>
@@ -1222,21 +1222,21 @@ const Jobs = () => {
                         <div className="flex flex-wrap items-center gap-2 pt-2">
                             {/* Search */}
                             <div className="relative flex-1 min-w-40">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                 <Input
                                     placeholder="Search name or GUID..."
                                     value={filters.search}
                                     onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
-                                    className="pl-9 bg-zinc-900 border-zinc-800 h-9 text-sm text-white"
+                                    className="pl-9 bg-secondary border-muted h-9 text-sm text-foreground"
                                 />
                             </div>
 
                             {/* Status */}
                             <Select value={filters.status} onValueChange={v => setFilters(f => ({ ...f, status: v }))}>
-                                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-9 w-36 text-xs">
+                                <SelectTrigger className="bg-secondary border-muted text-foreground h-9 w-36 text-xs">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                <SelectContent className="bg-secondary border-muted text-foreground">
                                     <SelectItem value="all">All Status</SelectItem>
                                     <SelectItem value="pending">Pending</SelectItem>
                                     <SelectItem value="assigned">Assigned</SelectItem>
@@ -1251,10 +1251,10 @@ const Jobs = () => {
 
                             {/* Runtime */}
                             <Select value={filters.runtime} onValueChange={v => setFilters(f => ({ ...f, runtime: v }))}>
-                                <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white h-9 w-32 text-xs">
+                                <SelectTrigger className="bg-secondary border-muted text-foreground h-9 w-32 text-xs">
                                     <SelectValue placeholder="Runtime" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                <SelectContent className="bg-secondary border-muted text-foreground">
                                     <SelectItem value="all">All Runtimes</SelectItem>
                                     <SelectItem value="python">Python</SelectItem>
                                     <SelectItem value="bash">Bash</SelectItem>
@@ -1266,7 +1266,7 @@ const Jobs = () => {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className={`h-9 border-zinc-700 text-xs gap-1.5 ${showMoreFilters || activeChips.some(c => ['date','node','tags','createdBy','taskType'].includes(c.key)) ? 'border-primary/50 text-primary' : 'text-zinc-400 hover:text-white'}`}
+                                className={`h-9 border-muted text-xs gap-1.5 ${showMoreFilters || activeChips.some(c => ['date','node','tags','createdBy','taskType'].includes(c.key)) ? 'border-primary/50 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                 onClick={() => setShowMoreFilters(v => !v)}
                             >
                                 <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -1286,12 +1286,12 @@ const Jobs = () => {
                                     {activeChips.map(chip => (
                                         <span
                                             key={chip.key}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-zinc-300 border border-zinc-700"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs text-foreground border border-muted"
                                         >
                                             {chip.label}
                                             <button
                                                 onClick={chip.clear}
-                                                className="hover:text-white text-zinc-500 ml-0.5"
+                                                className="hover:text-foreground text-muted-foreground ml-0.5"
                                                 aria-label={`Remove ${chip.label} filter`}
                                             >
                                                 <X className="h-2.5 w-2.5" />
@@ -1302,7 +1302,7 @@ const Jobs = () => {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-7 border-zinc-700 text-zinc-400 hover:text-white text-xs gap-1.5 ml-auto"
+                                    className="h-7 border-muted text-muted-foreground hover:text-foreground text-xs gap-1.5 ml-auto"
                                     onClick={handleExport}
                                     disabled={exporting}
                                 >
@@ -1318,7 +1318,7 @@ const Jobs = () => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 text-zinc-600 hover:text-zinc-300 text-xs gap-1.5"
+                                    className="h-7 text-zinc-600 hover:text-foreground text-xs gap-1.5"
                                     onClick={handleExport}
                                     disabled={exporting}
                                 >
@@ -1340,8 +1340,8 @@ const Jobs = () => {
                     )}
 
                     <Table>
-                        <TableHeader className="bg-zinc-900/50 border-zinc-800">
-                            <TableRow className="border-zinc-800 hover:bg-transparent">
+                        <TableHeader className="bg-secondary/50 border-muted">
+                            <TableRow className="border-muted hover:bg-transparent">
                                 <TableHead className="w-10 pl-4">
                                     <Checkbox
                                         checked={allSelected}
@@ -1349,22 +1349,22 @@ const Jobs = () => {
                                         aria-label="Select all jobs"
                                     />
                                 </TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pl-6">Name / ID</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Type</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Status</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Attempt</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Target Node</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest">Timestamp</TableHead>
-                                <TableHead className="text-zinc-500 font-bold uppercase text-2xs tracking-widest pr-6 text-right">Detail</TableHead>
+                                <TableHead className="text-muted-foreground font-bold uppercase text-2xs tracking-widest pl-6">Name / ID</TableHead>
+                                <TableHead className="text-muted-foreground font-bold uppercase text-2xs tracking-widest">Type</TableHead>
+                                <TableHead className="text-muted-foreground font-bold uppercase text-2xs tracking-widest">Status</TableHead>
+                                <TableHead className="text-muted-foreground font-bold uppercase text-2xs tracking-widest">Attempt</TableHead>
+                                <TableHead className="text-muted-foreground font-bold uppercase text-2xs tracking-widest">Target Node</TableHead>
+                                <TableHead className="text-muted-foreground font-bold uppercase text-2xs tracking-widest">Timestamp</TableHead>
+                                <TableHead className="text-muted-foreground font-bold uppercase text-2xs tracking-widest pr-6 text-right">Detail</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i} className="border-zinc-800">
+                                    <TableRow key={i} className="border-muted">
                                         {Array.from({ length: 8 }).map((_, j) => (
                                             <TableCell key={j} className="py-3 pl-6">
-                                                <div className="h-3 bg-zinc-800 animate-pulse rounded w-3/4" />
+                                                <div className="h-3 bg-muted animate-pulse rounded w-3/4" />
                                             </TableCell>
                                         ))}
                                     </TableRow>
@@ -1373,7 +1373,7 @@ const Jobs = () => {
                                 jobs.map(job => (
                                     <TableRow
                                         key={job.guid}
-                                        className={`border-zinc-800 cursor-pointer hover:bg-zinc-800/50 transition-all duration-500 ${
+                                        className={`border-muted cursor-pointer hover:bg-muted/50 transition-all duration-500 ${
                                             highlightGuid === job.guid ? 'ring-1 ring-primary/60 bg-primary/5' : ''
                                         }`}
                                         onClick={() => openDetail(job)}
@@ -1385,7 +1385,7 @@ const Jobs = () => {
                                                 aria-label={`Select job ${job.guid}`}
                                             />
                                         </TableCell>
-                                        <TableCell className="font-mono text-zinc-400 pl-6">
+                                        <TableCell className="font-mono text-muted-foreground pl-6">
                                             {job.name ? (
                                                 <span className="text-foreground font-medium text-sm">{job.name}</span>
                                             ) : (
@@ -1395,7 +1395,7 @@ const Jobs = () => {
                                                 </div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-white font-medium">
+                                        <TableCell className="text-foreground font-medium">
                                             {job.display_type ?? job.task_type ?? '—'}
                                         </TableCell>
                                         <TableCell>
@@ -1409,22 +1409,22 @@ const Jobs = () => {
                                                 </Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-xs text-zinc-500 tabular-nums">
+                                        <TableCell className="text-xs text-muted-foreground tabular-nums">
                                             {job.max_retries && job.max_retries > 0
                                                 ? `${(job.retry_count ?? 0) + 1}/${job.max_retries + 1}`
                                                 : ''}
                                         </TableCell>
-                                        <TableCell className="font-mono text-xs text-zinc-500">
+                                        <TableCell className="font-mono text-xs text-muted-foreground">
                                             {job.node_id ? job.node_id.substring(0, 12) : '-'}
                                         </TableCell>
-                                        <TableCell className="text-zinc-500 text-xs">
+                                        <TableCell className="text-muted-foreground text-xs">
                                             <div className="flex items-center gap-2">
                                                 <Clock className="h-3 w-3" />
                                                 {job.started_at ? new Date(job.started_at).toLocaleTimeString() : '-'}
                                             </div>
                                         </TableCell>
                                         <TableCell className="pr-6 text-right" onClick={e => { e.stopPropagation(); openDetail(job); }}>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-white hover:bg-zinc-800 rounded-lg">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-foreground hover:bg-muted rounded-lg">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </TableCell>
@@ -1441,15 +1441,15 @@ const Jobs = () => {
                     </Table>
 
                     {/* Footer: counter + load more */}
-                    <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-800 bg-zinc-900/30">
-                        <span className="text-xs text-zinc-500">
+                    <div className="flex items-center justify-between px-6 py-3 border-t border-muted bg-secondary/30">
+                        <span className="text-xs text-muted-foreground">
                             Showing {jobs.length} of {total}
                         </span>
                         {nextCursor && (
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 text-xs text-zinc-400 hover:text-white"
+                                className="h-7 text-xs text-muted-foreground hover:text-foreground"
                                 disabled={loadingMore}
                                 onClick={() => fetchJobs({ cursor: nextCursor })}
                             >
@@ -1485,10 +1485,10 @@ const Jobs = () => {
 
             {/* Bulk action confirmation dialog */}
             <Dialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
+                <DialogContent className="bg-secondary border-muted text-foreground max-w-md">
                     <DialogHeader>
                         <DialogTitle>Confirm bulk action</DialogTitle>
-                        <DialogDescription className="text-zinc-400">
+                        <DialogDescription className="text-muted-foreground">
                             {bulkConfirmText()}
                         </DialogDescription>
                     </DialogHeader>

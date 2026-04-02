@@ -89,7 +89,7 @@ const STATUS_BADGE: Record<string, string> = {
     valid:   'bg-emerald-500/20 text-emerald-400',
     grace:   'bg-amber-500/20 text-amber-400',
     expired: 'bg-red-500/20 text-red-400',
-    ce:      'bg-zinc-700/50 text-zinc-400',
+    ce:      'bg-zinc-700/50 text-muted-foreground',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -108,37 +108,37 @@ const LicenceSection = () => {
         ? 'text-red-400'
         : days_until_expiry < 30
         ? 'text-amber-400'
-        : 'text-white';
+        : 'text-foreground';
 
     return (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Licence</h2>
+        <div className="rounded-xl border border-muted bg-zinc-950 p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Licence</h2>
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-400">Edition</span>
+                    <span className="text-sm text-muted-foreground">Edition</span>
                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                         isEnterprise
                             ? 'bg-indigo-500/20 text-indigo-400'
-                            : 'bg-zinc-700/50 text-zinc-400'
+                            : 'bg-zinc-700/50 text-muted-foreground'
                     }`}>
                         {isEnterprise ? 'Enterprise' : 'Community'}
                     </span>
                 </div>
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-400">Status</span>
+                    <span className="text-sm text-muted-foreground">Status</span>
                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${STATUS_BADGE[status] ?? STATUS_BADGE.ce}`}>
                         {STATUS_LABEL[status] ?? status}
                     </span>
                 </div>
                 {isEnterprise && customer_id && (
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Customer</span>
-                        <span className="text-sm text-white font-mono">{customer_id}</span>
+                        <span className="text-sm text-muted-foreground">Customer</span>
+                        <span className="text-sm text-foreground font-mono">{customer_id}</span>
                     </div>
                 )}
                 {isEnterprise && (
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Expires</span>
+                        <span className="text-sm text-muted-foreground">Expires</span>
                         <span className={`text-sm ${expiryClass}`}>
                             {expiryValue}
                         </span>
@@ -146,13 +146,13 @@ const LicenceSection = () => {
                 )}
                 {isEnterprise && node_limit > 0 && (
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-400">Node limit</span>
-                        <span className="text-sm text-white">{node_limit}</span>
+                        <span className="text-sm text-muted-foreground">Node limit</span>
+                        <span className="text-sm text-foreground">{node_limit}</span>
                     </div>
                 )}
                 {!isEnterprise && (
-                    <p className="text-sm text-zinc-500">
-                        Set <code className="text-zinc-300">AXIOM_LICENCE_KEY</code> environment variable to enable Enterprise Edition features.
+                    <p className="text-sm text-muted-foreground">
+                        Set <code className="text-foreground">AXIOM_LICENCE_KEY</code> environment variable to enable Enterprise Edition features.
                     </p>
                 )}
             </div>
@@ -196,8 +196,8 @@ const LicenceTabContent = () => {
 
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h2 className="text-lg font-semibold text-white">Licence Management</h2>
-                    <p className="text-sm text-zinc-500 mt-1">View and manage your licence status and settings.</p>
+                    <h2 className="text-lg font-semibold text-foreground">Licence Management</h2>
+                    <p className="text-sm text-muted-foreground mt-1">View and manage your licence status and settings.</p>
                 </div>
                 <LicenceReloadButton
                     isAdmin={true}
@@ -320,28 +320,28 @@ const TriggerManager = () => {
 
     return (
         <div className="space-y-6">
-            <Card className="bg-zinc-925 border-zinc-800/50">
+            <Card className="bg-card border-muted/50">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle className="text-white font-bold flex items-center gap-2">
+                        <CardTitle className="text-foreground font-bold flex items-center gap-2">
                             <Zap className="h-5 w-5 text-primary fill-current" />
                             Automation Triggers
                         </CardTitle>
                         <CardDescription>Headless endpoints for CI/CD integrations.</CardDescription>
                     </div>
-                    <Button onClick={() => setIsCreateOpen(true)} size="sm" className="bg-primary hover:bg-primary/90 text-white font-bold">
+                    <Button onClick={() => setIsCreateOpen(true)} size="sm" className="bg-primary hover:bg-primary/90 text-foreground font-bold">
                         <Plus className="mr-2 h-4 w-4" /> Create Trigger
                     </Button>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader className="bg-zinc-950/50">
-                            <TableRow className="border-zinc-800">
-                                <TableHead className="text-zinc-400">Name</TableHead>
-                                <TableHead className="text-zinc-400">Slug</TableHead>
-                                <TableHead className="text-zinc-400">Target Job</TableHead>
-                                <TableHead className="text-zinc-400">Status</TableHead>
-                                <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                            <TableRow className="border-muted">
+                                <TableHead className="text-muted-foreground">Name</TableHead>
+                                <TableHead className="text-muted-foreground">Slug</TableHead>
+                                <TableHead className="text-muted-foreground">Target Job</TableHead>
+                                <TableHead className="text-muted-foreground">Status</TableHead>
+                                <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -350,11 +350,11 @@ const TriggerManager = () => {
                                     <TableCell colSpan={5} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Zap className="h-8 w-8 text-zinc-700" />
-                                            <p className="text-white font-medium">No triggers yet.</p>
-                                            <p className="text-zinc-500 text-sm max-w-xs">
+                                            <p className="text-foreground font-medium">No triggers yet.</p>
+                                            <p className="text-muted-foreground text-sm max-w-xs">
                                                 Triggers are secure webhooks that let external systems (GitHub Actions, scripts) fire jobs.
                                             </p>
-                                            <Button size="sm" className="mt-2 bg-primary hover:bg-primary/90 text-white font-bold"
+                                            <Button size="sm" className="mt-2 bg-primary hover:bg-primary/90 text-foreground font-bold"
                                                 onClick={() => setIsCreateOpen(true)}>
                                                 <Plus className="mr-2 h-4 w-4" /> Create Trigger
                                             </Button>
@@ -363,28 +363,28 @@ const TriggerManager = () => {
                                 </TableRow>
                             ) : (
                                 triggers.map((t: any) => (
-                                    <TableRow key={t.id} className="border-zinc-800 group hover:bg-white/[0.02]">
-                                        <TableCell className="text-white font-medium">{t.name}</TableCell>
-                                        <TableCell className="font-mono text-zinc-500 text-xs">/api/trigger/{t.slug}</TableCell>
-                                        <TableCell className="text-zinc-400 text-xs">
+                                    <TableRow key={t.id} className="border-muted group hover:bg-white/[0.02]">
+                                        <TableCell className="text-foreground font-medium">{t.name}</TableCell>
+                                        <TableCell className="font-mono text-muted-foreground text-xs">/api/trigger/{t.slug}</TableCell>
+                                        <TableCell className="text-muted-foreground text-xs">
                                             {jobDefs.find((j: any) => j.id === t.job_definition_id)?.name || t.job_definition_id}
                                         </TableCell>
                                         <TableCell>
                                             {t.is_active ? (
                                                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Active</Badge>
                                             ) : (
-                                                <Badge className="bg-zinc-500/10 text-zinc-400 border-zinc-500/20">Inactive</Badge>
+                                                <Badge className="bg-zinc-500/10 text-muted-foreground border-zinc-500/20">Inactive</Badge>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right flex justify-end gap-2">
-                                            <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-white gap-2" onClick={() => copyCurl(t)}>
+                                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-2" onClick={() => copyCurl(t)}>
                                                 <Copy className="h-3 w-3" /> Copy Curl
                                             </Button>
-                                            <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-white gap-2"
+                                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-2"
                                                 onClick={() => { navigator.clipboard.writeText(t.secret_token); toast.success('Token copied'); }}>
                                                 <Key className="h-3 w-3" /> Copy Token
                                             </Button>
-                                            <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-amber-400 gap-2"
+                                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-amber-400 gap-2"
                                                 onClick={() => {
                                                     if (t.is_active) {
                                                         setPendingToggleTrigger(t);
@@ -395,7 +395,7 @@ const TriggerManager = () => {
                                                 }}>
                                                 <RefreshCcw className="h-3 w-3" /> {t.is_active ? 'Disable' : 'Enable'}
                                             </Button>
-                                            <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-amber-400 gap-2"
+                                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-amber-400 gap-2"
                                                 onClick={() => { setPendingRotateTrigger(t); setIsRotateConfirmOpen(true); }}>
                                                 <Lock className="h-3 w-3" /> Rotate Key
                                             </Button>
@@ -412,7 +412,7 @@ const TriggerManager = () => {
             </Card>
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <DialogContent className="bg-card border-muted text-foreground">
                     <DialogHeader>
                         <DialogTitle>Create Automation Trigger</DialogTitle>
                         <DialogDescription>Define a secure webhook for external systems.</DialogDescription>
@@ -424,7 +424,7 @@ const TriggerManager = () => {
                                 placeholder="GitHub Actions Deployment" 
                                 value={newTrigger.name}
                                 onChange={e => setNewTrigger({...newTrigger, name: e.target.value})}
-                                className="bg-zinc-950 border-zinc-800"
+                                className="bg-zinc-950 border-muted"
                             />
                         </div>
                         <div className="space-y-2">
@@ -433,16 +433,16 @@ const TriggerManager = () => {
                                 placeholder="deploy-prod" 
                                 value={newTrigger.slug}
                                 onChange={e => setNewTrigger({...newTrigger, slug: e.target.value})}
-                                className="bg-zinc-950 border-zinc-800 font-mono"
+                                className="bg-zinc-950 border-muted font-mono"
                             />
                         </div>
                         <div className="space-y-2">
                             <Label>Target Job Definition</Label>
                             <Select value={newTrigger.job_definition_id} onValueChange={v => setNewTrigger({...newTrigger, job_definition_id: v})}>
-                                <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                                <SelectTrigger className="bg-zinc-950 border-muted">
                                     <SelectValue placeholder="Select a job to trigger..." />
                                 </SelectTrigger>
-                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                <SelectContent className="bg-secondary border-muted text-foreground">
                                     {jobDefs.map((j: any) => (
                                         <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
                                     ))}
@@ -455,7 +455,7 @@ const TriggerManager = () => {
                         <Button 
                             disabled={!newTrigger.name || !newTrigger.slug || !newTrigger.job_definition_id}
                             onClick={() => createMutation.mutate(newTrigger)}
-                            className="bg-primary hover:bg-primary/90 text-white font-bold"
+                            className="bg-primary hover:bg-primary/90 text-foreground font-bold"
                         >
                             Register Trigger
                         </Button>
@@ -464,18 +464,18 @@ const TriggerManager = () => {
             </Dialog>
 
             <AlertDialog open={isDisableConfirmOpen} onOpenChange={setIsDisableConfirmOpen}>
-                <AlertDialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <AlertDialogContent className="bg-card border-muted text-foreground">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Disable this trigger?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-zinc-400">
+                        <AlertDialogDescription className="text-muted-foreground">
                             Disabling this trigger will prevent new jobs from being fired. Continue?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-zinc-700">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => pendingToggleTrigger && toggleMutation.mutate({ id: pendingToggleTrigger.id, is_active: false })}
-                            className="bg-amber-600 hover:bg-amber-700 text-white">
+                            className="bg-amber-600 hover:bg-amber-700 text-foreground">
                             Disable Trigger
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -483,18 +483,18 @@ const TriggerManager = () => {
             </AlertDialog>
 
             <AlertDialog open={isRotateConfirmOpen} onOpenChange={setIsRotateConfirmOpen}>
-                <AlertDialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <AlertDialogContent className="bg-card border-muted text-foreground">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Rotate trigger token?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-zinc-400">
+                        <AlertDialogDescription className="text-muted-foreground">
                             This will invalidate the current token. Existing integrations will break until updated.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-zinc-700">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => pendingRotateTrigger && rotateMutation.mutate(pendingRotateTrigger.id)}
-                            className="bg-amber-600 hover:bg-amber-700 text-white">
+                            className="bg-amber-600 hover:bg-amber-700 text-foreground">
                             Rotate Token
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -502,13 +502,13 @@ const TriggerManager = () => {
             </AlertDialog>
 
             <Dialog open={isTokenRevealOpen} onOpenChange={setIsTokenRevealOpen}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white max-w-lg">
+                <DialogContent className="bg-card border-muted text-foreground max-w-lg">
                     <DialogHeader>
                         <div className="flex items-center gap-2 text-emerald-500 mb-2">
                             <CheckCircle2 className="h-6 w-6" />
                             <DialogTitle>New Token Generated</DialogTitle>
                         </div>
-                        <DialogDescription className="text-zinc-400">
+                        <DialogDescription className="text-muted-foreground">
                             This is the only time you'll see this token. Copy it now.
                         </DialogDescription>
                     </DialogHeader>
@@ -520,9 +520,9 @@ const TriggerManager = () => {
                             </p>
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-zinc-400">Secret Token</Label>
+                            <Label className="text-muted-foreground">Secret Token</Label>
                             <div className="flex gap-2">
-                                <Input readOnly value={newToken || ''} className="bg-zinc-950 border-zinc-800 font-mono text-xs" />
+                                <Input readOnly value={newToken || ''} className="bg-zinc-950 border-muted font-mono text-xs" />
                                 <Button size="icon" variant="outline"
                                     onClick={() => { navigator.clipboard.writeText(newToken || ''); toast.success('Token copied'); }}>
                                     <Copy className="h-4 w-4" />
@@ -555,9 +555,9 @@ const BOMExplorer = () => {
     });
 
     return (
-        <Card className="bg-zinc-925 border-zinc-800/50">
+        <Card className="bg-card border-muted/50">
             <CardHeader>
-                <CardTitle className="text-white font-bold flex items-center gap-2">
+                <CardTitle className="text-foreground font-bold flex items-center gap-2">
                     <Search className="h-5 w-5 text-primary" />
                     BOM Explorer
                 </CardTitle>
@@ -565,23 +565,23 @@ const BOMExplorer = () => {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
                         placeholder="Search package name (e.g. cryptography, requests)..." 
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="pl-10 bg-zinc-950 border-zinc-800"
+                        className="pl-10 bg-zinc-950 border-muted"
                     />
                 </div>
 
-                <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                <div className="rounded-xl border border-muted overflow-hidden">
                     <Table>
                         <TableHeader className="bg-zinc-950/50">
-                            <TableRow className="border-zinc-800">
-                                <TableHead className="text-zinc-400">Type</TableHead>
-                                <TableHead className="text-zinc-400">Package</TableHead>
-                                <TableHead className="text-zinc-400">Version</TableHead>
-                                <TableHead className="text-zinc-400">Template ID</TableHead>
+                            <TableRow className="border-muted">
+                                <TableHead className="text-muted-foreground">Type</TableHead>
+                                <TableHead className="text-muted-foreground">Package</TableHead>
+                                <TableHead className="text-muted-foreground">Version</TableHead>
+                                <TableHead className="text-muted-foreground">Template ID</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -589,17 +589,17 @@ const BOMExplorer = () => {
                                 <TableRow><TableCell colSpan={4} className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary/50" /></TableCell></TableRow>
                             ) : results.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="py-12 text-center text-zinc-500">
+                                    <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
                                         {search.length > 2 ? 'No results found.' : 'Enter at least 3 characters to search.'}
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 results.map((r: any) => (
-                                    <TableRow key={r.id} className="border-zinc-800 hover:bg-white/[0.02]">
+                                    <TableRow key={r.id} className="border-muted hover:bg-white/[0.02]">
                                         <TableCell><Badge variant="outline" className="text-[10px]">{r.type.toUpperCase()}</Badge></TableCell>
-                                        <TableCell className="text-white font-medium">{r.name}</TableCell>
-                                        <TableCell className="font-mono text-zinc-400 text-xs">{r.version}</TableCell>
-                                        <TableCell className="text-zinc-500 font-mono text-[10px]">{r.template_id}</TableCell>
+                                        <TableCell className="text-foreground font-medium">{r.name}</TableCell>
+                                        <TableCell className="font-mono text-muted-foreground text-xs">{r.version}</TableCell>
+                                        <TableCell className="text-muted-foreground font-mono text-[10px]">{r.template_id}</TableCell>
                                     </TableRow>
                                 ))
                             )}
@@ -667,9 +667,9 @@ const RolloutManager = () => {
 
     return (
         <div className="space-y-6">
-            <Card className="bg-zinc-925 border-zinc-800/50">
+            <Card className="bg-card border-muted/50">
                 <CardHeader>
-                    <CardTitle className="text-white font-bold flex items-center gap-2">
+                    <CardTitle className="text-foreground font-bold flex items-center gap-2">
                         <Package className="h-5 w-5 text-primary" />
                         Staged Rollout
                     </CardTitle>
@@ -677,12 +677,12 @@ const RolloutManager = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">1. Select Target Tool</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">1. Select Target Tool</label>
                         <Select value={selectedToolId} onValueChange={setSelectedToolId}>
-                            <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                            <SelectTrigger className="bg-zinc-950 border-muted">
                                 <SelectValue placeholder="Choose a tool recipe..." />
                             </SelectTrigger>
-                            <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                            <SelectContent className="bg-secondary border-muted text-foreground">
                                 {matrix.map((m: any) => (
                                     <SelectItem key={m.id} value={String(m.id)}>{m.tool_id} ({m.base_os_family})</SelectItem>
                                 ))}
@@ -691,35 +691,35 @@ const RolloutManager = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">2. Select Target Nodes</label>
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">2. Select Target Nodes</label>
+                        <div className="rounded-xl border border-muted bg-zinc-950 overflow-hidden">
                             <Table>
-                                <TableHeader className="bg-zinc-900/50">
-                                    <TableRow className="border-zinc-800">
+                                <TableHeader className="bg-secondary/50">
+                                    <TableRow className="border-muted">
                                         <TableHead className="w-12"></TableHead>
-                                        <TableHead className="text-zinc-400">Hostname</TableHead>
-                                        <TableHead className="text-zinc-400">OS</TableHead>
-                                        <TableHead className="text-zinc-400">Tags</TableHead>
+                                        <TableHead className="text-muted-foreground">Hostname</TableHead>
+                                        <TableHead className="text-muted-foreground">OS</TableHead>
+                                        <TableHead className="text-muted-foreground">Tags</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {nodes.filter((n: any) => !selectedTool || n.base_os_family === selectedTool.base_os_family).map((n: any) => (
                                         <TableRow 
                                             key={n.node_id} 
-                                            className={`border-zinc-800 cursor-pointer transition-colors ${selectedNodes.has(n.node_id) ? 'bg-primary/5' : 'hover:bg-white/[0.02]'}`}
+                                            className={`border-muted cursor-pointer transition-colors ${selectedNodes.has(n.node_id) ? 'bg-primary/5' : 'hover:bg-white/[0.02]'}`}
                                             onClick={() => toggleNode(n.node_id)}
                                         >
                                             <TableCell>
-                                                <div className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${selectedNodes.has(n.node_id) ? 'bg-primary border-primary' : 'border-zinc-700 bg-zinc-900'}`}>
-                                                    {selectedNodes.has(n.node_id) && <Check className="h-3 w-3 text-white stroke-[3]" />}
+                                                <div className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${selectedNodes.has(n.node_id) ? 'bg-primary border-primary' : 'border-muted bg-secondary'}`}>
+                                                    {selectedNodes.has(n.node_id) && <Check className="h-3 w-3 text-foreground stroke-[3]" />}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-white font-medium">{n.hostname}</TableCell>
+                                            <TableCell className="text-foreground font-medium">{n.hostname}</TableCell>
                                             <TableCell><Badge variant="outline" className="text-[8px]">{n.base_os_family}</Badge></TableCell>
                                             <TableCell>
                                                 <div className="flex gap-1">
                                                     {n.tags?.slice(0, 2).map((t: string) => (
-                                                        <span key={t} className="text-[8px] text-zinc-500">{t}</span>
+                                                        <span key={t} className="text-[8px] text-muted-foreground">{t}</span>
                                                     ))}
                                                 </div>
                                             </TableCell>
@@ -730,14 +730,14 @@ const RolloutManager = () => {
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="bg-zinc-900/30 border-t border-zinc-800 flex items-center justify-between py-4">
-                    <div className="text-xs text-zinc-500">
+                <CardFooter className="bg-secondary/30 border-t border-muted flex items-center justify-between py-4">
+                    <div className="text-xs text-muted-foreground">
                         {selectedNodes.size} nodes selected for rollout
                     </div>
                     <Button 
                         disabled={!selectedToolId || selectedNodes.size === 0 || rolloutStatus === 'running'}
                         onClick={handleBatchUpgrade}
-                        className="bg-primary hover:bg-primary/90 text-white font-bold px-8"
+                        className="bg-primary hover:bg-primary/90 text-foreground font-bold px-8"
                     >
                         {rolloutStatus === 'running' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executing...</> : 'Initiate Rollout'}
                     </Button>
@@ -768,32 +768,32 @@ const CapabilityMatrixManager = () => {
     });
 
     return (
-        <Card className="bg-zinc-925 border-zinc-800/50">
+        <Card className="bg-card border-muted/50">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle className="text-white font-bold">Tool Registry</CardTitle>
+                    <CardTitle className="text-foreground font-bold">Tool Registry</CardTitle>
                     <CardDescription>Injection recipes for Puppet runtimes.</CardDescription>
                 </div>
-                <Button size="sm" className="bg-primary hover:bg-primary/90 text-white font-bold">
+                <Button size="sm" className="bg-primary hover:bg-primary/90 text-foreground font-bold">
                     <Plus className="mr-2 h-4 w-4" /> Register Tool
                 </Button>
             </CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader className="bg-zinc-950/50">
-                        <TableRow className="border-zinc-800">
-                            <TableHead className="text-zinc-400">OS Family</TableHead>
-                            <TableHead className="text-zinc-400">Tool ID</TableHead>
-                            <TableHead className="text-zinc-400">Recipe</TableHead>
-                            <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                        <TableRow className="border-muted">
+                            <TableHead className="text-muted-foreground">OS Family</TableHead>
+                            <TableHead className="text-muted-foreground">Tool ID</TableHead>
+                            <TableHead className="text-muted-foreground">Recipe</TableHead>
+                            <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {matrix.map((item: any) => (
-                            <TableRow key={item.id} className="border-zinc-800 group hover:bg-white/[0.02]">
+                            <TableRow key={item.id} className="border-muted group hover:bg-white/[0.02]">
                                 <TableCell><Badge variant="outline">{item.base_os_family}</Badge></TableCell>
-                                <TableCell className="font-mono text-white text-xs">{item.tool_id}</TableCell>
-                                <TableCell className="max-w-[300px] truncate font-mono text-[10px] text-zinc-500">
+                                <TableCell className="font-mono text-foreground text-xs">{item.tool_id}</TableCell>
+                                <TableCell className="max-w-[300px] truncate font-mono text-[10px] text-muted-foreground">
                                     {item.injection_recipe}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -843,10 +843,10 @@ const ArtifactVault = () => {
     };
 
     return (
-        <Card className="bg-zinc-925 border-zinc-800/50">
+        <Card className="bg-card border-muted/50">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle className="text-white font-bold text-xl flex items-center gap-2">
+                    <CardTitle className="text-foreground font-bold text-xl flex items-center gap-2">
                         <Database className="h-5 w-5 text-primary" />
                         Artifact Vault
                     </CardTitle>
@@ -856,7 +856,7 @@ const ArtifactVault = () => {
                     <input type="file" id="artifact-upload" className="hidden" onChange={handleFileUpload} />
                     <Button 
                         size="sm" 
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold"
+                        className="bg-muted hover:bg-zinc-700 text-foreground font-bold"
                         onClick={() => document.getElementById('artifact-upload')?.click()}
                         disabled={uploadMutation.isPending}
                     >
@@ -867,24 +867,24 @@ const ArtifactVault = () => {
             <CardContent>
                 <Table>
                     <TableHeader className="bg-zinc-950/50">
-                        <TableRow className="border-zinc-800">
-                            <TableHead className="text-zinc-400">Filename</TableHead>
-                            <TableHead className="text-zinc-400">Size</TableHead>
-                            <TableHead className="text-zinc-400">SHA256</TableHead>
-                            <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                        <TableRow className="border-muted">
+                            <TableHead className="text-muted-foreground">Filename</TableHead>
+                            <TableHead className="text-muted-foreground">Size</TableHead>
+                            <TableHead className="text-muted-foreground">SHA256</TableHead>
+                            <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {artifacts.map((item: any) => (
-                            <TableRow key={item.id} className="border-zinc-800 group">
-                                <TableCell className="text-white font-medium flex items-center gap-2">
-                                    <Package className="h-3.5 w-3.5 text-zinc-500" />
+                            <TableRow key={item.id} className="border-muted group">
+                                <TableCell className="text-foreground font-medium flex items-center gap-2">
+                                    <Package className="h-3.5 w-3.5 text-muted-foreground" />
                                     {item.filename}
                                 </TableCell>
-                                <TableCell className="text-xs text-zinc-500">{(item.size_bytes / 1024 / 1024).toFixed(2)} MB</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{(item.size_bytes / 1024 / 1024).toFixed(2)} MB</TableCell>
                                 <TableCell className="font-mono text-[10px] text-zinc-600 truncate max-w-[120px]">{item.sha256}</TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-white" asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-foreground" asChild>
                                         <a href={`/api/artifacts/${item.id}/download`} download>
                                             <Download className="h-4 w-4" />
                                         </a>
@@ -906,7 +906,7 @@ const MirrorStatusBadge = ({ status }: { status: string }) => {
         case 'FAILED':
             return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 gap-1"><AlertCircle className="h-3 w-3" /> Failed</Badge>;
         default:
-            return <Badge variant="outline" className="text-zinc-500 gap-1 animate-pulse"><RefreshCcw className="h-3 w-3" /> Pending</Badge>;
+            return <Badge variant="outline" className="text-muted-foreground gap-1 animate-pulse"><RefreshCcw className="h-3 w-3" /> Pending</Badge>;
     }
 };
 
@@ -1079,10 +1079,10 @@ const SmelterRegistryManager = () => {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="bg-zinc-925 border-zinc-800/50 lg:col-span-2">
+                <Card className="bg-card border-muted/50 lg:col-span-2">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
-                            <CardTitle className="text-white font-bold flex items-center gap-2">
+                            <CardTitle className="text-foreground font-bold flex items-center gap-2">
                                 <Package className="h-5 w-5 text-primary" />
                                 Approved Ingredients
                             </CardTitle>
@@ -1092,7 +1092,7 @@ const SmelterRegistryManager = () => {
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="border-zinc-800 text-zinc-400 hover:text-white"
+                                className="border-muted text-muted-foreground hover:text-foreground"
                                 onClick={() => scanMutation.mutate()}
                                 disabled={scanMutation.isPending || ingredients.length === 0}
                             >
@@ -1102,7 +1102,7 @@ const SmelterRegistryManager = () => {
                                     <><ShieldCheck className="mr-2 h-4 w-4" /> Scan for Vulnerabilities</>
                                 )}
                             </Button>
-                            <Button onClick={() => setIsCreateOpen(true)} size="sm" className="bg-primary hover:bg-primary/90 text-white font-bold">
+                            <Button onClick={() => setIsCreateOpen(true)} size="sm" className="bg-primary hover:bg-primary/90 text-foreground font-bold">
                                 <Plus className="mr-2 h-4 w-4" /> Approve Package
                             </Button>
                         </div>
@@ -1110,29 +1110,29 @@ const SmelterRegistryManager = () => {
                     <CardContent>
                         <Table>
                             <TableHeader className="bg-zinc-950/50">
-                                <TableRow className="border-zinc-800">
-                                    <TableHead className="text-zinc-400">OS</TableHead>
-                                    <TableHead className="text-zinc-400">Name</TableHead>
-                                    <TableHead className="text-zinc-400">Version</TableHead>
-                                    <TableHead className="text-zinc-400">Mirror</TableHead>
-                                    <TableHead className="text-zinc-400">Security</TableHead>
-                                    <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                                <TableRow className="border-muted">
+                                    <TableHead className="text-muted-foreground">OS</TableHead>
+                                    <TableHead className="text-muted-foreground">Name</TableHead>
+                                    <TableHead className="text-muted-foreground">Version</TableHead>
+                                    <TableHead className="text-muted-foreground">Mirror</TableHead>
+                                    <TableHead className="text-muted-foreground">Security</TableHead>
+                                    <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {ingredients.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="py-12 text-center text-zinc-500">
+                                        <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
                                             No approved ingredients yet.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     ingredients.map((i: any) => (
                                         <React.Fragment key={i.id}>
-                                        <TableRow className="border-zinc-800 group hover:bg-white/[0.02]">
+                                        <TableRow className="border-muted group hover:bg-white/[0.02]">
                                             <TableCell><Badge variant="outline" className="text-[10px]">{i.os_family}</Badge></TableCell>
-                                            <TableCell className="text-white font-medium">{i.name}</TableCell>
-                                            <TableCell className="font-mono text-zinc-400 text-xs">{i.version_constraint}</TableCell>
+                                            <TableCell className="text-foreground font-medium">{i.name}</TableCell>
+                                            <TableCell className="font-mono text-muted-foreground text-xs">{i.version_constraint}</TableCell>
                                             <TableCell><MirrorStatusBadge status={i.mirror_status} /></TableCell>
                                             <TableCell>
                                                 {i.is_vulnerable ? (
@@ -1156,7 +1156,7 @@ const SmelterRegistryManager = () => {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className={`h-8 w-8 ${expandedLogId === i.id ? 'text-primary' : 'text-zinc-600 hover:text-zinc-300'}`}
+                                                        className={`h-8 w-8 ${expandedLogId === i.id ? 'text-primary' : 'text-zinc-600 hover:text-foreground'}`}
                                                         title="Show sync log"
                                                         onClick={() => setExpandedLogId(expandedLogId === i.id ? null : i.id)}
                                                     >
@@ -1166,7 +1166,7 @@ const SmelterRegistryManager = () => {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 text-zinc-400 hover:text-primary"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
                                                     disabled={uploadingId === i.id}
                                                     onClick={() => {
                                                         const el = document.createElement('input');
@@ -1183,13 +1183,13 @@ const SmelterRegistryManager = () => {
                                             </TableCell>
                                         </TableRow>
                                         {i.mirror_log && expandedLogId === i.id && (
-                                            <TableRow className="border-zinc-800 bg-zinc-950/40">
+                                            <TableRow className="border-muted bg-zinc-950/40">
                                                 <TableCell colSpan={6} className="py-2">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <Terminal className="h-3.5 w-3.5 text-zinc-500" />
-                                                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Sync Log</span>
+                                                        <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Sync Log</span>
                                                     </div>
-                                                    <pre className="text-[10px] text-zinc-400 font-mono whitespace-pre-wrap bg-zinc-900 rounded p-2 max-h-48 overflow-y-auto border border-zinc-800">{i.mirror_log}</pre>
+                                                    <pre className="text-[10px] text-muted-foreground font-mono whitespace-pre-wrap bg-secondary rounded p-2 max-h-48 overflow-y-auto border border-muted">{i.mirror_log}</pre>
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -1202,9 +1202,9 @@ const SmelterRegistryManager = () => {
                 </Card>
 
                 <div className="space-y-6">
-                    <Card className="bg-zinc-925 border-zinc-800/50">
+                    <Card className="bg-card border-muted/50">
                         <CardHeader>
-                            <CardTitle className="text-white font-bold flex items-center gap-2">
+                            <CardTitle className="text-foreground font-bold flex items-center gap-2">
                                 <Database className="h-5 w-5 text-primary" />
                                 Repository Health
                             </CardTitle>
@@ -1212,21 +1212,21 @@ const SmelterRegistryManager = () => {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-xs text-zinc-400">PyPI Server</span>
+                                <span className="text-xs text-muted-foreground">PyPI Server</span>
                                 <Badge className={health.pypi_online ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}>
                                     {health.pypi_online ? "ONLINE" : "OFFLINE"}
                                 </Badge>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-xs text-zinc-400">APT Mirror</span>
+                                <span className="text-xs text-muted-foreground">APT Mirror</span>
                                 <Badge className={health.apt_online ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}>
                                     {health.apt_online ? "ONLINE" : "OFFLINE"}
                                 </Badge>
                             </div>
                             <div className="space-y-1.5">
                                 <div className="flex items-center justify-between text-[10px]">
-                                    <span className="text-zinc-500 uppercase tracking-wider font-bold">Disk Usage</span>
-                                    <span className="text-zinc-400">{health.disk_used_gb} / {health.disk_total_gb} GB</span>
+                                    <span className="text-muted-foreground uppercase tracking-wider font-bold">Disk Usage</span>
+                                    <span className="text-muted-foreground">{health.disk_used_gb} / {health.disk_total_gb} GB</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-white/5">
                                     <div
@@ -1236,10 +1236,10 @@ const SmelterRegistryManager = () => {
                                 </div>
                             </div>
                             {/* DB Pool + Scheduler metrics */}
-                            <div className="pt-2 border-t border-zinc-800/50 space-y-2">
+                            <div className="pt-2 border-t border-muted/50 space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-zinc-400">Pool checkout</span>
-                                    <span className="text-xs text-zinc-300 font-mono">
+                                    <span className="text-xs text-muted-foreground">Pool checkout</span>
+                                    <span className="text-xs text-foreground font-mono">
                                         {scaleHealth
                                             ? scaleHealth.is_postgres
                                                 ? `${scaleHealth.checked_out} / ${scaleHealth.pool_size}`
@@ -1248,24 +1248,24 @@ const SmelterRegistryManager = () => {
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-zinc-400">Pending jobs</span>
-                                    <span className="text-xs text-zinc-300 font-mono">
+                                    <span className="text-xs text-muted-foreground">Pending jobs</span>
+                                    <span className="text-xs text-foreground font-mono">
                                         {scaleHealth != null ? scaleHealth.pending_job_depth : '—'}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-zinc-400">APScheduler</span>
-                                    <span className="text-xs text-zinc-300 font-mono">
+                                    <span className="text-xs text-muted-foreground">APScheduler</span>
+                                    <span className="text-xs text-foreground font-mono">
                                         {scaleHealth != null ? `${scaleHealth.apscheduler_jobs} jobs active` : '—'}
                                     </span>
                                 </div>
                             </div>
-                            <div className="pt-2 border-t border-zinc-800/50">
+                            <div className="pt-2 border-t border-muted/50">
                                 <a
                                     href={`${window.location.protocol}//${window.location.hostname}:8081`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-xs text-zinc-400 hover:text-primary transition-colors"
+                                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
                                 >
                                     <Database className="h-3.5 w-3.5" />
                                     Browse raw file repository
@@ -1274,9 +1274,9 @@ const SmelterRegistryManager = () => {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-zinc-925 border-zinc-800/50 h-fit">
+                    <Card className="bg-card border-muted/50 h-fit">
                     <CardHeader>
-                        <CardTitle className="text-white font-bold flex items-center gap-2">
+                        <CardTitle className="text-foreground font-bold flex items-center gap-2">
                             <ShieldAlert className="h-5 w-5 text-primary" />
                             Enforcement
                         </CardTitle>
@@ -1284,21 +1284,21 @@ const SmelterRegistryManager = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label className="text-zinc-400">Enforcement Mode</Label>
+                            <Label className="text-muted-foreground">Enforcement Mode</Label>
                             <Select 
                                 value={config.smelter_enforcement_mode} 
                                 onValueChange={(v) => updateConfigMutation.mutate(v)}
                             >
-                                <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                                <SelectTrigger className="bg-zinc-950 border-muted">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                <SelectContent className="bg-secondary border-muted text-foreground">
                                     <SelectItem value="WARNING">WARNING (Log & Badge)</SelectItem>
                                     <SelectItem value="STRICT">STRICT (Block Build)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 text-[11px] text-zinc-500 leading-relaxed">
+                        <div className="p-3 rounded-lg bg-secondary/50 border border-muted text-[11px] text-muted-foreground leading-relaxed">
                             {config.smelter_enforcement_mode === 'STRICT' ? (
                                 <p><span className="text-red-400 font-bold">STRICT MODE:</span> Any blueprint containing ingredients not in the approved list will be rejected by the Foundry.</p>
                             ) : (
@@ -1308,9 +1308,9 @@ const SmelterRegistryManager = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-925 border-zinc-800/50">
+                <Card className="bg-card border-muted/50">
                     <CardHeader>
-                        <CardTitle className="text-white font-bold flex items-center gap-2">
+                        <CardTitle className="text-foreground font-bold flex items-center gap-2">
                             <RefreshCcw className="h-5 w-5 text-primary" />
                             Mirror Source Settings
                         </CardTitle>
@@ -1318,18 +1318,18 @@ const SmelterRegistryManager = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 text-xs uppercase font-bold tracking-wider">PyPI Index URL</Label>
+                            <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">PyPI Index URL</Label>
                             <Input
-                                className="bg-zinc-950 border-zinc-800 font-mono text-xs"
+                                className="bg-zinc-950 border-muted font-mono text-xs"
                                 value={mirrorForm.pypi_mirror_url}
                                 onChange={(e) => setMirrorForm(prev => ({ ...prev, pypi_mirror_url: e.target.value }))}
                                 placeholder="http://pypi:8080/simple"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 text-xs uppercase font-bold tracking-wider">APT Mirror URL</Label>
+                            <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">APT Mirror URL</Label>
                             <Input
-                                className="bg-zinc-950 border-zinc-800 font-mono text-xs"
+                                className="bg-zinc-950 border-muted font-mono text-xs"
                                 value={mirrorForm.apt_mirror_url}
                                 onChange={(e) => setMirrorForm(prev => ({ ...prev, apt_mirror_url: e.target.value }))}
                                 placeholder="http://mirror/apt"
@@ -1337,7 +1337,7 @@ const SmelterRegistryManager = () => {
                         </div>
                         <Button
                             size="sm"
-                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold"
+                            className="w-full bg-primary hover:bg-primary/90 text-foreground font-bold"
                             disabled={updateMirrorConfigMutation.isPending}
                             onClick={() => updateMirrorConfigMutation.mutate(mirrorForm)}
                         >
@@ -1353,7 +1353,7 @@ const SmelterRegistryManager = () => {
         </div>
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <DialogContent className="bg-card border-muted text-foreground">
                     <DialogHeader>
                         <DialogTitle>Approve Package</DialogTitle>
                         <DialogDescription>Add a vetted package to the allowed catalog.</DialogDescription>
@@ -1363,10 +1363,10 @@ const SmelterRegistryManager = () => {
                             <div className="space-y-2">
                                 <Label>OS Family</Label>
                                 <Select value={newIngredient.os_family} onValueChange={v => setNewIngredient({...newIngredient, os_family: v})}>
-                                    <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                                    <SelectTrigger className="bg-zinc-950 border-muted">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectContent className="bg-secondary border-muted text-foreground">
                                         <SelectItem value="DEBIAN">DEBIAN</SelectItem>
                                         <SelectItem value="ALPINE">ALPINE</SelectItem>
                                         <SelectItem value="FEDORA">FEDORA</SelectItem>
@@ -1379,7 +1379,7 @@ const SmelterRegistryManager = () => {
                                     placeholder="cryptography" 
                                     value={newIngredient.name}
                                     onChange={e => setNewIngredient({...newIngredient, name: e.target.value})}
-                                    className="bg-zinc-950 border-zinc-800"
+                                    className="bg-zinc-950 border-muted"
                                 />
                             </div>
                         </div>
@@ -1389,7 +1389,7 @@ const SmelterRegistryManager = () => {
                                 placeholder=">=42.0.0" 
                                 value={newIngredient.version_constraint}
                                 onChange={e => setNewIngredient({...newIngredient, version_constraint: e.target.value})}
-                                className="bg-zinc-950 border-zinc-800 font-mono"
+                                className="bg-zinc-950 border-muted font-mono"
                             />
                         </div>
                         <div className="space-y-2">
@@ -1398,7 +1398,7 @@ const SmelterRegistryManager = () => {
                                 placeholder="64-char hex string" 
                                 value={newIngredient.sha256}
                                 onChange={e => setNewIngredient({...newIngredient, sha256: e.target.value})}
-                                className="bg-zinc-950 border-zinc-800 font-mono text-xs"
+                                className="bg-zinc-950 border-muted font-mono text-xs"
                             />
                         </div>
                     </div>
@@ -1407,7 +1407,7 @@ const SmelterRegistryManager = () => {
                         <Button 
                             disabled={!newIngredient.name || !newIngredient.version_constraint}
                             onClick={() => createMutation.mutate(newIngredient)}
-                            className="bg-primary hover:bg-primary/90 text-white font-bold"
+                            className="bg-primary hover:bg-primary/90 text-foreground font-bold"
                         >
                             Approve Package
                         </Button>
@@ -1509,55 +1509,55 @@ const Admin = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">Admin</h1>
-                <p className="text-sm text-zinc-500 mt-1">System configuration and node onboarding.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin</h1>
+                <p className="text-sm text-muted-foreground mt-1">System configuration and node onboarding.</p>
             </div>
 
             {getUser()?.role === 'admin' && <LicenceSection />}
 
             <Tabs defaultValue="onboarding" className="space-y-6">
-                <TabsList className="bg-zinc-900 border border-zinc-800 p-1 h-11">
-                    <TabsTrigger value="onboarding" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Onboarding</TabsTrigger>
+                <TabsList className="bg-secondary border border-muted p-1 h-11">
+                    <TabsTrigger value="onboarding" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Onboarding</TabsTrigger>
                     {isEnterprise && (
-                        <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Smelter Registry</TabsTrigger>
+                        <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Smelter Registry</TabsTrigger>
                     )}
                     {isEnterprise && (
-                        <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">BOM Explorer</TabsTrigger>
+                        <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">BOM Explorer</TabsTrigger>
                     )}
                     {isEnterprise && (
-                        <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Tools</TabsTrigger>
+                        <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Tools</TabsTrigger>
                     )}
                     {isEnterprise && (
-                        <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Artifact Vault</TabsTrigger>
+                        <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Artifact Vault</TabsTrigger>
                     )}
                     {isEnterprise && (
-                        <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Rollouts</TabsTrigger>
+                        <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Rollouts</TabsTrigger>
                     )}
                     {isEnterprise && (
-                        <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Automation</TabsTrigger>
+                        <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Automation</TabsTrigger>
                     )}
                     {!isEnterprise && (
-                        <TabsTrigger value="enterprise" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">+ Enterprise</TabsTrigger>
+                        <TabsTrigger value="enterprise" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">+ Enterprise</TabsTrigger>
                     )}
-                    <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Licence</TabsTrigger>
-                    <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white font-bold">Data</TabsTrigger>
+                    <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Licence</TabsTrigger>
+                    <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Data</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="onboarding" className="space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Node Onboarding */}
-                        <Card className="bg-zinc-925 border-zinc-800/50 flex flex-col shadow-none">
+                        <Card className="bg-card border-muted/50 flex flex-col shadow-none">
                             <CardHeader>
                                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                                     <Cpu className="h-5 w-5 text-primary" />
                                 </div>
-                                <CardTitle className="text-xl font-bold text-white">Node Enrollment</CardTitle>
-                                <CardDescription className="text-zinc-500">
+                                <CardTitle className="text-xl font-bold text-foreground">Node Enrollment</CardTitle>
+                                <CardDescription className="text-muted-foreground">
                                     Generate secure, short-lived tokens to register new puppets into the mesh.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-1 space-y-6">
-                                <div className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 text-sm text-zinc-400 leading-relaxed">
+                                <div className="p-4 rounded-xl bg-secondary/50 border border-muted text-sm text-muted-foreground leading-relaxed">
                                     <ShieldAlert className="h-4 w-4 text-primary inline mr-2 mb-1" />
                                     Join tokens are one-time use and expire after 24 hours. Ensure the target node has the control plane's public CA certificate installed.
                                 </div>
@@ -1566,7 +1566,7 @@ const Admin = () => {
                                     <Button
                                         onClick={generateToken}
                                         disabled={isGenerating}
-                                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
+                                        className="w-full h-12 bg-primary hover:bg-primary/90 text-foreground font-bold rounded-xl shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
                                     >
                                         <Zap className="mr-2 h-4 w-4 fill-current" />
                                         {isGenerating ? 'Securing...' : 'Generate Join Token'}
@@ -1574,18 +1574,18 @@ const Admin = () => {
                                 ) : (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-2">
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Active Join Token</label>
+                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active Join Token</label>
                                             <div className="flex gap-2">
-                                                <div className="flex-1 h-12 bg-zinc-900 border border-primary/30 rounded-xl flex items-center px-4 font-mono text-primary font-bold overflow-hidden truncate">
+                                                <div className="flex-1 h-12 bg-secondary border border-primary/30 rounded-xl flex items-center px-4 font-mono text-primary font-bold overflow-hidden truncate">
                                                     {joinToken}
                                                 </div>
                                                 <Button
                                                     variant="outline"
-                                                    className="h-12 w-12 border-zinc-800 bg-zinc-900 p-0"
+                                                    className="h-12 w-12 border-muted bg-secondary p-0"
                                                     onClick={() => navigator.clipboard.writeText(joinToken || '')}
                                                     aria-label="Copy join token"
                                                 >
-                                                    <Copy className="h-4 w-4 text-zinc-400" />
+                                                    <Copy className="h-4 w-4 text-muted-foreground" />
                                                 </Button>
                                             </div>
                                         </div>
@@ -1596,7 +1596,7 @@ const Admin = () => {
                                         <Button
                                             variant="link"
                                             onClick={() => setJoinToken(null)}
-                                            className="text-zinc-600 p-0 h-auto text-xs hover:text-zinc-400"
+                                            className="text-zinc-600 p-0 h-auto text-xs hover:text-muted-foreground"
                                         >
                                             <RefreshCcw className="mr-1 h-3 w-3" />
                                             Revoke & Create New
@@ -1607,21 +1607,21 @@ const Admin = () => {
                         </Card>
 
                         {/* Key Management */}
-                        <Card className="bg-zinc-925 border-zinc-800/50 flex flex-col shadow-none">
+                        <Card className="bg-card border-muted/50 flex flex-col shadow-none">
                             <CardHeader>
                                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                                     <Key className="h-5 w-5 text-primary" />
                                 </div>
-                                <CardTitle className="text-xl font-bold text-white">Security Root of Trust</CardTitle>
-                                <CardDescription className="text-zinc-500">
+                                <CardTitle className="text-xl font-bold text-foreground">Security Root of Trust</CardTitle>
+                                <CardDescription className="text-muted-foreground">
                                     Rotate the Master Public Key used by puppets to verify the signature of every dispatched job.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-1 space-y-4">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <label htmlFor="master-public-key" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Master Public Key (PEM)</label>
-                                        <Badge variant="outline" className="h-5 px-1.5 text-xs border-zinc-800 text-zinc-600">Rotation Required</Badge>
+                                        <label htmlFor="master-public-key" className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Master Public Key (PEM)</label>
+                                        <Badge variant="outline" className="h-5 px-1.5 text-xs border-muted text-zinc-600">Rotation Required</Badge>
                                     </div>
                                     <div className="relative group/pk">
                                         <Terminal className="absolute top-3 left-3 h-4 w-4 text-zinc-600" />
@@ -1630,7 +1630,7 @@ const Admin = () => {
                                             value={pubKey}
                                             onChange={e => setPubKey(e.target.value)}
                                             placeholder="-----BEGIN PUBLIC KEY-----"
-                                            className="min-h-[160px] pl-10 bg-zinc-900 border-zinc-800 text-green-500 font-mono text-sm placeholder:text-zinc-700 focus:ring-primary/20 transition-all"
+                                            className="min-h-[160px] pl-10 bg-secondary border-muted text-green-500 font-mono text-sm placeholder:text-zinc-700 focus:ring-primary/20 transition-all"
                                         />
                                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-zinc-900 to-transparent pointer-events-none rounded-b-xl" />
                                     </div>
@@ -1639,7 +1639,7 @@ const Admin = () => {
                                 <Button
                                     onClick={uploadKey}
                                     disabled={isUploading || !pubKey}
-                                    className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                                    className="w-full h-12 bg-muted hover:bg-zinc-700 border border-muted text-foreground font-bold rounded-xl transition-all disabled:opacity-50"
                                 >
                                     <Lock className="mr-2 h-4 w-4" />
                                     {isUploading ? 'Updating Root...' : 'Upload Root Key'}
@@ -1726,27 +1726,27 @@ const Admin = () => {
                 </TabsContent>
 
                 <TabsContent value="data" className="space-y-6">
-                    <div className="bg-zinc-800/50 rounded-lg p-6 border border-zinc-700">
-                        <h3 className="text-sm font-semibold text-zinc-300 mb-4">Data Retention</h3>
+                    <div className="bg-muted/50 rounded-lg p-6 border border-muted">
+                        <h3 className="text-sm font-semibold text-foreground mb-4">Data Retention</h3>
                         <div className="space-y-3">
                             <div className="flex items-center gap-4">
-                                <label className="text-sm text-zinc-400 w-40">Retention period</label>
+                                <label className="text-sm text-muted-foreground w-40">Retention period</label>
                                 <input
                                     type="number"
                                     min={1}
                                     value={retentionInput}
                                     onChange={e => setRetentionInput(parseInt(e.target.value) || 1)}
-                                    className="w-24 bg-zinc-900 border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-100"
+                                    className="w-24 bg-secondary border border-muted rounded px-3 py-1.5 text-sm text-zinc-100"
                                 />
-                                <span className="text-sm text-zinc-500">days</span>
+                                <span className="text-sm text-muted-foreground">days</span>
                                 <button
                                     onClick={handleSaveRetention}
-                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-xs text-white"
+                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-xs text-foreground"
                                 >
                                     Save
                                 </button>
                             </div>
-                            <p className="text-xs text-zinc-500">
+                            <p className="text-xs text-muted-foreground">
                                 Next pruning: ~{retentionEligible} records eligible · {retentionPinned} pinned (excluded)
                             </p>
                         </div>

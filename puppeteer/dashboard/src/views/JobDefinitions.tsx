@@ -79,20 +79,20 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
         );
     }, [executions]);
 
-    if (isLoading) return <div className="py-8 text-center text-zinc-500 text-sm animate-pulse">Loading history...</div>;
+    if (isLoading) return <div className="py-8 text-center text-muted-foreground text-sm animate-pulse">Loading history...</div>;
 
     return (
-        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2">
-                <Terminal className="h-4 w-4 text-zinc-500" />
-                <span className="text-sm font-bold text-zinc-300">Execution History</span>
+        <div className="mt-4 rounded-xl border border-muted bg-zinc-950 overflow-hidden">
+            <div className="px-4 py-3 border-b border-muted flex items-center gap-2">
+                <Terminal className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-bold text-foreground">Execution History</span>
             </div>
             {grouped.length === 0 ? (
-                <p className="py-8 text-center text-zinc-500 text-sm italic">No runs yet for this definition</p>
+                <p className="py-8 text-center text-muted-foreground text-sm italic">No runs yet for this definition</p>
             ) : (
                 <table className="w-full text-sm">
-                    <thead className="bg-zinc-900/50">
-                        <tr className="text-left text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                    <thead className="bg-secondary/50">
+                        <tr className="text-left text-muted-foreground text-xs font-bold uppercase tracking-wider">
                             <th className="px-4 py-2">When</th>
                             <th className="px-4 py-2">Node</th>
                             <th className="px-4 py-2">Status</th>
@@ -107,20 +107,20 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
                             const isRetrying = row.status === 'RETRYING';
                             const isFailedExhausted = row.status === 'FAILED' && row.attempt_number === (row.max_retries ?? 0) + 1;
                             return (
-                                <tr key={row.id} className="border-t border-zinc-900 hover:bg-zinc-900/30 transition-colors">
-                                    <td className="px-4 py-2 text-zinc-400 whitespace-nowrap tabular-nums text-xs">
+                                <tr key={row.id} className="border-t border-zinc-900 hover:bg-secondary/30 transition-colors">
+                                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap tabular-nums text-xs">
                                         {row.started_at ? formatDistanceToNow(new Date(row.started_at), { addSuffix: true }) : '—'}
                                     </td>
-                                    <td className="px-4 py-2 text-zinc-400 text-xs font-mono">{row.node_id || 'N/A'}</td>
+                                    <td className="px-4 py-2 text-muted-foreground text-xs font-mono">{row.node_id || 'N/A'}</td>
                                     <td className="px-4 py-2">
                                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
                                             row.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
                                             row.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                                             row.status === 'RETRYING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                                            'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                            'bg-muted text-muted-foreground border-muted'
                                         }`}>{row.status}</span>
                                     </td>
-                                    <td className="px-4 py-2 text-zinc-400 tabular-nums text-xs">
+                                    <td className="px-4 py-2 text-muted-foreground tabular-nums text-xs">
                                         {row.duration_seconds != null ? `${row.duration_seconds.toFixed(1)}s` : '—'}
                                     </td>
                                     <td className="px-4 py-2">
@@ -128,7 +128,7 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
                                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
                                                 isRetrying ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                                 : isFailedExhausted ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                : 'bg-muted text-muted-foreground border-muted'
                                             }`}>
                                                 {isRetrying
                                                     ? `Attempt ${row.attempt_number} of ${(row.max_retries ?? 0) + 1}`
@@ -360,8 +360,8 @@ const JobDefinitions = () => {
 
     if (loading) return (
         <div className="space-y-4">
-            <div className="h-10 w-48 bg-zinc-900 border border-zinc-800 rounded-lg animate-pulse" />
-            <div className="h-64 bg-zinc-900 border border-zinc-800 rounded-lg animate-pulse" />
+            <div className="h-10 w-48 bg-secondary border border-muted rounded-lg animate-pulse" />
+            <div className="h-64 bg-secondary border border-muted rounded-lg animate-pulse" />
         </div>
     );
 
@@ -369,8 +369,8 @@ const JobDefinitions = () => {
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Scheduled Jobs</h1>
-                    <p className="text-sm text-zinc-500 mt-1">Signed, zero-trust recurring payloads.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Scheduled Jobs</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Signed, zero-trust recurring payloads.</p>
                 </div>
             </div>
 
@@ -384,21 +384,21 @@ const JobDefinitions = () => {
                 <TabsContent value="definitions">
                     <div className="space-y-4 mt-4">
                         <div className="flex items-center gap-2">
-                            <div className="bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 flex mr-4">
+                            <div className="bg-secondary/50 p-1 rounded-xl border border-muted flex mr-4">
                                 <button
                                     onClick={() => setActiveTab('active')}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'active' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'active' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                                 >
                                     ACTIVE
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('staging')}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'staging' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'staging' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                                 >
                                     STAGING
                                 </button>
                             </div>
-                            <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-primary/10">
+                            <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-foreground font-bold h-11 px-6 rounded-xl shadow-lg shadow-primary/10">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Archive New Payload
                             </Button>
@@ -450,11 +450,11 @@ const JobDefinitions = () => {
             </Tabs>
 
             <Dialog open={showDraftWarning} onOpenChange={(open) => { if (!open) setShowDraftWarning(false); }}>
-                <DialogContent className="max-w-md bg-zinc-950 border-zinc-800">
+                <DialogContent className="max-w-md bg-zinc-950 border-muted">
                     <DialogHeader>
-                        <DialogTitle className="text-white">Script Change Will Require Re-signing</DialogTitle>
-                        <DialogDescription className="text-zinc-400">
-                            <span className="font-semibold text-white">{editingJob?.name}</span> — cron fires will be
+                        <DialogTitle className="text-foreground">Script Change Will Require Re-signing</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                            <span className="font-semibold text-foreground">{editingJob?.name}</span> — cron fires will be
                             blocked until re-signed. Use the Re-sign button in the job list to reactivate.
                         </DialogDescription>
                     </DialogHeader>
@@ -462,12 +462,12 @@ const JobDefinitions = () => {
                         <Button
                             variant="ghost"
                             onClick={() => setShowDraftWarning(false)}
-                            className="text-zinc-400 hover:text-white"
+                            className="text-muted-foreground hover:text-foreground"
                         >
                             Cancel
                         </Button>
                         <Button
-                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                            className="bg-amber-500 hover:bg-amber-600 text-foreground font-bold"
                             onClick={() => {
                                 setShowDraftWarning(false);
                                 pendingDraftSave?.();

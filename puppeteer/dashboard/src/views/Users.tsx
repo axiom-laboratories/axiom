@@ -35,7 +35,7 @@ const ROLES = ['operator', 'viewer'];
 const roleBadge = (role: string) => {
     if (role === 'admin') return 'bg-red-500/10 text-red-400 border-red-500/20';
     if (role === 'operator') return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    return 'bg-zinc-700/50 text-zinc-400 border-zinc-600/30';
+    return 'bg-zinc-700/50 text-muted-foreground border-zinc-600/30';
 };
 
 interface UserRecord {
@@ -90,17 +90,17 @@ const RolePanel = ({ role }: { role: string }) => {
     const missing = ALL_PERMISSIONS.filter(p => !perms.includes(p));
 
     return (
-        <div className="border border-zinc-800 rounded-lg overflow-hidden">
+        <div className="border border-muted rounded-lg overflow-hidden">
             <button
-                className="w-full flex items-center justify-between px-4 py-3 bg-zinc-900/50 hover:bg-zinc-900 transition-colors text-left"
+                className="w-full flex items-center justify-between px-4 py-3 bg-secondary/50 hover:bg-secondary transition-colors text-left"
                 onClick={() => setOpen(o => !o)}
             >
                 <div className="flex items-center gap-3">
-                    <Shield className="h-4 w-4 text-zinc-500" />
-                    <span className="text-sm font-medium text-white capitalize">{role}</span>
-                    <span className="text-xs text-zinc-500">{open ? `${perms.length} permissions` : ''}</span>
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground capitalize">{role}</span>
+                    <span className="text-xs text-muted-foreground">{open ? `${perms.length} permissions` : ''}</span>
                 </div>
-                {open ? <ChevronDown className="h-4 w-4 text-zinc-500" /> : <ChevronRight className="h-4 w-4 text-zinc-500" />}
+                {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             </button>
 
             {open && (
@@ -111,7 +111,7 @@ const RolePanel = ({ role }: { role: string }) => {
                                 {p}
                                 <button
                                     onClick={() => revoke.mutate(p)}
-                                    className="ml-0.5 text-zinc-500 hover:text-red-400 transition-colors"
+                                    className="ml-0.5 text-muted-foreground hover:text-red-400 transition-colors"
                                     title="Revoke"
                                 >
                                     <X className="h-3 w-3" />
@@ -125,15 +125,15 @@ const RolePanel = ({ role }: { role: string }) => {
 
                     {missing.length > 0 && (
                         <>
-                            <Separator className="bg-zinc-800" />
+                            <Separator className="bg-muted" />
                             <div>
-                                <p className="text-xs text-zinc-500 mb-2">Grant permission:</p>
+                                <p className="text-xs text-muted-foreground mb-2">Grant permission:</p>
                                 <div className="flex flex-wrap gap-2">
                                     {missing.map(p => (
                                         <button
                                             key={p}
                                             onClick={() => grant.mutate(p)}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-zinc-700 text-xs font-mono text-zinc-500 hover:text-white hover:border-zinc-500 transition-colors"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-muted text-xs font-mono text-muted-foreground hover:text-foreground hover:border-zinc-500 transition-colors"
                                         >
                                             <Plus className="h-3 w-3" />
                                             {p}
@@ -237,8 +237,8 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <tr className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
-                <td className="px-6 py-3 font-mono text-white">
+            <tr className="border-b border-muted/50 hover:bg-muted/20 transition-colors">
+                <td className="px-6 py-3 font-mono text-foreground">
                     <span className="flex items-center gap-2">
                         {user.username}
                         {user.must_change_password && (
@@ -254,13 +254,13 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                             <select
                                 defaultValue={user.role}
                                 onChange={e => updateRole.mutate(e.target.value)}
-                                className="h-7 rounded bg-zinc-800 border border-zinc-700 text-white text-xs px-2"
+                                className="h-7 rounded bg-muted border border-muted text-foreground text-xs px-2"
                             >
                                 <option value="viewer">viewer</option>
                                 <option value="operator">operator</option>
                                 <option value="admin">admin</option>
                             </select>
-                            <button onClick={() => setEditingRole(false)} className="text-zinc-500 hover:text-zinc-300">
+                            <button onClick={() => setEditingRole(false)} className="text-muted-foreground hover:text-foreground">
                                 <X className="h-3.5 w-3.5" />
                             </button>
                         </div>
@@ -275,7 +275,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                         </Badge>
                     )}
                 </td>
-                <td className="px-6 py-3 text-zinc-500 text-xs font-mono">
+                <td className="px-6 py-3 text-muted-foreground text-xs font-mono">
                     {new Date(user.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-3">
@@ -312,32 +312,32 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                 </td>
             </tr>
             {showReset && (
-                <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
+                <tr className="border-b border-muted/50 bg-secondary/30">
                     <td colSpan={4} className="px-6 py-3">
                         <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-xs text-zinc-500 font-mono">Reset password for <span className="text-white">{user.username}</span>:</span>
+                            <span className="text-xs text-muted-foreground font-mono">Reset password for <span className="text-foreground">{user.username}</span>:</span>
                             <Input
                                 type="password"
                                 placeholder="New password"
                                 value={resetPw}
                                 onChange={e => { setResetPw(e.target.value); setResetMsg(null); }}
-                                className="h-7 w-40 bg-zinc-800 border-zinc-700 text-white text-xs px-2"
+                                className="h-7 w-40 bg-muted border-muted text-foreground text-xs px-2"
                             />
                             <Input
                                 type="password"
                                 placeholder="Confirm"
                                 value={resetConfirm}
                                 onChange={e => { setResetConfirm(e.target.value); setResetMsg(null); }}
-                                className={`h-7 w-32 bg-zinc-800 border-zinc-700 text-white text-xs px-2 ${resetConfirm && resetConfirm !== resetPw ? 'border-red-500/50' : ''}`}
+                                className={`h-7 w-32 bg-muted border-muted text-foreground text-xs px-2 ${resetConfirm && resetConfirm !== resetPw ? 'border-red-500/50' : ''}`}
                             />
                             <Button
-                                size="sm" className="h-7 bg-primary hover:bg-primary/90 text-white text-xs px-3"
+                                size="sm" className="h-7 bg-primary hover:bg-primary/90 text-foreground text-xs px-3"
                                 onClick={() => resetPassword.mutate()}
                                 disabled={!canReset || resetPassword.isPending}
                             >
                                 Set Password
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 text-zinc-500 text-xs px-2"
+                            <Button size="sm" variant="ghost" className="h-7 text-muted-foreground text-xs px-2"
                                 onClick={() => { setShowReset(false); setResetPw(''); setResetConfirm(''); }}>
                                 Cancel
                             </Button>
@@ -385,22 +385,22 @@ const Users = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">Users & Roles</h1>
-                <p className="text-sm text-zinc-500 mt-1">Manage operator accounts and configure role permissions.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Users & Roles</h1>
+                <p className="text-sm text-muted-foreground mt-1">Manage operator accounts and configure role permissions.</p>
             </div>
 
             {/* ── Users Table ── */}
-            <Card className="bg-zinc-925 border-zinc-800/50">
+            <Card className="bg-card border-muted/50">
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
                     <div>
-                        <CardTitle className="text-lg font-bold text-white">Users</CardTitle>
-                        <CardDescription className="text-zinc-500">
+                        <CardTitle className="text-lg font-bold text-foreground">Users</CardTitle>
+                        <CardDescription className="text-muted-foreground">
                             {users.length} account{users.length !== 1 ? 's' : ''}
                         </CardDescription>
                     </div>
                     <Button
                         size="sm"
-                        className="bg-primary hover:bg-primary/90 text-white font-bold"
+                        className="bg-primary hover:bg-primary/90 text-foreground font-bold"
                         onClick={() => setShowCreate(s => !s)}
                     >
                         <UserPlus className="mr-2 h-4 w-4" />
@@ -409,26 +409,26 @@ const Users = () => {
                 </CardHeader>
 
                 {showCreate && (
-                    <div className="mx-6 mb-4 p-4 rounded-lg border border-zinc-700 bg-zinc-900/50 space-y-3">
-                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Create User</p>
+                    <div className="mx-6 mb-4 p-4 rounded-lg border border-muted bg-secondary/50 space-y-3">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Create User</p>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <Input
                                 placeholder="Username"
                                 value={newUsername}
                                 onChange={e => setNewUsername(e.target.value)}
-                                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
+                                className="bg-muted border-muted text-foreground placeholder:text-zinc-600"
                             />
                             <Input
                                 type="password"
                                 placeholder="Password"
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
-                                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
+                                className="bg-muted border-muted text-foreground placeholder:text-zinc-600"
                             />
                             <select
                                 value={newRole}
                                 onChange={e => setNewRole(e.target.value)}
-                                className="h-9 rounded-md bg-zinc-800 border border-zinc-700 text-white text-sm px-3"
+                                className="h-9 rounded-md bg-muted border border-muted text-foreground text-sm px-3"
                             >
                                 <option value="viewer">viewer</option>
                                 <option value="operator">operator</option>
@@ -440,11 +440,11 @@ const Users = () => {
                                 size="sm"
                                 onClick={() => createUser.mutate()}
                                 disabled={!newUsername || !newPassword || createUser.isPending}
-                                className="bg-primary hover:bg-primary/90 text-white"
+                                className="bg-primary hover:bg-primary/90 text-foreground"
                             >
                                 Create
                             </Button>
-                            <Button size="sm" variant="ghost" className="text-zinc-500" onClick={() => setShowCreate(false)}>
+                            <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setShowCreate(false)}>
                                 Cancel
                             </Button>
                         </div>
@@ -455,7 +455,7 @@ const Users = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase tracking-wider">
+                                <tr className="border-b border-muted text-muted-foreground text-xs uppercase tracking-wider">
                                     <th className="px-6 py-3 text-left font-medium">Username</th>
                                     <th className="px-6 py-3 text-left font-medium">Role</th>
                                     <th className="px-6 py-3 text-left font-medium">Created</th>
@@ -477,10 +477,10 @@ const Users = () => {
             </Card>
 
             {/* ── Role Permissions ── */}
-            <Card className="bg-zinc-925 border-zinc-800/50">
+            <Card className="bg-card border-muted/50">
                 <CardHeader>
-                    <CardTitle className="text-lg font-bold text-white">Role Permissions</CardTitle>
-                    <CardDescription className="text-zinc-500">
+                    <CardTitle className="text-lg font-bold text-foreground">Role Permissions</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                         Configure which actions each role can perform. Admin always has full access.
                     </CardDescription>
                 </CardHeader>

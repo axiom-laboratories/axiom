@@ -85,7 +85,7 @@ const StatusBadge = ({ status }: { status?: string }) => {
         case 'FAILED':
             return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 uppercase text-[10px] font-bold">Failed</Badge>;
         case 'DEPRECATED':
-            return <Badge className="bg-zinc-500/10 text-zinc-500 border-zinc-500/20 uppercase text-[10px] font-bold">Deprecated</Badge>;
+            return <Badge className="bg-zinc-500/10 text-muted-foreground border-zinc-500/20 uppercase text-[10px] font-bold">Deprecated</Badge>;
         case 'REVOKED':
             return <Badge className="bg-red-600/10 text-red-600 border-red-600/20 uppercase text-[10px] font-bold">Revoked</Badge>;
         default:
@@ -178,7 +178,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => deleteMutation.mutate()}
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-red-600 hover:bg-red-700 text-foreground"
                         >
                             Delete
                         </AlertDialogAction>
@@ -187,13 +187,13 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
             </AlertDialog>
 
             <Dialog open={isBOMOpen} onOpenChange={setIsBOMOpen}>
-                <DialogContent className="bg-zinc-950 border-zinc-800 text-white max-w-2xl">
+                <DialogContent className="bg-zinc-950 border-muted text-foreground max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Package className="h-5 w-5 text-primary" />
                             Bill of Materials: {template.friendly_name}
                         </DialogTitle>
-                        <DialogDescription className="text-zinc-500">
+                        <DialogDescription className="text-muted-foreground">
                             Full snapshot of installed packages at build time.
                         </DialogDescription>
                     </DialogHeader>
@@ -201,26 +201,26 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                     {bom ? (
                         <div className="grid grid-cols-2 gap-4 mt-4 h-[400px] overflow-auto pr-2 custom-scrollbar">
                             <div className="space-y-2">
-                                <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest sticky top-0 bg-zinc-950 py-1">Python (PIP)</h4>
+                                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest sticky top-0 bg-zinc-950 py-1">Python (PIP)</h4>
                                 {bom.pip.map((p: any) => (
-                                    <div key={p.name} className="flex items-center justify-between p-2 rounded bg-zinc-900 border border-zinc-800 text-xs">
-                                        <span className="text-white font-medium">{p.name}</span>
-                                        <span className="text-zinc-500 font-mono">{p.version}</span>
+                                    <div key={p.name} className="flex items-center justify-between p-2 rounded bg-secondary border border-muted text-xs">
+                                        <span className="text-foreground font-medium">{p.name}</span>
+                                        <span className="text-muted-foreground font-mono">{p.version}</span>
                                     </div>
                                 ))}
                             </div>
                             <div className="space-y-2">
-                                <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest sticky top-0 bg-zinc-950 py-1">System (APT)</h4>
+                                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest sticky top-0 bg-zinc-950 py-1">System (APT)</h4>
                                 {bom.apt.map((p: any) => (
-                                    <div key={p.name} className="flex items-center justify-between p-2 rounded bg-zinc-900 border border-zinc-800 text-xs">
-                                        <span className="text-white font-medium truncate max-w-[120px]">{p.name}</span>
-                                        <span className="text-zinc-500 font-mono">{p.version}</span>
+                                    <div key={p.name} className="flex items-center justify-between p-2 rounded bg-secondary border border-muted text-xs">
+                                        <span className="text-foreground font-medium truncate max-w-[120px]">{p.name}</span>
+                                        <span className="text-muted-foreground font-mono">{p.version}</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     ) : (
-                        <div className="py-12 text-center text-zinc-500 italic">BOM not yet captured for this image.</div>
+                        <div className="py-12 text-center text-muted-foreground italic">BOM not yet captured for this image.</div>
                     )}
                     
                     <DialogFooter>
@@ -229,7 +229,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                 </DialogContent>
             </Dialog>
 
-            <Card className="bg-zinc-925 border-zinc-800/50 hover:border-primary/30 transition-all flex flex-col shadow-none group">
+            <Card className="bg-card border-muted/50 hover:border-primary/30 transition-all flex flex-col shadow-none group">
                 <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
                         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -250,20 +250,20 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                         </div>
                     </div>
                     <div className="flex items-center justify-between mt-4">
-                        <CardTitle className="text-white font-bold">{template.friendly_name}</CardTitle>
+                        <CardTitle className="text-foreground font-bold">{template.friendly_name}</CardTitle>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Layers className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-white">
+                            <DropdownMenuContent align="end" className="bg-secondary border-muted text-foreground">
                                 <DropdownMenuLabel>Image Lifecycle</DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuSeparator className="bg-muted" />
                                 <DropdownMenuItem onClick={() => setIsBOMOpen(true)} className="gap-2">
                                     <Package className="h-4 w-4" /> View BOM
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuSeparator className="bg-muted" />
                                 <DropdownMenuItem onClick={() => updateStatusMutation.mutate('ACTIVE')} className="text-emerald-500 gap-2">
                                     <CheckCircle2 className="h-4 w-4" /> Mark Active
                                 </DropdownMenuItem>
@@ -276,12 +276,12 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
-                    <CardDescription className="text-zinc-500 text-[10px] font-mono mt-1">
+                    <CardDescription className="text-muted-foreground text-[10px] font-mono mt-1">
                         {template.canonical_id}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pb-4">
-                    <div className="text-[11px] text-zinc-400 truncate mb-3">
+                    <div className="text-[11px] text-muted-foreground truncate mb-3">
                         {template.last_built_image || 'Never built'}
                     </div>
                     {buildStatus === 'success' && (
@@ -297,7 +297,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                             <Button 
                                 variant="link" 
                                 size="sm" 
-                                className="h-auto p-0 text-[10px] text-zinc-500 hover:text-zinc-300 justify-start"
+                                className="h-auto p-0 text-[10px] text-muted-foreground hover:text-foreground justify-start"
                                 onClick={() => setShowBuildDetails(true)}
                             >
                                 View Logs
@@ -305,17 +305,17 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                         </div>
                     )}
                     {buildStatus === 'idle' && template.last_built_at && (
-                        <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-medium">
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
                             <Clock className="h-3 w-3" />
                             {new Date(template.last_built_at).toLocaleString()}
                         </div>
                     )}
                 </CardContent>
-                <CardFooter className="bg-white/[0.01] border-t border-zinc-800/50 pt-4 gap-2">
+                <CardFooter className="bg-white/[0.01] border-t border-muted/50 pt-4 gap-2">
                     <Button
                         onClick={() => buildMutation.mutate()}
                         disabled={buildStatus === 'building'}
-                        className="flex-1 h-9 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all"
+                        className="flex-1 h-9 bg-primary hover:bg-primary/90 text-foreground font-bold rounded-lg transition-all"
                     >
                         {buildStatus === 'building' ? (
                             <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Building...</>
@@ -372,7 +372,7 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => deleteMutation.mutate()}
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-red-600 hover:bg-red-700 text-foreground"
                         >
                             Delete
                         </AlertDialogAction>
@@ -380,7 +380,7 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
                 </AlertDialogContent>
             </AlertDialog>
 
-            <div className="group flex items-center justify-between p-4 bg-zinc-925 border border-zinc-800/50 rounded-xl hover:border-primary/20 transition-all">
+            <div className="group flex items-center justify-between p-4 bg-card border border-muted/50 rounded-xl hover:border-primary/20 transition-all">
                 <div className="flex items-center gap-4">
                     <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
                         blueprint.type === 'RUNTIME' ? 'bg-blue-500/10' : 'bg-green-500/10'
@@ -392,15 +392,15 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-white">{blueprint.name}</h4>
-                            <Badge variant="outline" className="text-[10px] h-4 px-1 border-zinc-800 text-zinc-500">v{blueprint.version}</Badge>
+                            <h4 className="text-sm font-bold text-foreground">{blueprint.name}</h4>
+                            <Badge variant="outline" className="text-[10px] h-4 px-1 border-muted text-muted-foreground">v{blueprint.version}</Badge>
                             {blueprint.type === 'RUNTIME' && blueprint.os_family && (
                                 <Badge variant="outline" className={`text-[10px] h-4 px-1 ${blueprint.os_family === 'ALPINE' ? 'border-cyan-600 text-cyan-400' : 'border-amber-600 text-amber-400'}`}>
                                     {blueprint.os_family}
                                 </Badge>
                             )}
                         </div>
-                        <p className="text-xs text-zinc-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             {blueprint.type === 'RUNTIME'
                                 ? `OS: ${blueprint.definition.base_os} | ${blueprint.definition.tools?.length || 0} tools`
                                 : `${blueprint.definition.egress_rules?.length || 0} egress rules | Mode: ${blueprint.definition.policy}`
@@ -413,7 +413,7 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-zinc-500 hover:text-primary hover:bg-primary/10 rounded-lg"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
                             onClick={() => onEdit(blueprint)}
                             title="Edit blueprint"
                         >
@@ -423,7 +423,7 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="text-zinc-500 hover:text-white"
+                        className="text-muted-foreground hover:text-foreground"
                         onClick={() => setJsonOpen(true)}
                     >
                         View JSON
@@ -441,9 +441,9 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
             </div>
 
             <Dialog open={jsonOpen} onOpenChange={setJsonOpen}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl">
+                <DialogContent className="bg-secondary border-muted max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle className="text-white">{blueprint.name} — Definition</DialogTitle>
+                        <DialogTitle className="text-foreground">{blueprint.name} — Definition</DialogTitle>
                     </DialogHeader>
                     <pre className="text-xs text-green-400 font-mono bg-zinc-950 rounded-lg p-4 overflow-auto max-h-[60vh] whitespace-pre-wrap">
                         {JSON.stringify(blueprint.definition, null, 2)}
@@ -455,13 +455,13 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
 };
 
 const BlueprintEmptyState = ({ type }: { type: 'RUNTIME' | 'NETWORK' }) => (
-    <div className="py-20 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
+    <div className="py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
         {type === 'RUNTIME' ? (
             <Cpu className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
         ) : (
             <Globe className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
         )}
-        <h3 className="text-zinc-400 font-medium">No {type.toLowerCase()} image recipes found</h3>
+        <h3 className="text-muted-foreground font-medium">No {type.toLowerCase()} image recipes found</h3>
         <p className="text-zinc-600 text-sm mt-1">Create a {type.toLowerCase()} image recipe to get started.</p>
     </div>
 );
@@ -737,12 +737,12 @@ const Templates = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Foundry</h1>
-                    <p className="text-sm text-zinc-500 mt-1">Compose and build immutable agent environments.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Foundry</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Compose and build immutable agent environments.</p>
                 </div>
                 <Button
                     variant="outline"
-                    className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white h-10 px-4 rounded-xl"
+                    className="bg-secondary border-muted text-muted-foreground hover:text-foreground h-10 px-4 rounded-xl"
                     onClick={() => markBaseUpdatedMutation.mutate()}
                     disabled={markBaseUpdatedMutation.isPending}
                     title="Mark base node image as updated — flags older templates for rebuild"
@@ -754,7 +754,7 @@ const Templates = () => {
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="h-48 rounded-2xl bg-zinc-900/50 border border-zinc-800 animate-pulse" />
+                        <div key={i} className="h-48 rounded-2xl bg-secondary/50 border border-muted animate-pulse" />
                     ))}
                 </div>
             ) : (
@@ -776,7 +776,7 @@ const Templates = () => {
                     <TabsContent value="templates">
                         <div className="flex justify-end mb-4">
                             <Button
-                                className="bg-primary hover:bg-primary/90 text-white h-10 px-4 rounded-xl font-bold shadow-lg shadow-primary/10"
+                                className="bg-primary hover:bg-primary/90 text-foreground h-10 px-4 rounded-xl font-bold shadow-lg shadow-primary/10"
                                 onClick={() => setIsTemplateOpen(true)}
                             >
                                 <Plus className="mr-2 h-4 w-4" /> New Node Image
@@ -787,9 +787,9 @@ const Templates = () => {
                                 {templates.map(t => <TemplateCard key={t.id} template={t} baseUpdatedAt={baseUpdatedAt} />)}
                             </div>
                         ) : (
-                            <div className="py-20 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
+                            <div className="py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
                                 <Boxes className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
-                                <h3 className="text-zinc-400 font-medium">No node images found</h3>
+                                <h3 className="text-muted-foreground font-medium">No node images found</h3>
                                 <p className="text-zinc-600 text-sm mt-1">Compose your first node image using image recipes.</p>
                             </div>
                         )}
@@ -799,7 +799,7 @@ const Templates = () => {
                         <div className="flex justify-end mb-4">
                             <Button
                                 variant="outline"
-                                className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
+                                className="bg-secondary border-muted text-foreground h-10 px-4 rounded-xl"
                                 onClick={() => setIsWizardOpen(true)}
                             >
                                 <Plus className="mr-2 h-4 w-4" /> New Runtime Image Recipe
@@ -818,7 +818,7 @@ const Templates = () => {
                         <div className="flex justify-end mb-4">
                             <Button
                                 variant="outline"
-                                className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
+                                className="bg-secondary border-muted text-foreground h-10 px-4 rounded-xl"
                                 onClick={() => setIsWizardOpen(true)}
                             >
                                 <Plus className="mr-2 h-4 w-4" /> New Network Image Recipe
@@ -838,7 +838,7 @@ const Templates = () => {
                             <div className="flex justify-end">
                                 <Button
                                     variant="outline"
-                                    className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
+                                    className="bg-secondary border-muted text-foreground h-10 px-4 rounded-xl"
                                     onClick={() => setShowAddTool(true)}
                                 >
                                     <Plus className="mr-2 h-4 w-4" /> Add Tool Entry
@@ -847,19 +847,19 @@ const Templates = () => {
 
                             {/* Add tool dialog */}
                             <Dialog open={showAddTool} onOpenChange={setShowAddTool}>
-                                <DialogContent className="max-w-lg bg-zinc-950 border-zinc-800 text-white">
+                                <DialogContent className="max-w-lg bg-zinc-950 border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Add Tool</DialogTitle>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-2">
                                         <div className="grid gap-1.5">
                                             <Label>Tool ID</Label>
-                                            <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. python-3.11"
+                                            <Input className="bg-secondary border-muted" placeholder="e.g. python-3.11"
                                                 value={newTool.tool_id} onChange={e => setNewTool({...newTool, tool_id: e.target.value})} />
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>OS Family</Label>
-                                            <select className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 text-sm"
+                                            <select className="bg-secondary border border-muted text-foreground rounded-md px-3 py-2 text-sm"
                                                 value={newTool.base_os_family}
                                                 onChange={e => setNewTool({...newTool, base_os_family: e.target.value as 'DEBIAN' | 'ALPINE'})}>
                                                 <option value="DEBIAN">DEBIAN</option>
@@ -868,12 +868,12 @@ const Templates = () => {
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Validation Command</Label>
-                                            <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. python --version"
+                                            <Input className="bg-secondary border-muted" placeholder="e.g. python --version"
                                                 value={newTool.validation_cmd} onChange={e => setNewTool({...newTool, validation_cmd: e.target.value})} />
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Injection Recipe (Dockerfile snippet)</Label>
-                                            <textarea className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 text-sm font-mono h-20 resize-none"
+                                            <textarea className="bg-secondary border border-muted text-foreground rounded-md px-3 py-2 text-sm font-mono h-20 resize-none"
                                                 value={newTool.injection_recipe}
                                                 onChange={e => setNewTool({...newTool, injection_recipe: e.target.value})}
                                                 placeholder="RUN apt-get install -y python3" />
@@ -881,7 +881,7 @@ const Templates = () => {
                                         <div className="grid gap-1.5">
                                             <Label>Runtime Dependencies (tool_ids)</Label>
                                             <div className="flex gap-2">
-                                                <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. python-3.11"
+                                                <Input className="bg-secondary border-muted" placeholder="e.g. python-3.11"
                                                     value={newDepInput} onChange={e => setNewDepInput(e.target.value)}
                                                     onKeyDown={e => {
                                                         if (e.key === 'Enter' && newDepInput) {
@@ -921,23 +921,23 @@ const Templates = () => {
 
                             {/* Edit tool dialog */}
                             <Dialog open={toolEditOpen} onOpenChange={(open) => { setToolEditOpen(open); if (!open) setEditingTool(null); }}>
-                                <DialogContent className="max-w-lg bg-zinc-950 border-zinc-800 text-white">
+                                <DialogContent className="max-w-lg bg-zinc-950 border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Edit Tool</DialogTitle>
-                                        <DialogDescription className="text-zinc-500">
+                                        <DialogDescription className="text-muted-foreground">
                                             Modify tool entry properties. Only changed fields will be sent.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-2">
                                         <div className="grid gap-1.5">
                                             <Label>Tool ID</Label>
-                                            <Input className="bg-zinc-900 border-zinc-800"
+                                            <Input className="bg-secondary border-muted"
                                                 value={toolEditForm.tool_id}
                                                 onChange={e => setToolEditForm({...toolEditForm, tool_id: e.target.value})} />
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>OS Family</Label>
-                                            <select className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 text-sm"
+                                            <select className="bg-secondary border border-muted text-foreground rounded-md px-3 py-2 text-sm"
                                                 value={toolEditForm.base_os_family}
                                                 onChange={e => setToolEditForm({...toolEditForm, base_os_family: e.target.value})}>
                                                 <option value="DEBIAN">DEBIAN</option>
@@ -946,20 +946,20 @@ const Templates = () => {
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Validation Command</Label>
-                                            <Input className="bg-zinc-900 border-zinc-800"
+                                            <Input className="bg-secondary border-muted"
                                                 value={toolEditForm.validation_cmd}
                                                 onChange={e => setToolEditForm({...toolEditForm, validation_cmd: e.target.value})} />
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Injection Recipe (Dockerfile snippet)</Label>
-                                            <Textarea className="bg-zinc-900 border-zinc-800 font-mono h-20 resize-none"
+                                            <Textarea className="bg-secondary border-muted font-mono h-20 resize-none"
                                                 value={toolEditForm.injection_recipe}
                                                 onChange={e => setToolEditForm({...toolEditForm, injection_recipe: e.target.value})} />
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Runtime Dependencies (tool_ids)</Label>
                                             <div className="flex gap-2">
-                                                <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. python-3.11"
+                                                <Input className="bg-secondary border-muted" placeholder="e.g. python-3.11"
                                                     value={editDepInput} onChange={e => setEditDepInput(e.target.value)}
                                                     onKeyDown={e => {
                                                         if (e.key === 'Enter' && editDepInput) {
@@ -994,9 +994,9 @@ const Templates = () => {
                             </Dialog>
 
                             {/* Tools table */}
-                            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                            <div className="rounded-xl border border-muted overflow-hidden">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-zinc-900 text-zinc-400 uppercase text-xs">
+                                    <thead className="bg-secondary text-muted-foreground uppercase text-xs">
                                         <tr>
                                             <th className="text-left px-4 py-3">Tool ID</th>
                                             <th className="text-left px-4 py-3">OS Family</th>
@@ -1008,14 +1008,14 @@ const Templates = () => {
                                     </thead>
                                     <tbody className="divide-y divide-zinc-800">
                                         {tools.map(tool => (
-                                            <tr key={tool.id} className={`${!tool.is_active ? 'opacity-50' : ''} hover:bg-zinc-900/50 transition-colors`}>
-                                                <td className="px-4 py-3 font-mono text-white">{tool.tool_id}</td>
+                                            <tr key={tool.id} className={`${!tool.is_active ? 'opacity-50' : ''} hover:bg-secondary/50 transition-colors`}>
+                                                <td className="px-4 py-3 font-mono text-foreground">{tool.tool_id}</td>
                                                 <td className="px-4 py-3">
                                                     <Badge variant="outline" className={tool.base_os_family === 'ALPINE' ? 'border-cyan-600 text-cyan-400' : 'border-amber-600 text-amber-400'}>
                                                         {tool.base_os_family}
                                                     </Badge>
                                                 </td>
-                                                <td className="px-4 py-3 font-mono text-zinc-400 text-xs">{tool.validation_cmd}</td>
+                                                <td className="px-4 py-3 font-mono text-muted-foreground text-xs">{tool.validation_cmd}</td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-wrap gap-1">
                                                         {(tool.runtime_dependencies || []).map(dep => (
@@ -1036,7 +1036,7 @@ const Templates = () => {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-8 w-8 text-zinc-500 hover:text-white"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                             onClick={() => openToolEdit(tool)}
                                                         >
                                                             <Pencil className="h-4 w-4" />
@@ -1045,7 +1045,7 @@ const Templates = () => {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-8 w-8 text-zinc-500 hover:text-red-400"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-red-400"
                                                                 onClick={() => {
                                                                     if (confirm(`Deactivate tool "${tool.tool_id}"? It will be hidden from new blueprints but existing blueprints are unaffected.`)) {
                                                                         deleteToolMutation.mutate(tool.id);
@@ -1061,7 +1061,7 @@ const Templates = () => {
                                         ))}
                                         {tools.length === 0 && (
                                             <tr>
-                                                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">No tool entries found</td>
+                                                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No tool entries found</td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -1075,7 +1075,7 @@ const Templates = () => {
                             <div className="flex justify-end">
                                 <Button
                                     variant="outline"
-                                    className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
+                                    className="bg-secondary border-muted text-foreground h-10 px-4 rounded-xl"
                                     onClick={() => setShowAddOS(true)}
                                 >
                                     <Plus className="mr-2 h-4 w-4" /> Add Approved OS
@@ -1084,27 +1084,27 @@ const Templates = () => {
 
                             {/* Add OS dialog */}
                             <Dialog open={showAddOS} onOpenChange={setShowAddOS}>
-                                <DialogContent className="max-w-lg bg-zinc-950 border-zinc-800 text-white">
+                                <DialogContent className="max-w-lg bg-zinc-950 border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Add Approved OS</DialogTitle>
-                                        <DialogDescription className="text-zinc-500">
+                                        <DialogDescription className="text-muted-foreground">
                                             Add a new base OS image to the approved list.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-2">
                                         <div className="grid gap-1.5">
                                             <Label>Name</Label>
-                                            <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. Ubuntu 24.04"
+                                            <Input className="bg-secondary border-muted" placeholder="e.g. Ubuntu 24.04"
                                                 value={newOS.name} onChange={e => setNewOS({...newOS, name: e.target.value})} />
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Image URI</Label>
-                                            <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. docker.io/library/ubuntu:24.04"
+                                            <Input className="bg-secondary border-muted" placeholder="e.g. docker.io/library/ubuntu:24.04"
                                                 value={newOS.image_uri} onChange={e => setNewOS({...newOS, image_uri: e.target.value})} />
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>OS Family</Label>
-                                            <select className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 text-sm"
+                                            <select className="bg-secondary border border-muted text-foreground rounded-md px-3 py-2 text-sm"
                                                 value={newOS.os_family}
                                                 onChange={e => setNewOS({...newOS, os_family: e.target.value})}>
                                                 <option value="DEBIAN">DEBIAN</option>
@@ -1123,9 +1123,9 @@ const Templates = () => {
                             </Dialog>
 
                             {/* Approved OS table */}
-                            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                            <div className="rounded-xl border border-muted overflow-hidden">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-zinc-900 text-zinc-400 uppercase text-xs">
+                                    <thead className="bg-secondary text-muted-foreground uppercase text-xs">
                                         <tr>
                                             <th className="text-left px-4 py-3">Name</th>
                                             <th className="text-left px-4 py-3">Image URI</th>
@@ -1135,21 +1135,21 @@ const Templates = () => {
                                     </thead>
                                     <tbody className="divide-y divide-zinc-800">
                                         {approvedOSList.map(os => (
-                                            <tr key={os.id} className="hover:bg-zinc-900/50 transition-colors">
+                                            <tr key={os.id} className="hover:bg-secondary/50 transition-colors">
                                                 {editingOSId === os.id ? (
                                                     <>
                                                         <td className="px-4 py-3">
-                                                            <Input className="bg-zinc-900 border-zinc-800 h-8 text-sm"
+                                                            <Input className="bg-secondary border-muted h-8 text-sm"
                                                                 value={osEditForm.name}
                                                                 onChange={e => setOsEditForm({...osEditForm, name: e.target.value})} />
                                                         </td>
                                                         <td className="px-4 py-3">
-                                                            <Input className="bg-zinc-900 border-zinc-800 h-8 text-sm"
+                                                            <Input className="bg-secondary border-muted h-8 text-sm"
                                                                 value={osEditForm.image_uri}
                                                                 onChange={e => setOsEditForm({...osEditForm, image_uri: e.target.value})} />
                                                         </td>
                                                         <td className="px-4 py-3">
-                                                            <select className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-2 py-1 text-sm"
+                                                            <select className="bg-secondary border border-muted text-foreground rounded-md px-2 py-1 text-sm"
                                                                 value={osEditForm.os_family}
                                                                 onChange={e => setOsEditForm({...osEditForm, os_family: e.target.value})}>
                                                                 <option value="DEBIAN">DEBIAN</option>
@@ -1163,7 +1163,7 @@ const Templates = () => {
                                                                     disabled={editOSMutation.isPending}>
                                                                     <Check className="h-4 w-4" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-white"
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                                     onClick={() => setEditingOSId(null)}>
                                                                     <X className="h-4 w-4" />
                                                                 </Button>
@@ -1172,8 +1172,8 @@ const Templates = () => {
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <td className="px-4 py-3 text-white font-medium">{os.name}</td>
-                                                        <td className="px-4 py-3 font-mono text-zinc-400 text-xs">{os.image_uri}</td>
+                                                        <td className="px-4 py-3 text-foreground font-medium">{os.name}</td>
+                                                        <td className="px-4 py-3 font-mono text-muted-foreground text-xs">{os.image_uri}</td>
                                                         <td className="px-4 py-3">
                                                             <Badge variant="outline" className={os.os_family === 'ALPINE' ? 'border-cyan-600 text-cyan-400' : 'border-amber-600 text-amber-400'}>
                                                                 {os.os_family}
@@ -1181,11 +1181,11 @@ const Templates = () => {
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             <div className="flex gap-1">
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-white"
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                                     onClick={() => startOSEdit(os)}>
                                                                     <Pencil className="h-4 w-4" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-red-400"
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-400"
                                                                     onClick={() => deleteOSMutation.mutate(os.id)}
                                                                     disabled={deleteOSMutation.isPending}>
                                                                     <Trash2 className="h-4 w-4" />
@@ -1198,7 +1198,7 @@ const Templates = () => {
                                         ))}
                                         {approvedOSList.length === 0 && (
                                             <tr>
-                                                <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                                                <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                                                     No approved OS entries found. Add one to get started.
                                                 </td>
                                             </tr>

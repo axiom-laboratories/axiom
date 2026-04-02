@@ -94,7 +94,7 @@ function CopyButton({ text }: { text: string }) {
     return (
         <button
             onClick={handleCopy}
-            className="absolute top-2 right-2 p-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors"
+            className="absolute top-2 right-2 p-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-foreground transition-colors"
             title="Copy to clipboard"
         >
             {copied ? <CheckCheck className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -183,8 +183,8 @@ const Signatures = () => {
                     <Lock className="h-6 w-6 text-destructive" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-white">Access Denied</h3>
-                    <p className="text-zinc-500">Only system administrators can manage signing keys.</p>
+                    <h3 className="text-lg font-bold text-foreground">Access Denied</h3>
+                    <p className="text-muted-foreground">Only system administrators can manage signing keys.</p>
                 </div>
             </div>
         );
@@ -210,10 +210,10 @@ const Signatures = () => {
             </AlertDialog>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Signing Keys</h1>
-                    <p className="text-sm text-zinc-500 mt-1">Ed25519 public keys for job verification.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Signing Keys</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Ed25519 public keys for job verification.</p>
                 </div>
-                <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 rounded-xl">
+                <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90 text-foreground font-bold h-11 px-6 rounded-xl">
                     <Plus className="mr-2 h-4 w-4" />
                     Register Trusted Key
                 </Button>
@@ -227,7 +227,7 @@ const Signatures = () => {
                         </div>
                         <div>
                             <p className="text-sm font-semibold text-indigo-300">Getting Started — No signing keys registered</p>
-                            <p className="text-xs text-zinc-400 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 All jobs must be signed before dispatch. Generate an Ed25519 keypair, upload the public key here,
                                 then sign your scripts with the private key before submitting.
                             </p>
@@ -248,24 +248,24 @@ const Signatures = () => {
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="h-48 rounded-2xl bg-zinc-900/50 border border-zinc-800 animate-pulse" />
+                        <div key={i} className="h-48 rounded-2xl bg-secondary/50 border border-muted animate-pulse" />
                     ))}
                 </div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {signatures.map(sig => (
-                        <Card key={sig.id} className="bg-zinc-925 border-zinc-800/50 flex flex-col hover:border-primary/30 transition-all group">
+                        <Card key={sig.id} className="bg-card border-muted/50 flex flex-col hover:border-primary/30 transition-all group">
                             <CardHeader className="pb-4">
                                 <div className="flex items-start justify-between">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                         <ShieldCheck className="h-5 w-5" />
                                     </div>
-                                    <Badge variant="outline" className="text-xs font-mono border-zinc-800 text-zinc-500 uppercase">
+                                    <Badge variant="outline" className="text-xs font-mono border-muted text-muted-foreground uppercase">
                                         Active
                                     </Badge>
                                 </div>
-                                <CardTitle className="mt-4 text-white font-bold">{sig.name}</CardTitle>
-                                <CardDescription className="flex items-center gap-1 text-xs text-zinc-500 font-mono">
+                                <CardTitle className="mt-4 text-foreground font-bold">{sig.name}</CardTitle>
+                                <CardDescription className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
                                     UID: {sig.id.substring(0, 8)}
                                 </CardDescription>
                             </CardHeader>
@@ -274,18 +274,18 @@ const Signatures = () => {
                                     <Textarea
                                         readOnly
                                         value={sig.public_key}
-                                        className="h-24 bg-zinc-900 border-zinc-800 text-xs font-mono text-zinc-400 resize-none focus-visible:ring-0"
+                                        className="h-24 bg-secondary border-muted text-xs font-mono text-muted-foreground resize-none focus-visible:ring-0"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 to-transparent flex items-end justify-center pb-2 opacity-0 group-hover/key:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="sm" className="h-7 text-xs text-white hover:bg-white/10 uppercase tracking-widest font-bold">
+                                        <Button variant="ghost" size="sm" className="h-7 text-xs text-foreground hover:bg-white/10 uppercase tracking-widest font-bold">
                                             <ExternalLink className="mr-1 h-3 w-3" />
                                             View Full PEM
                                         </Button>
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-white/[0.02] border-t border-zinc-800/50 py-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                            <CardFooter className="bg-white/[0.02] border-t border-muted/50 py-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <User className="h-3 w-3" />
                                     {sig.uploaded_by}
                                 </div>
@@ -301,9 +301,9 @@ const Signatures = () => {
                         </Card>
                     ))}
                     {signatures.length === 0 && (
-                        <div className="col-span-full py-12 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
+                        <div className="col-span-full py-12 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
                             <Key className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
-                            <h3 className="text-zinc-400 font-medium">No trust established</h3>
+                            <h3 className="text-muted-foreground font-medium">No trust established</h3>
                             <p className="text-zinc-600 text-sm">Upload a public key to begin validating puppet jobs.</p>
                         </div>
                     )}
@@ -312,45 +312,45 @@ const Signatures = () => {
 
             {/* Key generation guide modal */}
             <Dialog open={showKeygenGuide} onOpenChange={setShowKeygenGuide}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[620px]">
+                <DialogContent className="bg-card border-muted text-foreground sm:max-w-[620px]">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Terminal className="h-5 w-5 text-indigo-400" />
                             Generate a signing keypair
                         </DialogTitle>
-                        <DialogDescription className="text-zinc-500">
+                        <DialogDescription className="text-muted-foreground">
                             Three steps: generate a keypair, register the public key here, sign your scripts before dispatch.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-5 pt-2">
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 1 — Generate keypair (run once, keep signing.key private)</p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Step 1 — Generate keypair (run once, keep signing.key private)</p>
                             <div className="relative">
-                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{KEYGEN_CMD}</pre>
+                                <pre className="bg-secondary border border-muted rounded-lg p-3 text-xs font-mono text-foreground overflow-x-auto whitespace-pre">{KEYGEN_CMD}</pre>
                                 <CopyButton text={KEYGEN_CMD} />
                             </div>
                         </div>
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 2 — Register the public key</p>
-                            <p className="text-xs text-zinc-400">
-                                Copy the contents of <code className="font-mono text-indigo-300 bg-zinc-800 px-1 py-0.5 rounded">verification.key</code> and
+                            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Step 2 — Register the public key</p>
+                            <p className="text-xs text-muted-foreground">
+                                Copy the contents of <code className="font-mono text-indigo-300 bg-muted px-1 py-0.5 rounded">verification.key</code> and
                                 click <strong className="text-zinc-200">Register Trusted Key</strong> above to upload it.
                             </p>
                         </div>
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Step 3 — Sign a script before dispatch</p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Step 3 — Sign a script before dispatch</p>
                             <div className="relative">
-                                <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">{SIGN_CMD}</pre>
+                                <pre className="bg-secondary border border-muted rounded-lg p-3 text-xs font-mono text-foreground overflow-x-auto whitespace-pre">{SIGN_CMD}</pre>
                                 <CopyButton text={SIGN_CMD} />
                             </div>
-                            <p className="text-xs text-zinc-500 mt-2">
-                                Paste the printed base64 string into the <strong className="text-zinc-300">Signature</strong> field when dispatching a job.
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Paste the printed base64 string into the <strong className="text-foreground">Signature</strong> field when dispatching a job.
                             </p>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowKeygenGuide(false)} className="border-zinc-800">Close</Button>
-                        <Button onClick={() => { setShowKeygenGuide(false); setShowModal(true); }} className="bg-primary hover:bg-primary/90 text-white font-bold">
+                        <Button variant="outline" onClick={() => setShowKeygenGuide(false)} className="border-muted">Close</Button>
+                        <Button onClick={() => { setShowKeygenGuide(false); setShowModal(true); }} className="bg-primary hover:bg-primary/90 text-foreground font-bold">
                             Register Key Now
                         </Button>
                     </DialogFooter>
@@ -358,33 +358,33 @@ const Signatures = () => {
             </Dialog>
 
             <Dialog open={showModal} onOpenChange={setShowModal}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-[500px]">
+                <DialogContent className="bg-card border-muted text-foreground sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>Register Trusted Key</DialogTitle>
-                        <DialogDescription className="text-zinc-500">
+                        <DialogDescription className="text-muted-foreground">
                             Provide a PEM-formatted public key to enable code signing validation.
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleUpload} className="space-y-6 pt-4">
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Key Identifier</Label>
+                            <Label className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Key Identifier</Label>
                             <Input
                                 placeholder="e.g. Master Build Pipeline"
-                                className="bg-zinc-900 border-zinc-800 h-11"
+                                className="bg-secondary border-muted h-11"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 required
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Public Key Content (PEM)</Label>
+                            <Label className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Public Key Content (PEM)</Label>
                             <div className="relative">
                                 <div className="absolute top-3 left-3 h-4 w-4 text-zinc-600">
                                     <Shield className="h-full w-full" />
                                 </div>
                                 <Textarea
                                     placeholder="-----BEGIN PUBLIC KEY-----"
-                                    className="bg-zinc-900 border-zinc-800 min-h-[200px] pl-10 pt-3 font-mono text-sm text-green-500 placeholder:text-zinc-700"
+                                    className="bg-secondary border-muted min-h-[200px] pl-10 pt-3 font-mono text-sm text-green-500 placeholder:text-zinc-700"
                                     value={formData.public_key}
                                     onChange={e => setFormData({ ...formData, public_key: e.target.value })}
                                     required
@@ -392,8 +392,8 @@ const Signatures = () => {
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="border-zinc-800">Cancel</Button>
-                            <Button type="submit" disabled={uploadMutation.isPending} className="bg-primary hover:bg-primary/90 text-white font-bold">
+                            <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="border-muted">Cancel</Button>
+                            <Button type="submit" disabled={uploadMutation.isPending} className="bg-primary hover:bg-primary/90 text-foreground font-bold">
                                 {uploadMutation.isPending ? 'Verifying...' : 'Establish Trust'}
                             </Button>
                         </DialogFooter>

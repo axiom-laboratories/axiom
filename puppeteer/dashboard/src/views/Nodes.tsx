@@ -110,7 +110,7 @@ const fetchNodes = async (page: number): Promise<PaginatedNodeResponse> => {
 };
 
 const GaugeBar = ({ value, color }: { value: number; color: string }) => (
-    <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
         <div
             className={`h-full rounded-full transition-all duration-500 ${color}`}
             style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
@@ -119,13 +119,13 @@ const GaugeBar = ({ value, color }: { value: number; color: string }) => (
 );
 
 const getEnvBadgeColor = (tag: string) => {
-    if (!tag.startsWith('env:')) return 'bg-zinc-800 text-zinc-400 border-zinc-700';
+    if (!tag.startsWith('env:')) return 'bg-muted text-muted-foreground border-muted';
     const env = tag.split(':')[1];
     switch (env) {
         case 'prod': return 'bg-rose-500/10 text-rose-500 border-rose-500/20 font-bold';
         case 'staging': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
         case 'test': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-        default: return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+        default: return 'bg-muted text-foreground border-muted';
     }
 };
 
@@ -138,7 +138,7 @@ const getEnvTagBadgeClass = (tag: string): string => {
         case 'DEV':
             return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
         default:
-            return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+            return 'bg-muted text-foreground border-muted';
     }
 };
 
@@ -337,7 +337,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                     : <AlertTriangle className="h-4 w-4 text-red-500" />;
 
     return (
-        <Card className={`overflow-hidden bg-zinc-925 border-zinc-800/50 ${isRevoked ? 'opacity-70' : ''}`}>
+        <Card className={`overflow-hidden bg-card border-muted/50 ${isRevoked ? 'opacity-70' : ''}`}>
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -376,7 +376,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
 
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="flex flex-col gap-1">
-                    <CardTitle className="text-base font-medium flex items-center gap-2 text-white">
+                    <CardTitle className="text-base font-medium flex items-center gap-2 text-foreground">
                         {node.hostname}
                         {statusDot}
                         {isRevoked && <span className="text-[10px] font-mono text-amber-500 border border-amber-500/30 rounded px-1">REVOKED</span>}
@@ -387,7 +387,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                             </span>
                         )}
                     </CardTitle>
-                    <CardDescription className="text-xs font-mono text-zinc-500">{node.ip}</CardDescription>
+                    <CardDescription className="text-xs font-mono text-muted-foreground">{node.ip}</CardDescription>
                 </div>
                 {statusIcon}
             </CardHeader>
@@ -415,10 +415,10 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                 <div className="space-y-2">
                     <button 
                         onClick={() => setShowHealth(!showHealth)}
-                        className="flex items-center justify-between w-full text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 transition-colors"
+                        className="flex items-center justify-between w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <span className="flex items-center gap-1.5">
-                            <ShieldCheck className={`h-3 w-3 ${isDrifted ? 'text-amber-500' : 'text-zinc-500'}`} />
+                            <ShieldCheck className={`h-3 w-3 ${isDrifted ? 'text-amber-500' : 'text-muted-foreground'}`} />
                             Runtime Health
                         </span>
                         {isDrifted && <Badge variant="outline" className="h-4 px-1 text-[8px] border-amber-500/30 text-amber-500">Drift Detected</Badge>}
@@ -428,7 +428,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                         <div className="space-y-1.5 pt-1 animate-in slide-in-from-top-1 duration-200">
                             {healthReport.map(r => (
                                 <div key={r.tool} className="flex items-center justify-between text-[10px] bg-black/20 p-1.5 rounded border border-zinc-900">
-                                    <span className="font-mono text-zinc-400">{r.tool}</span>
+                                    <span className="font-mono text-muted-foreground">{r.tool}</span>
                                     {r.status === 'COMPLIANT' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                     {r.status === 'MISSING' && <Badge variant="outline" className="h-4 px-1 text-[8px] border-amber-500/30 text-amber-500">Pending Install</Badge>}
                                     {r.status === 'VERSION_MISMATCH' && <Badge variant="outline" className="h-4 px-1 text-[8px] border-amber-500/30 text-amber-500">Update Available</Badge>}
@@ -448,14 +448,14 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
 
                 <div className="space-y-3">
                     <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs text-zinc-500">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span className="flex items-center gap-1.5"><Cpu className="h-3 w-3" /> CPU</span>
                             <span className="font-mono tabular-nums">{node.stats ? `${cpu}%` : '—'}</span>
                         </div>
                         <GaugeBar value={cpu} color={cpuColor} />
                     </div>
                     <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs text-zinc-500">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span className="flex items-center gap-1.5"><HardDrive className="h-3 w-3" /> RAM</span>
                             <span className="font-mono tabular-nums">{node.stats ? `${ram}%` : '—'}</span>
                         </div>
@@ -465,7 +465,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                 </div>
             </CardContent>
 
-            <Separator className="bg-zinc-800" />
+            <Separator className="bg-muted" />
             <CardFooter className="px-4 py-2 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
                 {editing ? (
                     <div className="flex flex-col gap-2 w-full">
@@ -474,21 +474,21 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                                 type="number"
                                 value={concurrency}
                                 onChange={e => setConcurrency(e.target.value)}
-                                className="h-7 w-14 bg-zinc-800 border-zinc-700 text-white text-xs px-2 font-mono"
+                                className="h-7 w-14 bg-muted border-muted text-foreground text-xs px-2 font-mono"
                                 min={1} max={50}
                                 title="Max concurrent jobs"
                             />
                             <Input
                                 value={memLimit}
                                 onChange={e => setMemLimit(e.target.value)}
-                                className="h-7 w-16 bg-zinc-800 border-zinc-700 text-white text-xs px-2 font-mono"
+                                className="h-7 w-16 bg-muted border-muted text-foreground text-xs px-2 font-mono"
                                 placeholder="512m"
                                 title="Memory limit per job"
                             />
                             <Button size="icon" variant="ghost" className="h-7 w-7 text-green-400 hover:bg-green-500/10 ml-auto" onClick={saveConfig} disabled={saving} aria-label="Save configuration">
                                 <Check className="h-3.5 w-3.5" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:bg-zinc-800" onClick={() => setEditing(false)} aria-label="Cancel editing">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:bg-muted" onClick={() => setEditing(false)} aria-label="Cancel editing">
                                 <X className="h-3.5 w-3.5" />
                             </Button>
                         </div>
@@ -496,14 +496,14 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                             <Input
                                 value={tags}
                                 onChange={e => setTags(e.target.value)}
-                                className="h-7 flex-1 bg-zinc-800 border-zinc-700 text-white text-xs px-2 font-mono"
+                                className="h-7 flex-1 bg-muted border-muted text-foreground text-xs px-2 font-mono"
                                 placeholder="tags: env:prod, secure"
                                 title="Node tags (comma separated)"
                             />
                             <select
                                 value={envTag}
                                 onChange={e => setEnvTag(e.target.value)}
-                                className="h-7 bg-zinc-800 border border-zinc-700 text-white text-xs px-1.5 rounded font-mono"
+                                className="h-7 bg-muted border border-muted text-foreground text-xs px-1.5 rounded font-mono"
                                 title="Environment tag"
                             >
                                 <option value="">no env</option>
@@ -547,7 +547,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                             <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-primary hover:bg-primary/10 rounded" onClick={() => onUpgrade(node)} title="Hot-Upgrade Runtime" aria-label="Hot-Upgrade Runtime">
                                 <Zap className="h-3 w-3" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-white hover:bg-zinc-800 rounded" onClick={() => setEditing(true)} aria-label="Configure node">
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-foreground hover:bg-muted rounded" onClick={() => setEditing(true)} aria-label="Configure node">
                                 <Settings2 className="h-3 w-3" />
                             </Button>
                         </div>
@@ -640,17 +640,17 @@ const Nodes = () => {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Nodes</h1>
-                    <p className="text-sm text-zinc-500 mt-1">
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Nodes</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
                         Real-time telemetry for {totalNodes} active nodes.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white" onClick={() => setShowMountsModal(true)}>
+                    <Button variant="outline" className="border-muted text-foreground hover:text-foreground" onClick={() => setShowMountsModal(true)}>
                         <Network className="mr-2 h-4 w-4" />
                         Network Mounts
                     </Button>
-                    <Button className="bg-primary hover:bg-primary/90 text-white font-bold" onClick={() => setShowAddModal(true)}>
+                    <Button className="bg-primary hover:bg-primary/90 text-foreground font-bold" onClick={() => setShowAddModal(true)}>
                         <Server className="mr-2 h-4 w-4" />
                         Provision Node
                     </Button>
@@ -659,14 +659,14 @@ const Nodes = () => {
 
             {(uniqueEnvTags.length > 0) && (
                 <div className="flex items-center gap-3">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                         Filter by environment:
                     </label>
                     <Select value={envFilter} onValueChange={setEnvFilter}>
-                        <SelectTrigger className="w-44 bg-zinc-900 border-zinc-800 text-white h-9">
+                        <SelectTrigger className="w-44 bg-secondary border-muted text-foreground h-9">
                             <SelectValue placeholder="All" />
                         </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        <SelectContent className="bg-secondary border-muted text-foreground">
                             <SelectItem value="ALL">All</SelectItem>
                             {uniqueEnvTags.map(tag => (
                                 <SelectItem key={tag} value={tag}>{tag}</SelectItem>
@@ -679,7 +679,7 @@ const Nodes = () => {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-[220px] rounded-xl border border-zinc-800 bg-zinc-900 animate-pulse" />
+                        <div key={i} className="h-[220px] rounded-xl border border-muted bg-secondary animate-pulse" />
                     ))
                 ) : displayNodes.length ? (
                     displayNodes.map(node => (
@@ -695,9 +695,9 @@ const Nodes = () => {
                         </div>
                     ))
                 ) : (
-                    <div className="col-span-full py-20 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
+                    <div className="col-span-full py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
                         <Server className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
-                        <h3 className="text-zinc-400 font-medium">
+                        <h3 className="text-muted-foreground font-medium">
                             {envFilter !== 'ALL' ? 'No nodes match this environment filter' : 'No nodes enrolled'}
                         </h3>
                         <p className="text-zinc-600 text-sm mt-1">
@@ -710,7 +710,7 @@ const Nodes = () => {
             {/* Pagination controls */}
             {(totalPages > 1 || totalNodes > 0) && (
                 <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-muted-foreground text-zinc-500">
+                    <span className="text-sm text-muted-foreground text-muted-foreground">
                         Showing {nodes.length} of {totalNodes} nodes
                     </span>
                     {totalPages > 1 && (
@@ -718,17 +718,17 @@ const Nodes = () => {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-zinc-700 text-zinc-300 hover:text-white disabled:opacity-40"
+                                className="border-muted text-foreground hover:text-foreground disabled:opacity-40"
                                 disabled={page <= 1}
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                             >
                                 Previous
                             </Button>
-                            <span className="text-sm text-zinc-400">Page {page} of {totalPages}</span>
+                            <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-zinc-700 text-zinc-300 hover:text-white disabled:opacity-40"
+                                className="border-muted text-foreground hover:text-foreground disabled:opacity-40"
                                 disabled={page >= totalPages}
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                             >
@@ -751,12 +751,12 @@ const Nodes = () => {
 
             {/* Node Detail Drawer */}
             <Sheet open={nodeDrawerOpen} onOpenChange={setNodeDrawerOpen}>
-                <SheetContent className="bg-zinc-900 border-zinc-800 text-white w-full sm:max-w-xl overflow-y-auto">
-                    <SheetHeader className="pb-4 border-b border-zinc-800">
-                        <SheetTitle className="text-white flex items-center gap-2">
+                <SheetContent className="bg-secondary border-muted text-foreground w-full sm:max-w-xl overflow-y-auto">
+                    <SheetHeader className="pb-4 border-b border-muted">
+                        <SheetTitle className="text-foreground flex items-center gap-2">
                             <Server className="h-4 w-4" /> {drawerNode?.hostname}
                         </SheetTitle>
-                        <SheetDescription className="font-mono text-zinc-500 text-xs">
+                        <SheetDescription className="font-mono text-muted-foreground text-xs">
                             {drawerNode?.node_id}
                         </SheetDescription>
                     </SheetHeader>
@@ -787,31 +787,31 @@ const Nodes = () => {
 
                         {/* Running job */}
                         <div>
-                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Running Job</h3>
+                            <h3 className="text-sm font-semibold text-foreground mb-2">Running Job</h3>
                             {nodeDetailLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                             ) : nodeDetail?.running_job ? (
-                                <div className="font-mono text-xs text-zinc-300 bg-zinc-800 p-2 rounded">
-                                    <span className="text-zinc-400">{nodeDetail.running_job.name || nodeDetail.running_job.guid}</span>
+                                <div className="font-mono text-xs text-foreground bg-muted p-2 rounded">
+                                    <span className="text-muted-foreground">{nodeDetail.running_job.name || nodeDetail.running_job.guid}</span>
                                     <Badge variant="outline" className="ml-2 text-[10px] border-yellow-500/30 text-yellow-400">
                                         {nodeDetail.running_job.status}
                                     </Badge>
                                 </div>
                             ) : (
-                                <p className="text-xs text-zinc-500">No job currently running</p>
+                                <p className="text-xs text-muted-foreground">No job currently running</p>
                             )}
                         </div>
 
                         {/* Eligible pending jobs */}
                         <div>
-                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">
+                            <h3 className="text-sm font-semibold text-foreground mb-2">
                                 Eligible Pending Jobs ({nodeDetail?.eligible_pending_jobs?.length ?? 0})
                             </h3>
                             {!nodeDetailLoading && nodeDetail?.eligible_pending_jobs?.length === 0 && (
-                                <p className="text-xs text-zinc-500">No pending jobs eligible for this node</p>
+                                <p className="text-xs text-muted-foreground">No pending jobs eligible for this node</p>
                             )}
                             {nodeDetail?.eligible_pending_jobs?.slice(0, 10).map(j => (
-                                <div key={j.guid} className="text-xs text-zinc-400 font-mono py-1 border-b border-zinc-800">
+                                <div key={j.guid} className="text-xs text-muted-foreground font-mono py-1 border-b border-muted">
                                     {j.name || j.guid.slice(0, 8)}
                                 </div>
                             ))}
@@ -819,13 +819,13 @@ const Nodes = () => {
 
                         {/* Recent history */}
                         <div>
-                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Recent History (24h)</h3>
+                            <h3 className="text-sm font-semibold text-foreground mb-2">Recent History (24h)</h3>
                             {!nodeDetailLoading && nodeDetail?.recent_history?.length === 0 && (
-                                <p className="text-xs text-zinc-500">No completed jobs in the last 24 hours</p>
+                                <p className="text-xs text-muted-foreground">No completed jobs in the last 24 hours</p>
                             )}
                             {nodeDetail?.recent_history?.slice(0, 10).map(j => (
-                                <div key={j.guid} className="flex items-center justify-between text-xs py-1 border-b border-zinc-800">
-                                    <span className="font-mono text-zinc-400">{j.name || j.guid.slice(0, 8)}</span>
+                                <div key={j.guid} className="flex items-center justify-between text-xs py-1 border-b border-muted">
+                                    <span className="font-mono text-muted-foreground">{j.name || j.guid.slice(0, 8)}</span>
                                     <Badge
                                         variant="outline"
                                         className={j.status === 'COMPLETED' ? 'border-green-500/30 text-green-400' : 'border-red-500/30 text-red-400'}
@@ -838,13 +838,13 @@ const Nodes = () => {
 
                         {/* Capabilities */}
                         <div>
-                            <h3 className="text-sm font-semibold text-zinc-300 mb-2">Capabilities</h3>
+                            <h3 className="text-sm font-semibold text-foreground mb-2">Capabilities</h3>
                             {Object.keys(nodeDetail?.capabilities ?? {}).length === 0
-                                ? <p className="text-xs text-zinc-500">No capabilities reported</p>
+                                ? <p className="text-xs text-muted-foreground">No capabilities reported</p>
                                 : (
                                     <div className="flex flex-wrap gap-1">
                                         {Object.entries(nodeDetail?.capabilities ?? {}).map(([name, ver]) => (
-                                            <Badge key={name} variant="outline" className="text-xs border-zinc-600 text-zinc-300">
+                                            <Badge key={name} variant="outline" className="text-xs border-zinc-600 text-foreground">
                                                 {name} {ver}
                                             </Badge>
                                         ))}
