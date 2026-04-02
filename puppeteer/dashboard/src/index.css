@@ -4,6 +4,44 @@
 
 @layer base {
   :root {
+    /* Light mode (default) */
+    --background: 280 5% 97%;
+    --foreground: 280 2% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 280 2% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 280 2% 9%;
+    --primary: 346.8 77.2% 49.8%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 280 2% 92%;
+    --secondary-foreground: 280 2% 32%;
+    --muted: 280 2% 88%;
+    --muted-foreground: 280 4% 38%;
+    --accent: 346.8 77.2% 49.8%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 280 2% 92%;
+    --input: 0 0% 100%;
+    --ring: 346.8 77.2% 49.8%;
+    --radius: 0.5rem;
+
+    --status-pending: 38 92% 90%;
+    --status-assigned: 201 96% 50%;
+    --status-completed: 134 53% 92%;
+    --status-failed: 0 84% 92%;
+    --status-pending-text: 38 92% 50%;
+    --status-assigned-text: 201 96% 32%;
+    --status-completed-text: 134 61% 36%;
+    --status-failed-text: 0 84% 40%;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark {
+    /* Dark mode overrides */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
@@ -23,18 +61,29 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 346.8 77.2% 49.8%;
-    --radius: 0.5rem;
 
     --status-pending: 48 96% 89%;
     --status-assigned: 201 96% 32%;
     --status-completed: 142 71% 45%;
     --status-failed: 0 84% 60%;
+    --status-pending-text: 0 0% 0%;
+    --status-assigned-text: 0 0% 100%;
+    --status-completed-text: 0 0% 100%;
+    --status-failed-text: 0 0% 100%;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.8);
   }
 }
 
 @layer base {
+  html {
+    @apply transition-colors duration-200;
+  }
+
   * {
-    @apply border-border;
+    @apply border-border transition-colors duration-200;
   }
 
   body {
@@ -76,37 +125,36 @@ h3 {
   font-size: 0.75rem;
   font-weight: bold;
   text-transform: uppercase;
-  color: #000;
 }
 
 .badge.pending {
   background-color: hsl(var(--status-pending));
-  color: #000;
+  color: hsl(var(--status-pending-text));
 }
 
 .badge.assigned {
   background-color: hsl(var(--status-assigned));
-  color: #fff;
+  color: hsl(var(--status-assigned-text));
 }
 
 .badge.completed {
   background-color: hsl(var(--status-completed));
-  color: #fff;
+  color: hsl(var(--status-completed-text));
 }
 
 .badge.failed {
   background-color: hsl(var(--status-failed));
-  color: #fff;
+  color: hsl(var(--status-failed-text));
 }
 
 .badge.online {
   background-color: hsl(var(--status-completed));
-  color: #fff;
+  color: hsl(var(--status-completed-text));
 }
 
 .badge.offline {
   background-color: hsl(var(--status-failed));
-  color: #fff;
+  color: hsl(var(--status-failed-text));
 }
 
 .badge.tag {
