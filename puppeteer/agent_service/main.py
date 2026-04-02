@@ -212,7 +212,13 @@ async def lifespan(app: FastAPI):
                     logger.warning(
                         f"Licence status transitioned: {old_status.value} → {new_status.value}"
                     )
-                    # Note: Wave 2 will add broadcast_ws_event + audit logging for transitions
+                    # Broadcast licence status change to all connected WebSocket clients
+                    await ws_manager.broadcast("licence_status_changed", {
+                        "old_status": str(old_status.value),
+                        "new_status": str(new_status.value),
+                        "reason": "background_expiry_check",
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
             except Exception as e:
                 logger.error(f"Licence expiry check failed: {e}")
 
@@ -1865,6 +1871,19 @@ async def reload_licence_endpoint(
 
     # Atomic swap — new state is valid
     app.state.licence_state = new_state
+
+    # Broadcast licence status change to all connected WebSocket clients
+    await ws_manager.broadcast("licence_status_changed", {
+        "old_status": old_state.status.value,
+        "new_status": new_state.status.value,
+        "message": f"Licence updated to {new_state.status.value}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "metadata": {
+            "organization": new_state.customer_id or "Unknown",
+            "tier": new_state.tier,
+            "expires_at": (datetime.utcnow() + timedelta(days=new_state.days_until_expiry)).isoformat() if new_state.days_until_expiry > 0 else None
+        }
+    })
 
     # Audit the transition
     audit(
