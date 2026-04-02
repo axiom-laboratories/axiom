@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Boxes, CheckCircle2, Clock, AlertCircle, ShieldAlert, Loader2, Plus, Cpu, Globe, Zap, Trash2, RefreshCw, Wrench, X, Package, Layers } from 'lucide-react';
+import { Boxes, CheckCircle2, Clock, AlertCircle, ShieldAlert, Loader2, Plus, Cpu, Globe, Zap, Trash2, RefreshCw, Wrench, X, Package, Layers, Pencil, Check, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch } from '../auth';
 import { useFeatures } from '../hooks/useFeatures';
@@ -456,6 +457,13 @@ const Templates = () => {
         is_active: true
     });
     const [newDepInput, setNewDepInput] = useState('');
+    const [editingTool, setEditingTool] = useState<ToolMatrix | null>(null);
+    const [toolEditOpen, setToolEditOpen] = useState(false);
+    const [toolEditForm, setToolEditForm] = useState({
+        tool_id: '', base_os_family: 'DEBIAN' as string,
+        validation_cmd: '', injection_recipe: '', runtime_dependencies: [] as string[],
+    });
+    const [editDepInput, setEditDepInput] = useState('');
 
     const { data: templates = [], isLoading: loadingTemplates } = useQuery<Template[]>({
         queryKey: ['templates'],
@@ -537,6 +545,59 @@ const Templates = () => {
             }
         }
     });
+
+    // Edit tool mutation
+    const editToolMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+            const res = await authenticatedFetch(`/api/capability-matrix/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to update tool');
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            refetchTools();
+            toast.success('Tool updated');
+            setToolEditOpen(false);
+            setEditingTool(null);
+        },
+        onError: (e: Error) => toast.error(`Update failed: ${e.message}`),
+    });
+
+    const openToolEdit = (tool: ToolMatrix) => {
+        setEditingTool(tool);
+        setToolEditForm({
+            tool_id: tool.tool_id,
+            base_os_family: tool.base_os_family,
+            validation_cmd: tool.validation_cmd,
+            injection_recipe: tool.injection_recipe,
+            runtime_dependencies: [...(tool.runtime_dependencies || [])],
+        });
+        setEditDepInput('');
+        setToolEditOpen(true);
+    };
+
+    const handleToolEditSave = () => {
+        if (!editingTool) return;
+        const data: Record<string, unknown> = {};
+        if (toolEditForm.tool_id !== editingTool.tool_id) data.tool_id = toolEditForm.tool_id;
+        if (toolEditForm.base_os_family !== editingTool.base_os_family) data.base_os_family = toolEditForm.base_os_family;
+        if (toolEditForm.validation_cmd !== editingTool.validation_cmd) data.validation_cmd = toolEditForm.validation_cmd;
+        if (toolEditForm.injection_recipe !== editingTool.injection_recipe) data.injection_recipe = toolEditForm.injection_recipe;
+        if (JSON.stringify(toolEditForm.runtime_dependencies) !== JSON.stringify(editingTool.runtime_dependencies || []))
+            data.runtime_dependencies = toolEditForm.runtime_dependencies;
+        if (Object.keys(data).length === 0) {
+            toast.info('No changes to save');
+            setToolEditOpen(false);
+            return;
+        }
+        editToolMutation.mutate({ id: editingTool.id, data });
+    };
 
     const baseUpdatedAt = baseImageData?.base_node_image_updated_at ?? null;
     const runtimeBlueprints = blueprints.filter((b: Blueprint) => b.type === 'RUNTIME');
@@ -725,6 +786,80 @@ const Templates = () => {
                                 </DialogContent>
                             </Dialog>
 
+                            {/* Edit tool dialog */}
+                            <Dialog open={toolEditOpen} onOpenChange={(open) => { setToolEditOpen(open); if (!open) setEditingTool(null); }}>
+                                <DialogContent className="max-w-lg bg-zinc-950 border-zinc-800 text-white">
+                                    <DialogHeader>
+                                        <DialogTitle>Edit Tool</DialogTitle>
+                                        <DialogDescription className="text-zinc-500">
+                                            Modify tool entry properties. Only changed fields will be sent.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-2">
+                                        <div className="grid gap-1.5">
+                                            <Label>Tool ID</Label>
+                                            <Input className="bg-zinc-900 border-zinc-800"
+                                                value={toolEditForm.tool_id}
+                                                onChange={e => setToolEditForm({...toolEditForm, tool_id: e.target.value})} />
+                                        </div>
+                                        <div className="grid gap-1.5">
+                                            <Label>OS Family</Label>
+                                            <select className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 text-sm"
+                                                value={toolEditForm.base_os_family}
+                                                onChange={e => setToolEditForm({...toolEditForm, base_os_family: e.target.value})}>
+                                                <option value="DEBIAN">DEBIAN</option>
+                                                <option value="ALPINE">ALPINE</option>
+                                            </select>
+                                        </div>
+                                        <div className="grid gap-1.5">
+                                            <Label>Validation Command</Label>
+                                            <Input className="bg-zinc-900 border-zinc-800"
+                                                value={toolEditForm.validation_cmd}
+                                                onChange={e => setToolEditForm({...toolEditForm, validation_cmd: e.target.value})} />
+                                        </div>
+                                        <div className="grid gap-1.5">
+                                            <Label>Injection Recipe (Dockerfile snippet)</Label>
+                                            <Textarea className="bg-zinc-900 border-zinc-800 font-mono h-20 resize-none"
+                                                value={toolEditForm.injection_recipe}
+                                                onChange={e => setToolEditForm({...toolEditForm, injection_recipe: e.target.value})} />
+                                        </div>
+                                        <div className="grid gap-1.5">
+                                            <Label>Runtime Dependencies (tool_ids)</Label>
+                                            <div className="flex gap-2">
+                                                <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. python-3.11"
+                                                    value={editDepInput} onChange={e => setEditDepInput(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' && editDepInput) {
+                                                            setToolEditForm({...toolEditForm, runtime_dependencies: [...toolEditForm.runtime_dependencies, editDepInput]});
+                                                            setEditDepInput('');
+                                                        }
+                                                    }} />
+                                                <Button type="button" size="icon" onClick={() => {
+                                                    if (editDepInput) {
+                                                        setToolEditForm({...toolEditForm, runtime_dependencies: [...toolEditForm.runtime_dependencies, editDepInput]});
+                                                        setEditDepInput('');
+                                                    }
+                                                }}><Plus className="h-4 w-4" /></Button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {toolEditForm.runtime_dependencies.map(dep => (
+                                                    <Badge key={dep} variant="outline" className="cursor-pointer text-xs"
+                                                        onClick={() => setToolEditForm({...toolEditForm, runtime_dependencies: toolEditForm.runtime_dependencies.filter(d => d !== dep)})}>
+                                                        {dep} <X className="h-3 w-3 ml-1" />
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => { setToolEditOpen(false); setEditingTool(null); }}>Cancel</Button>
+                                        <Button onClick={handleToolEditSave} disabled={editToolMutation.isPending || !toolEditForm.tool_id || !toolEditForm.validation_cmd}>
+                                            {editToolMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
                             {/* Tools table */}
                             <div className="rounded-xl border border-zinc-800 overflow-hidden">
                                 <table className="w-full text-sm">
@@ -764,20 +899,30 @@ const Templates = () => {
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    {tool.is_active && (
+                                                    <div className="flex gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-8 w-8 text-zinc-500 hover:text-red-400"
-                                                            onClick={() => {
-                                                                if (confirm(`Deactivate tool "${tool.tool_id}"? It will be hidden from new blueprints but existing blueprints are unaffected.`)) {
-                                                                    deleteToolMutation.mutate(tool.id);
-                                                                }
-                                                            }}
+                                                            className="h-8 w-8 text-zinc-500 hover:text-white"
+                                                            onClick={() => openToolEdit(tool)}
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
+                                                            <Pencil className="h-4 w-4" />
                                                         </Button>
-                                                    )}
+                                                        {tool.is_active && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-zinc-500 hover:text-red-400"
+                                                                onClick={() => {
+                                                                    if (confirm(`Deactivate tool "${tool.tool_id}"? It will be hidden from new blueprints but existing blueprints are unaffected.`)) {
+                                                                        deleteToolMutation.mutate(tool.id);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
