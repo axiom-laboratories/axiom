@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 116 Plan 02 completed (all plans in phase complete)
-last_updated: "2026-04-02T19:59:12.195Z"
+stopped_at: Phase 117 context gathered
+last_updated: "2026-04-02T21:23:40.720Z"
 last_activity: 2026-04-02 -- Completed 116-02-PLAN.md
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 1
   total_plans: 5
   completed_plans: 4
@@ -57,6 +57,7 @@ Progress: [████░░░░░░] 13%
 ### Roadmap Evolution
 
 - Phase 116 added: Fix smelter DB migration and add EE licence hot-reload
+- Phase 117 added: Implement light mode with a light mode/dark mode toggle, whilst keeping the brand identity
 
 ### Key Decisions
 
@@ -103,6 +104,6 @@ Progress: [████░░░░░░] 13%
 
 ## Session Continuity
 
-Last session: 2026-04-02T21:35:00.000Z
-Stopped at: Phase 116 Plan 02 completed (all plans in phase complete)
+Last session: 2026-04-02T21:23:40.694Z
+Stopped at: Phase 117 context gathered
 Ready for: Phase 117+ (next phase in roadmap)
