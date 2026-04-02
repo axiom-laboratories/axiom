@@ -3,20 +3,37 @@ import { getToken } from '../auth';
 
 type WsHandler = (event: string, data: unknown) => void;
 
+export interface LicenceStatusChangeData {
+    old_status: string;
+    new_status: string;
+    message?: string;
+    reason?: string;
+    timestamp: string;
+    metadata?: {
+        organization: string;
+        tier: string;
+        expires_at: string | null;
+    };
+}
+
+type OnLicenceStatusChanged = (data: LicenceStatusChangeData) => void;
+
 /**
  * Opens a WebSocket to /ws (backend URL resolved from window.location).
  * Calls onMessage whenever a JSON frame arrives.
  * Automatically reconnects on close/error with exponential back-off.
  * Sends a ping every 20 s to keep the connection alive through proxies.
  */
-export function useWebSocket(onMessage: WsHandler) {
+export function useWebSocket(onMessage: WsHandler, onLicenceStatusChanged?: OnLicenceStatusChanged) {
     const wsRef = useRef<WebSocket | null>(null);
     const retryRef = useRef<ReturnType<typeof setTimeout>>();
     const pingRef = useRef<ReturnType<typeof setInterval>>();
     const mountedRef = useRef(true);
     const delayRef = useRef(1000);
     const handlerRef = useRef(onMessage);
+    const licenceHandlerRef = useRef(onLicenceStatusChanged);
     handlerRef.current = onMessage;
+    licenceHandlerRef.current = onLicenceStatusChanged;
 
     const connect = useCallback(() => {
         if (!mountedRef.current) return;
@@ -47,6 +64,11 @@ export function useWebSocket(onMessage: WsHandler) {
             try {
                 const { event, data } = JSON.parse(e.data);
                 handlerRef.current(event, data);
+
+                // Call licence-specific handler if registered
+                if (event === 'licence_status_changed' && licenceHandlerRef.current) {
+                    licenceHandlerRef.current(data as LicenceStatusChangeData);
+                }
             } catch { /* pong or unexpected frame */ }
         };
 
