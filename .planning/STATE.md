@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Completed 107-01-PLAN.md
-last_updated: "2026-04-01T22:25:07Z"
-last_activity: 2026-04-01 -- Completed 107-01-PLAN.md
+stopped_at: Completed 107-02-PLAN.md
+last_updated: "2026-04-02T06:46:30Z"
+last_activity: 2026-04-02 -- Completed 107-02-PLAN.md
 progress:
   total_phases: 9
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 3
+  completed_plans: 2
+  percent: 7
 ---
 
 # Project State
@@ -26,28 +26,28 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 ## Current Position
 
 Phase: 1 of 9 (107 - Schema Foundation + CRUD Completeness)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: executing
-Last activity: 2026-04-01 -- Completed 107-01-PLAN.md
+Last activity: 2026-04-02 -- Completed 107-02-PLAN.md
 
-Progress: [█░░░░░░░░░] 3%
+Progress: [█░░░░░░░░░] 7%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1 (this milestone)
-- Average duration: 9min
-- Total execution time: 0.15 hours
+- Total plans completed: 2 (this milestone)
+- Average duration: 7min
+- Total execution time: 0.22 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 107 | 1/3 | 9min | 9min |
+| 107 | 2/3 | 13min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 107-01 (9min)
-- Trend: -
+- Last 5 plans: 107-01 (9min), 107-02 (4min)
+- Trend: improving
 
 *Updated after each plan completion*
 
@@ -64,6 +64,8 @@ Progress: [█░░░░░░░░░] 3%
 
 - [107-01]: EE models placed in agent_service/db.py (same Base) rather than separate axiom-ee package, matching existing import paths
 - [107-01]: All missing EE DB and Pydantic models added as blocking dependency for CRUD endpoint implementation
+- [107-02]: Single saveMutation handles both create (POST) and edit (PATCH) with conditional URL/method rather than separate mutations
+- [107-02]: Dep confirmation via pendingPayload state + AlertDialog resubmit pattern (422 intercept -> confirm -> resubmit with confirmed_deps)
 
 ### Pending Todos
 
@@ -76,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-01T22:25:07Z
-Stopped at: Completed 107-01-PLAN.md
-Resume file: .planning/phases/107-schema-foundation-crud-completeness/107-02-PLAN.md
+Last session: 2026-04-02T06:46:30Z
+Stopped at: Completed 107-02-PLAN.md
+Resume file: .planning/phases/107-schema-foundation-crud-completeness/107-03-PLAN.md

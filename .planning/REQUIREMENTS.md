@@ -12,7 +12,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **CRUD-01**: Operator can edit an existing Image Recipe (blueprint) via a pre-populated wizard modal, with optimistic locking (version column + 409 on conflict)
 - [ ] **CRUD-02**: Operator can edit an existing Tool Recipe via an edit dialog using the existing PATCH endpoint
 - [x] **CRUD-03**: Admin can list, add, edit, and remove Approved OS entries from a dedicated section in the Foundry or Admin page
-- [ ] **CRUD-04**: Operator sees a confirmation dialog showing all runtime dependencies before a blueprint build commits
+- [x] **CRUD-04**: Operator sees a confirmation dialog showing all runtime dependencies before a blueprint build commits
 
 ### Dependency Resolution
 
@@ -78,7 +78,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CRUD-01 | Phase 107 | Complete |
 | CRUD-02 | Phase 107 | Pending |
 | CRUD-03 | Phase 107 | Complete |
-| CRUD-04 | Phase 107 | Pending |
+| CRUD-04 | Phase 107 | Complete |
 | DEP-01 | Phase 108 | Pending |
 | DEP-02 | Phase 110 | Pending |
 | DEP-03 | Phase 110 | Pending |
