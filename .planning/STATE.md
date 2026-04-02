@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 116 Plan 01 completed
-last_updated: "2026-04-02T20:49:00.000Z"
-last_activity: 2026-04-02 -- Completed 116-01-PLAN.md
+stopped_at: Phase 116 Plan 02 completed
+last_updated: "2026-04-02T21:35:00.000Z"
+last_activity: 2026-04-02 -- Completed 116-02-PLAN.md
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 3
-  completed_plans: 3
-  percent: 10
+  completed_plans: 4
+  percent: 13
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 ## Current Position
 
 Phase: 116 of 10 (116 - Fix Smelter DB Migration + EE Licence Hot-Reload)
-Plan: 1 of 2 in current phase (COMPLETED)
+Plan: 2 of 2 in current phase (COMPLETED)
 Status: executing
-Last activity: 2026-04-02 -- Completed 116-01-PLAN.md
+Last activity: 2026-04-02 -- Completed 116-02-PLAN.md
 
-Progress: [███░░░░░░░] 10%
+Progress: [████░░░░░░] 13%
 
 ## Performance Metrics
 
@@ -44,10 +44,10 @@ Progress: [███░░░░░░░] 10%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 107 | 2/3 | 13min | 7min |
-| 116 | 1/2 | 45min | 45min |
+| 116 | 2/2 | 80min | 40min |
 
 **Recent Trend:**
-- Last 5 plans: 107-01 (9min), 107-02 (4min), 116-01 (45min)
+- Last 5 plans: 107-01 (9min), 107-02 (4min), 116-01 (45min), 116-02 (35min)
 - Trend: stable (infrastructure/backend work inherently longer)
 
 *Updated after each plan completion*
@@ -78,14 +78,23 @@ Progress: [███░░░░░░░] 10%
 - ~~**Hot-reload EE licence at runtime** (api)~~ — 2026-04-02 ✓ DONE
 - ~~**Fix missing mirror_log column on approved_ingredients table** (api)~~ — 2026-04-02 ✓ DONE
 
-### Completed in Phase 116-01
+### Completed in Phase 116
 
+**Plan 116-01 (Backend):**
 - migration_v46.sql with mirror_log column addition
 - reload_licence() and check_licence_expiry() service functions
 - POST /api/admin/licence/reload endpoint (200 on success, 422 on invalid)
 - Background licence expiry timer (60s interval, VALID→GRACE→EXPIRED transitions)
 - LicenceExpiryGuard middleware (402 Payment Required on EXPIRED status)
 - Integration tests for reload and expiry workflows (all passing)
+
+**Plan 116-02 (Frontend UI & WebSocket):**
+- WebSocket broadcast integration in reload_licence_endpoint and background expiry checker
+- Extended useWebSocket hook with LicenceStatusChangeData interface and optional onLicenceStatusChanged callback
+- Three licence UI components: LicenceStatus (metadata card), LicenceReloadButton (admin-only), GracePeriodBanner (dismissible alert)
+- Admin Licence tab with real-time WebSocket updates and query invalidation pattern
+- Playwright E2E test (Test 8) for admin licence management workflow
+- Grace period notifications with localStorage-persisted dismissal
 
 ### Blockers/Concerns
 
@@ -94,6 +103,6 @@ Progress: [███░░░░░░░] 10%
 
 ## Session Continuity
 
-Last session: 2026-04-02T20:49:00.000Z
-Stopped at: Phase 116 Plan 01 completed
-Ready for: Phase 116 Plan 02 (Wave 2: Dashboard UI + WebSocket broadcast)
+Last session: 2026-04-02T21:35:00.000Z
+Stopped at: Phase 116 Plan 02 completed (all plans in phase complete)
+Ready for: Phase 117+ (next phase in roadmap)
