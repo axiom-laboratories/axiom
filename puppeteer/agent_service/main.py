@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, Depends, Header, status, WebSocket, WebSocketDisconnect, Query, Form
 from fastapi.responses import Response, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -236,6 +237,49 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- LICENCE EXPIRY GUARD MIDDLEWARE (Phase 116, Task 6) ---
+class LicenceExpiryGuard(BaseHTTPMiddleware):
+    """
+    Guard middleware that blocks EE-only endpoints with 402 Payment Required
+    when the licence has expired (EXPIRED status, not VALID or GRACE).
+
+    EE router prefixes: /api/foundry, /api/audit, /api/webhooks, /api/triggers,
+    /api/auth-ext, /api/smelter, /api/executions
+    """
+
+    # EE-only route prefixes (lowercase for matching)
+    EE_PREFIXES = (
+        "/api/foundry",
+        "/api/audit",
+        "/api/webhooks",
+        "/api/triggers",
+        "/api/auth-ext",
+        "/api/smelter",
+        "/api/executions",
+    )
+
+    async def dispatch(self, request: Request, call_next):
+        # Check if this is an EE route
+        path_lower = request.url.path.lower()
+        is_ee_route = any(path_lower.startswith(prefix) for prefix in self.EE_PREFIXES)
+
+        if is_ee_route:
+            # Check licence state from app state
+            current_app = request.app if hasattr(request, 'app') else app
+            licence_state = getattr(current_app.state, 'licence_state', None)
+            if licence_state and licence_state.status == LicenceStatus.EXPIRED:
+                return Response(
+                    content=json.dumps({
+                        "detail": "Licence expired — EE features unavailable (grace period ended)"
+                    }),
+                    status_code=402,
+                    media_type="application/json"
+                )
+
+        return await call_next(request)
+
+app.add_middleware(LicenceExpiryGuard)
 
 # --- AUTH HELPERS (moved to deps.py to avoid circular imports with EE routers) ---
 from .deps import (

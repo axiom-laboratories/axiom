@@ -419,3 +419,54 @@ def test_check_licence_expiry_ce_stays_ce():
 
     result = check_licence_expiry(ce_state)
     assert result == LicenceStatus.CE
+
+
+# ---------------------------------------------------------------------------
+# Task 6: Licence Expiry Guard Middleware tests
+# ---------------------------------------------------------------------------
+
+def test_licence_expiry_guard_ee_prefixes():
+    """Phase 116 Task 6: Verify LicenceExpiryGuard middleware has correct EE route prefixes."""
+    from agent_service.main import LicenceExpiryGuard
+
+    # Test that all EE router prefixes are correctly defined
+    expected_prefixes = (
+        "/api/foundry",
+        "/api/audit",
+        "/api/webhooks",
+        "/api/triggers",
+        "/api/auth-ext",
+        "/api/smelter",
+        "/api/executions",
+    )
+
+    assert LicenceExpiryGuard.EE_PREFIXES == expected_prefixes
+
+    # Test that prefix matching logic works correctly
+    # (using direct string prefix checking, which is how dispatch() uses it)
+    ee_routes = [
+        "/api/foundry/templates",
+        "/api/audit/log",
+        "/api/webhooks/events",
+        "/api/triggers/list",
+        "/api/auth-ext/mfa",
+        "/api/smelter/mirrors",
+        "/api/executions/history",
+    ]
+
+    ce_routes = [
+        "/api/nodes",
+        "/api/jobs",
+        "/api/health",
+        "/api/licence",
+    ]
+
+    # Verify EE routes match
+    for route in ee_routes:
+        is_ee = any(route.lower().startswith(prefix) for prefix in LicenceExpiryGuard.EE_PREFIXES)
+        assert is_ee, f"Route {route} should be recognized as EE"
+
+    # Verify CE routes don't match
+    for route in ce_routes:
+        is_ee = any(route.lower().startswith(prefix) for prefix in LicenceExpiryGuard.EE_PREFIXES)
+        assert not is_ee, f"Route {route} should NOT be recognized as EE"
