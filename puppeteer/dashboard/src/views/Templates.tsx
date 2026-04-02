@@ -1068,6 +1068,145 @@ const Templates = () => {
                             </div>
                         </div>
                     </TabsContent>
+
+                    <TabsContent value="approved-os">
+                        <div className="space-y-4">
+                            <div className="flex justify-end">
+                                <Button
+                                    variant="outline"
+                                    className="bg-zinc-900 border-zinc-800 text-white h-10 px-4 rounded-xl"
+                                    onClick={() => setShowAddOS(true)}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" /> Add Approved OS
+                                </Button>
+                            </div>
+
+                            {/* Add OS dialog */}
+                            <Dialog open={showAddOS} onOpenChange={setShowAddOS}>
+                                <DialogContent className="max-w-lg bg-zinc-950 border-zinc-800 text-white">
+                                    <DialogHeader>
+                                        <DialogTitle>Add Approved OS</DialogTitle>
+                                        <DialogDescription className="text-zinc-500">
+                                            Add a new base OS image to the approved list.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-2">
+                                        <div className="grid gap-1.5">
+                                            <Label>Name</Label>
+                                            <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. Ubuntu 24.04"
+                                                value={newOS.name} onChange={e => setNewOS({...newOS, name: e.target.value})} />
+                                        </div>
+                                        <div className="grid gap-1.5">
+                                            <Label>Image URI</Label>
+                                            <Input className="bg-zinc-900 border-zinc-800" placeholder="e.g. docker.io/library/ubuntu:24.04"
+                                                value={newOS.image_uri} onChange={e => setNewOS({...newOS, image_uri: e.target.value})} />
+                                        </div>
+                                        <div className="grid gap-1.5">
+                                            <Label>OS Family</Label>
+                                            <select className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 text-sm"
+                                                value={newOS.os_family}
+                                                onChange={e => setNewOS({...newOS, os_family: e.target.value})}>
+                                                <option value="DEBIAN">DEBIAN</option>
+                                                <option value="ALPINE">ALPINE</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setShowAddOS(false)}>Cancel</Button>
+                                        <Button onClick={() => addOSMutation.mutate(newOS)}
+                                            disabled={!newOS.name || !newOS.image_uri || addOSMutation.isPending}>
+                                            {addOSMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...</> : 'Add OS Entry'}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            {/* Approved OS table */}
+                            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-zinc-900 text-zinc-400 uppercase text-xs">
+                                        <tr>
+                                            <th className="text-left px-4 py-3">Name</th>
+                                            <th className="text-left px-4 py-3">Image URI</th>
+                                            <th className="text-left px-4 py-3">OS Family</th>
+                                            <th className="text-left px-4 py-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-800">
+                                        {approvedOSList.map(os => (
+                                            <tr key={os.id} className="hover:bg-zinc-900/50 transition-colors">
+                                                {editingOSId === os.id ? (
+                                                    <>
+                                                        <td className="px-4 py-3">
+                                                            <Input className="bg-zinc-900 border-zinc-800 h-8 text-sm"
+                                                                value={osEditForm.name}
+                                                                onChange={e => setOsEditForm({...osEditForm, name: e.target.value})} />
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <Input className="bg-zinc-900 border-zinc-800 h-8 text-sm"
+                                                                value={osEditForm.image_uri}
+                                                                onChange={e => setOsEditForm({...osEditForm, image_uri: e.target.value})} />
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <select className="bg-zinc-900 border border-zinc-800 text-white rounded-md px-2 py-1 text-sm"
+                                                                value={osEditForm.os_family}
+                                                                onChange={e => setOsEditForm({...osEditForm, os_family: e.target.value})}>
+                                                                <option value="DEBIAN">DEBIAN</option>
+                                                                <option value="ALPINE">ALPINE</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex gap-1">
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-500 hover:text-emerald-400"
+                                                                    onClick={() => handleOSEditSave(os)}
+                                                                    disabled={editOSMutation.isPending}>
+                                                                    <Check className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-white"
+                                                                    onClick={() => setEditingOSId(null)}>
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className="px-4 py-3 text-white font-medium">{os.name}</td>
+                                                        <td className="px-4 py-3 font-mono text-zinc-400 text-xs">{os.image_uri}</td>
+                                                        <td className="px-4 py-3">
+                                                            <Badge variant="outline" className={os.os_family === 'ALPINE' ? 'border-cyan-600 text-cyan-400' : 'border-amber-600 text-amber-400'}>
+                                                                {os.os_family}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex gap-1">
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-white"
+                                                                    onClick={() => startOSEdit(os)}>
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-red-400"
+                                                                    onClick={() => deleteOSMutation.mutate(os.id)}
+                                                                    disabled={deleteOSMutation.isPending}>
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </>
+                                                )}
+                                            </tr>
+                                        ))}
+                                        {approvedOSList.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                                                    No approved OS entries found. Add one to get started.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </TabsContent>
                 </Tabs>
             )}
 
