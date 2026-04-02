@@ -265,15 +265,17 @@ Plans:
 
 **Requirements**: None specified
 
-**Plans:** 4 plans
+**Plans:** 5 plans
 
 Plans:
-- [x] 117-01-PLAN.md — CSS variables foundation + FOWT prevention (Wave 1)
-- [x] 117-02-PLAN.md — Theme provider hook + toggle component (Wave 2)
-- [x] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 2)
-- [x] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 3)
+- [x] 117-00-PLAN.md — Test infrastructure foundation (Wave 0 TDD RED phase) — completed 2026-04-02
+- [ ] 117-01-PLAN.md — CSS variables foundation + FOWT prevention (Wave 1)
+- [ ] 117-02-PLAN.md — Theme provider hook + toggle component (Wave 2)
+- [ ] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 2)
+- [ ] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 3)
 
 **Wave Structure:**
+- Wave 0: Comprehensive test coverage defining expected behavior (TDD RED phase) — completed 2026-04-02
 - Wave 1: CSS variables, FOWT script, Tailwind config (foundational)
 - Wave 2: Theme provider, toggle component, component styling updates (parallelizable)
 - Wave 3: Visual verification checkpoint (blocks execution until approved)

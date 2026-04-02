@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 117 context gathered
-last_updated: "2026-04-02T21:23:40.720Z"
-last_activity: 2026-04-02 -- Completed 116-02-PLAN.md
+stopped_at: Phase 117 Plan 00 completed
+last_updated: "2026-04-02T22:45:00.000Z"
+last_activity: 2026-04-02 -- Completed 117-00-PLAN.md (Wave 0 Test Infrastructure)
 progress:
   total_phases: 11
   completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 13
+  completed_plans: 1
+  percent: 20
 ---
 
 # Project State
@@ -25,19 +25,19 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 
 ## Current Position
 
-Phase: 116 of 10 (116 - Fix Smelter DB Migration + EE Licence Hot-Reload)
-Plan: 2 of 2 in current phase (COMPLETED)
+Phase: 117 of 11 (117 - Implement Light Mode with Dark Mode Toggle)
+Plan: 1 of 5 in current phase (COMPLETED 117-00)
 Status: executing
-Last activity: 2026-04-02 -- Completed 116-02-PLAN.md
+Last activity: 2026-04-02 -- Completed 117-00-PLAN.md (Wave 0 Test Infrastructure)
 
-Progress: [████░░░░░░] 13%
+Progress: [█████░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2 (this milestone)
-- Average duration: 7min
-- Total execution time: 0.22 hours
+- Total plans completed: 3 (this milestone)
+- Average duration: 8min
+- Total execution time: 0.37 hours
 
 **By Phase:**
 
@@ -45,10 +45,11 @@ Progress: [████░░░░░░] 13%
 |-------|-------|-------|----------|
 | 107 | 2/3 | 13min | 7min |
 | 116 | 2/2 | 80min | 40min |
+| 117 | 1/5 | 15min | 15min |
 
 **Recent Trend:**
-- Last 5 plans: 107-01 (9min), 107-02 (4min), 116-01 (45min), 116-02 (35min)
-- Trend: stable (infrastructure/backend work inherently longer)
+- Last 5 plans: 107-01 (9min), 107-02 (4min), 116-01 (45min), 116-02 (35min), 117-00 (15min)
+- Trend: stable (test infrastructure work is medium complexity)
 
 *Updated after each plan completion*
 
@@ -73,11 +74,28 @@ Progress: [████░░░░░░] 13%
 - [107-02]: Single saveMutation handles both create (POST) and edit (PATCH) with conditional URL/method rather than separate mutations
 - [107-02]: Dep confirmation via pendingPayload state + AlertDialog resubmit pattern (422 intercept -> confirm -> resubmit with confirmed_deps)
 
+- [117-00]: Structured all theme tests in RED (failing) state per TDD methodology to define expected behavior upfront before implementation
+- [117-00]: Theme infrastructure tests organized into unit (useTheme hook), component (ThemeToggle), integration (CSS variables), context (ThemeProvider), and E2E (Playwright) categories
+- [117-00]: localStorage key is 'mop_theme' with values 'dark' | 'light'; DOM class is '.dark' on document.documentElement
+- [117-00]: FOWT prevention via inline script in index.html that runs before React hydration; theme toggle placement in sidebar footer (post-auth only)
+
 ### Pending Todos
 
-0 pending (Phase 116-01 completed both):
-- ~~**Hot-reload EE licence at runtime** (api)~~ — 2026-04-02 ✓ DONE
-- ~~**Fix missing mirror_log column on approved_ingredients table** (api)~~ — 2026-04-02 ✓ DONE
+0 pending (Phase 117-00 completed test infrastructure):
+- ~~**Create comprehensive test coverage for theme system** (frontend)~~ — 2026-04-02 ✓ DONE
+- **Implement useTheme hook + ThemeProvider** (Wave 1-02) — pending
+- **Implement CSS variables and FOWT prevention** (Wave 1-01) — pending
+- **Migrate UI components to theme-aware styling** (Wave 1-03) — pending
+
+### Completed in Phase 117
+
+**Plan 117-00 (Test Infrastructure - Wave 0):**
+- useTheme hook unit tests (7 tests)
+- ThemeToggle component tests (7 tests)
+- CSS variables integration tests (9 tests)
+- ThemeProvider context tests (5 tests)
+- Playwright E2E tests for theme toggle (1 comprehensive test in Test 9)
+- Total: 28 tests in RED state, defining expected behavior for subsequent waves
 
 ### Completed in Phase 116
 
