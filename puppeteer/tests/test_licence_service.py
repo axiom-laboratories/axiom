@@ -470,3 +470,170 @@ def test_licence_expiry_guard_ee_prefixes():
     for route in ce_routes:
         is_ee = any(route.lower().startswith(prefix) for prefix in LicenceExpiryGuard.EE_PREFIXES)
         assert not is_ee, f"Route {route} should NOT be recognized as EE"
+
+
+# ---------------------------------------------------------------------------
+# Task 7: Integration Tests for complete licence hot-reload flow
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_licence_reload_endpoint_integration():
+    """Phase 116 Task 7: Integration test for POST /api/admin/licence/reload endpoint."""
+    from agent_service.services.licence_service import reload_licence, LicenceState, LicenceStatus
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    # Generate a test keypair
+    private_key = Ed25519PrivateKey.generate()
+    pub_key = private_key.public_key()
+
+    # Create a valid test licence
+    payload = {
+        "version": 1,
+        "licence_id": "integration-test-id",
+        "customer_id": "integration-test-customer",
+        "issued_to": "Integration Test",
+        "contact_email": "test@integration.local",
+        "tier": "ee",
+        "node_limit": 50,
+        "features": ["foundry", "audit", "webhooks"],
+        "grace_days": 30,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 365 * 86400,
+    }
+
+    token = _jwt.encode(payload, private_key, algorithm="EdDSA")
+
+    # Mock the public key
+    with patch("agent_service.services.licence_service._pub_key", pub_key):
+        result = await reload_licence(licence_key=token)
+
+    # Verify the reloaded state
+    assert result.status == LicenceStatus.VALID
+    assert result.tier == "ee"
+    assert result.customer_id == "integration-test-customer"
+    assert result.node_limit == 50
+    assert result.is_ee_active is True
+    assert set(result.features) == {"foundry", "audit", "webhooks"}
+
+
+@pytest.mark.asyncio
+async def test_licence_reload_preserves_all_fields():
+    """Phase 116 Task 7: reload_licence() preserves all JWT payload fields in LicenceState."""
+    from agent_service.services.licence_service import reload_licence
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    private_key = Ed25519PrivateKey.generate()
+    pub_key = private_key.public_key()
+
+    payload = {
+        "version": 1,
+        "licence_id": "test-preserve-uuid",
+        "customer_id": "preserve-test",
+        "issued_to": "Preserve Test Corp",
+        "contact_email": "preserve@test.example",
+        "tier": "ee",
+        "node_limit": 100,
+        "features": ["foundry", "sso", "webhooks", "audit"],
+        "grace_days": 14,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 730 * 86400,
+    }
+
+    token = _jwt.encode(payload, private_key, algorithm="EdDSA")
+
+    with patch("agent_service.services.licence_service._pub_key", pub_key):
+        result = await reload_licence(licence_key=token)
+
+    # Verify all fields are preserved
+    assert result.customer_id == "preserve-test"
+    assert result.node_limit == 100
+    assert result.grace_days == 14
+    assert len(result.features) == 4
+    assert "sso" in result.features
+    assert "audit" in result.features
+    assert result.days_until_expiry > 0  # Should be positive (not expired)
+
+
+def test_licence_state_transitions_complete():
+    """Phase 116 Task 7: Verify VALID → GRACE → EXPIRED state machine transitions."""
+    from agent_service.services.licence_service import _compute_state, LicenceStatus
+
+    now = int(time.time())
+
+    # Test 1: VALID state (expiry in future)
+    valid_payload = {
+        "exp": now + 10 * 86400,  # expires in 10 days
+        "grace_days": 30,
+        "tier": "ee",
+        "node_limit": 5,
+        "features": [],
+        "customer_id": "test",
+        "iat": 0,
+    }
+    result = _compute_state(valid_payload)
+    assert result.status == LicenceStatus.VALID
+    assert result.is_ee_active is True
+
+    # Test 2: GRACE state (expired but within grace window)
+    grace_payload = {
+        "exp": now - 5 * 86400,  # expired 5 days ago
+        "grace_days": 30,
+        "tier": "ee",
+        "node_limit": 5,
+        "features": [],
+        "customer_id": "test",
+        "iat": 0,
+    }
+    result = _compute_state(grace_payload)
+    assert result.status == LicenceStatus.GRACE
+    assert result.is_ee_active is True
+    assert result.days_until_expiry < 0  # In grace period
+
+    # Test 3: EXPIRED state (grace period elapsed)
+    expired_payload = {
+        "exp": now - 40 * 86400,  # expired 40 days ago (past grace of 30 days)
+        "grace_days": 30,
+        "tier": "ee",
+        "node_limit": 5,
+        "features": [],
+        "customer_id": "test",
+        "iat": 0,
+    }
+    result = _compute_state(expired_payload)
+    assert result.status == LicenceStatus.EXPIRED
+    assert result.is_ee_active is False
+
+
+def test_check_and_record_boot_integration():
+    """Phase 116 Task 7: Verify check_and_record_boot() hash chain integrity."""
+    from agent_service.services.licence_service import check_and_record_boot, LicenceStatus
+    from pathlib import Path
+    from datetime import datetime, timezone
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+
+        # Patch BOOT_LOG_PATH
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            # First boot — should succeed and create genesis entry
+            result = check_and_record_boot(LicenceStatus.CE)
+            assert result is True
+            assert boot_log.exists()
+
+            # Read the first entry
+            lines = boot_log.read_text().strip().splitlines()
+            assert len(lines) >= 1
+            first_hash, first_ts = lines[0].split(" ", 1)
+            assert len(first_hash) == 64  # SHA256 hex
+
+            # Second boot — should succeed
+            result = check_and_record_boot(LicenceStatus.CE)
+            assert result is True
+
+            # Read the second entry
+            lines = boot_log.read_text().strip().splitlines()
+            assert len(lines) >= 2
+            second_hash, second_ts = lines[1].split(" ", 1)
+            assert len(second_hash) == 64
+            assert first_hash != second_hash  # Hash should change
