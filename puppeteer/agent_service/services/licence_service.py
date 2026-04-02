@@ -259,3 +259,81 @@ def load_licence() -> LicenceState:
         logger.warning("Licence grace period ended — DEGRADED_CE mode active")
 
     return state
+
+
+# ---------------------------------------------------------------------------
+# Hot-reload support (Phase 116)
+# ---------------------------------------------------------------------------
+
+class LicenceError(Exception):
+    """Raised when licence validation fails during reload."""
+    pass
+
+
+async def reload_licence(licence_key: Optional[str] = None) -> LicenceState:
+    """
+    Hot-reload the licence key without restarting the server.
+
+    Args:
+        licence_key: Optional override licence key. If None, re-reads from env/file.
+
+    Returns:
+        New LicenceState object if valid.
+
+    Raises:
+        LicenceError: If validation fails (invalid signature, parse error, etc.)
+    """
+    # Determine source: override or env/file fallback
+    raw = licence_key if licence_key else _read_licence_raw()
+
+    if not raw:
+        raise LicenceError("No licence key found in request or env/file")
+
+    try:
+        payload = _decode_licence_jwt(raw)
+    except jwt.exceptions.InvalidSignatureError as exc:
+        raise LicenceError(f"Licence key signature invalid: {exc}")
+    except Exception as exc:
+        raise LicenceError(f"Licence key parse error: {exc}")
+
+    state = _compute_state(payload)
+
+    # Log the reload
+    logger.info(
+        f"Licence reloaded: status={state.status}, tier={state.tier}, "
+        f"customer_id={state.customer_id}, node_limit={state.node_limit}"
+    )
+
+    return state
+
+
+def check_licence_expiry(licence: LicenceState) -> LicenceStatus:
+    """
+    Check the current expiry status of a licence state.
+
+    This is used by background timer to detect status transitions (e.g., GRACE → EXPIRED).
+
+    Args:
+        licence: LicenceState object to check
+
+    Returns:
+        Updated LicenceStatus (VALID, GRACE, or EXPIRED)
+    """
+    # If already CE, stay CE
+    if licence.status == LicenceStatus.CE:
+        return LicenceStatus.CE
+
+    # For EE licences, recompute status based on current time
+    now = time.time()
+
+    # Reconstruct expiry info from the licence state
+    # Note: we use the stored days_until_expiry to back-calculate exp time
+    exp = now + (licence.days_until_expiry * 86400)
+    grace_end = exp + licence.grace_days * 86400
+
+    if now <= exp:
+        return LicenceStatus.VALID
+    elif now <= grace_end:
+        return LicenceStatus.GRACE
+    else:
+        return LicenceStatus.EXPIRED

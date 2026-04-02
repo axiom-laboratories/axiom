@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axiom EE — Package Mirrors &amp; Custom Images</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-bg:             #FAF7F2;
+  --color-bg-warm:        #F5F0E8;
+  --color-bg-code:        #1E1E2E;
+  --color-text:           #2C2A28;
+  --color-text-secondary: #6B6560;
+  --color-text-muted:     #9E9790;
+  --color-border:         #E5DFD6;
+  --color-border-light:   #EEEBE5;
+  --color-surface:        #FFFFFF;
+  --color-surface-warm:   #FDF9F3;
+  --color-accent:         #2A7B9B;
+  --color-accent-hover:   #1F6A87;
+  --color-accent-light:   #E4F2F7;
+  --color-accent-muted:   #5B9DB5;
+  --color-success:        #2D8B55;
+  --color-success-light:  #E8F5EE;
+  --color-error:          #C93B3B;
+  --color-error-light:    #FDE8E8;
+  --color-info:           #2A7B9B;
+  --color-info-light:     #E4F2F7;
+  --color-actor-1:        #D94F30;
+  --color-actor-2:        #2A7B9B;
+  --color-actor-3:        #7B6DAA;
+  --color-actor-4:        #D4A843;
+  --color-actor-5:        #2D8B55;
+  --font-display:  'Bricolage Grotesque', Georgia, serif;
+  --font-body:     'DM Sans', -apple-system, sans-serif;
+  --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --text-5xl:  3rem;
+  --text-6xl:  3.75rem;
+  --leading-tight:  1.15;
+  --leading-snug:   1.3;
+  --leading-normal: 1.6;
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --content-width:      800px;
+  --content-width-wide: 1000px;
+  --nav-height:         50px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-full: 9999px;
+  --shadow-sm:  0 1px 2px rgba(44,42,40,0.05);
+  --shadow-md:  0 4px 12px rgba(44,42,40,0.08);
+  --shadow-lg:  0 8px 24px rgba(44,42,40,0.1);
+  --ease-out:    cubic-bezier(0.16,1,0.3,1);
+  --ease-in-out: cubic-bezier(0.65,0,0.35,1);
+  --duration-fast:   150ms;
+  --duration-normal: 300ms;
+  --duration-slow:   500ms;
+  --stagger-delay:   120ms;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-snap-type: y proximity; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(42,123,155,0.03) 0%, transparent 50%);
+  line-height: var(--leading-normal);
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: var(--radius-full); }
+
+.nav { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-height); background: rgba(250,247,242,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border-light); z-index: 1000; display: flex; flex-direction: column; }
+.progress-bar { height: 3px; background: var(--color-accent); width: 0%; transition: width 0.1s linear; border-radius: 0 2px 2px 0; }
+.nav-inner { flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-6); }
+.nav-title { font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); color: var(--color-text); letter-spacing: -0.01em; }
+.nav-dots { display: flex; gap: var(--space-3); }
+.nav-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--color-text-muted); background: transparent; cursor: pointer; transition: all var(--duration-fast); position: relative; }
+.nav-dot[title]::after { content: attr(title); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--color-bg-code); color: #CDD6F4; font-size: var(--text-xs); font-family: var(--font-body); white-space: nowrap; padding: 3px 8px; border-radius: var(--radius-sm); opacity: 0; pointer-events: none; transition: opacity var(--duration-fast); }
+.nav-dot:hover::after { opacity: 1; }
+.nav-dot.active { border-color: var(--color-accent); background: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-light); }
+.nav-dot.visited { background: var(--color-accent); border-color: var(--color-accent); }
+
+.module { min-height: 100dvh; min-height: 100vh; scroll-snap-align: start; padding: var(--space-16) var(--space-6); padding-top: calc(var(--nav-height) + var(--space-12)); }
+.module-content { max-width: var(--content-width); margin: 0 auto; }
+.module-header { margin-bottom: var(--space-10); }
+.module-number { display: block; font-family: var(--font-display); font-weight: 800; font-size: var(--text-6xl); color: var(--color-accent); opacity: 0.15; line-height: 1; margin-bottom: var(--space-2); }
+.module-title { font-family: var(--font-display); font-weight: 700; font-size: var(--text-4xl); line-height: var(--leading-tight); color: var(--color-text); margin-bottom: var(--space-3); }
+.module-subtitle { font-size: var(--text-lg); color: var(--color-text-secondary); line-height: var(--leading-snug); }
+.screen { margin-bottom: var(--space-12); }
+.screen-heading { font-family: var(--font-display); font-weight: 600; font-size: var(--text-2xl); color: var(--color-text); margin-bottom: var(--space-4); line-height: var(--leading-snug); }
+.screen p { font-size: var(--text-base); color: var(--color-text-secondary); margin-bottom: var(--space-4); line-height: var(--leading-normal); }
+.screen p:last-child { margin-bottom: 0; }
+
+.animate-in { opacity: 0; transform: translateY(20px); transition: opacity var(--duration-slow) var(--ease-out), transform var(--duration-slow) var(--ease-out); }
+.animate-in.visible { opacity: 1; transform: translateY(0); }
+.stagger-children > .animate-in { transition-delay: calc(var(--stagger-index, 0) * var(--stagger-delay)); }
+
+.icon-rows { display: flex; flex-direction: column; gap: var(--space-4); }
+.icon-row { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+.icon-row p { margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+.icon-circle { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+
+.step-cards { display: flex; flex-direction: column; gap: var(--space-3); }
+.step-card { display: flex; align-items: flex-start; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); border-left: 3px solid var(--color-accent); box-shadow: var(--shadow-sm); }
+.step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--color-accent); color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); flex-shrink: 0; font-size: var(--text-sm); }
+.step-body p { margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+.step-body strong { color: var(--color-text); font-size: var(--text-base); }
+
+.pattern-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); }
+.pattern-card { background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); box-shadow: var(--shadow-sm); transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal); }
+.pattern-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.pattern-icon { font-size: 1.5rem; margin-bottom: var(--space-3); }
+.pattern-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-base); margin-bottom: var(--space-2); }
+.pattern-desc { color: var(--color-text-secondary); font-size: var(--text-sm); line-height: var(--leading-normal); }
+
+.flow-steps { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin: var(--space-6) 0; }
+.flow-step { display: flex; flex-direction: column; align-items: center; background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-sm); min-width: 110px; text-align: center; transition: box-shadow var(--duration-fast); }
+.flow-step.active-step { box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-md); }
+.flow-step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--color-accent); color: white; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+.flow-step p { font-size: var(--text-sm); color: var(--color-text-secondary); margin: 0; }
+.flow-step strong { font-size: var(--text-sm); color: var(--color-text); }
+.flow-arrow { font-size: 1.25rem; color: var(--color-accent); flex-shrink: 0; }
+
+.callout { display: flex; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-md); margin: var(--space-6) 0; }
+.callout-accent { background: var(--color-accent-light); border-left: 4px solid var(--color-accent); }
+.callout-warning { background: var(--color-error-light); border-left: 4px solid var(--color-error); }
+.callout-success { background: var(--color-success-light); border-left: 4px solid var(--color-success); }
+.callout-icon { font-size: 1.25rem; flex-shrink: 0; }
+.callout-title { font-weight: 600; color: var(--color-text); margin-bottom: var(--space-1); display: block; }
+.callout p { margin: 0; font-size: var(--text-sm); color: var(--color-text-secondary); }
+
+.code-block { background: var(--color-bg-code); color: #CDD6F4; padding: var(--space-5); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7; margin: var(--space-4) 0; overflow-x: auto; position: relative; }
+.code-block pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
+.code-label { position: absolute; top: var(--space-2); right: var(--space-3); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.5; font-family: var(--font-mono); color: #CDD6F4; }
+.code-keyword  { color: #CBA6F7; }
+.code-string   { color: #A6E3A1; }
+.code-function { color: #89B4FA; }
+.code-comment  { color: #6C7086; }
+.code-number   { color: #FAB387; }
+
+.gui-path { font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-accent-light); color: var(--color-accent); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.gui-step { display: flex; align-items: flex-start; gap: var(--space-4); padding: var(--space-5); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: var(--space-3); }
+.gui-step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--color-accent); color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); flex-shrink: 0; font-size: var(--text-base); }
+.gui-step-body { flex: 1; }
+.gui-step-body strong { color: var(--color-text); font-size: var(--text-base); display: block; margin-bottom: var(--space-1); }
+.gui-step-body p { margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); }
+
+.badge-list { display: flex; flex-direction: column; gap: var(--space-2); margin: var(--space-4) 0; }
+.badge-item { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface); }
+.badge-code { font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-bg-code); color: #CBA6F7; padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); white-space: nowrap; }
+.badge-desc { color: var(--color-text-secondary); font-size: var(--text-sm); }
+
+.mirror-table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+.mirror-table th { font-family: var(--font-display); font-weight: 600; text-align: left; padding: var(--space-3) var(--space-4); border-bottom: 2px solid var(--color-border); color: var(--color-text); }
+.mirror-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-light); color: var(--color-text-secondary); }
+.mirror-table tr:hover td { background: var(--color-surface-warm); }
+.eco-badge { display: inline-block; font-family: var(--font-mono); font-size: var(--text-xs); padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 600; }
+
+.section-divider { border: none; border-top: 1px solid var(--color-border-light); margin: var(--space-10) 0; }
+.btn { padding: 0.5rem 1.25rem; border-radius: 8px; border: none; cursor: pointer; font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500; transition: background 150ms; }
+.btn-primary { background: var(--color-accent); color: white; }
+.btn-primary:hover { background: var(--color-accent-hover); }
+.btn-secondary { background: var(--color-border); color: var(--color-text); }
+.btn-secondary:hover { background: var(--color-border-light); }
+
+@media (max-width: 768px) {
+  :root { --text-4xl: 1.875rem; --text-5xl: 2.25rem; --text-6xl: 3rem; }
+  .pattern-cards { grid-template-columns: 1fr 1fr; }
+  .flow-steps { flex-direction: column; }
+  .flow-arrow { transform: rotate(90deg); }
+  .mirror-table { font-size: var(--text-xs); }
+}
+@media (max-width: 480px) {
+  :root { --text-4xl: 1.5rem; --text-5xl: 1.875rem; --text-6xl: 2.25rem; }
+  .module { padding: var(--space-8) var(--space-4); padding-top: calc(var(--nav-height) + var(--space-8)); }
+  .pattern-cards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <div class="progress-bar" id="progress-bar"></div>
+  <div class="nav-inner">
+    <span class="nav-title">Axiom EE &mdash; Package Mirrors</span>
+    <div class="nav-dots" id="nav-dots">
+      <button class="nav-dot" title="The Big Picture" onclick="scrollToModule(0)"></button>
+      <button class="nav-dot" title="Python (PyPI)" onclick="scrollToModule(1)"></button>
+      <button class="nav-dot" title="System (APT &amp; apk)" onclick="scrollToModule(2)"></button>
+      <button class="nav-dot" title="Container Images" onclick="scrollToModule(3)"></button>
+      <button class="nav-dot" title="npm, Conda, PowerShell" onclick="scrollToModule(4)"></button>
+      <button class="nav-dot" title="Smelter" onclick="scrollToModule(5)"></button>
+      <button class="nav-dot" title="Foundry" onclick="scrollToModule(6)"></button>
+      <button class="nav-dot" title="Validation" onclick="scrollToModule(7)"></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ================================================================
+     MODULE 01 — THE BIG PICTURE
+================================================================= -->
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">The Big Picture</h1>
+      <p class="module-subtitle">Seven package ecosystems, one approval gate, one image builder. Here's how they fit together to give your nodes exactly the software they need &mdash; without ever touching the public internet.</p>
+    </header>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Why internal mirrors?</h2>
+      <p>Every Axiom node runs jobs inside a container built from a <strong>Node Image</strong>. That image needs Python packages, system libraries, container base layers, and sometimes npm modules, Conda packages, or PowerShell tooling. In production, you don't want every build pulling from pypi.org, Docker Hub, or npmjs.com &mdash; that's slow, unreliable, subject to rate limits, and a supply chain risk.</p>
+      <p>Internal mirrors solve all of this: packages are cached locally, builds are reproducible offline, and every package is explicitly approved before it enters your fleet.</p>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The seven mirrors</h2>
+
+      <table class="mirror-table animate-in">
+        <thead>
+          <tr>
+            <th>Ecosystem</th>
+            <th>Mirror Backend</th>
+            <th>How It Caches</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="eco-badge" style="background:#3776AB;color:white">PyPI</span> Python</td>
+            <td>devpi</td>
+            <td>Caching proxy &mdash; fetches on first request, serves from cache after</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#A80030;color:white">APT</span> Debian / Ubuntu</td>
+            <td>apt-cacher-ng</td>
+            <td>Transparent proxy &mdash; intercepts apt-get automatically</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#0D597F;color:white">apk</span> Alpine</td>
+            <td>nginx reverse cache</td>
+            <td>HTTP cache proxy for dl-cdn.alpinelinux.org</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#2496ED;color:white">OCI</span> Docker / Container Images</td>
+            <td>registry:2 pull-through</td>
+            <td>Pull-through cache &mdash; proxies Docker Hub, GHCR, etc.</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#CB3837;color:white">npm</span> Node.js</td>
+            <td>Verdaccio</td>
+            <td>Caching proxy &mdash; mirrors npmjs.com on demand</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#43B02A;color:white">Conda</span> Data Science</td>
+            <td>conda-mirror / HTTP cache</td>
+            <td>Proactive mirror of named packages + versions</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#5C2D91;color:white">NuGet</span> PowerShell</td>
+            <td>BaGet</td>
+            <td>Lightweight NuGet v3 server &mdash; packages pushed manually</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The package lifecycle</h2>
+      <p>Regardless of ecosystem, every package flows through the same controlled pipeline. Click <strong>Next Step</strong> to trace the path.</p>
+
+      <div style="margin: var(--space-6) 0;">
+        <div class="flow-steps" id="lifecycle-steps">
+          <div class="flow-step" id="lf-0">
+            <div class="flow-step-num">1</div>
+            <strong>Approve</strong>
+            <p>Smelter</p>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-step" id="lf-1">
+            <div class="flow-step-num">2</div>
+            <strong>Mirror</strong>
+            <p>Auto-fetch</p>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-step" id="lf-2">
+            <div class="flow-step-num">3</div>
+            <strong>Scan</strong>
+            <p>CVE check</p>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-step" id="lf-3">
+            <div class="flow-step-num">4</div>
+            <strong>Blueprint</strong>
+            <p>Compose image</p>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-step" id="lf-4">
+            <div class="flow-step-num">5</div>
+            <strong>Build</strong>
+            <p>Foundry</p>
+          </div>
+        </div>
+        <div class="flow-label-box" id="lifecycle-label" style="background:var(--color-accent-light);border:1px solid var(--color-accent-muted);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-top:var(--space-4);font-size:var(--text-sm);min-height:44px;">Click "Next Step" to trace the package lifecycle.</div>
+        <div style="display:flex;gap:var(--space-3);margin-top:var(--space-4);flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="lifecycleNext()">Next Step</button>
+          <button class="btn btn-secondary" onclick="lifecycleReset()">Restart</button>
+          <span style="font-size:var(--text-xs);color:var(--color-text-muted);align-self:center;" id="lifecycle-progress">Step 0 / 5</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">One workflow, seven ecosystems</h2>
+      <p>The operator experience is identical regardless of package type. In the Smelter Registry, you approve an ingredient &mdash; specifying its <strong>ecosystem</strong> (PyPI, APT, apk, OCI, npm, Conda, or NuGet), name, and version. The mirror service proactively fetches it using the appropriate backend. When you build a Node Image in the Foundry, only approved-and-mirrored packages are available.</p>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">&#128161;</div>
+        <div class="callout-content">
+          <span class="callout-title">EE feature</span>
+          <p>The Smelter Registry, Foundry image builder, and BOM Explorer are Enterprise Edition features. The Admin page shows these tabs only when an EE licence is active.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================
+     MODULE 02 — PYTHON PACKAGES (PyPI)
+================================================================= -->
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">Python Packages (PyPI)</h1>
+      <p class="module-subtitle">Cache Python packages locally with devpi so image builds are fast, reproducible, and independent of pypi.org.</p>
+    </header>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">How devpi works</h2>
+      <p>devpi is a caching proxy that sits between your image builds and pypi.org. The first time a package is requested, devpi fetches it from upstream and stores a local copy. Every subsequent request is served from cache.</p>
+      <p>It runs as a Docker container alongside the Axiom stack on port <strong>3141</strong>.</p>
+
+      <div class="callout callout-success">
+        <div class="callout-icon">&#10003;</div>
+        <div class="callout-content">
+          <span class="callout-title">Already running</span>
+          <p>If you deployed with the standard <code style="font-family:var(--font-mono);font-size:var(--text-xs)">compose.server.yaml</code>, devpi is already running. Check with: <code style="font-family:var(--font-mono);font-size:var(--text-xs)">docker ps | grep devpi</code></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">One-time setup</h2>
+      <p>If devpi isn't in your compose file yet, add this service:</p>
+
+      <div class="code-block">
+        <span class="code-label">compose.server.yaml</span>
+        <pre><span class="code-function">devpi</span>:
+  <span class="code-keyword">image</span>: <span class="code-string">devpi/devpi-server:latest</span>
+  <span class="code-keyword">restart</span>: unless-stopped
+  <span class="code-keyword">ports</span>:
+    - <span class="code-string">"3141:3141"</span>
+  <span class="code-keyword">volumes</span>:
+    - <span class="code-string">devpi-data:/data</span>
+  <span class="code-keyword">healthcheck</span>:
+    <span class="code-keyword">test</span>: [<span class="code-string">"CMD"</span>, <span class="code-string">"curl"</span>, <span class="code-string">"-f"</span>, <span class="code-string">"http://localhost:3141/+api"</span>]
+    <span class="code-keyword">interval</span>: <span class="code-number">30s</span>
+    <span class="code-keyword">retries</span>: <span class="code-number">3</span></pre>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Configure the mirror URL</h2>
+      <div class="gui-step">
+        <div class="gui-step-num">1</div>
+        <div class="gui-step-body">
+          <strong>Open Admin &rarr; Smelter Registry</strong>
+          <p>Navigate to <span class="gui-path">/admin</span> and click the <strong>Smelter Registry</strong> tab.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">2</div>
+        <div class="gui-step-body">
+          <strong>Set the PyPI mirror URL</strong>
+          <p>In the Mirror Configuration section, enter <code style="font-family:var(--font-mono);font-size:var(--text-xs)">http://devpi:3141/root/pypi/+simple/</code> and save.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">&#9888;&#65039;</div>
+        <div class="callout-content">
+          <span class="callout-title">Common mistake: wrong URL path</span>
+          <p>The path must be <code style="font-family:var(--font-mono);font-size:var(--text-xs)">/root/pypi/+simple/</code>, not <code style="font-family:var(--font-mono);font-size:var(--text-xs)">/+simple/</code>. The <code style="font-family:var(--font-mono);font-size:var(--text-xs)">root/pypi</code> is devpi's default index name.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Adding Python packages</h2>
+      <p>You don't add packages to devpi directly. Approve them in the <strong>Smelter Registry</strong> (Module 6) and the mirror service proactively runs <code style="font-family:var(--font-mono);font-size:var(--text-xs)">pip download</code> to cache them. When Foundry builds an image that includes those packages, it pulls from devpi &mdash; fast, cached, and verified.</p>
+      <p>For air-gapped environments, upload <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.whl</code> files directly via the Smelter's upload button.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================
+     MODULE 03 — SYSTEM PACKAGES (APT & apk)
+================================================================= -->
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">System Packages (APT &amp; apk)</h1>
+      <p class="module-subtitle">Cache Debian/Ubuntu and Alpine system packages so image builds don't depend on upstream archives.</p>
+    </header>
+
+    <!-- APT -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">APT &mdash; Debian &amp; Ubuntu</h2>
+      <p>apt-cacher-ng is a transparent caching proxy. All <code style="font-family:var(--font-mono);font-size:var(--text-xs)">apt-get install</code> calls during Foundry builds are routed through it. Packages cache on first fetch; subsequent builds are instant.</p>
+
+      <div class="code-block">
+        <span class="code-label">compose.server.yaml</span>
+        <pre><span class="code-function">apt-mirror</span>:
+  <span class="code-keyword">image</span>: <span class="code-string">sameersbn/apt-cacher-ng:latest</span>
+  <span class="code-keyword">restart</span>: unless-stopped
+  <span class="code-keyword">ports</span>:
+    - <span class="code-string">"3142:3142"</span>
+  <span class="code-keyword">volumes</span>:
+    - <span class="code-string">apt-cache-data:/var/cache/apt-cacher-ng</span>
+  <span class="code-keyword">environment</span>:
+    - <span class="code-string">DISABLE_IPFORWARD_CHECK=1</span></pre>
+      </div>
+
+      <p>Configure the URL in Admin &rarr; Smelter Registry &rarr; Mirror Config: <code style="font-family:var(--font-mono);font-size:var(--text-xs)">http://apt-mirror:3142</code></p>
+      <p>Foundry injects a temporary APT proxy directive into every Dockerfile, then removes it from the final image so the config doesn't leak to deployed nodes.</p>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">&#9888;&#65039;</div>
+        <div class="callout-content">
+          <span class="callout-title">DISABLE_IPFORWARD_CHECK is required</span>
+          <p>Inside Docker, the IP forwarding check fails spuriously. Without this flag, apt-cacher-ng refuses to start.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- apk -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">apk &mdash; Alpine Linux</h2>
+      <p>Alpine uses <code style="font-family:var(--font-mono);font-size:var(--text-xs)">apk</code>, not APT. There's no apt-cacher-ng equivalent, but an nginx reverse-proxy cache does the same job. It sits between your builds and <code style="font-family:var(--font-mono);font-size:var(--text-xs)">dl-cdn.alpinelinux.org</code>, caching <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.apk</code> files on first fetch.</p>
+
+      <div class="code-block">
+        <span class="code-label">compose.server.yaml</span>
+        <pre><span class="code-function">apk-cache</span>:
+  <span class="code-keyword">image</span>: <span class="code-string">nginx:alpine</span>
+  <span class="code-keyword">restart</span>: unless-stopped
+  <span class="code-keyword">ports</span>:
+    - <span class="code-string">"3143:80"</span>
+  <span class="code-keyword">volumes</span>:
+    - <span class="code-string">./apk-cache.conf:/etc/nginx/conf.d/default.conf:ro</span>
+    - <span class="code-string">apk-cache-data:/var/cache/apk-proxy</span></pre>
+      </div>
+
+      <div class="code-block">
+        <span class="code-label">apk-cache.conf</span>
+        <pre><span class="code-function">proxy_cache_path</span> /var/cache/apk-proxy
+    levels=<span class="code-number">1</span>:<span class="code-number">2</span> keys_zone=apk:<span class="code-number">10</span>m
+    max_size=<span class="code-number">10</span>g inactive=<span class="code-number">7</span>d;
+
+<span class="code-keyword">server</span> {
+    listen <span class="code-number">80</span>;
+    <span class="code-keyword">location</span> / {
+        <span class="code-function">proxy_pass</span>       <span class="code-string">http://dl-cdn.alpinelinux.org</span>;
+        <span class="code-function">proxy_cache</span>      apk;
+        <span class="code-function">proxy_cache_valid</span> <span class="code-number">200</span> <span class="code-number">7</span>d;
+        <span class="code-function">proxy_cache_use_stale</span> error timeout updating;
+    }
+}</pre>
+      </div>
+
+      <p>Foundry injects a temporary <code style="font-family:var(--font-mono);font-size:var(--text-xs)">/etc/apk/repositories</code> rewrite pointing at the cache during builds, then restores the default repos in the final image &mdash; same pattern as the APT proxy.</p>
+    </section>
+
+    <!-- Proactive fetch -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Proactive package fetching</h2>
+      <p>Both APT and apk mirrors can also work <strong>proactively</strong>. When you approve a system package in the Smelter, the mirror service fetches it ahead of time:</p>
+
+      <div class="badge-list animate-in">
+        <div class="badge-item">
+          <span class="badge-code">DEBIAN</span>
+          <span class="badge-desc">Runs <code style="font-family:var(--font-mono);font-size:var(--text-xs)">apt-get download &lt;pkg&gt;</code> in a throwaway container to pre-warm the apt-cacher-ng cache</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-code">ALPINE</span>
+          <span class="badge-desc">Runs <code style="font-family:var(--font-mono);font-size:var(--text-xs)">apk fetch &lt;pkg&gt;</code> in a throwaway Alpine container to pre-warm the nginx cache</span>
+        </div>
+      </div>
+      <p>This means packages are already cached before any Foundry build runs &mdash; important for air-gapped environments where you pre-warm while you still have internet, then disconnect.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================
+     MODULE 04 — CONTAINER BASE IMAGES (Docker)
+================================================================= -->
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">Container Base Images</h1>
+      <p class="module-subtitle">Every Foundry build starts with <code style="font-family:var(--font-mono);font-size:var(--text-sm)">FROM python:3.12-slim</code> or <code style="font-family:var(--font-mono);font-size:var(--text-sm)">FROM alpine:3.20</code>. A local registry cache ensures those pulls never fail and never hit Docker Hub rate limits.</p>
+    </header>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The problem with upstream registries</h2>
+
+      <div class="icon-rows animate-in stagger-children">
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-error)">&#9201;</div>
+          <div>
+            <strong>Docker Hub rate limits</strong>
+            <p>Anonymous pulls: 100 per 6 hours. Authenticated: 200. A busy Foundry can hit this in minutes if images aren't cached.</p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-4)">&#127760;</div>
+          <div>
+            <strong>Network dependency</strong>
+            <p>If Docker Hub or GHCR is down, every Foundry build fails. In air-gapped environments, upstream pulls are impossible.</p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-3)">&#128190;</div>
+          <div>
+            <strong>Bandwidth waste</strong>
+            <p>Base images are 50-200MB. Pulling the same image on every build wastes bandwidth and slows builds.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">One-time setup: pull-through cache</h2>
+      <p>Docker's official <code style="font-family:var(--font-mono);font-size:var(--text-xs)">registry:2</code> image has built-in pull-through cache support. One environment variable turns it into a transparent proxy for Docker Hub:</p>
+
+      <div class="code-block">
+        <span class="code-label">compose.server.yaml</span>
+        <pre><span class="code-function">registry-cache</span>:
+  <span class="code-keyword">image</span>: <span class="code-string">registry:2</span>
+  <span class="code-keyword">restart</span>: unless-stopped
+  <span class="code-keyword">ports</span>:
+    - <span class="code-string">"5000:5000"</span>
+  <span class="code-keyword">volumes</span>:
+    - <span class="code-string">registry-cache-data:/var/lib/registry</span>
+  <span class="code-keyword">environment</span>:
+    - <span class="code-string">REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io</span></pre>
+      </div>
+
+      <p>To also cache GHCR images, you can add a second registry instance pointing at <code style="font-family:var(--font-mono);font-size:var(--text-xs)">https://ghcr.io</code>.</p>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Proactive image caching</h2>
+      <p>When you approve a container base image in the Smelter (ecosystem: <strong>OCI</strong>), the mirror service proactively pulls it:</p>
+
+      <div class="gui-step">
+        <div class="gui-step-num">1</div>
+        <div class="gui-step-body">
+          <strong>Approve in Smelter</strong>
+          <p>Name: <code style="font-family:var(--font-mono);font-size:var(--text-xs)">python</code>, Version: <code style="font-family:var(--font-mono);font-size:var(--text-xs)">3.12-slim</code>, Ecosystem: <code style="font-family:var(--font-mono);font-size:var(--text-xs)">OCI</code></p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">2</div>
+        <div class="gui-step-body">
+          <strong>Mirror service pulls the image</strong>
+          <p>Runs <code style="font-family:var(--font-mono);font-size:var(--text-xs)">docker pull python:3.12-slim</code> through the pull-through cache, warming it locally. Status goes PENDING &rarr; MIRRORED.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">3</div>
+        <div class="gui-step-body">
+          <strong>Foundry builds from cache</strong>
+          <p>When a blueprint uses <code style="font-family:var(--font-mono);font-size:var(--text-xs)">python:3.12-slim</code> as its base, the <code style="font-family:var(--font-mono);font-size:var(--text-xs)">FROM</code> pull hits the local registry &mdash; instant, no rate limits.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">&#128161;</div>
+        <div class="callout-content">
+          <span class="callout-title">Air-gapped deployments</span>
+          <p>Pre-warm the cache while you have internet. The <code style="font-family:var(--font-mono);font-size:var(--text-xs)">registry-cache-data</code> volume persists all cached layers. Disconnect the network and builds still work &mdash; every <code style="font-family:var(--font-mono);font-size:var(--text-xs)">FROM</code> resolves locally.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================
+     MODULE 05 — npm, Conda, PowerShell
+================================================================= -->
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">npm, Conda &amp; PowerShell</h1>
+      <p class="module-subtitle">Three more ecosystems for specialised workloads: Node.js jobs, data science pipelines, and Windows automation.</p>
+    </header>
+
+    <!-- npm / Verdaccio -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">npm &mdash; Verdaccio</h2>
+      <p>If your node images run JavaScript/TypeScript jobs, Verdaccio provides a lightweight npm registry that caches packages from npmjs.com on demand.</p>
+
+      <div class="code-block">
+        <span class="code-label">compose.server.yaml</span>
+        <pre><span class="code-function">verdaccio</span>:
+  <span class="code-keyword">image</span>: <span class="code-string">verdaccio/verdaccio:5</span>
+  <span class="code-keyword">restart</span>: unless-stopped
+  <span class="code-keyword">ports</span>:
+    - <span class="code-string">"4873:4873"</span>
+  <span class="code-keyword">volumes</span>:
+    - <span class="code-string">verdaccio-data:/verdaccio/storage</span></pre>
+      </div>
+
+      <p>Verdaccio works like devpi: first install caches the package, subsequent installs serve from local storage. When you approve an npm ingredient in the Smelter, the mirror service proactively runs <code style="font-family:var(--font-mono);font-size:var(--text-xs)">npm pack &lt;pkg&gt;@&lt;version&gt;</code> to pre-warm the cache.</p>
+      <p>In Foundry blueprints, set the npm registry in the Dockerfile: <code style="font-family:var(--font-mono);font-size:var(--text-xs)">npm config set registry http://verdaccio:4873</code></p>
+    </section>
+
+    <!-- Conda -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Conda &mdash; Data Science packages</h2>
+      <p>For data science workloads that depend on Conda packages (numpy, pandas, scikit-learn, etc.), you can mirror specific packages and versions locally.</p>
+
+      <p>Two approaches:</p>
+      <div class="pattern-cards animate-in stagger-children">
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-5)">
+          <div class="pattern-icon">&#128230;</div>
+          <h4 class="pattern-title">conda-mirror</h4>
+          <p class="pattern-desc">Mirrors named packages + versions from conda-forge or defaults channel to a local directory. Served by nginx or Python's <code style="font-family:var(--font-mono);font-size:var(--text-xs)">http.server</code>. Best for production with a defined package set.</p>
+        </div>
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon">&#128640;</div>
+          <h4 class="pattern-title">nginx HTTP cache</h4>
+          <p class="pattern-desc">Same pattern as the apk mirror &mdash; nginx reverse-proxies <code style="font-family:var(--font-mono);font-size:var(--text-xs)">conda.anaconda.org</code> and caches on first fetch. Simpler setup, but doesn't proactively warm.</p>
+        </div>
+      </div>
+
+      <p>When you approve a Conda ingredient in the Smelter, the mirror service runs <code style="font-family:var(--font-mono);font-size:var(--text-xs)">conda create --download-only -n tmp &lt;pkg&gt;=&lt;version&gt;</code> in a throwaway container to fetch the package into the local mirror. The Foundry injects a <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.condarc</code> pointing at the local mirror during builds.</p>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">&#9888;&#65039;</div>
+        <div class="callout-content">
+          <span class="callout-title">Anaconda Terms of Service</span>
+          <p>Packages from Anaconda's default channel (<code style="font-family:var(--font-mono);font-size:var(--text-xs)">repo.anaconda.com</code>) require a <strong>paid commercial licence</strong> for organisations with 200+ employees. This is a usage restriction from Anaconda, Inc. &mdash; not a code licence issue.</p>
+          <p style="margin-top:var(--space-2)"><strong>Recommended alternative:</strong> Use <strong>conda-forge</strong> (<code style="font-family:var(--font-mono);font-size:var(--text-xs)">conda-forge.org</code>) as your upstream channel instead. conda-forge is community-maintained, has no commercial restrictions, and covers the vast majority of data science packages. When approving Conda ingredients in the Smelter, you can choose which channel to mirror from &mdash; the Foundry will flag the Anaconda ToS if you select the default channel.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PowerShell / BaGet -->
+    <section class="screen animate-in">
+      <h2 class="screen-heading">PowerShell &mdash; BaGet</h2>
+      <p>For Windows automation jobs that need PowerShell modules (Pester, PSScriptAnalyzer, custom internal modules), BaGet provides a lightweight NuGet v3 server.</p>
+
+      <div class="code-block">
+        <span class="code-label">compose.server.yaml</span>
+        <pre><span class="code-function">baget</span>:
+  <span class="code-keyword">image</span>: <span class="code-string">loicsharma/baget:latest</span>
+  <span class="code-keyword">restart</span>: unless-stopped
+  <span class="code-keyword">ports</span>:
+    - <span class="code-string">"5555:80"</span>
+  <span class="code-keyword">volumes</span>:
+    - <span class="code-string">baget-data:/var/baget</span>
+  <span class="code-keyword">environment</span>:
+    - <span class="code-string">ApiKey=AXIOM-INTERNAL-NUGET-KEY</span>
+    - <span class="code-string">Storage__Type=FileSystem</span>
+    - <span class="code-string">Storage__Path=/var/baget</span>
+    - <span class="code-string">Database__Type=Sqlite</span>
+    - <span class="code-string">Database__ConnectionString=Data Source=/var/baget/db/baget.db</span>
+    - <span class="code-string">Search__Type=Database</span></pre>
+      </div>
+
+      <p>BaGet requires packages to be pushed to it. When you approve a NuGet ingredient in the Smelter, the mirror service downloads the <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.nupkg</code> from PSGallery and pushes it to BaGet automatically. You can also upload <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.nupkg</code> files manually via the Smelter upload button.</p>
+      <p>In Foundry tool recipes, register the repository:</p>
+
+      <div class="code-block">
+        <span class="code-label">injection recipe</span>
+        <pre><span class="code-keyword">RUN</span> pwsh -Command <span class="code-string">"Register-PSRepository \
+  -Name 'AxiomInternal' \
+  -SourceLocation 'http://baget:5555/v3/index.json' \
+  -InstallationPolicy Trusted"</span></pre>
+      </div>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">&#9888;&#65039;</div>
+        <div class="callout-content">
+          <span class="callout-title">Change the API key</span>
+          <p><code style="font-family:var(--font-mono);font-size:var(--text-xs)">AXIOM-INTERNAL-NUGET-KEY</code> is an example. Use a strong, unique key in production.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================
+     MODULE 06 — SMELTER — THE UNIFIED APPROVAL GATE
+================================================================= -->
+<section class="module" id="module-6" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">06</span>
+      <h1 class="module-title">Smelter &mdash; The Unified Approval Gate</h1>
+      <p class="module-subtitle">One dashboard, seven ecosystems. Approve packages, watch them mirror, scan for vulnerabilities, enforce compliance.</p>
+    </header>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">What the Smelter gives you</h2>
+
+      <div class="icon-rows animate-in stagger-children">
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-5)">&#10003;</div>
+          <div>
+            <strong>Supply chain control</strong>
+            <p>Only explicitly approved packages &mdash; across all seven ecosystems &mdash; can be built into images. No surprise dependencies.</p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-2)">&#128269;</div>
+          <div>
+            <strong>CVE scanning</strong>
+            <p>One-click vulnerability scan using pip-audit. Vulnerable packages get a red badge.</p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-3)">&#128225;</div>
+          <div>
+            <strong>Mirror status tracking</strong>
+            <p>See at a glance which packages are cached locally (MIRRORED), still downloading (PENDING), or failed (FAILED).</p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-1)">&#128274;</div>
+          <div>
+            <strong>Enforcement</strong>
+            <p>STRICT mode blocks builds with unapproved packages. WARNING mode allows them but marks the image non-compliant.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Approving a package (any ecosystem)</h2>
+      <p>The workflow is identical whether you're approving a Python package, an Alpine system library, or a Docker base image.</p>
+
+      <div class="gui-step">
+        <div class="gui-step-num">1</div>
+        <div class="gui-step-body">
+          <strong>Open Admin &rarr; Smelter Registry</strong>
+          <p>Navigate to <span class="gui-path">/admin</span> and click the <strong>Smelter Registry</strong> tab.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">2</div>
+        <div class="gui-step-body">
+          <strong>Click "Add Ingredient"</strong>
+          <p>Fill in: <strong>Package Name</strong>, <strong>Version</strong>, <strong>Ecosystem</strong> (PyPI, APT, apk, OCI, npm, Conda, or NuGet), and optionally a SHA256 hash.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">3</div>
+        <div class="gui-step-body">
+          <strong>Watch the mirror status</strong>
+          <p>The ingredient appears with a <strong>PENDING</strong> badge. The mirror service picks the right backend and proactively fetches the package. Within seconds, the badge changes to <strong>MIRRORED</strong>.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-success">
+        <div class="callout-icon">&#10003;</div>
+        <div class="callout-content">
+          <span class="callout-title">That's it</span>
+          <p>The package is now approved and cached in the appropriate mirror backend. It can be included in any Foundry blueprint. If the download fails, the badge shows FAILED &mdash; expand the row to see the mirror log.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Proactive fetch: how each ecosystem mirrors</h2>
+
+      <table class="mirror-table animate-in">
+        <thead>
+          <tr>
+            <th>Ecosystem</th>
+            <th>Fetch Command</th>
+            <th>Runs In</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="eco-badge" style="background:#3776AB;color:white">PyPI</span></td>
+            <td><code style="font-family:var(--font-mono);font-size:var(--text-xs)">pip download &lt;pkg&gt;</code></td>
+            <td>Host (direct)</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#A80030;color:white">APT</span></td>
+            <td><code style="font-family:var(--font-mono);font-size:var(--text-xs)">apt-get download &lt;pkg&gt;</code></td>
+            <td>Throwaway Debian container</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#0D597F;color:white">apk</span></td>
+            <td><code style="font-family:var(--font-mono);font-size:var(--text-xs)">apk fetch &lt;pkg&gt;</code></td>
+            <td>Throwaway Alpine container</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#2496ED;color:white">OCI</span></td>
+            <td><code style="font-family:var(--font-mono);font-size:var(--text-xs)">docker pull &lt;image&gt;:&lt;tag&gt;</code></td>
+            <td>Host (through pull-through cache)</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#CB3837;color:white">npm</span></td>
+            <td><code style="font-family:var(--font-mono);font-size:var(--text-xs)">npm pack &lt;pkg&gt;@&lt;ver&gt;</code></td>
+            <td>Throwaway Node container</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#43B02A;color:white">Conda</span></td>
+            <td><code style="font-family:var(--font-mono);font-size:var(--text-xs)">conda create --download-only</code></td>
+            <td>Throwaway Conda container</td>
+          </tr>
+          <tr>
+            <td><span class="eco-badge" style="background:#5C2D91;color:white">NuGet</span></td>
+            <td><code style="font-family:var(--font-mono);font-size:var(--text-xs)">curl nupkg + push to BaGet</code></td>
+            <td>Host (direct)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Air-gapped uploads</h2>
+      <p>If your environment has no internet, upload package files directly via the Smelter. Every ingredient row has an <strong>upload button</strong>. Upload the file (<code style="font-family:var(--font-mono);font-size:var(--text-xs)">.whl</code>, <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.deb</code>, <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.apk</code>, <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.nupkg</code>, <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.tar.gz</code>, <code style="font-family:var(--font-mono);font-size:var(--text-xs)">.tgz</code>) and the mirror status changes to MIRRORED immediately.</p>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Enforcement modes</h2>
+
+      <div class="pattern-cards animate-in stagger-children">
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-error)">
+          <div class="pattern-icon">&#128721;</div>
+          <h4 class="pattern-title">STRICT</h4>
+          <p class="pattern-desc">Builds with unapproved or unmirrored packages are <strong>rejected</strong> (HTTP 403). Use this in production.</p>
+        </div>
+        <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+          <div class="pattern-icon">&#9888;</div>
+          <h4 class="pattern-title">WARNING</h4>
+          <p class="pattern-desc">Builds proceed but the template is marked <strong>non-compliant</strong> (amber badge). Use this during development.</p>
+        </div>
+      </div>
+
+      <p>Switch modes via the enforcement dropdown at the top of the Smelter Registry tab.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================
+     MODULE 07 — FOUNDRY — BUILDING NODE IMAGES
+================================================================= -->
+<section class="module" id="module-7" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">07</span>
+      <h1 class="module-title">Foundry &mdash; Building Node Images</h1>
+      <p class="module-subtitle">Combine approved packages from any ecosystem into a custom Docker image. The Foundry's guided wizard handles the Dockerfile &mdash; you never write one by hand.</p>
+    </header>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">The three building blocks</h2>
+
+      <div class="icon-rows animate-in stagger-children">
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-1)">&#128203;</div>
+          <div>
+            <strong>Runtime Image Recipe (Blueprint)</strong>
+            <p>Defines what goes in the image: base OS, Python/npm/Conda packages, system packages, and tools.</p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-2)">&#127760;</div>
+          <div>
+            <strong>Network Image Recipe (Blueprint)</strong>
+            <p>Defines egress rules &mdash; what network access the container has.</p>
+          </div>
+        </div>
+        <div class="icon-row animate-in">
+          <div class="icon-circle" style="background: var(--color-actor-3)">&#128444;</div>
+          <div>
+            <strong>Node Image (Template)</strong>
+            <p>Combines one Runtime + one Network recipe into a buildable Docker image.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Creating a Runtime Recipe</h2>
+      <p>All of this happens in the dashboard at <span class="gui-path">/templates</span>.</p>
+
+      <div class="gui-step">
+        <div class="gui-step-num">1</div>
+        <div class="gui-step-body">
+          <strong>Foundry &rarr; Runtime Image Recipes &rarr; Create</strong>
+          <p>The 5-step wizard opens.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">2</div>
+        <div class="gui-step-body">
+          <strong>Identity</strong>
+          <p>Name your recipe (e.g. "Data Science Runtime").</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">3</div>
+        <div class="gui-step-body">
+          <strong>Base Image</strong>
+          <p>Choose the base OS. This determines the OS family (DEBIAN/ALPINE) which affects available packages. Only Smelter-approved base images appear if enforcement is STRICT.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">4</div>
+        <div class="gui-step-body">
+          <strong>Packages</strong>
+          <p>Add packages from the Smelter-approved list. Autocomplete shows only approved ingredients for your OS family and ecosystem.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">5</div>
+        <div class="gui-step-body">
+          <strong>Tools &amp; Review</strong>
+          <p>Add optional tools from the Capability Matrix, review the recipe, and create.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Building the Node Image</h2>
+
+      <div class="gui-step">
+        <div class="gui-step-num">1</div>
+        <div class="gui-step-body">
+          <strong>Foundry &rarr; Node Images &rarr; Create Template</strong>
+          <p>Select your Runtime and Network recipes. Name the template.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">2</div>
+        <div class="gui-step-body">
+          <strong>Click Build</strong>
+          <p>Foundry generates a Dockerfile, injects all mirror configs (pip.conf, APT proxy, apk repos, .condarc, npm registry), builds the image, and pushes to your local registry.</p>
+        </div>
+      </div>
+      <div class="gui-step">
+        <div class="gui-step-num">3</div>
+        <div class="gui-step-body">
+          <strong>Post-build validation</strong>
+          <p>An ephemeral container verifies the image starts correctly. On success: status &rarr; ACTIVE, Bill of Materials captured.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-success">
+        <div class="callout-icon">&#10003;</div>
+        <div class="callout-content">
+          <span class="callout-title">Image lifecycle</span>
+          <p>Change a template's status at any time: <strong>ACTIVE</strong> (nodes can use it), <strong>DEPRECATED</strong> (warning), or <strong>REVOKED</strong> (blocked at enrollment and work-pull).</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Bill of Materials</h2>
+      <p>After a successful build, click <strong>BOM</strong> on any template to see every installed package &mdash; pip, apt, apk, npm, conda. The <strong>BOM Explorer</strong> in Admin lets you search across all built images: "which nodes have numpy 1.26?"</p>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================
+     MODULE 08 — VALIDATION & TROUBLESHOOTING
+================================================================= -->
+<section class="module" id="module-8" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">08</span>
+      <h1 class="module-title">Validation &amp; Troubleshooting</h1>
+      <p class="module-subtitle">Verify your mirrors are working, validate your images, and fix common problems.</p>
+    </header>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Dashboard health checks</h2>
+      <p>The Smelter Registry tab shows a <strong>Repository Health</strong> card with live metrics for all configured mirrors:</p>
+
+      <div class="badge-list animate-in">
+        <div class="badge-item">
+          <span class="badge-code">PyPI</span>
+          <span class="badge-desc">Green/red badge &mdash; devpi reachable?</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-code">APT</span>
+          <span class="badge-desc">Green/red badge &mdash; apt-cacher-ng reachable?</span>
+        </div>
+        <div class="badge-item">
+          <span class="badge-code">Disk</span>
+          <span class="badge-desc">Progress bar &mdash; cache disk usage (GB used / total)</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">Common problems</h2>
+
+      <div class="step-cards animate-in stagger-children">
+        <div class="step-card animate-in" style="border-left-color: var(--color-error)">
+          <div class="step-num" style="background: var(--color-error)">!</div>
+          <div class="step-body">
+            <strong>"No matching distribution found" during build</strong>
+            <p>Wrong devpi URL. Verify path is <code style="font-family:var(--font-mono);font-size:var(--text-xs)">/root/pypi/+simple/</code>. Also check: is the package approved and MIRRORED in the Smelter?</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-error)">
+          <div class="step-num" style="background: var(--color-error)">!</div>
+          <div class="step-body">
+            <strong>Ingredient stuck at PENDING</strong>
+            <p>Expand the row and check the mirror log. Common causes: no internet, mirror container not running, package name typo. If air-gapped, use the upload button.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-error)">
+          <div class="step-num" style="background: var(--color-error)">!</div>
+          <div class="step-body">
+            <strong>APT/apk packages not caching</strong>
+            <p>Check the mirror container is on the same Docker network. Verify with <code style="font-family:var(--font-mono);font-size:var(--text-xs)">docker logs</code>. APT: look for <code style="font-family:var(--font-mono);font-size:var(--text-xs)">200 (ca)</code> entries. apk/nginx: check access.log for HIT/MISS.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-error)">
+          <div class="step-num" style="background: var(--color-error)">!</div>
+          <div class="step-body">
+            <strong>Build rejected in STRICT mode</strong>
+            <p>The blueprint contains unapproved packages. The error message lists which ones. Approve them in the Smelter and wait for MIRRORED status.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-error)">
+          <div class="step-num" style="background: var(--color-error)">!</div>
+          <div class="step-body">
+            <strong>Docker Hub rate limit hit</strong>
+            <p>Ensure <code style="font-family:var(--font-mono);font-size:var(--text-xs)">registry-cache</code> is running and Foundry builds pull through it. Check <code style="font-family:var(--font-mono);font-size:var(--text-xs)">docker logs registry-cache</code> for cache hit/miss rates.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-error)">
+          <div class="step-num" style="background: var(--color-error)">!</div>
+          <div class="step-body">
+            <strong>Conda "PackageNotFoundError"</strong>
+            <p>The local mirror doesn't have the package yet. Approve it in the Smelter with ecosystem Conda and wait for MIRRORED. Or check the channel name &mdash; conda-forge vs defaults.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen animate-in">
+      <h2 class="screen-heading">End-to-end checklist</h2>
+
+      <div class="step-cards animate-in stagger-children">
+        <div class="step-card animate-in" style="border-left-color: var(--color-success)">
+          <div class="step-num" style="background: var(--color-success)">&#10003;</div>
+          <div class="step-body">
+            <strong>Mirror containers running</strong>
+            <p>devpi (:3141), apt-cacher-ng (:3142), apk-cache (:3143), registry-cache (:5000), and optionally Verdaccio (:4873), conda-mirror, BaGet (:5555).</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-success)">
+          <div class="step-num" style="background: var(--color-success)">&#10003;</div>
+          <div class="step-body">
+            <strong>Mirror URLs configured</strong>
+            <p>All mirror URLs set in Admin &rarr; Smelter Registry. Repository Health shows green badges.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-success)">
+          <div class="step-num" style="background: var(--color-success)">&#10003;</div>
+          <div class="step-body">
+            <strong>Packages approved and mirrored</strong>
+            <p>All packages your blueprints need are in the Smelter with MIRRORED status across all ecosystems.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-success)">
+          <div class="step-num" style="background: var(--color-success)">&#10003;</div>
+          <div class="step-body">
+            <strong>Enforcement mode set</strong>
+            <p>STRICT for production, WARNING for development.</p>
+          </div>
+        </div>
+        <div class="step-card animate-in" style="border-left-color: var(--color-success)">
+          <div class="step-num" style="background: var(--color-success)">&#10003;</div>
+          <div class="step-body">
+            <strong>Foundry builds succeed</strong>
+            <p>Builds complete with Smelt-Check passing and BOM captured. Templates are ACTIVE.</p>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="callout callout-accent" style="margin-top:var(--space-8)">
+        <div class="callout-icon">&#127891;</div>
+        <div class="callout-content">
+          <span class="callout-title">Course complete</span>
+          <p>You now know how to set up all seven package mirrors, approve packages through the Smelter, build custom node images in the Foundry, and troubleshoot common issues. For detailed reference, see the <a href="../runbooks/package-mirrors/" style="color:var(--color-accent)">Package Mirrors Runbook</a> and the <a href="../feature-guides/foundry/" style="color:var(--color-accent)">Foundry Feature Guide</a>.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<script>
+(function() {
+'use strict';
+
+const modules = document.querySelectorAll('.module');
+const dots = document.querySelectorAll('.nav-dot');
+const progressBar = document.getElementById('progress-bar');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = [...modules].indexOf(e.target);
+      dots.forEach((d, i) => { d.classList.toggle('active', i === idx); if (i < idx) d.classList.add('visited'); });
+    }
+  });
+}, { threshold: 0.3 });
+modules.forEach(m => observer.observe(m));
+
+window.addEventListener('scroll', () => {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  progressBar.style.width = (scrollTop / docHeight * 100) + '%';
+});
+
+window.scrollToModule = function(idx) { modules[idx]?.scrollIntoView({ behavior: 'smooth' }); };
+
+const animObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      e.target.querySelectorAll('.animate-in').forEach((c, i) => {
+        c.style.setProperty('--stagger-index', i);
+        setTimeout(() => c.classList.add('visible'), i * 120);
+      });
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.animate-in').forEach(el => animObserver.observe(el));
+
+const lifecycleLabels = [
+  'Step 1 \u2014 Approve: Add the package as an "ingredient" in the Smelter Registry. Set the name, version, and ecosystem (PyPI, APT, apk, OCI, npm, Conda, or NuGet).',
+  'Step 2 \u2014 Mirror: The mirror service picks the right backend and proactively fetches the package. Status goes PENDING \u2192 MIRRORED. Air-gapped? Upload the file manually.',
+  'Step 3 \u2014 Scan: Run a CVE vulnerability scan from the Smelter. Packages flagged as vulnerable get a red badge. You decide whether to proceed or remove them.',
+  'Step 4 \u2014 Blueprint: Create a Runtime Image Recipe in the Foundry wizard. The package picker shows only Smelter-approved ingredients for your chosen ecosystem and OS family.',
+  'Step 5 \u2014 Build: Combine your Runtime + Network recipes into a Node Image template and click Build. Foundry generates the Dockerfile, injects all mirror configs, builds, validates, and captures a Bill of Materials automatically.'
+];
+let lifecycleIdx = 0;
+
+window.lifecycleNext = function() {
+  if (lifecycleIdx >= 5) return;
+  document.querySelectorAll('#lifecycle-steps .flow-step').forEach(s => s.classList.remove('active-step'));
+  document.getElementById('lf-' + lifecycleIdx).classList.add('active-step');
+  document.getElementById('lifecycle-label').textContent = lifecycleLabels[lifecycleIdx];
+  lifecycleIdx++;
+  document.getElementById('lifecycle-progress').textContent = 'Step ' + lifecycleIdx + ' / 5';
+};
+
+window.lifecycleReset = function() {
+  lifecycleIdx = 0;
+  document.querySelectorAll('#lifecycle-steps .flow-step').forEach(s => s.classList.remove('active-step'));
+  document.getElementById('lifecycle-label').textContent = 'Click "Next Step" to trace the package lifecycle.';
+  document.getElementById('lifecycle-progress').textContent = 'Step 0 / 5';
+};
+
+})();
+</script>
+</body>
+</html>

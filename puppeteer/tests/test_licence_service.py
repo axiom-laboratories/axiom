@@ -281,3 +281,141 @@ async def test_enroll_node_limit_enforced():
         await enroll_node(enroll_req, mock_request, mock_db)
 
     assert excinfo.value.status_code == 402
+
+
+# ---------------------------------------------------------------------------
+# Phase 116: Hot-reload support tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_reload_licence_with_valid_key():
+    """Phase 116: reload_licence() with valid EE licence key returns LicenceState."""
+    from agent_service.services.licence_service import reload_licence  # noqa: F401
+
+    # Generate a test keypair inline
+    private_key = Ed25519PrivateKey.generate()
+    pub_key = private_key.public_key()
+
+    payload = {
+        "version": 1,
+        "licence_id": "reload-test-uuid",
+        "customer_id": "test-customer",
+        "issued_to": "Test Customer",
+        "contact_email": "test@example.com",
+        "tier": "ee",
+        "node_limit": 20,
+        "features": ["foundry", "mirrors"],
+        "grace_days": 14,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 180 * 86400,  # 6 months valid
+    }
+
+    token = _jwt.encode(payload, private_key, algorithm="EdDSA")
+
+    # Patch the public key to use our test key
+    with patch("agent_service.services.licence_service._pub_key", pub_key):
+        result = await reload_licence(licence_key=token)
+
+    assert result.status.value == "valid"
+    assert result.tier == "ee"
+    assert result.customer_id == "test-customer"
+    assert result.node_limit == 20
+    assert result.is_ee_active is True
+
+
+@pytest.mark.asyncio
+async def test_reload_licence_with_invalid_key():
+    """Phase 116: reload_licence() with invalid key raises LicenceError."""
+    from agent_service.services.licence_service import reload_licence, LicenceError  # noqa: F401
+
+    with pytest.raises(LicenceError, match="signature invalid"):
+        await reload_licence(licence_key="invalid.token.here")
+
+
+@pytest.mark.asyncio
+async def test_reload_licence_no_key_raises_error():
+    """Phase 116: reload_licence() with no key and no env/file raises LicenceError."""
+    from agent_service.services.licence_service import reload_licence, LicenceError  # noqa: F401
+
+    with patch("agent_service.services.licence_service._read_licence_raw", return_value=None):
+        with pytest.raises(LicenceError, match="No licence key found"):
+            await reload_licence(licence_key=None)
+
+
+def test_check_licence_expiry_valid():
+    """Phase 116: check_licence_expiry() returns VALID for non-expired licence."""
+    from agent_service.services.licence_service import check_licence_expiry, LicenceStatus, LicenceState  # noqa: F401
+
+    # Create a licence valid for another 30 days
+    valid_state = LicenceState(
+        status=LicenceStatus.VALID,
+        tier="ee",
+        customer_id="test",
+        node_limit=10,
+        grace_days=14,
+        days_until_expiry=30,
+        features=["foundry"],
+        is_ee_active=True,
+    )
+
+    result = check_licence_expiry(valid_state)
+    assert result == LicenceStatus.VALID
+
+
+def test_check_licence_expiry_grace():
+    """Phase 116: check_licence_expiry() returns GRACE when in grace period."""
+    from agent_service.services.licence_service import check_licence_expiry, LicenceStatus, LicenceState  # noqa: F401
+
+    # Create a licence that expired 1 day ago but grace is 14 days
+    grace_state = LicenceState(
+        status=LicenceStatus.GRACE,
+        tier="ee",
+        customer_id="test",
+        node_limit=10,
+        grace_days=14,
+        days_until_expiry=-1,  # expired 1 day ago
+        features=["foundry"],
+        is_ee_active=True,
+    )
+
+    result = check_licence_expiry(grace_state)
+    assert result == LicenceStatus.GRACE
+
+
+def test_check_licence_expiry_expired():
+    """Phase 116: check_licence_expiry() returns EXPIRED when grace has elapsed."""
+    from agent_service.services.licence_service import check_licence_expiry, LicenceStatus, LicenceState  # noqa: F401
+
+    # Create a licence expired more than grace days ago
+    expired_state = LicenceState(
+        status=LicenceStatus.EXPIRED,
+        tier="ee",
+        customer_id="test",
+        node_limit=10,
+        grace_days=14,
+        days_until_expiry=-20,  # expired 20 days ago (past grace)
+        features=["foundry"],
+        is_ee_active=False,
+    )
+
+    result = check_licence_expiry(expired_state)
+    assert result == LicenceStatus.EXPIRED
+
+
+def test_check_licence_expiry_ce_stays_ce():
+    """Phase 116: check_licence_expiry() returns CE for CE state."""
+    from agent_service.services.licence_service import check_licence_expiry, LicenceStatus, LicenceState  # noqa: F401
+
+    ce_state = LicenceState(
+        status=LicenceStatus.CE,
+        tier="ce",
+        customer_id=None,
+        node_limit=0,
+        grace_days=0,
+        days_until_expiry=0,
+        features=[],
+        is_ee_active=False,
+    )
+
+    result = check_licence_expiry(ce_state)
+    assert result == LicenceStatus.CE

@@ -246,3 +246,13 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 - ✅ **v16.1 — PR Merge & Backlog Closure** (Phases 92–95) — shipped 2026-03-30 → `.planning/milestones/v16.1-ROADMAP.md`
 - ✅ **v14.3 — Security Hardening + EE Licensing** (Phases 72–76) — shipped 2026-03-27 → `.planning/milestones/v14.3-ROADMAP.md`
 - ✅ **v14.2 — Docs on GitHub Pages** (Phase 71) — shipped 2026-03-26 → `.planning/milestones/v14.2-ROADMAP.md`
+
+### Phase 116: Fix smelter DB migration and add EE licence hot-reload
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 115
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 116 to break down)

@@ -656,7 +656,8 @@ const Templates = () => {
             });
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.detail || 'Failed to create OS entry');
+                const detail = Array.isArray(err.detail) ? err.detail.map((d: { msg: string }) => d.msg).join(', ') : err.detail;
+                throw new Error(detail || 'Failed to create OS entry');
             }
             return res.json();
         },

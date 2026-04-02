@@ -39,6 +39,7 @@ from .models import (
     BulkJobActionRequest, BulkActionResponse, BulkDiagnosisRequest,
     SchedulingHealthResponse, DefinitionHealthRow, ScaleHealthResponse,
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
+    LicenceReloadRequest, LicenceReloadResponse,
     SIGNING_FIELDS,
 )
 from .security import (
@@ -65,7 +66,7 @@ from .services.signature_service import SignatureService
 from .services.scheduler_service import scheduler_service
 from .services.pki_service import pki_service
 from .services.alert_service import AlertService
-from .services.licence_service import load_licence, check_and_record_boot, LicenceState, LicenceStatus
+from .services.licence_service import load_licence, check_and_record_boot, reload_licence, LicenceState, LicenceStatus, LicenceError
 
 load_dotenv()
 
@@ -1759,6 +1760,71 @@ async def upload_public_key(req: UploadKeyRequest, current_user: User = Depends(
     audit(db, current_user, "key:upload")
     await db.commit()
     return {"status": "stored"}
+
+# --- Licence Management (Phase 116) ---
+
+@app.post("/api/admin/licence/reload", response_model=LicenceReloadResponse, tags=["Admin"])
+async def reload_licence_endpoint(
+    request: LicenceReloadRequest,
+    current_user: User = Depends(require_permission("system:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Hot-reload licence key without restarting the server.
+
+    Args:
+        request: LicenceReloadRequest with optional licence_key override
+        current_user: Must have system:write permission
+        db: Database session
+
+    Returns:
+        LicenceReloadResponse with new licence state
+
+    Raises:
+        HTTPException 422 if licence validation fails
+    """
+    old_state = app.state.licence_state
+
+    try:
+        new_state = await reload_licence(licence_key=request.licence_key)
+    except LicenceError as e:
+        # Invalid licence — keep old state active and return error
+        audit(db, current_user, "licence:reload_failed", detail={"error": str(e), "old_status": old_state.status.value})
+        await db.commit()
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "invalid_licence",
+                "message": str(e)
+            }
+        )
+
+    # Atomic swap — new state is valid
+    app.state.licence_state = new_state
+
+    # Audit the transition
+    audit(
+        db, current_user, "licence:reload_success",
+        detail={
+            "old_status": old_state.status.value,
+            "new_status": new_state.status.value,
+            "tier": new_state.tier,
+            "customer_id": new_state.customer_id,
+            "node_limit": new_state.node_limit,
+            "days_until_expiry": new_state.days_until_expiry
+        }
+    )
+    await db.commit()
+
+    return LicenceReloadResponse(
+        status=new_state.status.value,
+        tier=new_state.tier,
+        customer_id=new_state.customer_id,
+        node_limit=new_state.node_limit,
+        grace_days=new_state.grace_days,
+        days_until_expiry=new_state.days_until_expiry,
+        features=new_state.features,
+        is_ee_active=new_state.is_ee_active
+    )
 
 @app.get("/config/public-key", tags=["System"])
 async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = Depends(get_db)):

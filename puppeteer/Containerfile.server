@@ -34,6 +34,20 @@ RUN if [ -n "${EE_INSTALL}" ]; then \
     pip install --no-cache-dir /tmp/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl; \
   fi
 
+# EE source patches — overwrite compiled .so with fixed .py where needed
+# These patches fix bugs discovered after the wheel was built (e.g. missing models)
+COPY ee_patches/ /tmp/ee_patches/
+RUN if [ -n "${EE_INSTALL}" ]; then \
+    EE_SITE=$(python -c "import ee; import os; print(os.path.dirname(ee.__file__))") && \
+    for f in $(find /tmp/ee_patches/ee -name "*.py" ! -name "__init__.py"); do \
+      rel=${f#/tmp/ee_patches/ee/}; \
+      target="$EE_SITE/$rel"; \
+      so_target="${target%.py}.cpython-312-x86_64-linux-musl.so"; \
+      if [ -f "$so_target" ]; then rm "$so_target"; fi; \
+      cp "$f" "$target"; \
+    done; \
+  fi
+
 # Copy Source
 COPY agent_service/ agent_service/
 COPY model_service/ model_service/

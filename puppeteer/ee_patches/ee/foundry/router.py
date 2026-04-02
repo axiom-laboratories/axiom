@@ -5,25 +5,23 @@ import hashlib
 import json
 import os
 import uuid
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.future import select
 
-from ...db import (
-    get_db, AsyncSession, Blueprint, PuppetTemplate, CapabilityMatrix,
-    Config, ImageBOM, PackageIndex, ApprovedOS, User,
-)
-from ...deps import require_permission, get_current_user, audit
-from ...models import (
-    BlueprintCreate, BlueprintResponse, BlueprintUpdate,
+from agent_service.db import get_db, AsyncSession, Config, User
+from agent_service.deps import require_permission, get_current_user, audit
+from ee.foundry.models import (
+    Blueprint, PuppetTemplate, CapabilityMatrix, ImageBOM, PackageIndex, ApprovedOS,
+    BlueprintCreate, BlueprintResponse,
     PuppetTemplateCreate, PuppetTemplateResponse,
     ImageBuildRequest, ImageResponse,
     CapabilityMatrixEntry, CapabilityMatrixUpdate,
     ImageBOMResponse, PackageIndexResponse,
-    ApprovedOSCreate, ApprovedOSResponse, ApprovedOSUpdate,
+    ApprovedOSCreate, ApprovedOSUpdate, ApprovedOSResponse,
 )
-from ...services.foundry_service import foundry_service
+from ee.foundry.services import foundry_service
 
 foundry_router = APIRouter()
 
@@ -122,119 +120,6 @@ async def list_blueprints(current_user: User = Depends(require_permission("found
         "created_at": bp.created_at,
         "os_family": bp.os_family,
     } for bp in bps]
-
-
-@foundry_router.get("/api/blueprints/{id}", response_model=BlueprintResponse, tags=["Foundry"])
-async def get_blueprint(
-    id: str,
-    current_user: User = Depends(require_permission("foundry:read")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Fetch a single blueprint by ID."""
-    result = await db.execute(select(Blueprint).where(Blueprint.id == id))
-    bp = result.scalar_one_or_none()
-    if not bp:
-        raise HTTPException(status_code=404, detail="Blueprint not found")
-    return {
-        "id": bp.id,
-        "type": bp.type,
-        "name": bp.name,
-        "definition": json.loads(bp.definition),
-        "version": bp.version,
-        "created_at": bp.created_at,
-        "os_family": bp.os_family,
-    }
-
-
-@foundry_router.patch("/api/blueprints/{id}", response_model=BlueprintResponse, tags=["Foundry"])
-async def update_blueprint(
-    id: str,
-    req: BlueprintUpdate,
-    current_user: User = Depends(require_permission("foundry:write")),
-    db: AsyncSession = Depends(get_db)
-):
-    """Update a blueprint with optimistic locking via version field."""
-    result = await db.execute(select(Blueprint).where(Blueprint.id == id))
-    bp = result.scalar_one_or_none()
-    if not bp:
-        raise HTTPException(status_code=404, detail="Blueprint not found")
-    if req.version != bp.version:
-        raise HTTPException(status_code=409, detail="Blueprint was modified by another user")
-
-    # Apply non-None fields
-    if req.name is not None:
-        bp.name = req.name
-    if req.os_family is not None:
-        bp.os_family = req.os_family
-
-    # Handle definition update with dep validation
-    definition = json.loads(bp.definition)
-    if req.definition is not None:
-        definition = dict(req.definition)
-
-        # Run dep-check if RUNTIME and has tools (same logic as create_blueprint)
-        if bp.type == 'RUNTIME':
-            tool_ids = [t.get("id") for t in definition.get("tools", []) if t.get("id")]
-            declared_os = req.os_family or bp.os_family
-
-            if tool_ids and declared_os:
-                stmt = select(CapabilityMatrix).where(
-                    CapabilityMatrix.is_active == True,
-                    CapabilityMatrix.base_os_family == declared_os,
-                    CapabilityMatrix.tool_id.in_(tool_ids)
-                )
-                cap_result = await db.execute(stmt)
-                valid_rows = cap_result.scalars().all()
-                valid_tool_ids = {row.tool_id for row in valid_rows}
-                incompatible = [t for t in tool_ids if t not in valid_tool_ids]
-                if incompatible:
-                    raise HTTPException(status_code=422, detail={
-                        "error": "os_mismatch",
-                        "message": f"Tools {incompatible} have no CapabilityMatrix entry for {declared_os}.",
-                        "offending_tools": incompatible
-                    })
-
-                # Dependency check
-                tool_set = set(tool_ids)
-                confirmed = set(req.confirmed_deps or [])
-                missing_deps = []
-                for row in valid_rows:
-                    try:
-                        deps = json.loads(row.runtime_dependencies or "[]")
-                    except Exception:
-                        deps = []
-                    for dep in deps:
-                        if dep not in tool_set and dep not in confirmed:
-                            missing_deps.append(dep)
-
-                if missing_deps:
-                    raise HTTPException(status_code=422, detail={
-                        "error": "deps_required",
-                        "message": "Some tools have unsatisfied runtime dependencies.",
-                        "deps_to_confirm": list(set(missing_deps))
-                    })
-
-                # Auto-add confirmed deps
-                if confirmed:
-                    existing_ids = {t.get("id") for t in definition.get("tools", [])}
-                    extra = [{"id": dep, "version": "latest"} for dep in confirmed if dep not in existing_ids]
-                    definition.setdefault("tools", []).extend(extra)
-
-        bp.definition = json.dumps(definition)
-
-    bp.version += 1
-    audit(db, current_user, "blueprint:update", id, {"name": bp.name, "version": bp.version})
-    await db.commit()
-
-    return {
-        "id": bp.id,
-        "type": bp.type,
-        "name": bp.name,
-        "definition": definition,
-        "version": bp.version,
-        "created_at": bp.created_at,
-        "os_family": bp.os_family,
-    }
 
 
 @foundry_router.delete("/api/blueprints/{id}", tags=["Foundry"])
@@ -385,8 +270,8 @@ async def search_packages(
 
 @foundry_router.get("/api/capability-matrix", response_model=List[CapabilityMatrixEntry], tags=["Foundry"])
 async def get_capability_matrix(
-    os_family: Optional[str] = Query(None),
-    include_inactive: bool = Query(False),
+    os_family: Annotated[Optional[str], Query()] = None,
+    include_inactive: Annotated[bool, Query()] = False,
     current_user: User = Depends(require_permission("foundry:read")),
     db: AsyncSession = Depends(get_db)
 ):
@@ -574,16 +459,14 @@ async def update_approved_os(
     os_entry = result.scalar_one_or_none()
     if not os_entry:
         raise HTTPException(status_code=404, detail="OS entry not found")
-
     if req.name is not None:
         os_entry.name = req.name
     if req.image_uri is not None:
         os_entry.image_uri = req.image_uri
     if req.os_family is not None:
         os_entry.os_family = req.os_family
-
-    audit(db, current_user, "approved_os:update", str(id), {"name": os_entry.name})
     await db.commit()
+    await db.refresh(os_entry)
     return os_entry
 
 
@@ -598,8 +481,7 @@ async def delete_approved_os(
     os_entry = result.scalar_one_or_none()
     if not os_entry:
         raise HTTPException(status_code=404, detail="OS entry not found")
-
-    # Referential integrity check: scan all blueprints for base_os match
+    # Referential integrity check
     all_bps = (await db.execute(select(Blueprint))).scalars().all()
     for bp in all_bps:
         try:
@@ -609,12 +491,8 @@ async def delete_approved_os(
                     status_code=409,
                     detail=f"Cannot delete: referenced by blueprint '{bp.name}'"
                 )
-        except HTTPException:
-            raise
-        except Exception:
+        except (json.JSONDecodeError, TypeError):
             pass
-
-    audit(db, current_user, "approved_os:delete", str(id), {"name": os_entry.name})
     await db.delete(os_entry)
     await db.commit()
     return {"status": "deleted"}

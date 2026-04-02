@@ -578,6 +578,13 @@ class ApprovedOSResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ApprovedOSCreate(BaseModel):
+    """Create a new approved OS entry."""
+    name: str
+    image_uri: str
+    os_family: str
+
+
 class ApprovedOSUpdate(BaseModel):
     """Partial update for approved OS edit."""
     name: Optional[str] = None
@@ -791,3 +798,25 @@ class TriggerResponse(BaseModel):
 
 class TriggerUpdate(BaseModel):
     is_active: Optional[bool] = None
+
+
+# --- Licence Management (EE) (Phase 116) ---
+
+class LicenceReloadRequest(BaseModel):
+    """Request to hot-reload a licence key without restarting the server."""
+    licence_key: Optional[str] = None  # Override licence key from request body
+
+
+class LicenceReloadResponse(BaseModel):
+    """Response after successful licence reload."""
+    status: str  # VALID, GRACE, EXPIRED, CE
+    tier: str    # ee or ce
+    customer_id: Optional[str]
+    node_limit: int
+    grace_days: int
+    days_until_expiry: int
+    features: List[str]
+    is_ee_active: bool
+    message: str = "Licence reloaded successfully"
+
+    model_config = {"from_attributes": True}

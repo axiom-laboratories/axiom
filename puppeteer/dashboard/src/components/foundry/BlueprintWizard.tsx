@@ -699,10 +699,10 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                 <div className="min-h-[400px]">
                     {!isAdvanced ? (
                         <>
-                            {step === 1 && <Step1Identity />}
-                            {step === 2 && <Step2BaseOS />}
-                            {step === 3 && <Step3Ingredients />}
-                            {step === 4 && <Step4Tools />}
+                            {step === 1 && Step1Identity()}
+                            {step === 2 && Step2BaseOS()}
+                            {step === 3 && Step3Ingredients()}
+                            {step === 4 && Step4Tools()}
                             {step === 5 && <Step5Review />}
                         </>
                     ) : (
