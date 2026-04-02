@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 116 context gathered
-last_updated: "2026-04-02T19:37:14.632Z"
-last_activity: 2026-04-02 -- Completed 107-02-PLAN.md
+stopped_at: Phase 116 Plan 01 completed
+last_updated: "2026-04-02T20:49:00.000Z"
+last_activity: 2026-04-02 -- Completed 116-01-PLAN.md
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 3
-  completed_plans: 2
-  percent: 7
+  completed_plans: 3
+  percent: 10
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 
 ## Current Position
 
-Phase: 1 of 9 (107 - Schema Foundation + CRUD Completeness)
-Plan: 2 of 3 in current phase
+Phase: 116 of 10 (116 - Fix Smelter DB Migration + EE Licence Hot-Reload)
+Plan: 1 of 2 in current phase (COMPLETED)
 Status: executing
-Last activity: 2026-04-02 -- Completed 107-02-PLAN.md
+Last activity: 2026-04-02 -- Completed 116-01-PLAN.md
 
-Progress: [█░░░░░░░░░] 7%
+Progress: [███░░░░░░░] 10%
 
 ## Performance Metrics
 
@@ -44,10 +44,11 @@ Progress: [█░░░░░░░░░] 7%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 107 | 2/3 | 13min | 7min |
+| 116 | 1/2 | 45min | 45min |
 
 **Recent Trend:**
-- Last 5 plans: 107-01 (9min), 107-02 (4min)
-- Trend: improving
+- Last 5 plans: 107-01 (9min), 107-02 (4min), 116-01 (45min)
+- Trend: stable (infrastructure/backend work inherently longer)
 
 *Updated after each plan completion*
 
@@ -73,9 +74,18 @@ Progress: [█░░░░░░░░░] 7%
 
 ### Pending Todos
 
-2 pending:
-- **Hot-reload EE licence at runtime** (api) — 2026-04-02
-- **Fix missing mirror_log column on approved_ingredients table** (api) — 2026-04-02
+0 pending (Phase 116-01 completed both):
+- ~~**Hot-reload EE licence at runtime** (api)~~ — 2026-04-02 ✓ DONE
+- ~~**Fix missing mirror_log column on approved_ingredients table** (api)~~ — 2026-04-02 ✓ DONE
+
+### Completed in Phase 116-01
+
+- migration_v46.sql with mirror_log column addition
+- reload_licence() and check_licence_expiry() service functions
+- POST /api/admin/licence/reload endpoint (200 on success, 422 on invalid)
+- Background licence expiry timer (60s interval, VALID→GRACE→EXPIRED transitions)
+- LicenceExpiryGuard middleware (402 Payment Required on EXPIRED status)
+- Integration tests for reload and expiry workflows (all passing)
 
 ### Blockers/Concerns
 
@@ -84,6 +94,6 @@ Progress: [█░░░░░░░░░] 7%
 
 ## Session Continuity
 
-Last session: 2026-04-02T19:37:14.629Z
-Stopped at: Phase 116 context gathered
-Resume file: .planning/phases/116-fix-smelter-db-migration-and-add-ee-licence-hot-reload/116-CONTEXT.md
+Last session: 2026-04-02T20:49:00.000Z
+Stopped at: Phase 116 Plan 01 completed
+Ready for: Phase 116 Plan 02 (Wave 2: Dashboard UI + WebSocket broadcast)
