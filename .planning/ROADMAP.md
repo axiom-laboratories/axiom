@@ -115,11 +115,11 @@ Plans:
   2. PyPI packages are mirrored to separate paths for manylinux and musllinux wheels so Alpine and Debian images both build correctly in air-gap
   3. A Foundry build using STRICT enforcement mode completes successfully with no internet access for any blueprint whose packages have been mirrored
   4. Circular dependency chains are detected and handled gracefully (timeout + visited-set guard) without hanging the resolution worker
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 108-01: Resolver service and pip-compile pipeline
-- [ ] 108-02: Dual-platform mirror layout and smoke test
+- [ ] 108-01-PLAN.md — Resolver service with pip-compile, transitive edge creation, auto-discovered deduplication
+- [ ] 108-02-PLAN.md — Dual-platform mirror backend, full tree validation, devpi removal
 
 ### Phase 109: APT + apk Mirrors + Compose Profiles
 **Goal**: Operators can mirror APT and Alpine packages for air-gapped Debian and Alpine image builds, with all mirror sidecars behind a compose profile
@@ -232,7 +232,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 |-------|----------------|--------|-----------|
 | 117. Light Mode Implementation | 4/5 | Complete    | 2026-04-03 |
 | 107. Schema Foundation + CRUD Completeness | 2/3 | In Progress|  |
-| 108. Transitive Dependency Resolution | 0/2 | Not started | - |
+| 108. Transitive Dependency Resolution | 0/2 | Planned | - |
 | 109. APT + apk Mirrors + Compose Profiles | 0/2 | Not started | - |
 | 110. CVE Transitive Scan + Dependency Tree UI | 0/2 | Not started | - |
 | 111. npm + NuGet + OCI Mirrors | 0/2 | Not started | - |
