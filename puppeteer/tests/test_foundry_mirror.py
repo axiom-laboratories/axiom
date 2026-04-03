@@ -135,3 +135,13 @@ async def test_foundry_mirror_injection():
     # Cleanup
     import shutil as _shutil
     _shutil.rmtree(build_dir, ignore_errors=True)
+
+
+@pytest.mark.asyncio
+async def test_alpine_build_injects_repos():
+    """
+    When Alpine base_os is used, Dockerfile contains COPY repositories line.
+    This test is part of Phase 109 Wave 3 (Foundry Alpine injection).
+    Placeholder test in RED state — implementation deferred.
+    """
+    pytest.skip("Deferred to Phase 109 Wave 3: Foundry Alpine injection not yet implemented")
