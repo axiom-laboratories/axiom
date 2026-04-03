@@ -235,8 +235,8 @@ async def lifespan(app: FastAPI):
         """
         import httpx
         check_interval = int(os.getenv("MIRROR_HEALTH_CHECK_INTERVAL", "60"))
-        pypi_mirror_url = os.getenv("PYPI_MIRROR_URL", "http://mirror:8080")
-        apt_mirror_url = os.getenv("APT_MIRROR_URL", "http://mirror:8081/apt")
+        pypi_mirror_url = os.getenv("PYPI_MIRROR_URL", "http://pypi:8080")
+        apt_mirror_url = os.getenv("APT_MIRROR_URL", "http://mirror:80/apt/")
 
         retry_delay = 5  # Initial retry delay for exponential backoff
 
@@ -901,6 +901,14 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "Agent Service v0.7",
+        "mirrors_available": mirrors_available
+    }
+
+@app.get("/system/health", tags=["System"])
+async def system_health():
+    mirrors_available = getattr(app.state, "mirrors_available", True)
+    return {
+        "status": "healthy",
         "mirrors_available": mirrors_available
     }
 

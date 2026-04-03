@@ -1,19 +1,22 @@
 :80 {
     # APT (Debian) packages at /apt/
     handle /apt/* {
-        root /data/apt
+        uri strip_prefix /apt
+        root * /data/apt
         file_server browse
     }
 
     # Alpine packages at /apk/
     handle /apk/* {
-        root /data/apk
+        uri strip_prefix /apk
+        root * /data/apk
         file_server browse
     }
 
     # PyPI packages at /simple/ (existing)
     handle /simple/* {
-        root /data/pypi
+        uri strip_prefix /simple
+        root * /data/pypi
         file_server browse
     }
 
