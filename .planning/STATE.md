@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 110 context gathered
-last_updated: "2026-04-03T21:10:27.850Z"
-last_activity: 2026-04-03 -- Completed 109-03-PLAN.md (Alpine Support + Mirror Health UI)
+stopped_at: Completed 110-00-PLAN.md
+last_updated: "2026-04-03T22:36:50Z"
+last_activity: 2026-04-03 -- Completed 110-00-PLAN.md (Test Scaffolds for CVE Transitive Scan + Dependency Tree UI)
 progress:
   total_phases: 12
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 
 ## Current Position
 
-Phase: 109 of 12 (109 - APT/APK Mirrors + Compose Profiles)
-Plan: 3 of 3 in current phase (COMPLETED 109-03)
+Phase: 110 of 12 (110 - CVE Transitive Scan + Dependency Tree UI)
+Plan: 1 of 4 in current phase (COMPLETED 110-00)
 Status: executing
-Last activity: 2026-04-03 -- Completed 109-03-PLAN.md (Alpine Support + Mirror Health UI)
+Last activity: 2026-04-03 -- Completed 110-00-PLAN.md (Test Scaffolds Wave 0)
 
 Progress: [████████████████████] 100%
 
@@ -61,6 +61,7 @@ Progress: [████████████████████] 100%
 | 109 | 01 | 45min | 4 | 3 |
 | 109 | 02 | 1min | 4 | 4 |
 | 109 | 03 | 45min | 4 | 6 |
+| 110 | 00 | 15min | 5 | 5 |
 
 ## Accumulated Context
 
@@ -246,6 +247,15 @@ Progress: [████████████████████] 100%
 - Playwright E2E test (Test 8) for admin licence management workflow
 - Grace period notifications with localStorage-persisted dismissal
 
+### Completed in Phase 110
+
+**Plan 110-00 (Test Scaffolds for CVE Transitive Scan + Dependency Tree UI - Wave 0):**
+- Created test stubs for 5 backend tests (4 in test_smelter.py, 1 in test_foundry.py)
+- Created test stubs for 13 frontend tests (6 in DependencyTreeModal.test.tsx, 4 in CVEBadge.test.tsx, 3 in Admin.test.tsx)
+- All 18 test stubs discoverable by pytest/vitest, all pass execution
+- RED phase complete: test infrastructure ready for Wave 1 implementation
+- Total: 5 tasks, 5 files (2 created + 3 modified), 18 test stubs
+
 ### Blockers/Concerns
 
 - BaGetter API key auth flow for `nuget push` in throwaway container needs spike validation before Phase 111 planning
@@ -253,6 +263,6 @@ Progress: [████████████████████] 100%
 
 ## Session Continuity
 
-Last session: 2026-04-03T21:10:27.843Z
-Stopped at: Phase 110 context gathered
-Ready for: Phase 110 (next phase in roadmap)
+Last session: 2026-04-03T22:36:50Z
+Stopped at: Completed 110-00-PLAN.md (Test Scaffolds)
+Ready for: Plan 110-01 Wave 1 implementation (Transitive CVE Scanning)
