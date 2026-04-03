@@ -172,3 +172,18 @@ async def test_error_message_lists_missing_deps():
     assert is_valid is False
     assert "sqlparse" in str(missing)
     assert "FAILED" in str(missing)  # Status should be listed
+
+
+# Wave 1 / Plan 110-01 integration test for CVE build blocking
+
+@pytest.mark.asyncio
+async def test_build_blocks_vulnerable_transitive():
+    """
+    Integration test: verify build_template() raises 422 when
+    a template ingredient has vulnerable transitive dependencies.
+
+    RED: Stub for implementation in Plan 110-01 Task 4.
+    Will verify: HTTPException(422) contains error code 'vulnerable_transitive_dependencies',
+    vulnerable_count, CVE list with provenance paths.
+    """
+    pass
