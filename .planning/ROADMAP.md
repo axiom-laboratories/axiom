@@ -232,7 +232,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 |-------|----------------|--------|-----------|
 | 117. Light Mode Implementation | 4/5 | Complete    | 2026-04-03 |
 | 107. Schema Foundation + CRUD Completeness | 2/3 | In Progress|  |
-| 108. Transitive Dependency Resolution | 0/2 | Planned | - |
+| 108. Transitive Dependency Resolution | 1/2 | In Progress|  |
 | 109. APT + apk Mirrors + Compose Profiles | 0/2 | Not started | - |
 | 110. CVE Transitive Scan + Dependency Tree UI | 0/2 | Not started | - |
 | 111. npm + NuGet + OCI Mirrors | 0/2 | Not started | - |
@@ -253,7 +253,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 **Goal:** [To be planned]
 **Requirements**: TBD
 **Depends on:** Phase 115
-**Plans:** 2/2 plans complete
+**Plans:** 1/2 plans executed
 
 Plans:
 - [x] TBD (run /gsd:plan-phase 116 to break down) (completed 2026-04-02)
