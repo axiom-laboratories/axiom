@@ -231,7 +231,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 117. Light Mode Implementation | 4/5 | Complete    | 2026-04-03 |
-| 107. Schema Foundation + CRUD Completeness | 2/3 | In Progress|  |
+| 107. Schema Foundation + CRUD Completeness | 2/3 | Complete    | 2026-04-03 |
 | 108. Transitive Dependency Resolution | 2/2 | Complete    | 2026-04-03 |
 | 109. APT + apk Mirrors + Compose Profiles | 0/2 | Not started | - |
 | 110. CVE Transitive Scan + Dependency Tree UI | 0/2 | Not started | - |
@@ -256,7 +256,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 2 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
