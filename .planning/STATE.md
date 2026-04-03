@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 ## Current Position
 
 Phase: 109 of 12 (109 - APT/APK Mirrors + Compose Profiles)
-Plan: 2 of 3 in current phase (COMPLETED 109-02)
+Plan: 3 of 3 in current phase (COMPLETED 109-03)
 Status: executing
-Last activity: 2026-04-03 -- Completed 109-02-PLAN.md (Compose CE/EE Separation + Mirror Routing)
+Last activity: 2026-04-03 -- Completed 109-03-PLAN.md (Alpine Support + Mirror Health UI)
 
-Progress: [████████████████░░░] 80%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████████████████░░░] 80%
 | 108 | 02 | 45min | 5 | 6 |
 | 109 | 01 | 45min | 4 | 3 |
 | 109 | 02 | 1min | 4 | 4 |
+| 109 | 03 | 45min | 4 | 6 |
 
 ## Accumulated Context
 
@@ -89,6 +90,10 @@ Progress: [████████████████░░░] 80%
 - [108-02]: Devpi removed entirely; pypiserver-only with less operational overhead
 - [108-02]: Tree validation before Docker build, not during — fail-fast pattern with 422 Unprocessable Entity for validation errors
 
+- [109-03]: Alpine version extraction from base_os tag (alpine:3.20 → v3.20) for version-specific repository paths — enables multi-version mirror support
+- [109-03]: MirrorHealthBanner dismissal state is client-side session-only (not localStorage) — re-appears on page reload, good UX for persistent reminders
+- [109-03]: Health polling defaults to assuming mirrors available (UI shows banner only if explicitly unavailable) — graceful degradation on API failure
+
 - [109-01]: Container-isolated package downloads (debian:12-slim, alpine:3.20) over host package managers for reproducibility and avoiding host system dependencies
 - [109-01]: APT index regeneration via dpkg-scanpackages inside container (avoids local dpkg dependency)
 - [109-01]: Alpine versioning stored in directory structure (mirror_data/apk/v3.20/main/) to support multi-version mirrors
@@ -108,6 +113,17 @@ Progress: [████████████████░░░] 80%
 - [117-02]: Auto-wrapped tests with ThemeProvider (needed for hook to work without throwing)
 
 ### Completed in Phase 109
+
+**Plan 109-03 (Alpine Support + Mirror Health UI):**
+- Implemented Alpine Dockerfile generation in foundry_service.build_template()
+- Added per-version mirror URL injection from MirrorService.get_apk_repos_content()
+- Post-processing of Dockerfile to inject --allow-untrusted flag into all apk add commands
+- Created useSystemHealth React hook polling /api/system/health every 30s
+- Created MirrorHealthBanner component: dismissible amber alert showing when EE mirrors unreachable
+- Integrated MirrorHealthBanner into Admin.tsx and Templates.tsx views
+- Written 4 comprehensive integration tests for Alpine Dockerfile generation and version parsing
+- All 6 tests passing (4 new + 2 existing), frontend build successful
+- Total: 4 tasks, 6 files modified/created, 100% task completion
 
 **Plan 109-02 (Compose CE/EE Separation + Mirror Routing):**
 - Refactored compose.server.yaml to CE-only (removed pypi, mirror services, mirror-data volume, MIRROR_DATA_PATH env)
@@ -237,6 +253,6 @@ Progress: [████████████████░░░] 80%
 
 ## Session Continuity
 
-Last session: 2026-04-03T19:55:07.841Z
-Stopped at: Phase 109 context gathered
-Ready for: Plan 117-04 verification or Phase 118 (next phase in roadmap)
+Last session: 2026-04-03T21:30:00.000Z
+Stopped at: Phase 109 complete (all 3 plans finished)
+Ready for: Phase 110 (next phase in roadmap)
