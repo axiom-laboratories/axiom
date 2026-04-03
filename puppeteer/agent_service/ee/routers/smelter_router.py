@@ -17,6 +17,7 @@ from ...models import (
     MirrorConfigUpdate,
 )
 from ...services.smelter_service import SmelterService
+from ...services.resolver_service import ResolverService
 
 smelter_router = APIRouter()
 
@@ -203,3 +204,33 @@ async def trigger_smelter_scan(
     summary = await SmelterService.scan_vulnerabilities(db)
     audit(db, current_user, "smelter:scan_triggered", json.dumps(summary))
     return summary
+
+
+@smelter_router.post("/api/smelter/ingredients/{ingredient_id}/resolve", tags=["Smelter Registry"])
+async def resolve_ingredient(
+    ingredient_id: str,
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Optional[int]]:
+    """
+    Manually trigger resolution of a single ingredient's transitive dependencies.
+    Returns when resolution completes.
+    """
+    # Concurrent guard: reject if already resolving
+    ingredient = await db.get(ApprovedIngredient, ingredient_id)
+    if not ingredient:
+        raise HTTPException(status_code=404, detail="Ingredient not found")
+
+    if ingredient.mirror_status == "RESOLVING":
+        raise HTTPException(status_code=409, detail="Resolution already in progress")
+
+    # Trigger resolution (awaited, not background)
+    result = await ResolverService.resolve_ingredient_tree(db, ingredient_id)
+
+    audit(db, current_user, "smelter:ingredient_resolved", f"{ingredient.name}:{result.get('resolved_count', 0)}")
+
+    return {
+        "success": result["success"],
+        "resolved_count": result["resolved_count"],
+        "error_msg": result.get("error_msg")
+    }
