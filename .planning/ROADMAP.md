@@ -230,7 +230,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 117. Light Mode Implementation | 4/5 | In Progress | 2026-04-02 |
+| 117. Light Mode Implementation | 4/5 | Complete    | 2026-04-03 |
 | 107. Schema Foundation + CRUD Completeness | 2/3 | In Progress|  |
 | 108. Transitive Dependency Resolution | 0/2 | Not started | - |
 | 109. APT + apk Mirrors + Compose Profiles | 0/2 | Not started | - |
@@ -266,7 +266,7 @@ Plans:
 
 **Requirements**: None specified
 
-**Plans:** 5 plans
+**Plans:** 5/5 plans complete
 
 Plans:
 - [x] 117-00-PLAN.md — Test infrastructure foundation (Wave 0 TDD RED phase) — completed 2026-04-02
