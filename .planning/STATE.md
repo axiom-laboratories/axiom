@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Completed Phase 108 Plan 01 (Transitive Dependency Resolution)
-last_updated: "2026-04-03T16:10:00.000Z"
+stopped_at: Phase 108 context gathered
+last_updated: "2026-04-03T15:15:46.539Z"
 last_activity: 2026-04-03 -- Completed 108-01-PLAN.md (Transitive Dependency Resolver)
 progress:
   total_phases: 12
-  completed_phases: 2
-  total_plans: 11
-  completed_plans: 10
+  completed_phases: 3
+  total_plans: 12
+  completed_plans: 11
   percent: 77
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 ## Current Position
 
 Phase: 108 of 12 (108 - Transitive Dependency Resolution)
-Plan: 1 of 3 in current phase (COMPLETED 108-01)
+Plan: 2 of 3 in current phase (COMPLETED 108-02)
 Status: executing
-Last activity: 2026-04-03 -- Completed 108-01-PLAN.md (Transitive Dependency Resolver)
+Last activity: 2026-04-03 -- Completed 108-02-PLAN.md (Dual-Platform Mirror & Foundry Validation)
 
-Progress: [██████████████████] 77%
+Progress: [██████████████████] 100%
 
 ## Performance Metrics
 
@@ -52,6 +52,11 @@ Progress: [██████████████████] 77%
 - Trend: 117-03 required intensive refactoring across 14 files (9 view files + layout/hook/toggle/dialog/app)
 
 *Updated after each plan completion*
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 108 | 01 | 30min | 3 | 5 |
+| 108 | 02 | 45min | 5 | 6 |
 
 ## Accumulated Context
 
@@ -75,6 +80,12 @@ Progress: [██████████████████] 77%
 - [107-02]: Single saveMutation handles both create (POST) and edit (PATCH) with conditional URL/method rather than separate mutations
 - [107-02]: Dep confirmation via pendingPayload state + AlertDialog resubmit pattern (422 intercept -> confirm -> resubmit with confirmed_deps)
 
+- [108-02]: Single /data/packages directory for all platforms — pypiserver's flat layout + pip's platform-aware wheel selection handles variant selection automatically
+- [108-02]: Automatic transitive mirroring as background task (asyncio.create_task) so add_ingredient returns immediately; Resolver is awaited (blocks) because dep tree must be resolved before mirroring
+- [108-02]: Pure-python detection via platform tag ("py3-none-any") rather than filename parsing — cleaner and more reliable, download succeeds on first check
+- [108-02]: Devpi removed entirely; pypiserver-only with less operational overhead
+- [108-02]: Tree validation before Docker build, not during — fail-fast pattern with 422 Unprocessable Entity for validation errors
+
 - [117-00]: Structured all theme tests in RED (failing) state per TDD methodology to define expected behavior upfront before implementation
 - [117-00]: Theme infrastructure tests organized into unit (useTheme hook), component (ThemeToggle), integration (CSS variables), context (ThemeProvider), and E2E (Playwright) categories
 - [117-00]: localStorage key is 'mop_theme' with values 'dark' | 'light'; DOM class is '.dark' on document.documentElement
@@ -87,9 +98,30 @@ Progress: [██████████████████] 77%
 - [117-02]: Fixed FOWT prevention script to use .dark class (Plan 01 used incorrect .light class)
 - [117-02]: Auto-wrapped tests with ThemeProvider (needed for hook to work without throwing)
 
+### Completed in Phase 108
+
+**Plan 108-02 (Dual-Platform Mirror & Foundry Validation):**
+- Extended mirror_service._mirror_pypi() with dual-platform download logic (manylinux2014, musllinux, sdist fallback)
+- Added MirrorService._download_wheel() helper for platform-specific wheel/sdist downloads via pip
+- Added MirrorService.mirror_ingredient_and_dependencies() for background auto-mirroring of resolved trees
+- Integrated ResolverService hook + auto-mirror trigger into smelter_service.add_ingredient()
+- Added FoundryService._validate_ingredient_tree() for full dependency tree validation before builds
+- Integrated validation into foundry_service.build_template() with fail-fast 422 response
+- Removed devpi service entirely from compose.server.yaml (pypiserver as single mirror)
+- Added 5 dual-platform mirror tests (pure-python, C-extension, sdist fallback, logging, tree mirroring)
+- Added 4 foundry validation tests (success all mirrored, fail parent, fail transitive, error messages)
+- Total: 5 tasks, 6 files modified/created, ~430 lines of code + tests
+
+**Plan 108-01 (Transitive Dependency Resolver):**
+- Added ApprovedIngredient model with mirror_status, mirror_log, mirror_path, ecosystem fields
+- Added IngredientDependency model with parent_id, child_id, dependency_type, version_constraint edges
+- Implemented ResolverService.resolve_ingredient_tree() using pip-compile for transitive resolution
+- Added validation to prevent circular dependencies
+- Created test cases for resolver edge cases (missing packages, circular deps, pure-python packages)
+
 ### Pending Todos
 
-0 pending (all Phase 117-01 through 117-03 completed):
+0 pending (all Phase 108-01 and 108-02 completed):
 - ~~**Create comprehensive test coverage for theme system** (frontend)~~ — 2026-04-02 ✓ DONE
 - ~~**Implement useTheme hook + ThemeProvider** (Wave 2)~~ — 2026-04-02 ✓ DONE
 - ~~**Implement CSS variables and FOWT prevention** (Wave 1)~~ — 2026-04-02 ✓ DONE

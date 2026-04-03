@@ -78,7 +78,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 **Milestone Goal:** Make the Foundry/Smelter pipeline production-grade for air-gapped deployments — transitive dependency resolution, full CRUD on all Foundry entities, multi-ecosystem mirror support, and operator-friendly UX for non-developers.
 
 - [x] **Phase 107: Schema Foundation + CRUD Completeness** - DB migrations and missing CRUD operations that unblock all downstream work (completed 2026-04-02)
-- [ ] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service
+- [x] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service (completed 2026-04-03)
 - [ ] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars
 - [ ] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer
 - [ ] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars
@@ -118,8 +118,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 108-01-PLAN.md — Resolver service with pip-compile, transitive edge creation, auto-discovered deduplication
-- [ ] 108-02-PLAN.md — Dual-platform mirror backend, full tree validation, devpi removal
+- [x] 108-01-PLAN.md — Resolver service with pip-compile, transitive edge creation, auto-discovered deduplication (completed 2026-04-03)
+- [x] 108-02-PLAN.md — Dual-platform mirror backend, full tree validation, devpi removal (completed 2026-04-03)
 
 ### Phase 109: APT + apk Mirrors + Compose Profiles
 **Goal**: Operators can mirror APT and Alpine packages for air-gapped Debian and Alpine image builds, with all mirror sidecars behind a compose profile
@@ -232,7 +232,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 |-------|----------------|--------|-----------|
 | 117. Light Mode Implementation | 4/5 | Complete    | 2026-04-03 |
 | 107. Schema Foundation + CRUD Completeness | 2/3 | In Progress|  |
-| 108. Transitive Dependency Resolution | 1/2 | In Progress|  |
+| 108. Transitive Dependency Resolution | 2/2 | Complete   | 2026-04-03 |
 | 109. APT + apk Mirrors + Compose Profiles | 0/2 | Not started | - |
 | 110. CVE Transitive Scan + Dependency Tree UI | 0/2 | Not started | - |
 | 111. npm + NuGet + OCI Mirrors | 0/2 | Not started | - |
@@ -253,7 +253,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 **Goal:** [To be planned]
 **Requirements**: TBD
 **Depends on:** Phase 115
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] TBD (run /gsd:plan-phase 116 to break down) (completed 2026-04-02)
