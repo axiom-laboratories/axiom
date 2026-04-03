@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  agent:
+    # Override the volumes block — compose merges this with compose.server.yaml,
+    # replacing the entire volumes list (not appending).
+    # Important: Keep this in sync with compose.server.yaml agent.volumes
+    volumes:
+      - certs-volume:/app/global_certs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../puppets:/app/puppets:ro
+      - mirror-data:/app/mirror_data
+      - secrets-data:/app/secrets
+    environment:
+      - MIRROR_DATA_PATH=/app/mirror_data
+
+  pypi:
+    image: pypiserver/pypiserver:latest
+    restart: always
+    command: -P . -a . /data/packages
+    volumes:
+      - mirror-data:/data/packages
+    ports:
+      - "8080:8080"
+
+  mirror:
+    image: caddy:latest
+    restart: always
+    volumes:
+      - ./mirror/Caddyfile:/etc/caddy/Caddyfile
+      - mirror-data:/data
+    ports:
+      - "8081:80"
+
+volumes:
+  mirror-data:
