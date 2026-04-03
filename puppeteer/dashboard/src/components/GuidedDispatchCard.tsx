@@ -308,15 +308,15 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <Card className="bg-zinc-925 border-zinc-800/50">
+        <Card className="bg-card border-muted/50">
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-bold text-white">Dispatch Job</CardTitle>
+                    <CardTitle className="text-lg font-bold text-foreground">Dispatch Job</CardTitle>
                     {!advancedMode && (
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="text-xs text-zinc-500 hover:text-zinc-300 px-2 h-7"
+                            className="text-xs text-muted-foreground hover:text-foreground px-2 h-7"
                             onClick={() => setPendingAdvSwitch(true)}
                             aria-label="Advanced mode"
                         >
@@ -327,7 +327,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="text-xs text-zinc-500 hover:text-zinc-300 px-2 h-7"
+                            className="text-xs text-muted-foreground hover:text-foreground px-2 h-7"
                             onClick={() => setPendingAdvReset(true)}
                             aria-label="Return to guided mode"
                         >
@@ -342,14 +342,14 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                 {advancedMode ? (
                     /* Advanced mode: JSON textarea */
                     <div className="space-y-3">
-                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                             Raw JSON Payload
                         </label>
                         <textarea
                             aria-label="Advanced JSON payload"
                             value={advancedJson}
                             onChange={e => setAdvancedJson(e.target.value)}
-                            className="w-full h-64 p-3 bg-zinc-900 border border-zinc-800 text-green-500 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-y"
+                            className="w-full h-64 p-3 bg-background border border-muted text-green-500 dark:text-green-400 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-y"
                             spellCheck={false}
                         />
                         {advancedJsonError && (
@@ -361,31 +361,31 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                     <>
                         {/* Name */}
                         <div className="space-y-1.5">
-                            <label htmlFor="guided-name" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
-                                Name <span className="text-zinc-600 normal-case font-normal">(optional)</span>
+                            <label htmlFor="guided-name" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                                Name <span className="text-muted-foreground/60 normal-case font-normal">(optional)</span>
                             </label>
                             <Input
                                 id="guided-name"
                                 placeholder="Job name..."
                                 value={form.name}
                                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                                className="bg-zinc-900 border-zinc-800 text-white h-9 text-sm placeholder:text-zinc-600"
+                                className="bg-background border-muted text-foreground h-9 text-sm placeholder:text-muted-foreground/50"
                             />
                         </div>
 
                         {/* Runtime */}
                         <div className="space-y-1.5">
-                            <label htmlFor="guided-runtime" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                            <label htmlFor="guided-runtime" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                                 Runtime
                             </label>
                             <Select
                                 value={form.runtime}
                                 onValueChange={v => setForm(f => ({ ...f, runtime: v as 'python' | 'bash' | 'powershell' }))}
                             >
-                                <SelectTrigger id="guided-runtime" className="bg-zinc-900 border-zinc-800 text-white h-9 text-sm">
+                                <SelectTrigger id="guided-runtime" className="bg-background border-muted text-foreground h-9 text-sm">
                                     <SelectValue placeholder="Select runtime" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                <SelectContent className="bg-background border-muted text-foreground">
                                     <SelectItem value="python">Python</SelectItem>
                                     <SelectItem value="bash">Bash</SelectItem>
                                     <SelectItem value="powershell">PowerShell</SelectItem>
@@ -395,7 +395,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
                         {/* Script content */}
                         <div className="space-y-1.5">
-                            <label htmlFor="guided-script" className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+                            <label htmlFor="guided-script" className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                                 Script
                             </label>
                             <textarea
@@ -404,25 +404,25 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                 placeholder="# Enter your script here..."
                                 value={form.scriptContent}
                                 onChange={e => setForm(f => ({ ...f, scriptContent: e.target.value }))}
-                                className="w-full h-36 px-3 py-2 bg-zinc-900 border border-zinc-800 text-green-400 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-y placeholder:text-zinc-600"
+                                className="w-full h-36 px-3 py-2 bg-background border border-muted text-green-600 dark:text-green-400 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-y placeholder:text-muted-foreground/50"
                             />
                         </div>
 
                         {/* Targeting */}
-                        <div className="space-y-3 border border-zinc-800 rounded-lg p-3">
-                            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Targeting</p>
+                        <div className="space-y-3 border border-muted rounded-lg p-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Targeting</p>
 
                             {/* Node dropdown */}
                             <div className="space-y-1">
-                                <label htmlFor="guided-node" className="text-xs text-zinc-500">Node (optional)</label>
+                                <label htmlFor="guided-node" className="text-xs text-muted-foreground">Node (optional)</label>
                                 <Select
                                     value={form.targetNodeId || '__none__'}
                                     onValueChange={v => setForm(f => ({ ...f, targetNodeId: v === '__none__' ? '' : v }))}
                                 >
-                                    <SelectTrigger id="guided-node" className="bg-zinc-900 border-zinc-800 text-white h-9 text-sm">
+                                    <SelectTrigger id="guided-node" className="bg-background border-muted text-foreground h-9 text-sm">
                                         <SelectValue placeholder="Any node" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectContent className="bg-background border-muted text-foreground">
                                         <SelectItem value="__none__">Any node</SelectItem>
                                         {nodes.map(n => (
                                             <SelectItem key={n.node_id} value={n.node_id}>
@@ -435,21 +435,21 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
                             {/* Target tags chips */}
                             <div className="space-y-1">
-                                <label htmlFor="guided-target-tags" className="text-xs text-zinc-500">
-                                    Target tags <span className="text-zinc-600">(Enter or comma to add)</span>
+                                <label htmlFor="guided-target-tags" className="text-xs text-muted-foreground">
+                                    Target tags <span className="text-muted-foreground/60">(Enter or comma to add)</span>
                                 </label>
                                 {form.targetTags.length > 0 && (
                                     <div className="flex flex-wrap gap-1 mb-1">
                                         {form.targetTags.map(tag => (
                                             <span
                                                 key={tag}
-                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-zinc-300 border border-zinc-700"
+                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs text-foreground border border-muted"
                                             >
                                                 {tag}
                                                 <button
                                                     type="button"
                                                     onClick={() => removeTargetTag(tag)}
-                                                    className="hover:text-white text-zinc-500"
+                                                    className="hover:text-foreground text-muted-foreground"
                                                     aria-label={`Remove tag ${tag}`}
                                                 >
                                                     <X className="h-2.5 w-2.5" />
@@ -470,14 +470,14 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                         }
                                     }}
                                     onBlur={() => { if (tagInput.trim()) addTargetTag(tagInput); }}
-                                    className="bg-zinc-900 border-zinc-800 text-white h-8 text-sm placeholder:text-zinc-600 font-mono"
+                                    className="bg-background border-muted text-foreground h-8 text-sm placeholder:text-muted-foreground/60 font-mono"
                                 />
                             </div>
 
                             {/* Capability chips */}
                             <div className="space-y-1">
-                                <label htmlFor="guided-cap-reqs" className="text-xs text-zinc-500">
-                                    Capability requirements <span className="text-zinc-600">(key:value format)</span>
+                                <label htmlFor="guided-cap-reqs" className="text-xs text-muted-foreground">
+                                    Capability requirements <span className="text-muted-foreground/60">(key:value format)</span>
                                 </label>
                                 {form.capabilityReqs.length > 0 && (
                                     <div className="flex flex-wrap gap-1 mb-1">
@@ -490,7 +490,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                                 <button
                                                     type="button"
                                                     onClick={() => removeCapReq(cap)}
-                                                    className="hover:text-white text-blue-500/70"
+                                                    className="hover:text-foreground text-blue-500/70"
                                                     aria-label={`Remove capability ${cap}`}
                                                 >
                                                     <X className="h-2.5 w-2.5" />
@@ -511,14 +511,14 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                         }
                                     }}
                                     onBlur={() => { if (capInput.trim()) addCapReq(capInput); }}
-                                    className="bg-zinc-900 border-zinc-800 text-white h-8 text-sm placeholder:text-zinc-600 font-mono"
+                                    className="bg-background border-muted text-foreground h-8 text-sm placeholder:text-muted-foreground/60 font-mono"
                                 />
                             </div>
                         </div>
 
                         {/* Sign section */}
-                        <div className="space-y-3 border border-zinc-800 rounded-lg p-3">
-                            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Sign</p>
+                        <div className="space-y-3 border border-muted rounded-lg p-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Sign</p>
 
                             {/* Stale signature warning */}
                             {form.signatureCleared && (
@@ -530,7 +530,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
                             {/* Key ID dropdown */}
                             <div className="space-y-1">
-                                <label htmlFor="guided-key-id" className="text-xs text-zinc-500">Key ID</label>
+                                <label htmlFor="guided-key-id" className="text-xs text-muted-foreground">Key ID</label>
                                 <Select
                                     value={form.signatureId || '__none__'}
                                     onValueChange={v => setForm(f => ({
@@ -539,10 +539,10 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                         signatureCleared: false,
                                     }))}
                                 >
-                                    <SelectTrigger id="guided-key-id" className="bg-zinc-900 border-zinc-800 text-white h-9 text-sm">
+                                    <SelectTrigger id="guided-key-id" className="bg-background border-muted text-foreground h-9 text-sm">
                                         <SelectValue placeholder="Select signing key" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectContent className="bg-background border-muted text-foreground">
                                         <SelectItem value="__none__">Select signing key</SelectItem>
                                         {signatures.map(s => (
                                             <SelectItem key={s.id} value={s.id}>
@@ -555,24 +555,24 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
                             {/* Signature textarea */}
                             <div className="space-y-1">
-                                <label htmlFor="guided-signature" className="text-xs text-zinc-500">Signature (base64)</label>
+                                <label htmlFor="guided-signature" className="text-xs text-muted-foreground">Signature (base64)</label>
                                 <textarea
                                     id="guided-signature"
                                     aria-label="Signature"
                                     placeholder="Paste Ed25519 signature here..."
                                     value={form.signature}
                                     onChange={e => setForm(f => ({ ...f, signature: e.target.value, signatureCleared: false }))}
-                                    className="w-full h-16 px-3 py-2 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-md font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none placeholder:text-zinc-600"
+                                    className="w-full h-16 px-3 py-2 bg-background border border-muted text-foreground rounded-md font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none placeholder:text-muted-foreground/50"
                                 />
                             </div>
                         </div>
 
                         {/* JSON Preview accordion */}
-                        <div className="border border-zinc-800 rounded-lg overflow-hidden">
+                        <div className="border border-muted rounded-lg overflow-hidden">
                             <button
                                 type="button"
                                 onClick={() => setPreviewOpen(v => !v)}
-                                className="w-full flex items-center justify-between px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+                                className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                                 aria-expanded={previewOpen}
                                 aria-controls="guided-payload-preview"
                             >
@@ -583,7 +583,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                 }
                             </button>
                             {previewOpen && (
-                                <div id="guided-payload-preview" className="bg-zinc-950 border-t border-zinc-800 p-3">
+                                <div id="guided-payload-preview" className="bg-background border-t border-muted p-3">
                                     <pre className="text-green-400 font-mono text-xs whitespace-pre-wrap overflow-auto max-h-64">
                                         {JSON.stringify(generatedPayload, null, 2)}
                                     </pre>
@@ -608,12 +608,12 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                         if (e.key === 'Escape') { setSaveTemplatePending(false); setSaveTemplateNameInput(''); }
                                     }}
                                     autoFocus
-                                    className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-white rounded px-3 py-1.5 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    className="flex-1 min-w-0 bg-background border border-muted text-foreground rounded px-3 py-1.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                                 />
                                 <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="text-xs text-zinc-400 h-8"
+                                    className="text-xs text-muted-foreground h-8"
                                     onClick={() => { setSaveTemplatePending(false); setSaveTemplateNameInput(''); }}
                                 >Cancel</Button>
                                 <Button
@@ -627,7 +627,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="w-full text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 h-8"
+                                className="w-full text-xs text-muted-foreground hover:text-foreground border border-muted h-8"
                                 onClick={() => setSaveTemplatePending(true)}
                             >
                                 <Bookmark className="mr-2 h-3 w-3" />
@@ -653,7 +653,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
                                     </Button>
                                 </span>
                             </TooltipTrigger>
-                            <TooltipContent className="bg-zinc-800 text-white text-xs px-2 py-1 rounded">
+                            <TooltipContent className="bg-card text-foreground text-xs px-2 py-1 rounded border border-muted">
                                 {advancedJsonError}
                             </TooltipContent>
                         </Tooltip>
@@ -674,10 +674,10 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
             {/* Dialog 1: Switch to Advanced */}
             <Dialog open={pendingAdvSwitch} onOpenChange={setPendingAdvSwitch}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-md">
+                <DialogContent className="bg-card border-muted text-foreground sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Switch to Advanced mode?</DialogTitle>
-                        <DialogDescription className="text-zinc-400">
+                        <DialogDescription className="text-muted-foreground">
                             Your current form values will be converted to JSON. You won't be able to switch back without clearing the form.
                         </DialogDescription>
                     </DialogHeader>
@@ -690,10 +690,10 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
             {/* Dialog 2: Reset to Guided */}
             <Dialog open={pendingAdvReset} onOpenChange={setPendingAdvReset}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white sm:max-w-md">
+                <DialogContent className="bg-card border-muted text-foreground sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Return to guided mode?</DialogTitle>
-                        <DialogDescription className="text-zinc-400">
+                        <DialogDescription className="text-muted-foreground">
                             Clear the JSON editor and return to guided mode?
                         </DialogDescription>
                     </DialogHeader>

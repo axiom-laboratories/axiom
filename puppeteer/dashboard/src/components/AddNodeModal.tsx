@@ -71,7 +71,7 @@ const AddNodeModal = ({ open, onOpenChange }: AddNodeModalProps) => {
                 ) : (
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="count" className="text-right text-xs font-bold text-zinc-500 uppercase">
+                        <Label htmlFor="count" className="text-right text-xs font-bold text-muted-foreground uppercase">
                             Scale Count
                         </Label>
                         <Input
@@ -79,14 +79,14 @@ const AddNodeModal = ({ open, onOpenChange }: AddNodeModalProps) => {
                             type="number"
                             value={count}
                             onChange={(e) => setCount(parseInt(e.target.value) || 1)}
-                            className="col-span-3 bg-zinc-950 border-zinc-800"
+                            className="col-span-3 bg-card border-muted"
                             min={1}
                             max={50}
                         />
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="tags" className="text-right text-xs font-bold text-zinc-500 uppercase">
+                        <Label htmlFor="tags" className="text-right text-xs font-bold text-muted-foreground uppercase">
                             Initial Tags
                         </Label>
                         <Input
@@ -94,13 +94,13 @@ const AddNodeModal = ({ open, onOpenChange }: AddNodeModalProps) => {
                             placeholder="e.g. env:prod, linux"
                             value={tags}
                             onChange={(e) => setTags(e.target.value)}
-                            className="col-span-3 bg-zinc-950 border-zinc-800"
+                            className="col-span-3 bg-card border-muted"
                         />
                     </div>
 
                     <div className="space-y-2 pt-2">
-                        <Label className="text-xs font-bold text-zinc-500 uppercase">Option A: One-Liner (Recommended)</Label>
-                        <div className="relative rounded-lg bg-black border border-zinc-800 p-4 pr-12 font-mono text-xs break-all text-zinc-300">
+                        <Label className="text-xs font-bold text-muted-foreground uppercase">Option A: One-Liner (Recommended)</Label>
+                        <div className="relative rounded-lg bg-black border border-muted p-4 pr-12 font-mono text-xs break-all text-foreground/80">
                             {`iex (irm "${import.meta.env.VITE_API_URL || window.location.origin}/installer") -Role Node -Token "${token}" -Count ${count}${tags.trim() ? ` -Tags "${tags.trim()}"` : ''}`}
                             <Button
                                     size="icon"

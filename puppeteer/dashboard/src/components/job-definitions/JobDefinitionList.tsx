@@ -86,46 +86,46 @@ const ReSignDialog = ({
 
     return (
         <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-            <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800">
+            <DialogContent className="max-w-2xl bg-card border-muted">
                 <DialogHeader>
-                    <DialogTitle className="text-white flex items-center gap-2">
+                    <DialogTitle className="text-foreground flex items-center gap-2">
                         <KeyRound className="h-4 w-4 text-amber-500" />
                         Re-sign: {job.name}
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400">
+                    <DialogDescription className="text-muted-foreground">
                         Confirm the script content below, then provide a valid signature to reactivate.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                     <div>
-                        <Label className="text-zinc-400 text-xs uppercase tracking-wider mb-2 block">Script Content (read-only)</Label>
-                        <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 font-mono overflow-auto max-h-48 whitespace-pre-wrap">{job.script_content}</pre>
+                        <Label className="text-muted-foreground text-xs uppercase tracking-wider mb-2 block">Script Content (read-only)</Label>
+                        <pre className="bg-background border border-muted rounded-lg p-3 text-xs text-foreground/80 font-mono overflow-auto max-h-48 whitespace-pre-wrap">{job.script_content}</pre>
                     </div>
                     <div>
-                        <Label className="text-zinc-400 text-xs uppercase tracking-wider mb-2 block">Signing Key</Label>
+                        <Label className="text-muted-foreground text-xs uppercase tracking-wider mb-2 block">Signing Key</Label>
                         <Select value={sigId} onValueChange={setSigId}>
-                            <SelectTrigger className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                            <SelectTrigger className="bg-background border-muted text-foreground/80">
                                 <SelectValue placeholder="Select a signing key..." />
                             </SelectTrigger>
-                            <SelectContent className="bg-zinc-900 border-zinc-800">
+                            <SelectContent className="bg-background border-muted">
                                 {signatures.map(s => (
-                                    <SelectItem key={s.id} value={s.id} className="text-zinc-300">{s.name}</SelectItem>
+                                    <SelectItem key={s.id} value={s.id} className="text-foreground">{s.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
                     <div>
-                        <Label className="text-zinc-400 text-xs uppercase tracking-wider mb-2 block">Signature (base64)</Label>
+                        <Label className="text-muted-foreground text-xs uppercase tracking-wider mb-2 block">Signature (base64)</Label>
                         <Textarea
                             value={sig}
                             onChange={e => setSig(e.target.value)}
                             placeholder="Base64-encoded Ed25519 signature..."
-                            className="bg-zinc-900 border-zinc-800 text-zinc-300 font-mono text-xs min-h-[80px]"
+                            className="bg-background border-muted text-foreground/80 font-mono text-xs min-h-[80px]"
                         />
                     </div>
                 </div>
                 <DialogFooter className="gap-2">
-                    <Button variant="ghost" onClick={onClose} className="text-zinc-400 hover:text-white">Cancel</Button>
+                    <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">Cancel</Button>
                     <Button
                         disabled={!sigId || !sig.trim()}
                         className="bg-amber-500 hover:bg-amber-600 text-white font-bold"
@@ -163,16 +163,16 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
             case 'DRAFT':
                 return <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20 uppercase text-[10px] font-bold tracking-wider">Draft</Badge>;
             case 'DEPRECATED':
-                return <Badge className="bg-zinc-500/10 text-zinc-500 border-zinc-500/20 hover:bg-zinc-500/20 uppercase text-[10px] font-bold tracking-wider">Deprecated</Badge>;
+                return <Badge className="bg-muted text-muted-foreground border-muted hover:bg-muted/80 uppercase text-[10px] font-bold tracking-wider">Deprecated</Badge>;
             case 'REVOKED':
                 return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 uppercase text-[10px] font-bold tracking-wider">Revoked</Badge>;
             default:
-                return <Badge className="bg-zinc-500/10 text-zinc-500 border-zinc-500/20 hover:bg-zinc-500/20 uppercase text-[10px] font-bold tracking-wider">{s}</Badge>;
+                return <Badge className="bg-muted text-muted-foreground border-muted hover:bg-muted/80 uppercase text-[10px] font-bold tracking-wider">{s}</Badge>;
         }
     };
 
     const renderSparkline = (data: Execution[]) => {
-        if (!data.length) return <span className="text-zinc-600 text-xs italic">No verification history</span>;
+        if (!data.length) return <span className="text-muted-foreground/60 text-xs italic">No verification history</span>;
 
         return (
             <div className="flex items-end h-5 gap-[2px]">
@@ -194,44 +194,44 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
 
     return (
         <>
-        <Card className="bg-zinc-925 border-zinc-800/50 overflow-hidden">
+        <Card className="bg-card border-muted/50 overflow-hidden">
             <Table>
-                <TableHeader className="bg-zinc-900/50 border-zinc-800">
-                    <TableRow className="border-zinc-800 hover:bg-transparent">
-                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest pl-6">Job Definition</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Status</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Cron Schedule</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Integrity</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Observation Feed (30d)</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Last Sync</TableHead>
-                        <TableHead className="text-zinc-500 font-bold uppercase text-xs tracking-widest pr-6 text-right">Actions</TableHead>
+                <TableHeader className="bg-muted/30 border-muted">
+                    <TableRow className="border-muted hover:bg-transparent">
+                        <TableHead className="text-muted-foreground font-bold uppercase text-xs tracking-widest pl-6">Job Definition</TableHead>
+                        <TableHead className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Status</TableHead>
+                        <TableHead className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Cron Schedule</TableHead>
+                        <TableHead className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Integrity</TableHead>
+                        <TableHead className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Observation Feed (30d)</TableHead>
+                        <TableHead className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Last Sync</TableHead>
+                        <TableHead className="text-muted-foreground font-bold uppercase text-xs tracking-widest pr-6 text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {definitions.length > 0 ? (
                         definitions.map(def => (
                             <React.Fragment key={def.id}>
-                            <TableRow className={`border-zinc-800 hover:bg-zinc-900/30 transition-colors group${def.id === selectedDefId ? ' bg-primary/5 border-l-2 border-l-primary' : ''}`}>
+                            <TableRow className={`border-muted hover:bg-muted/30 transition-colors group${def.id === selectedDefId ? ' bg-primary/5 border-l-2 border-l-primary' : ''}`}>
                                 <TableCell className="pl-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <button
                                             onClick={() => toggleRow(def.id)}
-                                            className="text-zinc-600 hover:text-zinc-400 transition-colors"
+                                            className="text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                                         >
                                             {expandedRows[def.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                         </button>
                                         <div className="flex flex-col">
                                             <span
-                                                className="text-white font-medium flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                                                className="text-foreground font-medium flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => onSelect?.(def.id)}
                                             >
                                                 <Terminal className="h-3 w-3 text-primary" />
                                                 {def.name}
                                             </span>
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] text-zinc-600 font-mono">ID: {def.id.substring(0, 8)}</span>
+                                                <span className="text-[10px] text-muted-foreground/60 font-mono">ID: {def.id.substring(0, 8)}</span>
                                                 {def.pushed_by && (
-                                                    <span className="text-[10px] text-zinc-500 italic">by {def.pushed_by}</span>
+                                                    <span className="text-[10px] text-muted-foreground/80 italic">by {def.pushed_by}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -241,7 +241,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                     {renderStatusBadge(def.status)}
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className="font-mono bg-zinc-900 border-zinc-800 text-zinc-400">
+                                    <Badge variant="outline" className="font-mono bg-muted border-muted text-muted-foreground">
                                         <Clock className="mr-1 h-3 w-3" />
                                         {def.schedule_cron || 'Manual Trigger'}
                                     </Badge>
@@ -253,7 +253,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                             Enforced
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-1.5 text-zinc-600 text-xs font-bold uppercase tracking-tighter">
+                                        <div className="flex items-center gap-1.5 text-muted-foreground/60 text-xs font-bold uppercase tracking-tighter">
                                             <XCircle className="h-3.5 w-3.5" />
                                             Suspended
                                         </div>
@@ -265,7 +265,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <span className="text-xs text-zinc-500 font-mono">
+                                    <span className="text-xs text-muted-foreground font-mono">
                                         {new Date(def.created_at).toLocaleDateString()}
                                     </span>
                                 </TableCell>
@@ -286,7 +286,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-7 w-7 text-zinc-500 hover:text-green-400 hover:bg-green-500/10 rounded-md"
+                                                className="h-7 w-7 text-muted-foreground hover:text-green-400 hover:bg-green-500/10 rounded-md"
                                                 onClick={() => onPublish(def.id)}
                                                 title="Publish to Active"
                                             >
@@ -296,7 +296,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-7 w-7 text-zinc-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-md"
+                                            className="h-7 w-7 text-muted-foreground hover:text-yellow-400 hover:bg-yellow-500/10 rounded-md"
                                             onClick={() => onToggle(def.id)}
                                             title={def.is_active ? 'Suspend' : 'Activate'}
                                         >
@@ -308,7 +308,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-7 w-7 text-zinc-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-md"
+                                            className="h-7 w-7 text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-md"
                                             onClick={() => onEdit(def.id)}
                                             title="Edit"
                                         >
@@ -317,7 +317,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-7 w-7 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-md"
+                                            className="h-7 w-7 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-md"
                                             onClick={() => onDelete(def.id)}
                                             title="Delete"
                                         >
@@ -327,14 +327,14 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                                 </TableCell>
                             </TableRow>
                             {expandedRows[def.id] && (
-                                <TableRow className="border-zinc-800 bg-zinc-950/50 hover:bg-zinc-950/50">
-                                    <TableCell colSpan={7} className="p-0 border-t border-zinc-800">
+                                <TableRow className="border-muted bg-muted/20 hover:bg-muted/20">
+                                    <TableCell colSpan={7} className="p-0 border-t border-muted">
                                         <div className="p-6">
                                             <div className="flex items-center justify-between mb-4">
-                                                <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Source Payload</h4>
-                                                <Badge variant="outline" className="text-[10px] text-zinc-500 border-zinc-800">PYTHON_SCRIPT</Badge>
+                                                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Source Payload</h4>
+                                                <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted">PYTHON_SCRIPT</Badge>
                                             </div>
-                                            <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-[13px] text-zinc-300 font-mono overflow-x-auto max-h-[400px]">
+                                            <pre className="bg-card border border-muted rounded-lg p-4 text-[13px] text-foreground/80 font-mono overflow-x-auto max-h-[400px]">
                                                 <code>{def.script_content}</code>
                                             </pre>
                                         </div>
@@ -345,7 +345,7 @@ const JobDefinitionList = ({ definitions, executions, onDelete, onToggle, onEdit
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={7} className="h-32 text-center text-zinc-600">
+                            <TableCell colSpan={7} className="h-32 text-center text-muted-foreground/60">
                                 No signed definitions found in registry.
                             </TableCell>
                         </TableRow>

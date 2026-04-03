@@ -427,7 +427,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                     {showHealth ? (
                         <div className="space-y-1.5 pt-1 animate-in slide-in-from-top-1 duration-200">
                             {healthReport.map(r => (
-                                <div key={r.tool} className="flex items-center justify-between text-[10px] bg-black/20 p-1.5 rounded border border-zinc-900">
+                                <div key={r.tool} className="flex items-center justify-between text-[10px] bg-black/20 p-1.5 rounded border border-muted">
                                     <span className="font-mono text-muted-foreground">{r.tool}</span>
                                     {r.status === 'COMPLIANT' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                     {r.status === 'MISSING' && <Badge variant="outline" className="h-4 px-1 text-[8px] border-amber-500/30 text-amber-500">Pending Install</Badge>}
@@ -435,7 +435,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                                     {r.status === 'UNAUTHORIZED' && <Badge variant="outline" className="h-4 px-1 text-[8px] border-red-500/30 text-red-500 font-bold tracking-tighter">UNAUTHORIZED</Badge>}
                                 </div>
                             ))}
-                            {healthReport.length === 0 && <p className="text-[10px] text-zinc-600 italic px-1">No tools authorized.</p>}
+                            {healthReport.length === 0 && <p className="text-[10px] text-muted-foreground/60 italic px-1">No tools authorized.</p>}
                         </div>
                     ) : (
                         <div className="flex flex-wrap gap-1">
@@ -515,11 +515,11 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                     </div>
                 ) : (
                     <>
-                        <span className="text-xs text-zinc-600">
+                        <span className="text-xs text-muted-foreground/60">
                             {node.concurrency_limit ? `${node.concurrency_limit} workers · ${node.job_memory_limit}` : node.version || 'Unknown'}
                         </span>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-600">{new Date(node.last_seen).toLocaleTimeString()}</span>
+                            <span className="text-xs text-muted-foreground/60">{new Date(node.last_seen).toLocaleTimeString()}</span>
                             {isRevoked ? (
                                 <>
                                     <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-400 hover:bg-emerald-500/10 rounded" onClick={reinstateNode} disabled={revoking} title="Reinstate node" aria-label="Reinstate node">
@@ -531,10 +531,10 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                                 </>
                             ) : (
                                 <>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10 rounded" onClick={() => setShowRevokeConfirm(true)} disabled={revoking} title="Revoke node access" aria-label="Revoke node access">
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground/60 hover:text-amber-400 hover:bg-amber-500/10 rounded" onClick={() => setShowRevokeConfirm(true)} disabled={revoking} title="Revoke node access" aria-label="Revoke node access">
                                         <Ban className="h-3 w-3" />
                                     </Button>
-                                    <Button size="icon" variant="ghost" className={`h-6 w-6 rounded ${isOnline ? 'text-zinc-700 hover:text-red-400 hover:bg-red-500/10' : 'text-red-700 hover:text-red-400 hover:bg-red-500/10'}`} onClick={() => setShowDeleteConfirm(true)} disabled={deleting} title={isOnline ? 'Force-remove (node is online)' : 'Remove node'} aria-label={isOnline ? 'Force-remove (node is online)' : 'Remove node'}>
+                                    <Button size="icon" variant="ghost" className={`h-6 w-6 rounded ${isOnline ? 'text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/10' : 'text-red-700 hover:text-red-400 hover:bg-red-500/10'}`} onClick={() => setShowDeleteConfirm(true)} disabled={deleting} title={isOnline ? 'Force-remove (node is online)' : 'Remove node'} aria-label={isOnline ? 'Force-remove (node is online)' : 'Remove node'}>
                                         <Trash2 className="h-3 w-3" />
                                     </Button>
                                 </>
@@ -544,10 +544,10 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                                     <RotateCcw className="h-3 w-3" /> Clear Alert
                                 </Button>
                             )}
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-primary hover:bg-primary/10 rounded" onClick={() => onUpgrade(node)} title="Hot-Upgrade Runtime" aria-label="Hot-Upgrade Runtime">
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground/60 hover:text-primary hover:bg-primary/10 rounded" onClick={() => onUpgrade(node)} title="Hot-Upgrade Runtime" aria-label="Hot-Upgrade Runtime">
                                 <Zap className="h-3 w-3" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-foreground hover:bg-muted rounded" onClick={() => setEditing(true)} aria-label="Configure node">
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground/60 hover:text-foreground hover:bg-muted rounded" onClick={() => setEditing(true)} aria-label="Configure node">
                                 <Settings2 className="h-3 w-3" />
                             </Button>
                         </div>
@@ -696,11 +696,11 @@ const Nodes = () => {
                     ))
                 ) : (
                     <div className="col-span-full py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
-                        <Server className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
+                        <Server className="h-12 w-12 text-muted mx-auto mb-4" />
                         <h3 className="text-muted-foreground font-medium">
                             {envFilter !== 'ALL' ? 'No nodes match this environment filter' : 'No nodes enrolled'}
                         </h3>
-                        <p className="text-zinc-600 text-sm mt-1">
+                        <p className="text-muted-foreground/60 text-sm mt-1">
                             {envFilter !== 'ALL' ? `Showing nodes tagged "${envFilter}" only.` : 'Click "Provision Puppet" to enroll your first node.'}
                         </p>
                     </div>
@@ -844,7 +844,7 @@ const Nodes = () => {
                                 : (
                                     <div className="flex flex-wrap gap-1">
                                         {Object.entries(nodeDetail?.capabilities ?? {}).map(([name, ver]) => (
-                                            <Badge key={name} variant="outline" className="text-xs border-zinc-600 text-foreground">
+                                            <Badge key={name} variant="outline" className="text-xs border-muted text-foreground">
                                                 {name} {ver}
                                             </Badge>
                                         ))}

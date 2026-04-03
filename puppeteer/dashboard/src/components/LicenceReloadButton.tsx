@@ -89,7 +89,7 @@ export const LicenceReloadButton: React.FC<LicenceReloadButtonProps> = ({
       </Button>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-zinc-925 border-zinc-800 text-white">
+        <DialogContent className="bg-card border-muted text-foreground">
           <DialogHeader>
             <DialogTitle>Reload Licence</DialogTitle>
             <DialogDescription>
@@ -104,10 +104,10 @@ export const LicenceReloadButton: React.FC<LicenceReloadButtonProps> = ({
                 placeholder="Paste your EE licence key here"
                 value={licenceKey}
                 onChange={(e) => setLicenceKey(e.target.value)}
-                className="bg-zinc-950 border-zinc-800 font-mono text-sm"
+                className="bg-background border-muted font-mono text-sm"
                 type="password"
               />
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 If left empty, the system will use the configured AXIOM_LICENCE_KEY.
               </p>
             </div>

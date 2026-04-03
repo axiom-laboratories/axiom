@@ -132,17 +132,17 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-white">
+            <DialogContent className="max-w-2xl bg-background border-muted text-foreground">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-bold">Create New Image Recipe</DialogTitle>
-                    <DialogDescription className="text-zinc-500">
+                    <DialogDescription className="text-muted-foreground">
                         Define a reusable environment or network perimeter.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-6 py-4">
                     {!presetType && (
-                        <div className="flex gap-2 p-1 bg-zinc-900 rounded-lg">
+                        <div className="flex gap-2 p-1 bg-card rounded-lg">
                             <Button
                                 variant={type === 'RUNTIME' ? 'default' : 'ghost'}
                                 className="flex-1"
@@ -167,7 +167,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Finance-Python-3.11"
-                            className="bg-zinc-900 border-zinc-800"
+                            className="bg-card border-muted"
                         />
                     </div>
 
@@ -179,10 +179,10 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                                     setOsFamily(v as 'DEBIAN' | 'ALPINE');
                                     setSelectedTools([]); // clear selected tools when OS changes
                                 }}>
-                                    <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                                    <SelectTrigger className="bg-card border-muted">
                                         <SelectValue placeholder="Select OS family..." />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectContent className="bg-card border-muted text-foreground">
                                         <SelectItem value="DEBIAN">Debian</SelectItem>
                                         <SelectItem value="ALPINE">Alpine</SelectItem>
                                     </SelectContent>
@@ -192,10 +192,10 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                             <div className="grid gap-2">
                                 <Label>Base OS</Label>
                                 <Select value={baseOs} onValueChange={setBaseOs}>
-                                    <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                                    <SelectTrigger className="bg-card border-muted">
                                         <SelectValue placeholder="Select OS" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                    <SelectContent className="bg-card border-muted text-foreground">
                                         {approvedOsList.map((os: any) => (
                                             <SelectItem key={os.id} value={os.image_uri}>{os.name}</SelectItem>
                                         ))}
@@ -208,11 +208,11 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
 
                             <div className="grid gap-2">
                                 <Label>Tools (from Matrix)</Label>
-                                <div className="flex flex-wrap gap-2 p-3 bg-zinc-900 rounded-md border border-zinc-800 min-h-[48px]">
+                                <div className="flex flex-wrap gap-2 p-3 bg-card rounded-md border border-muted min-h-[48px]">
                                     {!osFamily ? (
-                                        <p className="text-zinc-500 text-sm self-center">Select an OS family to see available tools</p>
+                                        <p className="text-muted-foreground text-sm self-center">Select an OS family to see available tools</p>
                                     ) : matrix.length === 0 ? (
-                                        <p className="text-zinc-500 text-sm self-center">No tools available for {osFamily}</p>
+                                        <p className="text-muted-foreground text-sm self-center">No tools available for {osFamily}</p>
                                     ) : (
                                         matrix.map((entry: any) => (
                                             <Badge
@@ -241,7 +241,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                                         value={newPackage}
                                         onChange={(e) => setNewPackage(e.target.value)}
                                         placeholder="e.g. pandas==2.1.0"
-                                        className="bg-zinc-900 border-zinc-800"
+                                        className="bg-card border-muted"
                                     />
                                     <Button onClick={addPackage} type="button" size="icon">
                                         <Plus className="h-4 w-4" />
@@ -249,7 +249,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                                 </div>
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {packages.map(p => (
-                                        <Badge key={p} variant="secondary" className="bg-zinc-800 text-zinc-300">
+                                        <Badge key={p} variant="secondary" className="bg-muted text-foreground">
                                             {p} <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => setPackages(packages.filter(i => i !== p))} />
                                         </Badge>
                                     ))}
@@ -261,7 +261,7 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                             <div className="grid gap-2">
                                 <Label>Policy Mode</Label>
                                 <Select value={policy} onValueChange={(v: any) => setPolicy(v)}>
-                                    <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                                    <SelectTrigger className="bg-card border-muted">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -271,24 +271,24 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                                 </Select>
                             </div>
 
-                            <div className="flex items-center gap-2 p-3 bg-zinc-900 rounded-md border border-zinc-800">
+                            <div className="flex items-center gap-2 p-3 bg-card rounded-md border border-muted">
                                 <ShieldCheck className="h-4 w-4 text-green-500" />
                                 <div className="flex-1 text-sm">Management Bypass (Always allow Puppeteer API)</div>
-                                <div className="text-xs text-zinc-500 font-bold uppercase">Enabled</div>
+                                <div className="text-xs text-muted-foreground font-bold uppercase">Enabled</div>
                             </div>
 
                             <div className="grid gap-2">
                                 <Label>Egress Rules</Label>
                                 <div className="grid grid-cols-4 gap-2">
                                     <Select value={newRule.type} onValueChange={(v) => setNewRule({...newRule, type: v})}>
-                                        <SelectTrigger className="bg-zinc-900 border-zinc-800"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="bg-card border-muted"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="url">URL</SelectItem>
                                             <SelectItem value="ip">IP/CIDR</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <Input
-                                        className="col-span-2 bg-zinc-900 border-zinc-800"
+                                        className="col-span-2 bg-card border-muted"
                                         placeholder="Host/IP"
                                         value={newRule.value}
                                         onChange={(e) => setNewRule({...newRule, value: e.target.value})}
@@ -297,12 +297,12 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
                                 </div>
                                 <div className="space-y-2 mt-2">
                                     {egressRules.map((rule, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-2 bg-zinc-900 rounded border border-zinc-800 text-sm">
+                                        <div key={idx} className="flex items-center justify-between p-2 bg-card rounded border border-muted text-sm">
                                             <div className="flex gap-4">
                                                 <Badge className="bg-primary/20 text-primary border-0 capitalize">{rule.type}</Badge>
                                                 <span>{rule.value}:{rule.port}</span>
                                             </div>
-                                            <X className="h-4 w-4 text-zinc-500 cursor-pointer" onClick={() => setEgressRules(egressRules.filter((_, i) => i !== idx))} />
+                                            <X className="h-4 w-4 text-muted-foreground cursor-pointer" onClick={() => setEgressRules(egressRules.filter((_, i) => i !== idx))} />
                                         </div>
                                     ))}
                                 </div>
@@ -325,18 +325,18 @@ export const CreateBlueprintDialog = ({ open, onOpenChange, presetType }: Create
 
             {/* Dep-confirmation overlay — appears when POST /api/blueprints returns 422 deps_required */}
             <Dialog open={pendingDeps.length > 0} onOpenChange={(open) => { if (!open) setPendingDeps([]); }}>
-                <DialogContent className="max-w-md bg-zinc-950 border-zinc-800 text-white">
+                <DialogContent className="max-w-md bg-background border-muted text-foreground">
                     <DialogHeader>
                         <DialogTitle>Runtime Dependencies Required</DialogTitle>
-                        <DialogDescription className="text-zinc-400">
+                        <DialogDescription className="text-muted-foreground">
                             The selected tools require the following dependencies. Confirm to auto-add them to the image recipe.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-2 py-4">
                         {pendingDeps.map(dep => (
-                            <div key={dep} className="flex items-center gap-2 p-2 bg-zinc-900 rounded">
+                            <div key={dep} className="flex items-center gap-2 p-2 bg-card rounded">
                                 <span className="text-amber-400 text-sm font-mono">{dep}</span>
-                                <span className="text-zinc-500 text-xs">will be added</span>
+                                <span className="text-muted-foreground text-xs">will be added</span>
                             </div>
                         ))}
                     </div>

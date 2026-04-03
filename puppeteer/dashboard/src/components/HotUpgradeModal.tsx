@@ -96,8 +96,8 @@ const HotUpgradeModal = ({ node, open, onOpenChange }: HotUpgradeModalProps) => 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-zinc-950 border-zinc-800 text-white max-w-2xl overflow-hidden p-0 gap-0">
-                <div className="bg-zinc-900/50 px-6 py-4 border-b border-zinc-800">
+            <DialogContent className="bg-background border-muted text-foreground max-w-2xl overflow-hidden p-0 gap-0">
+                <div className="bg-muted/20 px-6 py-4 border-b border-muted">
                     <DialogHeader>
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -105,7 +105,7 @@ const HotUpgradeModal = ({ node, open, onOpenChange }: HotUpgradeModalProps) => 
                             </div>
                             <div>
                                 <DialogTitle className="text-xl font-bold">Hot-Upgrade Runtime</DialogTitle>
-                                <DialogDescription className="text-zinc-500">
+                                <DialogDescription className="text-muted-foreground">
                                     {node.hostname} ({node.base_os_family || 'Generic'})
                                 </DialogDescription>
                             </div>
@@ -118,8 +118,8 @@ const HotUpgradeModal = ({ node, open, onOpenChange }: HotUpgradeModalProps) => 
                     <div className="flex items-center gap-2 mb-8 px-2">
                         {[1, 2, 3].map(i => (
                             <React.Fragment key={i}>
-                                <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= i ? 'bg-primary' : 'bg-zinc-800'}`} />
-                                {i < 3 && <ChevronRight className="h-3 w-3 text-zinc-700" />}
+                                <div className={`h-1.5 flex-1 rounded-full transition-colors ${step >= i ? 'bg-primary' : 'bg-muted'}`} />
+                                {i < 3 && <ChevronRight className="h-3 w-3 text-muted-foreground/40" />}
                             </React.Fragment>
                         ))}
                     </div>
@@ -127,12 +127,12 @@ const HotUpgradeModal = ({ node, open, onOpenChange }: HotUpgradeModalProps) => 
                     {step === 1 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Select Tool to Push</label>
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Select Tool to Push</label>
                                 <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                     {loading ? (
-                                        <div className="py-10 text-center text-zinc-600 italic">Syncing Matrix...</div>
+                                        <div className="py-10 text-center text-muted-foreground/60 italic">Syncing Matrix...</div>
                                     ) : matrix.length === 0 ? (
-                                        <div className="py-10 text-center text-zinc-600 italic border border-dashed border-zinc-800 rounded-lg">
+                                        <div className="py-10 text-center text-muted-foreground/60 italic border border-dashed border-muted rounded-lg">
                                             No compatible recipes found for {node.base_os_family}.
                                         </div>
                                     ) : matrix.map(cap => (
@@ -140,18 +140,18 @@ const HotUpgradeModal = ({ node, open, onOpenChange }: HotUpgradeModalProps) => 
                                             key={cap.id}
                                             onClick={() => setSelectedTool(cap)}
                                             className={`flex items-center justify-between p-3 rounded-xl border transition-all text-left group ${
-                                                selectedTool?.id === cap.id 
-                                                    ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(139,92,246,0.1)]' 
-                                                    : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                                                selectedTool?.id === cap.id
+                                                    ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(139,92,246,0.1)]'
+                                                    : 'bg-card border-muted text-muted-foreground hover:border-muted/60'
                                             }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-1.5 rounded-lg ${selectedTool?.id === cap.id ? 'bg-primary/20' : 'bg-zinc-800 group-hover:bg-zinc-700'}`}>
+                                                <div className={`p-1.5 rounded-lg ${selectedTool?.id === cap.id ? 'bg-primary/20' : 'bg-muted group-hover:bg-muted/70'}`}>
                                                     <Terminal className="h-4 w-4" />
                                                 </div>
                                                 <span className="font-bold">{cap.tool_id}</span>
                                             </div>
-                                            <Badge variant="outline" className={`text-[8px] h-4 ${selectedTool?.id === cap.id ? 'border-primary/30' : 'border-zinc-800'}`}>
+                                            <Badge variant="outline" className={`text-[8px] h-4 ${selectedTool?.id === cap.id ? 'border-primary/30' : 'border-muted'}`}>
                                                 {cap.base_os_family}
                                             </Badge>
                                         </button>
@@ -174,8 +174,8 @@ const HotUpgradeModal = ({ node, open, onOpenChange }: HotUpgradeModalProps) => 
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Recipe Preview (Signed)</label>
-                                <div className="bg-black border border-zinc-800 rounded-xl p-4 font-mono text-xs text-zinc-400 overflow-auto max-h-[200px]">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Recipe Preview (Signed)</label>
+                                <div className="bg-black border border-muted rounded-xl p-4 font-mono text-xs text-muted-foreground/60 overflow-auto max-h-[200px]">
                                     {selectedTool.injection_recipe}
                                 </div>
                             </div>
@@ -189,28 +189,28 @@ const HotUpgradeModal = ({ node, open, onOpenChange }: HotUpgradeModalProps) => 
                                     <ShieldAlert className="h-6 w-6" />
                                 </div>
                                 <h3 className="text-lg font-bold">Administrative Guard</h3>
-                                <p className="text-sm text-zinc-500 max-w-[400px] mx-auto">
-                                    To authorize the push of <span className="text-white font-bold">{selectedTool.tool_id}</span> to <span className="text-white font-bold">{node.hostname}</span>, please type the confirmation string below.
+                                <p className="text-sm text-muted-foreground max-w-[400px] mx-auto">
+                                    To authorize the push of <span className="text-foreground font-bold">{selectedTool.tool_id}</span> to <span className="text-foreground font-bold">{node.hostname}</span>, please type the confirmation string below.
                                 </p>
                             </div>
 
                             <div className="space-y-2">
-                                <Input 
+                                <Input
                                     placeholder="Type UPGRADE to confirm"
                                     value={confirmText}
                                     onChange={e => setConfirmText(e.target.value)}
-                                    className="bg-zinc-900 border-zinc-800 text-center font-bold tracking-widest focus:border-red-500/50"
+                                    className="bg-card border-muted text-center font-bold tracking-widest focus:border-red-500/50"
                                 />
                             </div>
                         </div>
                     )}
                 </div>
 
-                <div className="bg-zinc-900/50 px-6 py-4 flex items-center justify-between border-t border-zinc-800">
-                    <Button 
-                        variant="ghost" 
+                <div className="bg-muted/20 px-6 py-4 flex items-center justify-between border-t border-muted">
+                    <Button
+                        variant="ghost"
                         onClick={() => step > 1 ? setGate(step - 1) : onOpenChange(false)}
-                        className="text-zinc-500 hover:text-white"
+                        className="text-muted-foreground hover:text-foreground"
                     >
                         {step === 1 ? 'Cancel' : 'Back'}
                     </Button>

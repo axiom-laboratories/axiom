@@ -35,7 +35,7 @@ const ROLES = ['operator', 'viewer'];
 const roleBadge = (role: string) => {
     if (role === 'admin') return 'bg-red-500/10 text-red-400 border-red-500/20';
     if (role === 'operator') return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-    return 'bg-zinc-700/50 text-muted-foreground border-zinc-600/30';
+    return 'bg-muted/50 text-muted-foreground border-muted/30';
 };
 
 interface UserRecord {
@@ -104,7 +104,7 @@ const RolePanel = ({ role }: { role: string }) => {
             </button>
 
             {open && (
-                <div className="px-4 py-4 space-y-4 bg-zinc-950/30">
+                <div className="px-4 py-4 space-y-4 bg-background/30">
                     <div className="flex flex-wrap gap-2">
                         {perms.map(p => (
                             <span key={p} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-xs font-mono text-primary/80">
@@ -119,7 +119,7 @@ const RolePanel = ({ role }: { role: string }) => {
                             </span>
                         ))}
                         {perms.length === 0 && (
-                            <span className="text-xs text-zinc-600 italic">No permissions assigned</span>
+                            <span className="text-xs text-muted-foreground/60 italic">No permissions assigned</span>
                         )}
                     </div>
 
@@ -133,7 +133,7 @@ const RolePanel = ({ role }: { role: string }) => {
                                         <button
                                             key={p}
                                             onClick={() => grant.mutate(p)}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-muted text-xs font-mono text-muted-foreground hover:text-foreground hover:border-zinc-500 transition-colors"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-muted text-xs font-mono text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
                                         >
                                             <Plus className="h-3 w-3" />
                                             {p}
@@ -284,7 +284,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                             <>
                                 <Button
                                     size="icon" variant="ghost"
-                                    className={`h-7 w-7 ${user.must_change_password ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10'}`}
+                                    className={`h-7 w-7 ${user.must_change_password ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' : 'text-muted-foreground/60 hover:text-amber-400 hover:bg-amber-500/10'}`}
                                     onClick={() => forceChange.mutate(!user.must_change_password)}
                                     title={user.must_change_password ? 'Clear forced password change' : 'Force password change on next login'}
                                 >
@@ -292,7 +292,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                                 </Button>
                                 <Button
                                     size="icon" variant="ghost"
-                                    className={`h-7 w-7 ${showReset ? 'text-primary bg-primary/10' : 'text-zinc-600 hover:text-primary hover:bg-primary/10'}`}
+                                    className={`h-7 w-7 ${showReset ? 'text-primary bg-primary/10' : 'text-muted-foreground/60 hover:text-primary hover:bg-primary/10'}`}
                                     onClick={() => { setShowReset(s => !s); setResetMsg(null); }}
                                     title="Reset password"
                                 >
@@ -300,7 +300,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
                                 </Button>
                                 <Button
                                     size="icon" variant="ghost"
-                                    className="h-7 w-7 text-zinc-600 hover:text-red-400 hover:bg-red-500/10"
+                                    className="h-7 w-7 text-muted-foreground/60 hover:text-red-400 hover:bg-red-500/10"
                                     onClick={() => setShowDeleteConfirm(true)}
                                     title="Delete user"
                                 >
@@ -416,14 +416,14 @@ const Users = () => {
                                 placeholder="Username"
                                 value={newUsername}
                                 onChange={e => setNewUsername(e.target.value)}
-                                className="bg-muted border-muted text-foreground placeholder:text-zinc-600"
+                                className="bg-muted border-muted text-foreground placeholder:text-muted-foreground/60"
                             />
                             <Input
                                 type="password"
                                 placeholder="Password"
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
-                                className="bg-muted border-muted text-foreground placeholder:text-zinc-600"
+                                className="bg-muted border-muted text-foreground placeholder:text-muted-foreground/60"
                             />
                             <select
                                 value={newRole}
@@ -465,7 +465,7 @@ const Users = () => {
                             <tbody>
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-8 text-center text-zinc-600">Loading...</td>
+                                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground/60">Loading...</td>
                                     </tr>
                                 ) : users.map(user => (
                                     <UserRow key={user.username} user={user} />

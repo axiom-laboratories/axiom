@@ -35,7 +35,7 @@ const STATUS_CONFIG = {
     description: 'Licence has expired',
   },
   ce: {
-    badge: 'bg-zinc-700/50 text-zinc-400 border-zinc-600/50',
+    badge: 'bg-muted text-muted-foreground border-muted',
     icon: CheckCircle2,
     label: 'Community Edition',
     description: 'Running Community Edition',
@@ -61,9 +61,9 @@ export const LicenceStatus: React.FC<LicenceStatusProps> = ({
     : 0;
 
   return (
-    <Card className="bg-zinc-925 border-zinc-800/50">
+    <Card className="bg-card border-muted/50">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-lg font-semibold text-white">Licence Status</CardTitle>
+        <CardTitle className="text-lg font-semibold text-foreground">Licence Status</CardTitle>
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.badge}`}>
           <Icon className="h-4 w-4" />
           <span className="text-xs font-bold">{config.label}</span>
@@ -73,32 +73,32 @@ export const LicenceStatus: React.FC<LicenceStatusProps> = ({
       <CardContent className="space-y-4">
         {/* Tier */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-zinc-400">Edition</span>
-          <span className="text-sm font-medium text-white">{tier}</span>
+          <span className="text-sm text-muted-foreground">Edition</span>
+          <span className="text-sm font-medium text-foreground">{tier}</span>
         </div>
 
         {/* Organization (EE only) */}
         {status !== 'ce' && organization && (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-400">Organization</span>
-            <span className="text-sm font-medium text-white">{organization}</span>
+            <span className="text-sm text-muted-foreground">Organization</span>
+            <span className="text-sm font-medium text-foreground">{organization}</span>
           </div>
         )}
 
         {/* Customer ID (EE only) */}
         {status !== 'ce' && customerID && (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-400">Customer ID</span>
-            <span className="text-xs font-mono text-zinc-300">{customerID}</span>
+            <span className="text-sm text-muted-foreground">Customer ID</span>
+            <span className="text-xs font-mono text-foreground/80">{customerID}</span>
           </div>
         )}
 
         {/* Node Limit (EE only) */}
         {status !== 'ce' && nodeLimit && nodeLimit > 0 && (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-400">Node Limit</span>
+            <span className="text-sm text-muted-foreground">Node Limit</span>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">
+              <span className="text-sm font-medium text-foreground">
                 {currentNodeCount || 0} / {nodeLimit}
               </span>
               <Badge
@@ -119,9 +119,9 @@ export const LicenceStatus: React.FC<LicenceStatusProps> = ({
         {/* Expiry Date (EE only) */}
         {status !== 'ce' && (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-400">Expires</span>
+            <span className="text-sm text-muted-foreground">Expires</span>
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-zinc-500" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               <span
                 className={`text-sm font-medium ${
                   status === 'expired'
@@ -139,9 +139,9 @@ export const LicenceStatus: React.FC<LicenceStatusProps> = ({
 
         {/* Last Reload */}
         {lastReloadTime && (
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-            <span className="text-xs text-zinc-500">Last reloaded</span>
-            <span className="text-xs text-zinc-400">{lastReloadTime}</span>
+          <div className="flex items-center justify-between pt-2 border-t border-muted">
+            <span className="text-xs text-muted-foreground">Last reloaded</span>
+            <span className="text-xs text-muted-foreground">{lastReloadTime}</span>
           </div>
         )}
       </CardContent>

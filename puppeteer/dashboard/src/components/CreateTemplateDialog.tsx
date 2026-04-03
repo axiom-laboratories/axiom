@@ -55,10 +55,10 @@ export const CreateTemplateDialog = ({ open, onOpenChange }: CreateTemplateDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-zinc-950 border-zinc-800 text-white">
+            <DialogContent className="bg-background border-muted text-foreground">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-bold">Compose Node Image</DialogTitle>
-                    <DialogDescription className="text-zinc-500">
+                    <DialogDescription className="text-muted-foreground">
                         Combine environment and network image recipes into a single deployable image.
                     </DialogDescription>
                 </DialogHeader>
@@ -66,19 +66,19 @@ export const CreateTemplateDialog = ({ open, onOpenChange }: CreateTemplateDialo
                 <div className="grid gap-6 py-4">
                     <div className="grid gap-2">
                         <Label htmlFor="t-name">Node Image Name</Label>
-                        <Input 
-                            id="t-name" 
-                            value={name} 
-                            onChange={(e) => setName(e.target.value)} 
+                        <Input
+                            id="t-name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. finance-production-worker"
-                            className="bg-zinc-900 border-zinc-800"
+                            className="bg-card border-muted"
                         />
                     </div>
 
                     <div className="grid gap-2">
                         <Label>Runtime Image Recipe</Label>
                         <Select value={runtimeId} onValueChange={setRuntimeId}>
-                            <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                            <SelectTrigger className="bg-card border-muted">
                                 <SelectValue placeholder="Select a Runtime" />
                             </SelectTrigger>
                             <SelectContent>
@@ -92,7 +92,7 @@ export const CreateTemplateDialog = ({ open, onOpenChange }: CreateTemplateDialo
                     <div className="grid gap-2">
                         <Label>Network Perimeter</Label>
                         <Select value={networkId} onValueChange={setNetworkId}>
-                            <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                            <SelectTrigger className="bg-card border-muted">
                                 <SelectValue placeholder="Select a Perimeter" />
                             </SelectTrigger>
                             <SelectContent>
@@ -107,8 +107,8 @@ export const CreateTemplateDialog = ({ open, onOpenChange }: CreateTemplateDialo
                         <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex items-start gap-3">
                             <Layers className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                                <div className="text-sm font-bold text-white">Canonical ID Calculation</div>
-                                <div className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
+                                <div className="text-sm font-bold text-foreground">Canonical ID Calculation</div>
+                                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                     <Hash className="h-3 w-3" /> Deterministic hash will be generated upon creation.
                                 </div>
                             </div>

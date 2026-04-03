@@ -205,19 +205,19 @@ const ServicePrincipals: React.FC = () => {
     if (user?.role !== 'admin') {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <Card className="w-full max-w-md border-zinc-800 bg-zinc-900">
+                <Card className="w-full max-w-md border-muted bg-background">
                     <CardHeader>
                         <div className="flex items-center gap-2 text-red-500 mb-2">
                             <Shield className="h-6 w-6" />
                             <CardTitle>Access Denied</CardTitle>
                         </div>
-                        <CardDescription className="text-zinc-400">
+                        <CardDescription className="text-muted-foreground">
                             You do not have the required permissions to manage service principals.
                             Please contact an administrator if you believe this is an error.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button variant="outline" className="w-full border-zinc-800 hover:bg-zinc-800 text-white" onClick={() => window.history.back()}>
+                        <Button variant="outline" className="w-full border-muted hover:bg-muted text-foreground" onClick={() => window.history.back()}>
                             Go Back
                         </Button>
                     </CardContent>
@@ -257,17 +257,17 @@ const ServicePrincipals: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                         <Bot className="h-8 w-8 text-blue-500" />
                         Service Principals
                     </h1>
-                    <p className="text-zinc-500">
+                    <p className="text-muted-foreground">
                         Machine-to-machine credentials for CI/CD and automation
                     </p>
                 </div>
                 <Button 
                     onClick={() => setIsCreateDialogOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-foreground"
                 >
                     <Plus className="mr-2 h-4 w-4" />
                     Create Service Principal
@@ -275,42 +275,42 @@ const ServicePrincipals: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <Card className="border-zinc-800 bg-zinc-925 overflow-hidden">
+            <Card className="border-muted bg-card overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-zinc-800 bg-zinc-950/50">
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Name</th>
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Client ID</th>
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Role</th>
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Status</th>
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Last Used</th>
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Expires</th>
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400 text-right">Actions</th>
+                                <tr className="border-b border-muted bg-muted/50">
+                                    <th className="px-6 py-4 text-sm font-medium text-muted-foreground">Name</th>
+                                    <th className="px-6 py-4 text-sm font-medium text-muted-foreground">Client ID</th>
+                                    <th className="px-6 py-4 text-sm font-medium text-muted-foreground">Role</th>
+                                    <th className="px-6 py-4 text-sm font-medium text-muted-foreground">Status</th>
+                                    <th className="px-6 py-4 text-sm font-medium text-muted-foreground">Last Used</th>
+                                    <th className="px-6 py-4 text-sm font-medium text-muted-foreground">Expires</th>
+                                    <th className="px-6 py-4 text-sm font-medium text-muted-foreground text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-800">
+                            <tbody className="divide-y divide-muted">
                                 {isLoading ? (
                                     [...Array(3)].map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td colSpan={7} className="px-6 py-8 text-center bg-zinc-900/20" />
+                                            <td colSpan={7} className="px-6 py-8 text-center bg-background/20" />
                                         </tr>
                                     ))
                                 ) : servicePrincipals?.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
+                                        <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                                             No service principals found. Create one to get started.
                                         </td>
                                     </tr>
                                 ) : (
                                     servicePrincipals?.map((sp) => (
-                                        <tr key={sp.id} className="hover:bg-zinc-900/50 transition-colors group">
+                                        <tr key={sp.id} className="hover:bg-background/50 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-white">{sp.name}</span>
+                                                    <span className="font-bold text-foreground">{sp.name}</span>
                                                     {sp.description && (
-                                                        <span className="text-xs text-zinc-500 truncate max-w-[200px]">
+                                                        <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                                                             {sp.description}
                                                         </span>
                                                     )}
@@ -318,7 +318,7 @@ const ServicePrincipals: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <code className="text-xs font-mono text-zinc-400 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">
+                                                    <code className="text-xs font-mono text-muted-foreground bg-background px-1.5 py-0.5 rounded border border-muted">
                                                         {sp.client_id.substring(0, 12)}...
                                                     </code>
                                                     <Button 
@@ -332,12 +332,12 @@ const ServicePrincipals: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <Badge 
-                                                    variant="outline" 
+                                                <Badge
+                                                    variant="outline"
                                                     className={
                                                         sp.role === 'admin' ? 'border-red-500/50 text-red-500' :
                                                         sp.role === 'operator' ? 'border-blue-500/50 text-blue-500' :
-                                                        'border-zinc-500/50 text-zinc-500'
+                                                        'border-muted-foreground/50 text-muted-foreground'
                                                     }
                                                 >
                                                     {sp.role}
@@ -354,26 +354,26 @@ const ServicePrincipals: React.FC = () => {
                                                     </Badge>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-zinc-400">
+                                            <td className="px-6 py-4 text-sm text-muted-foreground">
                                                 {formatRelativeTime(sp.last_used_at)}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-zinc-400">
+                                            <td className="px-6 py-4 text-sm text-muted-foreground">
                                                 {formatDate(sp.expires_at)}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
                                                             <MoreHorizontal className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="bg-zinc-925 border-zinc-800 text-white">
+                                                    <DropdownMenuContent align="end" className="bg-card border-muted text-foreground">
                                                         <DropdownMenuItem 
                                                             onClick={() => {
                                                                 setEditingSP(sp);
                                                                 setIsEditDialogOpen(true);
                                                             }}
-                                                            className="focus:bg-zinc-800 cursor-pointer"
+                                                            className="focus:bg-muted cursor-pointer"
                                                         >
                                                             <Pencil className="mr-2 h-4 w-4" /> Edit
                                                         </DropdownMenuItem>
@@ -382,7 +382,7 @@ const ServicePrincipals: React.FC = () => {
                                                                 setSelectedSPId(sp.id);
                                                                 setIsRotateAlertDialogOpen(true);
                                                             }}
-                                                            className="focus:bg-zinc-800 text-amber-500 cursor-pointer"
+                                                            className="focus:bg-muted text-amber-500 cursor-pointer"
                                                         >
                                                             <RotateCcw className="mr-2 h-4 w-4" /> Rotate Secret
                                                         </DropdownMenuItem>
@@ -391,7 +391,7 @@ const ServicePrincipals: React.FC = () => {
                                                                 setSelectedSPId(sp.id);
                                                                 setIsDeleteAlertDialogOpen(true);
                                                             }}
-                                                            className="focus:bg-zinc-800 text-red-500 cursor-pointer"
+                                                            className="focus:bg-muted text-red-500 cursor-pointer"
                                                         >
                                                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                         </DropdownMenuItem>
@@ -409,10 +409,10 @@ const ServicePrincipals: React.FC = () => {
 
             {/* Create Dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <DialogContent className="bg-card border-muted text-foreground">
                     <DialogHeader>
                         <DialogTitle>Create Service Principal</DialogTitle>
-                        <DialogDescription className="text-zinc-500">
+                        <DialogDescription className="text-muted-foreground">
                             Create a new automated identity for API access.
                         </DialogDescription>
                     </DialogHeader>
@@ -424,7 +424,7 @@ const ServicePrincipals: React.FC = () => {
                                 placeholder="e.g. CI/CD Pipeline"
                                 value={newSP.name}
                                 onChange={(e) => setNewSP({ ...newSP, name: e.target.value })}
-                                className="bg-zinc-950 border-zinc-800"
+                                className="bg-background border-muted"
                             />
                         </div>
                         <div className="space-y-2">
@@ -434,7 +434,7 @@ const ServicePrincipals: React.FC = () => {
                                 placeholder="Purpose of this service principal"
                                 value={newSP.description}
                                 onChange={(e) => setNewSP({ ...newSP, description: e.target.value })}
-                                className="bg-zinc-950 border-zinc-800"
+                                className="bg-background border-muted"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -444,10 +444,10 @@ const ServicePrincipals: React.FC = () => {
                                     value={newSP.role} 
                                     onValueChange={(v) => setNewSP({ ...newSP, role: v })}
                                 >
-                                    <SelectTrigger id="role" className="bg-zinc-950 border-zinc-800">
+                                    <SelectTrigger id="role" className="bg-background border-muted">
                                         <SelectValue placeholder="Select role" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-925 border-zinc-800 text-white">
+                                    <SelectContent className="bg-card border-muted text-foreground">
                                         <SelectItem value="viewer">Viewer</SelectItem>
                                         <SelectItem value="operator">Operator</SelectItem>
                                         <SelectItem value="admin">Admin</SelectItem>
@@ -462,19 +462,19 @@ const ServicePrincipals: React.FC = () => {
                                     placeholder="Never"
                                     value={newSP.expires_in_days}
                                     onChange={(e) => setNewSP({ ...newSP, expires_in_days: e.target.value })}
-                                    className="bg-zinc-950 border-zinc-800"
+                                    className="bg-background border-muted"
                                 />
                             </div>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="border-zinc-800 text-white">
+                        <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="border-muted text-foreground">
                             Cancel
                         </Button>
                         <Button 
                             disabled={!newSP.name || createMutation.isPending}
                             onClick={() => createMutation.mutate(newSP)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-blue-600 hover:bg-blue-700 text-foreground"
                         >
                             {createMutation.isPending ? 'Creating...' : 'Create Principal'}
                         </Button>
@@ -484,13 +484,13 @@ const ServicePrincipals: React.FC = () => {
 
             {/* Credentials Success Dialog */}
             <Dialog open={isCredentialsDialogOpen} onOpenChange={setIsCredentialsDialogOpen}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white max-w-lg">
+                <DialogContent className="bg-card border-muted text-foreground max-w-lg">
                     <DialogHeader>
                         <div className="flex items-center gap-2 text-emerald-500 mb-2">
                             <CheckCircle2 className="h-6 w-6" />
                             <DialogTitle>Credentials Generated</DialogTitle>
                         </div>
-                        <DialogDescription className="text-zinc-400">
+                        <DialogDescription className="text-muted-foreground">
                             Copy these credentials now. For security, the secret will **not** be shown again.
                         </DialogDescription>
                     </DialogHeader>
@@ -505,12 +505,12 @@ const ServicePrincipals: React.FC = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-zinc-400">Client ID</Label>
+                            <Label className="text-muted-foreground">Client ID</Label>
                             <div className="flex gap-2">
                                 <Input 
                                     readOnly 
                                     value={createdCredentials?.client_id || ''} 
-                                    className="bg-zinc-950 border-zinc-800 font-mono text-xs" 
+                                    className="bg-background border-muted font-mono text-xs" 
                                 />
                                 <Button size="icon" variant="outline" onClick={() => copyToClipboard(createdCredentials?.client_id || '', 'Client ID')}>
                                     <Copy className="h-4 w-4" />
@@ -519,13 +519,13 @@ const ServicePrincipals: React.FC = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-zinc-400">Client Secret</Label>
+                            <Label className="text-muted-foreground">Client Secret</Label>
                             <div className="flex gap-2">
                                 <Input 
                                     readOnly 
                                     type="password"
                                     value={createdCredentials?.client_secret || ''} 
-                                    className="bg-zinc-950 border-zinc-800 font-mono text-xs" 
+                                    className="bg-background border-muted font-mono text-xs" 
                                 />
                                 <Button size="icon" variant="outline" onClick={() => copyToClipboard(createdCredentials?.client_secret || '', 'Client Secret')}>
                                     <Copy className="h-4 w-4" />
@@ -536,7 +536,7 @@ const ServicePrincipals: React.FC = () => {
                     
                     <DialogFooter>
                         <Button 
-                            className="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-bold"
+                            className="w-full bg-foreground hover:bg-white text-background font-bold"
                             onClick={() => setIsCredentialsDialogOpen(false)}
                         >
                             I have saved the credentials
@@ -547,7 +547,7 @@ const ServicePrincipals: React.FC = () => {
 
             {/* Edit Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <DialogContent className="bg-card border-muted text-foreground">
                     <DialogHeader>
                         <DialogTitle>Edit Service Principal</DialogTitle>
                     </DialogHeader>
@@ -559,7 +559,7 @@ const ServicePrincipals: React.FC = () => {
                                     id="edit-name" 
                                     value={editingSP.name}
                                     onChange={(e) => setEditingSP({ ...editingSP, name: e.target.value })}
-                                    className="bg-zinc-950 border-zinc-800"
+                                    className="bg-background border-muted"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -568,7 +568,7 @@ const ServicePrincipals: React.FC = () => {
                                     id="edit-description" 
                                     value={editingSP.description || ''}
                                     onChange={(e) => setEditingSP({ ...editingSP, description: e.target.value })}
-                                    className="bg-zinc-950 border-zinc-800"
+                                    className="bg-background border-muted"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -578,10 +578,10 @@ const ServicePrincipals: React.FC = () => {
                                         value={editingSP.role} 
                                         onValueChange={(v) => setEditingSP({ ...editingSP, role: v })}
                                     >
-                                        <SelectTrigger id="edit-role" className="bg-zinc-950 border-zinc-800">
+                                        <SelectTrigger id="edit-role" className="bg-background border-muted">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-zinc-925 border-zinc-800 text-white">
+                                        <SelectContent className="bg-card border-muted text-foreground">
                                             <SelectItem value="viewer">Viewer</SelectItem>
                                             <SelectItem value="operator">Operator</SelectItem>
                                             <SelectItem value="admin">Admin</SelectItem>
@@ -602,7 +602,7 @@ const ServicePrincipals: React.FC = () => {
                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-zinc-800">
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-muted">
                             Cancel
                         </Button>
                         <Button 
@@ -616,7 +616,7 @@ const ServicePrincipals: React.FC = () => {
                                     is_active: editingSP!.is_active
                                 }
                             })}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-blue-600 hover:bg-blue-700 text-foreground"
                         >
                             Save Changes
                         </Button>
@@ -626,18 +626,18 @@ const ServicePrincipals: React.FC = () => {
 
             {/* Rotate Secret Confirmation */}
             <AlertDialog open={isRotateAlertDialogOpen} onOpenChange={setIsRotateAlertDialogOpen}>
-                <AlertDialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <AlertDialogContent className="bg-card border-muted text-foreground">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Rotate Client Secret?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-zinc-400">
+                        <AlertDialogDescription className="text-muted-foreground">
                             This will immediately invalidate the current secret. Any applications using it will lose access until updated. This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-muted">Cancel</AlertDialogCancel>
                         <AlertDialogAction 
                             onClick={() => selectedSPId && rotateMutation.mutate(selectedSPId)}
-                            className="bg-amber-600 hover:bg-amber-700 text-white"
+                            className="bg-amber-600 hover:bg-amber-700 text-foreground"
                         >
                             Rotate Secret
                         </AlertDialogAction>
@@ -647,18 +647,18 @@ const ServicePrincipals: React.FC = () => {
 
             {/* Delete Confirmation */}
             <AlertDialog open={isDeleteAlertDialogOpen} onOpenChange={setIsDeleteAlertDialogOpen}>
-                <AlertDialogContent className="bg-zinc-925 border-zinc-800 text-white">
+                <AlertDialogContent className="bg-card border-muted text-foreground">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Service Principal?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-zinc-400">
+                        <AlertDialogDescription className="text-muted-foreground">
                             This will permanently delete the identity and all its credentials. Any automation using this principal will fail.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-muted">Cancel</AlertDialogCancel>
                         <AlertDialogAction 
                             onClick={() => selectedSPId && deleteMutation.mutate(selectedSPId)}
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-red-600 hover:bg-red-700 text-foreground"
                         >
                             Delete Permanently
                         </AlertDialogAction>

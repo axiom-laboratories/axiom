@@ -85,7 +85,7 @@ const StatusBadge = ({ status }: { status?: string }) => {
         case 'FAILED':
             return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 uppercase text-[10px] font-bold">Failed</Badge>;
         case 'DEPRECATED':
-            return <Badge className="bg-zinc-500/10 text-muted-foreground border-zinc-500/20 uppercase text-[10px] font-bold">Deprecated</Badge>;
+            return <Badge className="bg-muted/10 text-muted-foreground border-muted/20 uppercase text-[10px] font-bold">Deprecated</Badge>;
         case 'REVOKED':
             return <Badge className="bg-red-600/10 text-red-600 border-red-600/20 uppercase text-[10px] font-bold">Revoked</Badge>;
         default:
@@ -187,7 +187,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
             </AlertDialog>
 
             <Dialog open={isBOMOpen} onOpenChange={setIsBOMOpen}>
-                <DialogContent className="bg-zinc-950 border-muted text-foreground max-w-2xl">
+                <DialogContent className="bg-background border-muted text-foreground max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Package className="h-5 w-5 text-primary" />
@@ -201,7 +201,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                     {bom ? (
                         <div className="grid grid-cols-2 gap-4 mt-4 h-[400px] overflow-auto pr-2 custom-scrollbar">
                             <div className="space-y-2">
-                                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest sticky top-0 bg-zinc-950 py-1">Python (PIP)</h4>
+                                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest sticky top-0 bg-background py-1">Python (PIP)</h4>
                                 {bom.pip.map((p: any) => (
                                     <div key={p.name} className="flex items-center justify-between p-2 rounded bg-secondary border border-muted text-xs">
                                         <span className="text-foreground font-medium">{p.name}</span>
@@ -210,7 +210,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                                 ))}
                             </div>
                             <div className="space-y-2">
-                                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest sticky top-0 bg-zinc-950 py-1">System (APT)</h4>
+                                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest sticky top-0 bg-background py-1">System (APT)</h4>
                                 {bom.apt.map((p: any) => (
                                     <div key={p.name} className="flex items-center justify-between p-2 rounded bg-secondary border border-muted text-xs">
                                         <span className="text-foreground font-medium truncate max-w-[120px]">{p.name}</span>
@@ -326,7 +326,7 @@ const TemplateCard = ({ template, baseUpdatedAt }: { template: Template; baseUpd
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                        className="h-9 w-9 text-muted-foreground/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
                         onClick={() => setShowDeleteConfirm(true)}
                         disabled={deleteMutation.isPending}
                     >
@@ -431,7 +431,7 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                        className="h-8 w-8 text-muted-foreground/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
                         onClick={() => setShowDeleteConfirm(true)}
                         disabled={deleteMutation.isPending}
                     >
@@ -445,7 +445,7 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
                     <DialogHeader>
                         <DialogTitle className="text-foreground">{blueprint.name} — Definition</DialogTitle>
                     </DialogHeader>
-                    <pre className="text-xs text-green-400 font-mono bg-zinc-950 rounded-lg p-4 overflow-auto max-h-[60vh] whitespace-pre-wrap">
+                    <pre className="text-xs text-green-400 font-mono bg-background rounded-lg p-4 overflow-auto max-h-[60vh] whitespace-pre-wrap">
                         {JSON.stringify(blueprint.definition, null, 2)}
                     </pre>
                 </DialogContent>
@@ -457,12 +457,12 @@ const BlueprintItem = ({ blueprint, onEdit }: { blueprint: Blueprint; onEdit?: (
 const BlueprintEmptyState = ({ type }: { type: 'RUNTIME' | 'NETWORK' }) => (
     <div className="py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
         {type === 'RUNTIME' ? (
-            <Cpu className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
+            <Cpu className="h-12 w-12 text-muted mx-auto mb-4" />
         ) : (
-            <Globe className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
+            <Globe className="h-12 w-12 text-muted mx-auto mb-4" />
         )}
         <h3 className="text-muted-foreground font-medium">No {type.toLowerCase()} image recipes found</h3>
-        <p className="text-zinc-600 text-sm mt-1">Create a {type.toLowerCase()} image recipe to get started.</p>
+        <p className="text-muted-foreground/60 text-sm mt-1">Create a {type.toLowerCase()} image recipe to get started.</p>
     </div>
 );
 
@@ -788,9 +788,9 @@ const Templates = () => {
                             </div>
                         ) : (
                             <div className="py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
-                                <Boxes className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
+                                <Boxes className="h-12 w-12 text-muted mx-auto mb-4" />
                                 <h3 className="text-muted-foreground font-medium">No node images found</h3>
-                                <p className="text-zinc-600 text-sm mt-1">Compose your first node image using image recipes.</p>
+                                <p className="text-muted-foreground/60 text-sm mt-1">Compose your first node image using image recipes.</p>
                             </div>
                         )}
                     </TabsContent>
@@ -847,7 +847,7 @@ const Templates = () => {
 
                             {/* Add tool dialog */}
                             <Dialog open={showAddTool} onOpenChange={setShowAddTool}>
-                                <DialogContent className="max-w-lg bg-zinc-950 border-muted text-foreground">
+                                <DialogContent className="max-w-lg bg-background border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Add Tool</DialogTitle>
                                     </DialogHeader>
@@ -921,7 +921,7 @@ const Templates = () => {
 
                             {/* Edit tool dialog */}
                             <Dialog open={toolEditOpen} onOpenChange={(open) => { setToolEditOpen(open); if (!open) setEditingTool(null); }}>
-                                <DialogContent className="max-w-lg bg-zinc-950 border-muted text-foreground">
+                                <DialogContent className="max-w-lg bg-background border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Edit Tool</DialogTitle>
                                         <DialogDescription className="text-muted-foreground">
@@ -1006,7 +1006,7 @@ const Templates = () => {
                                             <th className="text-left px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-zinc-800">
+                                    <tbody className="divide-y divide-muted">
                                         {tools.map(tool => (
                                             <tr key={tool.id} className={`${!tool.is_active ? 'opacity-50' : ''} hover:bg-secondary/50 transition-colors`}>
                                                 <td className="px-4 py-3 font-mono text-foreground">{tool.tool_id}</td>
@@ -1022,7 +1022,7 @@ const Templates = () => {
                                                             <Badge key={dep} variant="secondary" className="text-xs">{dep}</Badge>
                                                         ))}
                                                         {(!tool.runtime_dependencies || tool.runtime_dependencies.length === 0) && (
-                                                            <span className="text-zinc-600 text-xs">none</span>
+                                                            <span className="text-muted-foreground/60 text-xs">none</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -1084,7 +1084,7 @@ const Templates = () => {
 
                             {/* Add OS dialog */}
                             <Dialog open={showAddOS} onOpenChange={setShowAddOS}>
-                                <DialogContent className="max-w-lg bg-zinc-950 border-muted text-foreground">
+                                <DialogContent className="max-w-lg bg-background border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Add Approved OS</DialogTitle>
                                         <DialogDescription className="text-muted-foreground">
@@ -1133,7 +1133,7 @@ const Templates = () => {
                                             <th className="text-left px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-zinc-800">
+                                    <tbody className="divide-y divide-muted">
                                         {approvedOSList.map(os => (
                                             <tr key={os.id} className="hover:bg-secondary/50 transition-colors">
                                                 {editingOSId === os.id ? (

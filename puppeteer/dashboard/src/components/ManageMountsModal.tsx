@@ -94,7 +94,7 @@ const ManageMountsModal = ({ open, onOpenChange }: ManageMountsModalProps) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-zinc-925 border-zinc-800 text-white max-w-2xl">
+            <DialogContent className="bg-background border-muted text-foreground max-w-2xl">
                 <DialogHeader>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -102,45 +102,45 @@ const ManageMountsModal = ({ open, onOpenChange }: ManageMountsModalProps) => {
                         </div>
                         <DialogTitle className="text-xl font-bold">Network Mounts</DialogTitle>
                     </div>
-                    <DialogDescription className="text-zinc-500">
+                    <DialogDescription className="text-muted-foreground">
                         Configure global SMB or NFS shares that will be automatically mounted by all Puppets in the mesh.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="py-4 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
                     {loading ? (
-                        <div className="py-10 text-center text-zinc-500 animate-pulse">Loading configurations...</div>
+                        <div className="py-10 text-center text-muted-foreground animate-pulse">Loading configurations...</div>
                     ) : mounts.length === 0 ? (
-                        <div className="py-10 text-center rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20">
-                            <p className="text-zinc-500 italic text-sm">No mounts configured.</p>
+                        <div className="py-10 text-center rounded-xl border border-dashed border-muted bg-muted/10">
+                            <p className="text-muted-foreground italic text-sm">No mounts configured.</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {mounts.map((mount, index) => (
-                                <div key={index} className="flex items-end gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 group transition-all hover:border-zinc-700">
+                                <div key={index} className="flex items-end gap-3 p-3 rounded-lg bg-card border border-muted group transition-all hover:border-muted/60">
                                     <div className="flex-1 space-y-1.5">
-                                        <Label className="text-[10px] uppercase font-bold text-zinc-500 px-1">Internal Name</Label>
-                                        <Input 
+                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground px-1">Internal Name</Label>
+                                        <Input
                                             placeholder="e.g. data-share"
                                             value={mount.name}
                                             onChange={(e) => handleChange(index, 'name', e.target.value)}
-                                            className="bg-zinc-950 border-zinc-800 h-9 text-sm"
+                                            className="bg-background border-muted h-9 text-sm"
                                         />
                                     </div>
                                     <div className="flex-[2] space-y-1.5">
-                                        <Label className="text-[10px] uppercase font-bold text-zinc-500 px-1">Remote Path</Label>
-                                        <Input 
+                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground px-1">Remote Path</Label>
+                                        <Input
                                             placeholder="e.g. //192.168.1.50/storage"
                                             value={mount.remote_path}
                                             onChange={(e) => handleChange(index, 'remote_path', e.target.value)}
-                                            className="bg-zinc-950 border-zinc-800 h-9 text-sm font-mono"
+                                            className="bg-background border-muted h-9 text-sm font-mono"
                                         />
                                     </div>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
                                         onClick={() => handleRemove(index)}
-                                        className="h-9 w-9 text-zinc-600 hover:text-red-400 hover:bg-red-500/10"
+                                        className="h-9 w-9 text-muted-foreground/60 hover:text-red-400 hover:bg-red-500/10"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -150,21 +150,21 @@ const ManageMountsModal = ({ open, onOpenChange }: ManageMountsModalProps) => {
                     )}
                 </div>
 
-                <DialogFooter className="flex items-center justify-between border-t border-zinc-800 pt-4 mt-2">
-                    <Button 
-                        variant="outline" 
+                <DialogFooter className="flex items-center justify-between border-t border-muted pt-4 mt-2">
+                    <Button
+                        variant="outline"
                         onClick={handleAdd}
                         disabled={loading || saving}
-                        className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                        className="bg-card border-muted text-muted-foreground hover:text-foreground"
                     >
                         <Plus className="mr-2 h-4 w-4" />
                         Add Mount
                     </Button>
                     <div className="flex gap-2">
-                        <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-zinc-500">
+                        <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground">
                             Cancel
                         </Button>
-                        <Button 
+                        <Button
                             onClick={handleSave}
                             disabled={loading || saving}
                             className="bg-primary hover:bg-primary/90 text-white font-bold px-6"

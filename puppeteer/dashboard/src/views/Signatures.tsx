@@ -94,7 +94,7 @@ function CopyButton({ text }: { text: string }) {
     return (
         <button
             onClick={handleCopy}
-            className="absolute top-2 right-2 p-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-foreground transition-colors"
+            className="absolute top-2 right-2 p-1.5 rounded bg-muted hover:bg-muted text-foreground transition-colors"
             title="Copy to clipboard"
         >
             {copied ? <CheckCheck className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -276,7 +276,7 @@ const Signatures = () => {
                                         value={sig.public_key}
                                         className="h-24 bg-secondary border-muted text-xs font-mono text-muted-foreground resize-none focus-visible:ring-0"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 to-transparent flex items-end justify-center pb-2 opacity-0 group-hover/key:opacity-100 transition-opacity">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent flex items-end justify-center pb-2 opacity-0 group-hover/key:opacity-100 transition-opacity">
                                         <Button variant="ghost" size="sm" className="h-7 text-xs text-foreground hover:bg-white/10 uppercase tracking-widest font-bold">
                                             <ExternalLink className="mr-1 h-3 w-3" />
                                             View Full PEM
@@ -292,7 +292,7 @@ const Signatures = () => {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-zinc-600 hover:text-destructive hover:bg-destructive/10"
+                                    className="h-8 w-8 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10"
                                     onClick={() => handleDelete(sig.id)}
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -302,9 +302,9 @@ const Signatures = () => {
                     ))}
                     {signatures.length === 0 && (
                         <div className="col-span-full py-12 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
-                            <Key className="h-12 w-12 text-zinc-800 mx-auto mb-4" />
+                            <Key className="h-12 w-12 text-muted mx-auto mb-4" />
                             <h3 className="text-muted-foreground font-medium">No trust established</h3>
-                            <p className="text-zinc-600 text-sm">Upload a public key to begin validating puppet jobs.</p>
+                            <p className="text-muted-foreground/60 text-sm">Upload a public key to begin validating puppet jobs.</p>
                         </div>
                     )}
                 </div>
@@ -334,7 +334,7 @@ const Signatures = () => {
                             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Step 2 — Register the public key</p>
                             <p className="text-xs text-muted-foreground">
                                 Copy the contents of <code className="font-mono text-indigo-300 bg-muted px-1 py-0.5 rounded">verification.key</code> and
-                                click <strong className="text-zinc-200">Register Trusted Key</strong> above to upload it.
+                                click <strong className="text-foreground/80">Register Trusted Key</strong> above to upload it.
                             </p>
                         </div>
                         <div>
@@ -379,12 +379,12 @@ const Signatures = () => {
                         <div className="space-y-2">
                             <Label className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Public Key Content (PEM)</Label>
                             <div className="relative">
-                                <div className="absolute top-3 left-3 h-4 w-4 text-zinc-600">
+                                <div className="absolute top-3 left-3 h-4 w-4 text-muted-foreground/60">
                                     <Shield className="h-full w-full" />
                                 </div>
                                 <Textarea
                                     placeholder="-----BEGIN PUBLIC KEY-----"
-                                    className="bg-secondary border-muted min-h-[200px] pl-10 pt-3 font-mono text-sm text-green-500 placeholder:text-zinc-700"
+                                    className="bg-secondary border-muted min-h-[200px] pl-10 pt-3 font-mono text-sm text-green-500 placeholder:text-muted-foreground/40"
                                     value={formData.public_key}
                                     onChange={e => setFormData({ ...formData, public_key: e.target.value })}
                                     required

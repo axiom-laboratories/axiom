@@ -67,7 +67,7 @@ const AuditLog = () => {
                 </div>
             </div>
 
-            <div className="rounded-xl border border-muted overflow-hidden bg-zinc-950/20">
+            <div className="rounded-xl border border-muted overflow-hidden bg-background/20">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-secondary border-b border-muted">
@@ -91,7 +91,7 @@ const AuditLog = () => {
                             ))
                         ) : entries.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-4 py-16 text-center text-zinc-600">
+                                <td colSpan={5} className="px-4 py-16 text-center text-muted-foreground/60">
                                     No audit entries yet.
                                 </td>
                             </tr>
@@ -117,7 +117,7 @@ const AuditLog = () => {
                                     <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground truncate max-w-[160px]">
                                         {entry.resource_id ?? '—'}
                                     </td>
-                                    <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-600 truncate max-w-[300px]">
+                                    <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground/60 truncate max-w-[300px]">
                                         {entry.detail ? JSON.stringify(entry.detail) : '—'}
                                     </td>
                                 </tr>

@@ -113,14 +113,14 @@ const TemplatesTab = () => {
   };
 
   if (loading) {
-    return <div className="py-12 text-center text-zinc-500 text-sm animate-pulse">Loading templates...</div>;
+    return <div className="py-12 text-center text-muted-foreground text-sm animate-pulse">Loading templates...</div>;
   }
 
   if (templates.length === 0) {
     return (
       <div className="py-16 text-center">
-        <p className="text-zinc-400 text-sm">No templates saved yet.</p>
-        <p className="text-zinc-500 text-xs mt-2">
+        <p className="text-muted-foreground text-sm">No templates saved yet.</p>
+        <p className="text-muted-foreground/60 text-xs mt-2">
           Use "Save as Template" in the job dispatch form to reuse configurations.
         </p>
       </div>
@@ -128,10 +128,10 @@ const TemplatesTab = () => {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 overflow-hidden">
+    <div className="rounded-xl border border-muted overflow-hidden">
       <table className="w-full text-sm">
-        <thead className="bg-zinc-900/70">
-          <tr className="text-left text-zinc-500 text-xs font-bold uppercase tracking-wider">
+        <thead className="bg-muted/30">
+          <tr className="text-left text-muted-foreground text-xs font-bold uppercase tracking-wider">
             <th className="px-4 py-3">Name</th>
             <th className="px-4 py-3">Visibility</th>
             <th className="px-4 py-3">Creator</th>
@@ -141,8 +141,8 @@ const TemplatesTab = () => {
         </thead>
         <tbody>
           {templates.map(template => (
-            <tr key={template.id} className="border-t border-zinc-800 hover:bg-zinc-900/40 transition-colors">
-              <td className="px-4 py-3 text-zinc-200 font-medium">
+            <tr key={template.id} className="border-t border-muted hover:bg-muted/30 transition-colors">
+              <td className="px-4 py-3 text-foreground font-medium">
                 {renamingId === template.id ? (
                   <div className="flex items-center gap-2">
                     <input
@@ -154,7 +154,7 @@ const TemplatesTab = () => {
                         if (e.key === 'Enter') handleRenameConfirm(template.id);
                         if (e.key === 'Escape') setRenamingId(null);
                       }}
-                      className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 w-48 focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="bg-muted border border-muted/60 rounded px-2 py-1 text-sm text-foreground w-48 focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                     <button
                       onClick={() => handleRenameConfirm(template.id)}
@@ -164,7 +164,7 @@ const TemplatesTab = () => {
                     </button>
                     <button
                       onClick={() => setRenamingId(null)}
-                      className="text-xs text-zinc-500 hover:text-zinc-300"
+                      className="text-xs text-muted-foreground hover:text-foreground"
                     >
                       Cancel
                     </button>
@@ -178,14 +178,14 @@ const TemplatesTab = () => {
                   className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                     template.visibility === 'shared'
                       ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                      : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                      : 'bg-muted text-muted-foreground border-muted'
                   }`}
                 >
                   {template.visibility.toUpperCase()}
                 </span>
               </td>
-              <td className="px-4 py-3 text-zinc-400 text-xs font-mono">{template.creator_id}</td>
-              <td className="px-4 py-3 text-zinc-400 text-xs whitespace-nowrap">
+              <td className="px-4 py-3 text-muted-foreground/80 text-xs font-mono">{template.creator_id}</td>
+              <td className="px-4 py-3 text-muted-foreground/80 text-xs whitespace-nowrap">
                 {template.created_at
                   ? formatDistanceToNow(new Date(template.created_at), { addSuffix: true })
                   : '—'}
@@ -202,7 +202,7 @@ const TemplatesTab = () => {
                     <>
                       <button
                         onClick={() => handleRenameStart(template)}
-                        className="px-3 py-1 rounded text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                        className="px-3 py-1 rounded text-xs font-bold bg-muted text-muted-foreground hover:bg-muted/70 transition-colors"
                       >
                         Rename
                       </button>
@@ -211,7 +211,7 @@ const TemplatesTab = () => {
                         className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
                           template.visibility === 'private'
                             ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-900/60'
-                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
                         }`}
                       >
                         {template.visibility === 'private' ? 'Share' : 'Privatise'}

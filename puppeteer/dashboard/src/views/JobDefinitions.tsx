@@ -82,7 +82,7 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
     if (isLoading) return <div className="py-8 text-center text-muted-foreground text-sm animate-pulse">Loading history...</div>;
 
     return (
-        <div className="mt-4 rounded-xl border border-muted bg-zinc-950 overflow-hidden">
+        <div className="mt-4 rounded-xl border border-muted bg-background overflow-hidden">
             <div className="px-4 py-3 border-b border-muted flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-bold text-foreground">Execution History</span>
@@ -107,7 +107,7 @@ const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {
                             const isRetrying = row.status === 'RETRYING';
                             const isFailedExhausted = row.status === 'FAILED' && row.attempt_number === (row.max_retries ?? 0) + 1;
                             return (
-                                <tr key={row.id} className="border-t border-zinc-900 hover:bg-secondary/30 transition-colors">
+                                <tr key={row.id} className="border-t border-muted hover:bg-secondary/30 transition-colors">
                                     <td className="px-4 py-2 text-muted-foreground whitespace-nowrap tabular-nums text-xs">
                                         {row.started_at ? formatDistanceToNow(new Date(row.started_at), { addSuffix: true }) : '—'}
                                     </td>
@@ -450,7 +450,7 @@ const JobDefinitions = () => {
             </Tabs>
 
             <Dialog open={showDraftWarning} onOpenChange={(open) => { if (!open) setShowDraftWarning(false); }}>
-                <DialogContent className="max-w-md bg-zinc-950 border-muted">
+                <DialogContent className="max-w-md bg-background border-muted">
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Script Change Will Require Re-signing</DialogTitle>
                         <DialogDescription className="text-muted-foreground">

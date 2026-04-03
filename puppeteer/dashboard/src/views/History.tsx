@@ -76,44 +76,44 @@ const History = () => {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-white">Execution History</h2>
-                    <p className="text-zinc-500">Audit trail of all tasks across the network.</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Execution History</h2>
+                    <p className="text-muted-foreground">Audit trail of all tasks across the network.</p>
                 </div>
             </div>
 
             {/* Filter Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-900 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-background/50 p-4 rounded-xl border border-muted shadow-sm">
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">Job GUID</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Job GUID</label>
                     <div className="relative">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Search by Job GUID..." 
                             value={jobGuid}
                             onChange={e => { setJobGuid(e.target.value); setPage(0); }}
-                            className="bg-zinc-950 border-zinc-800 pl-9 focus:border-primary/50"
+                            className="bg-background border-muted pl-9 focus:border-primary/50"
                         />
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">Node ID</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Node ID</label>
                     <div className="relative">
-                        <Filter className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                        <Filter className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Filter by Node..." 
                             value={nodeId}
                             onChange={e => { setNodeId(e.target.value); setPage(0); }}
-                            className="bg-zinc-950 border-zinc-800 pl-9 focus:border-primary/50"
+                            className="bg-background border-muted pl-9 focus:border-primary/50"
                         />
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">Status</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Status</label>
                     <Select value={status} onValueChange={v => { setStatus(v); setPage(0); }}>
-                        <SelectTrigger className="bg-zinc-950 border-zinc-800 focus:border-primary/50">
+                        <SelectTrigger className="bg-background border-muted focus:border-primary/50">
                             <SelectValue placeholder="All Statuses" />
                         </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        <SelectContent className="bg-background border-muted text-foreground">
                             <SelectItem value="ALL">All Statuses</SelectItem>
                             <SelectItem value="COMPLETED">Completed</SelectItem>
                             <SelectItem value="FAILED">Failed</SelectItem>
@@ -124,12 +124,12 @@ const History = () => {
                     </Select>
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">Scheduled Job</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Scheduled Job</label>
                     <Select value={definitionId || 'ALL'} onValueChange={v => { setDefinitionId(v === 'ALL' ? '' : v); setPage(0); }}>
-                        <SelectTrigger className="bg-zinc-950 border-zinc-800 focus:border-primary/50">
+                        <SelectTrigger className="bg-background border-muted focus:border-primary/50">
                             <SelectValue placeholder="All Definitions" />
                         </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        <SelectContent className="bg-background border-muted text-foreground">
                             <SelectItem value="ALL">All Definitions</SelectItem>
                             {(definitions ?? []).map(def => (
                                 <SelectItem key={def.id} value={def.id}>{def.name}</SelectItem>
@@ -139,34 +139,34 @@ const History = () => {
                 </div>
             </div>
 
-            <div className="rounded-xl border border-zinc-900 bg-zinc-975 overflow-hidden shadow-sm">
+            <div className="rounded-xl border border-muted bg-background overflow-hidden shadow-sm">
                 <Table>
-                    <TableHeader className="bg-zinc-900/50">
-                        <TableRow className="border-zinc-900 hover:bg-transparent">
-                            <TableHead className="text-zinc-400 font-bold py-4">Timestamp</TableHead>
-                            <TableHead className="text-zinc-400 font-bold">Job GUID</TableHead>
-                            <TableHead className="text-zinc-400 font-bold">Node</TableHead>
-                            <TableHead className="text-zinc-400 font-bold">Status</TableHead>
-                            <TableHead className="text-zinc-400 font-bold text-right">Duration</TableHead>
-                            <TableHead className="text-zinc-400 font-bold text-right pr-6">Actions</TableHead>
+                    <TableHeader className="bg-background/50">
+                        <TableRow className="border-muted hover:bg-transparent">
+                            <TableHead className="text-muted-foreground font-bold py-4">Timestamp</TableHead>
+                            <TableHead className="text-muted-foreground font-bold">Job GUID</TableHead>
+                            <TableHead className="text-muted-foreground font-bold">Node</TableHead>
+                            <TableHead className="text-muted-foreground font-bold">Status</TableHead>
+                            <TableHead className="text-muted-foreground font-bold text-right">Duration</TableHead>
+                            <TableHead className="text-muted-foreground font-bold text-right pr-6">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow><TableCell colSpan={6} className="text-center py-20 text-zinc-500 font-medium italic">Loading history...</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} className="text-center py-20 text-muted-foreground font-medium italic">Loading history...</TableCell></TableRow>
                         ) : (executions?.length === 0) ? (
-                            <TableRow><TableCell colSpan={6} className="text-center py-20 text-zinc-500 font-medium italic">No execution history found matching filters.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} className="text-center py-20 text-muted-foreground font-medium italic">No execution history found matching filters.</TableCell></TableRow>
                         ) : executions?.map((ex: any) => (
-                            <TableRow key={ex.id} className="border-zinc-900 hover:bg-zinc-900/30 transition-colors group">
-                                <TableCell className="font-medium text-zinc-300 whitespace-nowrap tabular-nums">
+                            <TableRow key={ex.id} className="border-muted hover:bg-background/30 transition-colors group">
+                                <TableCell className="font-medium text-foreground/80 whitespace-nowrap tabular-nums">
                                     {ex.started_at ? formatDistanceToNow(new Date(ex.started_at), { addSuffix: true }) : 'Pending'}
                                 </TableCell>
-                                <TableCell className="font-mono text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">{ex.job_guid}</TableCell>
-                                <TableCell className="text-zinc-400 group-hover:text-zinc-300 transition-colors">{ex.node_id || 'N/A'}</TableCell>
+                                <TableCell className="font-mono text-xs text-muted-foreground group-hover:text-muted-foreground transition-colors">{ex.job_guid}</TableCell>
+                                <TableCell className="text-muted-foreground group-hover:text-foreground/80 transition-colors">{ex.node_id || 'N/A'}</TableCell>
                                 <TableCell>
                                     <Badge variant={getStatusVariant(ex.status)} className="font-semibold px-2 py-0.5">{ex.status}</Badge>
                                 </TableCell>
-                                <TableCell className="text-right text-zinc-400 whitespace-nowrap tabular-nums group-hover:text-zinc-300 transition-colors">
+                                <TableCell className="text-right text-muted-foreground whitespace-nowrap tabular-nums group-hover:text-foreground/80 transition-colors">
                                     {ex.duration_seconds ? `${ex.duration_seconds.toFixed(1)}s` : '-'}
                                 </TableCell>
                                 <TableCell className="text-right pr-6">
@@ -187,7 +187,7 @@ const History = () => {
             </div>
             
             <div className="flex items-center justify-end gap-4 pb-10">
-                <div className="text-zinc-600 text-xs font-bold uppercase tracking-widest">
+                <div className="text-muted-foreground/60 text-xs font-bold uppercase tracking-widest">
                     Page {page + 1}
                 </div>
                 <div className="flex gap-2">
@@ -196,7 +196,7 @@ const History = () => {
                         size="sm" 
                         onClick={() => setPage(p => Math.max(0, p - 1))}
                         disabled={page === 0}
-                        className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all h-9 px-4"
+                        className="bg-background border-muted text-muted-foreground hover:text-foreground hover:bg-muted transition-all h-9 px-4"
                     >
                         Previous
                     </Button>
@@ -205,7 +205,7 @@ const History = () => {
                         size="sm" 
                         onClick={() => setPage(p => p + 1)}
                         disabled={!executions || executions.length < limit}
-                        className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all h-9 px-4"
+                        className="bg-background border-muted text-muted-foreground hover:text-foreground hover:bg-muted transition-all h-9 px-4"
                     >
                         Next
                     </Button>

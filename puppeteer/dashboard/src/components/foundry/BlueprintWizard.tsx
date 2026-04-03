@@ -274,28 +274,28 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
     const Step5Review = () => {
         const finalPayload = getFinalJson();
         const definition = JSON.parse(finalPayload.definition);
-        
+
         return (
             <div className="space-y-6 py-4 animate-in slide-in-from-right-2 duration-300">
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
-                            <h4 className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Summary</h4>
+                        <div className="p-4 rounded-xl bg-background border border-muted space-y-3">
+                            <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Summary</h4>
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-zinc-400">Name</span>
-                                    <span className="text-white font-medium">{composition.name}</span>
+                                    <span className="text-muted-foreground">Name</span>
+                                    <span className="text-foreground font-medium">{composition.name}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-zinc-400">Base OS</span>
-                                    <span className="text-white font-medium">{composition.base_os}</span>
+                                    <span className="text-muted-foreground">Base OS</span>
+                                    <span className="text-foreground font-medium">{composition.base_os}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-zinc-400">Tools</span>
+                                    <span className="text-muted-foreground">Tools</span>
                                     <Badge variant="outline">{composition.tools.length}</Badge>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-zinc-400">Packages</span>
+                                    <span className="text-muted-foreground">Packages</span>
                                     <Badge variant="outline">{composition.packages.python.length}</Badge>
                                 </div>
                             </div>
@@ -305,13 +305,13 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                             <div className="flex items-center gap-2 text-emerald-500 font-bold text-sm">
                                 <CheckCircle2 className="h-4 w-4" /> Ready for Smelting
                             </div>
-                            <p className="text-[11px] text-zinc-400">This blueprint follows all safety and compatibility guardrails.</p>
+                            <p className="text-[11px] text-muted-foreground">This blueprint follows all safety and compatibility guardrails.</p>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-wider text-zinc-500 font-bold">JSON Definition</Label>
-                        <pre className="h-[300px] overflow-auto bg-black border border-zinc-800 rounded-xl p-4 font-mono text-[10px] text-primary/80 custom-scrollbar">
+                        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">JSON Definition</Label>
+                        <pre className="h-[300px] overflow-auto bg-black border border-muted rounded-xl p-4 font-mono text-[10px] text-primary/80 custom-scrollbar">
                             {JSON.stringify(definition, null, 2)}
                         </pre>
                     </div>
@@ -322,7 +322,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
 
     const Step4Tools = () => {
         const [search, setSearch] = useState('');
-        const filtered = matrix.filter((t: any) => 
+        const filtered = matrix.filter((t: any) =>
             t.base_os_family === composition.os_family &&
             t.tool_id.toLowerCase().includes(search.toLowerCase()) &&
             t.is_active
@@ -340,7 +340,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                 const newDeps = tool.runtime_dependencies || [];
                 const currentPackages = [...composition.packages.python];
                 const updatedPackages = [...new Set([...currentPackages, ...newDeps])];
-                
+
                 setComposition({
                     ...composition,
                     tools: [...current, tool.tool_id],
@@ -358,19 +358,19 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
         return (
             <div className="space-y-6 py-4 animate-in slide-in-from-right-2 duration-300">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <Input 
-                        placeholder="Search compatible tools..." 
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search compatible tools..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="pl-10 bg-zinc-950 border-zinc-800"
+                        className="pl-10 bg-background border-muted"
                     />
                 </div>
 
                 <div className="space-y-4">
-                    <Label className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Selected Tools ({composition.tools.length})</Label>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Selected Tools ({composition.tools.length})</Label>
                     <div className="flex flex-wrap gap-2">
-                        {composition.tools.length === 0 && <div className="text-xs text-zinc-600 italic">No tools selected.</div>}
+                        {composition.tools.length === 0 && <div className="text-xs text-muted-foreground/60 italic">No tools selected.</div>}
                         {composition.tools.map(t => (
                             <Badge key={t} className="bg-primary/20 text-primary border-primary/30 py-1 px-2 gap-1">
                                 <Wrench className="h-3 w-3" />
@@ -396,26 +396,26 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                 key={t.id}
                                 onClick={() => toggleTool(t)}
                                 className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all text-left group ${
-                                    isSelected 
-                                    ? 'bg-primary/5 border-primary/50' 
-                                    : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+                                    isSelected
+                                    ? 'bg-primary/5 border-primary/50'
+                                    : 'bg-background border-muted hover:border-muted/80'
                                 }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`h-8 w-8 rounded flex items-center justify-center ${isSelected ? 'bg-primary text-white' : 'bg-zinc-900 text-zinc-500'}`}>
+                                    <div className={`h-8 w-8 rounded flex items-center justify-center ${isSelected ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                                         <Wrench className="h-4 w-4" />
                                     </div>
                                     <div>
-                                        <div className="text-sm font-bold text-white">{t.tool_id}</div>
-                                        <div className="text-[10px] text-zinc-500">
-                                            {t.runtime_dependencies?.length > 0 
+                                        <div className="text-sm font-bold text-foreground">{t.tool_id}</div>
+                                        <div className="text-[10px] text-muted-foreground">
+                                            {t.runtime_dependencies?.length > 0
                                                 ? `Requires: ${t.runtime_dependencies.join(', ')}`
                                                 : 'No extra dependencies'}
                                         </div>
                                     </div>
                                 </div>
                                 <div className={`h-6 w-6 rounded-md flex items-center justify-center border transition-all ${
-                                    isSelected ? 'bg-primary border-primary text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500 group-hover:border-zinc-600'
+                                    isSelected ? 'bg-primary border-primary text-white' : 'bg-muted border-muted text-muted-foreground group-hover:border-muted/80'
                                 }`}>
                                     {isSelected ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
                                 </div>
@@ -429,7 +429,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
 
     const Step3Ingredients = () => {
         const [search, setSearch] = useState('');
-        const filtered = ingredients.filter((i: any) => 
+        const filtered = ingredients.filter((i: any) =>
             i.os_family === composition.os_family &&
             i.name.toLowerCase().includes(search.toLowerCase())
         );
@@ -453,19 +453,19 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
         return (
             <div className="space-y-6 py-4 animate-in slide-in-from-right-2 duration-300">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <Input 
-                        placeholder="Search vetted ingredients..." 
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search vetted ingredients..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="pl-10 bg-zinc-950 border-zinc-800"
+                        className="pl-10 bg-background border-muted"
                     />
                 </div>
 
                 <div className="space-y-4">
-                    <Label className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Selected Packages ({composition.packages.python.length})</Label>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Selected Packages ({composition.packages.python.length})</Label>
                     <div className="flex flex-wrap gap-2">
-                        {composition.packages.python.length === 0 && <div className="text-xs text-zinc-600 italic">No packages selected.</div>}
+                        {composition.packages.python.length === 0 && <div className="text-xs text-muted-foreground/60 italic">No packages selected.</div>}
                         {composition.packages.python.map(p => (
                             <Badge key={p} className="bg-primary/20 text-primary border-primary/30 py-1 px-2 gap-1">
                                 {p}
@@ -491,16 +491,16 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                 key={i.id}
                                 onClick={() => togglePackage(i)}
                                 className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all text-left group ${
-                                    isSelected 
-                                    ? 'bg-primary/5 border-primary/50' 
-                                    : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+                                    isSelected
+                                    ? 'bg-primary/5 border-primary/50'
+                                    : 'bg-background border-muted hover:border-muted/80'
                                 }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <Package className={`h-4 w-4 ${isSelected ? 'text-primary' : 'text-zinc-500'}`} />
+                                    <Package className={`h-4 w-4 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
                                     <div>
-                                        <div className="text-sm font-bold text-white">{i.name}</div>
-                                        <div className="text-[10px] font-mono text-zinc-500">{i.version_constraint}</div>
+                                        <div className="text-sm font-bold text-foreground">{i.name}</div>
+                                        <div className="text-[10px] font-mono text-muted-foreground">{i.version_constraint}</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -513,7 +513,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                         <Badge variant="outline" className="text-[9px] border-red-500/20 text-red-500 bg-red-500/5">Vulnerable</Badge>
                                     )}
                                     <div className={`h-6 w-6 rounded-md flex items-center justify-center border transition-all ${
-                                        isSelected ? 'bg-primary border-primary text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500 group-hover:border-zinc-600'
+                                        isSelected ? 'bg-primary border-primary text-white' : 'bg-muted border-muted text-muted-foreground group-hover:border-muted/80'
                                     }`}>
                                         {isSelected ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
                                     </div>
@@ -528,20 +528,20 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
 
     const Step2BaseOS = () => {
         const filtered = approvedOS.filter((os: any) => os.os_family === composition.os_family);
-        
+
         return (
             <div className="space-y-6 py-4 animate-in slide-in-from-right-2 duration-300">
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
                     <Globe className="h-5 w-5 text-primary" />
                     <div>
-                        <div className="text-sm font-bold text-white">Target Family: {composition.os_family}</div>
-                        <div className="text-[11px] text-zinc-400">Showing only vetted images compatible with this family.</div>
+                        <div className="text-sm font-bold text-foreground">Target Family: {composition.os_family}</div>
+                        <div className="text-[11px] text-muted-foreground">Showing only vetted images compatible with this family.</div>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                     {filtered.length === 0 ? (
-                        <div className="py-12 text-center text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+                        <div className="py-12 text-center text-muted-foreground border border-dashed border-muted rounded-xl">
                             No approved images found for {composition.os_family}
                         </div>
                     ) : (
@@ -550,28 +550,28 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                 key={os.id}
                                 onClick={() => setComposition({...composition, base_os: os.image_uri})}
                                 className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all text-left group ${
-                                    composition.base_os === os.image_uri 
-                                    ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5' 
-                                    : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+                                    composition.base_os === os.image_uri
+                                    ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5'
+                                    : 'bg-background border-muted hover:border-muted/80'
                                 }`}
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                                        composition.base_os === os.image_uri ? 'bg-primary text-white' : 'bg-zinc-900 text-zinc-500'
+                                        composition.base_os === os.image_uri ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
                                     }`}>
                                         <Cpu className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <div className="text-sm font-bold text-white flex items-center gap-2">
+                                        <div className="text-sm font-bold text-foreground flex items-center gap-2">
                                             {os.friendly_name}
                                             {os.is_compliant && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
                                         </div>
-                                        <div className="text-xs font-mono text-zinc-500">{os.image_uri}</div>
+                                        <div className="text-xs font-mono text-muted-foreground">{os.image_uri}</div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Vetted At</div>
-                                    <div className="text-[11px] text-zinc-400">{new Date(os.created_at).toLocaleDateString()}</div>
+                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Vetted At</div>
+                                    <div className="text-[11px] text-muted-foreground">{new Date(os.created_at).toLocaleDateString()}</div>
                                 </div>
                             </button>
                         ))
@@ -586,21 +586,21 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
             <div className="space-y-4">
                 <div className="space-y-2">
                     <Label>Image Recipe Name</Label>
-                    <Input 
-                        placeholder="e.g. secure-data-processor" 
+                    <Input
+                        placeholder="e.g. secure-data-processor"
                         value={composition.name}
                         onChange={e => setComposition({...composition, name: e.target.value})}
-                        className="bg-zinc-950 border-zinc-800"
+                        className="bg-background border-muted"
                     />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>Type</Label>
                         <Select value={composition.type} onValueChange={(v: any) => setComposition({...composition, type: v})}>
-                            <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                            <SelectTrigger className="bg-background border-muted">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                            <SelectContent className="bg-background border-muted text-foreground">
                                 <SelectItem value="RUNTIME">RUNTIME</SelectItem>
                                 <SelectItem value="NETWORK">NETWORK</SelectItem>
                             </SelectContent>
@@ -609,10 +609,10 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                     <div className="space-y-2">
                         <Label>OS Family</Label>
                         <Select value={composition.os_family} onValueChange={v => setComposition({...composition, os_family: v})}>
-                            <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                            <SelectTrigger className="bg-background border-muted">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                            <SelectContent className="bg-background border-muted text-foreground">
                                 <SelectItem value="DEBIAN">DEBIAN</SelectItem>
                                 <SelectItem value="ALPINE">ALPINE</SelectItem>
                             </SelectContent>
@@ -623,10 +623,10 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
 
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-zinc-800" />
+                    <span className="w-full border-t border-muted" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-zinc-925 px-2 text-zinc-500 font-bold">Or Clone Existing</span>
+                    <span className="bg-card px-2 text-muted-foreground font-bold">Or Clone Existing</span>
                 </div>
             </div>
 
@@ -635,14 +635,14 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                     <button
                         key={b.id}
                         onClick={() => handleClone(b)}
-                        className="w-full flex items-center justify-between p-3 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
+                        className="w-full flex items-center justify-between p-3 rounded-lg bg-background border border-muted hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
                     >
                         <div>
-                            <div className="text-sm font-bold text-white flex items-center gap-2">
-                                <Copy className="h-3 w-3 text-zinc-500 group-hover:text-primary" />
+                            <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                                <Copy className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
                                 {b.name}
                             </div>
-                            <div className="text-[10px] text-zinc-500">{b.os_family} • v{b.version}</div>
+                            <div className="text-[10px] text-muted-foreground">{b.os_family} • v{b.version}</div>
                         </div>
                         <Badge variant="outline" className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">Clone</Badge>
                     </button>
@@ -654,7 +654,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
     return (
         <>
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-zinc-925 border-zinc-800 text-white">
+            <DialogContent className="max-w-2xl bg-card border-muted text-foreground">
                 <DialogHeader>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -665,8 +665,8 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                 <DialogTitle>{isEditMode ? 'Edit Image Recipe' : 'Create Image Recipe'}</DialogTitle>
                                 <DialogDescription>
                                     Step {step} of 5: {
-                                        step === 1 ? 'Identity' : 
-                                        step === 2 ? 'Base Image' : 
+                                        step === 1 ? 'Identity' :
+                                        step === 2 ? 'Base Image' :
                                         step === 3 ? 'Ingredients' :
                                         step === 4 ? 'Tools' :
                                         'Review'
@@ -674,10 +674,10 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                 </DialogDescription>
                             </div>
                         </div>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-zinc-500 hover:text-white h-8"
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-foreground h-8"
                             onClick={() => setIsAdvanced(!isAdvanced)}
                         >
                             <Terminal className="h-3.5 w-3.5 mr-2" />
@@ -689,9 +689,9 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                 {/* Progress Bar */}
                 <div className="flex gap-1 py-2">
                     {[1, 2, 3, 4, 5].map(i => (
-                        <div 
-                            key={i} 
-                            className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= i ? 'bg-primary' : 'bg-zinc-800'}`} 
+                        <div
+                            key={i}
+                            className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= i ? 'bg-primary' : 'bg-muted'}`}
                         />
                     ))}
                 </div>
@@ -711,8 +711,8 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                 <AlertCircle className="h-4 w-4 shrink-0" />
                                 <span>Advanced mode bypasses wizard guardrails. Ensure your JSON follows the schema.</span>
                             </div>
-                            <textarea 
-                                className="w-full h-[300px] bg-zinc-950 border border-zinc-800 rounded-lg p-4 font-mono text-xs text-zinc-300 focus:outline-none focus:border-primary/50"
+                            <textarea
+                                className="w-full h-[300px] bg-background border border-muted rounded-lg p-4 font-mono text-xs text-foreground/80 focus:outline-none focus:border-primary/50"
                                 value={JSON.stringify(getFinalJson(), null, 2)}
                                 readOnly
                             />
@@ -720,13 +720,13 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                     )}
                 </div>
 
-                <DialogFooter className="border-t border-zinc-800/50 pt-4">
+                <DialogFooter className="border-t border-muted/50 pt-4">
                     <Button variant="ghost" onClick={() => step > 1 ? prevStep() : onOpenChange(false)} disabled={saveMutation.isPending}>
                         {step === 1 ? 'Cancel' : 'Back'}
                     </Button>
                     {!isAdvanced && (
                         step < 5 ? (
-                            <Button 
+                            <Button
                                 className="bg-primary hover:bg-primary/90 text-white font-bold"
                                 disabled={
                                     (step === 1 && !composition.name) ||
@@ -739,7 +739,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                                 Next <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         ) : (
-                            <Button 
+                            <Button
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                                 onClick={handleFinish}
                                 disabled={saveMutation.isPending}
@@ -753,7 +753,7 @@ const BlueprintWizard: React.FC<BlueprintWizardProps> = ({ open, onOpenChange, e
                         )
                     )}
                     {isAdvanced && (
-                        <Button 
+                        <Button
                             className="bg-primary hover:bg-primary/90 text-white font-bold"
                             onClick={handleFinish}
                             disabled={saveMutation.isPending}

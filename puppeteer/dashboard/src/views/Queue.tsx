@@ -91,9 +91,9 @@ const StatusIcon = ({ status }: { status: string }) => {
         case 'running': return <Activity className="h-4 w-4 text-blue-400 animate-pulse" />;
         case 'retrying': return <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />;
         case 'dead_letter': return <Skull className="h-4 w-4 text-rose-800" />;
-        case 'blocked': return <Lock className="h-4 w-4 text-zinc-500" />;
-        case 'cancelled': return <Ban className="h-4 w-4 text-zinc-600" />;
-        default: return <Clock className="h-4 w-4 text-zinc-500" />;
+        case 'blocked': return <Lock className="h-4 w-4 text-muted-foreground" />;
+        case 'cancelled': return <Ban className="h-4 w-4 text-muted-foreground/60" />;
+        default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
 };
 
@@ -144,7 +144,7 @@ const QueueRow = ({
         (job.target_tags ?? []).some((tag) => drainingNodeIds.has(tag));
 
     return (
-        <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
+        <TableRow className="border-muted hover:bg-background/50">
             <TableCell>
                 <div className="flex items-center gap-2">
                     <StatusIcon status={job.status} />
@@ -158,34 +158,34 @@ const QueueRow = ({
                     )}
                 </div>
             </TableCell>
-            <TableCell className="font-mono text-xs text-zinc-300">
+            <TableCell className="font-mono text-xs text-foreground/80">
                 <div className="max-w-[180px] truncate" title={job.guid}>
                     {job.name ? (
-                        <span className="text-white font-medium">{job.name}</span>
+                        <span className="text-foreground font-medium">{job.name}</span>
                     ) : (
-                        <span className="text-zinc-400">{truncateGuid(job.guid)}</span>
+                        <span className="text-muted-foreground">{truncateGuid(job.guid)}</span>
                     )}
                 </div>
-                <div className="text-zinc-600 text-xs mt-0.5">{truncateGuid(job.guid)}</div>
+                <div className="text-muted-foreground text-xs mt-0.5">{truncateGuid(job.guid)}</div>
             </TableCell>
-            <TableCell className="text-zinc-400 text-xs">
+            <TableCell className="text-muted-foreground text-xs">
                 <span className="font-mono">
                     {job.display_type ?? job.task_type ?? '—'}
                 </span>
                 {job.runtime && (
-                    <span className="ml-1 text-zinc-600">({job.runtime})</span>
+                    <span className="ml-1 text-muted-foreground">({job.runtime})</span>
                 )}
             </TableCell>
-            <TableCell className="text-zinc-400 text-xs font-mono">
+            <TableCell className="text-muted-foreground text-xs font-mono">
                 {job.node_id ? (
                     <span className="truncate max-w-[120px] block" title={job.node_id}>
                         {job.node_id.slice(0, 12)}…
                     </span>
                 ) : (
-                    <span className="text-zinc-700">—</span>
+                    <span className="text-muted-foreground/40">—</span>
                 )}
             </TableCell>
-            <TableCell className="text-zinc-500 text-xs">
+            <TableCell className="text-muted-foreground text-xs">
                 {formatRelative((job as any).created_at)}
             </TableCell>
         </TableRow>
@@ -258,8 +258,8 @@ const Queue = () => {
                             <ListOrdered className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-white">Queue</h1>
-                            <p className="text-sm text-zinc-500 mt-0.5">
+                            <h1 className="text-2xl font-bold tracking-tight text-foreground">Queue</h1>
+                            <p className="text-sm text-muted-foreground mt-0.5">
                                 Live job queue — read-only monitoring view
                             </p>
                         </div>
@@ -267,12 +267,12 @@ const Queue = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-zinc-500">Terminal window:</span>
+                        <span className="text-sm text-muted-foreground">Terminal window:</span>
                         <Select
                             value={String(recencyWindow)}
                             onValueChange={(v) => setRecencyWindow(Number(v) as 1 | 6 | 24)}
                         >
-                            <SelectTrigger className="w-28 bg-zinc-900 border-zinc-700 text-white text-sm">
+                            <SelectTrigger className="w-28 bg-background border-muted text-foreground text-sm">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -284,7 +284,7 @@ const Queue = () => {
                     </div>
                     <Link
                         to="/jobs"
-                        className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                         Manage jobs
                         <ArrowRight className="h-4 w-4" />
@@ -293,14 +293,14 @@ const Queue = () => {
             </div>
 
             {/* Active Jobs Section */}
-            <Card className="bg-zinc-950 border-zinc-800">
+            <Card className="bg-background border-muted">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
+                        <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
                             <Activity className="h-4 w-4 text-blue-400" />
                             Active
                             {!activeLoading && (
-                                <span className="text-zinc-500 font-normal text-sm">
+                                <span className="text-muted-foreground font-normal text-sm">
                                     ({activeJobs.length})
                                 </span>
                             )}
@@ -316,23 +316,23 @@ const Queue = () => {
                     {activeLoading ? (
                         <div className="space-y-2 p-4">
                             {[...Array(3)].map((_, i) => (
-                                <div key={i} className="h-10 rounded bg-zinc-900 animate-pulse" />
+                                <div key={i} className="h-10 rounded bg-background animate-pulse" />
                             ))}
                         </div>
                     ) : activeJobs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-zinc-600">
-                            <CheckCircle2 className="h-8 w-8 mb-2 text-zinc-800" />
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                            <CheckCircle2 className="h-8 w-8 mb-2 text-muted" />
                             <p className="text-sm">No active jobs</p>
                         </div>
                     ) : (
                         <Table>
                             <TableHeader>
-                                <TableRow className="border-zinc-800 hover:bg-transparent">
-                                    <TableHead className="text-zinc-500 text-xs w-48">Status</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Job</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Task Type</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Node</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Created</TableHead>
+                                <TableRow className="border-muted hover:bg-transparent">
+                                    <TableHead className="text-muted-foreground text-xs w-48">Status</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Job</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Task Type</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Node</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Created</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -350,14 +350,14 @@ const Queue = () => {
             </Card>
 
             {/* Terminal Jobs Section */}
-            <Card className="bg-zinc-950 border-zinc-800">
+            <Card className="bg-background border-muted">
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-zinc-500" />
+                    <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
                         Recent
-                        <span className="text-zinc-500 font-normal text-sm">— {recencyLabel}</span>
+                        <span className="text-muted-foreground font-normal text-sm">— {recencyLabel}</span>
                         {!terminalLoading && (
-                            <span className="text-zinc-500 font-normal text-sm">
+                            <span className="text-muted-foreground font-normal text-sm">
                                 ({terminalJobs.length})
                             </span>
                         )}
@@ -367,23 +367,23 @@ const Queue = () => {
                     {terminalLoading ? (
                         <div className="space-y-2 p-4">
                             {[...Array(4)].map((_, i) => (
-                                <div key={i} className="h-10 rounded bg-zinc-900 animate-pulse" />
+                                <div key={i} className="h-10 rounded bg-background animate-pulse" />
                             ))}
                         </div>
                     ) : terminalJobs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-zinc-600">
-                            <AlertTriangle className="h-8 w-8 mb-2 text-zinc-800" />
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                            <AlertTriangle className="h-8 w-8 mb-2 text-muted" />
                             <p className="text-sm">No completed jobs in this window</p>
                         </div>
                     ) : (
                         <Table>
                             <TableHeader>
-                                <TableRow className="border-zinc-800 hover:bg-transparent">
-                                    <TableHead className="text-zinc-500 text-xs w-48">Status</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Job</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Task Type</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Node</TableHead>
-                                    <TableHead className="text-zinc-500 text-xs">Created</TableHead>
+                                <TableRow className="border-muted hover:bg-transparent">
+                                    <TableHead className="text-muted-foreground text-xs w-48">Status</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Job</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Task Type</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Node</TableHead>
+                                    <TableHead className="text-muted-foreground text-xs">Created</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

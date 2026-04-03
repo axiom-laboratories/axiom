@@ -218,39 +218,39 @@ const Account = () => {
       case 'operator':
         return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">Operator</Badge>;
       case 'viewer':
-        return <Badge className="bg-zinc-700/50 text-zinc-400 border-zinc-700/50">Viewer</Badge>;
+        return <Badge className="bg-muted/50 text-muted-foreground border-muted/50">Viewer</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 p-6 text-white min-h-screen bg-zinc-925">
+    <div className="max-w-5xl mx-auto space-y-8 p-6 text-foreground min-h-screen bg-card">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Account Center</h1>
       </div>
 
       {/* SECTION 1 - Profile */}
-      <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+      <Card className="bg-background border-muted shadow-xl">
         <CardHeader className="flex flex-row items-center space-x-4 pb-4">
-          <div className="p-3 bg-zinc-800 rounded-lg">
-            <User className="w-6 h-6 text-zinc-400" />
+          <div className="p-3 bg-muted rounded-lg">
+            <User className="w-6 h-6 text-muted-foreground" />
           </div>
           <div>
             <CardTitle>Profile</CardTitle>
-            <CardDescription className="text-zinc-500">Your account details and role</CardDescription>
+            <CardDescription className="text-muted-foreground">Your account details and role</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
-              <Label className="text-zinc-500">Username</Label>
+              <Label className="text-muted-foreground">Username</Label>
               <div className="text-lg font-medium">{profile?.username || '...'}</div>
             </div>
             <div className="space-y-1">
-              <Label className="text-zinc-500">System Role</Label>
+              <Label className="text-muted-foreground">System Role</Label>
               <div className="flex items-center pt-1">
-                {profileLoading ? <Loader2 className="w-4 h-4 animate-spin text-zinc-500" /> : getRoleBadge(profile?.role || '')}
+                {profileLoading ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /> : getRoleBadge(profile?.role || '')}
               </div>
             </div>
           </div>
@@ -258,14 +258,14 @@ const Account = () => {
       </Card>
 
       {/* SECTION 2 - Security (Password Change) */}
-      <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+      <Card className="bg-background border-muted shadow-xl">
         <CardHeader className="flex flex-row items-center space-x-4 pb-4">
-          <div className="p-3 bg-zinc-800 rounded-lg">
-            <Shield className="w-6 h-6 text-zinc-400" />
+          <div className="p-3 bg-muted rounded-lg">
+            <Shield className="w-6 h-6 text-muted-foreground" />
           </div>
           <div>
             <CardTitle>Security</CardTitle>
-            <CardDescription className="text-zinc-500">Change your account password</CardDescription>
+            <CardDescription className="text-muted-foreground">Change your account password</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -275,7 +275,7 @@ const Account = () => {
               <Input
                 id="current_password"
                 type="password"
-                className="bg-zinc-925 border-zinc-800 focus:ring-zinc-700"
+                className="bg-card border-muted focus:ring-muted"
                 value={passwordForm.current_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
                 required
@@ -286,7 +286,7 @@ const Account = () => {
               <Input
                 id="new_password"
                 type="password"
-                className="bg-zinc-925 border-zinc-800 focus:ring-zinc-700"
+                className="bg-card border-muted focus:ring-muted"
                 value={passwordForm.new_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
                 required
@@ -297,7 +297,7 @@ const Account = () => {
               <Input
                 id="confirm_password"
                 type="password"
-                className="bg-zinc-925 border-zinc-800 focus:ring-zinc-700"
+                className="bg-card border-muted focus:ring-muted"
                 value={passwordForm.confirm_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
                 required
@@ -305,7 +305,7 @@ const Account = () => {
             </div>
             <Button
               type="submit"
-              className="bg-zinc-100 text-zinc-950 hover:bg-zinc-300"
+              className="bg-foreground text-background hover:bg-foreground/90"
               disabled={updatePasswordMutation.isPending}
             >
               {updatePasswordMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -316,50 +316,50 @@ const Account = () => {
       </Card>
 
       {/* SECTION 3 - Signing Keys */}
-      <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+      <Card className="bg-background border-muted shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div className="flex flex-row items-center space-x-4">
-            <div className="p-3 bg-zinc-800 rounded-lg">
-              <KeyRound className="w-6 h-6 text-zinc-400" />
+            <div className="p-3 bg-muted rounded-lg">
+              <KeyRound className="w-6 h-6 text-muted-foreground" />
             </div>
             <div>
               <CardTitle>Signing Keys</CardTitle>
-              <CardDescription className="text-zinc-500">Manage Ed25519 keys for job validation</CardDescription>
+              <CardDescription className="text-muted-foreground">Manage Ed25519 keys for job validation</CardDescription>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="border-zinc-800 hover:bg-zinc-800" onClick={() => setUploadKeyOpen(true)}>
+            <Button variant="outline" size="sm" className="border-muted hover:bg-muted" onClick={() => setUploadKeyOpen(true)}>
               <Plus className="w-4 h-4 mr-2" /> Upload
             </Button>
-            <Button size="sm" className="bg-zinc-100 text-zinc-950 hover:bg-zinc-300" onClick={() => setGenKeyOpen(true)}>
+            <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={() => setGenKeyOpen(true)}>
               <KeyRound className="w-4 h-4 mr-2" /> Generate Keypair
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {keysLoading ? (
-            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-zinc-500" /></div>
+            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-500 text-sm">
+                  <tr className="border-b border-muted text-muted-foreground text-sm">
                     <th className="py-3 px-4 font-medium">Name</th>
                     <th className="py-3 px-4 font-medium">Public Key (Truncated)</th>
                     <th className="py-3 px-4 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-muted">
                   {signingKeys?.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="py-8 text-center text-zinc-500 italic">No signing keys found.</td>
+                      <td colSpan={3} className="py-8 text-center text-muted-foreground italic">No signing keys found.</td>
                     </tr>
                   ) : (
                     signingKeys?.map((key) => (
-                      <tr key={key.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <tr key={key.id} className="hover:bg-muted/30 transition-colors">
                         <td className="py-4 px-4 font-medium">{key.name}</td>
                         <td className="py-4 px-4">
-                          <code className="text-xs bg-zinc-925 px-2 py-1 rounded text-zinc-400">
+                          <code className="text-xs bg-card px-2 py-1 rounded text-muted-foreground">
                             {key.public_key_pem.substring(0, 40)}...
                           </code>
                         </td>
@@ -367,7 +367,7 @@ const Account = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-zinc-500 hover:text-red-400 hover:bg-red-400/10"
+                            className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
                             onClick={() => setDeleteKeyConfirm(key.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -384,29 +384,29 @@ const Account = () => {
       </Card>
 
       {/* SECTION 4 - API Keys */}
-      <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+      <Card className="bg-background border-muted shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div className="flex flex-row items-center space-x-4">
-            <div className="p-3 bg-zinc-800 rounded-lg">
-              <Key className="w-6 h-6 text-zinc-400" />
+            <div className="p-3 bg-muted rounded-lg">
+              <Key className="w-6 h-6 text-muted-foreground" />
             </div>
             <div>
               <CardTitle>API Keys</CardTitle>
-              <CardDescription className="text-zinc-500">Keys for programmatic access to Puppeteer</CardDescription>
+              <CardDescription className="text-muted-foreground">Keys for programmatic access to Puppeteer</CardDescription>
             </div>
           </div>
-          <Button size="sm" className="bg-zinc-100 text-zinc-950 hover:bg-zinc-300" onClick={() => setGenApiKeyOpen(true)}>
+          <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={() => setGenApiKeyOpen(true)}>
             <Plus className="w-4 h-4 mr-2" /> Generate API Key
           </Button>
         </CardHeader>
         <CardContent>
           {apiKeysLoading ? (
-            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-zinc-500" /></div>
+            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-500 text-sm">
+                  <tr className="border-b border-muted text-muted-foreground text-sm">
                     <th className="py-3 px-4 font-medium">Name</th>
                     <th className="py-3 px-4 font-medium">Prefix</th>
                     <th className="py-3 px-4 font-medium">Expires</th>
@@ -414,31 +414,31 @@ const Account = () => {
                     <th className="py-3 px-4 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-muted">
                   {apiKeys?.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-zinc-500 italic">No API keys found.</td>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground italic">No API keys found.</td>
                     </tr>
                   ) : (
                     apiKeys?.map((key) => (
-                      <tr key={key.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <tr key={key.id} className="hover:bg-muted/30 transition-colors">
                         <td className="py-4 px-4 font-medium">{key.name}</td>
                         <td className="py-4 px-4">
-                          <code className="text-xs bg-zinc-925 px-2 py-1 rounded text-zinc-400 font-mono">
+                          <code className="text-xs bg-card px-2 py-1 rounded text-muted-foreground font-mono">
                             {key.key_prefix}
                           </code>
                         </td>
-                        <td className="py-4 px-4 text-zinc-500 text-sm">
+                        <td className="py-4 px-4 text-muted-foreground text-sm">
                           {key.expires_at ? new Date(key.expires_at).toLocaleDateString() : 'Never'}
                         </td>
-                        <td className="py-4 px-4 text-zinc-500 text-sm">
+                        <td className="py-4 px-4 text-muted-foreground text-sm">
                           {key.last_used_at ? new Date(key.last_used_at).toLocaleDateString() : 'Never'}
                         </td>
                         <td className="py-4 px-4 text-right">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-zinc-500 hover:text-red-400 hover:bg-red-400/10"
+                            className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
                             onClick={() => setRevokeApiKeyConfirm(key.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -458,10 +458,10 @@ const Account = () => {
 
       {/* Upload Signing Key Dialog */}
       <Dialog open={uploadKeyOpen} onOpenChange={setUploadKeyOpen}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+        <DialogContent className="bg-background border-muted text-foreground">
           <DialogHeader>
             <DialogTitle>Upload Signing Key</DialogTitle>
-            <DialogDescription className="text-zinc-500">Add an existing Ed25519 public key in PEM format.</DialogDescription>
+            <DialogDescription className="text-muted-foreground">Add an existing Ed25519 public key in PEM format.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
@@ -476,21 +476,21 @@ const Account = () => {
           >
             <div className="space-y-2">
               <Label htmlFor="key_name">Key Name</Label>
-              <Input id="key_name" name="name" className="bg-zinc-925 border-zinc-800" placeholder="My Dev Key" required />
+              <Input id="key_name" name="name" className="bg-card border-muted" placeholder="My Dev Key" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="public_key_pem">Public Key (PEM)</Label>
               <Textarea
                 id="public_key_pem"
                 name="public_key_pem"
-                className="bg-zinc-925 border-zinc-800 font-mono text-xs h-32"
+                className="bg-card border-muted font-mono text-xs h-32"
                 placeholder="-----BEGIN PUBLIC KEY-----..."
                 required
               />
             </div>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setUploadKeyOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-zinc-100 text-zinc-950 hover:bg-zinc-300">Upload Key</Button>
+              <Button type="submit" className="bg-foreground text-background hover:bg-foreground/90">Upload Key</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -501,10 +501,10 @@ const Account = () => {
         setGenKeyOpen(open);
         if (!open) setGeneratedSigningKey(null);
       }}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-2xl">
+        <DialogContent className="bg-background border-muted text-foreground max-w-2xl">
           <DialogHeader>
             <DialogTitle>Generate Ed25519 Keypair</DialogTitle>
-            <DialogDescription className="text-zinc-500">We'll generate a secure keypair for you. The public key will be saved.</DialogDescription>
+            <DialogDescription className="text-muted-foreground">We'll generate a secure keypair for you. The public key will be saved.</DialogDescription>
           </DialogHeader>
           
           {!generatedSigningKey ? (
@@ -518,11 +518,11 @@ const Account = () => {
             >
               <div className="space-y-2">
                 <Label htmlFor="gen_key_name">Key Name</Label>
-                <Input id="gen_key_name" name="name" className="bg-zinc-925 border-zinc-800" placeholder="My Workspace Key" required />
+                <Input id="gen_key_name" name="name" className="bg-card border-muted" placeholder="My Workspace Key" required />
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setGenKeyOpen(false)}>Cancel</Button>
-                <Button type="submit" className="bg-zinc-100 text-zinc-950 hover:bg-zinc-300" disabled={generateKeyPairMutation.isPending}>
+                <Button type="submit" className="bg-foreground text-background hover:bg-foreground/90" disabled={generateKeyPairMutation.isPending}>
                   {generateKeyPairMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Generate Keypair
                 </Button>
@@ -539,18 +539,18 @@ const Account = () => {
               </div>
               <div className="space-y-2">
                 <Label>Private Key (PEM)</Label>
-                <pre className="bg-zinc-925 border border-zinc-800 p-4 rounded font-mono text-xs overflow-x-auto max-h-64 whitespace-pre-wrap text-zinc-300">
+                <pre className="bg-card border border-muted p-4 rounded font-mono text-xs overflow-x-auto max-h-64 whitespace-pre-wrap text-foreground/80">
                   {generatedSigningKey.private_key_pem}
                 </pre>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" className="border-zinc-800 hover:bg-zinc-800" onClick={() => copyToClipboard(generatedSigningKey.private_key_pem)}>
+                <Button variant="outline" size="sm" className="border-muted hover:bg-muted" onClick={() => copyToClipboard(generatedSigningKey.private_key_pem)}>
                   <Copy className="w-4 h-4 mr-2" /> Copy
                 </Button>
-                <Button variant="outline" size="sm" className="border-zinc-800 hover:bg-zinc-800" onClick={() => downloadKey(generatedSigningKey.name, generatedSigningKey.private_key_pem)}>
+                <Button variant="outline" size="sm" className="border-muted hover:bg-muted" onClick={() => downloadKey(generatedSigningKey.name, generatedSigningKey.private_key_pem)}>
                   <Download className="w-4 h-4 mr-2" /> Download
                 </Button>
-                <Button className="bg-zinc-100 text-zinc-950 hover:bg-zinc-300" onClick={() => setGenKeyOpen(false)}>Done</Button>
+                <Button className="bg-foreground text-background hover:bg-foreground/90" onClick={() => setGenKeyOpen(false)}>Done</Button>
               </div>
             </div>
           )}
@@ -562,10 +562,10 @@ const Account = () => {
         setGenApiKeyOpen(open);
         if (!open) setGeneratedApiKey(null);
       }}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+        <DialogContent className="bg-background border-muted text-foreground">
           <DialogHeader>
             <DialogTitle>Generate API Key</DialogTitle>
-            <DialogDescription className="text-zinc-500">Create a key for external integrations.</DialogDescription>
+            <DialogDescription className="text-muted-foreground">Create a key for external integrations.</DialogDescription>
           </DialogHeader>
 
           {!generatedApiKey ? (
@@ -583,15 +583,15 @@ const Account = () => {
             >
               <div className="space-y-2">
                 <Label htmlFor="api_key_name">Key Name</Label>
-                <Input id="api_key_name" name="name" className="bg-zinc-925 border-zinc-800" placeholder="CI/CD Integration" required />
+                <Input id="api_key_name" name="name" className="bg-card border-muted" placeholder="CI/CD Integration" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="expires_in_days">Expiration (Days, optional)</Label>
-                <Input id="expires_in_days" name="expires_in_days" type="number" className="bg-zinc-925 border-zinc-800" placeholder="30" />
+                <Input id="expires_in_days" name="expires_in_days" type="number" className="bg-card border-muted" placeholder="30" />
               </div>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setGenApiKeyOpen(false)}>Cancel</Button>
-                <Button type="submit" className="bg-zinc-100 text-zinc-950 hover:bg-zinc-300" disabled={generateApiKeyMutation.isPending}>
+                <Button type="submit" className="bg-foreground text-background hover:bg-foreground/90" disabled={generateApiKeyMutation.isPending}>
                   {generateApiKeyMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Generate Key
                 </Button>
@@ -609,16 +609,16 @@ const Account = () => {
               <div className="space-y-2">
                 <Label>API Key</Label>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-zinc-925 border border-zinc-800 p-3 rounded font-mono text-sm break-all text-zinc-300">
+                  <code className="flex-1 bg-card border border-muted p-3 rounded font-mono text-sm break-all text-foreground/80">
                     {generatedApiKey.raw_key}
                   </code>
-                  <Button variant="outline" size="icon" className="border-zinc-800 shrink-0" onClick={() => copyToClipboard(generatedApiKey.raw_key)}>
+                  <Button variant="outline" size="icon" className="border-muted shrink-0" onClick={() => copyToClipboard(generatedApiKey.raw_key)}>
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
               <DialogFooter>
-                <Button className="w-full bg-zinc-100 text-zinc-950 hover:bg-zinc-300" onClick={() => setGenApiKeyOpen(false)}>I have saved my key</Button>
+                <Button className="w-full bg-foreground text-background hover:bg-foreground/90" onClick={() => setGenApiKeyOpen(false)}>I have saved my key</Button>
               </DialogFooter>
             </div>
           )}
@@ -627,17 +627,17 @@ const Account = () => {
 
       {/* AlertDialogs for Deletion/Revocation */}
       <AlertDialog open={!!deleteKeyConfirm} onOpenChange={(open) => !open && setDeleteKeyConfirm(null)}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-white">
+        <AlertDialogContent className="bg-background border-muted text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Signing Key?</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-500">
+            <AlertDialogDescription className="text-muted-foreground">
               This action cannot be undone. Jobs signed with this key will no longer be verifiable.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent border-zinc-800 hover:bg-zinc-800 hover:text-white">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-transparent border-muted hover:bg-muted hover:text-foreground">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-500 hover:bg-red-600 text-white"
+              className="bg-red-500 hover:bg-red-600 text-foreground"
               onClick={() => deleteKeyConfirm && deleteKeyMutation.mutate(deleteKeyConfirm)}
             >
               Delete Key
@@ -647,17 +647,17 @@ const Account = () => {
       </AlertDialog>
 
       <AlertDialog open={!!revokeApiKeyConfirm} onOpenChange={(open) => !open && setRevokeApiKeyConfirm(null)}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-white">
+        <AlertDialogContent className="bg-background border-muted text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Revoke API Key?</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-500">
+            <AlertDialogDescription className="text-muted-foreground">
               Any applications using this key will lose access immediately.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent border-zinc-800 hover:bg-zinc-800 hover:text-white">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-transparent border-muted hover:bg-muted hover:text-foreground">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-500 hover:bg-red-600 text-white"
+              className="bg-red-500 hover:bg-red-600 text-foreground"
               onClick={() => revokeApiKeyConfirm && revokeApiKeyMutation.mutate(revokeApiKeyConfirm)}
             >
               Revoke Key

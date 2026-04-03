@@ -34,7 +34,7 @@ const getAttestationBadge = (verified: string | null | undefined) => {
     const map: Record<string, { cls: string; label: string }> = {
         verified: { cls: 'bg-green-500/10 text-green-500 border-green-500/20', label: 'VERIFIED' },
         failed:   { cls: 'bg-red-500/10 text-red-500 border-red-500/20',   label: 'ATTEST FAILED' },
-        missing:  { cls: 'bg-zinc-800 text-zinc-400 border-zinc-700',       label: 'NO ATTESTATION' },
+        missing:  { cls: 'bg-muted text-muted-foreground border-muted',       label: 'NO ATTESTATION' },
     };
     const entry = map[verified];
     if (!entry) return null;
@@ -117,15 +117,15 @@ export const ExecutionLogModal = ({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="bg-zinc-950 border-zinc-800 text-white w-[95vw] max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
-                <DialogHeader className="px-6 py-4 border-b border-zinc-900 bg-zinc-950 shrink-0">
+            <DialogContent className="bg-background border-muted text-foreground w-[95vw] max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+                <DialogHeader className="px-6 py-4 border-b border-muted bg-background shrink-0">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
                                 <Terminal className="h-4 w-4 text-primary" />
                             </div>
                             <div>
-                                <DialogTitle className="text-white text-base font-bold flex items-center gap-3">
+                                <DialogTitle className="text-foreground text-base font-bold flex items-center gap-3">
                                     Execution Log
                                     {selected && (
                                         <Badge variant={selected.exit_code === 0 ? 'default' : 'destructive'} className="text-[10px] h-5 px-2">
@@ -134,30 +134,30 @@ export const ExecutionLogModal = ({
                                     )}
                                     {selected && getAttestationBadge(selected.attestation_verified ?? 'missing')}
                                 </DialogTitle>
-                                <p className="text-zinc-500 text-xs truncate max-w-[300px]" style={{ fontFamily: 'monospace' }}>
+                                <p className="text-muted-foreground text-xs truncate max-w-[300px]" style={{ fontFamily: 'monospace' }}>
                                     {selected?.job_guid || jobGuid}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-6 text-zinc-400 mr-8">
+                        <div className="flex items-center gap-6 text-muted-foreground mr-8">
                             {selected && (
                                 <>
                                     <div className="text-center">
-                                        <p className="text-[10px] uppercase tracking-wider text-zinc-600 font-bold mb-0.5">Exit Code</p>
+                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-bold mb-0.5">Exit Code</p>
                                         <p className={`text-xs ${selected.exit_code === 0 ? 'text-green-400' : 'text-red-400'}`} style={{ fontFamily: 'monospace' }}>
                                             {selected.exit_code === null ? '—' : selected.exit_code}
                                         </p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[10px] uppercase tracking-wider text-zinc-600 font-bold mb-0.5">Duration</p>
-                                        <p className="text-xs text-zinc-300" style={{ fontFamily: 'monospace' }}>
+                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-bold mb-0.5">Duration</p>
+                                        <p className="text-xs text-foreground/80" style={{ fontFamily: 'monospace' }}>
                                             {selected.duration_seconds != null ? `${selected.duration_seconds.toFixed(2)}s` : '—'}
                                         </p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[10px] uppercase tracking-wider text-zinc-600 font-bold mb-0.5">Node</p>
-                                        <p className="text-xs text-zinc-300 truncate max-w-[120px]" style={{ fontFamily: 'monospace' }}>{selected.node_id || '—'}</p>
+                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-bold mb-0.5">Node</p>
+                                        <p className="text-xs text-foreground/80 truncate max-w-[120px]" style={{ fontFamily: 'monospace' }}>{selected.node_id || '—'}</p>
                                     </div>
                                 </>
                             )}
@@ -165,7 +165,7 @@ export const ExecutionLogModal = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={handleCopy}
-                                className="h-9 w-9 p-0 hover:bg-zinc-800 hover:text-white"
+                                className="h-9 w-9 p-0 hover:bg-muted hover:text-foreground"
                                 title="Copy to clipboard"
                             >
                                 <Copy className="h-4 w-4" />
@@ -194,22 +194,22 @@ export const ExecutionLogModal = ({
                     )}
                 </DialogHeader>
 
-                <div className="flex-1 overflow-auto bg-black/50 font-mono text-sm leading-relaxed p-6 selection:bg-primary/30 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                <div className="flex-1 overflow-auto bg-black/50 font-mono text-sm leading-relaxed p-6 selection:bg-primary/30 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                     <div className="space-y-1">
                         {lines.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-zinc-600 gap-4">
+                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/60 gap-4">
                                 <Terminal className="h-10 w-10 opacity-20" />
                                 <p className="text-sm font-medium italic">No output captured for this execution.</p>
                             </div>
                         ) : lines.map((l, i) => (
-                            <div key={i} className="flex gap-4 group hover:bg-zinc-900/50 -mx-2 px-2 rounded transition-colors">
-                                <span className="text-zinc-700 text-[10px] select-none w-20 pt-1 shrink-0 tabular-nums">
+                            <div key={i} className="flex gap-4 group hover:bg-muted/20 -mx-2 px-2 rounded transition-colors">
+                                <span className="text-muted-foreground/50 text-[10px] select-none w-20 pt-1 shrink-0 tabular-nums">
                                     {new Date(l.t).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </span>
-                                <span className={`w-12 pt-0.5 text-[9px] font-bold select-none shrink-0 ${l.stream === 'stderr' ? 'text-amber-500/80' : 'text-zinc-600'}`}>
+                                <span className={`w-12 pt-0.5 text-[9px] font-bold select-none shrink-0 ${l.stream === 'stderr' ? 'text-amber-500/80' : 'text-muted-foreground/50'}`}>
                                     [{l.stream.slice(0, 3).toUpperCase()}]
                                 </span>
-                                <span className={`break-all ${l.stream === 'stderr' ? 'text-amber-200' : 'text-zinc-300'}`}>
+                                <span className={`break-all ${l.stream === 'stderr' ? 'text-amber-200' : 'text-foreground/80'}`}>
                                     {l.line}
                                 </span>
                             </div>

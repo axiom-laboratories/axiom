@@ -79,7 +79,7 @@ const HealthTab = () => {
     <div className="space-y-4">
       {/* Window switcher */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-zinc-500 font-bold uppercase tracking-widest mr-2">Window</span>
+        <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest mr-2">Window</span>
         {(['24h', '7d', '30d'] as Window[]).map(w => (
           <button
             key={w}
@@ -87,7 +87,7 @@ const HealthTab = () => {
             className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
               window === w
                 ? 'bg-primary text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
             }`}
           >
             {w}
@@ -96,45 +96,45 @@ const HealthTab = () => {
       </div>
 
       {loading && (
-        <div className="py-12 text-center text-zinc-500 text-sm animate-pulse">Loading health data...</div>
+        <div className="py-12 text-center text-muted-foreground text-sm animate-pulse">Loading health data...</div>
       )}
 
       {!loading && health && (
         <>
           {/* Aggregate summary row */}
-          <div className="rounded-xl border border-zinc-800 bg-zinc-800/50 px-6 py-4 flex flex-wrap gap-8">
+          <div className="rounded-xl border border-muted bg-muted/20 px-6 py-4 flex flex-wrap gap-8">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-400 tabular-nums">{health.aggregate.fired}</div>
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mt-1">Fired</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Fired</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-amber-400 tabular-nums">{health.aggregate.skipped}</div>
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mt-1">Skipped</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Skipped</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-red-400 tabular-nums">{health.aggregate.failed}</div>
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mt-1">Failed</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Failed</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-400 tabular-nums">{health.aggregate.late}</div>
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mt-1">Late</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Late</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-zinc-300 tabular-nums">{health.aggregate.missed}</div>
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mt-1">Missed</div>
+              <div className="text-2xl font-bold text-foreground/80 tabular-nums">{health.aggregate.missed}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Missed</div>
             </div>
           </div>
 
           {/* Per-definition table */}
           {health.definitions.length === 0 ? (
-            <div className="py-12 text-center text-zinc-500 text-sm italic">
+            <div className="py-12 text-center text-muted-foreground text-sm italic">
               No scheduled job definitions found for this window.
             </div>
           ) : (
-            <div className="rounded-xl border border-zinc-800 overflow-hidden">
+            <div className="rounded-xl border border-muted overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-zinc-900/70">
-                  <tr className="text-left text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                <thead className="bg-muted/30">
+                  <tr className="text-left text-muted-foreground text-xs font-bold uppercase tracking-wider">
                     <th className="px-4 py-3 w-8"></th>
                     <th className="px-4 py-3">Name</th>
                     <th className="px-4 py-3 text-right tabular-nums">Fired</th>
@@ -149,20 +149,20 @@ const HealthTab = () => {
                     <tr
                       key={row.id}
                       onClick={() => handleRowClick(row)}
-                      className={`border-t border-zinc-800 transition-colors ${
+                      className={`border-t border-muted transition-colors ${
                         row.health === 'error'
                           ? 'cursor-pointer hover:bg-red-950/20'
-                          : 'hover:bg-zinc-900/40'
+                          : 'hover:bg-muted/30'
                       }`}
                     >
                       <td className="px-4 py-3">
                         <HealthIcon health={row.health} />
                       </td>
-                      <td className="px-4 py-3 text-zinc-200 font-medium">{row.name}</td>
+                      <td className="px-4 py-3 text-foreground font-medium">{row.name}</td>
                       <td className="px-4 py-3 text-right text-green-400 tabular-nums font-mono">{row.fired}</td>
                       <td className="px-4 py-3 text-right text-amber-400 tabular-nums font-mono">{row.skipped}</td>
                       <td className="px-4 py-3 text-right text-red-400 tabular-nums font-mono">{row.failed}</td>
-                      <td className="px-4 py-3 text-right text-zinc-400 tabular-nums font-mono">{row.missed}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground/80 tabular-nums font-mono">{row.missed}</td>
                       <td className="px-4 py-3">
                         <ResponsiveContainer width="100%" height={40}>
                           <AreaChart data={makeSparklineData(row)}>
@@ -186,21 +186,21 @@ const HealthTab = () => {
       )}
 
       {!loading && !health && (
-        <div className="py-12 text-center text-zinc-500 text-sm italic">
+        <div className="py-12 text-center text-muted-foreground text-sm italic">
           Unable to load scheduling health data. The health endpoint may not be available.
         </div>
       )}
 
       {/* Detail drawer for error definitions */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-[480px] sm:w-[540px] overflow-y-auto bg-zinc-950 border-zinc-800">
+        <SheetContent side="right" className="w-[480px] sm:w-[540px] overflow-y-auto bg-background border-muted">
           <SheetHeader>
-            <SheetTitle className="text-white">Definition Health Detail</SheetTitle>
+            <SheetTitle className="text-foreground">Definition Health Detail</SheetTitle>
           </SheetHeader>
           {selectedDef && (
             <div className="mt-6 space-y-6">
               <div>
-                <h3 className="text-base font-bold text-zinc-100">{selectedDef.name}</h3>
+                <h3 className="text-base font-bold text-foreground">{selectedDef.name}</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <HealthIcon health={selectedDef.health} />
                   <span className="text-xs text-red-400 font-medium uppercase tracking-wider">
@@ -209,24 +209,24 @@ const HealthTab = () => {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+              <div className="rounded-lg border border-muted bg-card overflow-hidden">
                 <table className="w-full text-sm">
                   <tbody>
-                    <tr className="border-b border-zinc-800">
-                      <td className="px-4 py-3 text-zinc-500 text-xs font-bold uppercase tracking-wider">Fired</td>
+                    <tr className="border-b border-muted">
+                      <td className="px-4 py-3 text-muted-foreground text-xs font-bold uppercase tracking-wider">Fired</td>
                       <td className="px-4 py-3 text-green-400 font-mono tabular-nums">{selectedDef.fired}</td>
                     </tr>
-                    <tr className="border-b border-zinc-800">
-                      <td className="px-4 py-3 text-zinc-500 text-xs font-bold uppercase tracking-wider">Skipped</td>
+                    <tr className="border-b border-muted">
+                      <td className="px-4 py-3 text-muted-foreground text-xs font-bold uppercase tracking-wider">Skipped</td>
                       <td className="px-4 py-3 text-amber-400 font-mono tabular-nums">{selectedDef.skipped}</td>
                     </tr>
-                    <tr className="border-b border-zinc-800">
-                      <td className="px-4 py-3 text-zinc-500 text-xs font-bold uppercase tracking-wider">Failed</td>
+                    <tr className="border-b border-muted">
+                      <td className="px-4 py-3 text-muted-foreground text-xs font-bold uppercase tracking-wider">Failed</td>
                       <td className="px-4 py-3 text-red-400 font-mono tabular-nums">{selectedDef.failed}</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-zinc-500 text-xs font-bold uppercase tracking-wider">Missed</td>
-                      <td className="px-4 py-3 text-zinc-300 font-mono tabular-nums">{selectedDef.missed}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs font-bold uppercase tracking-wider">Missed</td>
+                      <td className="px-4 py-3 text-foreground/80 font-mono tabular-nums">{selectedDef.missed}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -248,7 +248,7 @@ const HealthTab = () => {
                 )}
               </div>
 
-              <div className="text-xs text-zinc-500">
+              <div className="text-xs text-muted-foreground">
                 Tip: Check node availability and the allow_overlap setting for this definition.
               </div>
             </div>

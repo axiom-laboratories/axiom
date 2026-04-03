@@ -213,14 +213,14 @@ const MainLayout = () => {
     };
 
     return (
-        <div className="flex min-h-screen w-full bg-background text-foreground">
+        <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
             {/* Desktop Sidebar */}
-            <aside className="hidden border-r border-muted w-64 shrink-0 md:block bg-secondary" role="navigation" aria-label="Main Sidebar">
+            <aside className="hidden border-r border-muted w-64 shrink-0 md:flex md:flex-col h-screen sticky top-0 overflow-y-auto bg-secondary" role="navigation" aria-label="Main Sidebar">
                 <SidebarContent />
             </aside>
 
             {/* Mobile Sidebar & Main Content */}
-            <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
                 <header className="flex h-16 items-center gap-4 border-b border-muted bg-secondary px-4 lg:px-6 sticky top-0 z-10">
                     <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                         <SheetTrigger asChild>
@@ -288,7 +288,7 @@ const MainLayout = () => {
                         Your EE licence has expired. The system is running in Community Edition mode.
                     </div>
                 )}
-                <main className="flex-1 p-4 lg:p-8 overflow-auto max-w-7xl mx-auto w-full">
+                <main className="flex-1 p-4 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
                     <Outlet />
                 </main>
             </div>

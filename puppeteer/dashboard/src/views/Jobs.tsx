@@ -154,7 +154,7 @@ const StatusIcon = ({ status }: { status: string }) => {
         case 'retrying': return <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />;
         case 'dead_letter': return <Skull className="h-4 w-4 text-rose-800" />;
         case 'blocked': return <Lock className="h-4 w-4 text-muted-foreground" />;
-        case 'cancelled': return <Ban className="h-4 w-4 text-zinc-600" />;
+        case 'cancelled': return <Ban className="h-4 w-4 text-muted-foreground/60" />;
         default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
 };
@@ -389,17 +389,17 @@ const JobDetailPanel = ({
                             )}
                         </div>
                         {execLoading ? (
-                            <div className="flex items-center gap-2 text-xs text-zinc-600 py-2">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground/60 py-2">
                                 <RefreshCw className="h-3 w-3 animate-spin" /> Loading output...
                             </div>
                         ) : outputLines.length > 0 ? (
                             <div className="bg-black/50 rounded-lg p-3 overflow-auto max-h-48 space-y-0.5 font-mono text-[11px]">
                                 {outputLines.map((l, i) => (
                                     <div key={i} className="flex gap-4 group hover:bg-secondary/50 px-2 py-0.5 rounded">
-                                        <span className="text-zinc-700 shrink-0">
+                                        <span className="text-muted-foreground/40 shrink-0">
                                             {new Date(l.t).toLocaleTimeString('en-GB', { hour12: false })}
                                         </span>
-                                        <span className={`shrink-0 ${l.stream === 'stderr' ? 'text-amber-500/80' : 'text-zinc-600'}`}>
+                                        <span className={`shrink-0 ${l.stream === 'stderr' ? 'text-amber-500/80' : 'text-muted-foreground/60'}`}>
                                             [{l.stream.slice(0, 3).toUpperCase()}]
                                         </span>
                                         <span className={l.stream === 'stderr' ? 'text-amber-200' : 'text-foreground'}>
@@ -413,7 +413,7 @@ const JobDetailPanel = ({
                                 {latestExecution.stdout}{latestExecution.stderr}
                             </pre>
                         ) : (
-                            <p className="text-xs text-zinc-600 italic py-1">No execution records yet.</p>
+                            <p className="text-xs text-muted-foreground/60 italic py-1">No execution records yet.</p>
                         )}
                     </section>
 
@@ -436,7 +436,7 @@ const JobDetailPanel = ({
                                         {executions.map((rec: any) => (
                                             <tr
                                                 key={rec.id}
-                                                className={`border-t border-zinc-900 ${rec.pinned ? 'border-l-2 border-l-amber-500' : ''}`}
+                                                className={`border-t border-muted ${rec.pinned ? 'border-l-2 border-l-amber-500' : ''}`}
                                             >
                                                 <td className="pl-2 py-1.5">
                                                     <button
@@ -464,16 +464,16 @@ const JobDetailPanel = ({
                         <section className="space-y-2">
                             <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">Node Health at Execution</h3>
                             <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-muted">
+                                <div className="bg-background rounded-md px-3 py-2 border border-muted">
                                     <span className="text-muted-foreground block">CPU</span>
-                                    <span className="text-zinc-200 font-mono font-medium">{nodeHealth.cpu.toFixed(1)}%</span>
+                                    <span className="text-foreground/80 font-mono font-medium">{nodeHealth.cpu.toFixed(1)}%</span>
                                 </div>
-                                <div className="bg-zinc-950 rounded-md px-3 py-2 border border-muted">
+                                <div className="bg-background rounded-md px-3 py-2 border border-muted">
                                     <span className="text-muted-foreground block">RAM</span>
-                                    <span className="text-zinc-200 font-mono font-medium">{nodeHealth.ram.toFixed(1)}%</span>
+                                    <span className="text-foreground/80 font-mono font-medium">{nodeHealth.ram.toFixed(1)}%</span>
                                 </div>
                             </div>
-                            <p className="text-[10px] text-zinc-600">Recorded at {new Date(nodeHealth.recorded_at).toLocaleString()}</p>
+                            <p className="text-[10px] text-muted-foreground/60">Recorded at {new Date(nodeHealth.recorded_at).toLocaleString()}</p>
                         </section>
                     )}
 
@@ -567,7 +567,7 @@ const JobDetailPanel = ({
                             <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                                 <CheckCircle2 className="h-3 w-3 text-green-500" /> Result
                             </h3>
-                            <pre className="text-xs text-green-400 font-mono bg-zinc-950 rounded-lg p-3 overflow-auto max-h-48 whitespace-pre-wrap">
+                            <pre className="text-xs text-green-400 font-mono bg-background rounded-lg p-3 overflow-auto max-h-48 whitespace-pre-wrap">
                                 {JSON.stringify(resultData, null, 2)}
                             </pre>
                         </section>
@@ -579,7 +579,7 @@ const JobDetailPanel = ({
                             <h3 className="text-2xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-1.5">
                                 <AlertTriangle className="h-3 w-3" /> Flight Recorder
                             </h3>
-                            <div className="bg-zinc-950 rounded-lg p-3 space-y-2 border border-red-500/20">
+                            <div className="bg-background rounded-lg p-3 space-y-2 border border-red-500/20">
                                 {flightRecorder.error && (
                                     <p className="text-sm text-red-400 font-medium">{flightRecorder.error}</p>
                                 )}
@@ -598,7 +598,7 @@ const JobDetailPanel = ({
                     {/* Payload */}
                     <section className="space-y-2">
                         <h3 className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">Payload</h3>
-                        <pre className="text-xs text-muted-foreground font-mono bg-zinc-950 rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap">
+                        <pre className="text-xs text-muted-foreground font-mono bg-background rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap">
                             {JSON.stringify(job.payload, null, 2)}
                         </pre>
                     </section>
@@ -679,7 +679,7 @@ const MoreFiltersSheet = ({
                                     key={preset}
                                     size="sm"
                                     variant={filters.datePreset === preset ? 'default' : 'outline'}
-                                    className={`h-7 text-xs ${filters.datePreset === preset ? '' : 'border-muted text-muted-foreground hover:text-foreground hover:border-zinc-500'}`}
+                                    className={`h-7 text-xs ${filters.datePreset === preset ? '' : 'border-muted text-muted-foreground hover:text-foreground hover:border-muted-foreground'}`}
                                     onClick={() => setPreset(preset)}
                                 >
                                     Last {preset}
@@ -721,7 +721,7 @@ const MoreFiltersSheet = ({
                                     return (
                                         <button
                                             key={n.node_id}
-                                            className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors ${selected ? 'bg-primary/20 text-primary' : 'text-foreground hover:bg-zinc-700'}`}
+                                            className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors ${selected ? 'bg-primary/20 text-primary' : 'text-foreground hover:bg-muted'}`}
                                             onClick={() => {
                                                 setFilters(f => ({ ...f, nodeId: selected ? '' : n.node_id }));
                                                 setNodeSearch('');
@@ -764,7 +764,7 @@ const MoreFiltersSheet = ({
                         {filters.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
                                 {filters.tags.map(tag => (
-                                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-700 text-xs text-foreground border border-zinc-600">
+                                    <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs text-foreground border border-muted">
                                         {tag}
                                         <button onClick={() => setFilters(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }))} className="hover:text-foreground">
                                             <X className="h-2.5 w-2.5" />
@@ -1318,7 +1318,7 @@ const Jobs = () => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 text-zinc-600 hover:text-foreground text-xs gap-1.5"
+                                    className="h-7 text-muted-foreground/60 hover:text-foreground text-xs gap-1.5"
                                     onClick={handleExport}
                                     disabled={exporting}
                                 >
@@ -1390,7 +1390,7 @@ const Jobs = () => {
                                                 <span className="text-foreground font-medium text-sm">{job.name}</span>
                                             ) : (
                                                 <div className="flex items-center gap-2">
-                                                    <Hash className="h-3 w-3 text-zinc-600" />
+                                                    <Hash className="h-3 w-3 text-muted-foreground/60" />
                                                     <span className="text-muted-foreground text-xs">{job.guid.slice(0, 8)}…</span>
                                                 </div>
                                             )}
@@ -1424,7 +1424,7 @@ const Jobs = () => {
                                             </div>
                                         </TableCell>
                                         <TableCell className="pr-6 text-right" onClick={e => { e.stopPropagation(); openDetail(job); }}>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-foreground hover:bg-muted rounded-lg">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-foreground hover:bg-muted rounded-lg">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </TableCell>
@@ -1432,7 +1432,7 @@ const Jobs = () => {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="h-32 text-center text-zinc-600">
+                                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground/60">
                                         {activeChips.length > 0 || filters.search ? 'No jobs match the current filters.' : 'Queue is currently empty.'}
                                     </TableCell>
                                 </TableRow>

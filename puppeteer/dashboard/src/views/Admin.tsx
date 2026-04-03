@@ -89,7 +89,7 @@ const STATUS_BADGE: Record<string, string> = {
     valid:   'bg-emerald-500/20 text-emerald-400',
     grace:   'bg-amber-500/20 text-amber-400',
     expired: 'bg-red-500/20 text-red-400',
-    ce:      'bg-zinc-700/50 text-muted-foreground',
+    ce:      'bg-muted/50 text-muted-foreground',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -111,7 +111,7 @@ const LicenceSection = () => {
         : 'text-foreground';
 
     return (
-        <div className="rounded-xl border border-muted bg-zinc-950 p-6">
+        <div className="rounded-xl border border-muted bg-background p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">Licence</h2>
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -119,7 +119,7 @@ const LicenceSection = () => {
                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                         isEnterprise
                             ? 'bg-indigo-500/20 text-indigo-400'
-                            : 'bg-zinc-700/50 text-muted-foreground'
+                            : 'bg-muted/50 text-muted-foreground'
                     }`}>
                         {isEnterprise ? 'Enterprise' : 'Community'}
                     </span>
@@ -335,7 +335,7 @@ const TriggerManager = () => {
                 </CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader className="bg-zinc-950/50">
+                        <TableHeader className="bg-background/50">
                             <TableRow className="border-muted">
                                 <TableHead className="text-muted-foreground">Name</TableHead>
                                 <TableHead className="text-muted-foreground">Slug</TableHead>
@@ -349,7 +349,7 @@ const TriggerManager = () => {
                                 <TableRow>
                                     <TableCell colSpan={5} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
-                                            <Zap className="h-8 w-8 text-zinc-700" />
+                                            <Zap className="h-8 w-8 text-muted-foreground/40" />
                                             <p className="text-foreground font-medium">No triggers yet.</p>
                                             <p className="text-muted-foreground text-sm max-w-xs">
                                                 Triggers are secure webhooks that let external systems (GitHub Actions, scripts) fire jobs.
@@ -373,7 +373,7 @@ const TriggerManager = () => {
                                             {t.is_active ? (
                                                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Active</Badge>
                                             ) : (
-                                                <Badge className="bg-zinc-500/10 text-muted-foreground border-zinc-500/20">Inactive</Badge>
+                                                <Badge className="bg-muted/10 text-muted-foreground border-muted/20">Inactive</Badge>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right flex justify-end gap-2">
@@ -399,7 +399,7 @@ const TriggerManager = () => {
                                                 onClick={() => { setPendingRotateTrigger(t); setIsRotateConfirmOpen(true); }}>
                                                 <Lock className="h-3 w-3" /> Rotate Key
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400" onClick={() => deleteMutation.mutate(t.id)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-red-400" onClick={() => deleteMutation.mutate(t.id)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </TableCell>
@@ -424,7 +424,7 @@ const TriggerManager = () => {
                                 placeholder="GitHub Actions Deployment" 
                                 value={newTrigger.name}
                                 onChange={e => setNewTrigger({...newTrigger, name: e.target.value})}
-                                className="bg-zinc-950 border-muted"
+                                className="bg-background border-muted"
                             />
                         </div>
                         <div className="space-y-2">
@@ -433,13 +433,13 @@ const TriggerManager = () => {
                                 placeholder="deploy-prod" 
                                 value={newTrigger.slug}
                                 onChange={e => setNewTrigger({...newTrigger, slug: e.target.value})}
-                                className="bg-zinc-950 border-muted font-mono"
+                                className="bg-background border-muted font-mono"
                             />
                         </div>
                         <div className="space-y-2">
                             <Label>Target Job Definition</Label>
                             <Select value={newTrigger.job_definition_id} onValueChange={v => setNewTrigger({...newTrigger, job_definition_id: v})}>
-                                <SelectTrigger className="bg-zinc-950 border-muted">
+                                <SelectTrigger className="bg-background border-muted">
                                     <SelectValue placeholder="Select a job to trigger..." />
                                 </SelectTrigger>
                                 <SelectContent className="bg-secondary border-muted text-foreground">
@@ -472,7 +472,7 @@ const TriggerManager = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-zinc-700">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-muted">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => pendingToggleTrigger && toggleMutation.mutate({ id: pendingToggleTrigger.id, is_active: false })}
                             className="bg-amber-600 hover:bg-amber-700 text-foreground">
@@ -491,7 +491,7 @@ const TriggerManager = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-zinc-700">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-muted border-muted text-foreground hover:bg-muted">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => pendingRotateTrigger && rotateMutation.mutate(pendingRotateTrigger.id)}
                             className="bg-amber-600 hover:bg-amber-700 text-foreground">
@@ -522,7 +522,7 @@ const TriggerManager = () => {
                         <div className="space-y-2">
                             <Label className="text-muted-foreground">Secret Token</Label>
                             <div className="flex gap-2">
-                                <Input readOnly value={newToken || ''} className="bg-zinc-950 border-muted font-mono text-xs" />
+                                <Input readOnly value={newToken || ''} className="bg-background border-muted font-mono text-xs" />
                                 <Button size="icon" variant="outline"
                                     onClick={() => { navigator.clipboard.writeText(newToken || ''); toast.success('Token copied'); }}>
                                     <Copy className="h-4 w-4" />
@@ -531,7 +531,7 @@ const TriggerManager = () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button className="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-bold"
+                        <Button className="w-full bg-foreground hover:bg-white text-background font-bold"
                             onClick={() => setIsTokenRevealOpen(false)}>
                             I have saved the token
                         </Button>
@@ -570,13 +570,13 @@ const BOMExplorer = () => {
                         placeholder="Search package name (e.g. cryptography, requests)..." 
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="pl-10 bg-zinc-950 border-muted"
+                        className="pl-10 bg-background border-muted"
                     />
                 </div>
 
                 <div className="rounded-xl border border-muted overflow-hidden">
                     <Table>
-                        <TableHeader className="bg-zinc-950/50">
+                        <TableHeader className="bg-background/50">
                             <TableRow className="border-muted">
                                 <TableHead className="text-muted-foreground">Type</TableHead>
                                 <TableHead className="text-muted-foreground">Package</TableHead>
@@ -679,7 +679,7 @@ const RolloutManager = () => {
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">1. Select Target Tool</label>
                         <Select value={selectedToolId} onValueChange={setSelectedToolId}>
-                            <SelectTrigger className="bg-zinc-950 border-muted">
+                            <SelectTrigger className="bg-background border-muted">
                                 <SelectValue placeholder="Choose a tool recipe..." />
                             </SelectTrigger>
                             <SelectContent className="bg-secondary border-muted text-foreground">
@@ -692,7 +692,7 @@ const RolloutManager = () => {
 
                     <div className="space-y-2">
                         <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">2. Select Target Nodes</label>
-                        <div className="rounded-xl border border-muted bg-zinc-950 overflow-hidden">
+                        <div className="rounded-xl border border-muted bg-background overflow-hidden">
                             <Table>
                                 <TableHeader className="bg-secondary/50">
                                     <TableRow className="border-muted">
@@ -780,7 +780,7 @@ const CapabilityMatrixManager = () => {
             </CardHeader>
             <CardContent>
                 <Table>
-                    <TableHeader className="bg-zinc-950/50">
+                    <TableHeader className="bg-background/50">
                         <TableRow className="border-muted">
                             <TableHead className="text-muted-foreground">OS Family</TableHead>
                             <TableHead className="text-muted-foreground">Tool ID</TableHead>
@@ -797,7 +797,7 @@ const CapabilityMatrixManager = () => {
                                     {item.injection_recipe}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400" onClick={() => deleteMutation.mutate(item.id)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-red-400" onClick={() => deleteMutation.mutate(item.id)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </TableCell>
@@ -856,7 +856,7 @@ const ArtifactVault = () => {
                     <input type="file" id="artifact-upload" className="hidden" onChange={handleFileUpload} />
                     <Button 
                         size="sm" 
-                        className="bg-muted hover:bg-zinc-700 text-foreground font-bold"
+                        className="bg-muted hover:bg-muted text-foreground font-bold"
                         onClick={() => document.getElementById('artifact-upload')?.click()}
                         disabled={uploadMutation.isPending}
                     >
@@ -866,7 +866,7 @@ const ArtifactVault = () => {
             </CardHeader>
             <CardContent>
                 <Table>
-                    <TableHeader className="bg-zinc-950/50">
+                    <TableHeader className="bg-background/50">
                         <TableRow className="border-muted">
                             <TableHead className="text-muted-foreground">Filename</TableHead>
                             <TableHead className="text-muted-foreground">Size</TableHead>
@@ -882,9 +882,9 @@ const ArtifactVault = () => {
                                     {item.filename}
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{(item.size_bytes / 1024 / 1024).toFixed(2)} MB</TableCell>
-                                <TableCell className="font-mono text-[10px] text-zinc-600 truncate max-w-[120px]">{item.sha256}</TableCell>
+                                <TableCell className="font-mono text-[10px] text-muted-foreground/60 truncate max-w-[120px]">{item.sha256}</TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-foreground" asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-foreground" asChild>
                                         <a href={`/api/artifacts/${item.id}/download`} download>
                                             <Download className="h-4 w-4" />
                                         </a>
@@ -1109,7 +1109,7 @@ const SmelterRegistryManager = () => {
                     </CardHeader>
                     <CardContent>
                         <Table>
-                            <TableHeader className="bg-zinc-950/50">
+                            <TableHeader className="bg-background/50">
                                 <TableRow className="border-muted">
                                     <TableHead className="text-muted-foreground">OS</TableHead>
                                     <TableHead className="text-muted-foreground">Name</TableHead>
@@ -1156,7 +1156,7 @@ const SmelterRegistryManager = () => {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className={`h-8 w-8 ${expandedLogId === i.id ? 'text-primary' : 'text-zinc-600 hover:text-foreground'}`}
+                                                        className={`h-8 w-8 ${expandedLogId === i.id ? 'text-primary' : 'text-muted-foreground/60 hover:text-foreground'}`}
                                                         title="Show sync log"
                                                         onClick={() => setExpandedLogId(expandedLogId === i.id ? null : i.id)}
                                                     >
@@ -1177,13 +1177,13 @@ const SmelterRegistryManager = () => {
                                                 >
                                                     {uploadingId === i.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400" onClick={() => deleteMutation.mutate(i.id)}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-red-400" onClick={() => deleteMutation.mutate(i.id)}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
                                         {i.mirror_log && expandedLogId === i.id && (
-                                            <TableRow className="border-muted bg-zinc-950/40">
+                                            <TableRow className="border-muted bg-background/40">
                                                 <TableCell colSpan={6} className="py-2">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1228,7 +1228,7 @@ const SmelterRegistryManager = () => {
                                     <span className="text-muted-foreground uppercase tracking-wider font-bold">Disk Usage</span>
                                     <span className="text-muted-foreground">{health.disk_used_gb} / {health.disk_total_gb} GB</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-white/5">
+                                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-white/5">
                                     <div
                                         className="h-full bg-primary transition-all duration-500"
                                         style={{ width: `${(health.disk_used_gb / health.disk_total_gb) * 100}%` }}
@@ -1289,7 +1289,7 @@ const SmelterRegistryManager = () => {
                                 value={config.smelter_enforcement_mode} 
                                 onValueChange={(v) => updateConfigMutation.mutate(v)}
                             >
-                                <SelectTrigger className="bg-zinc-950 border-muted">
+                                <SelectTrigger className="bg-background border-muted">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-secondary border-muted text-foreground">
@@ -1320,7 +1320,7 @@ const SmelterRegistryManager = () => {
                         <div className="space-y-2">
                             <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">PyPI Index URL</Label>
                             <Input
-                                className="bg-zinc-950 border-muted font-mono text-xs"
+                                className="bg-background border-muted font-mono text-xs"
                                 value={mirrorForm.pypi_mirror_url}
                                 onChange={(e) => setMirrorForm(prev => ({ ...prev, pypi_mirror_url: e.target.value }))}
                                 placeholder="http://pypi:8080/simple"
@@ -1329,7 +1329,7 @@ const SmelterRegistryManager = () => {
                         <div className="space-y-2">
                             <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">APT Mirror URL</Label>
                             <Input
-                                className="bg-zinc-950 border-muted font-mono text-xs"
+                                className="bg-background border-muted font-mono text-xs"
                                 value={mirrorForm.apt_mirror_url}
                                 onChange={(e) => setMirrorForm(prev => ({ ...prev, apt_mirror_url: e.target.value }))}
                                 placeholder="http://mirror/apt"
@@ -1363,7 +1363,7 @@ const SmelterRegistryManager = () => {
                             <div className="space-y-2">
                                 <Label>OS Family</Label>
                                 <Select value={newIngredient.os_family} onValueChange={v => setNewIngredient({...newIngredient, os_family: v})}>
-                                    <SelectTrigger className="bg-zinc-950 border-muted">
+                                    <SelectTrigger className="bg-background border-muted">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="bg-secondary border-muted text-foreground">
@@ -1379,7 +1379,7 @@ const SmelterRegistryManager = () => {
                                     placeholder="cryptography" 
                                     value={newIngredient.name}
                                     onChange={e => setNewIngredient({...newIngredient, name: e.target.value})}
-                                    className="bg-zinc-950 border-muted"
+                                    className="bg-background border-muted"
                                 />
                             </div>
                         </div>
@@ -1389,7 +1389,7 @@ const SmelterRegistryManager = () => {
                                 placeholder=">=42.0.0" 
                                 value={newIngredient.version_constraint}
                                 onChange={e => setNewIngredient({...newIngredient, version_constraint: e.target.value})}
-                                className="bg-zinc-950 border-muted font-mono"
+                                className="bg-background border-muted font-mono"
                             />
                         </div>
                         <div className="space-y-2">
@@ -1398,7 +1398,7 @@ const SmelterRegistryManager = () => {
                                 placeholder="64-char hex string" 
                                 value={newIngredient.sha256}
                                 onChange={e => setNewIngredient({...newIngredient, sha256: e.target.value})}
-                                className="bg-zinc-950 border-muted font-mono text-xs"
+                                className="bg-background border-muted font-mono text-xs"
                             />
                         </div>
                     </div>
@@ -1596,7 +1596,7 @@ const Admin = () => {
                                         <Button
                                             variant="link"
                                             onClick={() => setJoinToken(null)}
-                                            className="text-zinc-600 p-0 h-auto text-xs hover:text-muted-foreground"
+                                            className="text-muted-foreground/60 p-0 h-auto text-xs hover:text-muted-foreground"
                                         >
                                             <RefreshCcw className="mr-1 h-3 w-3" />
                                             Revoke & Create New
@@ -1621,31 +1621,31 @@ const Admin = () => {
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <label htmlFor="master-public-key" className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Master Public Key (PEM)</label>
-                                        <Badge variant="outline" className="h-5 px-1.5 text-xs border-muted text-zinc-600">Rotation Required</Badge>
+                                        <Badge variant="outline" className="h-5 px-1.5 text-xs border-muted text-muted-foreground/60">Rotation Required</Badge>
                                     </div>
                                     <div className="relative group/pk">
-                                        <Terminal className="absolute top-3 left-3 h-4 w-4 text-zinc-600" />
+                                        <Terminal className="absolute top-3 left-3 h-4 w-4 text-muted-foreground/60" />
                                         <Textarea
                                             id="master-public-key"
                                             value={pubKey}
                                             onChange={e => setPubKey(e.target.value)}
                                             placeholder="-----BEGIN PUBLIC KEY-----"
-                                            className="min-h-[160px] pl-10 bg-secondary border-muted text-green-500 font-mono text-sm placeholder:text-zinc-700 focus:ring-primary/20 transition-all"
+                                            className="min-h-[160px] pl-10 bg-secondary border-muted text-green-500 font-mono text-sm placeholder:text-muted-foreground/40 focus:ring-primary/20 transition-all"
                                         />
-                                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-zinc-900 to-transparent pointer-events-none rounded-b-xl" />
+                                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent pointer-events-none rounded-b-xl" />
                                     </div>
                                 </div>
 
                                 <Button
                                     onClick={uploadKey}
                                     disabled={isUploading || !pubKey}
-                                    className="w-full h-12 bg-muted hover:bg-zinc-700 border border-muted text-foreground font-bold rounded-xl transition-all disabled:opacity-50"
+                                    className="w-full h-12 bg-muted hover:bg-muted border border-muted text-foreground font-bold rounded-xl transition-all disabled:opacity-50"
                                 >
                                     <Lock className="mr-2 h-4 w-4" />
                                     {isUploading ? 'Updating Root...' : 'Upload Root Key'}
                                 </Button>
 
-                                <p className="text-xs text-zinc-600 text-center flex items-center justify-center gap-1">
+                                <p className="text-xs text-muted-foreground/60 text-center flex items-center justify-center gap-1">
                                     <AlertCircle className="h-3 w-3" />
                                     Changing this key will break validation for all existing nodes until they are updated.
                                 </p>
@@ -1736,7 +1736,7 @@ const Admin = () => {
                                     min={1}
                                     value={retentionInput}
                                     onChange={e => setRetentionInput(parseInt(e.target.value) || 1)}
-                                    className="w-24 bg-secondary border border-muted rounded px-3 py-1.5 text-sm text-zinc-100"
+                                    className="w-24 bg-secondary border border-muted rounded px-3 py-1.5 text-sm text-foreground"
                                 />
                                 <span className="text-sm text-muted-foreground">days</span>
                                 <button

@@ -86,8 +86,8 @@ export function NotificationBell() {
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-zinc-800">
-                    <Bell className="h-5 w-5 text-zinc-400" />
+                <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted">
+                    <Bell className="h-5 w-5 text-muted-foreground" />
                     {unreadCount > 0 && (
                         <span className="absolute top-2 right-2 flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -96,7 +96,7 @@ export function NotificationBell() {
                     )}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 bg-zinc-900 border-zinc-800 p-0 shadow-2xl">
+            <DropdownMenuContent align="end" className="w-80 bg-card border-muted p-0 shadow-2xl">
                 <div className="flex items-center justify-between p-4">
                     <DropdownMenuLabel className="text-white font-bold p-0">Notifications</DropdownMenuLabel>
                     {unreadCount > 0 && (
@@ -105,27 +105,27 @@ export function NotificationBell() {
                         </Badge>
                     )}
                 </div>
-                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuSeparator className="bg-muted" />
                 
                 <div className="max-h-[400px] overflow-y-auto">
                     {alerts.length === 0 ? (
-                        <div className="p-8 text-center text-zinc-500 text-sm">
+                        <div className="p-8 text-center text-muted-foreground text-sm">
                             <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-20" />
                             No new notifications
                         </div>
                     ) : (
                         alerts.map((alert) => (
-                            <div key={alert.id} className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition-colors group">
+                            <div key={alert.id} className="p-4 border-b border-muted last:border-0 hover:bg-muted/50 transition-colors group">
                                 <div className="flex gap-3">
                                     <div className="mt-1">
                                         <SeverityIcon severity={alert.severity} />
                                     </div>
                                     <div className="flex-1 space-y-1">
-                                        <p className="text-sm text-zinc-200 leading-snug">
+                                        <p className="text-sm text-foreground/90 leading-snug">
                                             {alert.message}
                                         </p>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-zinc-500">
+                                            <span className="text-[10px] text-muted-foreground">
                                                 {new Date(alert.created_at).toLocaleTimeString()}
                                             </span>
                                             <button 
@@ -144,9 +144,9 @@ export function NotificationBell() {
                 
                 {alerts.length > 0 && (
                     <>
-                        <DropdownMenuSeparator className="bg-zinc-800" />
+                        <DropdownMenuSeparator className="bg-muted" />
                         <div className="p-2">
-                            <Button variant="ghost" className="w-full text-xs text-zinc-500 hover:text-white" onClick={() => setOpen(false)}>
+                            <Button variant="ghost" className="w-full text-xs text-muted-foreground hover:text-foreground" onClick={() => setOpen(false)}>
                                 Close
                             </Button>
                         </div>
