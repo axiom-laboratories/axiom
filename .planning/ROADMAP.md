@@ -250,13 +250,30 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 ### Phase 116: Fix smelter DB migration and add EE licence hot-reload
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Fix database schema gaps in EE models (especially ApprovedIngredient.mirror_log) and implement EE licence hot-reload for zero-downtime licence updates.
+
+**Requirements**: None specified (maintenance + feature phase)
+
 **Depends on:** Phase 115
-**Plans:** 2/2 plans complete
+
+**Plans:** 2 plans
 
 Plans:
-- [x] TBD (run /gsd:plan-phase 116 to break down) (completed 2026-04-02)
+- [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
+- [x] 116-02-PLAN.md — Licence reload endpoint + background timer + Admin UI
+
+**Wave Structure:**
+- Wave 1: DB migration fixes (independent, unblocks Smelter UI)
+- Wave 2: Licence hot-reload (depends on Wave 1 for serial execution)
+
+**Success Criteria:**
+- ApprovedIngredient model fully synchronized with DB schema (mirror_log + mirror_path columns)
+- All EE models audited for gaps and fixed in migration_v46.sql
+- POST /api/admin/licence/reload endpoint allows admin-only licence reload without restart
+- Background timer checks licence expiry every 60s and broadcasts status changes via WebSocket
+- Admin dashboard shows licence metadata with reload button and grace period warnings
+- CE→EE transitions register EE routers dynamically; EE→CE transitions return 402 on expiry
+- Audit trail logs all licence reload events
 
 ### Phase 117: Implement light mode with a light mode/dark mode toggle, whilst keeping the brand identity
 
