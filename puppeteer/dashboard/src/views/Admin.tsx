@@ -23,7 +23,9 @@ import {
     ShieldCheck,
     Search,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    GitBranch,
+    RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -81,6 +83,7 @@ import { LicenceReloadButton } from '../components/LicenceReloadButton';
 import { GracePeriodBanner } from '../components/GracePeriodBanner';
 import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
 import { useSystemHealth } from '../hooks/useSystemHealth';
+import { DependencyTreeModal } from '../components/foundry/DependencyTreeModal';
 
 // --- Sub-components for Admin ---
 
@@ -925,6 +928,8 @@ const SmelterRegistryManager = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingId, setUploadingId] = useState<string | null>(null);
     const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+    const [selectedIngredient, setSelectedIngredient] = useState<{ id: string; name: string } | null>(null);
+    const [discoveringId, setDiscoveringId] = useState<string | null>(null);
     const [mirrorForm, setMirrorForm] = useState<{ pypi_mirror_url: string; apt_mirror_url: string }>({
         pypi_mirror_url: '',
         apt_mirror_url: '',
@@ -1039,6 +1044,27 @@ const SmelterRegistryManager = () => {
         }
     });
 
+    const discoverMutation = useMutation({
+        mutationFn: async (ingredientId: string) => {
+            const res = await authenticatedFetch(`/api/smelter/ingredients/${ingredientId}/discover`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ approve_all: true })
+            });
+            if (!res.ok) throw new Error('Discovery failed');
+            return res.json();
+        },
+        onSuccess: (data) => {
+            toast.success(data.toast_message);
+            queryClient.invalidateQueries({ queryKey: ['smelter-ingredients'] });
+            setDiscoveringId(null);
+        },
+        onError: (error: any) => {
+            toast.error(`Discovery failed: ${error.message}`);
+            setDiscoveringId(null);
+        }
+    });
+
     const scanMutation = useMutation({
         mutationFn: async () => {
             const res = await authenticatedFetch('/api/smelter/scan', { method: 'POST' });
@@ -1124,6 +1150,7 @@ const SmelterRegistryManager = () => {
                                     <TableHead className="text-muted-foreground">Name</TableHead>
                                     <TableHead className="text-muted-foreground">Version</TableHead>
                                     <TableHead className="text-muted-foreground">Mirror</TableHead>
+                                    <TableHead className="text-muted-foreground">CVEs</TableHead>
                                     <TableHead className="text-muted-foreground">Security</TableHead>
                                     <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                                 </TableRow>
@@ -1138,11 +1165,31 @@ const SmelterRegistryManager = () => {
                                 ) : (
                                     ingredients.map((i: any) => (
                                         <React.Fragment key={i.id}>
-                                        <TableRow className="border-muted group hover:bg-white/[0.02]">
+                                        <TableRow className={`border-muted group hover:bg-white/[0.02] ${discoveringId === i.id ? 'opacity-60' : ''}`}>
                                             <TableCell><Badge variant="outline" className="text-[10px]">{i.os_family}</Badge></TableCell>
                                             <TableCell className="text-foreground font-medium">{i.name}</TableCell>
                                             <TableCell className="font-mono text-muted-foreground text-xs">{i.version_constraint}</TableCell>
                                             <TableCell><MirrorStatusBadge status={i.mirror_status} /></TableCell>
+                                            <TableCell>
+                                                {i.total_cve_count > 0 ? (
+                                                    <button
+                                                        onClick={() => setSelectedIngredient({ id: i.id, name: i.name })}
+                                                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium cursor-pointer hover:opacity-80 transition-opacity ${
+                                                            i.worst_severity === 'CRITICAL' ? 'bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-100' :
+                                                            i.worst_severity === 'HIGH' ? 'bg-orange-100 text-orange-900 dark:bg-orange-900 dark:text-orange-100' :
+                                                            i.worst_severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100' :
+                                                            'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
+                                                        }`}
+                                                    >
+                                                        {i.worst_severity === 'CRITICAL' ? '🟥' : i.worst_severity === 'HIGH' ? '🟧' : i.worst_severity === 'MEDIUM' ? '🟨' : '🟦'}
+                                                        {i.total_cve_count}
+                                                    </button>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
+                                                        ✅ Clean
+                                                    </div>
+                                                )}
+                                            </TableCell>
                                             <TableCell>
                                                 {i.is_vulnerable ? (
                                                     <Badge className="bg-red-500/10 text-red-500 border-red-500/20 gap-1">
@@ -1186,6 +1233,32 @@ const SmelterRegistryManager = () => {
                                                 >
                                                     {uploadingId === i.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                                                 </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                    title="View dependency tree"
+                                                    onClick={() => setSelectedIngredient({ id: i.id, name: i.name })}
+                                                >
+                                                    <Tree className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                    disabled={discoveringId === i.id}
+                                                    title="Resolve and auto-approve transitive dependencies"
+                                                    onClick={() => {
+                                                        setDiscoveringId(i.id);
+                                                        discoverMutation.mutate(i.id);
+                                                    }}
+                                                >
+                                                    {discoveringId === i.id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <RefreshCw className="h-4 w-4" />
+                                                    )}
+                                                </Button>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 hover:text-red-400" onClick={() => deleteMutation.mutate(i.id)}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -1193,7 +1266,7 @@ const SmelterRegistryManager = () => {
                                         </TableRow>
                                         {i.mirror_log && expandedLogId === i.id && (
                                             <TableRow className="border-muted bg-background/40">
-                                                <TableCell colSpan={6} className="py-2">
+                                                <TableCell colSpan={7} className="py-2">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
                                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Sync Log</span>
@@ -1423,6 +1496,13 @@ const SmelterRegistryManager = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <DependencyTreeModal
+                open={!!selectedIngredient}
+                ingredient_id={selectedIngredient?.id || ""}
+                ingredient_name={selectedIngredient?.name || ""}
+                onOpenChange={(open) => !open && setSelectedIngredient(null)}
+            />
         </div>
     );
 };
