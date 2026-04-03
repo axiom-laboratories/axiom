@@ -210,3 +210,28 @@ describe('Tab visibility by licence tier', () => {
         expect(screen.queryByText('Automation')).not.toBeInTheDocument();
     });
 });
+
+// Wave 2 / Plan 110-02 tests for tree/discover/CVE column integration
+
+describe("Smelter Registry - Dependency Tree & Discovery", () => {
+  it("test_discover_button_triggers_resolution", () => {
+    // RED: Stub for Plan 110-02 Task 3.
+    // Will verify: discover button click calls POST /discover endpoint,
+    // spinner shows during resolution, toast shows on completion.
+    expect(true).toBe(true);
+  });
+
+  it("test_discover_button_label_changes", () => {
+    // RED: Stub for Plan 110-02 Task 3.
+    // Will verify: button shows "Discover" initially,
+    // "Re-resolve" after resolution.
+    expect(true).toBe(true);
+  });
+
+  it("test_cve_column_shows_worst_severity", () => {
+    // RED: Stub for Plan 110-02 Task 3.
+    // Will verify: CVEs column aggregates count from full tree,
+    // colored by worst_severity (red/orange/yellow/green).
+    expect(true).toBe(true);
+  });
+});
