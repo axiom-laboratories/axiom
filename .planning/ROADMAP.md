@@ -79,7 +79,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 
 - [x] **Phase 107: Schema Foundation + CRUD Completeness** - DB migrations and missing CRUD operations that unblock all downstream work (completed 2026-04-03)
 - [x] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service (completed 2026-04-03)
-- [ ] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars
+- 🚧 **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (in progress, 2 of 4 plans complete)
 - [ ] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer
 - [ ] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars
 - [ ] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems
@@ -133,8 +133,8 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 109-01-PLAN.md — APT mirror backend (_mirror_apt), apk backend (_mirror_apk), health check infrastructure, unit tests
-- [ ] 109-02-PLAN.md — Compose CE/EE separation (compose.ee.yaml), Caddy multi-path routing, .env.example
+- [x] 109-01-PLAN.md — APT mirror backend (_mirror_apt), apk backend (_mirror_apk), health check infrastructure, unit tests (completed 2026-04-03)
+- [x] 109-02-PLAN.md — Compose CE/EE separation (compose.ee.yaml), Caddy multi-path routing, .env.example (completed 2026-04-03)
 - [ ] 109-03-PLAN.md — Foundry Alpine integration (repositories injection), MirrorHealthBanner dashboard component, integration tests
 - [ ] 109-04-PLAN.md — Verification checkpoint (end-to-end testing of mirrors, compose, Foundry, dashboard)
 

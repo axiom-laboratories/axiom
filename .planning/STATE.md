@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Completed 109-01-PLAN.md
-last_updated: "2026-04-03T20:18:20Z"
-last_activity: 2026-04-03 -- Completed 109-01-PLAN.md (APT/APK Mirror Backends)
+stopped_at: Completed 109-02-PLAN.md
+last_updated: "2026-04-03T20:21:30Z"
+last_activity: 2026-04-03 -- Completed 109-02-PLAN.md (Compose CE/EE Separation + Mirror Routing)
 progress:
   total_phases: 12
   completed_phases: 4
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 ## Current Position
 
 Phase: 109 of 12 (109 - APT/APK Mirrors + Compose Profiles)
-Plan: 1 of 3 in current phase (COMPLETED 109-01)
+Plan: 2 of 3 in current phase (COMPLETED 109-02)
 Status: executing
-Last activity: 2026-04-03 -- Completed 109-01-PLAN.md (APT/APK Mirror Backends)
+Last activity: 2026-04-03 -- Completed 109-02-PLAN.md (Compose CE/EE Separation + Mirror Routing)
 
 Progress: [████████████████░░░] 80%
 
@@ -59,6 +59,7 @@ Progress: [████████████████░░░] 80%
 | 108 | 01 | 30min | 3 | 5 |
 | 108 | 02 | 45min | 5 | 6 |
 | 109 | 01 | 45min | 4 | 3 |
+| 109 | 02 | 1min | 4 | 4 |
 
 ## Accumulated Context
 
@@ -107,6 +108,15 @@ Progress: [████████████████░░░] 80%
 - [117-02]: Auto-wrapped tests with ThemeProvider (needed for hook to work without throwing)
 
 ### Completed in Phase 109
+
+**Plan 109-02 (Compose CE/EE Separation + Mirror Routing):**
+- Refactored compose.server.yaml to CE-only (removed pypi, mirror services, mirror-data volume, MIRROR_DATA_PATH env)
+- Created new compose.ee.yaml overlay file with agent volume overrides, pypi service, mirror service, mirror-data volume
+- Updated mirror/Caddyfile with multi-path handle blocks (/apt/, /apk/, /simple/) for package serving
+- Added mirror environment variables to .env.example: MIRROR_DATA_PATH, PYPI_MIRROR_URL, APT_MIRROR_URL, APK_MIRROR_URL, MIRROR_HEALTH_CHECK_INTERVAL, DEFAULT_ALPINE_VERSION
+- Compose overlay pattern enables explicit EE activation: `docker compose -f compose.server.yaml -f compose.ee.yaml up -d`
+- All four docker compose configurations validated and parsing without errors
+- Total: 4 tasks, 4 files modified/created
 
 **Plan 109-01 (APT/APK Mirror Backends):**
 - Implemented _mirror_apt() for Debian .deb downloads via throwaway debian:12-slim container using apt-get download
