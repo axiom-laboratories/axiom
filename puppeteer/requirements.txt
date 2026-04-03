@@ -18,3 +18,4 @@ websockets
 packaging
 PyJWT[crypto]>=2.7.0
 pip-audit
+pip-tools>=7.0
