@@ -133,6 +133,69 @@ class FoundryService:
                         detail=f"Cannot build: missing mirrored dependencies. {', '.join(missing)}"
                     )
 
+            # 1.8 CVE Scanning for Transitive Dependencies (SMLT-06)
+            # Scan all ingredients for HIGH/CRITICAL severity transitive CVEs
+            cve_blockers = []
+            if blueprint_ingredient_ids:
+                for ingredient_id in blueprint_ingredient_ids:
+                    ing_res = await db.execute(select(ApprovedIngredient).where(ApprovedIngredient.id == ingredient_id))
+                    ingredient = ing_res.scalar_one_or_none()
+                    if not ingredient:
+                        continue
+
+                    # Scan this ingredient's transitive dependencies for CVEs
+                    try:
+                        await SmelterService.scan_vulnerabilities(db, ingredient_id=ingredient_id, scan_all=False)
+                    except Exception as e:
+                        logger.warning(f"CVE scan failed for {ingredient.name}: {str(e)}")
+                        continue
+
+                    # Refresh to get updated vulnerability_report
+                    await db.refresh(ingredient)
+
+                    # Check for blocking CVEs (HIGH/CRITICAL in transitive deps)
+                    if ingredient.is_vulnerable and ingredient.vulnerability_report:
+                        try:
+                            report = json.loads(ingredient.vulnerability_report)
+                            vulnerable_transitive = report.get("vulnerable_transitive_deps", [])
+                            worst_severity = report.get("worst_severity", "LOW")
+
+                            # Filter for blocking severity levels
+                            blocking_vulns = [
+                                v for v in vulnerable_transitive
+                                if v.get("is_transitive", False) and v.get("severity", "LOW") in ["HIGH", "CRITICAL"]
+                            ]
+
+                            if blocking_vulns:
+                                cve_details = []
+                                for vuln in blocking_vulns:
+                                    cve_id = vuln.get("cve_id", "CVE-UNKNOWN")
+                                    severity = vuln.get("severity", "HIGH")
+                                    package = vuln.get("package", "unknown")
+                                    provenance = " -> ".join(vuln.get("provenance_path", [package]))
+                                    cve_details.append(f"  • {cve_id} ({severity}): {package} [{provenance}]")
+
+                                cve_blockers.append({
+                                    "ingredient": ingredient.name,
+                                    "count": len(blocking_vulns),
+                                    "details": "\n".join(cve_details),
+                                    "worst_severity": worst_severity
+                                })
+                        except (json.JSONDecodeError, KeyError) as e:
+                            logger.warning(f"Failed to parse vulnerability_report for {ingredient.name}: {str(e)}")
+
+            if cve_blockers:
+                # Build detailed error message with CVE list
+                blocker_msg = "Build rejected: HIGH/CRITICAL transitive CVEs detected:\n"
+                for blocker in cve_blockers:
+                    blocker_msg += f"\n{blocker['ingredient']} ({blocker['count']} CVEs, worst: {blocker['worst_severity']}):\n"
+                    blocker_msg += blocker['details']
+
+                raise HTTPException(
+                    status_code=422,
+                    detail=blocker_msg
+                )
+
             # 2. Build Dockerfile Content
             dockerfile = [f"FROM {base_os}"]
 
