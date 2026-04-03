@@ -79,8 +79,8 @@ See `.planning/milestones/` for detailed archive of each milestone.
 
 - [x] **Phase 107: Schema Foundation + CRUD Completeness** - DB migrations and missing CRUD operations that unblock all downstream work (completed 2026-04-03)
 - [x] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service (completed 2026-04-03)
-- 🚧 **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (in progress, 4 of 4 plans complete)
-- [ ] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer
+- [x] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (completed 2026-04-03)
+- 🚧 **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer (in progress, 1 of 2 plans complete)
 - [ ] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars
 - [ ] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems
 - [ ] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis
@@ -152,15 +152,15 @@ Plans:
   1. Operator can click a tree icon on any ingredient and see an interactive visual tree showing the full provenance chain (e.g. MarkupSafe <- Jinja2 <- Flask)
   2. CVE scanning includes all transitive dependencies — a vulnerable transitive dep (e.g. CVE in MarkupSafe pulled by Jinja2 pulled by Flask) is flagged before build
   3. Operator can trigger dependency discovery for any ingredient via a button that returns the full tree with a one-click "Approve All" action to bulk-approve the entire chain
-**Plans**: 2 plans
+**Plans**: 2 plans (1 complete, 1 in progress)
 
 Plans:
-- [ ] 110-01-PLAN.md — Backend: CVE scan extension to transitive deps + tree API + discover endpoint
+- [x] 110-01-PLAN.md — Backend: CVE scan extension to transitive deps + tree API + discover endpoint (completed 2026-04-03)
 - [ ] 110-02-PLAN.md — Frontend: Dependency tree viewer component + CVE badges + discover button integration
 
 **Wave Structure:**
-- Wave 1: Backend (CVE scan extension, tree API, discover endpoint, comprehensive tests)
-- Wave 2: Frontend (tree modal component, CVE badges, discover button integration in Smelter Registry)
+- Wave 1: Backend (CVE scan extension, tree API, discover endpoint, comprehensive tests) — COMPLETE
+- Wave 2: Frontend (tree modal component, CVE badges, discover button integration in Smelter Registry) — IN PROGRESS
 
 ### Phase 111: npm + NuGet + OCI Mirrors
 **Goal**: Operators can mirror npm, NuGet, and OCI (Docker) packages for air-gapped environments using proven Docker-native sidecar services

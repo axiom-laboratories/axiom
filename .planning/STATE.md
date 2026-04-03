@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Completed 110-00-PLAN.md
-last_updated: "2026-04-03T22:36:50Z"
-last_activity: 2026-04-03 -- Completed 110-00-PLAN.md (Test Scaffolds for CVE Transitive Scan + Dependency Tree UI)
+stopped_at: Completed 110-01-PLAN.md
+last_updated: "2026-04-03T23:15:00Z"
+last_activity: 2026-04-03 -- Completed 110-01-PLAN.md (CVE Transitive Scan Integration & Test Suite)
 progress:
   total_phases: 12
   completed_phases: 5
-  total_plans: 16
-  completed_plans: 16
+  total_plans: 17
+  completed_plans: 17
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-01)
 
 **Core value:** Jobs run reliably -- on the right node, when scheduled, with their output captured -- without any step in the chain weakening the security model.
-**Current focus:** Phase 107 - Schema Foundation + CRUD Completeness
+**Current focus:** Phase 110 - CVE Transitive Scan + Dependency Tree UI
 
 ## Current Position
 
 Phase: 110 of 12 (110 - CVE Transitive Scan + Dependency Tree UI)
-Plan: 1 of 4 in current phase (COMPLETED 110-00)
+Plan: 2 of 4 in current phase (COMPLETED 110-01)
 Status: executing
-Last activity: 2026-04-03 -- Completed 110-00-PLAN.md (Test Scaffolds Wave 0)
+Last activity: 2026-04-03 -- Completed 110-01-PLAN.md (CVE Transitive Scan Integration & Test Suite)
 
 Progress: [████████████████████] 100%
 
@@ -62,6 +62,7 @@ Progress: [████████████████████] 100%
 | 109 | 02 | 1min | 4 | 4 |
 | 109 | 03 | 45min | 4 | 6 |
 | 110 | 00 | 15min | 5 | 5 |
+| 110 | 01 | 120min | 5 | 5 |
 
 ## Accumulated Context
 
