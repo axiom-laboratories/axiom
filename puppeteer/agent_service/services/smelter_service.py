@@ -7,6 +7,7 @@ from typing import List, Optional
 from ..db import ApprovedIngredient
 from ..models import ApprovedIngredientCreate, ApprovedIngredientUpdate
 from .mirror_service import MirrorService
+from .resolver_service import ResolverService
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +26,22 @@ class SmelterService:
         db.add(new_ingredient)
         await db.commit()
         await db.refresh(new_ingredient)
-        
-        # Trigger background mirroring
-        asyncio.create_task(MirrorService.mirror_ingredient(new_ingredient.id))
-        
+
+        # Auto-trigger resolution of transitive dependencies
+        try:
+            await ResolverService.resolve_ingredient_tree(db, new_ingredient.id)
+        except Exception as e:
+            # Log error but don't block add_ingredient response
+            logger.error(f"Failed to resolve dependencies for {new_ingredient.name}: {str(e)}")
+
+        # Mirroring is background task (not awaited)
+        try:
+            asyncio.create_task(
+                MirrorService.mirror_ingredient_and_dependencies(db, new_ingredient.id)
+            )
+        except Exception as e:
+            logger.error(f"Failed to start mirror task for {new_ingredient.name}: {str(e)}")
+
         return new_ingredient
 
     @staticmethod
