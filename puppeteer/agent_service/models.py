@@ -820,3 +820,75 @@ class LicenceReloadResponse(BaseModel):
     message: str = "Licence reloaded successfully"
 
     model_config = {"from_attributes": True}
+
+
+# --- Transitive CVE Scanning & Dependency Tree (Phase 110) ---
+
+class CVEDetail(BaseModel):
+    """Vulnerability detail from pip-audit with provenance information."""
+    cve_id: str
+    cvss_score: Optional[float] = None
+    severity: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    description: str
+    fix_versions: List[str] = []
+    affected_package: str
+    is_transitive: bool = True
+    provenance_path: List[str] = []  # Chain from root to vulnerable package
+
+    @field_validator("severity", mode="before")
+    @classmethod
+    def validate_severity(cls, v):
+        if v not in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
+            return "HIGH"  # Default to HIGH if invalid
+        return v
+
+
+class DependencyTreeNode(BaseModel):
+    """Recursive tree node for dependency visualization."""
+    id: str  # UUID of the ingredient
+    name: str
+    version: str
+    ecosystem: str
+    cve_count: int  # Total CVEs (top-level + transitive)
+    worst_severity: Optional[Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]] = None
+    auto_discovered: bool
+    mirror_status: str  # PENDING/MIRRORED/FAILED
+    children: List["DependencyTreeNode"] = []
+    cves: List[CVEDetail] = []  # Only vulnerable deps show this
+
+    @field_validator("worst_severity", mode="before")
+    @classmethod
+    def validate_worst_severity(cls, v):
+        if v is None:
+            return None
+        if v not in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
+            return "HIGH"
+        return v
+
+
+# Update model config to allow forward references
+DependencyTreeNode.model_rebuild()
+
+
+class DependencyTreeResponse(BaseModel):
+    """Full dependency tree response with CVE aggregates."""
+    root_id: str
+    root_name: str
+    root_version: str
+    total_nodes: int
+    total_cve_count: int
+    worst_severity: Optional[Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]] = None
+    tree: DependencyTreeNode
+
+
+class DiscoverDependenciesRequest(BaseModel):
+    """Request to discover and resolve all transitive dependencies."""
+    approve_all: bool = True  # Auto-approve all discovered transitive deps
+
+
+class DiscoverDependenciesResponse(BaseModel):
+    """Response from dependency discovery trigger."""
+    ingredient_id: str
+    discovered_count: int  # Number of newly-discovered transitive deps
+    tree: DependencyTreeResponse
+    toast_message: str  # e.g., "Flask: 6 deps resolved, 1 CVE found"
