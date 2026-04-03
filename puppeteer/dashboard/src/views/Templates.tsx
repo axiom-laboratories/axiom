@@ -30,8 +30,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch } from '../auth';
 import { useFeatures } from '../hooks/useFeatures';
+import { useLicence } from '../hooks/useLicence';
+import { useSystemHealth } from '../hooks/useSystemHealth';
 import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 import { CreateTemplateDialog } from '../components/CreateTemplateDialog';
+import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
 import BlueprintWizard from '../components/foundry/BlueprintWizard';
 
 interface Template {
@@ -468,6 +471,8 @@ const BlueprintEmptyState = ({ type }: { type: 'RUNTIME' | 'NETWORK' }) => (
 
 const Templates = () => {
     const queryClient = useQueryClient();
+    const { isEnterprise } = useLicence();
+    const { health } = useSystemHealth();
     const [isTemplateOpen, setIsTemplateOpen] = useState(false);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [editingBlueprint, setEditingBlueprint] = useState<Blueprint | null>(null);
@@ -750,6 +755,11 @@ const Templates = () => {
                     <RefreshCw className="mr-2 h-4 w-4" /> Mark Base Updated
                 </Button>
             </div>
+
+            <MirrorHealthBanner
+                isEE={isEnterprise}
+                mirrorsAvailable={health?.mirrors_available ?? true}
+            />
 
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

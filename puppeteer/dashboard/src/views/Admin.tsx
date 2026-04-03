@@ -79,6 +79,8 @@ import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 import { LicenceStatus } from '../components/LicenceStatus';
 import { LicenceReloadButton } from '../components/LicenceReloadButton';
 import { GracePeriodBanner } from '../components/GracePeriodBanner';
+import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
+import { useSystemHealth } from '../hooks/useSystemHealth';
 
 // --- Sub-components for Admin ---
 
@@ -1428,6 +1430,7 @@ const SmelterRegistryManager = () => {
 const Admin = () => {
     const { isEnterprise } = useLicence();
     const features = useFeatures();
+    const { health } = useSystemHealth();
     const [joinToken, setJoinToken] = useState<string | null>(null);
     const [pubKey, setPubKey] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -1546,6 +1549,11 @@ const Admin = () => {
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin</h1>
                 <p className="text-sm text-muted-foreground mt-1">System configuration and node onboarding.</p>
             </div>
+
+            <MirrorHealthBanner
+                isEE={isEnterprise}
+                mirrorsAvailable={health?.mirrors_available ?? true}
+            />
 
             {getUser()?.role === 'admin' && <LicenceSection />}
 
