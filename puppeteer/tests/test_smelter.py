@@ -3,9 +3,9 @@ import inspect
 import json
 from fastapi import HTTPException
 from sqlalchemy import select
-from puppeteer.agent_service.db import Config, PuppetTemplate, Blueprint, ApprovedIngredient
-from puppeteer.agent_service.models import ApprovedOSResponse, ApprovedIngredientCreate
-from puppeteer.agent_service.services.smelter_service import SmelterService
+from agent_service.db import Config, PuppetTemplate, Blueprint, ApprovedIngredient
+from agent_service.models import ApprovedOSResponse, ApprovedIngredientCreate
+from agent_service.services.smelter_service import SmelterService
 from unittest.mock import AsyncMock, MagicMock, patch
 
 def test_smelter_service_exists_stub():
@@ -37,7 +37,7 @@ async def test_validate_blueprint_logic():
 @pytest.mark.asyncio
 async def test_foundry_enforcement_functional():
     """Verify Foundry build template enforcement (STRICT vs WARNING)."""
-    from puppeteer.agent_service.services.foundry_service import FoundryService
+    from agent_service.services.foundry_service import FoundryService
     
     mock_db = AsyncMock()
     tmpl = PuppetTemplate(id="t1", friendly_name="test-tmpl", runtime_blueprint_id="rt1", network_blueprint_id="nw1")
@@ -96,14 +96,14 @@ async def test_foundry_enforcement_functional():
 
 def test_foundry_enforcement_strict_stub():
     """SMLT-03: Verify FoundryService integrates with Smelter validation."""
-    from puppeteer.agent_service.services.foundry_service import FoundryService
+    from agent_service.services.foundry_service import FoundryService
     source = inspect.getsource(FoundryService.build_template)
     assert "SmelterService.validate_blueprint" in source
 
 @pytest.mark.asyncio
 async def test_smelter_enforcement_config_stub():
     """SMLT-04: WARNING mode allows builds with PENDING mirror_status; STRICT mode blocks them."""
-    from puppeteer.agent_service.services.foundry_service import FoundryService
+    from agent_service.services.foundry_service import FoundryService
     import json
 
     mock_db = AsyncMock()
@@ -169,3 +169,50 @@ def test_template_compliance_badging_stub():
     assert hasattr(PuppetTemplate, "is_compliant")
     from sqlalchemy.orm import DeclarativeBase
     assert issubclass(PuppetTemplate, DeclarativeBase)
+
+
+# Wave 1 / Plan 110-01 tests for transitive CVE scanning
+
+def test_scan_vulnerabilities_transitive():
+    """
+    Test that scan_vulnerabilities() walks IngredientDependency edges
+    and includes all transitive dependencies in the CVE report.
+
+    RED: Stub for implementation in Plan 110-01 Task 1.
+    Will verify: Flask → Jinja2 → MarkupSafe chain is scanned,
+    CVEs in MarkupSafe are reported as transitive.
+    """
+    pass
+
+
+def test_cve_provenance_path():
+    """
+    Test that provenance paths are correctly reconstructed from
+    IngredientDependency edges (e.g., ["Flask 3.0.0", "Jinja2 3.1.3", "MarkupSafe 2.1.5"]).
+
+    RED: Stub for implementation in Plan 110-01 Task 1.
+    Will verify: paths are reconstructed correctly for transitive deps.
+    """
+    pass
+
+
+def test_ingredient_tree_api():
+    """
+    Test GET /api/smelter/ingredients/{id}/tree endpoint.
+
+    RED: Stub for implementation in Plan 110-01 Task 3.
+    Will verify: endpoint returns DependencyTreeResponse with correct structure,
+    CVE counts aggregated, worst_severity calculated.
+    """
+    pass
+
+
+def test_discover_endpoint():
+    """
+    Test POST /api/smelter/ingredients/{id}/discover endpoint.
+
+    RED: Stub for implementation in Plan 110-01 Task 3.
+    Will verify: endpoint triggers resolver, auto-approves transitive deps,
+    returns DiscoverDependenciesResponse with toast_message.
+    """
+    pass
