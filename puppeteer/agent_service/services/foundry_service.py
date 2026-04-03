@@ -139,9 +139,12 @@ class FoundryService:
             # 2.5 Mirror Configuration Injection (content computed now, files written after build_dir exists)
             pip_conf = MirrorService.get_pip_conf_content()
             sources_list = MirrorService.get_sources_list_content()
+            repositories = MirrorService.get_apk_repos_content(base_os)
             dockerfile.append("COPY pip.conf /etc/pip.conf")
             if os_family == "DEBIAN":
                 dockerfile.append("COPY sources.list /etc/apt/sources.list")
+            elif os_family == "ALPINE":
+                dockerfile.append("COPY repositories /etc/apk/repositories")
 
             
             # Injection Recipes
@@ -175,17 +178,24 @@ class FoundryService:
             if "python" in packages:
                 pkg_list = " ".join(packages["python"])
                 dockerfile.append(f"RUN pip install --no-cache-dir --break-system-packages {pkg_list}")
-                
+
             # Network Perimeter (Simplified Sidecar Config Injection)
             egress_rules = nw_def.get("egress_rules", [])
             dockerfile.append(f"ENV EGRESS_POLICY='{json.dumps(egress_rules)}'")
-            
+
             # Core Puppet Code
             dockerfile.append("WORKDIR /app")
             dockerfile.append("COPY requirements.txt .")
             dockerfile.append("RUN pip install --no-cache-dir -r requirements.txt --break-system-packages")
             dockerfile.append("COPY environment_service/ environment_service/")
             dockerfile.append("CMD [\"python\", \"environment_service/node.py\"]")
+
+            # Alpine post-processing: Inject --allow-untrusted into apk add commands
+            if os_family == "ALPINE":
+                dockerfile = [
+                    line.replace("apk add", "apk add --allow-untrusted") if "apk add" in line else line
+                    for line in dockerfile
+                ]
 
             # 3. Perform Build
             image_tag = tmpl.friendly_name
@@ -204,6 +214,9 @@ class FoundryService:
                 f.write(pip_conf)
             with open(os.path.join(build_dir, "sources.list"), "w") as f:
                 f.write(sources_list)
+            if os_family == "ALPINE":
+                with open(os.path.join(build_dir, "repositories"), "w") as f:
+                    f.write(repositories)
 
             # Copy puppet source files into the build context
             env_src = os.path.join(puppets_src, "environment_service")
