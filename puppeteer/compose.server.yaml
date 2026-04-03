@@ -66,16 +66,15 @@ services:
       - AGENT_URL=${AGENT_URL:-https://localhost:8001}
       - NODE_IMAGE=${NODE_IMAGE:-localhost/master-of-puppets-node:latest}
       - NODE_EXECUTION_MODE=${NODE_EXECUTION_MODE:-auto}
-      - MIRROR_DATA_PATH=/app/mirror_data
       - AXIOM_LICENCE_KEY=${AXIOM_LICENCE_KEY:-}
       - ASYNCPG_POOL_SIZE=${ASYNCPG_POOL_SIZE:-20}
     ports:
       - "8001:8001"
     volumes:
+      # Note: If you add agent volumes here, update compose.ee.yaml as well
       - certs-volume:/app/global_certs:ro # Read-only access to Caddy's certs
       - /var/run/docker.sock:/var/run/docker.sock # Mount Docker socket for Foundry builds
       - ../puppets:/app/puppets:ro # Mount puppets context for builds
-      - mirror-data:/app/mirror_data # Shared volume for PyPI and APT mirrors
       - secrets-data:/app/secrets   # Persists boot.log and licence.key across restarts
                                     # Seed licence: docker cp licence.key <agent-container>:/app/secrets/
     depends_on:
@@ -83,24 +82,6 @@ services:
         condition: service_healthy
       cert-manager:
         condition: service_started
-
-  pypi:
-    image: pypiserver/pypiserver:latest
-    restart: always
-    command: -P . -a . /data/packages
-    volumes:
-      - mirror-data:/data/packages
-    ports:
-      - "8080:8080"
-
-  mirror:
-    image: caddy:latest
-    restart: always
-    volumes:
-      - mirror-data:/data
-      - ./mirror/Caddyfile:/etc/caddy/Caddyfile:ro
-    ports:
-      - "8081:80"
 
   model:
     build:
@@ -158,5 +139,4 @@ volumes:
   caddy_data:
   caddy_config:
   registry-data:
-  mirror-data:
   secrets-data:   # Agent secrets persistence (boot.log, licence.key)
