@@ -99,7 +99,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
   3. Admin can list, add, edit, and remove Approved OS entries from a dedicated section without using the API directly
   4. Operator sees a confirmation dialog listing all runtime tool dependencies before a blueprint build commits
   5. The ingredient model has an explicit ecosystem enum column (PYPI, APT, APK, OCI, NPM, CONDA, NUGET) and all new tables (ingredient_dependencies, curated_bundles, curated_bundle_items) exist in the schema
-**Plans**: 3 plans
+**Plans**: 3/3 plans
 
 Plans:
 - [x] 107-01-PLAN.md — Schema migration + new tables + backend CRUD endpoints (completed 2026-04-01)
@@ -115,7 +115,7 @@ Plans:
   2. PyPI packages are mirrored to separate paths for manylinux and musllinux wheels so Alpine and Debian images both build correctly in air-gap
   3. A Foundry build using STRICT enforcement mode completes successfully with no internet access for any blueprint whose packages have been mirrored
   4. Circular dependency chains are detected and handled gracefully (timeout + visited-set guard) without hanging the resolution worker
-**Plans**: 2 plans
+**Plans**: 2/2 plans
 
 Plans:
 - [x] 108-01-PLAN.md — Resolver service with pip-compile, transitive edge creation, auto-discovered deduplication (completed 2026-04-03)
@@ -130,11 +130,19 @@ Plans:
   2. Operator can approve an Alpine package and it is mirrored via the apk backend with an nginx sidecar serving the repository
   3. All mirror sidecars (including existing PyPI) are defined as compose services behind `--profile mirrors` — not started by default, only when the operator opts in
   4. A Foundry build for a Debian-based or Alpine-based image with APT/apk packages succeeds in air-gap using the local mirrors
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 109-01: APT mirror backend + apk mirror backend + nginx sidecar
-- [ ] 109-02: Compose profile separation for all mirror services
+- [ ] 109-01-PLAN.md — APT mirror backend (_mirror_apt), apk backend (_mirror_apk), health check infrastructure, unit tests
+- [ ] 109-02-PLAN.md — Compose CE/EE separation (compose.ee.yaml), Caddy multi-path routing, .env.example
+- [ ] 109-03-PLAN.md — Foundry Alpine integration (repositories injection), MirrorHealthBanner dashboard component, integration tests
+- [ ] 109-04-PLAN.md — Verification checkpoint (end-to-end testing of mirrors, compose, Foundry, dashboard)
+
+**Wave Structure:**
+- Wave 1: Mirror backends (APT + apk methods, health check) — independent
+- Wave 2: Compose separation + Caddy routing — depends on Wave 1 for health check availability
+- Wave 3: Foundry integration + dashboard — depends on Waves 1-2 for mirror infrastructure
+- Wave 4: Verification checkpoint — blocks before marking phase complete
 
 ### Phase 110: CVE Transitive Scan + Dependency Tree UI
 **Goal**: Operators can see the full dependency tree for any package and CVE scans cover transitive dependencies — not just top-level packages
@@ -230,10 +238,10 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 117. Light Mode Implementation | 4/5 | Complete    | 2026-04-03 |
-| 107. Schema Foundation + CRUD Completeness | 2/3 | Complete    | 2026-04-03 |
-| 108. Transitive Dependency Resolution | 2/2 | Complete    | 2026-04-03 |
-| 109. APT + apk Mirrors + Compose Profiles | 0/2 | Not started | - |
+| 117. Light Mode Implementation | 4/5 | In Progress | - |
+| 107. Schema Foundation + CRUD Completeness | 3/3 | Complete | 2026-04-03 |
+| 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
+| 109. APT + apk Mirrors + Compose Profiles | 0/4 | Not started | - |
 | 110. CVE Transitive Scan + Dependency Tree UI | 0/2 | Not started | - |
 | 111. npm + NuGet + OCI Mirrors | 0/2 | Not started | - |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
@@ -283,13 +291,13 @@ Plans:
 
 **Requirements**: None specified
 
-**Plans:** 5/5 plans complete
+**Plans:** 5 plans (3 execution + 1 verification planned)
 
 Plans:
 - [x] 117-00-PLAN.md — Test infrastructure foundation (Wave 0 TDD RED phase) — completed 2026-04-02
 - [x] 117-01-PLAN.md — CSS variables foundation + FOWT prevention (Wave 1) — completed 2026-04-02
 - [x] 117-02-PLAN.md — Theme provider hook + toggle component (Wave 2) — completed 2026-04-02
-- [x] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 3) — completed 2026-04-02
+- [x] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 3) — completed 2026-04-03
 - [ ] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 4)
 
 **Wave Structure:**
