@@ -152,11 +152,15 @@ Plans:
   1. Operator can click a tree icon on any ingredient and see an interactive visual tree showing the full provenance chain (e.g. MarkupSafe <- Jinja2 <- Flask)
   2. CVE scanning includes all transitive dependencies — a vulnerable transitive dep (e.g. CVE in MarkupSafe pulled by Jinja2 pulled by Flask) is flagged before build
   3. Operator can trigger dependency discovery for any ingredient via a button that returns the full tree with a one-click "Approve All" action to bulk-approve the entire chain
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 110-01: CVE scan extension to transitive deps
-- [ ] 110-02: Dependency tree viewer + discovery endpoint with Approve All
+- [ ] 110-01-PLAN.md — Backend: CVE scan extension to transitive deps + tree API + discover endpoint
+- [ ] 110-02-PLAN.md — Frontend: Dependency tree viewer component + CVE badges + discover button integration
+
+**Wave Structure:**
+- Wave 1: Backend (CVE scan extension, tree API, discover endpoint, comprehensive tests)
+- Wave 2: Frontend (tree modal component, CVE badges, discover button integration in Smelter Registry)
 
 ### Phase 111: npm + NuGet + OCI Mirrors
 **Goal**: Operators can mirror npm, NuGet, and OCI (Docker) packages for air-gapped environments using proven Docker-native sidecar services
@@ -241,7 +245,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 117. Light Mode Implementation | 4/5 | In Progress | - |
 | 107. Schema Foundation + CRUD Completeness | 3/3 | Complete | 2026-04-03 |
 | 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
-| 109. APT + apk Mirrors + Compose Profiles | 0/4 | Complete    | 2026-04-03 |
+| 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete | 2026-04-03 |
 | 110. CVE Transitive Scan + Dependency Tree UI | 0/2 | Not started | - |
 | 111. npm + NuGet + OCI Mirrors | 0/2 | Not started | - |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
