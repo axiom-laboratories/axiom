@@ -44,6 +44,43 @@ async def db_session(engine):
         yield session
 
 
+@pytest.fixture
+async def test_ingredients(db_session):
+    """Create test ingredients with both manual and auto-discovered flags."""
+    from agent_service.db import ApprovedIngredient
+    from datetime import datetime
+
+    # Manually approved ingredient
+    manual_ing = ApprovedIngredient(
+        id=str(uuid.uuid4()),
+        name="flask",
+        version_constraint="==2.3.0",
+        os_family="DEBIAN",
+        ecosystem="PYPI",
+        mirror_status="PENDING",
+        auto_discovered=False,
+        created_at=datetime.utcnow()
+    )
+
+    # Auto-discovered ingredient (transitive dep)
+    auto_ing = ApprovedIngredient(
+        id=str(uuid.uuid4()),
+        name="werkzeug",
+        version_constraint="==2.3.0",
+        os_family="DEBIAN",
+        ecosystem="PYPI",
+        mirror_status="PENDING",
+        auto_discovered=True,
+        created_at=datetime.utcnow()
+    )
+
+    db_session.add(manual_ing)
+    db_session.add(auto_ing)
+    await db_session.commit()
+
+    return {"manual": manual_ing, "auto": auto_ing}
+
+
 def pytest_collection_modifyitems(config, items):
     try:
         importlib.metadata.version("axiom-ee")

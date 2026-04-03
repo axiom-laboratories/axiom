@@ -306,6 +306,7 @@ class ApprovedIngredient(Base):
     mirror_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="PENDING")
     mirror_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     mirror_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Phase 116: JSON log of mirror operations
+    auto_discovered: Mapped[bool] = mapped_column(Boolean, default=False)  # Phase 108: True if discovered as transitive dep
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
