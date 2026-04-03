@@ -5,11 +5,11 @@ import shutil
 import subprocess
 import json
 import hashlib
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 from sqlalchemy.future import select
 from fastapi import HTTPException
-from ..db import Blueprint, PuppetTemplate, CapabilityMatrix, AsyncSession, Config, ApprovedIngredient
+from ..db import Blueprint, PuppetTemplate, CapabilityMatrix, AsyncSession, Config, ApprovedIngredient, IngredientDependency
 from ..models import ImageBuildRequest, ImageResponse
 from .smelter_service import SmelterService
 from .staging_service import StagingService
@@ -19,6 +19,40 @@ logger = logging.getLogger(__name__)
 
 class FoundryService:
     _build_semaphore = asyncio.Semaphore(2)
+
+    @staticmethod
+    async def _validate_ingredient_tree(db: AsyncSession, ingredient_ids: List[str]) -> Tuple[bool, List[str]]:
+        """
+        Validate that all transitive dependencies are MIRRORED.
+        Returns (valid: bool, missing_deps: List[str]).
+        """
+        missing = []
+
+        for ingredient_id in ingredient_ids:
+            ingredient = await db.get(ApprovedIngredient, ingredient_id)
+            if not ingredient:
+                missing.append(f"Ingredient {ingredient_id} not found")
+                continue
+
+            if ingredient.mirror_status != "MIRRORED":
+                missing.append(f"{ingredient.name} ({ingredient.mirror_status})")
+
+            # Walk transitive deps
+            stmt = select(IngredientDependency).where(
+                IngredientDependency.parent_id == ingredient_id
+            )
+            result = await db.execute(stmt)
+            edges = result.scalars().all()
+
+            for edge in edges:
+                child = await db.get(ApprovedIngredient, edge.child_id)
+                if not child:
+                    missing.append(f"Transitive dependency {edge.child_id} not found")
+                    continue
+                if child.mirror_status != "MIRRORED":
+                    missing.append(f"{child.name} (via {ingredient.name}) — {child.mirror_status}")
+
+        return (len(missing) == 0, missing)
 
     @staticmethod
     async def build_template(template_id: str, db: AsyncSession) -> ImageResponse:
@@ -85,6 +119,19 @@ class FoundryService:
             # Commit the compliance status
             await db.commit()
             await db.refresh(tmpl)
+
+            # 1.7 Validate entire ingredient dependency tree before build
+            blueprint_ingredient_ids = []
+            if hasattr(rt_bp, 'ingredient_ids') and rt_bp.ingredient_ids:
+                blueprint_ingredient_ids = rt_bp.ingredient_ids if isinstance(rt_bp.ingredient_ids, list) else json.loads(rt_bp.ingredient_ids)
+
+            if blueprint_ingredient_ids:
+                is_valid, missing = await FoundryService._validate_ingredient_tree(db, blueprint_ingredient_ids)
+                if not is_valid:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Cannot build: missing mirrored dependencies. {', '.join(missing)}"
+                    )
 
             # 2. Build Dockerfile Content
             dockerfile = [f"FROM {base_os}"]
