@@ -79,7 +79,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 
 - [x] **Phase 107: Schema Foundation + CRUD Completeness** - DB migrations and missing CRUD operations that unblock all downstream work (completed 2026-04-03)
 - [x] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service (completed 2026-04-03)
-- 🚧 **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (in progress, 2 of 4 plans complete)
+- 🚧 **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (in progress, 4 of 4 plans complete)
 - [ ] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer
 - [ ] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars
 - [ ] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems
@@ -135,8 +135,8 @@ Plans:
 Plans:
 - [x] 109-01-PLAN.md — APT mirror backend (_mirror_apt), apk backend (_mirror_apk), health check infrastructure, unit tests (completed 2026-04-03)
 - [x] 109-02-PLAN.md — Compose CE/EE separation (compose.ee.yaml), Caddy multi-path routing, .env.example (completed 2026-04-03)
-- [ ] 109-03-PLAN.md — Foundry Alpine integration (repositories injection), MirrorHealthBanner dashboard component, integration tests
-- [ ] 109-04-PLAN.md — Verification checkpoint (end-to-end testing of mirrors, compose, Foundry, dashboard)
+- [x] 109-03-PLAN.md — Foundry Alpine integration (repositories injection), MirrorHealthBanner dashboard component, integration tests (completed 2026-04-03)
+- [x] 109-04-PLAN.md — Verification checkpoint (end-to-end testing of mirrors, compose, Foundry, dashboard) (completed 2026-04-03)
 
 **Wave Structure:**
 - Wave 1: Mirror backends (APT + apk methods, health check) — independent
@@ -241,7 +241,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 117. Light Mode Implementation | 4/5 | In Progress | - |
 | 107. Schema Foundation + CRUD Completeness | 3/3 | Complete | 2026-04-03 |
 | 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
-| 109. APT + apk Mirrors + Compose Profiles | 0/4 | Not started | - |
+| 109. APT + apk Mirrors + Compose Profiles | 0/4 | Complete    | 2026-04-03 |
 | 110. CVE Transitive Scan + Dependency Tree UI | 0/2 | Not started | - |
 | 111. npm + NuGet + OCI Mirrors | 0/2 | Not started | - |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
@@ -264,7 +264,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 3/3 plans complete
+**Plans:** 3/4 plans complete
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
