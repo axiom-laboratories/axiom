@@ -4,6 +4,8 @@ import os
 import subprocess
 import hashlib
 import json
+import gzip
+import re
 from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,6 +17,7 @@ class MirrorService:
     MIRROR_BASE_PATH = os.getenv("MIRROR_DATA_PATH", "/app/mirror_data")
     PYPI_PATH = os.path.join(MIRROR_BASE_PATH, "pypi")
     APT_PATH = os.path.join(MIRROR_BASE_PATH, "apt")
+    APK_BASE_PATH = os.path.join(MIRROR_BASE_PATH, "apk")
 
     @staticmethod
     async def mirror_ingredient(ingredient_id: str):
@@ -233,12 +236,215 @@ class MirrorService:
     @staticmethod
     async def _mirror_apt(db: AsyncSession, ingredient: ApprovedIngredient):
         """
-        Placeholder for native .deb mirroring.
-        In a real scenario, this would use 'apt-get download' and 'dpkg-scanpackages'.
+        Download a .deb package using apt-get inside a throwaway Debian container.
+        Uses asyncio.to_thread for subprocess execution.
+        Updates ingredient.mirror_status and mirror_log on success/failure.
         """
-        os.makedirs(MirrorService.APT_PATH, exist_ok=True)
-        # TODO: Implement native APT mirroring if needed
-        pass
+        try:
+            os.makedirs(MirrorService.APT_PATH, exist_ok=True)
+
+            # Parse version constraint: "==1.0.0" -> "1.0.0", ">=2.0" -> "2.0", etc.
+            pkg_spec = ingredient.name
+            if ingredient.version_constraint:
+                # Remove comparison operators: ==, >=, <=, >, <, ~=
+                version = re.sub(r'^[><=~!]+', '', ingredient.version_constraint).strip()
+                if version:
+                    pkg_spec = f"{ingredient.name}={version}"
+
+            # Run apt-get download inside a throwaway Debian container
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{MirrorService.APT_PATH}:/mirror",
+                "debian:12-slim",
+                "bash", "-c",
+                f"apt-get update && apt-get download -o=/mirror {pkg_spec}"
+            ]
+
+            logger.info(f"Mirror: Running apt-get for {pkg_spec}")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if process.returncode == 0:
+                # Regenerate APT index
+                await MirrorService._regenerate_apt_index(MirrorService.APT_PATH)
+                ingredient.mirror_status = "MIRRORED"
+                ingredient.mirror_log = f"Downloaded {pkg_spec}; regenerated Packages.gz"
+                logger.info(f"Mirror: Successfully mirrored APT package {pkg_spec}")
+            else:
+                ingredient.mirror_status = "FAILED"
+                ingredient.mirror_log = process.stderr or process.stdout
+                logger.error(f"Mirror: APT download failed for {pkg_spec}: {process.stderr}")
+
+            await db.commit()
+
+        except asyncio.TimeoutError:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = f"APT download timeout after 120s"
+            await db.commit()
+            logger.error(f"Mirror: Timeout downloading APT package {ingredient.name}")
+        except Exception as e:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = str(e)
+            await db.commit()
+            logger.error(f"Mirror: Error mirroring APT package {ingredient.name}: {str(e)}")
+
+    @staticmethod
+    async def _regenerate_apt_index(apt_dir: str):
+        """
+        Regenerate Packages.gz index for the APT repository.
+        Runs dpkg-scanpackages inside a throwaway Debian container and gzips output.
+        """
+        try:
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{apt_dir}:/mirror",
+                "debian:12-slim",
+                "bash", "-c",
+                "cd /mirror && dpkg-scanpackages --multiversion . /dev/null > Packages && gzip -9 -c Packages > Packages.gz"
+            ]
+
+            logger.info(f"Mirror: Regenerating APT Packages.gz index")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if process.returncode == 0:
+                logger.info("Mirror: APT Packages.gz index regenerated successfully")
+            else:
+                logger.error(f"Mirror: Failed to regenerate APT index: {process.stderr}")
+
+        except Exception as e:
+            logger.error(f"Mirror: Error regenerating APT index: {str(e)}")
+
+    @staticmethod
+    async def _mirror_apk(db: AsyncSession, ingredient: ApprovedIngredient):
+        """
+        Download an .apk package using apk fetch inside a throwaway Alpine container.
+        Uses asyncio.to_thread for subprocess execution.
+        Updates ingredient.mirror_status and mirror_log on success/failure.
+        """
+        try:
+            # Extract Alpine version from base_os or use default
+            alpine_version = MirrorService._get_alpine_version(ingredient.base_os if hasattr(ingredient, 'base_os') else None)
+            apk_dir = os.path.join(MirrorService.APK_BASE_PATH, alpine_version, "main")
+            os.makedirs(apk_dir, exist_ok=True)
+
+            # Parse version constraint: "==1.0.0" -> "package=1.0.0"
+            pkg_spec = ingredient.name
+            if ingredient.version_constraint:
+                version = re.sub(r'^[><=~!]+', '', ingredient.version_constraint).strip()
+                if version:
+                    pkg_spec = f"{ingredient.name}={version}"
+
+            # Run apk fetch inside a throwaway Alpine container
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{apk_dir}:/mirror",
+                "alpine:3.20",
+                "sh", "-c",
+                f"apk fetch -o /mirror {pkg_spec}"
+            ]
+
+            logger.info(f"Mirror: Running apk fetch for {pkg_spec} (Alpine {alpine_version})")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if process.returncode == 0:
+                # Regenerate APK index
+                await MirrorService._regenerate_apk_index(apk_dir)
+                ingredient.mirror_status = "MIRRORED"
+                ingredient.mirror_log = f"Downloaded {pkg_spec}; regenerated APKINDEX.tar.gz"
+                logger.info(f"Mirror: Successfully mirrored APK package {pkg_spec}")
+            else:
+                ingredient.mirror_status = "FAILED"
+                ingredient.mirror_log = process.stderr or process.stdout
+                logger.error(f"Mirror: APK fetch failed for {pkg_spec}: {process.stderr}")
+
+            await db.commit()
+
+        except asyncio.TimeoutError:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = "APK fetch timeout after 120s"
+            await db.commit()
+            logger.error(f"Mirror: Timeout downloading APK package {ingredient.name}")
+        except Exception as e:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = str(e)
+            await db.commit()
+            logger.error(f"Mirror: Error mirroring APK package {ingredient.name}: {str(e)}")
+
+    @staticmethod
+    async def _regenerate_apk_index(apk_dir: str):
+        """
+        Regenerate APKINDEX.tar.gz index for the APK repository.
+        Runs apk index inside a throwaway Alpine container.
+        """
+        try:
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{apk_dir}:/mirror",
+                "alpine:3.20",
+                "sh", "-c",
+                "cd /mirror && apk index -o APKINDEX.tar.gz *.apk 2>/dev/null || apk index -d /mirror APKINDEX.tar.gz"
+            ]
+
+            logger.info(f"Mirror: Regenerating APK APKINDEX.tar.gz")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if process.returncode == 0:
+                logger.info("Mirror: APK APKINDEX.tar.gz regenerated successfully")
+            else:
+                logger.error(f"Mirror: Failed to regenerate APK index: {process.stderr}")
+
+        except Exception as e:
+            logger.error(f"Mirror: Error regenerating APK index: {str(e)}")
+
+    @staticmethod
+    def _get_alpine_version(base_os: str = None) -> str:
+        """
+        Parse Alpine version from base_os image tag (e.g., 'alpine:3.20' -> 'v3.20').
+        Falls back to DEFAULT_ALPINE_VERSION env var (default 'v3.20').
+        """
+        if base_os:
+            # Extract version from tags like "alpine:3.20", "alpine:3.18", "alpine:latest"
+            match = re.search(r'alpine:(\d+\.\d+|\w+)', base_os, re.IGNORECASE)
+            if match:
+                version = match.group(1)
+                if version == "latest" or not version[0].isdigit():
+                    return os.getenv("DEFAULT_ALPINE_VERSION", "v3.20")
+                # Convert "3.20" to "v3.20"
+                return f"v{version}"
+        return os.getenv("DEFAULT_ALPINE_VERSION", "v3.20")
+
+    @staticmethod
+    def get_apk_repos_content(base_os: str = None) -> str:
+        """
+        Generate /etc/apk/repositories file content pointing to the local APK mirror.
+        Parses Alpine version from base_os and constructs mirror URLs.
+        """
+        alpine_version = MirrorService._get_alpine_version(base_os)
+        url = os.getenv("APK_MIRROR_URL", "http://mirror:8081/apk")
+        return f"{url}/{alpine_version}/main\n{url}/{alpine_version}/community\n"
 
     @staticmethod
     def get_pip_conf_content() -> str:
