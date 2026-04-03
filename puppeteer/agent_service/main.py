@@ -224,6 +224,66 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(check_licence_expiry_bg())
 
+    # Initialize mirrors_available flag and start health check background task
+    app.state.mirrors_available = True  # Assume available at startup; first check will confirm
+
+    async def check_mirrors_health():
+        """
+        Periodically check mirror service health (PyPI and APT mirrors).
+        Updates app.state.mirrors_available based on reachability.
+        Runs every ~60 seconds (configurable via MIRROR_HEALTH_CHECK_INTERVAL env var).
+        """
+        import httpx
+        check_interval = int(os.getenv("MIRROR_HEALTH_CHECK_INTERVAL", "60"))
+        pypi_mirror_url = os.getenv("PYPI_MIRROR_URL", "http://mirror:8080")
+        apt_mirror_url = os.getenv("APT_MIRROR_URL", "http://mirror:8081/apt")
+
+        retry_delay = 5  # Initial retry delay for exponential backoff
+
+        while True:
+            try:
+                # Health check both mirrors with 10s timeout
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    try:
+                        pypi_response = await client.get(pypi_mirror_url)
+                        pypi_ok = 200 <= pypi_response.status_code < 400
+                    except Exception as e:
+                        logger.warning(f"Mirror health: PyPI mirror check failed: {e}")
+                        pypi_ok = False
+
+                    try:
+                        apt_response = await client.get(apt_mirror_url)
+                        apt_ok = 200 <= apt_response.status_code < 400
+                    except Exception as e:
+                        logger.warning(f"Mirror health: APT mirror check failed: {e}")
+                        apt_ok = False
+
+                # Both mirrors must be reachable
+                mirrors_available = pypi_ok and apt_ok
+
+                if mirrors_available:
+                    if not app.state.mirrors_available:
+                        logger.info("Mirror health: Both mirrors became available")
+                    app.state.mirrors_available = True
+                    retry_delay = 5  # Reset backoff on success
+                else:
+                    logger.warning(f"Mirror health: Unreachable (PyPI={pypi_ok}, APT={apt_ok})")
+                    app.state.mirrors_available = False
+                    # Exponential backoff: start at 5s, cap at 60s
+                    retry_delay = min(retry_delay * 2, check_interval)
+                    await asyncio.sleep(retry_delay)
+                    continue
+
+                # Sleep for the configured check interval
+                await asyncio.sleep(check_interval)
+
+            except Exception as e:
+                logger.error(f"Mirror health check error: {e}")
+                app.state.mirrors_available = False
+                await asyncio.sleep(check_interval)
+
+    asyncio.create_task(check_mirrors_health())
+
     yield
     # Shutdown logic
     scheduler_service.scheduler.shutdown()
@@ -837,7 +897,12 @@ async def update_self(req: dict, current_user: User = Depends(get_current_user),
 
 @app.get("/", tags=["System"])
 async def health_check():
-    return {"status": "healthy", "service": "Agent Service v0.7"}
+    mirrors_available = getattr(app.state, "mirrors_available", True)
+    return {
+        "status": "healthy",
+        "service": "Agent Service v0.7",
+        "mirrors_available": mirrors_available
+    }
 
 
 @app.get("/api/health/scheduling", response_model=SchedulingHealthResponse, tags=["Health"])
