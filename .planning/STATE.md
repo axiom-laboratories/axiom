@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 109 context gathered
-last_updated: "2026-04-03T19:55:07.849Z"
-last_activity: 2026-04-03 -- Completed 107-03-PLAN.md (Tool Recipe Edit + Approved OS Tab)
+stopped_at: Completed 109-01-PLAN.md
+last_updated: "2026-04-03T20:18:20Z"
+last_activity: 2026-04-03 -- Completed 109-01-PLAN.md (APT/APK Mirror Backends)
 progress:
   total_phases: 12
   completed_phases: 4
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 
 ## Current Position
 
-Phase: 107 of 12 (107 - Schema Foundation + CRUD Completeness)
-Plan: 3 of 3 in current phase (COMPLETED 107-03)
+Phase: 109 of 12 (109 - APT/APK Mirrors + Compose Profiles)
+Plan: 1 of 3 in current phase (COMPLETED 109-01)
 Status: executing
-Last activity: 2026-04-03 -- Completed 107-03-PLAN.md (Tool Recipe Edit + Approved OS Tab)
+Last activity: 2026-04-03 -- Completed 109-01-PLAN.md (APT/APK Mirror Backends)
 
-Progress: [██████████████████] 100%
+Progress: [████████████████░░░] 80%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [██████████████████] 100%
 | 107 | 03 | 0min | 2 | 1 |
 | 108 | 01 | 30min | 3 | 5 |
 | 108 | 02 | 45min | 5 | 6 |
+| 109 | 01 | 45min | 4 | 3 |
 
 ## Accumulated Context
 
@@ -87,6 +88,12 @@ Progress: [██████████████████] 100%
 - [108-02]: Devpi removed entirely; pypiserver-only with less operational overhead
 - [108-02]: Tree validation before Docker build, not during — fail-fast pattern with 422 Unprocessable Entity for validation errors
 
+- [109-01]: Container-isolated package downloads (debian:12-slim, alpine:3.20) over host package managers for reproducibility and avoiding host system dependencies
+- [109-01]: APT index regeneration via dpkg-scanpackages inside container (avoids local dpkg dependency)
+- [109-01]: Alpine versioning stored in directory structure (mirror_data/apk/v3.20/main/) to support multi-version mirrors
+- [109-01]: Health check polls both PyPI and APT mirrors (both must be reachable) rather than separate checks
+- [109-01]: Exponential backoff for health check (5s→10s→60s cap) balances rapid failure detection with steady-state polling
+
 - [117-00]: Structured all theme tests in RED (failing) state per TDD methodology to define expected behavior upfront before implementation
 - [117-00]: Theme infrastructure tests organized into unit (useTheme hook), component (ThemeToggle), integration (CSS variables), context (ThemeProvider), and E2E (Playwright) categories
 - [117-00]: localStorage key is 'mop_theme' with values 'dark' | 'light'; DOM class is '.dark' on document.documentElement
@@ -98,6 +105,21 @@ Progress: [██████████████████] 100%
 - [117-02]: Toaster notifications made theme-aware: dynamic theme prop based on user's selection
 - [117-02]: Fixed FOWT prevention script to use .dark class (Plan 01 used incorrect .light class)
 - [117-02]: Auto-wrapped tests with ThemeProvider (needed for hook to work without throwing)
+
+### Completed in Phase 109
+
+**Plan 109-01 (APT/APK Mirror Backends):**
+- Implemented _mirror_apt() for Debian .deb downloads via throwaway debian:12-slim container using apt-get download
+- Added _regenerate_apt_index() helper using dpkg-scanpackages to generate Packages.gz inside container
+- Implemented _mirror_apk() for Alpine .apk downloads via alpine:3.20 container using apk fetch
+- Added _regenerate_apk_index() helper using apk index to generate APKINDEX.tar.gz
+- Version constraint parsing converts ==X.Y.Z format to package specs (curl=7.68.0) for both APT and APK
+- All subprocess calls use asyncio.to_thread() with 120s timeout for non-blocking execution
+- Mirror health check background task: polls PYPI_MIRROR_URL and APT_MIRROR_URL every ~60s
+- Health check implements exponential backoff (5s→10s→60s cap) on failure
+- app.state.mirrors_available flag set based on both mirrors returning 200-399
+- 14 comprehensive unit tests covering APT/APK download, version parsing, failure handling, Alpine version fallback
+- Total: 4 tasks, 3 files modified, 14 tests passing
 
 ### Completed in Phase 107
 
