@@ -59,6 +59,7 @@ Progress: [████████████████] 75%
 
 - Phase 116 added: Fix smelter DB migration and add EE licence hot-reload
 - Phase 117 added: Implement light mode with a light mode/dark mode toggle, whilst keeping the brand identity
+- Phase 118 added: UI polish and verification
 
 ### Key Decisions
 

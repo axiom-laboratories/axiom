@@ -290,3 +290,13 @@ Plans:
 - All interactive components (charts, modals, toasts, badges) are theme-aware
 - Brand identity invariants preserved (pink primary, Fira fonts, focus ring color)
 
+
+### Phase 118: UI polish and verification
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 117
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 118 to break down)

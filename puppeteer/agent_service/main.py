@@ -1872,6 +1872,17 @@ async def reload_licence_endpoint(
     # Atomic swap — new state is valid
     app.state.licence_state = new_state
 
+    # Live-activate EE plugins if licence is now valid but plugins aren't loaded
+    ee_activated = False
+    if new_state.is_ee_active and not getattr(app.state.ee, "foundry", False):
+        from .ee import activate_ee_live
+        from .db import engine
+        new_ctx = await activate_ee_live(app, engine)
+        if new_ctx:
+            app.state.ee = new_ctx
+            ee_activated = True
+            logger.info("EE plugins live-activated via licence reload")
+
     # Broadcast licence status change to all connected WebSocket clients
     await ws_manager.broadcast("licence_status_changed", {
         "old_status": old_state.status.value,
@@ -1881,9 +1892,20 @@ async def reload_licence_endpoint(
         "metadata": {
             "organization": new_state.customer_id or "Unknown",
             "tier": new_state.tier,
-            "expires_at": (datetime.utcnow() + timedelta(days=new_state.days_until_expiry)).isoformat() if new_state.days_until_expiry > 0 else None
+            "expires_at": (datetime.utcnow() + timedelta(days=new_state.days_until_expiry)).isoformat() if new_state.days_until_expiry > 0 else None,
+            "ee_activated": ee_activated,
         }
     })
+
+    # If EE was just activated, broadcast feature flags so dashboards update
+    if ee_activated:
+        ctx = app.state.ee
+        await ws_manager.broadcast("features_changed", {
+            "foundry": ctx.foundry, "audit": ctx.audit, "webhooks": ctx.webhooks,
+            "triggers": ctx.triggers, "rbac": ctx.rbac, "resource_limits": ctx.resource_limits,
+            "service_principals": ctx.service_principals, "api_keys": ctx.api_keys,
+            "executions": ctx.executions,
+        })
 
     # Audit the transition
     audit(
@@ -1894,7 +1916,8 @@ async def reload_licence_endpoint(
             "tier": new_state.tier,
             "customer_id": new_state.customer_id,
             "node_limit": new_state.node_limit,
-            "days_until_expiry": new_state.days_until_expiry
+            "days_until_expiry": new_state.days_until_expiry,
+            "ee_activated": ee_activated,
         }
     )
     await db.commit()

@@ -21,7 +21,9 @@ import {
     Check,
     Loader2,
     ShieldCheck,
-    Search
+    Search,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -71,6 +73,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { authenticatedFetch, getUser } from '../auth';
 import { useLicence } from '../hooks/useLicence';
+import { useFeatures } from '../hooks/useFeatures';
 import { useWebSocket, LicenceStatusChangeData } from '../hooks/useWebSocket';
 import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 import { LicenceStatus } from '../components/LicenceStatus';
@@ -621,6 +624,7 @@ const RolloutManager = () => {
         queryKey: ['capability-matrix'],
         queryFn: async () => {
             const res = await authenticatedFetch('/api/capability-matrix');
+            if (!res.ok) return [];
             return res.json();
         }
     });
@@ -753,6 +757,7 @@ const CapabilityMatrixManager = () => {
         queryKey: ['capability-matrix'],
         queryFn: async () => {
             const res = await authenticatedFetch('/api/capability-matrix');
+            if (!res.ok) return [];
             return res.json();
         }
     });
@@ -816,6 +821,7 @@ const ArtifactVault = () => {
         queryKey: ['artifacts'],
         queryFn: async () => {
             const res = await authenticatedFetch('/api/artifacts');
+            if (!res.ok) return [];
             return res.json();
         }
     });
@@ -935,6 +941,7 @@ const SmelterRegistryManager = () => {
         queryKey: ['smelter-health'],
         queryFn: async () => {
             const res = await authenticatedFetch('/api/smelter/mirror-health');
+            if (!res.ok) return { pypi_online: false, apt_online: false, disk_used_gb: 0, disk_total_gb: 0 };
             return res.json();
         },
         refetchInterval: 30000
@@ -1420,10 +1427,37 @@ const SmelterRegistryManager = () => {
 
 const Admin = () => {
     const { isEnterprise } = useLicence();
+    const features = useFeatures();
     const [joinToken, setJoinToken] = useState<string | null>(null);
     const [pubKey, setPubKey] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Tab scroll state
+    const tabsRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const updateScrollArrows = () => {
+        const el = tabsRef.current;
+        if (!el) return;
+        setCanScrollLeft(el.scrollLeft > 0);
+        setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+
+    useEffect(() => {
+        updateScrollArrows();
+        const el = tabsRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(updateScrollArrows);
+        ro.observe(el);
+        el.addEventListener('scroll', updateScrollArrows);
+        return () => { ro.disconnect(); el.removeEventListener('scroll', updateScrollArrows); };
+    }, [isEnterprise]);
+
+    const scrollTabs = (dir: 'left' | 'right') => {
+        tabsRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
+    };
 
     // Data Retention state
     const [retentionDays, setRetentionDays] = useState<number>(14);
@@ -1516,24 +1550,38 @@ const Admin = () => {
             {getUser()?.role === 'admin' && <LicenceSection />}
 
             <Tabs defaultValue="onboarding" className="space-y-6">
-                <TabsList className="bg-secondary border border-muted p-1 h-11">
+                <div className="relative flex items-center">
+                    {canScrollLeft && (
+                        <button
+                            onClick={() => scrollTabs('left')}
+                            className="absolute left-0 z-10 h-9 w-8 flex items-center justify-center bg-secondary/90 backdrop-blur border border-muted rounded-lg shadow-sm hover:bg-muted transition-colors"
+                            aria-label="Scroll tabs left"
+                        >
+                            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                    )}
+                <TabsList
+                    ref={tabsRef}
+                    className="bg-secondary border border-muted p-1 h-11 w-full justify-start overflow-x-auto scrollbar-hide"
+                    style={{ scrollbarWidth: 'none' }}
+                >
                     <TabsTrigger value="onboarding" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Onboarding</TabsTrigger>
-                    {isEnterprise && (
+                    {features.foundry && (
                         <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Smelter Registry</TabsTrigger>
                     )}
-                    {isEnterprise && (
+                    {features.foundry && (
                         <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">BOM Explorer</TabsTrigger>
                     )}
-                    {isEnterprise && (
+                    {features.foundry && (
                         <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Tools</TabsTrigger>
                     )}
-                    {isEnterprise && (
+                    {features.foundry && (
                         <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Artifact Vault</TabsTrigger>
                     )}
-                    {isEnterprise && (
+                    {features.foundry && (
                         <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Rollouts</TabsTrigger>
                     )}
-                    {isEnterprise && (
+                    {features.triggers && (
                         <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Automation</TabsTrigger>
                     )}
                     {!isEnterprise && (
@@ -1542,6 +1590,16 @@ const Admin = () => {
                     <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Licence</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Data</TabsTrigger>
                 </TabsList>
+                    {canScrollRight && (
+                        <button
+                            onClick={() => scrollTabs('right')}
+                            className="absolute right-0 z-10 h-9 w-8 flex items-center justify-center bg-secondary/90 backdrop-blur border border-muted rounded-lg shadow-sm hover:bg-muted transition-colors"
+                            aria-label="Scroll tabs right"
+                        >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                    )}
+                </div>
 
                 <TabsContent value="onboarding" className="space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1654,37 +1712,37 @@ const Admin = () => {
                     </div>
                 </TabsContent>
 
-                {isEnterprise && (
+                {features.foundry && (
                     <TabsContent value="smelter">
                         <SmelterRegistryManager />
                     </TabsContent>
                 )}
 
-                {isEnterprise && (
+                {features.foundry && (
                     <TabsContent value="bom">
                         <BOMExplorer />
                     </TabsContent>
                 )}
 
-                {isEnterprise && (
+                {features.foundry && (
                     <TabsContent value="matrix">
                         <CapabilityMatrixManager />
                     </TabsContent>
                 )}
 
-                {isEnterprise && (
+                {features.foundry && (
                     <TabsContent value="vault">
                         <ArtifactVault />
                     </TabsContent>
                 )}
 
-                {isEnterprise && (
+                {features.foundry && (
                     <TabsContent value="rollouts">
                         <RolloutManager />
                     </TabsContent>
                 )}
 
-                {isEnterprise && (
+                {features.triggers && (
                     <TabsContent value="automation">
                         <TriggerManager />
                     </TabsContent>

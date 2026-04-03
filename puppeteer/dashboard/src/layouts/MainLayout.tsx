@@ -288,8 +288,10 @@ const MainLayout = () => {
                         Your EE licence has expired. The system is running in Community Edition mode.
                     </div>
                 )}
-                <main className="flex-1 p-4 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
-                    <Outlet />
+                <main className="flex-1 overflow-y-auto">
+                    <div className="max-w-7xl mx-auto w-full p-4 lg:p-8">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
 
