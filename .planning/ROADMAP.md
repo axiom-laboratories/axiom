@@ -77,7 +77,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 
 **Milestone Goal:** Make the Foundry/Smelter pipeline production-grade for air-gapped deployments — transitive dependency resolution, full CRUD on all Foundry entities, multi-ecosystem mirror support, and operator-friendly UX for non-developers.
 
-- [x] **Phase 107: Schema Foundation + CRUD Completeness** - DB migrations and missing CRUD operations that unblock all downstream work (completed 2026-04-02)
+- [x] **Phase 107: Schema Foundation + CRUD Completeness** - DB migrations and missing CRUD operations that unblock all downstream work (completed 2026-04-03)
 - [x] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service (completed 2026-04-03)
 - [ ] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars
 - [ ] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer
@@ -104,7 +104,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 Plans:
 - [x] 107-01-PLAN.md — Schema migration + new tables + backend CRUD endpoints (completed 2026-04-01)
 - [x] 107-02-PLAN.md — Blueprint edit mode + dep confirmation dialog (completed 2026-04-02)
-- [x] 107-03-PLAN.md — Tool recipe edit UI + Approved OS tab (completed 2026-04-02)
+- [x] 107-03-PLAN.md — Tool recipe edit UI + Approved OS tab (completed 2026-04-03)
 
 ### Phase 108: Transitive Dependency Resolution
 **Goal**: The mirror pipeline downloads complete dependency trees so air-gapped STRICT builds succeed without internet access
