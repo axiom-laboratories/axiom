@@ -216,3 +216,45 @@ def test_discover_endpoint():
     returns DiscoverDependenciesResponse with toast_message.
     """
     pass
+
+
+# Wave 0 test stubs for mirror config (Plan 112-02)
+
+def test_get_mirror_config_all_ecosystems():
+    """
+    Test GET /api/admin/mirror-config returns all 8 ecosystem URLs.
+
+    RED: Stub for Task 2 (Implement GET/PUT /api/admin/mirror-config endpoints).
+    Will verify: endpoint returns all 8 mirror URLs (pypi, apt, apk, npm, nuget, oci_hub, oci_ghcr, conda).
+    """
+    pass
+
+
+def test_put_mirror_config_updates_database():
+    """
+    Test PUT /api/admin/mirror-config updates Config DB.
+
+    RED: Stub for Task 2 (Implement GET/PUT /api/admin/mirror-config endpoints).
+    Will verify: endpoint accepts MirrorConfigUpdate, updates Config entries, returns updated response.
+    """
+    pass
+
+
+def test_mirror_config_permission_check():
+    """
+    Test that non-admin users cannot PUT /api/admin/mirror-config.
+
+    RED: Stub for Task 2 (Implement GET/PUT /api/admin/mirror-config endpoints).
+    Will verify: non-admin users receive 403 Forbidden response.
+    """
+    pass
+
+
+def test_mirror_config_health_status():
+    """
+    Test that GET /api/admin/mirror-config includes health_status dict.
+
+    RED: Stub for Task 2 (Implement GET/PUT /api/admin/mirror-config endpoints).
+    Will verify: response includes health_status dict with 8 keys (one per ecosystem).
+    """
+    pass

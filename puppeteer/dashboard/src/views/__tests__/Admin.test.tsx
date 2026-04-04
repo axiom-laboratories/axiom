@@ -295,3 +295,32 @@ describe("Smelter Registry - Dependency Tree & Discovery Integration", () => {
     expect(onboardingTab).toBeInTheDocument();
   });
 });
+
+// Wave 0 test stubs for mirror config (Plan 112-02)
+
+describe('Admin Mirrors Tab', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthFetch.mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+    mockUseLicence.mockReturnValue(enterpriseLicence());
+  });
+
+  it('test_admin_mirrors_tab_renders', () => {
+    /**
+     * RED: Stub for Task 4 (Create Admin Mirrors tab with 8 ecosystem cards).
+     * Will verify: Admin.tsx renders Mirrors tab with 8 MirrorConfigCard components.
+     */
+    expect(true).toBe(true);
+  });
+
+  it('test_mirror_card_shows_health_badge', () => {
+    /**
+     * RED: Stub for Task 4 (Create Admin Mirrors tab with 8 ecosystem cards).
+     * Will verify: Each MirrorConfigCard displays health status badge (green/amber/red).
+     */
+    expect(true).toBe(true);
+  });
+});
