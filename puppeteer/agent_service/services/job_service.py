@@ -72,9 +72,15 @@ class JobService:
         All axes compose with AND; tags use OR within the axis.
         """
         if status and status.upper() != 'ALL':
-            f = Job.status == status.upper()
-            base_query = base_query.where(f)
-            count_query = count_query.where(f)
+            # Support comma-separated status values (e.g., "COMPLETED,FAILED,CANCELLED")
+            status_values = [s.strip().upper() for s in status.split(',') if s.strip()]
+            if status_values:
+                if len(status_values) == 1:
+                    f = Job.status == status_values[0]
+                else:
+                    f = Job.status.in_(status_values)
+                base_query = base_query.where(f)
+                count_query = count_query.where(f)
 
         if runtime:
             f = Job.runtime == runtime
