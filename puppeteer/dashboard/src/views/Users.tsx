@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -464,9 +465,14 @@ const Users = () => {
                             </thead>
                             <tbody>
                                 {isLoading ? (
-                                    <tr>
-                                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground/60">Loading...</td>
-                                    </tr>
+                                    Array(3).fill(0).map((_, i) => (
+                                        <tr key={i} className="border-b border-muted hover:bg-muted/30 transition-colors">
+                                            <td className="px-6 py-3"><Skeleton className="h-6 w-24 rounded" /></td>
+                                            <td className="px-6 py-3"><Skeleton className="h-6 w-16 rounded" /></td>
+                                            <td className="px-6 py-3"><Skeleton className="h-6 w-32 rounded" /></td>
+                                            <td className="px-6 py-3 text-right"><Skeleton className="h-6 w-20 rounded ml-auto" /></td>
+                                        </tr>
+                                    ))
                                 ) : users.map(user => (
                                     <UserRow key={user.username} user={user} />
                                 ))}
