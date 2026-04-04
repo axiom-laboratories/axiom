@@ -60,7 +60,7 @@ from sqlalchemy.future import select
 from sqlalchemy import update, desc, func, delete
 from collections import defaultdict
 from cryptography import x509 as _x509
-from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert, JobTemplate, ApprovedIngredient, IngredientDependency
+from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert, JobTemplate, ApprovedIngredient, IngredientDependency, ApprovedOS
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 from .services.job_service import JobService
 from .services.signature_service import SignatureService
@@ -224,12 +224,86 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(check_licence_expiry_bg())
 
+    # OCI cache warm-up (EE only) — pre-pull base images through cache on startup
+    async def warm_oci_cache():
+        """
+        Pre-warm OCI cache by pulling all approved OS base images through cache proxies.
+        Runs only if OCI cache URLs are configured (EE with mirrors profile).
+        Logs per-image success/failure but doesn't block startup.
+        """
+        import asyncio as _asyncio
+        import subprocess as _subprocess
+        from .services.mirror_service import MirrorService as _MirrorService
+
+        # Check if OCI caching is enabled
+        oci_cache_hub_url = os.getenv("OCI_CACHE_HUB_URL", "").strip()
+        oci_cache_ghcr_url = os.getenv("OCI_CACHE_GHCR_URL", "").strip()
+
+        if not (oci_cache_hub_url or oci_cache_ghcr_url):
+            logger.debug("OCI cache warm-up: disabled (no OCI_CACHE_HUB_URL or OCI_CACHE_GHCR_URL)")
+            return
+
+        # Small delay to allow DB to be fully ready
+        await _asyncio.sleep(2)
+
+        try:
+            async with AsyncSessionLocal() as db:
+                # Query all active approved OS records
+                result = await db.execute(select(ApprovedOS).where(ApprovedOS.is_active == True))  # noqa: E712
+                approved_os_list = result.scalars().all()
+
+                if not approved_os_list:
+                    logger.info("OCI cache warm-up: no approved OS records found")
+                    return
+
+                logger.info(f"OCI cache warm-up: starting for {len(approved_os_list)} approved OS entries")
+
+                for os_record in approved_os_list:
+                    try:
+                        base_image = os_record.image_uri
+
+                        # Rewrite image reference for OCI cache prefix
+                        rewritten_image = _MirrorService.get_oci_mirror_prefix(base_image)
+
+                        # Pull via cache using docker pull (non-blocking via asyncio.to_thread)
+                        def _pull_image(image_ref: str) -> str:
+                            """Synchronously pull an image via docker CLI."""
+                            result = _subprocess.run(
+                                ["docker", "pull", image_ref],
+                                capture_output=True,
+                                text=True,
+                                timeout=300  # 5 minute timeout per image
+                            )
+                            return result.returncode, result.stdout, result.stderr
+
+                        try:
+                            returncode, stdout, stderr = await _asyncio.to_thread(_pull_image, rewritten_image)
+                            if returncode == 0:
+                                logger.info(f"OCI cache warm-up: ✓ {base_image} → {rewritten_image}")
+                            else:
+                                logger.warning(f"OCI cache warm-up: ✗ {base_image} (exit={returncode}): {stderr[:200]}")
+                        except _subprocess.TimeoutExpired:
+                            logger.warning(f"OCI cache warm-up: ✗ {base_image} (timeout after 300s)")
+                        except Exception as inner_e:
+                            logger.warning(f"OCI cache warm-up: ✗ {base_image} ({inner_e})")
+
+                    except Exception as image_e:
+                        logger.warning(f"OCI cache warm-up: error processing OS record (id={os_record.id}): {image_e}")
+                        continue
+
+                logger.info("OCI cache warm-up: complete")
+
+        except Exception as e:
+            logger.error(f"OCI cache warm-up failed: {e}")
+
+    asyncio.create_task(warm_oci_cache())
+
     # Initialize mirrors_available flag and start health check background task
     app.state.mirrors_available = True  # Assume available at startup; first check will confirm
 
     async def check_mirrors_health():
         """
-        Periodically check mirror service health (PyPI, APT, and npm mirrors).
+        Periodically check mirror service health (PyPI, APT, npm, NuGet, OCI caches).
         Updates app.state.mirrors_available based on reachability.
         Runs every ~60 seconds (configurable via MIRROR_HEALTH_CHECK_INTERVAL env var).
         """
@@ -238,6 +312,9 @@ async def lifespan(app: FastAPI):
         pypi_mirror_url = os.getenv("PYPI_MIRROR_URL", "http://pypi:8080")
         apt_mirror_url = os.getenv("APT_MIRROR_URL", "http://mirror:80/apt/")
         npm_mirror_url = os.getenv("NPM_MIRROR_URL", "http://verdaccio:4873")
+        nuget_mirror_url = os.getenv("NUGET_MIRROR_URL", "http://bagetter:5555/v3/index.json")
+        oci_cache_hub_url = os.getenv("OCI_CACHE_HUB_URL", "http://oci-cache:5001")
+        oci_cache_ghcr_url = os.getenv("OCI_CACHE_GHCR_URL", "http://oci-cache-ghcr:5002")
 
         retry_delay = 5  # Initial retry delay for exponential backoff
 
@@ -266,8 +343,29 @@ async def lifespan(app: FastAPI):
                         logger.warning(f"Mirror health: npm mirror check failed: {e}")
                         npm_ok = False
 
+                    try:
+                        nuget_response = await client.get(nuget_mirror_url)
+                        nuget_ok = 200 <= nuget_response.status_code < 400
+                    except Exception as e:
+                        logger.warning(f"Mirror health: NuGet mirror check failed: {e}")
+                        nuget_ok = False
+
+                    try:
+                        oci_hub_response = await client.get(f"{oci_cache_hub_url}/v2/")
+                        oci_hub_ok = 200 <= oci_hub_response.status_code < 400
+                    except Exception as e:
+                        logger.warning(f"Mirror health: OCI Hub cache check failed: {e}")
+                        oci_hub_ok = False
+
+                    try:
+                        oci_ghcr_response = await client.get(f"{oci_cache_ghcr_url}/v2/")
+                        oci_ghcr_ok = 200 <= oci_ghcr_response.status_code < 400
+                    except Exception as e:
+                        logger.warning(f"Mirror health: OCI GHCR cache check failed: {e}")
+                        oci_ghcr_ok = False
+
                 # All mirrors must be reachable
-                mirrors_available = pypi_ok and apt_ok and npm_ok
+                mirrors_available = pypi_ok and apt_ok and npm_ok and nuget_ok and oci_hub_ok and oci_ghcr_ok
 
                 if mirrors_available:
                     if not app.state.mirrors_available:
@@ -275,7 +373,7 @@ async def lifespan(app: FastAPI):
                     app.state.mirrors_available = True
                     retry_delay = 5  # Reset backoff on success
                 else:
-                    logger.warning(f"Mirror health: Unreachable (PyPI={pypi_ok}, APT={apt_ok}, npm={npm_ok})")
+                    logger.warning(f"Mirror health: Unreachable (PyPI={pypi_ok}, APT={apt_ok}, npm={npm_ok}, NuGet={nuget_ok}, OCI-Hub={oci_hub_ok}, OCI-GHCR={oci_ghcr_ok})")
                     app.state.mirrors_available = False
                     # Exponential backoff: start at 5s, cap at 60s
                     retry_delay = min(retry_delay * 2, check_interval)
