@@ -13,6 +13,7 @@ services:
       - secrets-data:/app/secrets
     environment:
       - MIRROR_DATA_PATH=/app/mirror_data
+      - ALLOW_CONTAINER_MANAGEMENT=${ALLOW_CONTAINER_MANAGEMENT:-false}
 
   pypi:
     image: pypiserver/pypiserver:latest
