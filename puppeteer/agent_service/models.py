@@ -627,6 +627,39 @@ class ApprovedIngredientUpdate(BaseModel):
 class MirrorConfigUpdate(BaseModel):
     pypi_mirror_url: Optional[str] = None
     apt_mirror_url: Optional[str] = None
+    apk_mirror_url: Optional[str] = None
+    npm_mirror_url: Optional[str] = None
+    nuget_mirror_url: Optional[str] = None
+    oci_hub_mirror_url: Optional[str] = None
+    oci_ghcr_mirror_url: Optional[str] = None
+    conda_mirror_url: Optional[str] = None
+
+    @field_validator('pypi_mirror_url', 'apt_mirror_url', 'apk_mirror_url',
+                     'npm_mirror_url', 'nuget_mirror_url', 'oci_hub_mirror_url',
+                     'oci_ghcr_mirror_url', 'conda_mirror_url', mode='before')
+    @classmethod
+    def validate_mirror_url(cls, v):
+        """Validate that mirror URL is a valid HTTP/HTTPS URL if provided."""
+        if v is None:
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+            if not (v.startswith('http://') or v.startswith('https://')):
+                raise ValueError(f"Mirror URL must start with http:// or https://: {v}")
+            return v
+        raise ValueError(f"Mirror URL must be a string: {v}")
+
+
+class MirrorConfigResponse(BaseModel):
+    pypi_mirror_url: str
+    apt_mirror_url: str
+    apk_mirror_url: str
+    npm_mirror_url: str
+    nuget_mirror_url: str
+    oci_hub_mirror_url: str
+    oci_ghcr_mirror_url: str
+    conda_mirror_url: str
+    health_status: Dict[str, str]  # { "pypi": "ok", "apt": "ok", ..., "conda": "ok" }
 
 
 # --- User Management (EE) ---
