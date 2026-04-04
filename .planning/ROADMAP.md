@@ -82,7 +82,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (completed 2026-04-03)
 - [x] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer (completed 2026-04-04)
 - [x] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars (completed 2026-04-04)
-- [x] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems (Plan 01 completed 2026-04-04)
+- [x] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems (Plans 01, 02, 02b completed 2026-04-04)
 - [ ] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis
 - [ ] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers
 - ~~Phase 115: Operator UX Polish~~ — **deferred to v20.0** (UX polish, not blocking air-gap)
@@ -189,10 +189,10 @@ Plans:
 **Plans**: 3/3 plans
 
 Plans:
-- [ ] 112-01-PLAN.md — Conda mirror backend + .condarc injection + Caddyfile routing (MIRR-06 backend)
-- [ ] 112-02-PLAN.md — Mirror admin UI with 8 ecosystem cards (MIRR-08)
-- [ ] 112-02b-PLAN.md — Docker provisioning + ToS backend (MIRR-09, MIRR-06 backend)
-- [ ] 112-03-PLAN.md — Conda ToS blocking modal in Smelter UI (MIRR-06 UI)
+- [x] 112-01-PLAN.md — Conda mirror backend + .condarc injection + Caddyfile routing (MIRR-06 backend) (completed 2026-04-04)
+- [x] 112-02-PLAN.md — Mirror admin UI with 8 ecosystem cards (MIRR-08) (completed 2026-04-04)
+- [x] 112-02b-PLAN.md — Docker provisioning + ToS backend (MIRR-09, MIRR-06 backend) (completed 2026-04-04)
+- [x] 112-03-PLAN.md — Conda ToS blocking modal in Smelter UI (MIRR-06 UI) (completed 2026-04-04)
 
 **Wave Structure**:
 - Wave 1: Conda mirror backend (mirror_service._mirror_conda, .condarc injection, Caddyfile)
