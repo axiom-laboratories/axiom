@@ -197,7 +197,12 @@ class FoundryService:
                 )
 
             # 2. Build Dockerfile Content
-            dockerfile = [f"FROM {base_os}"]
+            # Rewrite base image for OCI caching if enabled
+            base_image = base_os
+            if os.getenv("OCI_CACHE_HUB_URL") or os.getenv("OCI_CACHE_GHCR_URL"):
+                base_image = MirrorService.get_oci_mirror_prefix(base_os)
+
+            dockerfile = [f"FROM {base_image}"]
 
             # 2.5 Mirror Configuration Injection (content computed now, files written after build_dir exists)
             pip_conf = MirrorService.get_pip_conf_content()
@@ -209,7 +214,24 @@ class FoundryService:
             elif os_family == "ALPINE":
                 dockerfile.append("COPY repositories /etc/apk/repositories")
 
-            
+            # Ecosystem-based config injection
+            config_files = {}
+
+            # npm config (.npmrc)
+            if "npm" in [ing.lower() for ing in rt_def.get("packages", {}).keys()] or \
+               any("npm" in str(tool.get("id", "")).lower() for tool in rt_def.get("tools", [])):
+                npmrc_conf = MirrorService.get_npmrc_content()
+                dockerfile.append("COPY .npmrc /root/.npmrc")
+                config_files["npmrc"] = npmrc_conf
+
+            # NuGet config (nuget.config)
+            if "nuget" in [pkg.lower() for pkg in rt_def.get("packages", {}).keys()] or \
+               any("nuget" in str(tool.get("id", "")).lower() for tool in rt_def.get("tools", [])):
+                nuget_conf = MirrorService.get_nuget_config_content()
+                dockerfile.append("COPY nuget.config /root/.nuget/NuGet/NuGet.Config")
+                config_files["nuget"] = nuget_conf
+
+
             # Injection Recipes
             for tool in rt_def.get("tools", []):
                 tool_id = tool.get("id")
@@ -260,6 +282,19 @@ class FoundryService:
                     for line in dockerfile
                 ]
 
+            # OCI cache FROM rewriting (if OCI caches are enabled)
+            if os.getenv("OCI_CACHE_HUB_URL") or os.getenv("OCI_CACHE_GHCR_URL"):
+                rewritten_dockerfile = []
+                for line in dockerfile:
+                    if line.startswith("FROM "):
+                        # Extract image reference and rewrite
+                        original_image = line.split("FROM ", 1)[1].strip()
+                        rewritten_image = MirrorService.get_oci_mirror_prefix(original_image)
+                        rewritten_dockerfile.append(f"FROM {rewritten_image}")
+                    else:
+                        rewritten_dockerfile.append(line)
+                dockerfile = rewritten_dockerfile
+
             # 3. Perform Build
             image_tag = tmpl.friendly_name
             image_uri = f"localhost:5000/puppet:{image_tag}"
@@ -280,6 +315,14 @@ class FoundryService:
             if os_family == "ALPINE":
                 with open(os.path.join(build_dir, "repositories"), "w") as f:
                     f.write(repositories)
+
+            # Write ecosystem-specific config files
+            if "npmrc" in config_files:
+                with open(os.path.join(build_dir, ".npmrc"), "w") as f:
+                    f.write(config_files["npmrc"])
+            if "nuget" in config_files:
+                with open(os.path.join(build_dir, "nuget.config"), "w") as f:
+                    f.write(config_files["nuget"])
 
             # Copy puppet source files into the build context
             env_src = os.path.join(puppets_src, "environment_service")
