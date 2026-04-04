@@ -244,9 +244,12 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete | 2026-04-03 |
 | 110. CVE Transitive Scan + Dependency Tree UI | 2/2 | Complete | 2026-04-04 |
 | 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
-| 112. Conda Mirror + Mirror Admin UI | 2/4 | Complete    | 2026-04-04 |
+| 112. Conda Mirror + Mirror Admin UI | 4/4 | Complete    | 2026-04-04 |
 | 113. Script Analyzer | 0/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
+| 116. Fix smelter DB migration + EE licence hot-reload | 2/2 | Complete | 2026-04-04 |
+| 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
+| 118. UI polish and verification | 4/4 | Complete | 2026-04-04 |
 | 115. Operator UX Polish | — | Deferred to v20.0 | - |
 
 ## Archived
@@ -291,14 +294,14 @@ Plans:
 
 **Requirements**: None specified
 
-**Plans:** 5 plans (4 execution complete, 1 verification blocked)
+**Plans:** 5/5 plans complete
 
 Plans:
 - [x] 117-00-PLAN.md — Test infrastructure foundation (Wave 0 TDD RED phase) — completed 2026-04-02
 - [x] 117-01-PLAN.md — CSS variables foundation + FOWT prevention (Wave 1) — completed 2026-04-02
 - [x] 117-02-PLAN.md — Theme provider hook + toggle component (Wave 2) — completed 2026-04-02
 - [x] 117-03-PLAN.md — Component styling migration to theme-aware classes (Wave 3) — completed 2026-04-03
-- [ ] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 4)
+- [x] 117-04-PLAN.md — Verification checkpoint for light/dark mode functionality (Wave 4) — verified 2026-04-04
 
 **Wave Structure:**
 - Wave 0: Comprehensive test coverage defining expected behavior (TDD RED phase) — completed 2026-04-02

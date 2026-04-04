@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Phase 112 context gathered
-last_updated: "2026-04-04T21:04:00.944Z"
-last_activity: 2026-04-04 -- Completed 112-03-PLAN.md (Smelter Conda Defaults ToS Modal UI)
+stopped_at: Phases 116-118 marked complete, planning Phase 113
+last_updated: "2026-04-04T23:00:00.000Z"
+last_activity: 2026-04-04 -- Marked phases 116, 117, 118 complete; planning phase 113
 progress:
   total_phases: 11
   completed_phases: 9
-  total_plans: 30
-  completed_plans: 30
-  percent: 100
+  total_plans: 41
+  completed_plans: 41
+  percent: 82
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-01)
 
 **Core value:** Jobs run reliably -- on the right node, when scheduled, with their output captured -- without any step in the chain weakening the security model.
-**Current focus:** Phase 118 - UI Polish and Verification
+**Current focus:** Phase 113 - Script Analyzer
 
 ## Current Position
 
-Phase: 112 of 12 (112 - Conda Mirror & Mirror Admin UI)
-Plan: 3 of 3 in current phase (COMPLETED 112-01, 112-02, 112-02b, 112-03)
-Status: executing
-Last activity: 2026-04-04 -- Completed 112-03-PLAN.md (Smelter Conda Defaults ToS Modal UI)
+Phase: 113 of 14 (113 - Script Analyzer)
+Plan: 0 of 2 in current phase (planning)
+Status: planning
+Last activity: 2026-04-04 -- Marked phases 116, 117, 118 complete; planning phase 113
 
 Progress: [████████████████████] 100%
 
@@ -48,7 +48,7 @@ Progress: [████████████████████] 100%
 | 109 | 3/3 | 135min | 45min |
 | 110 | 2/2 | 135min | 68min |
 | 116 | 2/2 | 80min | 40min |
-| 117 | 4/5 | 135min | 34min |
+| 117 | 5/5 | 135min | 27min |
 | 118 | 4/4 | 152min | 38min |
 | 111 | 3/3 | 95min | 32min |
 
