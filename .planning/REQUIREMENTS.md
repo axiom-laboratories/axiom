@@ -30,7 +30,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **MIRR-05**: OCI pull-through cache using registry:2 so Foundry base image pulls work in air-gap
 - [x] **MIRR-06**: Conda mirror backend with Anaconda ToS warning when operator selects the defaults channel
 - [x] **MIRR-07**: All mirror sidecars defined as compose services with opt-in profiles (not started by default)
-- [ ] **MIRR-08**: Admin mirror configuration UI includes URL fields for all new ecosystems (apk, OCI, Verdaccio, Conda, BaGetter)
+- [x] **MIRR-08**: Admin mirror configuration UI includes URL fields for all new ecosystems (apk, OCI, Verdaccio, Conda, BaGetter)
 - [ ] **MIRR-09**: Operator can enable/disable mirror services from the Admin dashboard (one-click provisioning via Docker socket)
 - [x] **MIRR-10**: Smelter ingredient model has an explicit ecosystem enum (PYPI, APT, APK, OCI, NPM, CONDA, NUGET) alongside existing os_family
 
@@ -90,7 +90,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIRR-05 | Phase 111 | Pending |
 | MIRR-06 | Phase 112 | Complete |
 | MIRR-07 | Phase 109 | Complete |
-| MIRR-08 | Phase 112 | Pending |
+| MIRR-08 | Phase 112 | Complete |
 | MIRR-09 | Phase 112 | Pending |
 | MIRR-10 | Phase 107 | Complete |
 | UX-01 | Phase 113 | Pending |
