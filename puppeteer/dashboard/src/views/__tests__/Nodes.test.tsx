@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from '../../hooks/useTheme';
 import Nodes from '../Nodes';
 
 // Mock authenticatedFetch
@@ -46,7 +47,9 @@ const renderWithProviders = (ui: React.ReactElement) =>
     render(
         <BrowserRouter>
             <QueryClientProvider client={createQueryClient()}>
-                {ui}
+                <ThemeProvider>
+                    {ui}
+                </ThemeProvider>
             </QueryClientProvider>
         </BrowserRouter>
     );

@@ -34,7 +34,7 @@ const mockHighCVE: CVEDetail = {
 
 describe("CVEBadge", () => {
   it("test_cve_badge_colors_by_severity", () => {
-    // Test CRITICAL severity renders red
+    // Test CRITICAL severity renders with CSS variable classes
     const { rerender } = render(
       <CVEBadge
         cve_count={1}
@@ -45,10 +45,11 @@ describe("CVEBadge", () => {
     );
 
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("bg-red-100");
-    expect(button).toHaveClass("text-red-900");
+    // Check for CSS variable classes instead of hardcoded colors
+    expect(button.className).toContain("bg-[hsl(var(--cve-critical-bg))]");
+    expect(button.className).toContain("text-[hsl(var(--cve-critical-fg))]");
 
-    // Test HIGH severity renders orange
+    // Test HIGH severity renders with high severity CSS variables
     rerender(
       <CVEBadge
         cve_count={1}
@@ -58,9 +59,9 @@ describe("CVEBadge", () => {
       />
     );
 
-    expect(button).toHaveClass("bg-orange-100");
+    expect(button.className).toContain("bg-[hsl(var(--cve-high-bg))]");
 
-    // Test MEDIUM severity renders yellow
+    // Test MEDIUM severity renders with medium severity CSS variables
     rerender(
       <CVEBadge
         cve_count={1}
@@ -70,9 +71,9 @@ describe("CVEBadge", () => {
       />
     );
 
-    expect(button).toHaveClass("bg-yellow-100");
+    expect(button.className).toContain("bg-[hsl(var(--cve-medium-bg))]");
 
-    // Test LOW severity renders blue
+    // Test LOW severity renders with low severity CSS variables
     rerender(
       <CVEBadge
         cve_count={1}
@@ -82,7 +83,7 @@ describe("CVEBadge", () => {
       />
     );
 
-    expect(button).toHaveClass("bg-blue-100");
+    expect(button.className).toContain("bg-[hsl(var(--cve-low-bg))]");
   });
 
   it("test_cve_detail_panel_expandable", () => {

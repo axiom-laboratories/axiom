@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '../../hooks/useTheme';
 
 // Mock useLicence — we control it per test
 const mockUseLicence = vi.fn();
@@ -38,7 +39,9 @@ import MainLayout from '../MainLayout';
 const renderLayout = () =>
     render(
         <MemoryRouter>
-            <MainLayout />
+            <ThemeProvider>
+                <MainLayout />
+            </ThemeProvider>
         </MemoryRouter>
     );
 
