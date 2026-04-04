@@ -504,3 +504,216 @@ def test_get_npmrc_content_default():
         content = MirrorService.get_npmrc_content()
         assert "registry=" in content
         assert "verdaccio:4873" in content
+
+
+# === NuGet Mirroring Tests (Task 6, Phase 111-02) ===
+
+@pytest.mark.asyncio
+async def test_mirror_nuget_success():
+    """Verify _mirror_nuget() downloads NuGet package and updates status to MIRRORED."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="nuget-test-id",
+        name="Newtonsoft.Json",
+        version_constraint="==13.0.3",
+        os_family="WINDOWS"
+    )
+
+    with patch("subprocess.run") as mock_run, \
+         patch("os.makedirs"), \
+         patch("os.walk") as mock_walk:
+
+        # Simulate successful nuget install
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="Successfully installed Newtonsoft.Json 13.0.3",
+            stderr=""
+        )
+        # Mock os.walk to find the .nupkg file
+        mock_walk.return_value = [
+            ("/mirror", [], ["Newtonsoft.Json.13.0.3.nupkg"])
+        ]
+
+        await MirrorService._mirror_nuget(mock_db, ingredient)
+
+        # Verify docker run command was issued
+        args, kwargs = mock_run.call_args
+        cmd = args[0]
+        assert "docker" in cmd
+        assert "mcr.microsoft.com/dotnet/sdk:latest" in cmd
+        assert "nuget install" in cmd or any("nuget install" in str(c) for c in cmd)
+        assert "Newtonsoft.Json" in cmd or any("Newtonsoft.Json" in str(c) for c in cmd)
+
+        # Verify status updated
+        assert ingredient.mirror_status == "MIRRORED"
+        assert MirrorService.NUGET_PATH in ingredient.mirror_path  # Path includes package subdir
+        assert "Newtonsoft.Json" in ingredient.mirror_log
+        mock_db.commit.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_mirror_nuget_version_parsing():
+    """Test NuGet version constraint parsing."""
+    test_cases = [
+        ("Newtonsoft.Json", "==13.0.3", "Newtonsoft.Json", "13.0.3"),
+        ("NLog", ">=5.0.0", "NLog", "5.0.0"),
+        ("Serilog", None, "Serilog", None),  # No version
+    ]
+
+    mock_db = AsyncMock()
+
+    for name, version_constraint, expected_name, expected_version in test_cases:
+        ingredient = ApprovedIngredient(
+            id="nuget-test-id",
+            name=name,
+            version_constraint=version_constraint,
+            os_family="WINDOWS"
+        )
+
+        with patch("subprocess.run") as mock_run, \
+             patch("os.makedirs"), \
+             patch("os.walk") as mock_walk:
+
+            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+            mock_walk.return_value = [(f"/mirror", [], [f"{name}.nupkg"])]
+
+            await MirrorService._mirror_nuget(mock_db, ingredient)
+
+            # Verify correct package spec was used
+            args, kwargs = mock_run.call_args
+            cmd = args[0]
+            cmd_str = ' '.join(str(c) for c in cmd)
+            assert expected_name in cmd_str
+
+
+@pytest.mark.asyncio
+async def test_mirror_nuget_container_failure():
+    """Verify _mirror_nuget() sets FAILED status on nuget install failure."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="nuget-fail-id",
+        name="NonexistentPackage",
+        version_constraint="==1.0.0",
+        os_family="WINDOWS"
+    )
+
+    with patch("subprocess.run") as mock_run, patch("os.makedirs"):
+        # Simulate failed nuget install
+        mock_run.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="Unable to find package NonexistentPackage version 1.0.0"
+        )
+
+        await MirrorService._mirror_nuget(mock_db, ingredient)
+
+        assert ingredient.mirror_status == "FAILED"
+        assert "NonexistentPackage" in ingredient.mirror_log or "1.0.0" in ingredient.mirror_log
+        mock_db.commit.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_mirror_nuget_timeout():
+    """Verify _mirror_nuget() sets FAILED status on timeout."""
+    import asyncio
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="nuget-timeout-id",
+        name="LargePackage",
+        version_constraint="==1.0.0",
+        os_family="WINDOWS"
+    )
+
+    with patch("subprocess.run") as mock_run, patch("os.makedirs"):
+        # Simulate timeout by raising TimeoutError from subprocess call
+        mock_run.side_effect = asyncio.TimeoutError()
+
+        await MirrorService._mirror_nuget(mock_db, ingredient)
+
+        assert ingredient.mirror_status == "FAILED"
+        assert "timeout" in ingredient.mirror_log.lower()
+        mock_db.commit.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_mirror_nuget_missing_file():
+    """Verify _mirror_nuget() sets FAILED status when .nupkg file not found."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="nuget-missing-id",
+        name="TestPackage",
+        version_constraint="==1.0.0",
+        os_family="WINDOWS"
+    )
+
+    with patch("subprocess.run") as mock_run, \
+         patch("os.makedirs"), \
+         patch("os.walk") as mock_walk:
+
+        # nuget install succeeds but no .nupkg file found
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mock_walk.return_value = [("/mirror", [], [])]  # Empty directory
+
+        await MirrorService._mirror_nuget(mock_db, ingredient)
+
+        assert ingredient.mirror_status == "FAILED"
+        assert "not found" in ingredient.mirror_log.lower() or ".nupkg" in ingredient.mirror_log
+        mock_db.commit.assert_called()
+
+
+def test_get_nuget_config_content():
+    """Verify get_nuget_config_content() returns valid NuGet.config XML."""
+    with patch.dict("os.environ", {"NUGET_MIRROR_URL": "http://bagetter:5555/v3/index.json"}):
+        content = MirrorService.get_nuget_config_content()
+        assert "<?xml version" in content
+        assert "<packageSources>" in content
+        assert "http://bagetter:5555/v3/index.json" in content
+        assert '<add key=' in content or '<packageSource key=' in content
+
+
+def test_get_nuget_config_default():
+    """Verify get_nuget_config_content() uses default URL when env var unset."""
+    with patch.dict("os.environ", {}, clear=True):
+        content = MirrorService.get_nuget_config_content()
+        assert "<?xml version" in content
+        assert "<packageSources>" in content
+        assert "bagetter" in content.lower()
+
+
+# === OCI Mirror Prefix Rewriting Tests ===
+
+def test_get_oci_mirror_prefix_docker_hub_unqualified():
+    """Test Docker Hub unqualified image (e.g., 'node') rewrites to oci-cache:5001/library/node."""
+    rewritten = MirrorService.get_oci_mirror_prefix("node:18")
+    assert rewritten == "oci-cache:5001/library/node:18"
+
+
+def test_get_oci_mirror_prefix_docker_hub_qualified():
+    """Test Docker Hub qualified image (e.g., 'library/node') rewrites to oci-cache:5001/library/node."""
+    rewritten = MirrorService.get_oci_mirror_prefix("library/node:18")
+    assert rewritten == "oci-cache:5001/library/node:18"
+
+
+def test_get_oci_mirror_prefix_ghcr():
+    """Test GHCR image (ghcr.io/...) rewrites to oci-cache-ghcr:5002."""
+    rewritten = MirrorService.get_oci_mirror_prefix("ghcr.io/owner/image:latest")
+    assert rewritten == "oci-cache-ghcr:5002/owner/image:latest"
+
+
+def test_get_oci_mirror_prefix_docker_registry():
+    """Test Docker-compatible registry (has domain) rewrites to oci-cache:5001."""
+    rewritten = MirrorService.get_oci_mirror_prefix("docker.io/library/python:3.11")
+    assert rewritten == "oci-cache:5001/docker.io/library/python:3.11"
+
+
+def test_get_oci_mirror_prefix_private_registry():
+    """Test private registry rewrites to oci-cache:5001."""
+    rewritten = MirrorService.get_oci_mirror_prefix("myregistry.com:5000/app/image:v1.0")
+    assert rewritten == "oci-cache:5001/myregistry.com:5000/app/image:v1.0"
+
+
+def test_get_oci_mirror_prefix_no_tag():
+    """Test image without tag (uses 'latest' implicitly)."""
+    rewritten = MirrorService.get_oci_mirror_prefix("node")
+    assert rewritten == "oci-cache:5001/library/node"
+    assert "latest" not in rewritten  # Should not add :latest
