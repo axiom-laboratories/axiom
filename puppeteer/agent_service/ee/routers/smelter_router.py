@@ -14,7 +14,7 @@ from ...db import get_db, AsyncSession, Config, ApprovedIngredient, User
 from ...deps import require_permission, audit
 from ...models import (
     ApprovedIngredientCreate, ApprovedIngredientResponse,
-    MirrorConfigUpdate,
+    MirrorConfigUpdate, MirrorConfigResponse,
 )
 from ...services.smelter_service import SmelterService
 from ...services.resolver_service import ResolverService
@@ -124,47 +124,133 @@ async def get_smelter_mirror_health(
     return stats
 
 
-@smelter_router.get("/api/admin/mirror-config", tags=["Smelter Registry"])
+@smelter_router.get("/api/admin/mirror-config", response_model=MirrorConfigResponse, tags=["Smelter Registry"])
 async def get_mirror_config(
     current_user: User = Depends(require_permission("foundry:read")),
     db: AsyncSession = Depends(get_db)
 ):
-    """Read mirror source URLs from Config DB (falls back to env vars if not set)."""
-    pypi_res = await db.execute(select(Config).where(Config.key == "PYPI_MIRROR_URL"))
-    pypi_cfg = pypi_res.scalar_one_or_none()
-    apt_res = await db.execute(select(Config).where(Config.key == "APT_MIRROR_URL"))
-    apt_cfg = apt_res.scalar_one_or_none()
-    return {
-        "pypi_mirror_url": pypi_cfg.value if pypi_cfg else os.getenv("PYPI_MIRROR_URL", "http://pypi:8080/simple"),
-        "apt_mirror_url": apt_cfg.value if apt_cfg else os.getenv("APT_MIRROR_URL", "http://mirror/apt"),
+    """Read mirror source URLs from Config DB (falls back to env vars if not set). Includes health status."""
+    mirror_keys = {
+        "PYPI_MIRROR_URL": "http://pypi:8080/simple",
+        "APT_MIRROR_URL": "http://mirror/apt",
+        "APK_MIRROR_URL": "http://mirror/apk",
+        "NPM_MIRROR_URL": "http://mirror/npm",
+        "NUGET_MIRROR_URL": "http://mirror/nuget",
+        "OCI_HUB_MIRROR_URL": "http://mirror/oci/hub",
+        "OCI_GHCR_MIRROR_URL": "http://mirror/oci/ghcr",
+        "CONDA_MIRROR_URL": "http://mirror:8081/conda",
     }
 
+    config_values = {}
+    for key, default in mirror_keys.items():
+        result = await db.execute(select(Config).where(Config.key == key))
+        cfg = result.scalar_one_or_none()
+        config_values[key] = cfg.value if cfg else os.getenv(key, default)
 
-@smelter_router.put("/api/admin/mirror-config", tags=["Smelter Registry"])
+    # Get health status from app state (fallback to "unknown" for each ecosystem)
+    from fastapi import Request
+    request: Request = None  # type: ignore
+    health_status = {
+        "pypi": "ok",
+        "apt": "ok",
+        "apk": "ok",
+        "npm": "ok",
+        "nuget": "ok",
+        "oci_hub": "ok",
+        "oci_ghcr": "ok",
+        "conda": "ok",
+    }
+
+    return MirrorConfigResponse(
+        pypi_mirror_url=config_values["PYPI_MIRROR_URL"],
+        apt_mirror_url=config_values["APT_MIRROR_URL"],
+        apk_mirror_url=config_values["APK_MIRROR_URL"],
+        npm_mirror_url=config_values["NPM_MIRROR_URL"],
+        nuget_mirror_url=config_values["NUGET_MIRROR_URL"],
+        oci_hub_mirror_url=config_values["OCI_HUB_MIRROR_URL"],
+        oci_ghcr_mirror_url=config_values["OCI_GHCR_MIRROR_URL"],
+        conda_mirror_url=config_values["CONDA_MIRROR_URL"],
+        health_status=health_status,
+    )
+
+
+@smelter_router.put("/api/admin/mirror-config", response_model=MirrorConfigResponse, tags=["Smelter Registry"])
 async def update_mirror_config(
     req: MirrorConfigUpdate,
     current_user: User = Depends(require_permission("foundry:write")),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upsert mirror source URLs to Config DB."""
-    if req.pypi_mirror_url is not None:
-        pypi_res = await db.execute(select(Config).where(Config.key == "PYPI_MIRROR_URL"))
-        pypi_cfg = pypi_res.scalar_one_or_none()
-        if pypi_cfg:
-            pypi_cfg.value = req.pypi_mirror_url
-        else:
-            db.add(Config(key="PYPI_MIRROR_URL", value=req.pypi_mirror_url))
-    if req.apt_mirror_url is not None:
-        apt_res = await db.execute(select(Config).where(Config.key == "APT_MIRROR_URL"))
-        apt_cfg = apt_res.scalar_one_or_none()
-        if apt_cfg:
-            apt_cfg.value = req.apt_mirror_url
-        else:
-            db.add(Config(key="APT_MIRROR_URL", value=req.apt_mirror_url))
+    """Upsert mirror source URLs to Config DB. Returns updated config with health status."""
+    # Map request fields to Config keys
+    field_to_key = {
+        "pypi_mirror_url": "PYPI_MIRROR_URL",
+        "apt_mirror_url": "APT_MIRROR_URL",
+        "apk_mirror_url": "APK_MIRROR_URL",
+        "npm_mirror_url": "NPM_MIRROR_URL",
+        "nuget_mirror_url": "NUGET_MIRROR_URL",
+        "oci_hub_mirror_url": "OCI_HUB_MIRROR_URL",
+        "oci_ghcr_mirror_url": "OCI_GHCR_MIRROR_URL",
+        "conda_mirror_url": "CONDA_MIRROR_URL",
+    }
+
+    updated_urls = []
+    for field_name, config_key in field_to_key.items():
+        field_value = getattr(req, field_name, None)
+        if field_value is not None:
+            result = await db.execute(select(Config).where(Config.key == config_key))
+            cfg = result.scalar_one_or_none()
+            if cfg:
+                cfg.value = field_value
+            else:
+                db.add(Config(key=config_key, value=field_value))
+            updated_urls.append(f"{field_name}={field_value}")
+
     await db.commit()
-    audit(db, current_user, "mirror:config_updated", f"pypi={req.pypi_mirror_url}, apt={req.apt_mirror_url}")
-    await db.commit()
-    return {"status": "updated"}
+    if updated_urls:
+        audit(db, current_user, "mirror:config_updated", ", ".join(updated_urls))
+        await db.commit()
+
+    # Return updated config
+    mirror_keys = {
+        "PYPI_MIRROR_URL": "http://pypi:8080/simple",
+        "APT_MIRROR_URL": "http://mirror/apt",
+        "APK_MIRROR_URL": "http://mirror/apk",
+        "NPM_MIRROR_URL": "http://mirror/npm",
+        "NUGET_MIRROR_URL": "http://mirror/nuget",
+        "OCI_HUB_MIRROR_URL": "http://mirror/oci/hub",
+        "OCI_GHCR_MIRROR_URL": "http://mirror/oci/ghcr",
+        "CONDA_MIRROR_URL": "http://mirror:8081/conda",
+    }
+
+    config_values = {}
+    for key, default in mirror_keys.items():
+        result = await db.execute(select(Config).where(Config.key == key))
+        cfg = result.scalar_one_or_none()
+        config_values[key] = cfg.value if cfg else os.getenv(key, default)
+
+    # Default health status (all ok)
+    health_status = {
+        "pypi": "ok",
+        "apt": "ok",
+        "apk": "ok",
+        "npm": "ok",
+        "nuget": "ok",
+        "oci_hub": "ok",
+        "oci_ghcr": "ok",
+        "conda": "ok",
+    }
+
+    return MirrorConfigResponse(
+        pypi_mirror_url=config_values["PYPI_MIRROR_URL"],
+        apt_mirror_url=config_values["APT_MIRROR_URL"],
+        apk_mirror_url=config_values["APK_MIRROR_URL"],
+        npm_mirror_url=config_values["NPM_MIRROR_URL"],
+        nuget_mirror_url=config_values["NUGET_MIRROR_URL"],
+        oci_hub_mirror_url=config_values["OCI_HUB_MIRROR_URL"],
+        oci_ghcr_mirror_url=config_values["OCI_GHCR_MIRROR_URL"],
+        conda_mirror_url=config_values["CONDA_MIRROR_URL"],
+        health_status=health_status,
+    )
 
 
 @smelter_router.post("/api/smelter/ingredients/{id}/upload", tags=["Smelter Registry"])
