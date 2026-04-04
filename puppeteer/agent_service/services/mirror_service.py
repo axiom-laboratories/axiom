@@ -18,6 +18,7 @@ class MirrorService:
     PYPI_PATH = os.path.join(MIRROR_BASE_PATH, "pypi")
     APT_PATH = os.path.join(MIRROR_BASE_PATH, "apt")
     APK_BASE_PATH = os.path.join(MIRROR_BASE_PATH, "apk")
+    NPM_PATH = os.path.join(MIRROR_BASE_PATH, "npm")
 
     @staticmethod
     async def mirror_ingredient(ingredient_id: str):
@@ -463,3 +464,90 @@ class MirrorService:
     def get_smelter_gpg_key() -> str:
         """Returns the Smelter GPG public key content (stub for now)."""
         return "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----\n"
+
+    @staticmethod
+    async def _mirror_npm(db: AsyncSession, ingredient: ApprovedIngredient) -> None:
+        """
+        Download an npm package using npm pack inside a throwaway Node.js container.
+        Uses asyncio.to_thread for subprocess execution.
+        Updates ingredient.mirror_status and mirror_log on success/failure.
+        """
+        try:
+            os.makedirs(MirrorService.NPM_PATH, exist_ok=True)
+
+            # Parse version constraint: "lodash@4.17.21", "lodash@latest", "lodash@next"
+            # Accept {name}@{version} format or just version constraint
+            pkg_spec = ingredient.name
+            if ingredient.version_constraint:
+                # Remove leading @ if present, then add it back
+                version = ingredient.version_constraint.lstrip('@')
+                if version:
+                    pkg_spec = f"{ingredient.name}@{version}"
+
+            # Run npm pack inside a throwaway node:latest container
+            # npm pack downloads tarball and saves it to current directory
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{MirrorService.NPM_PATH}:/mirror",
+                "node:latest",
+                "bash", "-c",
+                f"npm pack {pkg_spec} -C /mirror"
+            ]
+
+            logger.info(f"Mirror: Running npm pack for {pkg_spec}")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if process.returncode == 0:
+                # Extract tarball filename from stdout
+                # npm pack outputs the filename as last line
+                output_lines = process.stdout.strip().split('\n')
+                tarball_name = output_lines[-1] if output_lines else None
+
+                if tarball_name:
+                    # Verify tarball was created
+                    tarball_path = os.path.join(MirrorService.NPM_PATH, tarball_name)
+                    if os.path.exists(tarball_path):
+                        ingredient.mirror_status = "MIRRORED"
+                        ingredient.mirror_path = MirrorService.NPM_PATH
+                        ingredient.mirror_log = f"Downloaded {pkg_spec}; saved as {tarball_name}"
+                        logger.info(f"Mirror: Successfully mirrored npm package {pkg_spec} -> {tarball_name}")
+                    else:
+                        ingredient.mirror_status = "FAILED"
+                        ingredient.mirror_log = f"Tarball not found after npm pack: {tarball_name}"
+                        logger.error(f"Mirror: npm pack reported success but tarball missing: {tarball_name}")
+                else:
+                    ingredient.mirror_status = "FAILED"
+                    ingredient.mirror_log = "npm pack succeeded but no filename in output"
+                    logger.error(f"Mirror: npm pack succeeded but no output for {pkg_spec}")
+            else:
+                ingredient.mirror_status = "FAILED"
+                ingredient.mirror_log = process.stderr or process.stdout or "npm pack failed with unknown error"
+                logger.error(f"Mirror: npm pack failed for {pkg_spec}: {process.stderr}")
+
+            await db.commit()
+
+        except asyncio.TimeoutError:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = "npm pack timeout after 120s"
+            await db.commit()
+            logger.error(f"Mirror: Timeout downloading npm package {ingredient.name}")
+        except Exception as e:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = str(e)
+            await db.commit()
+            logger.error(f"Mirror: Error mirroring npm package {ingredient.name}: {str(e)}")
+
+    @staticmethod
+    def get_npmrc_content() -> str:
+        """
+        Returns the content for a .npmrc file pointing to the local npm mirror (Verdaccio).
+        Format suitable for injection into Dockerfile.
+        """
+        url = os.getenv("NPM_MIRROR_URL", "http://verdaccio:4873")
+        return f"registry={url}\n"

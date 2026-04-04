@@ -23,6 +23,16 @@ services:
     ports:
       - "8080:8080"
 
+  verdaccio:
+    image: verdaccio/verdaccio:latest
+    restart: always
+    volumes:
+      - verdaccio-data:/verdaccio/storage
+    ports:
+      - "4873:4873"
+    environment:
+      - VERDACCIO_PORT=4873
+
   mirror:
     image: caddy:latest
     restart: always
@@ -34,3 +44,4 @@ services:
 
 volumes:
   mirror-data:
+  verdaccio-data:

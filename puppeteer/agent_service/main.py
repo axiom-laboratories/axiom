@@ -229,7 +229,7 @@ async def lifespan(app: FastAPI):
 
     async def check_mirrors_health():
         """
-        Periodically check mirror service health (PyPI and APT mirrors).
+        Periodically check mirror service health (PyPI, APT, and npm mirrors).
         Updates app.state.mirrors_available based on reachability.
         Runs every ~60 seconds (configurable via MIRROR_HEALTH_CHECK_INTERVAL env var).
         """
@@ -237,12 +237,13 @@ async def lifespan(app: FastAPI):
         check_interval = int(os.getenv("MIRROR_HEALTH_CHECK_INTERVAL", "60"))
         pypi_mirror_url = os.getenv("PYPI_MIRROR_URL", "http://pypi:8080")
         apt_mirror_url = os.getenv("APT_MIRROR_URL", "http://mirror:80/apt/")
+        npm_mirror_url = os.getenv("NPM_MIRROR_URL", "http://verdaccio:4873")
 
         retry_delay = 5  # Initial retry delay for exponential backoff
 
         while True:
             try:
-                # Health check both mirrors with 10s timeout
+                # Health check mirrors with 10s timeout
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     try:
                         pypi_response = await client.get(pypi_mirror_url)
@@ -258,16 +259,23 @@ async def lifespan(app: FastAPI):
                         logger.warning(f"Mirror health: APT mirror check failed: {e}")
                         apt_ok = False
 
-                # Both mirrors must be reachable
-                mirrors_available = pypi_ok and apt_ok
+                    try:
+                        npm_response = await client.get(npm_mirror_url)
+                        npm_ok = 200 <= npm_response.status_code < 400
+                    except Exception as e:
+                        logger.warning(f"Mirror health: npm mirror check failed: {e}")
+                        npm_ok = False
+
+                # All mirrors must be reachable
+                mirrors_available = pypi_ok and apt_ok and npm_ok
 
                 if mirrors_available:
                     if not app.state.mirrors_available:
-                        logger.info("Mirror health: Both mirrors became available")
+                        logger.info("Mirror health: All mirrors became available")
                     app.state.mirrors_available = True
                     retry_delay = 5  # Reset backoff on success
                 else:
-                    logger.warning(f"Mirror health: Unreachable (PyPI={pypi_ok}, APT={apt_ok})")
+                    logger.warning(f"Mirror health: Unreachable (PyPI={pypi_ok}, APT={apt_ok}, npm={npm_ok})")
                     app.state.mirrors_available = False
                     # Exponential backoff: start at 5s, cap at 60s
                     retry_delay = min(retry_delay * 2, check_interval)
