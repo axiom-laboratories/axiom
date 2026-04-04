@@ -164,6 +164,11 @@ async def get_mirror_config(
     # Check if provisioning is enabled
     provisioning_enabled = os.getenv("ALLOW_CONTAINER_MANAGEMENT", "false").lower() == "true"
 
+    # Check if current user has acknowledged Conda defaults ToS
+    conda_defaults_ack_key = f"CONDA_DEFAULTS_TOS_ACKNOWLEDGED_BY_{current_user.id}"
+    result = await db.execute(select(Config).where(Config.key == conda_defaults_ack_key))
+    conda_defaults_ack = result.scalar_one_or_none() is not None
+
     return MirrorConfigResponse(
         pypi_mirror_url=config_values["PYPI_MIRROR_URL"],
         apt_mirror_url=config_values["APT_MIRROR_URL"],
@@ -175,6 +180,7 @@ async def get_mirror_config(
         conda_mirror_url=config_values["CONDA_MIRROR_URL"],
         health_status=health_status,
         provisioning_enabled=provisioning_enabled,
+        conda_defaults_acknowledged_by_current_user=conda_defaults_ack,
     )
 
 
