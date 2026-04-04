@@ -22,6 +22,8 @@ services:
       - mirror-data:/data/packages
     ports:
       - "8080:8080"
+    profiles:
+      - mirrors
 
   verdaccio:
     image: verdaccio/verdaccio:latest
@@ -32,6 +34,45 @@ services:
       - "4873:4873"
     environment:
       - VERDACCIO_PORT=4873
+    profiles:
+      - mirrors
+
+  bagetter:
+    image: bagetter/bagetter:latest
+    restart: always
+    ports:
+      - "5555:80"
+    volumes:
+      - bagetter-data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - BaGetter_ApiKeyAuthenticationOptions__ApiKey=
+    profiles:
+      - mirrors
+
+  oci-cache-hub:
+    image: registry:v2
+    restart: always
+    ports:
+      - "5001:5000"
+    volumes:
+      - oci-cache-hub-data:/var/lib/registry
+    environment:
+      - REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io
+    profiles:
+      - mirrors
+
+  oci-cache-ghcr:
+    image: registry:v2
+    restart: always
+    ports:
+      - "5002:5000"
+    volumes:
+      - oci-cache-ghcr-data:/var/lib/registry
+    environment:
+      - REGISTRY_PROXY_REMOTEURL=https://ghcr.io
+    profiles:
+      - mirrors
 
   mirror:
     image: caddy:latest
@@ -41,7 +82,12 @@ services:
       - mirror-data:/data
     ports:
       - "8081:80"
+    profiles:
+      - mirrors
 
 volumes:
   mirror-data:
   verdaccio-data:
+  bagetter-data:
+  oci-cache-hub-data:
+  oci-cache-ghcr-data:
