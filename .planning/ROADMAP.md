@@ -171,11 +171,11 @@ Plans:
   2. Operator can approve a NuGet package and it is mirrored via BaGetter with a compose sidecar
   3. OCI base images used by Foundry are cached through a registry:2 pull-through proxy so image pulls work in air-gap
   4. All three new sidecars use the `--profile mirrors` compose pattern established in Phase 109
-**Plans**: TBD
+**Plans**: 2/2 plans
 
 Plans:
-- [ ] 111-01: npm mirror backend + Verdaccio sidecar
-- [ ] 111-02: NuGet mirror backend + BaGetter sidecar + OCI pull-through config
+- [x] 111-01-PLAN.md — npm mirror backend + Verdaccio sidecar + Smelter integration (completed 2026-04-04)
+- [x] 111-02-PLAN.md — NuGet mirror backend + BaGetter sidecar + OCI pull-through config (completed 2026-04-04)
 
 ### Phase 112: Conda Mirror + Mirror Admin UI
 **Goal**: Operators can mirror Conda packages with proper licensing awareness, and configure all mirror URLs from the Admin dashboard
@@ -236,7 +236,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
 | 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete    | 2026-04-04 |
 | 110. CVE Transitive Scan + Dependency Tree UI | 3/3 | Complete    | 2026-04-04 |
-| 111. npm + NuGet + OCI Mirrors | 0/2 | Not started | - |
+| 111. npm + NuGet + OCI Mirrors | 2/2 | Complete | - |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
 | 113. Script Analyzer | 0/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
