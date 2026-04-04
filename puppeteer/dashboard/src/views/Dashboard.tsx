@@ -36,6 +36,7 @@ const Dashboard = () => {
                 const nodes: any[] = Array.isArray(nodesData) ? nodesData : (nodesData.items ?? []);
                 const jobs: any[] = Array.isArray(jobsData) ? jobsData : (jobsData.items ?? []);
 
+                const totalNodes = nodes.length;
                 const onlineNodes = nodes.filter(n => n.status === 'ONLINE').length;
 
                 // Use backend aggregated stats for precision
@@ -45,7 +46,7 @@ const Dashboard = () => {
                 const total = completed + failed;
                 const rate = total > 0 ? Math.round((completed / total) * 100) : 100;
 
-                setStats({ activeNodes: onlineNodes, runningJobs, successRate: rate });
+                setStats({ activeNodes: totalNodes, runningJobs, successRate: rate });
                 setRecentJobs(jobs.slice(0, 5));
 
                 // Aggregate failure trend for the last 7 days
@@ -101,7 +102,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="bg-card border-muted hover:border-primary/50 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Active Nodes</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Nodes</CardTitle>
                         <Network className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
@@ -110,10 +111,7 @@ const Dashboard = () => {
                         ) : (
                             <div className="text-3xl font-bold text-foreground tracking-tight">{stats.activeNodes}</div>
                         )}
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                            Nodes currently responding to heartbeat
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Total nodes in mesh</p>
                     </CardContent>
                 </Card>
 
