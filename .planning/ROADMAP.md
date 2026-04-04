@@ -83,7 +83,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer (completed 2026-04-04)
 - [x] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars (completed 2026-04-04)
 - [x] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems (Plans 01, 02, 02b completed 2026-04-04)
-- [ ] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis
+- [x] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis (completed 2026-04-04)
 - [ ] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers
 - ~~Phase 115: Operator UX Polish~~ — **deferred to v20.0** (UX polish, not blocking air-gap)
 
@@ -245,7 +245,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 110. CVE Transitive Scan + Dependency Tree UI | 2/2 | Complete | 2026-04-04 |
 | 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 4/4 | Complete    | 2026-04-04 |
-| 113. Script Analyzer | 2/2 | Not started | - |
+| 113. Script Analyzer | 2/2 | Complete    | 2026-04-04 |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
 | 116. Fix smelter DB migration + EE licence hot-reload | 2/2 | Complete | 2026-04-04 |
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
@@ -267,7 +267,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 4/4 plans complete
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
