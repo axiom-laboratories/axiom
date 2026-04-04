@@ -236,7 +236,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
 | 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete    | 2026-04-04 |
 | 110. CVE Transitive Scan + Dependency Tree UI | 3/3 | Complete    | 2026-04-04 |
-| 111. npm + NuGet + OCI Mirrors | 2/2 | Complete | - |
+| 111. npm + NuGet + OCI Mirrors | 1/2 | In Progress|  |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
 | 113. Script Analyzer | 0/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
@@ -257,7 +257,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 3/3 plans complete
+**Plans:** 1/2 plans executed
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
