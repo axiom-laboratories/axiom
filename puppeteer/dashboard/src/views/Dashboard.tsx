@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import {
     Activity,
@@ -13,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { authenticatedFetch } from '../auth';
 
 const Dashboard = () => {
+    const { theme } = useTheme();
     const [stats, setStats] = useState({ activeNodes: 0, runningJobs: 0, successRate: 100 });
     const [recentJobs, setRecentJobs] = useState([]);
     const [chartData, setChartData] = useState([]);
@@ -180,9 +182,12 @@ const Dashboard = () => {
                                     cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                                 />
                                 <Bar dataKey="failures" radius={[4, 4, 0, 0]}>
-                                    {chartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.failures > 0 ? '#ef4444' : '#10b981'} fillOpacity={0.8} />
-                                    ))}
+                                    {chartData.map((entry, index) => {
+                                        const failureColor = theme === 'dark' ? (entry.failures > 0 ? '#f87171' : '#6ee7b7') : (entry.failures > 0 ? '#ef4444' : '#10b981');
+                                        return (
+                                            <Cell key={`cell-${index}`} fill={failureColor} fillOpacity={0.8} />
+                                        );
+                                    })}
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 const PAGE_SIZE = 25;
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -143,7 +144,14 @@ const getEnvTagBadgeClass = (tag: string): string => {
 };
 
 const StatsSparkline = ({ history }: { history: StatPoint[] }) => {
+    const { theme } = useTheme();
+
     if (history.length < 2) return null;
+
+    // Theme-aware colors: lighter in dark mode, darker in light mode for visibility
+    const cpuColor = theme === 'dark' ? '#a78bfa' : '#8b5cf6';
+    const ramColor = theme === 'dark' ? '#34d399' : '#10b981';
+
     return (
         <div className="h-10 w-full mt-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -151,9 +159,9 @@ const StatsSparkline = ({ history }: { history: StatPoint[] }) => {
                     <Area
                         type="monotone"
                         dataKey="cpu"
-                        stroke="#8b5cf6"
+                        stroke={cpuColor}
                         strokeWidth={1.5}
-                        fill="#8b5cf6"
+                        fill={cpuColor}
                         fillOpacity={0.1}
                         dot={false}
                         isAnimationActive={false}
@@ -161,9 +169,9 @@ const StatsSparkline = ({ history }: { history: StatPoint[] }) => {
                     <Area
                         type="monotone"
                         dataKey="ram"
-                        stroke="#10b981"
+                        stroke={ramColor}
                         strokeWidth={1.5}
-                        fill="#10b981"
+                        fill={ramColor}
                         fillOpacity={0.1}
                         dot={false}
                         isAnimationActive={false}
