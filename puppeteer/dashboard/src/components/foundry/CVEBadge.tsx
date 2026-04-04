@@ -19,10 +19,10 @@ interface CVEBadgeProps {
 }
 
 const severityColors = {
-  CRITICAL: "bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-100",
-  HIGH: "bg-orange-100 text-orange-900 dark:bg-orange-900 dark:text-orange-100",
-  MEDIUM: "bg-yellow-100 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100",
-  LOW: "bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100",
+  CRITICAL: "bg-[hsl(var(--cve-critical-bg))] text-[hsl(var(--cve-critical-fg))]",
+  HIGH: "bg-[hsl(var(--cve-high-bg))] text-[hsl(var(--cve-high-fg))]",
+  MEDIUM: "bg-[hsl(var(--cve-medium-bg))] text-[hsl(var(--cve-medium-fg))]",
+  LOW: "bg-[hsl(var(--cve-low-bg))] text-[hsl(var(--cve-low-fg))]",
 };
 
 const severityEmoji = {
@@ -44,7 +44,7 @@ export const CVEBadge: React.FC<CVEBadgeProps> = ({
   // Clean badge case
   if (cve_count === 0) {
     return (
-      <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100">
+      <div className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-medium bg-[hsl(var(--cve-clean-bg))] text-[hsl(var(--cve-clean-fg))]">
         <span>✅</span>
         <span>Clean</span>
       </div>
@@ -77,11 +77,11 @@ export const CVEBadge: React.FC<CVEBadgeProps> = ({
       </button>
 
       {expanded && (
-        <div className="mt-2 p-3 bg-muted rounded border border-gray-200 dark:border-gray-700 space-y-3">
+        <div className="mt-2 p-3 bg-muted rounded border border-border space-y-3">
           {cves.map((cve, idx) => (
             <div key={`${cve.cve_id}-${idx}`} className="space-y-2">
               <div
-                className="flex items-start gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded transition-colors"
+                className="flex items-start gap-2 cursor-pointer hover:bg-accent/5 dark:hover:bg-accent/10 p-2 rounded transition-colors"
                 onClick={() =>
                   setSelectedCveIdx(selectedCveIdx === idx ? null : idx)
                 }
@@ -106,7 +106,7 @@ export const CVEBadge: React.FC<CVEBadgeProps> = ({
               </div>
 
               {selectedCveIdx === idx && (
-                <div className="ml-2 pl-3 border-l-2 border-gray-300 dark:border-gray-600 space-y-2 text-sm">
+                <div className="ml-2 pl-3 border-l-2 border-border space-y-2 text-sm">
                   {cve.cvss_score !== null && (
                     <div>
                       <span className="font-semibold">CVSS Score:</span>{" "}

@@ -45,6 +45,18 @@
     --status-completed-text: 134 61% 36%;
     --status-failed-text: 0 84% 40%;
 
+    /* CVE Severity Colors - Light Mode */
+    --cve-critical-bg: 0 84.2% 90.2%;
+    --cve-critical-fg: 0 84.2% 10%;
+    --cve-high-bg: 38.6 92.1% 90.2%;
+    --cve-high-fg: 38.6 92% 10%;
+    --cve-medium-bg: 45 93.4% 88.7%;
+    --cve-medium-fg: 45 93.4% 10%;
+    --cve-low-bg: 210 86% 90%;
+    --cve-low-fg: 210 86% 10%;
+    --cve-clean-bg: 120 84.6% 85.9%;
+    --cve-clean-fg: 120 39.3% 11%;
+
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
@@ -80,6 +92,18 @@
     --status-assigned-text: 0 0% 100%;
     --status-completed-text: 0 0% 100%;
     --status-failed-text: 0 0% 100%;
+
+    /* CVE Severity Colors - Dark Mode */
+    --cve-critical-bg: 0 84.2% 25%;
+    --cve-critical-fg: 0 84.2% 90.2%;
+    --cve-high-bg: 38.6 92% 25%;
+    --cve-high-fg: 38.6 92.1% 90.2%;
+    --cve-medium-bg: 45 93.4% 25%;
+    --cve-medium-fg: 45 93.4% 88.7%;
+    --cve-low-bg: 210 86% 25%;
+    --cve-low-fg: 210 86% 90%;
+    --cve-clean-bg: 120 39.3% 30%;
+    --cve-clean-fg: 120 84.6% 85.9%;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.6);

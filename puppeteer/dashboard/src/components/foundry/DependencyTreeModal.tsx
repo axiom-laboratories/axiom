@@ -78,7 +78,7 @@ const TreeNode: React.FC<{
         {hasChildren ? (
           <button
             onClick={() => onToggleExpand(node.id)}
-            className="p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
+            className="p-0 hover:bg-accent/5 dark:hover:bg-accent/10 rounded"
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
             {isExpanded ? (
@@ -93,18 +93,18 @@ const TreeNode: React.FC<{
 
         <div className="flex-1 font-mono text-sm space-x-2 flex items-center">
           <span>{node.name}</span>
-          <span className="text-gray-500 dark:text-gray-400">
+          <span className="text-muted-foreground">
             {node.version}
           </span>
 
           {node.auto_discovered && (
-            <span className="text-xs bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100 px-2 py-0.5 rounded">
+            <span className="text-xs bg-[hsl(var(--cve-low-bg))] text-[hsl(var(--cve-low-fg))] px-2 py-0.5 rounded">
               auto-discovered
             </span>
           )}
 
           {isDeduped && (
-            <span className="text-xs bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100 px-2 py-0.5 rounded">
+            <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
               (deduped)
             </span>
           )}
@@ -120,7 +120,7 @@ const TreeNode: React.FC<{
         )}
 
         {node.cve_count === 0 && (
-          <div className="text-xs text-green-600 dark:text-green-400">
+          <div className="text-xs text-[hsl(var(--cve-clean-fg))]">
             ✅
           </div>
         )}
@@ -209,7 +209,7 @@ export const DependencyTreeModal: React.FC<DependencyTreeModalProps> = ({
         )}
 
         {error && (
-          <div className="text-red-600 dark:text-red-400">
+          <div className="text-[hsl(var(--cve-critical-fg))]">
             Error loading tree: {error.message}
           </div>
         )}
@@ -228,11 +228,11 @@ export const DependencyTreeModal: React.FC<DependencyTreeModalProps> = ({
 
             <DialogFooter className="border-t pt-4 mt-4">
               <div className="flex flex-col gap-2 w-full">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Total: {treeData.total_nodes} packages,{' '}
                   {treeData.total_cve_count} CVEs
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-muted-foreground">
                   Severity distribution: {severityDistribution.CRITICAL} CRITICAL,{' '}
                   {severityDistribution.HIGH} HIGH,{' '}
                   {severityDistribution.MEDIUM} MEDIUM,{' '}
