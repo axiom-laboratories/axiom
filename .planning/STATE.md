@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 
 ## Current Position
 
-Phase: 111 of 12 (111 - npm + NuGet + OCI Mirrors)
-Plan: 3 of 3 in current phase (COMPLETED 111-03)
+Phase: 112 of 12 (112 - Conda Mirror & Mirror Admin UI)
+Plan: 1 of 3 in current phase (COMPLETED 112-01)
 Status: executing
-Last activity: 2026-04-04 -- Completed 111-03-PLAN.md (Gap Closure - Ecosystem-Based Dispatch)
+Last activity: 2026-04-04 -- Completed 112-01-PLAN.md (Conda Mirror Backend)
 
 Progress: [████████████████████] 100%
 
@@ -75,6 +75,7 @@ Progress: [████████████████████] 100%
 | 111 | 01 | 25min | 4 | 5 |
 | 111 | 02 | 45min | 6 | 6 |
 | 111 | 03 | 25min | 8 | 4 |
+| 112 | 01 | 45min | 6 | 5 |
 
 ## Accumulated Context
 
@@ -130,6 +131,20 @@ Progress: [████████████████████] 100%
 - [118-04]: Script location in mop_validation/scripts/ (shared validation repo, not main codebase) for consistency with CLAUDE.md separation
 - [118-04]: Full-page screenshot capture with both light and dark themes as baseline for regression testing
 - [118-04]: Console error allowlist (ResizeObserver loop, Non-Error promise, Invalid header) to eliminate false positives
+
+### Completed in Phase 112
+
+**Plan 112-01 (Conda Mirror Backend):**
+- Implemented _mirror_conda() async method using throwaway miniconda:latest containers
+- conda create --download-only pattern with 120s timeout, directory structure handling, status updates
+- Implemented _regenerate_conda_index() helper using `conda index` command inside container
+- Implemented get_condarc_content() YAML generator with channel deduplication and conda-forge prioritization
+- Integrated Conda ecosystem branch into foundry_service.build_template() with base image validation
+- Added /conda/ Caddyfile handler with static file serving and cache headers
+- Added CONDA_MIRROR_URL environment variable to .env.example
+- Comprehensive unit test suite: 7 Conda-specific tests covering download flow, version parsing, config generation
+- All 43 mirror tests passing (7 new Conda + 36 existing PyPI/APT/Alpine/npm/NuGet)
+- Total: 6 tasks, 5 files modified, 45 min duration
 
 ### Completed in Phase 109
 

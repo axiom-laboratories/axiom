@@ -28,7 +28,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **MIRR-03**: npm mirror backend using Verdaccio pull-through proxy with compose sidecar
 - [ ] **MIRR-04**: NuGet mirror backend using BaGetter with compose sidecar for PowerShell/NuGet packages
 - [ ] **MIRR-05**: OCI pull-through cache using registry:2 so Foundry base image pulls work in air-gap
-- [ ] **MIRR-06**: Conda mirror backend with Anaconda ToS warning when operator selects the defaults channel
+- [x] **MIRR-06**: Conda mirror backend with Anaconda ToS warning when operator selects the defaults channel
 - [x] **MIRR-07**: All mirror sidecars defined as compose services with opt-in profiles (not started by default)
 - [ ] **MIRR-08**: Admin mirror configuration UI includes URL fields for all new ecosystems (apk, OCI, Verdaccio, Conda, BaGetter)
 - [ ] **MIRR-09**: Operator can enable/disable mirror services from the Admin dashboard (one-click provisioning via Docker socket)
@@ -88,7 +88,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIRR-03 | Phase 111 | Pending |
 | MIRR-04 | Phase 111 | Pending |
 | MIRR-05 | Phase 111 | Pending |
-| MIRR-06 | Phase 112 | Pending |
+| MIRR-06 | Phase 112 | Complete |
 | MIRR-07 | Phase 109 | Complete |
 | MIRR-08 | Phase 112 | Pending |
 | MIRR-09 | Phase 112 | Pending |

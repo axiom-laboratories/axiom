@@ -82,7 +82,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (completed 2026-04-03)
 - [x] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer (completed 2026-04-04)
 - [x] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars (completed 2026-04-04)
-- [ ] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems
+- [x] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems (Plan 01 completed 2026-04-04)
 - [ ] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis
 - [ ] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers
 - ~~Phase 115: Operator UX Polish~~ — **deferred to v20.0** (UX polish, not blocking air-gap)
