@@ -20,6 +20,14 @@
         file_server browse
     }
 
+    # Conda packages at /conda/
+    handle /conda/* {
+        uri strip_prefix /conda
+        root * /data/conda
+        file_server browse
+        header Cache-Control "max-age=3600"
+    }
+
     # Default 404 for unmapped paths
     handle {
         respond 404

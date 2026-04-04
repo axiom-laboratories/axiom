@@ -231,6 +231,27 @@ class FoundryService:
                 dockerfile.append("COPY nuget.config /root/.nuget/NuGet/NuGet.Config")
                 config_files["nuget"] = nuget_conf
 
+            # Conda config (.condarc) — check if blueprint has CONDA ecosystem ingredients
+            conda_ingredients = []
+            if blueprint_ingredient_ids:
+                for ingredient_id in blueprint_ingredient_ids:
+                    ing = await db.get(ApprovedIngredient, ingredient_id)
+                    if ing and ing.ecosystem == "CONDA":
+                        conda_ingredients.append(ing)
+
+            if conda_ingredients:
+                # Validate conda-capable base image (must contain "miniconda" or "conda")
+                if "miniconda" not in base_os.lower() and "conda" not in base_os.lower():
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Conda packages require a conda-capable base image (e.g., miniconda:latest)"
+                    )
+
+                condarc_conf = MirrorService.get_condarc_content(conda_ingredients)
+                if condarc_conf:
+                    dockerfile.append("COPY .condarc /root/.condarc")
+                    config_files["condarc"] = condarc_conf
+
 
             # Injection Recipes
             for tool in rt_def.get("tools", []):
@@ -323,6 +344,9 @@ class FoundryService:
             if "nuget" in config_files:
                 with open(os.path.join(build_dir, "nuget.config"), "w") as f:
                     f.write(config_files["nuget"])
+            if "condarc" in config_files:
+                with open(os.path.join(build_dir, ".condarc"), "w") as f:
+                    f.write(config_files["condarc"])
 
             # Copy puppet source files into the build context
             env_src = os.path.join(puppets_src, "environment_service")

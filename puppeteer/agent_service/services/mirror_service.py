@@ -20,6 +20,7 @@ class MirrorService:
     APK_BASE_PATH = os.path.join(MIRROR_BASE_PATH, "apk")
     NPM_PATH = os.path.join(MIRROR_BASE_PATH, "npm")
     NUGET_PATH = os.path.join(MIRROR_BASE_PATH, "nuget")
+    CONDA_BASE_PATH = os.path.join(MIRROR_BASE_PATH, "conda")
 
     @staticmethod
     async def mirror_ingredient(ingredient_id: str):
@@ -224,6 +225,8 @@ class MirrorService:
                 await MirrorService._mirror_apt(db, ingredient)
             elif ingredient.ecosystem == "APK":
                 await MirrorService._mirror_apk(db, ingredient)
+            elif ingredient.ecosystem == "CONDA":
+                await MirrorService._mirror_conda(db, ingredient)
             else:  # Default to PYPI for backward compatibility
                 await MirrorService._mirror_pypi(db, ingredient)
 
@@ -247,6 +250,8 @@ class MirrorService:
                         await MirrorService._mirror_apt(db, child)
                     elif child.ecosystem == "APK":
                         await MirrorService._mirror_apk(db, child)
+                    elif child.ecosystem == "CONDA":
+                        await MirrorService._mirror_conda(db, child)
                     else:  # Default to PYPI
                         await MirrorService._mirror_pypi(db, child)
 
@@ -667,6 +672,45 @@ class MirrorService:
 """
 
     @staticmethod
+    def get_condarc_content(blueprint_ingredients: list = None) -> str:
+        """
+        Returns .condarc YAML format pointing to local Conda mirrors.
+        Takes optional list of ApprovedIngredient records to determine channels.
+        If blueprint_ingredients is empty or None, returns empty string (no CONDA packages).
+        Channels are deduplicated while preserving order, with conda-forge prioritized.
+        Suitable for injection into Dockerfile.
+        """
+        if not blueprint_ingredients:
+            return ""
+
+        # Extract unique channels from ingredients, preserving order
+        channels = []
+        seen = set()
+
+        # Prioritize conda-forge
+        for ing in blueprint_ingredients:
+            channel = ing.mirror_path if ing.mirror_path else "conda-forge"
+            if channel not in seen:
+                channels.append(channel)
+                seen.add(channel)
+
+        # Reorder to put conda-forge first if present
+        if "conda-forge" in channels:
+            channels.remove("conda-forge")
+            channels.insert(0, "conda-forge")
+
+        if not channels:
+            return ""
+
+        # Build YAML content
+        yaml_content = "channels:\n"
+        for channel in channels:
+            yaml_content += f"  - {channel}\n"
+        yaml_content += "ssl_verify: true\n"
+
+        return yaml_content
+
+    @staticmethod
     def get_oci_mirror_prefix(base_image: str) -> str:
         """
         Determines if base_image is Docker Hub or GHCR and returns appropriate cache prefix.
@@ -692,3 +736,101 @@ class MirrorService:
         else:
             # Unqualified (e.g., "node:18", "alpine:3.20"): Docker Hub library
             return f"oci-cache:5001/library/{base_image}"
+
+    @staticmethod
+    async def _mirror_conda(db: AsyncSession, ingredient: ApprovedIngredient) -> None:
+        """
+        Download a Conda package using conda create --download-only inside a throwaway miniconda container.
+        Uses asyncio.to_thread for subprocess execution.
+        Updates ingredient.mirror_status and mirror_log on success/failure.
+        Regenerates repodata.json index after download.
+        """
+        try:
+            # Extract channel from mirror_path (e.g., "conda-forge", "defaults", or custom URL)
+            channel = ingredient.mirror_path if ingredient.mirror_path else "conda-forge"
+
+            # Build conda directory structure: mirror_data/conda/{channel}/{platform}/
+            conda_dir = os.path.join(MirrorService.CONDA_BASE_PATH, channel)
+            os.makedirs(conda_dir, exist_ok=True)
+
+            # Parse version constraint: "==X.Y.Z" -> "X.Y.Z"
+            pkg_spec = ingredient.name
+            if ingredient.version_constraint:
+                version = re.sub(r'^[><=~!]+', '', ingredient.version_constraint).strip()
+                if version:
+                    pkg_spec = f"{ingredient.name}=={version}"
+
+            # Run conda create --download-only inside a throwaway miniconda container
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{conda_dir}:/mirror",
+                "miniconda:latest",
+                "bash", "-c",
+                f"conda create --download-only -c {channel} -p /tmp/conda-env {pkg_spec} && cp -r /opt/conda/pkgs/* /mirror/ 2>/dev/null || true"
+            ]
+
+            logger.info(f"Mirror: Running conda create --download-only for {pkg_spec} from {channel}")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if process.returncode == 0:
+                # Regenerate conda index (repodata.json)
+                await MirrorService._regenerate_conda_index(conda_dir)
+                ingredient.mirror_status = "MIRRORED"
+                ingredient.mirror_log = f"Downloaded {pkg_spec} from {channel}; regenerated repodata.json"
+                ingredient.mirror_path = conda_dir
+                logger.info(f"Mirror: Successfully mirrored Conda package {pkg_spec} from {channel}")
+            else:
+                ingredient.mirror_status = "FAILED"
+                ingredient.mirror_log = process.stderr or process.stdout
+                logger.error(f"Mirror: Conda create failed for {pkg_spec}: {process.stderr}")
+
+            await db.commit()
+
+        except asyncio.TimeoutError:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = "Conda create timeout after 120s"
+            await db.commit()
+            logger.error(f"Mirror: Timeout downloading Conda package {ingredient.name}")
+        except Exception as e:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = str(e)
+            await db.commit()
+            logger.error(f"Mirror: Error mirroring Conda package {ingredient.name}: {str(e)}")
+
+    @staticmethod
+    async def _regenerate_conda_index(conda_dir: str):
+        """
+        Regenerate repodata.json index for the Conda repository.
+        Runs conda index inside a throwaway miniconda container.
+        """
+        try:
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{conda_dir}:/mirror",
+                "miniconda:latest",
+                "bash", "-c",
+                "cd /mirror && conda index . 2>/dev/null || true"
+            ]
+
+            logger.info(f"Mirror: Regenerating Conda repodata.json index")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if process.returncode == 0:
+                logger.info("Mirror: Conda repodata.json index regenerated successfully")
+            else:
+                logger.error(f"Mirror: Failed to regenerate Conda index: {process.stderr}")
+
+        except Exception as e:
+            logger.error(f"Mirror: Error regenerating Conda index: {str(e)}")

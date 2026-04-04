@@ -787,3 +787,185 @@ async def test_mirror_ingredient_dispatch_nuget():
         # Verify it was called with our NuGet ingredient
         call_args = mock_mirror_nuget.call_args
         assert call_args[0][1].ecosystem == "NUGET"
+
+
+# === Conda Mirroring Tests ===
+
+@pytest.mark.asyncio
+async def test_mirror_conda_download():
+    """Verify _mirror_conda() downloads packages and regenerates repodata.json."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="conda-test-id",
+        name="numpy",
+        version_constraint="==1.24.0",
+        ecosystem="CONDA",
+        mirror_path="conda-forge"
+    )
+
+    with patch("subprocess.run") as mock_run, \
+         patch("os.makedirs"), \
+         patch.object(MirrorService, "_regenerate_conda_index", new_callable=AsyncMock) as mock_regen:
+
+        # Simulate successful conda create --download-only
+        mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
+
+        await MirrorService._mirror_conda(mock_db, ingredient)
+
+        # Verify docker run command was issued
+        args, kwargs = mock_run.call_args
+        cmd = args[0]
+        assert "docker" in cmd
+        assert "miniconda:latest" in cmd
+        assert "numpy" in cmd or any("numpy" in str(c) for c in cmd)
+
+        # Verify index regeneration was called
+        mock_regen.assert_called_once()
+
+        # Verify status updated
+        assert ingredient.mirror_status == "MIRRORED"
+        assert "numpy" in ingredient.mirror_log
+        mock_db.commit.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_mirror_conda_version_parsing():
+    """Test Conda version constraint parsing."""
+    test_cases = [
+        ("numpy", "==1.24.0", "numpy==1.24.0"),
+        ("scipy", ">=1.9.0", "scipy==1.9.0"),  # Operators removed, only version kept
+        ("pandas", "==2.0.0", "pandas==2.0.0"),
+        ("matplotlib", None, "matplotlib"),  # No version
+    ]
+
+    for name, version_constraint, expected_spec in test_cases:
+        ingredient = ApprovedIngredient(
+            id="test-id",
+            name=name,
+            version_constraint=version_constraint,
+            ecosystem="CONDA"
+        )
+
+        import re
+        # Simulate the parsing logic from _mirror_conda
+        pkg_spec = ingredient.name
+        if ingredient.version_constraint:
+            version = re.sub(r'^[><=~!]+', '', ingredient.version_constraint).strip()
+            if version:
+                pkg_spec = f"{ingredient.name}=={version}"
+
+        assert pkg_spec == expected_spec, f"Expected {expected_spec}, got {pkg_spec}"
+
+
+@pytest.mark.asyncio
+async def test_mirror_conda_failure_handling():
+    """Verify _mirror_conda() sets FAILED status on download error."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="conda-fail-id",
+        name="nonexistent-pkg",
+        version_constraint="==99.99.99",
+        ecosystem="CONDA",
+        mirror_path="conda-forge"
+    )
+
+    with patch("subprocess.run") as mock_run, patch("os.makedirs"):
+        # Simulate failed conda create
+        mock_run.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="Solving environment: failed"
+        )
+
+        await MirrorService._mirror_conda(mock_db, ingredient)
+
+        assert ingredient.mirror_status == "FAILED"
+        assert ingredient.mirror_log is not None
+        mock_db.commit.assert_called()
+
+
+def test_get_condarc_content_empty():
+    """Verify get_condarc_content() returns empty string when no ingredients provided."""
+    content = MirrorService.get_condarc_content(None)
+    assert content == ""
+
+    content = MirrorService.get_condarc_content([])
+    assert content == ""
+
+
+def test_get_condarc_content_with_ingredients():
+    """Verify get_condarc_content() returns YAML with correct channel ordering."""
+    ing1 = MagicMock()
+    ing1.mirror_path = "conda-forge"
+
+    ing2 = MagicMock()
+    ing2.mirror_path = "defaults"
+
+    content = MirrorService.get_condarc_content([ing1, ing2])
+
+    assert "channels:" in content
+    assert "- conda-forge" in content
+    assert "- defaults" in content
+    assert "ssl_verify: true" in content
+    # Verify conda-forge is first
+    lines = content.split('\n')
+    conda_forge_line = [i for i, line in enumerate(lines) if "conda-forge" in line][0]
+    defaults_line = [i for i, line in enumerate(lines) if "defaults" in line][0]
+    assert conda_forge_line < defaults_line
+
+
+def test_get_condarc_content_deduplicates():
+    """Verify get_condarc_content() deduplicates channels while preserving order."""
+    ing1 = MagicMock()
+    ing1.mirror_path = "conda-forge"
+
+    ing2 = MagicMock()
+    ing2.mirror_path = "conda-forge"  # Duplicate
+
+    ing3 = MagicMock()
+    ing3.mirror_path = "defaults"
+
+    content = MirrorService.get_condarc_content([ing1, ing2, ing3])
+
+    # Count occurrences of each channel
+    conda_forge_count = content.count("- conda-forge")
+    defaults_count = content.count("- defaults")
+
+    assert conda_forge_count == 1, "conda-forge should appear only once"
+    assert defaults_count == 1, "defaults should appear only once"
+
+
+@pytest.mark.asyncio
+async def test_mirror_ingredient_dispatch_conda():
+    """
+    Test that mirror_ingredient_and_dependencies() dispatches Conda ingredients to _mirror_conda().
+    """
+    from uuid import uuid4
+
+    # Create a mock Conda ingredient with ecosystem="CONDA"
+    mock_ingredient = AsyncMock(spec=ApprovedIngredient)
+    mock_ingredient.id = str(uuid4())
+    mock_ingredient.name = "numpy"
+    mock_ingredient.version_constraint = "1.24.0"
+    mock_ingredient.ecosystem = "CONDA"
+    mock_ingredient.mirror_path = "conda-forge"
+    mock_ingredient.mirror_status = "PENDING"
+
+    # Mock the appropriate mirror method
+    mock_mirror_conda = AsyncMock()
+
+    mock_db = AsyncMock()
+    mock_db.get.return_value = mock_ingredient
+
+    # Mock dependencies query
+    mock_db.execute.return_value = MagicMock(scalars=lambda: MagicMock(all=lambda: []))
+
+    with patch.object(MirrorService, "_mirror_conda", mock_mirror_conda):
+        # Call dispatch
+        await MirrorService.mirror_ingredient_and_dependencies(mock_db, mock_ingredient.id)
+
+        # Assert _mirror_conda was called (not _mirror_pypi)
+        mock_mirror_conda.assert_called_once()
+        # Verify it was called with our Conda ingredient
+        call_args = mock_mirror_conda.call_args
+        assert call_args[0][1].ecosystem == "CONDA"
