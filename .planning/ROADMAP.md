@@ -208,11 +208,11 @@ Plans:
   2. Operator can paste a Bash script and see `apt-get install` / `yum install` package suggestions extracted via regex
   3. Operator can paste a PowerShell script and see `Import-Module` suggestions mapped to PSGallery packages
   4. Suggested packages are cross-referenced against already-approved ingredients so the operator sees what is new vs. already in the registry
-**Plans**: TBD
+**Plans**: 2/2 plans
 
 Plans:
-- [ ] 113-01: Script analyzer service + endpoint
-- [ ] 113-02: Script analyzer UI panel in Foundry
+- [x] 113-01-PLAN.md — Backend analyzer service + endpoints + approval queue (Wave 1)
+- [x] 113-02-PLAN.md — Frontend ScriptAnalyzerPanel + ApprovalQueuePanel UI (Wave 2)
 
 ### Phase 114: Curated Bundles + Starter Templates
 **Goal**: Non-developer operators can build node images by picking from pre-built bundles and starter templates instead of manually selecting individual packages
@@ -245,7 +245,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 110. CVE Transitive Scan + Dependency Tree UI | 2/2 | Complete | 2026-04-04 |
 | 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 4/4 | Complete    | 2026-04-04 |
-| 113. Script Analyzer | 0/2 | Not started | - |
+| 113. Script Analyzer | 2/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
 | 116. Fix smelter DB migration + EE licence hot-reload | 2/2 | Complete | 2026-04-04 |
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
