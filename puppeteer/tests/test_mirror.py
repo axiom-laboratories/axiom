@@ -330,3 +330,177 @@ async def test_get_alpine_version_parsing():
             with patch.dict("os.environ", {"DEFAULT_ALPINE_VERSION": "v3.20"}):
                 result = MirrorService._get_alpine_version(base_os)
                 assert result == "v3.20"
+
+
+# === npm Mirroring Tests ===
+
+@pytest.mark.asyncio
+async def test_mirror_npm_success():
+    """Verify _mirror_npm() downloads npm package and updates status to MIRRORED."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="npm-test-id",
+        name="lodash",
+        version_constraint="@4.17.21",
+        os_family="DEBIAN"
+    )
+
+    with patch("subprocess.run") as mock_run, \
+         patch("os.makedirs"), \
+         patch("os.path.exists") as mock_exists:
+
+        # Simulate successful npm pack
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="lodash-4.17.21.tgz\n",
+            stderr=""
+        )
+        mock_exists.return_value = True  # Tarball exists
+
+        await MirrorService._mirror_npm(mock_db, ingredient)
+
+        # Verify docker run command was issued
+        args, kwargs = mock_run.call_args
+        cmd = args[0]
+        assert "docker" in cmd
+        assert "node:latest" in cmd
+        assert "npm pack" in cmd or any("npm pack" in str(c) for c in cmd)
+
+        # Verify status updated
+        assert ingredient.mirror_status == "MIRRORED"
+        assert ingredient.mirror_path == MirrorService.NPM_PATH
+        assert "lodash" in ingredient.mirror_log
+        mock_db.commit.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_mirror_npm_version_parsing():
+    """Test npm version constraint parsing."""
+    test_cases = [
+        ("lodash", "@4.17.21", "lodash@4.17.21"),
+        ("react", "@^18.0.0", "react@^18.0.0"),
+        ("express", "@latest", "express@latest"),
+        ("axios", "@next", "axios@next"),
+        ("webpack", "~4.0.0", "webpack@~4.0.0"),
+        ("typescript", None, "typescript"),  # No version
+    ]
+
+    mock_db = AsyncMock()
+
+    for name, version_constraint, expected_spec in test_cases:
+        ingredient = ApprovedIngredient(
+            id="test-id",
+            name=name,
+            version_constraint=version_constraint,
+            os_family="DEBIAN"
+        )
+
+        with patch("subprocess.run") as mock_run, \
+             patch("os.makedirs"), \
+             patch("os.path.exists") as mock_exists:
+
+            mock_run.return_value = MagicMock(returncode=0, stdout=f"{name}.tgz\n", stderr="")
+            mock_exists.return_value = True
+
+            await MirrorService._mirror_npm(mock_db, ingredient)
+
+            # Verify the correct package spec was used
+            args, kwargs = mock_run.call_args
+            cmd = args[0]
+            cmd_str = ' '.join(str(c) for c in cmd)
+            assert expected_spec in cmd_str, f"Expected {expected_spec} in {cmd_str}"
+
+
+@pytest.mark.asyncio
+async def test_mirror_npm_container_failure():
+    """Verify _mirror_npm() sets FAILED status on npm pack failure."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="npm-fail-id",
+        name="nonexistent-package",
+        version_constraint="@1.0.0",
+        os_family="DEBIAN"
+    )
+
+    with patch("subprocess.run") as mock_run, patch("os.makedirs"):
+        # Simulate failed npm pack
+        mock_run.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="404 Not Found - nonexistent-package@1.0.0"
+        )
+
+        await MirrorService._mirror_npm(mock_db, ingredient)
+
+        assert ingredient.mirror_status == "FAILED"
+        assert "nonexistent-package" in ingredient.mirror_log or "404" in ingredient.mirror_log
+        mock_db.commit.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_mirror_npm_timeout():
+    """Verify _mirror_npm() sets FAILED status on timeout."""
+    import asyncio
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="npm-timeout-id",
+        name="large-package",
+        version_constraint="@1.0.0",
+        os_family="DEBIAN"
+    )
+
+    with patch("subprocess.run") as mock_run, patch("os.makedirs"):
+        # Simulate timeout by raising TimeoutError from subprocess call
+        mock_run.side_effect = asyncio.TimeoutError()
+
+        await MirrorService._mirror_npm(mock_db, ingredient)
+
+        assert ingredient.mirror_status == "FAILED"
+        assert "timeout" in ingredient.mirror_log.lower()
+        mock_db.commit.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_mirror_npm_storage_validation():
+    """Verify tarball is validated to exist before status update."""
+    mock_db = AsyncMock()
+    ingredient = ApprovedIngredient(
+        id="npm-storage-id",
+        name="lodash",
+        version_constraint="@4.17.21",
+        os_family="DEBIAN"
+    )
+
+    with patch("subprocess.run") as mock_run, \
+         patch("os.makedirs"), \
+         patch("os.path.exists") as mock_exists:
+
+        # npm pack succeeds but tarball doesn't actually exist
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="lodash-4.17.21.tgz\n",
+            stderr=""
+        )
+        mock_exists.return_value = False  # Tarball missing
+
+        await MirrorService._mirror_npm(mock_db, ingredient)
+
+        assert ingredient.mirror_status == "FAILED"
+        assert "not found" in ingredient.mirror_log.lower()
+        mock_db.commit.assert_called()
+
+
+def test_get_npmrc_content_format():
+    """Verify get_npmrc_content() returns correct .npmrc format."""
+    with patch.dict("os.environ", {"NPM_MIRROR_URL": "http://verdaccio:4873"}):
+        content = MirrorService.get_npmrc_content()
+        assert "registry=" in content
+        assert "http://verdaccio:4873" in content
+
+
+def test_get_npmrc_content_default():
+    """Verify get_npmrc_content() uses default URL when env var unset."""
+    with patch.dict("os.environ", {}, clear=True):
+        content = MirrorService.get_npmrc_content()
+        assert "registry=" in content
+        assert "verdaccio:4873" in content
