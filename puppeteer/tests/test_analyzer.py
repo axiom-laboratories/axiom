@@ -343,3 +343,54 @@ class TestAnalyzerEndpointAuth:
         # This test is integration-level and requires FastAPI test client
         # Placeholder for integration test phase
         pass
+
+
+# Integration Tests — Endpoint layer (require FastAPI test client + DB)
+
+class TestAnalyzerEndpointIntegration:
+    """Integration tests for analyzer router endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_analyze_script_endpoint_response_format(self):
+        """Endpoint returns AnalyzeScriptResponse with suggestions and approval status."""
+        from agent_service.services.analyzer_service import AnalyzerService
+        from agent_service.models import AnalyzeScriptRequest
+
+        script = "import requests\nimport numpy"
+        req = AnalyzeScriptRequest(script_content=script, language="python")
+
+        # Simulate endpoint call by calling service directly
+        result = await AnalyzerService.analyze_script(req.script_content, req.language)
+
+        # Verify response format
+        assert "detected_language" in result
+        assert "suggestions" in result
+        assert result["detected_language"] == "python"
+        assert len(result["suggestions"]) >= 2
+
+        # Verify suggestion format
+        for suggestion in result["suggestions"]:
+            assert "import_name" in suggestion
+            assert "package_name" in suggestion
+            assert "ecosystem" in suggestion
+
+    @pytest.mark.asyncio
+    async def test_duplicate_request_prevention(self):
+        """Creating a duplicate request should return 409 conflict."""
+        # This test requires actual DB and current_user context
+        # Marked as TODO for integration test phase with FastAPI test client
+        pass
+
+    @pytest.mark.asyncio
+    async def test_approval_creates_ingredient(self):
+        """Approving a request creates an ApprovedIngredient if not exists."""
+        # This test requires actual DB and current_user context
+        # Marked as TODO for integration test phase with FastAPI test client
+        pass
+
+    @pytest.mark.asyncio
+    async def test_approval_reason_is_stored(self):
+        """Rejection reason is stored and returned in request details."""
+        # This test requires actual DB and current_user context
+        # Marked as TODO for integration test phase with FastAPI test client
+        pass
