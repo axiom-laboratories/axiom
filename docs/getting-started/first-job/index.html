@@ -599,10 +599,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sign-and-submit-with-curl" class="md-nav__link">
+  <a href="#sign-and-submit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sign and submit with curl
+        Sign and submit
       
     </span>
   </a>
@@ -2075,10 +2075,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sign-and-submit-with-curl" class="md-nav__link">
+  <a href="#sign-and-submit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sign and submit with curl
+        Sign and submit
       
     </span>
   </a>
@@ -2114,7 +2114,7 @@ and dispatching your first job.</p>
 <hr />
 <h2 id="step-0-generate-a-signing-keypair">Step 0: Generate a signing keypair</h2>
 <p>Every job must be signed before dispatch. Generate a keypair once — the private key stays on your machine, the public key gets registered in Axiom.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Python (cryptography)</label><label for="__tabbed_1_2">openssl</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Python (cryptography)</label><label for="__tabbed_1_2">openssl</label><label for="__tabbed_1_3">Windows (PowerShell)</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
@@ -2144,6 +2144,37 @@ and dispatching your first job.</p>
 <div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>genpkey<span class="w"> </span>-algorithm<span class="w"> </span>ed25519<span class="w"> </span>-out<span class="w"> </span>signing.key
 openssl<span class="w"> </span>pkey<span class="w"> </span>-in<span class="w"> </span>signing.key<span class="w"> </span>-pubout<span class="w"> </span>-out<span class="w"> </span>verification.key
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<p>PowerShell does not support bash heredocs. Save the key generation script to a file first, then run it:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">$script</span> <span class="p">=</span> <span class="sh">@&#39;</span>
+<span class="sh">from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey</span>
+<span class="sh">from cryptography.hazmat.primitives import serialization</span>
+
+<span class="sh">key = Ed25519PrivateKey.generate()</span>
+
+<span class="sh">with open(&quot;signing.key&quot;, &quot;wb&quot;) as f:</span>
+<span class="sh">    f.write(key.private_bytes(</span>
+<span class="sh">        serialization.Encoding.PEM,</span>
+<span class="sh">        serialization.PrivateFormat.PKCS8,</span>
+<span class="sh">        serialization.NoEncryption()</span>
+<span class="sh">    ))</span>
+
+<span class="sh">with open(&quot;verification.key&quot;, &quot;wb&quot;) as f:</span>
+<span class="sh">    f.write(key.public_key().public_bytes(</span>
+<span class="sh">        serialization.Encoding.PEM,</span>
+<span class="sh">        serialization.PublicFormat.SubjectPublicKeyInfo</span>
+<span class="sh">    ))</span>
+
+<span class="sh">print(&quot;Done. Upload verification.key to Axiom, keep signing.key private.&quot;)</span>
+<span class="sh">&#39;@</span>
+<span class="nv">$script</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-Encoding</span> <span class="n">utf8</span> <span class="n">gen_key</span><span class="p">.</span><span class="n">py</span>
+<span class="n">python</span> <span class="n">gen_key</span><span class="p">.</span><span class="n">py</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">cryptography library</p>
+<p>If <code>python gen_key.py</code> fails with an import error, install first: <code>pip install cryptography</code></p>
+</div>
 </div>
 </div>
 </div>
@@ -2201,14 +2232,40 @@ prints the public key PEM to stdout. Use <code>--force</code> to overwrite exist
 </details>
 <hr />
 <h2 id="step-2-write-a-test-script">Step 2: Write a test script</h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Linux / macOS</label><label for="__tabbed_2_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <p>Create <code>hello.py</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from Axiom!&quot;</span><span class="p">)</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running on </span><span class="si">{</span><span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
 </code></pre></div>
+</div>
+<div class="tabbed-block">
+<p>Create <code>hello.py</code> (Python works on all nodes — recommended for the CE getting started path):</p>
+<div class="highlight"><pre><span></span><code><span class="sh">@&#39;</span>
+<span class="sh">print(&quot;Hello from Axiom!&quot;)</span>
+<span class="sh">import platform</span>
+<span class="sh">print(f&quot;Running on {platform.node()} ({platform.system()})&quot;)</span>
+<span class="sh">&#39;@</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-Encoding</span> <span class="n">utf8</span> <span class="n">hello</span><span class="p">.</span><span class="n">py</span>
+</code></pre></div>
+<p>Alternatively, create a PowerShell script <code>hello.ps1</code> for use on Windows-capable nodes:</p>
+<div class="highlight"><pre><span></span><code><span class="sh">@&#39;</span>
+<span class="sh">Write-Host &quot;Hello from Axiom on Windows!&quot;</span>
+<span class="sh">Write-Host &quot;Running on $env:COMPUTERNAME&quot;</span>
+<span class="sh">&#39;@</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-Encoding</span> <span class="n">utf8</span> <span class="n">hello</span><span class="p">.</span><span class="n">ps1</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">PowerShell scripts on nodes</p>
+<p>The node's job runner executes the script content via Python subprocess. PowerShell scripts work when the node image has <code>pwsh</code> in PATH. The default CE node image uses Python — use <code>hello.py</code> (Python) for CE. For Windows-capable nodes, PowerShell scripts run as expected.</p>
+<p><strong>For this Getting Started guide</strong>, use <code>hello.py</code> — it works on all nodes. The PowerShell signing path below works with any script file.</p>
+</div>
+</div>
+</div>
+</div>
 <hr />
 <h2 id="step-3-dispatch-the-job">Step 3: Dispatch the job</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">CLI (axiom-push)</label><label for="__tabbed_2_2">Dashboard</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">CLI (axiom-push)</label><label for="__tabbed_3_2">Dashboard</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code>axiom-push<span class="w"> </span>job<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
@@ -2280,48 +2337,69 @@ openssl<span class="w"> </span>pkey<span class="w"> </span>-in<span class="w"> <
 <p class="admonition-title">Register before dispatching</p>
 <p>Job creation fails with a <code>422</code> signature validation error if no public key is registered.</p>
 </div>
-<h3 id="sign-and-submit-with-curl">Sign and submit with curl</h3>
-<p>The safest approach is to use Python to build the JSON body — this avoids shell quoting issues with multi-line scripts and base64 signatures.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># 1. Get an auth token</span>
-<span class="nv">TOKEN</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sk<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://&lt;your-orchestrator&gt;:8001/auth/login<span class="w"> </span><span class="se">\</span>
+<h3 id="sign-and-submit">Sign and submit</h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Linux / macOS</label><label for="__tabbed_4_2">Windows (PowerShell)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Set <code>$TOKEN</code> by logging in first:
+<div class="highlight"><pre><span></span><code><span class="nv">TOKEN</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sk<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://&lt;your-orchestrator&gt;:8001/auth/login<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/x-www-form-urlencoded&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;username=admin&amp;password=&lt;your-password&gt;&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import sys,json; print(json.load(sys.stdin)[&#39;access_token&#39;])&quot;</span><span class="k">)</span>
+</code></pre></div></p>
+<p>Sign and submit with curl:
+<div class="highlight"><pre><span></span><code><span class="nv">SIG</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>pkeyutl<span class="w"> </span>-sign<span class="w"> </span>-inkey<span class="w"> </span>signing.key<span class="w"> </span>-rawin<span class="w"> </span>-in<span class="w"> </span>hello.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-w0<span class="k">)</span>
+curl<span class="w"> </span>-sk<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://&lt;your-orchestrator&gt;:8001/jobs<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s2">&quot;{\&quot;script_content\&quot;: \&quot;</span><span class="k">$(</span>cat<span class="w"> </span>hello.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;import sys,json; print(json.dumps(sys.stdin.read()))&#39;</span><span class="k">)</span><span class="s2">\&quot;, \&quot;signature\&quot;: \&quot;</span><span class="nv">$SIG</span><span class="s2">\&quot;, \&quot;signature_id\&quot;: \&quot;&lt;key-id&gt;\&quot;}&quot;</span>
+</code></pre></div></p>
+</div>
+<div class="tabbed-block">
+<p>Set <code>$TOKEN</code> by logging in first:
+<div class="highlight"><pre><span></span><code><span class="c"># For self-signed certs, use -SkipCertificateCheck on each request below</span>
 
-<span class="c1"># 2. Sign the script</span>
-<span class="nv">SIG</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>pkeyutl<span class="w"> </span>-sign<span class="w"> </span>-inkey<span class="w"> </span>signing.key<span class="w"> </span>-rawin<span class="w"> </span>-in<span class="w"> </span>hello.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-w0<span class="k">)</span>
+<span class="nv">$response</span> <span class="p">=</span> <span class="nb">Invoke-RestMethod</span> <span class="n">-Method</span> <span class="n">POST</span> <span class="p">`</span>
+    <span class="n">-Uri</span> <span class="s2">&quot;https://&lt;your-orchestrator&gt;:8001/auth/login&quot;</span> <span class="p">`</span>
+    <span class="n">-ContentType</span> <span class="s2">&quot;application/x-www-form-urlencoded&quot;</span> <span class="p">`</span>
+    <span class="n">-Body</span> <span class="s2">&quot;username=admin&amp;password=&lt;your-password&gt;&quot;</span> <span class="p">`</span>
+    <span class="n">-SkipCertificateCheck</span>
+<span class="nv">$TOKEN</span> <span class="p">=</span> <span class="nv">$response</span><span class="p">.</span><span class="n">access_token</span>
+</code></pre></div></p>
+<p>Sign the script using Python (the same <code>cryptography</code> library used for key generation):
+<div class="highlight"><pre><span></span><code><span class="nv">$signScript</span> <span class="p">=</span> <span class="sh">@&#39;</span>
+<span class="sh">import base64, sys</span>
+<span class="sh">from cryptography.hazmat.primitives import serialization</span>
 
-<span class="c1"># 3. Build and send the JSON body using Python to handle escaping correctly</span>
-python3<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">import json, subprocess, os, sys</span>
+<span class="sh">with open(&quot;signing.key&quot;, &quot;rb&quot;) as f:</span>
+<span class="sh">    key = serialization.load_pem_private_key(f.read(), password=None)</span>
 
-<span class="s">script = open(&quot;hello.py&quot;).read()</span>
-<span class="s">sig    = os.environ[&quot;SIG&quot;]</span>
-<span class="s">key_id = &quot;&lt;your-key-id&gt;&quot;   # replace with the Key ID from Step 0</span>
-<span class="s">token  = os.environ[&quot;TOKEN&quot;]</span>
+<span class="sh">with open(sys.argv[1], &quot;rb&quot;) as f:</span>
+<span class="sh">    script_bytes = f.read().replace(b&#39;\r\n&#39;, b&#39;\n&#39;).replace(b&#39;\r&#39;, b&#39;\n&#39;)</span>
 
-<span class="s">body = json.dumps({</span>
-<span class="s">    &quot;task_type&quot;: &quot;script&quot;,</span>
-<span class="s">    &quot;runtime&quot;:   &quot;python&quot;,</span>
-<span class="s">    &quot;payload&quot;:   {</span>
-<span class="s">        &quot;script_content&quot;: script,</span>
-<span class="s">        &quot;signature&quot;:      sig,       # must be inside payload so node can verify</span>
-<span class="s">        &quot;signature_id&quot;:   key_id,    # UUID of the registered public key</span>
-<span class="s">    },</span>
-<span class="s">})</span>
+<span class="sh">sig = key.sign(script_bytes)</span>
+<span class="sh">print(base64.b64encode(sig).decode())</span>
+<span class="sh">&#39;@</span>
+<span class="nv">$signScript</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-Encoding</span> <span class="n">utf8</span> <span class="n">sign_script</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$SIG</span> <span class="p">=</span> <span class="n">python</span> <span class="n">sign_script</span><span class="p">.</span><span class="n">py</span> <span class="n">hello</span><span class="p">.</span><span class="n">py</span>
+</code></pre></div></p>
+<p>Submit the job via <code>Invoke-RestMethod</code>:
+<div class="highlight"><pre><span></span><code><span class="nv">$scriptContent</span> <span class="p">=</span> <span class="nb">Get-Content</span> <span class="n">-Raw</span> <span class="n">hello</span><span class="p">.</span><span class="n">py</span>
+<span class="nv">$body</span> <span class="p">=</span> <span class="p">@{</span>
+    <span class="n">script_content</span> <span class="p">=</span> <span class="nv">$scriptContent</span>
+    <span class="n">signature</span> <span class="p">=</span> <span class="nv">$SIG</span>
+    <span class="n">signature_id</span> <span class="p">=</span> <span class="s2">&quot;&lt;your-key-id&gt;&quot;</span>
+<span class="p">}</span> <span class="p">|</span> <span class="nb">ConvertTo-Json</span>
 
-<span class="s">result = subprocess.run(</span>
-<span class="s">    [&quot;curl&quot;, &quot;-sk&quot;, &quot;-X&quot;, &quot;POST&quot;,</span>
-<span class="s">     &quot;https://&lt;your-orchestrator&gt;:8001/jobs&quot;,</span>
-<span class="s">     &quot;-H&quot;, f&quot;Authorization: Bearer {token}&quot;,</span>
-<span class="s">     &quot;-H&quot;, &quot;Content-Type: application/json&quot;,</span>
-<span class="s">     &quot;-d&quot;, body],</span>
-<span class="s">    capture_output=True, text=True,</span>
-<span class="s">)</span>
-<span class="s">print(result.stdout)</span>
-<span class="s">if result.returncode != 0:</span>
-<span class="s">    print(result.stderr, file=sys.stderr)</span>
-<span class="s">EOF</span>
-</code></pre></div>
+<span class="nb">Invoke-RestMethod</span> <span class="n">-Method</span> <span class="n">POST</span> <span class="p">`</span>
+    <span class="n">-Uri</span> <span class="s2">&quot;https://&lt;your-orchestrator&gt;:8001/jobs&quot;</span> <span class="p">`</span>
+    <span class="n">-Headers</span> <span class="p">@{</span><span class="n">Authorization</span> <span class="p">=</span> <span class="s2">&quot;Bearer $TOKEN&quot;</span><span class="p">}</span> <span class="p">`</span>
+    <span class="n">-ContentType</span> <span class="s2">&quot;application/json&quot;</span> <span class="p">`</span>
+    <span class="n">-Body</span> <span class="nv">$body</span> <span class="p">`</span>
+    <span class="n">-SkipCertificateCheck</span>
+</code></pre></div></p>
+</div>
+</div>
+</div>
 <p>Replace <code>&lt;your-orchestrator&gt;</code>, <code>&lt;your-password&gt;</code>, and <code>&lt;your-key-id&gt;</code> with your actual values.</p>
 <div class="admonition tip">
 <p class="admonition-title">Key ID format</p>
