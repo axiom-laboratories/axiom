@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
-stopped_at: Completed 118-02-PLAN.md (Visual Polish and Responsive Design)
-last_updated: "2026-04-04T15:15:00.000Z"
-last_activity: 2026-04-04 -- Completed 118-02-PLAN.md (Visual Polish and Responsive Design)
+stopped_at: Completed 118-04-PLAN.md (UI Polish Verification and Test Framework)
+last_updated: "2026-04-04T15:30:00.000Z"
+last_activity: 2026-04-04 -- Completed 118-04-PLAN.md (UI Polish Verification and Test Framework)
 progress:
   total_phases: 12
   completed_phases: 7
   total_plans: 23
-  completed_plans: 21
-  percent: 91
+  completed_plans: 23
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 
 ## Current Position
 
-Phase: 118 of 12 (118 - UI Polish and Verification)
-Plan: 2 of 4 in current phase (COMPLETED 118-02)
+Phase: 118 of 12 (118 - UI Polish and Verification) — COMPLETE
+Plan: 4 of 4 in current phase (COMPLETED 118-04)
 Status: executing
-Last activity: 2026-04-04 -- Completed 118-02-PLAN.md (Visual Polish and Responsive Design)
+Last activity: 2026-04-04 -- Completed 118-04-PLAN.md (UI Polish Verification and Test Framework)
 
-Progress: [██████████████████░░] 87%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Progress: [██████████████████░░] 87%
 | 107 | 2/3 | 13min | 7min |
 | 116 | 2/2 | 80min | 40min |
 | 117 | 4/5 | 135min | 34min |
+| 118 | 4/4 | 152min | 38min |
 
 **Recent Trend:**
 - Last 6 plans: 116-01 (45min), 116-02 (35min), 117-00 (15min), 117-01 (11min), 117-02 (8min), 117-03 (135min)
@@ -65,6 +66,8 @@ Progress: [██████████████████░░] 87%
 | 110 | 01 | 120min | 5 | 5 |
 | 118 | 01 | 40min | 4 | 15 |
 | 118 | 02 | 15min | 3 | 1 |
+| 118 | 03 | 17min | 3 | 3 |
+| 118 | 04 | 120min | 2 | 3 |
 
 ## Accumulated Context
 
@@ -115,6 +118,11 @@ Progress: [██████████████████░░] 87%
 - [117-02]: Toaster notifications made theme-aware: dynamic theme prop based on user's selection
 - [117-02]: Fixed FOWT prevention script to use .dark class (Plan 01 used incorrect .light class)
 - [117-02]: Auto-wrapped tests with ThemeProvider (needed for hook to work without throwing)
+
+- [118-04]: Playwright verification as permanent test infrastructure (not one-time manual verification) for reuse in future UI phases
+- [118-04]: Script location in mop_validation/scripts/ (shared validation repo, not main codebase) for consistency with CLAUDE.md separation
+- [118-04]: Full-page screenshot capture with both light and dark themes as baseline for regression testing
+- [118-04]: Console error allowlist (ResizeObserver loop, Non-Error promise, Invalid header) to eliminate false positives
 
 ### Completed in Phase 109
 
@@ -188,7 +196,7 @@ Progress: [██████████████████░░] 87%
 
 ### Pending Todos
 
-0 pending (all Phase 108-01 and 108-02 completed):
+0 pending (all Phase 118 completed):
 - ~~**Create comprehensive test coverage for theme system** (frontend)~~ — 2026-04-02 ✓ DONE
 - ~~**Implement useTheme hook + ThemeProvider** (Wave 2)~~ — 2026-04-02 ✓ DONE
 - ~~**Implement CSS variables and FOWT prevention** (Wave 1)~~ — 2026-04-02 ✓ DONE
@@ -261,6 +269,29 @@ Progress: [██████████████████░░] 87%
 
 ### Completed in Phase 118
 
+**Plan 118-04 (UI Polish Verification and Test Framework - Wave 4):**
+- Built Playwright-based verification script (test_ui_polish.py) that automates UI quality checks
+- Script navigates all 9 dashboard routes in both light and dark themes
+- Captures 18 full-page screenshots (light + dark for each route)
+- Validates no console errors (with allowlist for benign messages), no layout overflow, accessible component names
+- Generates JSON results and markdown reports
+- Saved as permanent reusable script in mop_validation/scripts/ for future regression testing
+- Created comprehensive documentation (index.md) explaining report usage and interpretation
+- All checks passing: theme consistency, responsive design, accessibility compliance
+- Phase 118 complete: all 4 waves (theme audit, visual polish, bug fixes, verification) finished
+- Total: 2 tasks, 3 files created (+ generated screenshots/reports)
+
+**Plan 118-03 (GitHub Issue Fixes - GH #20, #21, #22):**
+- GH #20: Fixed status filter parsing to support comma-separated values (e.g., COMPLETED,FAILED,CANCELLED)
+- GH #20: Updated job_service._build_job_filter_queries() to split and validate multiple status values
+- GH #21: Fixed Dashboard node count to show total (was showing ONLY online nodes)
+- GH #21: Dashboard Nodes card now consistent with Nodes page header and list counts
+- GH #22: Fixed node status indicator color logic to treat ACTIVE/BUSY as green (like ONLINE)
+- GH #22: All node statuses now display correct colors (ONLINE/ACTIVE/BUSY=green, OFFLINE=red, etc)
+- Frontend build verified: npm run build succeeds with 0 errors
+- Backend API verified: Comma-separated status filtering works correctly
+- Total: 3 tasks, 3 files modified
+
 **Plan 118-02 (Visual Polish and Responsive Design):**
 - Verified all 9 main dashboard views have consistent spacing (space-y-8 baseline, p-4/p-6 padding)
 - Confirmed skeleton loaders in place for all loading states (bg-muted animate-pulse pattern)
@@ -284,6 +315,6 @@ Progress: [██████████████████░░] 87%
 
 ## Session Continuity
 
-Last session: 2026-04-04T15:15:00.000Z
-Stopped at: Plan 118-02 completed (Visual Polish and Responsive Design)
-Ready for: Plan 118-03 (GitHub issue fixes) or Plan 119 (next phase)
+Last session: 2026-04-04T15:30:00.000Z
+Stopped at: Plan 118-04 completed (UI Polish Verification and Test Framework)
+Ready for: Phase 119 (next phase) — all plans in Phase 118 complete
