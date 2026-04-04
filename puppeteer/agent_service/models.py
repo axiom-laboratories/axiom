@@ -660,6 +660,8 @@ class MirrorConfigResponse(BaseModel):
     oci_ghcr_mirror_url: str
     conda_mirror_url: str
     health_status: Dict[str, str]  # { "pypi": "ok", "apt": "ok", ..., "conda": "ok" }
+    provisioning_enabled: bool  # True if ALLOW_CONTAINER_MANAGEMENT env var == "true"
+    conda_defaults_acknowledged_by_current_user: bool = False  # True if user has acknowledged Conda defaults ToS
 
 
 # --- User Management (EE) ---

@@ -24,6 +24,9 @@ from ..auth import get_current_user
 from ..security import require_permission
 from ..services.smelter_service import SmelterService
 from ..services.resolver_service import ResolverService
+from ..services.mirror_service import ProvisioningService
+from typing import Optional
+import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -293,3 +296,91 @@ async def discover_dependencies(
         tree=tree_response,
         toast_message=toast_message
     )
+
+
+# ---------------------------------------------------------------------------
+# Docker Provisioning Endpoints (MIRR-09)
+# ---------------------------------------------------------------------------
+
+@router.post("/api/admin/mirror-provision/{service}")
+async def provision_mirror_service(
+    service: str,
+    body: dict,
+    current_user = Depends(require_permission("foundry:write"))
+):
+    """
+    Start or stop a mirror service container.
+
+    Args:
+        service: Service name (pypi, apt, apk, npm, nuget, oci_hub, oci_ghcr, conda)
+        body: { "action": "start" | "stop" }
+
+    Returns:
+        { "status": "running|stopped", "message": "..." }
+
+    Raises:
+        403: If ALLOW_CONTAINER_MANAGEMENT != "true" or user is not admin
+        404: If service_name not in supported list
+        500: If Docker API error
+    """
+    # Check if provisioning is enabled
+    allow_provisioning = os.getenv("ALLOW_CONTAINER_MANAGEMENT", "false").lower() == "true"
+    if not allow_provisioning:
+        raise HTTPException(
+            status_code=403,
+            detail="Provisioning disabled. Set ALLOW_CONTAINER_MANAGEMENT=true to enable."
+        )
+
+    action = body.get("action", "").lower()
+    if action not in ["start", "stop"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Action must be 'start' or 'stop'"
+        )
+
+    try:
+        provisioning = ProvisioningService()
+
+        if action == "start":
+            result = await provisioning.start_service(service)
+        else:  # stop
+            result = await provisioning.stop_service(service)
+
+        return result
+
+    except ValueError as e:
+        # Invalid service name
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        # Docker API error
+        logger.error(f"Provisioning error for {service}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Docker API error: {str(e)}"
+        )
+
+
+@router.get("/api/admin/mirror-provision/status")
+async def get_provision_status(
+    current_user = Depends(require_permission("foundry:read"))
+):
+    """
+    Get status of all mirror service containers.
+
+    Returns:
+        { "pypi": "running", "conda": "stopped", ... }
+
+    Raises:
+        500: If Docker API error
+    """
+    try:
+        provisioning = ProvisioningService()
+        statuses = await provisioning.get_all_statuses()
+        return statuses
+
+    except Exception as e:
+        logger.error(f"Failed to get provision status: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Docker API error: {str(e)}"
+        )

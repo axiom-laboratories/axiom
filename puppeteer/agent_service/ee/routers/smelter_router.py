@@ -161,6 +161,9 @@ async def get_mirror_config(
         "conda": "ok",
     }
 
+    # Check if provisioning is enabled
+    provisioning_enabled = os.getenv("ALLOW_CONTAINER_MANAGEMENT", "false").lower() == "true"
+
     return MirrorConfigResponse(
         pypi_mirror_url=config_values["PYPI_MIRROR_URL"],
         apt_mirror_url=config_values["APT_MIRROR_URL"],
@@ -171,6 +174,7 @@ async def get_mirror_config(
         oci_ghcr_mirror_url=config_values["OCI_GHCR_MIRROR_URL"],
         conda_mirror_url=config_values["CONDA_MIRROR_URL"],
         health_status=health_status,
+        provisioning_enabled=provisioning_enabled,
     )
 
 
@@ -240,6 +244,9 @@ async def update_mirror_config(
         "conda": "ok",
     }
 
+    # Check if provisioning is enabled
+    provisioning_enabled = os.getenv("ALLOW_CONTAINER_MANAGEMENT", "false").lower() == "true"
+
     return MirrorConfigResponse(
         pypi_mirror_url=config_values["PYPI_MIRROR_URL"],
         apt_mirror_url=config_values["APT_MIRROR_URL"],
@@ -250,6 +257,7 @@ async def update_mirror_config(
         oci_ghcr_mirror_url=config_values["OCI_GHCR_MIRROR_URL"],
         conda_mirror_url=config_values["CONDA_MIRROR_URL"],
         health_status=health_status,
+        provisioning_enabled=provisioning_enabled,
     )
 
 
@@ -319,4 +327,46 @@ async def resolve_ingredient(
         "success": result["success"],
         "resolved_count": result["resolved_count"],
         "error_msg": result.get("error_msg")
+    }
+
+
+@smelter_router.post("/api/admin/conda-defaults-acknowledge", tags=["Smelter Registry"])
+async def acknowledge_conda_defaults_tos(
+    req: Dict[str, str],
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Acknowledge Conda defaults channel Terms of Service for current user.
+    Per-user acknowledgment prevents re-showing the modal on subsequent encounters.
+    """
+    # Validate channel value (must be "defaults")
+    channel = req.get("channel", "").strip()
+    if channel != "defaults":
+        raise HTTPException(status_code=422, detail="channel must be 'defaults'")
+
+    # Create or update Config entry for this user's acknowledgment
+    config_key = f"CONDA_DEFAULTS_TOS_ACKNOWLEDGED_BY_{current_user.id}"
+
+    result = await db.execute(select(Config).where(Config.key == config_key))
+    cfg = result.scalar_one_or_none()
+
+    if cfg:
+        # Already acknowledged; idempotent return
+        return {
+            "acknowledged": True,
+            "message": "Already acknowledged"
+        }
+
+    # Create new acknowledgment entry
+    new_cfg = Config(key=config_key, value="true")
+    db.add(new_cfg)
+
+    audit(db, current_user, "conda:defaults_tos_acknowledged", "Conda defaults channel ToS acknowledged")
+
+    await db.commit()
+
+    return {
+        "acknowledged": True,
+        "message": "ToS acknowledged"
     }
