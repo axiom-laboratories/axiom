@@ -81,7 +81,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service (completed 2026-04-03)
 - [x] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (completed 2026-04-03)
 - 🚧 **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer (in progress, 1 of 2 plans complete)
-- [ ] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars
+- [x] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars (completed 2026-04-04)
 - [ ] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems
 - [ ] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis
 - [ ] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers
@@ -237,7 +237,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
 | 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete    | 2026-04-04 |
 | 110. CVE Transitive Scan + Dependency Tree UI | 3/3 | Complete    | 2026-04-04 |
-| 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
+| 111. npm + NuGet + OCI Mirrors | 3/3 | Complete    | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
 | 113. Script Analyzer | 0/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
@@ -258,7 +258,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 1/2 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
