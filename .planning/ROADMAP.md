@@ -186,15 +186,18 @@ Plans:
   1. Operator can approve a Conda package and it is mirrored; selecting the Anaconda `defaults` channel shows a blocking ToS warning recommending conda-forge
   2. Admin mirror configuration UI includes URL fields for all ecosystems (PyPI, APT, apk, OCI, npm, Conda, NuGet) — not just PyPI and APT
   3. Operator can enable/disable mirror services from the Admin dashboard with one-click provisioning (start/stop compose services via Docker socket)
-**Plans**: 2/2 plans
+**Plans**: 3/3 plans
 
 Plans:
-- [ ] 112-01-PLAN.md — Conda mirror backend + .condarc injection + Caddyfile routing (MIRR-06)
-- [ ] 112-02-PLAN.md — Mirror admin UI (8 ecosystem cards) + Docker provisioning (MIRR-08, MIRR-09)
+- [ ] 112-01-PLAN.md — Conda mirror backend + .condarc injection + Caddyfile routing (MIRR-06 backend)
+- [ ] 112-02-PLAN.md — Mirror admin UI with 8 ecosystem cards (MIRR-08)
+- [ ] 112-02b-PLAN.md — Docker provisioning + ToS backend (MIRR-09, MIRR-06 backend)
+- [ ] 112-03-PLAN.md — Conda ToS blocking modal in Smelter UI (MIRR-06 UI)
 
-**Wave Structure:**
+**Wave Structure**:
 - Wave 1: Conda mirror backend (mirror_service._mirror_conda, .condarc injection, Caddyfile)
-- Wave 2: Admin UI + provisioning (depends on Wave 1 for mirror services to exist)
+- Wave 2: Admin UI (mirror cards, health badges) + provisioning service (depends on Wave 1)
+- Wave 3: Smelter ToS modal UI (depends on Wave 2 for ToS acknowledgment endpoint)
 
 ### Phase 113: Script Analyzer
 **Goal**: Operators can paste a script and get automatic package suggestions without knowing package names or ecosystems
