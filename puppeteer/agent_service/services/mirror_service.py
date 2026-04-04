@@ -215,8 +215,17 @@ class MirrorService:
         await db.commit()
 
         try:
-            # Mirror parent
-            await MirrorService._mirror_pypi(db, ingredient)
+            # Mirror parent — dispatch based on ecosystem
+            if ingredient.ecosystem == "NPM":
+                await MirrorService._mirror_npm(db, ingredient)
+            elif ingredient.ecosystem == "NUGET":
+                await MirrorService._mirror_nuget(db, ingredient)
+            elif ingredient.ecosystem == "APT":
+                await MirrorService._mirror_apt(db, ingredient)
+            elif ingredient.ecosystem == "APK":
+                await MirrorService._mirror_apk(db, ingredient)
+            else:  # Default to PYPI for backward compatibility
+                await MirrorService._mirror_pypi(db, ingredient)
 
             # Find all direct transitive dependencies
             stmt = select(IngredientDependency).where(
@@ -229,7 +238,17 @@ class MirrorService:
             for edge in edges:
                 child = await db.get(ApprovedIngredient, edge.child_id)
                 if child and child.mirror_status in ["PENDING", "RESOLVING"]:
-                    await MirrorService._mirror_pypi(db, child)
+                    # Dispatch each child based on its ecosystem
+                    if child.ecosystem == "NPM":
+                        await MirrorService._mirror_npm(db, child)
+                    elif child.ecosystem == "NUGET":
+                        await MirrorService._mirror_nuget(db, child)
+                    elif child.ecosystem == "APT":
+                        await MirrorService._mirror_apt(db, child)
+                    elif child.ecosystem == "APK":
+                        await MirrorService._mirror_apk(db, child)
+                    else:  # Default to PYPI
+                        await MirrorService._mirror_pypi(db, child)
 
         except Exception as e:
             ingredient.mirror_log = f"Error mirroring dependencies: {str(e)}"
