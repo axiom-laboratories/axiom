@@ -440,6 +440,35 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    # Seed default mirror config entries if they don't exist
+    async with AsyncSessionLocal() as session:
+        await seed_mirror_config(session)
+
+
+async def seed_mirror_config(session: AsyncSession):
+    """Seed Config table with default mirror URLs for all 8 ecosystems (if not already present)."""
+    from sqlalchemy import select
+
+    mirror_defaults = {
+        "PYPI_MIRROR_URL": "http://pypi:8080/simple",
+        "APT_MIRROR_URL": "http://mirror:80/apt",
+        "APK_MIRROR_URL": "http://mirror:80/apk",
+        "NPM_MIRROR_URL": "http://verdaccio:4873",
+        "NUGET_MIRROR_URL": "http://bagetter:5555/v3/index.json",
+        "OCI_HUB_MIRROR_URL": "http://oci-cache:5001",
+        "OCI_GHCR_MIRROR_URL": "http://oci-cache-ghcr:5002",
+        "CONDA_MIRROR_URL": "http://mirror:8081/conda",
+    }
+
+    for key, default_value in mirror_defaults.items():
+        result = await session.execute(select(Config).where(Config.key == key))
+        existing = result.scalar_one_or_none()
+        if not existing:
+            session.add(Config(key=key, value=default_value))
+
+    await session.commit()
+
+
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
