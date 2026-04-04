@@ -85,7 +85,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [ ] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems
 - [ ] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis
 - [ ] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers
-- [ ] **Phase 115: Operator UX Polish** - Simplified naming, package search, template catalog, and role-based simplified view
+- ~~Phase 115: Operator UX Polish~~ — **deferred to v20.0** (UX polish, not blocking air-gap)
 
 ## Phase Details
 
@@ -220,25 +220,14 @@ Plans:
 - [ ] 114-01: Curated bundles CRUD + seeded data + bundle picker UI
 - [ ] 114-02: Starter templates seeding + Template Gallery view
 
-### Phase 115: Operator UX Polish
-**Goal**: The Foundry is accessible to service-desk operators through simplified naming, search, usage stats, and a role-based simplified view
-**Depends on**: Phase 114 (starter templates and bundles must exist for simplified view to be useful)
-**Requirements**: UX-04, UX-05, UX-06, UX-07
-**Success Criteria** (what must be TRUE):
-  1. All user-facing labels are simplified: Ingredient->Package, Smelter Registry->Package Registry, Capability Matrix/Tool->Add-on Tool, etc. (API field names unchanged)
-  2. Operator can search packages by description (e.g. typing "excel" finds openpyxl) — not just exact name match
-  3. Operator/viewer users see a simplified Foundry view by default (Template Gallery + Upload Script + My Images) with a toggle to access the full UI; admin always sees full UI
-  4. Template catalog shows usage stats (created_by, nodes using it, last_used_at) so proven templates surface first for service desk operators
-**Plans**: TBD
-
-Plans:
-- [ ] 115-01: Simplified naming + package search
-- [ ] 115-02: Template catalog with usage stats + role-based simplified view
+### ~~Phase 115: Operator UX Polish~~ — DEFERRED to v20.0
+**Reason:** UX polish (simplified labels, search-by-description, simplified mode toggle, usage stats) is quality-of-life — not blocking air-gap functionality.
+**Requirements deferred:** UX-04, UX-05, UX-06, UX-07
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 → 113 → 114 → 115
+Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 → 113 → 114 (Phase 115 deferred to v20.0)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -251,7 +240,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
 | 113. Script Analyzer | 0/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
-| 115. Operator UX Polish | 0/2 | Not started | - |
+| 115. Operator UX Polish | — | Deferred to v20.0 | - |
 
 ## Archived
 
