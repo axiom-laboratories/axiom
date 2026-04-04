@@ -21,6 +21,7 @@ class SmelterService:
             version_constraint=ingredient_in.version_constraint,
             sha256=ingredient_in.sha256,
             os_family=ingredient_in.os_family.upper(),
+            ecosystem=ingredient_in.ecosystem,
             mirror_status="PENDING"
         )
         db.add(new_ingredient)
@@ -137,7 +138,7 @@ class SmelterService:
     def _extract_cvss_severity(vuln_record: dict) -> str:
         """Extract CVSS-based severity from pip-audit vulnerability record."""
         # Check for severity field first
-        if "severity" in vuln_record:
+        if "severity" in vuln_record and vuln_record["severity"] is not None:
             severity = vuln_record["severity"].upper()
             if severity in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
                 return severity
