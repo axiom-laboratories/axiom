@@ -176,7 +176,7 @@ Plans:
 Plans:
 - [x] 111-01-PLAN.md — npm mirror backend + Verdaccio sidecar + Smelter integration (completed 2026-04-04)
 - [x] 111-02-PLAN.md — NuGet mirror backend + BaGetter sidecar + OCI pull-through config (completed 2026-04-04)
-- [ ] 111-03-PLAN.md — Gap closure: ecosystem dispatch + integration tests
+- [x] 111-03-PLAN.md — Gap closure: ecosystem dispatch + integration tests (completed 2026-04-04)
 
 ### Phase 112: Conda Mirror + Mirror Admin UI
 **Goal**: Operators can mirror Conda packages with proper licensing awareness, and configure all mirror URLs from the Admin dashboard
@@ -237,7 +237,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
 | 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete    | 2026-04-04 |
 | 110. CVE Transitive Scan + Dependency Tree UI | 3/3 | Complete    | 2026-04-04 |
-| 111. npm + NuGet + OCI Mirrors | 1/2 | In Progress|  |
+| 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
 | 113. Script Analyzer | 0/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
