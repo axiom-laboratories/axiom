@@ -115,7 +115,7 @@ Plans:
   2. PyPI packages are mirrored to separate paths for manylinux and musllinux wheels so Alpine and Debian images both build correctly in air-gap
   3. A Foundry build using STRICT enforcement mode completes successfully with no internet access for any blueprint whose packages have been mirrored
   4. Circular dependency chains are detected and handled gracefully (timeout + visited-set guard) without hanging the resolution worker
-**Plans**: 2/2 plans
+**Plans**: 3 plans (2 execution + 1 gap closure)
 
 Plans:
 - [x] 108-01-PLAN.md — Resolver service with pip-compile, transitive edge creation, auto-discovered deduplication (completed 2026-04-03)
@@ -171,11 +171,12 @@ Plans:
   2. Operator can approve a NuGet package and it is mirrored via BaGetter with a compose sidecar
   3. OCI base images used by Foundry are cached through a registry:2 pull-through proxy so image pulls work in air-gap
   4. All three new sidecars use the `--profile mirrors` compose pattern established in Phase 109
-**Plans**: 2/2 plans
+**Plans**: 3 plans (2 execution + 1 gap closure)
 
 Plans:
 - [x] 111-01-PLAN.md — npm mirror backend + Verdaccio sidecar + Smelter integration (completed 2026-04-04)
 - [x] 111-02-PLAN.md — NuGet mirror backend + BaGetter sidecar + OCI pull-through config (completed 2026-04-04)
+- [ ] 111-03-PLAN.md — Gap closure: ecosystem dispatch + integration tests
 
 ### Phase 112: Conda Mirror + Mirror Admin UI
 **Goal**: Operators can mirror Conda packages with proper licensing awareness, and configure all mirror URLs from the Admin dashboard
