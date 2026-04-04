@@ -161,6 +161,19 @@ Progress: [████████████████████] 100%
 - All 6 tests passing; requirement MIRR-08 satisfied; health_status dict ready for Phase 113 enhancement
 - Total: 6 tasks, 7 files (1 new component + 6 modified), 20 min duration
 
+**Plan 112-03 (Smelter Conda Defaults ToS Modal UI):**
+- Implemented POST /api/admin/conda-defaults-acknowledge endpoint with per-user Config DB persistence (key: CONDA_DEFAULTS_TOS_ACKNOWLEDGED_BY_{user_id})
+- Idempotent endpoint design: returns 200 "Already acknowledged" on duplicate calls (never 422)
+- Updated GET /api/admin/mirror-config to include conda_defaults_acknowledged_by_current_user field
+- Created CondaDefaultsToSModal component (155 lines): Dialog with AlertTriangle icon, 3 content sections, cancel/acknowledge buttons
+- Created SmelterIngredientSelector component (223 lines): Ecosystem/channel dropdowns, ingredient form, modal integration
+- State management: useQuery for mirror-config, useMutation for acknowledgment, 3 useEffect hooks for state coordination
+- Modal blocking logic: Pre-selects conda-forge on CONDA ecosystem selection; shows modal + disables approval when defaults selected
+- Permission gating: foundry:write required for acknowledgment endpoint
+- Comprehensive test suite: 8 integration tests + 4 unit tests (12 total, all passing)
+- Tests verify: pre-selection, modal appearance, blocking behavior, acknowledgment flow, API calls, cancellation, reset
+- Total: 4 tasks, 5 files (3 created + 2 modified), 45 min duration
+
 ### Completed in Phase 109
 
 **Plan 109-03 (Alpine Support + Mirror Health UI):**
