@@ -436,6 +436,26 @@ class ServicePrincipal(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class ScriptAnalysisRequest(Base):
+    """Approval queue for script analysis (Phase 113)."""
+    __tablename__ = "script_analysis_requests"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    requester_id: Mapped[str] = mapped_column(String, nullable=False)  # FK to User.username
+    package_name: Mapped[str] = mapped_column(String, nullable=False)
+    ecosystem: Mapped[str] = mapped_column(String(20), nullable=False)  # PYPI, APT, APK, OCI, NPM, CONDA, NUGET
+    detected_import: Mapped[str] = mapped_column(String, nullable=False)  # Original import/command from script
+    source_script_hash: Mapped[str] = mapped_column(String(64), nullable=False)  # SHA256 hash of script
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", server_default="PENDING")  # PENDING, APPROVED, REJECTED
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # FK to User.username
+    review_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('requester_id', 'package_name', 'ecosystem', 'source_script_hash', name='uq_analysis_request'),
+    )
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
