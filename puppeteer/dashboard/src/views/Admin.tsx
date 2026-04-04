@@ -85,6 +85,7 @@ import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
 import { useSystemHealth } from '../hooks/useSystemHealth';
 import { DependencyTreeModal } from '../components/foundry/DependencyTreeModal';
 import { MirrorConfigCard } from '../components/MirrorConfigCard';
+import { ApprovalQueuePanel } from '../components/ApprovalQueuePanel';
 
 // --- Sub-components for Admin ---
 
@@ -1763,7 +1764,10 @@ const Admin = () => {
                     <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Licence</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Data</TabsTrigger>
                     {features.foundry && (
-                        <TabsTrigger value="mirrors" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Mirrors</TabsTrigger>
+                        <>
+                            <TabsTrigger value="mirrors" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Mirrors</TabsTrigger>
+                            <TabsTrigger value="script-analyzer" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Script Analyzer</TabsTrigger>
+                        </>
                     )}
                 </TabsList>
                     {canScrollRight && (
@@ -1989,6 +1993,10 @@ const Admin = () => {
 
                 <TabsContent value="mirrors" className="space-y-6">
                     <MirrorsTab />
+                </TabsContent>
+
+                <TabsContent value="script-analyzer" className="space-y-6">
+                    <ApprovalQueuePanel />
                 </TabsContent>
             </Tabs>
         </div>

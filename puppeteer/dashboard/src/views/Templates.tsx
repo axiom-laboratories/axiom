@@ -36,6 +36,7 @@ import { UpgradePlaceholder } from '../components/UpgradePlaceholder';
 import { CreateTemplateDialog } from '../components/CreateTemplateDialog';
 import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
 import BlueprintWizard from '../components/foundry/BlueprintWizard';
+import { ScriptAnalyzerPanel } from '../components/ScriptAnalyzerPanel';
 
 interface Template {
     id: string;
@@ -768,8 +769,9 @@ const Templates = () => {
                     ))}
                 </div>
             ) : (
-                <Tabs defaultValue="templates" className="w-full">
+                <Tabs defaultValue="smelter" className="w-full">
                     <TabsList>
+                        <TabsTrigger value="smelter">Smelter</TabsTrigger>
                         <TabsTrigger value="templates">Node Images ({templates.length})</TabsTrigger>
                         <TabsTrigger value="runtime">Runtime Image Recipes ({runtimeBlueprints.length})</TabsTrigger>
                         <TabsTrigger value="network">Network Image Recipes ({networkBlueprints.length})</TabsTrigger>
@@ -782,6 +784,10 @@ const Templates = () => {
                             Approved OS ({approvedOSList.length})
                         </TabsTrigger>
                     </TabsList>
+
+                    <TabsContent value="smelter" className="space-y-4">
+                        <ScriptAnalyzerPanel />
+                    </TabsContent>
 
                     <TabsContent value="templates">
                         <div className="flex justify-end mb-4">
