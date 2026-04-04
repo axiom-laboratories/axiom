@@ -84,6 +84,7 @@ import { GracePeriodBanner } from '../components/GracePeriodBanner';
 import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
 import { useSystemHealth } from '../hooks/useSystemHealth';
 import { DependencyTreeModal } from '../components/foundry/DependencyTreeModal';
+import { MirrorConfigCard } from '../components/MirrorConfigCard';
 
 // --- Sub-components for Admin ---
 
@@ -1507,6 +1508,90 @@ const SmelterRegistryManager = () => {
     );
 };
 
+const MirrorsTab = () => {
+    const user = getUser();
+    const isAdmin = user?.role === 'admin';
+    const queryClient = useQueryClient();
+
+    // Fetch mirror config
+    const { data: mirrorConfig, isLoading } = useQuery({
+        queryKey: ['mirrorConfig'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/admin/mirror-config');
+            if (!res.ok) throw new Error('Failed to fetch mirror config');
+            return res.json();
+        },
+    });
+
+    // Mutation for updating mirror config
+    const updateMirrorMutation = useMutation({
+        mutationFn: async (updates: Record<string, string>) => {
+            const res = await authenticatedFetch('/api/admin/mirror-config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates),
+            });
+            if (!res.ok) throw new Error('Failed to update mirror config');
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['mirrorConfig'] });
+        },
+    });
+
+    const handleMirrorUpdate = async (field: string, newUrl: string) => {
+        return updateMirrorMutation.mutateAsync({ [field]: newUrl });
+    };
+
+    const ecosystems = [
+        { name: 'pypi_mirror_url', display: 'PyPI' },
+        { name: 'apt_mirror_url', display: 'APT' },
+        { name: 'apk_mirror_url', display: 'Alpine' },
+        { name: 'npm_mirror_url', display: 'npm' },
+        { name: 'nuget_mirror_url', display: 'NuGet' },
+        { name: 'oci_hub_mirror_url', display: 'OCI Hub' },
+        { name: 'oci_ghcr_mirror_url', display: 'OCI GHCR' },
+        { name: 'conda_mirror_url', display: 'Conda' },
+    ];
+
+    if (isLoading) {
+        return <div className="text-muted-foreground">Loading mirror configuration...</div>;
+    }
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-bold text-foreground mb-2">Mirror Configuration</h3>
+                <p className="text-sm text-muted-foreground">
+                    Configure URLs for all package ecosystems. Health status shows real-time availability.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {ecosystems.map((eco) => (
+                    <MirrorConfigCard
+                        key={eco.name}
+                        ecosystem={eco.name}
+                        displayName={eco.display}
+                        url={mirrorConfig?.[eco.name] || ''}
+                        healthStatus={mirrorConfig?.health_status?.[eco.name.split('_')[0]] || 'ok'}
+                        onUpdate={(newUrl) => handleMirrorUpdate(eco.name, newUrl)}
+                        canEdit={isAdmin}
+                    />
+                ))}
+            </div>
+
+            {!isAdmin && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <p className="text-sm text-amber-400">
+                        Admin access required to edit mirror URLs.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const Admin = () => {
     const { isEnterprise } = useLicence();
     const features = useFeatures();
@@ -1677,6 +1762,9 @@ const Admin = () => {
                     )}
                     <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Licence</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Data</TabsTrigger>
+                    {features.foundry && (
+                        <TabsTrigger value="mirrors" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Mirrors</TabsTrigger>
+                    )}
                 </TabsList>
                     {canScrollRight && (
                         <button
@@ -1897,6 +1985,10 @@ const Admin = () => {
                             </p>
                         </div>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="mirrors" className="space-y-6">
+                    <MirrorsTab />
                 </TabsContent>
             </Tabs>
         </div>
