@@ -184,7 +184,7 @@ const StatsSparkline = ({ history }: { history: StatPoint[] }) => {
 
 const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => void }) => {
     const queryClient = useQueryClient();
-    const isOnline = node.status === 'ONLINE';
+    const isOnline = node.status === 'ONLINE' || node.status === 'ACTIVE' || node.status === 'BUSY';
     const isRevoked = node.status === 'REVOKED';
     const isTampered = node.status === 'TAMPERED';
     const cpu = node.stats?.cpu ?? 0;
