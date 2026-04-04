@@ -39,6 +39,7 @@ def _mount_ce_stubs(app: Any) -> None:
     from .interfaces.auth_ext import auth_ext_stub_router
     from .interfaces.smelter import smelter_stub_router
     from .interfaces.executions import execution_stub_router
+    from .interfaces.analyzer import analyzer_stub_router
 
     # Snapshot route count before mounting stubs
     pre_count = len(app.routes)
@@ -50,6 +51,7 @@ def _mount_ce_stubs(app: Any) -> None:
     app.include_router(auth_ext_stub_router)
     app.include_router(smelter_stub_router)
     app.include_router(execution_stub_router)
+    app.include_router(analyzer_stub_router)
 
     # Tag every route added by stub routers
     for route in app.routes[pre_count:]:

@@ -927,3 +927,55 @@ class DiscoverDependenciesResponse(BaseModel):
     discovered_count: int  # Number of newly-discovered transitive deps
     tree: DependencyTreeResponse
     toast_message: str  # e.g., "Flask: 6 deps resolved, 1 CVE found"
+
+
+# Script Analyzer Models (Phase 113)
+
+class AnalyzeScriptRequest(BaseModel):
+    """Request to analyze a script for package dependencies."""
+    script_content: str
+    language: Optional[str] = None  # Optional override: python, bash, powershell
+
+
+class AnalyzedPackage(BaseModel):
+    """A single package extracted from script analysis."""
+    import_name: str
+    package_name: str
+    ecosystem: str
+    mapped: Optional[bool] = False  # True if import_name != package_name
+
+
+class AnalyzeScriptResponse(BaseModel):
+    """Response from script analysis endpoint."""
+    detected_language: str
+    suggestions: List[AnalyzedPackage]
+    approved: List[str]  # package_names that are already approved
+    pending_review: List[str]  # package_names requiring approval
+
+
+class ScriptAnalysisRequestResponse(BaseModel):
+    """Response model for a ScriptAnalysisRequest."""
+    id: str
+    requester_id: str
+    package_name: str
+    ecosystem: str
+    detected_import: str
+    source_script_hash: str
+    status: str  # PENDING, APPROVED, REJECTED
+    created_at: datetime
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[str] = None
+    review_reason: Optional[str] = None
+
+
+class ScriptAnalysisRequestCreate(BaseModel):
+    """Request to create a script analysis request for approval."""
+    package_name: str
+    ecosystem: str
+    detected_import: str
+    source_script: str  # Full script text (will be hashed)
+
+
+class ScriptAnalysisApprovalRequest(BaseModel):
+    """Request to approve or reject a script analysis request."""
+    reason: Optional[str] = None  # Approval/rejection reason
