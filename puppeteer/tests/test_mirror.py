@@ -717,3 +717,73 @@ def test_get_oci_mirror_prefix_no_tag():
     rewritten = MirrorService.get_oci_mirror_prefix("node")
     assert rewritten == "oci-cache:5001/library/node"
     assert "latest" not in rewritten  # Should not add :latest
+
+
+@pytest.mark.asyncio
+async def test_mirror_ingredient_dispatch_npm():
+    """
+    Test that mirror_ingredient_and_dependencies() dispatches npm ingredients to _mirror_npm().
+    """
+    from uuid import uuid4
+
+    # Create a mock npm ingredient with ecosystem="NPM"
+    mock_ingredient = AsyncMock(spec=ApprovedIngredient)
+    mock_ingredient.id = str(uuid4())
+    mock_ingredient.name = "lodash"
+    mock_ingredient.version_constraint = "@4.17.21"
+    mock_ingredient.ecosystem = "NPM"
+    mock_ingredient.mirror_status = "PENDING"
+
+    # Mock the appropriate mirror method
+    mock_mirror_npm = AsyncMock()
+
+    mock_db = AsyncMock()
+    mock_db.get.return_value = mock_ingredient
+
+    # Mock dependencies query
+    mock_db.execute.return_value = MagicMock(scalars=lambda: MagicMock(all=lambda: []))
+
+    with patch.object(MirrorService, "_mirror_npm", mock_mirror_npm):
+        # Call dispatch
+        await MirrorService.mirror_ingredient_and_dependencies(mock_db, mock_ingredient.id)
+
+        # Assert _mirror_npm was called (not _mirror_pypi)
+        mock_mirror_npm.assert_called_once()
+        # Verify it was called with our npm ingredient
+        call_args = mock_mirror_npm.call_args
+        assert call_args[0][1].ecosystem == "NPM"
+
+
+@pytest.mark.asyncio
+async def test_mirror_ingredient_dispatch_nuget():
+    """
+    Test that mirror_ingredient_and_dependencies() dispatches NuGet ingredients to _mirror_nuget().
+    """
+    from uuid import uuid4
+
+    # Create a mock NuGet ingredient with ecosystem="NUGET"
+    mock_ingredient = AsyncMock(spec=ApprovedIngredient)
+    mock_ingredient.id = str(uuid4())
+    mock_ingredient.name = "Newtonsoft.Json"
+    mock_ingredient.version_constraint = "13.0.3"
+    mock_ingredient.ecosystem = "NUGET"
+    mock_ingredient.mirror_status = "PENDING"
+
+    # Mock the appropriate mirror method
+    mock_mirror_nuget = AsyncMock()
+
+    mock_db = AsyncMock()
+    mock_db.get.return_value = mock_ingredient
+
+    # Mock dependencies query
+    mock_db.execute.return_value = MagicMock(scalars=lambda: MagicMock(all=lambda: []))
+
+    with patch.object(MirrorService, "_mirror_nuget", mock_mirror_nuget):
+        # Call dispatch
+        await MirrorService.mirror_ingredient_and_dependencies(mock_db, mock_ingredient.id)
+
+        # Assert _mirror_nuget was called (not _mirror_pypi)
+        mock_mirror_nuget.assert_called_once()
+        # Verify it was called with our NuGet ingredient
+        call_args = mock_mirror_nuget.call_args
+        assert call_args[0][1].ecosystem == "NUGET"
