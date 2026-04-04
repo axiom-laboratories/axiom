@@ -61,7 +61,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - ✅ v12.0 Operator Maturity — Phases 46–56 (shipped 2026-03-24)
 - ✅ v13.0 Research & Documentation Foundation — Phases 57–60 (shipped 2026-03-24)
 - ✅ v14.0 CE/EE Cold-Start Validation — Phases 61–65 (shipped 2026-03-25)
-- ✅ v14.1 First-User Readiness — Phases 66–70 (shipped 2026-03-26)
+- ✅ v14.1 First-User Readiness — Phases 66–70 (shipped 2026-04-01)
 - ✅ v14.2 Docs on GitHub Pages — Phase 71 (shipped 2026-03-26)
 - ✅ v14.3 Security Hardening + EE Licensing — Phases 72–76 (shipped 2026-03-27)
 - ✅ v14.4 Go-to-Market Polish — Phases 77–81 (shipped 2026-03-28)
@@ -80,7 +80,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 107: Schema Foundation + CRUD Completeness** - DB migrations and missing CRUD operations that unblock all downstream work (completed 2026-04-03)
 - [x] **Phase 108: Transitive Dependency Resolution** - Full dep tree resolution, dual-platform mirroring, and resolver service (completed 2026-04-03)
 - [x] **Phase 109: APT + apk Mirrors + Compose Profiles** - Linux air-gap mirror backends and the compose profile pattern for all sidecars (completed 2026-04-03)
-- 🚧 **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer (in progress, 1 of 2 plans complete)
+- [x] **Phase 110: CVE Transitive Scan + Dependency Tree UI** - Extend CVE scanning to full dep tree and ship the interactive tree viewer (completed 2026-04-04)
 - [x] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars (completed 2026-04-04)
 - [ ] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems
 - [ ] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis
@@ -152,15 +152,15 @@ Plans:
   1. Operator can click a tree icon on any ingredient and see an interactive visual tree showing the full provenance chain (e.g. MarkupSafe <- Jinja2 <- Flask)
   2. CVE scanning includes all transitive dependencies — a vulnerable transitive dep (e.g. CVE in MarkupSafe pulled by Jinja2 pulled by Flask) is flagged before build
   3. Operator can trigger dependency discovery for any ingredient via a button that returns the full tree with a one-click "Approve All" action to bulk-approve the entire chain
-**Plans**: 2 plans (1 complete, 1 in progress)
+**Plans**: 2 plans (2 complete)
 
 Plans:
 - [x] 110-01-PLAN.md — Backend: CVE scan extension to transitive deps + tree API + discover endpoint (completed 2026-04-03)
-- [ ] 110-02-PLAN.md — Frontend: Dependency tree viewer component + CVE badges + discover button integration
+- [x] 110-02-PLAN.md — Frontend: Dependency tree viewer component + CVE badges + discover button integration (completed 2026-04-04)
 
 **Wave Structure:**
 - Wave 1: Backend (CVE scan extension, tree API, discover endpoint, comprehensive tests) — COMPLETE
-- Wave 2: Frontend (tree modal component, CVE badges, discover button integration in Smelter Registry) — IN PROGRESS
+- Wave 2: Frontend (tree modal component, CVE badges, discover button integration in Smelter Registry) — COMPLETE
 
 ### Phase 111: npm + NuGet + OCI Mirrors
 **Goal**: Operators can mirror npm, NuGet, and OCI (Docker) packages for air-gapped environments using proven Docker-native sidecar services
@@ -171,7 +171,7 @@ Plans:
   2. Operator can approve a NuGet package and it is mirrored via BaGetter with a compose sidecar
   3. OCI base images used by Foundry are cached through a registry:2 pull-through proxy so image pulls work in air-gap
   4. All three new sidecars use the `--profile mirrors` compose pattern established in Phase 109
-**Plans**: 3 plans (2 execution + 1 gap closure)
+**Plans**: 3 plans (3 complete)
 
 Plans:
 - [x] 111-01-PLAN.md — npm mirror backend + Verdaccio sidecar + Smelter integration (completed 2026-04-04)
@@ -186,11 +186,15 @@ Plans:
   1. Operator can approve a Conda package and it is mirrored; selecting the Anaconda `defaults` channel shows a blocking ToS warning recommending conda-forge
   2. Admin mirror configuration UI includes URL fields for all ecosystems (PyPI, APT, apk, OCI, npm, Conda, NuGet) — not just PyPI and APT
   3. Operator can enable/disable mirror services from the Admin dashboard with one-click provisioning (start/stop compose services via Docker socket)
-**Plans**: TBD
+**Plans**: 2/2 plans
 
 Plans:
-- [ ] 112-01: Conda mirror backend with ToS warning
-- [ ] 112-02: Mirror admin UI + one-click provisioning
+- [ ] 112-01-PLAN.md — Conda mirror backend + .condarc injection + Caddyfile routing (MIRR-06)
+- [ ] 112-02-PLAN.md — Mirror admin UI (8 ecosystem cards) + Docker provisioning (MIRR-08, MIRR-09)
+
+**Wave Structure:**
+- Wave 1: Conda mirror backend (mirror_service._mirror_conda, .condarc injection, Caddyfile)
+- Wave 2: Admin UI + provisioning (depends on Wave 1 for mirror services to exist)
 
 ### Phase 113: Script Analyzer
 **Goal**: Operators can paste a script and get automatic package suggestions without knowing package names or ecosystems
@@ -232,12 +236,11 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 117. Light Mode Implementation | 4/5 | In Progress | - |
 | 107. Schema Foundation + CRUD Completeness | 3/3 | Complete | 2026-04-03 |
 | 108. Transitive Dependency Resolution | 2/2 | Complete | 2026-04-03 |
-| 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete    | 2026-04-04 |
-| 110. CVE Transitive Scan + Dependency Tree UI | 3/3 | Complete    | 2026-04-04 |
-| 111. npm + NuGet + OCI Mirrors | 3/3 | Complete    | 2026-04-04 |
+| 109. APT + apk Mirrors + Compose Profiles | 4/4 | Complete | 2026-04-03 |
+| 110. CVE Transitive Scan + Dependency Tree UI | 2/2 | Complete | 2026-04-04 |
+| 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 0/2 | Not started | - |
 | 113. Script Analyzer | 0/2 | Not started | - |
 | 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
@@ -285,7 +288,7 @@ Plans:
 
 **Requirements**: None specified
 
-**Plans:** 5 plans (3 execution + 1 verification planned)
+**Plans:** 5 plans (4 execution complete, 1 verification blocked)
 
 Plans:
 - [x] 117-00-PLAN.md — Test infrastructure foundation (Wave 0 TDD RED phase) — completed 2026-04-02
@@ -312,10 +315,29 @@ Plans:
 
 ### Phase 118: UI polish and verification
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Polish UI consistency across all dashboard views and add permanent Playwright-based verification tests
+
+**Requirements**: None specified (quality/testing phase)
+
 **Depends on:** Phase 117
+
 **Plans:** 4/4 plans complete
 
 Plans:
-- [x] TBD (run /gsd:plan-phase 118 to break down) (completed 2026-04-04)
+- [x] 118-01-PLAN.md — CSS variable theming and skeleton component (completed 2026-04-04)
+- [x] 118-02-PLAN.md — Visual polish and responsive design (completed 2026-04-04)
+- [x] 118-03-PLAN.md — GitHub issue fixes (GH #20, #21, #22) (completed 2026-04-04)
+- [x] 118-04-PLAN.md — UI polish verification and Playwright test framework (completed 2026-04-04)
+
+**Wave Structure:**
+- Wave 1: CSS + skeleton component
+- Wave 2: Visual polish
+- Wave 3: Bug fixes
+- Wave 4: Verification framework
+
+**Success Criteria:**
+- All 9 dashboard views have consistent spacing, responsive design, and theme-aware styling
+- Status filter supports comma-separated values
+- Dashboard node counts correct and consistent
+- Node status indicators display correct colors
+- Full-page screenshot comparison tests pass for light/dark themes
