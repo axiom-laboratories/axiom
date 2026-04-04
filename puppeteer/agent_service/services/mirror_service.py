@@ -19,6 +19,7 @@ class MirrorService:
     APT_PATH = os.path.join(MIRROR_BASE_PATH, "apt")
     APK_BASE_PATH = os.path.join(MIRROR_BASE_PATH, "apk")
     NPM_PATH = os.path.join(MIRROR_BASE_PATH, "npm")
+    NUGET_PATH = os.path.join(MIRROR_BASE_PATH, "nuget")
 
     @staticmethod
     async def mirror_ingredient(ingredient_id: str):
@@ -551,3 +552,124 @@ class MirrorService:
         """
         url = os.getenv("NPM_MIRROR_URL", "http://verdaccio:4873")
         return f"registry={url}\n"
+
+    @staticmethod
+    async def _mirror_nuget(db: AsyncSession, ingredient: ApprovedIngredient) -> None:
+        """
+        Download a NuGet package using nuget install inside a throwaway dotnet/sdk container.
+        Uses asyncio.to_thread for subprocess execution.
+        Updates ingredient.mirror_status and mirror_log on success/failure.
+        """
+        try:
+            # Create NUGET directory structure: mirror_data/nuget/{name}/{version}/
+            pkg_dir = os.path.join(MirrorService.NUGET_PATH, ingredient.name, ingredient.version_constraint or "latest")
+            os.makedirs(pkg_dir, exist_ok=True)
+
+            # Parse version constraint: "13.0.1", "latest", "pre-release", etc.
+            # Version can be: "13.0.1", "13.0.1-beta", "latest", etc.
+            version_spec = ingredient.version_constraint or "latest"
+
+            # Run nuget install inside a throwaway dotnet/sdk container
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{pkg_dir}:/mirror",
+                "mcr.microsoft.com/dotnet/sdk:latest",
+                "bash", "-c",
+                f"nuget install {ingredient.name} -Version {version_spec} -NoCache -OutputDirectory /mirror"
+            ]
+
+            logger.info(f"Mirror: Running nuget install for {ingredient.name}@{version_spec}")
+            process = await asyncio.to_thread(
+                subprocess.run,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=180
+            )
+
+            if process.returncode == 0:
+                # Verify .nupkg file was created
+                # nuget install creates: /mirror/{PackageName}/{Version}/{PackageName}.{Version}.nupkg
+                expected_nupkg = os.path.join(pkg_dir, ingredient.name, version_spec, f"{ingredient.name}.{version_spec}.nupkg")
+
+                # Check if file exists (may be in subdirectories or directly in pkg_dir)
+                nupkg_found = False
+                for root, dirs, files in os.walk(pkg_dir):
+                    for file in files:
+                        if file.endswith(".nupkg"):
+                            nupkg_found = True
+                            nupkg_path = os.path.join(root, file)
+                            ingredient.mirror_status = "MIRRORED"
+                            ingredient.mirror_path = pkg_dir
+                            ingredient.mirror_log = f"Downloaded {ingredient.name}@{version_spec}; saved as {file}"
+                            logger.info(f"Mirror: Successfully mirrored NuGet package {ingredient.name}@{version_spec} -> {file}")
+                            break
+                    if nupkg_found:
+                        break
+
+                if not nupkg_found:
+                    ingredient.mirror_status = "FAILED"
+                    ingredient.mirror_log = f"nuget install succeeded but no .nupkg file found in {pkg_dir}"
+                    logger.error(f"Mirror: nuget install reported success but .nupkg missing for {ingredient.name}")
+            else:
+                ingredient.mirror_status = "FAILED"
+                ingredient.mirror_log = process.stderr or process.stdout or "nuget install failed with unknown error"
+                logger.error(f"Mirror: nuget install failed for {ingredient.name}@{version_spec}: {process.stderr}")
+
+            await db.commit()
+
+        except asyncio.TimeoutError:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = "nuget install timeout after 180s"
+            await db.commit()
+            logger.error(f"Mirror: Timeout downloading NuGet package {ingredient.name}")
+        except Exception as e:
+            ingredient.mirror_status = "FAILED"
+            ingredient.mirror_log = str(e)
+            await db.commit()
+            logger.error(f"Mirror: Error mirroring NuGet package {ingredient.name}: {str(e)}")
+
+    @staticmethod
+    def get_nuget_config_content() -> str:
+        """
+        Returns nuget.config XML format pointing to the local NuGet mirror (BaGetter).
+        Suitable for injection into Dockerfile.
+        """
+        url = os.getenv("NUGET_MIRROR_URL", "http://bagetter:5555/v3/index.json")
+        return f"""<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="bagetter" value="{url}" />
+  </packageSources>
+  <packageSourceCredentials>
+    <!-- Optional: auth can be added here in Phase 112 -->
+  </packageSourceCredentials>
+</configuration>
+"""
+
+    @staticmethod
+    def get_oci_mirror_prefix(base_image: str) -> str:
+        """
+        Determines if base_image is Docker Hub or GHCR and returns appropriate cache prefix.
+        Rewrites base_image reference for pull-through caching.
+
+        Logic:
+        - If base_image starts with "ghcr.io/": return rewritten with "oci-cache-ghcr:5002"
+        - If base_image is unqualified (e.g., "node", "python"): Docker Hub convention, use "oci-cache:5001"
+        - Otherwise: assume Docker Hub registry, use "oci-cache:5001"
+
+        Examples:
+        - "node:18" → "oci-cache:5001/library/node:18"
+        - "alpine:3.20" → "oci-cache:5001/library/alpine:3.20"
+        - "ghcr.io/owner/image:latest" → "oci-cache-ghcr:5002/owner/image:latest"
+        """
+        if base_image.startswith("ghcr.io/"):
+            # GHCR: strip "ghcr.io/" and prepend cache prefix
+            image_path = base_image[len("ghcr.io/"):]  # "owner/image:latest"
+            return f"oci-cache-ghcr:5002/{image_path}"
+        elif "/" in base_image:
+            # Registry-qualified but not GHCR: assume Docker Hub organization
+            return f"oci-cache:5001/{base_image}"
+        else:
+            # Unqualified (e.g., "node:18", "alpine:3.20"): Docker Hub library
+            return f"oci-cache:5001/library/{base_image}"
