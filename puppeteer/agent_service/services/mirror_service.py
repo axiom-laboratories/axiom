@@ -10,6 +10,8 @@ from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..db import ApprovedIngredient, AsyncSessionLocal, IngredientDependency
+import docker
+from docker.errors import DockerException, ImageNotFound
 
 logger = logging.getLogger(__name__)
 
@@ -834,3 +836,222 @@ class MirrorService:
 
         except Exception as e:
             logger.error(f"Mirror: Error regenerating Conda index: {str(e)}")
+
+
+class ProvisioningService:
+    """
+    Manage Docker container lifecycle for mirror services.
+    Each service has a hardcoded image, port, and volume configuration.
+    """
+
+    def __init__(self, docker_socket_path: str = "/var/run/docker.sock"):
+        """
+        Initialize Docker client.
+
+        Args:
+            docker_socket_path: Path to Docker socket (default: /var/run/docker.sock)
+
+        Raises:
+            DockerException: If Docker socket is unavailable
+        """
+        try:
+            self.client = docker.DockerClient(base_url=f"unix://{docker_socket_path}")
+            self.client.ping()  # Test connection
+        except DockerException as e:
+            logger.error(f"Provisioning: Docker socket unavailable at {docker_socket_path}: {str(e)}")
+            raise
+
+        # Service configurations: image, port, volume
+        self.services = {
+            "pypi": {
+                "image": "pypiserver:latest",
+                "port": 8080,
+                "volume": "/mirror-data/packages",
+                "container_name": "mirror-pypi"
+            },
+            "apt": {
+                "image": "nginx:latest",
+                "port": 8000,
+                "volume": "/mirror-data/apt",
+                "container_name": "mirror-apt"
+            },
+            "apk": {
+                "image": "nginx:latest",
+                "port": 8002,
+                "volume": "/mirror-data/apk",
+                "container_name": "mirror-apk"
+            },
+            "npm": {
+                "image": "verdaccio:latest",
+                "port": 4873,
+                "volume": "/verdaccio/storage",
+                "container_name": "mirror-npm"
+            },
+            "nuget": {
+                "image": "bagetter:latest",
+                "port": 5555,
+                "volume": "/data",
+                "container_name": "mirror-nuget"
+            },
+            "oci_hub": {
+                "image": "nginx:latest",
+                "port": 8005,
+                "volume": "/mirror-data/oci",
+                "container_name": "mirror-oci-hub"
+            },
+            "oci_ghcr": {
+                "image": "nginx:latest",
+                "port": 8006,
+                "volume": "/mirror-data/ghcr",
+                "container_name": "mirror-oci-ghcr"
+            },
+            "conda": {
+                "image": "mirror-sidecar:latest",
+                "port": 8081,
+                "volume": "/mirror-data/conda",
+                "container_name": "mirror-conda"
+            },
+        }
+        self._status_cache = {}
+        self._cache_time = 0
+
+    async def start_service(self, service_name: str) -> Dict[str, Any]:
+        """
+        Start a mirror service container.
+
+        Args:
+            service_name: Name of service (pypi, apt, apk, npm, nuget, oci_hub, oci_ghcr, conda)
+
+        Returns:
+            {"status": "running", "message": "..."}
+
+        Raises:
+            ValueError: If service_name is invalid
+            DockerException: If Docker API call fails
+        """
+        if service_name not in self.services:
+            raise ValueError(f"Unknown service: {service_name}")
+
+        svc = self.services[service_name]
+        container_name = svc["container_name"]
+
+        try:
+            # Try to pull image if not available
+            try:
+                self.client.images.get(svc["image"])
+            except ImageNotFound:
+                logger.info(f"Provisioning: Pulling image {svc['image']}...")
+                self.client.images.pull(svc["image"])
+
+            # Check if container exists
+            try:
+                container = self.client.containers.get(container_name)
+                if container.status == "running":
+                    return {"status": "running", "message": f"Service {service_name} already running"}
+                else:
+                    # Container exists but not running, start it
+                    container.start()
+                    return {"status": "running", "message": f"Service {service_name} started"}
+            except docker.errors.NotFound:
+                # Container doesn't exist, create it
+                container = self.client.containers.create(
+                    svc["image"],
+                    name=container_name,
+                    ports={f"{svc['port']}/tcp": svc["port"]},
+                    volumes={svc["volume"]: {"bind": svc["volume"], "mode": "rw"}},
+                    detach=True
+                )
+                container.start()
+                return {"status": "running", "message": f"Service {service_name} started"}
+
+        except DockerException as e:
+            logger.error(f"Provisioning: Failed to start {service_name}: {str(e)}")
+            raise
+
+    async def stop_service(self, service_name: str) -> Dict[str, Any]:
+        """
+        Stop a mirror service container.
+
+        Args:
+            service_name: Name of service
+
+        Returns:
+            {"status": "stopped", "message": "..."}
+
+        Raises:
+            ValueError: If service_name is invalid
+            DockerException: If Docker API call fails
+        """
+        if service_name not in self.services:
+            raise ValueError(f"Unknown service: {service_name}")
+
+        svc = self.services[service_name]
+        container_name = svc["container_name"]
+
+        try:
+            try:
+                container = self.client.containers.get(container_name)
+                if container.status == "running":
+                    container.stop()
+                    container.remove()
+                return {"status": "stopped", "message": f"Service {service_name} stopped"}
+            except docker.errors.NotFound:
+                return {"status": "stopped", "message": f"Service {service_name} not found (already stopped)"}
+
+        except DockerException as e:
+            logger.error(f"Provisioning: Failed to stop {service_name}: {str(e)}")
+            raise
+
+    async def get_service_status(self, service_name: str) -> str:
+        """
+        Get status of a single service.
+
+        Args:
+            service_name: Name of service
+
+        Returns:
+            "running" | "stopped" | "error"
+
+        Raises:
+            ValueError: If service_name is invalid
+        """
+        if service_name not in self.services:
+            raise ValueError(f"Unknown service: {service_name}")
+
+        svc = self.services[service_name]
+        container_name = svc["container_name"]
+
+        try:
+            container = self.client.containers.get(container_name)
+            if container.status == "running":
+                return "running"
+            else:
+                return "stopped"
+        except docker.errors.NotFound:
+            return "stopped"
+        except DockerException as e:
+            logger.error(f"Provisioning: Error getting status for {service_name}: {str(e)}")
+            return "error"
+
+    async def get_all_statuses(self) -> Dict[str, str]:
+        """
+        Get status of all mirror services.
+        Results are cached for 5 seconds to avoid socket thrashing.
+
+        Returns:
+            {"pypi": "running", "conda": "stopped", ...}
+        """
+        import time
+        current_time = time.time()
+
+        # Return cached result if < 5 seconds old
+        if self._status_cache and (current_time - self._cache_time) < 5:
+            return self._status_cache
+
+        statuses = {}
+        for service_name in self.services.keys():
+            statuses[service_name] = await self.get_service_status(service_name)
+
+        self._status_cache = statuses
+        self._cache_time = current_time
+        return statuses

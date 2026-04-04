@@ -19,3 +19,4 @@ packaging
 PyJWT[crypto]>=2.7.0
 pip-audit
 pip-tools>=7.0
+docker>=7.0.0
