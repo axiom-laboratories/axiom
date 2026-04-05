@@ -979,3 +979,47 @@ class ScriptAnalysisRequestCreate(BaseModel):
 class ScriptAnalysisApprovalRequest(BaseModel):
     """Request to approve or reject a script analysis request."""
     reason: Optional[str] = None  # Approval/rejection reason
+
+
+# ==================== Curated Bundles (Phase 114) ====================
+
+class CuratedBundleItemCreate(BaseModel):
+    """Create/update a package item in a curated bundle."""
+    ingredient_name: str
+    version_constraint: str = "*"
+    ecosystem: str  # PYPI, APT, APK, CONDA, NUGET, OCI, NPM
+
+
+class CuratedBundleItemResponse(CuratedBundleItemCreate):
+    """Response for a curated bundle item."""
+    id: int
+    bundle_id: str
+
+    model_config = {"from_attributes": True}
+
+
+class CuratedBundleCreate(BaseModel):
+    """Create/update a curated bundle."""
+    name: str
+    description: Optional[str] = None
+    ecosystem: str  # Primary ecosystem (e.g., PYPI)
+    os_family: str  # DEBIAN, ALPINE, WINDOWS
+
+
+class CuratedBundleResponse(CuratedBundleCreate):
+    """Response for a curated bundle with items."""
+    id: str
+    is_active: bool
+    created_at: datetime
+    items: list[CuratedBundleItemResponse] = []
+
+    model_config = {"from_attributes": True}
+
+
+class ApplyBundleResult(BaseModel):
+    """Result of applying a curated bundle (bulk-approval)."""
+    bundle_id: str
+    bundle_name: str
+    approved: int  # Count of newly approved ingredients
+    skipped: int   # Count of already-approved ingredients (silently skipped)
+    total: int     # approved + skipped
