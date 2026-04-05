@@ -268,6 +268,7 @@ class PuppetTemplate(Base):
     is_compliant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     status: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # DRAFT, ACTIVE, DEPRECATED, REVOKED
     bom_captured: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
+    is_starter: Mapped[bool] = mapped_column(Boolean, default=False)  # Flag for starter template immutability
 
 
 class CapabilityMatrix(Base):
@@ -345,6 +346,7 @@ class CuratedBundleItem(Base):
     bundle_id: Mapped[str] = mapped_column(String(36), index=True)
     ingredient_name: Mapped[str] = mapped_column(String(255), nullable=False)
     version_constraint: Mapped[str] = mapped_column(String(255), default="*")
+    ecosystem: Mapped[str] = mapped_column(String(20), nullable=False)  # PYPI, APT, APK, CONDA, NUGET, OCI, NPM
 
 
 class ImageBOM(Base):
