@@ -252,7 +252,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 4/4 | Complete    | 2026-04-04 |
 | 113. Script Analyzer | 2/2 | Complete    | 2026-04-04 |
-| 114. Curated Bundles + Starter Templates | 1/3 | In progress | 2026-04-05 |
+| 114. Curated Bundles + Starter Templates | 1/3 | Complete    | 2026-04-05 |
 | 116. Fix smelter DB migration + EE licence hot-reload | 2/2 | Complete | 2026-04-04 |
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
 | 118. UI polish and verification | 4/4 | Complete | 2026-04-04 |
@@ -273,7 +273,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 2/2 plans complete
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
