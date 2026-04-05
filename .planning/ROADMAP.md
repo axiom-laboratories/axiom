@@ -86,6 +86,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis (completed 2026-04-04)
 - [x] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers (in progress)
 - ~~Phase 115: Operator UX Polish~~ — **deferred to v20.0** (UX polish, not blocking air-gap)
+- [ ] **Phase 119: v19.0 Traceability Closure** — Check unchecked requirement boxes, add SUMMARY frontmatter, create VERIFICATION.md for all phases
 
 ## Phase Details
 
@@ -238,6 +239,20 @@ Plans:
 **Reason:** UX polish (simplified labels, search-by-description, simplified mode toggle, usage stats) is quality-of-life — not blocking air-gap functionality.
 **Requirements deferred:** UX-04, UX-05, UX-06, UX-07
 
+### Phase 119: v19.0 Traceability Closure
+**Goal:** Close all documentation/traceability gaps identified by the v19.0 milestone audit — check unchecked requirement boxes, add missing SUMMARY frontmatter, and create VERIFICATION.md for all phases
+**Depends on**: Phase 118 (all implementation phases complete)
+**Requirements**: MIRR-03, MIRR-04, MIRR-05, MIRR-09, UX-01, UX-02, UX-03, DEP-01, DEP-02, DEP-03, DEP-04, MIRR-08
+**Gap Closure:** Closes all gaps from v19.0-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. All 7 unsatisfied requirement checkboxes in REQUIREMENTS.md are checked (MIRR-03/04/05, MIRR-09, UX-01/02/03)
+  2. All 12 gap requirements have `requirements_completed` entries in their phase SUMMARY.md frontmatter
+  3. All 11 v19.0 phases have a VERIFICATION.md file documenting code evidence
+  4. REQUIREMENTS.md traceability table shows all 17 in-scope requirements as Complete
+  5. Re-audit passes with 0 gaps
+
+Plans: TBD
+
 ## Progress
 
 **Execution Order:**
@@ -257,6 +272,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
 | 118. UI polish and verification | 4/4 | Complete | 2026-04-04 |
 | 115. Operator UX Polish | — | Deferred to v20.0 | - |
+| 119. v19.0 Traceability Closure | 0/TBD | Pending | - |
 
 ## Archived
 

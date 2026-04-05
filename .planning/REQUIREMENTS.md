@@ -85,17 +85,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEP-04 | Phase 110 | Complete |
 | MIRR-01 | Phase 109 | Complete |
 | MIRR-02 | Phase 109 | Complete |
-| MIRR-03 | Phase 111 | Pending |
-| MIRR-04 | Phase 111 | Pending |
-| MIRR-05 | Phase 111 | Pending |
+| MIRR-03 | Phase 119 | Pending |
+| MIRR-04 | Phase 119 | Pending |
+| MIRR-05 | Phase 119 | Pending |
 | MIRR-06 | Phase 112 | Complete |
 | MIRR-07 | Phase 109 | Complete |
 | MIRR-08 | Phase 112 | Complete |
-| MIRR-09 | Phase 112 | Pending |
+| MIRR-09 | Phase 119 | Pending |
 | MIRR-10 | Phase 107 | Complete |
-| UX-01 | Phase 113 | Pending |
-| UX-02 | Phase 114 | Pending |
-| UX-03 | Phase 114 | Pending |
+| UX-01 | Phase 119 | Pending |
+| UX-02 | Phase 119 | Pending |
+| UX-03 | Phase 119 | Pending |
 | UX-04 | ~~Phase 115~~ | Deferred to v20.0 |
 | UX-05 | ~~Phase 115~~ | Deferred to v20.0 |
 | UX-06 | ~~Phase 115~~ | Deferred to v20.0 |
@@ -108,4 +108,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-01*
-*Last updated: 2026-04-01 after roadmap creation*
+*Last updated: 2026-04-05 after gap closure phase creation*
