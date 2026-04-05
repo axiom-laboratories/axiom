@@ -28,7 +28,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { authenticatedFetch } from '../auth';
+import { authenticatedFetch, getUser } from '../auth';
 import { useFeatures } from '../hooks/useFeatures';
 import { useLicence } from '../hooks/useLicence';
 import { useSystemHealth } from '../hooks/useSystemHealth';
@@ -475,6 +475,7 @@ const BlueprintEmptyState = ({ type }: { type: 'RUNTIME' | 'NETWORK' }) => (
 
 const Templates = () => {
     const queryClient = useQueryClient();
+    const currentUser = getUser();
     const { isEnterprise } = useLicence();
     const { health } = useSystemHealth();
     const [isTemplateOpen, setIsTemplateOpen] = useState(false);
@@ -514,6 +515,22 @@ const Templates = () => {
     const [editingOSId, setEditingOSId] = useState<string | null>(null);
     const [osEditForm, setOsEditForm] = useState({ name: '', image_uri: '', os_family: 'DEBIAN' });
 
+    const { data: templates = [], isLoading: loadingTemplates } = useQuery<Template[]>({
+        queryKey: ['templates'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/templates');
+            return await res.json();
+        }
+    });
+
+    const { data: blueprints = [], isLoading: loadingBlueprints } = useQuery<Blueprint[]>({
+        queryKey: ['blueprints'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/api/blueprints');
+            return await res.json();
+        }
+    });
+
     // Listen for navigate-to-wizard event from clone dialog
     useEffect(() => {
         const handleNavigateToWizard = (e: Event) => {
@@ -533,22 +550,6 @@ const Templates = () => {
         window.addEventListener('navigate-to-wizard', handleNavigateToWizard);
         return () => window.removeEventListener('navigate-to-wizard', handleNavigateToWizard);
     }, [templates]);
-
-    const { data: templates = [], isLoading: loadingTemplates } = useQuery<Template[]>({
-        queryKey: ['templates'],
-        queryFn: async () => {
-            const res = await authenticatedFetch('/api/templates');
-            return await res.json();
-        }
-    });
-
-    const { data: blueprints = [], isLoading: loadingBlueprints } = useQuery<Blueprint[]>({
-        queryKey: ['blueprints'],
-        queryFn: async () => {
-            const res = await authenticatedFetch('/api/blueprints');
-            return await res.json();
-        }
-    });
 
     const { data: baseImageData } = useQuery<{ base_node_image_updated_at: string | null }>({
         queryKey: ['base-image-updated'],
