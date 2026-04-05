@@ -251,7 +251,11 @@ Plans:
   4. REQUIREMENTS.md traceability table shows all 17 in-scope requirements as Complete
   5. Re-audit passes with 0 gaps
 
-Plans: TBD
+Plans: 2\/2 plans
+
+Plans:
+- [ ] 119-01-PLAN.md — Wave 1: Verify 7 unchecked requirements + update REQUIREMENTS.md checkboxes + add SUMMARY.md frontmatter
+- [ ] 119-02-PLAN.md — Wave 2: Create VERIFICATION.md for all 11 v19.0 phases
 
 ## Progress
 
