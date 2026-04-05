@@ -4,13 +4,13 @@ milestone: v19.0
 milestone_name: — Foundry Improvements
 status: executing
 stopped_at: Phase 114 context gathered
-last_updated: "2026-04-05T15:58:20.791Z"
-last_activity: 2026-04-04 -- Completed 113-01 (script analyzer backend with TDD)
+last_updated: "2026-04-05T16:19:32.021Z"
+last_activity: 2026-04-05 -- Completed 114-01 (curated bundles backend infrastructure with TDD)
 progress:
   total_phases: 11
   completed_phases: 10
-  total_plans: 32
-  completed_plans: 32
+  total_plans: 35
+  completed_plans: 33
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 
 ## Current Position
 
-Phase: 113 of 14 (113 - Script Analyzer)
-Plan: 1 of 2 in current phase (113-01 complete)
+Phase: 114 of 14 (114 - Curated Bundles and Starter Templates)
+Plan: 1 of 2 in current phase (114-01 complete)
 Status: executing
-Last activity: 2026-04-04 -- Completed 113-01 (script analyzer backend with TDD)
+Last activity: 2026-04-05 -- Completed 114-01 (curated bundles backend infrastructure with TDD)
 
 Progress: [████████████████████] 100%
 
@@ -80,6 +80,7 @@ Progress: [████████████████████] 100%
 | 112 | 02b | 28min | 6 | 10 |
 | 112 | 03 | 45min | 4 | 5 |
 | 113 | 01 | 60min | 4 | 8 |
+| Phase 114 P01 | 60 | 5 tasks | 8 files |
 
 ## Accumulated Context
 

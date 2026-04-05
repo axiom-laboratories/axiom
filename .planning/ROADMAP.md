@@ -84,7 +84,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 111: npm + NuGet + OCI Mirrors** - Extended ecosystem mirror backends with compose sidecars (completed 2026-04-04)
 - [x] **Phase 112: Conda Mirror + Mirror Admin UI** - Conda backend with ToS warning and unified admin config for all mirror ecosystems (Plans 01, 02, 02b completed 2026-04-04)
 - [x] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis (completed 2026-04-04)
-- [ ] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers
+- [x] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers (in progress)
 - ~~Phase 115: Operator UX Polish~~ — **deferred to v20.0** (UX polish, not blocking air-gap)
 
 ## Phase Details
@@ -225,7 +225,7 @@ Plans:
 **Plans**: 3/3 plans
 
 Plans:
-- [x] 114-01-PLAN.md — Backend infrastructure: bundles CRUD endpoints + apply logic + tests (Wave 1) — planned 2026-04-05
+- [x] 114-01-PLAN.md — Backend infrastructure: bundles CRUD endpoints + apply logic + tests (Wave 1) — completed 2026-04-05
 - [x] 114-02-PLAN.md — Admin UI + starter seeding: BundleAdminPanel + Templates.tsx integration + 5 starters (Wave 2) — planned 2026-04-05
 - [x] 114-03-PLAN.md — Operator gallery + build flow: UseTemplateDialog + BuildConfirmationDialog + clone/build endpoints (Wave 3) — planned 2026-04-05
 
@@ -252,7 +252,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 4/4 | Complete    | 2026-04-04 |
 | 113. Script Analyzer | 2/2 | Complete    | 2026-04-04 |
-| 114. Curated Bundles + Starter Templates | 3/3 | Planned | 2026-04-05 |
+| 114. Curated Bundles + Starter Templates | 1/3 | In progress | 2026-04-05 |
 | 116. Fix smelter DB migration + EE licence hot-reload | 2/2 | Complete | 2026-04-04 |
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
 | 118. UI polish and verification | 4/4 | Complete | 2026-04-04 |
