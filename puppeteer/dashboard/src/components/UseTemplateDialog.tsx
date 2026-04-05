@@ -80,8 +80,13 @@ export default function UseTemplateDialog({ template, isOpen, onClose }: UseTemp
     }
   });
 
+  // Return null if template is not available
+  if (!template) {
+    return null;
+  }
+
   // If action is 'build', show BuildConfirmationDialog
-  if (action === 'build' && template) {
+  if (action === 'build') {
     return (
       <BuildConfirmationDialog
         template={template}
