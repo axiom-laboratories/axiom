@@ -276,7 +276,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
 | 118. UI polish and verification | 4/4 | Complete | 2026-04-04 |
 | 115. Operator UX Polish | — | Deferred to v20.0 | - |
-| 119. v19.0 Traceability Closure | 0/TBD | Pending | - |
+| 119. v19.0 Traceability Closure | 1/2 | In Progress|  |
 
 ## Archived
 
@@ -293,7 +293,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 3/3 plans complete
+**Plans:** 1/2 plans executed
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
