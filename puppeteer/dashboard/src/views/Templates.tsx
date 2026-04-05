@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Boxes, CheckCircle2, Clock, AlertCircle, ShieldAlert, Loader2, Plus, Cpu, Globe, Zap, Trash2, RefreshCw, Wrench, X, Package, Layers, Pencil, Check, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
 import BlueprintWizard from '../components/foundry/BlueprintWizard';
 import { ScriptAnalyzerPanel } from '../components/ScriptAnalyzerPanel';
 import { BundleAdminPanel } from '../components/BundleAdminPanel';
+import UseTemplateDialog from '../components/UseTemplateDialog';
 
 interface Template {
     id: string;
@@ -478,6 +479,7 @@ const Templates = () => {
     const { health } = useSystemHealth();
     const [isTemplateOpen, setIsTemplateOpen] = useState(false);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [selectedStarter, setSelectedStarter] = useState<Template | null>(null);
     const [editingBlueprint, setEditingBlueprint] = useState<Blueprint | null>(null);
     const [showAddTool, setShowAddTool] = useState(false);
 
@@ -511,6 +513,26 @@ const Templates = () => {
     const [newOS, setNewOS] = useState({ name: '', image_uri: '', os_family: 'DEBIAN' });
     const [editingOSId, setEditingOSId] = useState<string | null>(null);
     const [osEditForm, setOsEditForm] = useState({ name: '', image_uri: '', os_family: 'DEBIAN' });
+
+    // Listen for navigate-to-wizard event from clone dialog
+    useEffect(() => {
+        const handleNavigateToWizard = (e: Event) => {
+            const customEvent = e as CustomEvent<{ templateId: string }>;
+            const templateId = customEvent.detail?.templateId;
+            if (templateId) {
+                setEditingBlueprint(null);
+                // Set the wizard to edit this template
+                const clonedTemplate = templates.find(t => t.id === templateId);
+                if (clonedTemplate && clonedTemplate.runtime_blueprint_id) {
+                    setIsWizardOpen(true);
+                    handleEditBlueprint(clonedTemplate as unknown as Blueprint);
+                }
+            }
+        };
+
+        window.addEventListener('navigate-to-wizard', handleNavigateToWizard);
+        return () => window.removeEventListener('navigate-to-wizard', handleNavigateToWizard);
+    }, [templates]);
 
     const { data: templates = [], isLoading: loadingTemplates } = useQuery<Template[]>({
         queryKey: ['templates'],
@@ -826,10 +848,7 @@ const Templates = () => {
                                                 </div>
                                                 <Button
                                                     className="w-full"
-                                                    onClick={() => {
-                                                        // Navigate to template or trigger build flow
-                                                        toast.success(`Selected: ${t.friendly_name}`);
-                                                    }}
+                                                    onClick={() => setSelectedStarter(t)}
                                                 >
                                                     Use This Template
                                                 </Button>
@@ -865,6 +884,13 @@ const Templates = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Use Template Dialog */}
+                        <UseTemplateDialog
+                            template={selectedStarter}
+                            isOpen={selectedStarter !== null}
+                            onClose={() => setSelectedStarter(null)}
+                        />
                     </TabsContent>
 
                     <TabsContent value="runtime">

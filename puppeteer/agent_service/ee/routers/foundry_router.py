@@ -3,16 +3,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import uuid
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.future import select
 
 from ...db import (
     get_db, AsyncSession, Blueprint, PuppetTemplate, CapabilityMatrix,
-    Config, ImageBOM, PackageIndex, ApprovedOS, User,
+    Config, ImageBOM, PackageIndex, ApprovedOS, User, ApprovedIngredient,
 )
 from ...deps import require_permission, get_current_user, audit
 from ...models import (
@@ -308,13 +311,129 @@ async def list_templates(current_user: User = Depends(require_permission("foundr
 
 
 @foundry_router.post("/api/templates/{id}/build", response_model=ImageResponse, tags=["Foundry"])
-async def build_template(id: str, current_user: User = Depends(require_permission("foundry:write")), db: AsyncSession = Depends(get_db)):
-    result = await foundry_service.build_template(id, db)
-    if not result.status.startswith("SUCCESS"):
-        raise HTTPException(status_code=500, detail=result.status)
+async def build_template(
+    id: str,
+    req: Optional[dict] = None,
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Build a template. For starter templates, auto-approves packages if auto_approve is true."""
+    # Query template
+    result = await db.execute(select(PuppetTemplate).where(PuppetTemplate.id == id))
+    template = result.scalar_one_or_none()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    # Auto-approve packages for starters if requested
+    auto_approve = req.get("auto_approve", True) if req else True
+    if template.is_starter and auto_approve:
+        # Get the template's blueprint to access packages
+        if template.runtime_blueprint_id:
+            bp_result = await db.execute(
+                select(Blueprint).where(Blueprint.id == template.runtime_blueprint_id)
+            )
+            blueprint = bp_result.scalar_one_or_none()
+            if blueprint and blueprint.definition:
+                try:
+                    from ...services.smelter_service import SmelterService
+                    from ...models import ApprovedIngredientCreate
+
+                    definition = json.loads(blueprint.definition)
+                    packages = definition.get("packages", [])
+                    approved_count = 0
+
+                    for pkg in packages:
+                        try:
+                            # Check if already approved
+                            existing = await db.execute(
+                                select(ApprovedIngredient).where(
+                                    ApprovedIngredient.name == pkg.get("name"),
+                                    ApprovedIngredient.ecosystem == pkg.get("ecosystem", "PYPI")
+                                )
+                            )
+                            if existing.scalar_one_or_none():
+                                continue  # Already approved, skip
+
+                            # Add ingredient (triggers resolver + mirroring)
+                            ingredient_create = ApprovedIngredientCreate(
+                                name=pkg.get("name"),
+                                version_constraint=pkg.get("version_constraint", ""),
+                                ecosystem=pkg.get("ecosystem", "PYPI"),
+                                os_family="DEBIAN",  # Default OS for starters
+                                sha256=""
+                            )
+                            await SmelterService.add_ingredient(db, ingredient_create)
+                            approved_count += 1
+                        except Exception as e:
+                            # Log error but continue with other packages
+                            logger.error(f"Failed to auto-approve {pkg.get('name')}: {str(e)}")
+                            continue
+
+                    if approved_count > 0:
+                        logger.info(f"Auto-approved {approved_count} packages for {template.friendly_name}")
+                except Exception as e:
+                    logger.error(f"Error auto-approving packages for starter: {str(e)}")
+                    # Continue with build even if auto-approve fails
+
+    # Proceed with standard build
+    build_result = await foundry_service.build_template(id, db)
+    if not build_result.status.startswith("SUCCESS"):
+        raise HTTPException(status_code=500, detail=build_result.status)
     audit(db, current_user, "template:build", id)
     await db.commit()
-    return result
+    return build_result
+
+
+@foundry_router.post("/api/templates/{id}/clone", response_model=PuppetTemplateResponse, status_code=201, tags=["Foundry"])
+async def clone_template(
+    id: str,
+    req: dict,
+    current_user: User = Depends(require_permission("foundry:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Clone a starter template into a custom, editable template."""
+    # Query source template
+    result = await db.execute(select(PuppetTemplate).where(PuppetTemplate.id == id))
+    source_template = result.scalar_one_or_none()
+    if not source_template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    # Can only clone starter templates
+    if not source_template.is_starter:
+        raise HTTPException(status_code=400, detail="Can only clone starter templates")
+
+    # Create cloned template
+    cloned_name = req.get("friendly_name") or f"{source_template.friendly_name} (Custom)"
+    cloned_template = PuppetTemplate(
+        id=str(uuid.uuid4()),
+        friendly_name=cloned_name,
+        runtime_blueprint_id=source_template.runtime_blueprint_id,
+        network_blueprint_id=source_template.network_blueprint_id,
+        canonical_id=source_template.canonical_id,
+        is_starter=False,  # Cloned templates are custom, not starters
+        status="DRAFT"
+    )
+
+    db.add(cloned_template)
+    await db.commit()
+    await db.refresh(cloned_template)
+
+    audit(db, current_user, "template:cloned", f"{source_template.friendly_name} → {cloned_name}")
+    await db.commit()
+
+    return {
+        "id": cloned_template.id,
+        "friendly_name": cloned_template.friendly_name,
+        "canonical_id": cloned_template.canonical_id,
+        "runtime_blueprint_id": cloned_template.runtime_blueprint_id,
+        "network_blueprint_id": cloned_template.network_blueprint_id,
+        "last_built_image": cloned_template.last_built_image,
+        "last_built_at": cloned_template.last_built_at,
+        "created_at": cloned_template.created_at,
+        "is_compliant": cloned_template.is_compliant if cloned_template.is_compliant is not None else True,
+        "status": cloned_template.status or "DRAFT",
+        "bom_captured": cloned_template.bom_captured or False,
+    }
 
 
 @foundry_router.delete("/api/templates/{id}", tags=["Foundry"])
