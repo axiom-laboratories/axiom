@@ -287,3 +287,92 @@ async def test_foundry_oci_from_rewriting_e2e():
     # Simulate FROM rewriting logic in foundry_service
     cache_prefix = MirrorService.get_oci_mirror_prefix("ubuntu:22.04")
     assert "oci-cache:5001" in cache_prefix
+
+
+@pytest.mark.asyncio
+async def test_seed_starter_templates_creates_templates():
+    """Test that seed_starter_templates creates 5 starter templates on first run."""
+    from agent_service.services.foundry_service import FoundryService
+    from sqlalchemy import select
+    from agent_service.db import PuppetTemplate
+
+    # Use in-memory SQLite database for testing
+    import pytest_asyncio
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from agent_service.db import Base
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async_session_local = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session_local() as db:
+        # Seed templates
+        await FoundryService.seed_starter_templates(db)
+
+        # Query for templates
+        result = await db.execute(select(PuppetTemplate))
+        templates = result.scalars().all()
+
+        # Verify 5 starters created
+        starters = [t for t in templates if t.is_starter]
+        assert len(starters) == 5
+
+        # Verify template friendly_names
+        starter_names = {t.friendly_name for t in starters}
+        expected_names = {
+            "Data Science Starter",
+            "Web/API Starter",
+            "Network Tools Starter",
+            "File Processing Starter",
+            "Windows Automation Starter"
+        }
+        assert starter_names == expected_names
+
+        # Verify at least one starter has ACTIVE status
+        active_starters = [t for t in starters if t.status == "ACTIVE"]
+        assert len(active_starters) >= 5
+
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_seed_starter_templates_idempotent():
+    """Test that seed_starter_templates is idempotent - doesn't duplicate on second run."""
+    from agent_service.services.foundry_service import FoundryService
+    from sqlalchemy import select
+    from agent_service.db import PuppetTemplate
+
+    import pytest_asyncio
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from agent_service.db import Base
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async_session_local = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session_local() as db:
+        # Seed templates first time
+        await FoundryService.seed_starter_templates(db)
+
+        # Query count
+        result = await db.execute(select(PuppetTemplate))
+        templates_first = result.scalars().all()
+        first_count = len(templates_first)
+
+        # Seed again
+        await FoundryService.seed_starter_templates(db)
+
+        # Verify no duplicates created
+        result = await db.execute(select(PuppetTemplate))
+        templates_second = result.scalars().all()
+        second_count = len(templates_second)
+
+        assert first_count == second_count == 5
+
+    await engine.dispose()
