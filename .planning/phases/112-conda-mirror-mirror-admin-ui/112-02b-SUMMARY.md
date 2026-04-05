@@ -3,7 +3,7 @@ phase: 112-conda-mirror-mirror-admin-ui
 plan: 02b
 subsystem: Docker provisioning service
 tags: [provisioning, docker, mirror, admin-ui, typescript]
-requirements: [MIRR-09]
+requirements_completed: [MIRR-09]
 dependency_graph:
   requires: ["112-01", "112-02"]
   provides: ["Docker-based service provisioning API", "MirrorProvisioner UI component", "Service status polling"]

@@ -25,20 +25,20 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [x] **MIRR-01**: APT mirror backend is fully implemented (complete the existing stub in mirror_service.py)
 - [x] **MIRR-02**: apk (Alpine) mirror backend with nginx-based compose sidecar serves Alpine packages in air-gap
-- [ ] **MIRR-03**: npm mirror backend using Verdaccio pull-through proxy with compose sidecar
-- [ ] **MIRR-04**: NuGet mirror backend using BaGetter with compose sidecar for PowerShell/NuGet packages
-- [ ] **MIRR-05**: OCI pull-through cache using registry:2 so Foundry base image pulls work in air-gap
+- [x] **MIRR-03**: npm mirror backend using Verdaccio pull-through proxy with compose sidecar
+- [x] **MIRR-04**: NuGet mirror backend using BaGetter with compose sidecar for PowerShell/NuGet packages
+- [x] **MIRR-05**: OCI pull-through cache using registry:2 so Foundry base image pulls work in air-gap
 - [x] **MIRR-06**: Conda mirror backend with Anaconda ToS warning when operator selects the defaults channel
 - [x] **MIRR-07**: All mirror sidecars defined as compose services with opt-in profiles (not started by default)
 - [x] **MIRR-08**: Admin mirror configuration UI includes URL fields for all new ecosystems (apk, OCI, Verdaccio, Conda, BaGetter)
-- [ ] **MIRR-09**: Operator can enable/disable mirror services from the Admin dashboard (one-click provisioning via Docker socket)
+- [x] **MIRR-09**: Operator can enable/disable mirror services from the Admin dashboard (one-click provisioning via Docker socket)
 - [x] **MIRR-10**: Smelter ingredient model has an explicit ecosystem enum (PYPI, APT, APK, OCI, NPM, CONDA, NUGET) alongside existing os_family
 
 ### Operator UX
 
-- [ ] **UX-01**: Operator can paste a script and receive auto-detected package suggestions based on AST analysis (Python imports, Bash apt-get/yum, PowerShell Import-Module)
-- [ ] **UX-02**: Operator can select from curated package bundles (Data Science, DevOps, Network Ops, etc.) to bulk-approve packages and create a blueprint
-- [ ] **UX-03**: Pre-built starter templates (Python General, Data Science, Network Tools, Windows Automation) are seeded on first EE startup
+- [x] **UX-01**: Operator can paste a script and receive auto-detected package suggestions based on AST analysis (Python imports, Bash apt-get/yum, PowerShell Import-Module)
+- [x] **UX-02**: Operator can select from curated package bundles (Data Science, DevOps, Network Ops, etc.) to bulk-approve packages and create a blueprint
+- [x] **UX-03**: Pre-built starter templates (Python General, Data Science, Network Tools, Windows Automation) are seeded on first EE startup
 - [ ] ~~**UX-04**~~: *(deferred to v20.0)* User-facing UI labels simplified
 - [ ] ~~**UX-05**~~: *(deferred to v20.0)* Package search by description
 - [ ] ~~**UX-06**~~: *(deferred to v20.0)* Standard/simplified mode toggle
@@ -85,17 +85,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEP-04 | Phase 110 | Complete |
 | MIRR-01 | Phase 109 | Complete |
 | MIRR-02 | Phase 109 | Complete |
-| MIRR-03 | Phase 119 | Pending |
-| MIRR-04 | Phase 119 | Pending |
-| MIRR-05 | Phase 119 | Pending |
+| MIRR-03 | Phase 111 | Complete |
+| MIRR-04 | Phase 111 | Complete |
+| MIRR-05 | Phase 111 | Complete |
 | MIRR-06 | Phase 112 | Complete |
 | MIRR-07 | Phase 109 | Complete |
 | MIRR-08 | Phase 112 | Complete |
-| MIRR-09 | Phase 119 | Pending |
+| MIRR-09 | Phase 112 | Complete |
 | MIRR-10 | Phase 107 | Complete |
-| UX-01 | Phase 119 | Pending |
-| UX-02 | Phase 119 | Pending |
-| UX-03 | Phase 119 | Pending |
+| UX-01 | Phase 113 | Complete |
+| UX-02 | Phase 114 | Complete |
+| UX-03 | Phase 114 | Complete |
 | UX-04 | ~~Phase 115~~ | Deferred to v20.0 |
 | UX-05 | ~~Phase 115~~ | Deferred to v20.0 |
 | UX-06 | ~~Phase 115~~ | Deferred to v20.0 |

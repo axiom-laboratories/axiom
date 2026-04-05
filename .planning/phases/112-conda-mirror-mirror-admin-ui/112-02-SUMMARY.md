@@ -3,6 +3,7 @@ phase: 112-conda-mirror-mirror-admin-ui
 plan: 02
 subsystem: Smelter Mirror Admin UI
 tags: [mirrors, admin-ui, backend, frontend, testing]
+requirements_completed: [MIRR-08]
 dependency_graph:
   requires: [112-01]
   provides: [MIRR-08]

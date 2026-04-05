@@ -3,6 +3,7 @@ phase: 114-curated-bundles-starter-templates
 plan: 02
 subsystem: Foundry Admin UI & Starter Templates
 tags: [foundry, ui, admin, templates, curated-bundles]
+requirements_completed: [UX-02, UX-03]
 dependencies:
   requires: [114-01]
   provides: [Full bundle management UI, starter template gallery, admin CRUD operations]

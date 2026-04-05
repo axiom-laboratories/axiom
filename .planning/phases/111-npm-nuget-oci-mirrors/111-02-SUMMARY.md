@@ -3,6 +3,7 @@ phase: 111
 plan: 02
 subsystem: Mirror Services & OCI Caching
 tags: [mirrors, nuget, oci, foundry, docker, enterprise]
+requirements_completed: [MIRR-04, MIRR-05]
 dependency_graph:
   requires:
     - Phase 107 (ApprovedOS CRUD)

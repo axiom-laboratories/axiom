@@ -28,6 +28,7 @@ decisions:
 metrics:
   duration_minutes: 12
   completed_date: 2026-04-03
+requirements_completed: [DEP-01]
   tasks_completed: 4
   commits: 4
 ---
