@@ -222,11 +222,17 @@ Plans:
   1. Operator can browse curated bundles (Data Science, Web/API, Network Ops, File Processing, Windows Automation) and one-click add a bundle to a blueprint — bulk-approving all packages with transitive deps
   2. Pre-built starter templates (Python General, Data Science, Network Tools, Windows Automation) are seeded on first EE startup and visible in a Template Gallery
   3. A non-technical operator can go from Template Gallery pick to a built node image without using the full wizard or knowing any package names
-**Plans**: TBD
+**Plans**: 3/3 plans
 
 Plans:
-- [ ] 114-01: Curated bundles CRUD + seeded data + bundle picker UI
-- [ ] 114-02: Starter templates seeding + Template Gallery view
+- [x] 114-01-PLAN.md — Backend infrastructure: bundles CRUD endpoints + apply logic + tests (Wave 1) — planned 2026-04-05
+- [x] 114-02-PLAN.md — Admin UI + starter seeding: BundleAdminPanel + Templates.tsx integration + 5 starters (Wave 2) — planned 2026-04-05
+- [x] 114-03-PLAN.md — Operator gallery + build flow: UseTemplateDialog + BuildConfirmationDialog + clone/build endpoints (Wave 3) — planned 2026-04-05
+
+**Wave Structure:**
+- Wave 1: Backend (bundles endpoints, ApplyBundleResult, SmelterService integration, 10 tests) — independent
+- Wave 2: Admin UI (BundleAdminPanel component, Templates.tsx Bundles tab, starter seeding, 5 starters, migration_v48.sql) — depends on Wave 1
+- Wave 3: Operator gallery (UseTemplateDialog, BuildConfirmationDialog, clone/build endpoints with auto-approval) — depends on Waves 1-2
 
 ### ~~Phase 115: Operator UX Polish~~ — DEFERRED to v20.0
 **Reason:** UX polish (simplified labels, search-by-description, simplified mode toggle, usage stats) is quality-of-life — not blocking air-gap functionality.
@@ -246,7 +252,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 111. npm + NuGet + OCI Mirrors | 3/3 | Complete | 2026-04-04 |
 | 112. Conda Mirror + Mirror Admin UI | 4/4 | Complete    | 2026-04-04 |
 | 113. Script Analyzer | 2/2 | Complete    | 2026-04-04 |
-| 114. Curated Bundles + Starter Templates | 0/2 | Not started | - |
+| 114. Curated Bundles + Starter Templates | 3/3 | Planned | 2026-04-05 |
 | 116. Fix smelter DB migration + EE licence hot-reload | 2/2 | Complete | 2026-04-04 |
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
 | 118. UI polish and verification | 4/4 | Complete | 2026-04-04 |
