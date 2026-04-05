@@ -1,6 +1,6 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint, ForeignKey, Index
 from datetime import datetime
 import json
@@ -337,13 +337,14 @@ class CuratedBundle(Base):
     os_family: Mapped[str] = mapped_column(String(50), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    items: Mapped[list["CuratedBundleItem"]] = relationship("CuratedBundleItem", cascade="all, delete-orphan")
 
 
 class CuratedBundleItem(Base):
     """Individual package in a curated bundle."""
     __tablename__ = "curated_bundle_items"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    bundle_id: Mapped[str] = mapped_column(String(36), index=True)
+    bundle_id: Mapped[str] = mapped_column(String(36), ForeignKey("curated_bundles.id", ondelete="CASCADE"), index=True)
     ingredient_name: Mapped[str] = mapped_column(String(255), nullable=False)
     version_constraint: Mapped[str] = mapped_column(String(255), default="*")
     ecosystem: Mapped[str] = mapped_column(String(20), nullable=False)  # PYPI, APT, APK, CONDA, NUGET, OCI, NPM
