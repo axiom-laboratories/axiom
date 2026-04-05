@@ -12,21 +12,11 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v19.0 Foundry Improvements
-
-**Goal:** Make the Foundry/Smelter pipeline production-grade for air-gapped deployments — transitive dependency resolution, full CRUD on all Foundry entities, multi-ecosystem mirror support, and operator-friendly UX for non-developers.
-
-**Target features:**
-- Transitive dependency resolution (mirror full dep trees, CVE scan transitive deps, UI tree viewer)
-- EE Dashboard GUI completeness (Edit Blueprint, Edit Tool Recipe, Approved OS Management, Runtime Dep Confirmation)
-- Mirror ecosystem expansion (APT, apk, OCI, npm, Conda, NuGet backends + compose services + Admin config)
-- Operator UX (Script Analyzer, Curated Bundles, Starter Templates, plain-language search, simplified naming, role-based views)
-
 ## Current State
 
-**Latest shipped:** v18.0 First-User Experience & E2E Validation (2026-04-01)
-**Previous:** v17.0 Scale Hardening (2026-03-31)
-**Current:** v19.0 Foundry Improvements (in progress)
+**Latest shipped:** v19.0 Foundry Improvements (2026-04-05)
+**Previous:** v18.0 First-User Experience & E2E Validation (2026-04-01)
+**Next:** Planning next milestone
 
 ## Requirements
 
@@ -233,6 +223,34 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ APScheduler scale limits research archived in `mop_validation/reports/` with concrete thresholds and migration path — v16.1
 - ✓ Competitor pain-point insights recorded in product notes with actionable observations — v16.1
 
+### Validated — v19.0 Foundry Improvements
+
+- ✓ Blueprint edit with optimistic locking (version column + 409 on conflict) — v19.0
+- ✓ Tool recipe edit via existing PATCH endpoint — v19.0
+- ✓ Approved OS CRUD from dedicated Foundry section — v19.0
+- ✓ Runtime dependency confirmation dialog before blueprint build — v19.0
+- ✓ Transitive dependency resolution (pip-compile, dual-platform manylinux/musllinux, circular dep detection) — v19.0
+- ✓ Dependency tree visualization with interactive modal and provenance chains — v19.0
+- ✓ CVE scanning across full transitive dependency tree — v19.0
+- ✓ Dependency discovery endpoint with one-click "Approve All" — v19.0
+- ✓ APT mirror backend with container-isolated downloads (debian:12-slim) — v19.0
+- ✓ apk mirror backend with nginx sidecar for Alpine packages — v19.0
+- ✓ npm mirror via Verdaccio pull-through proxy with compose sidecar — v19.0
+- ✓ NuGet mirror via BaGetter with compose sidecar — v19.0
+- ✓ OCI pull-through cache via registry:2 for air-gap image pulls — v19.0
+- ✓ Conda mirror with Anaconda defaults channel ToS blocking modal — v19.0
+- ✓ All mirror sidecars behind `--profile mirrors` compose pattern — v19.0
+- ✓ Admin mirror config UI with 8 ecosystem cards and health badges — v19.0
+- ✓ One-click mirror provisioning via Docker socket from Admin dashboard — v19.0
+- ✓ Ecosystem enum (PYPI, APT, APK, OCI, NPM, CONDA, NUGET) on ingredient model — v19.0
+- ✓ Script analyzer for Python (AST), Bash (regex), PowerShell (Import-Module) with 250+ import mappings — v19.0
+- ✓ Curated bundles (Data Science, Web/API, Network Ops, File Processing, Windows Automation) with bulk approval — v19.0
+- ✓ Starter templates seeded on first EE startup with Template Gallery and 3-click build flow — v19.0
+- ✓ DB migration fix (idempotent migration_v46.sql for ApprovedIngredient schema) — v19.0
+- ✓ EE licence hot-reload (POST /api/admin/licence/reload, 60s background timer, WebSocket broadcast) — v19.0
+- ✓ Light/dark mode toggle with CSS variable theming, FOWT prevention, localStorage persistence — v19.0
+- ✓ UI polish: skeleton loaders, responsive design, comma-separated status filter, Playwright test framework — v19.0
+
 ### Validated — v18.0 First-User Experience & E2E Validation
 
 - ✓ CE admin page hides 6 EE-only tabs behind `isEnterprise` gate; `+ Enterprise` upgrade panel replaces them — v18.0
@@ -280,7 +298,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), and first-user-validated (v18.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. Core LOC ~6,600 across key service files. v18.0 shipped 2026-04-01.
+Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), and Foundry/Smelter production-grade for air-gapped deployments (v19.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite with light/dark theming. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~54,190 LOC (29,603 Python + 24,587 TypeScript). v19.0 shipped 2026-04-05.
 
 Documentation site lives at `https://axiom-laboratories.github.io/axiom/docs/` (GitHub Pages, subtree deploy via `ghp-import`). Marketing homepage lives at `https://axiom-laboratories.github.io/axiom/`. Both auto-deploy from `main` via separate GitHub Actions jobs in `gh-pages-deploy.yml`. MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference auto-generated from FastAPI OpenAPI schema at container build time.
 
@@ -337,6 +355,15 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | DRAINING auto-offline after no heartbeat (not immediate) | Graceful degradation — DRAINING node finishes running jobs, then auto-transitions OFFLINE only when heartbeat stops | ✓ Good |
 | ScheduledFireLog as separate table (not on Job) | Jobs table is already large and hot; fire log is append-only analytics — separation keeps job queries fast | ✓ Good |
 | `--userns=keep-id` removed from Podman runtime | Caused sysfs OCI permission denied (exit 126) when running Podman inside Docker with VFS storage driver; rootless mapping unnecessary for job containers | ✓ Good |
+| Transitive dep resolution via pip-compile (not custom resolver) | pip-compile produces locked requirements with platform markers; reuses existing tooling; handles version conflicts natively | ✓ Good |
+| Dual-platform mirroring (manylinux + musllinux paths) | Alpine (musl) and Debian (glibc) images need different wheels; single /data/packages dir with platform-aware pip selection | ✓ Good |
+| Container-isolated package downloads (debian:12-slim, alpine:3.20) | Avoids polluting host system with package manager state; reproducible across CI and production | ✓ Good |
+| Compose CE/EE split (compose.ee.yaml overlay) | CE stack runs without mirror services; EE activated via explicit overlay; clean separation | ✓ Good |
+| Verdaccio for npm, BaGetter for NuGet, registry:2 for OCI | Battle-tested proxies with pull-through caching; each runs as a compose sidecar with `--profile mirrors` | ✓ Good |
+| Conda ToS blocking modal for Anaconda defaults channel | Legal risk mitigation; pre-selects conda-forge; modal blocks approval until acknowledged | ✓ Good |
+| Script analyzer as soft suggestions (not hard gate) | Bash/PowerShell static analysis is inherently imprecise; false positives would block legitimate workflows | ✓ Good |
+| CSS variable theming (not Tailwind dark: prefixes only) | Enables light mode without doubling every utility class; variables cascade naturally to third-party components | ✓ Good |
+| FOWT prevention via inline script in index.html | Runs before React hydration; reads localStorage theme; applies .dark class immediately; no flash | ✓ Good |
 | Two-stage Dockerfile for docs (builder + nginx) | mkdocs serve is not production-safe (GitHub issue #1825) | ✓ Good |
 | Caddy `handle /docs/*` + nginx `alias` | `handle_path` strips prefix → silently breaks all CSS/JS asset resolution | ✓ Good |
 | openapi.json generated at container build time | No running server required; dummy env vars (postgresql+asyncpg, API_KEY) in Dockerfile builder stage | ✓ Good |
@@ -385,6 +412,10 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `require_auth` (JWT only) for `/api/health/scale`, no RBAC gate | Scale metrics are observability-only with no sensitive data — any authenticated user can view | ✓ Good |
 | `upgrade.md` symlinked from `puppeteer/upgrade.md` to `docs/docs/runbooks/upgrade.md` | Test path resolves `puppeteer/upgrade.md`; symlink avoids content duplication | ✓ Good |
 
+## Previous State — v19.0 Complete (2026-04-05)
+
+Axiom v19.0 delivered Foundry Improvements — 12 phases (107–119, excluding deferred 115), 37 plans, all 21/21 in-scope requirements satisfied (4 UX polish items deferred to v20.0). The Foundry/Smelter pipeline is now production-grade for air-gapped deployments: transitive dependency resolution via pip-compile with dual-platform mirroring (manylinux + musllinux), 7 ecosystem mirror backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) all behind compose `--profile mirrors`, interactive dependency tree viewer with full-graph CVE scanning, script analyzer with 250+ import-to-package mappings, curated bundles for one-click blueprint creation, and starter templates with a 3-click build flow. Dashboard received light/dark theming (CSS variables, FOWT prevention, localStorage persistence) and comprehensive UI polish with permanent Playwright test baselines. EE licence hot-reload enables zero-downtime licence updates with WebSocket broadcast. 275 files changed, 58,605 insertions, 278 commits across 5 days.
+
 ## Previous State — v18.0 Complete (2026-04-01)
 
 Axiom v18.0 delivered First-User Experience & E2E Validation — 6 phases (101–106), 15 plans, all 15/15 requirements satisfied. CE dashboard cleaned up: 6 EE-only Admin tabs gated behind `isEnterprise`, upgrade panel with `UpgradePlaceholder` cards. Linux cold-start validated end-to-end in a fresh LXC container — 4 BLOCKERs found and fixed (--env-file removal, countersign wiring, /tmp DinD mount, GHCR node image). Windows cold-start validated on Dwight — 8 BLOCKERs across 8 iterative runs, all fixed. Full signing pipeline fixed: `signature_id` field name, CRLF normalization at client+server+node layers, TrustAll replaced with `-SkipCertificateCheck`. PRs #17/#18/#19 merged; History.test.tsx fixed; full vitest suite 64/64 pass. 65 files changed, +7,888 lines.
@@ -431,9 +462,9 @@ Axiom v13.0 delivered the Research & Documentation Foundation milestone — 4 ph
 
 On the documentation side: `.env.example` is now a complete operator reference with generation commands for cryptographic vars; a "Running with Docker" deployment guide was added; the docs site visual identity (Fira Sans, crimson palette, geometric SVG logo) now matches the dashboard; and existing feature guides were updated to cover v12.0 additions (unified `script` type, guided form, bulk ops, Queue Monitor, DRAINING state, Scheduling Health). The two standalone HTML quick-reference files were moved from the project root into the MkDocs tree under `docs/docs/quick-ref/`, the course was fully rebranded to Axiom, and the operator guide was updated with Queue and Scheduling Health content.
 
-**~23,500 LOC (Python + TypeScript). Stack: FastAPI + SQLAlchemy + React/Vite + Caddy + APScheduler + MkDocs Material.**
+**~54,190 LOC (Python + TypeScript). Stack: FastAPI + SQLAlchemy + React/Vite + Caddy + APScheduler + MkDocs Material.**
 
-**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike).
+**Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike), UX-04/05/06/07 (operator UX polish, deferred from v19.0 to v20.0).
 
 ---
-*Last updated: 2026-04-01 after v19.0 milestone started — Foundry Improvements*
+*Last updated: 2026-04-05 after v19.0 milestone — Foundry Improvements*

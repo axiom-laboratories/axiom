@@ -535,6 +535,56 @@
 - 3 gap-closure phases (104, 105, 106) were needed after the initial 3 validation phases — 50% of phases were remediation
 - Integration checker agent (sonnet) found the final gap that manual review missed
 
+## Milestone: v19.0 — Foundry Improvements
+
+**Shipped:** 2026-04-05
+**Phases:** 12 (107–114, 116–119) | **Plans:** 37 | **Requirements:** 21/21
+
+### What Was Built
+- Phase 107: Schema foundation + full CRUD — blueprint edit with optimistic locking, tool recipe edit, Approved OS management, dep confirmation dialog, ecosystem enum + 3 new tables
+- Phase 108: Transitive dependency resolution — pip-compile resolver, dual-platform mirroring (manylinux + musllinux), auto-mirror on approval, circular dep detection, devpi removal
+- Phase 109: APT + apk mirror backends — container-isolated downloads, compose CE/EE split (compose.ee.yaml overlay), Caddy multi-path routing, MirrorHealthBanner
+- Phase 110: CVE transitive scan + tree UI — BFS walk for full dependency graph CVE scanning, interactive DependencyTreeModal, discover endpoint with "Approve All"
+- Phase 111: npm + NuGet + OCI mirrors — Verdaccio, BaGetter, registry:2 pull-through proxies, all behind `--profile mirrors`
+- Phase 112: Conda mirror + admin UI — Conda backend with Anaconda defaults ToS blocking modal, 8-ecosystem MirrorConfigCard grid, one-click Docker provisioning
+- Phase 113: Script analyzer — 250+ import-to-package mappings (Python AST, Bash regex, PowerShell Import-Module), cross-reference against approved ingredients
+- Phase 114: Curated bundles + starter templates — 5 pre-built bundles, Template Gallery, 3-click build flow, auto-approval pipeline
+- Phase 116: DB migration fix + EE licence hot-reload — idempotent migration_v46.sql, background expiry timer, WebSocket broadcast
+- Phase 117: Light/dark mode toggle — CSS variable theming, warm stone palette, FOWT prevention, localStorage persistence, all 9 views theme-aware
+- Phase 118: UI polish + verification — skeleton loaders, responsive design, GH #20/#21/#22 fixes, permanent Playwright test framework
+- Phase 119: Traceability closure — all 21 requirement checkboxes verified, VERIFICATION.md for all 12 phases
+
+### What Worked
+- Clean first-pass execution for the core feature phases (107–114) — no gap-closure phases needed for the primary Foundry pipeline
+- Compose profile pattern (`--profile mirrors`) established in Phase 109 and inherited cleanly by all subsequent mirror phases (111, 112) — zero rework
+- Container-isolated package downloads (debian:12-slim, alpine:3.20 throwaway containers) kept the host system clean and made downloads reproducible
+- TDD RED→GREEN for Phase 117 light/dark mode — Wave 0 test infrastructure defined expected behavior upfront, all implementation verified against pre-existing tests
+- Milestone audit (passed on first run) validated all 21 requirements with 3-source cross-reference — no surprises at completion time
+
+### What Was Inefficient
+- Phase 115 (Operator UX Polish) was planned, discussed, and context-gathered before being deferred to v20.0 — the decision to defer should have been made at roadmap creation (it was always quality-of-life, not blocking air-gap)
+- 11/12 phases have Nyquist validation gaps (PARTIAL compliance) — test coverage wasn't consistently generated during execution
+- SUMMARY frontmatter `requirements_completed` field was missing from 12 requirements across 7 phases — had to create Phase 119 specifically for traceability closure
+- Phase 117 Wave 3 (component styling migration) took 135 min — refactoring 14 files for theme-awareness was underestimated in plan scope
+
+### Patterns Established
+- Mirror backend pattern: throwaway container download → host filesystem storage → Caddy/nginx serving → compose sidecar with `--profile mirrors`
+- CSS variable theming pattern: `:root` light defaults + `.dark` overrides, FOWT prevention inline script in index.html, `useTheme` Context API hook
+- Compose CE/EE separation: `compose.server.yaml` (CE-only) + `compose.ee.yaml` (overlay with EE services) activated via `docker compose -f ... -f ...`
+- Ecosystem dispatch pattern: `_mirror_{ecosystem}()` methods in mirror_service.py, routed by ingredient.ecosystem enum value
+
+### Key Lessons
+- Traceability closure should be continuous, not a final phase — SUMMARY frontmatter and REQUIREMENTS.md checkboxes should be updated in the same plan that implements the feature
+- Nyquist validation (test generation for requirements) is valuable but was skipped under time pressure — making it a mandatory gate rather than optional toggle would prevent the accumulation of test debt
+- The 5-day timeline for 12 phases / 37 plans demonstrates that a well-structured dependency chain (each mirror phase inherits the previous pattern) scales efficiently — the longest phase was 135 min, most were under 60 min
+
+### Cost Observations
+- 12 phases, 37 plans, 5-day delivery (2026-04-01 → 2026-04-05)
+- 278 commits, 275 files changed, 58,605 insertions
+- Average plan duration: 22 min (from STATE.md velocity metrics)
+- Only 1 gap-closure phase (119, traceability) needed — 92% of phases were primary implementation
+- Quality model profile used throughout — no budget or balanced compromises
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Key pattern |
@@ -557,6 +607,7 @@
 | v16.1 | 4 | 7 | PR backlog closure + docs quality; parallel PR merge + retroactive Nyquist compliance; 1-day turnaround |
 | v17.0 | 5 | 6 | Scale hardening; clean first-pass execution across all phases; no gap-closure plans needed |
 | v18.0 | 6 | 15 | E2E validation milestone; 50% phases were gap-closure; integration checker found final gap; lost-commit risk pattern |
+| v19.0 | 12 | 37 | Foundry production-grade; clean first-pass (1 traceability phase only); compose profile inheritance; 22min avg plan; 5-day delivery |
 
 ## Milestone: v16.1 — PR Merge & Backlog Closure
 

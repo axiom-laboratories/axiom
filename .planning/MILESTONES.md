@@ -1,5 +1,30 @@
 # Milestones
 
+## v19.0 Foundry Improvements (Shipped: 2026-04-05)
+
+**Phases completed:** 12 phases, 37 plans, 80 tasks
+
+**Stats:** 275 files changed, +58,605 / -3,465 lines | 278 commits | 5 days (2026-04-01 → 2026-04-05)
+**Git range:** `v18.0` → `3e3a0b7`
+
+**Key accomplishments:**
+- Phase 107 — Schema foundation + full CRUD: Blueprint edit with optimistic locking (409 on conflict), tool recipe edit, Approved OS management, dep confirmation dialog, ecosystem enum + ingredient_dependencies table
+- Phase 108 — Transitive dependency resolution: pip-compile resolver, dual-platform mirroring (manylinux + musllinux), auto-mirror on ingredient approval, circular dep detection, devpi removal
+- Phase 109 — APT + apk mirrors: Container-isolated downloads (debian:12-slim, alpine:3.20), compose CE/EE split (compose.ee.yaml overlay), Caddy multi-path routing, MirrorHealthBanner, 14 unit tests
+- Phase 110 — CVE transitive scan + tree UI: BFS walk for full dep graph CVE scanning, interactive DependencyTreeModal, discover endpoint with "Approve All", CVEBadge per-node severity
+- Phase 111 — npm + NuGet + OCI mirrors: Verdaccio pull-through (npm), BaGetter (NuGet), registry:2 pull-through (OCI), all behind `--profile mirrors` compose pattern
+- Phase 112 — Conda mirror + admin UI: Conda backend with ToS blocking modal for Anaconda defaults channel, 8-ecosystem MirrorConfigCard grid, one-click Docker provisioning via Docker socket
+- Phase 113 — Script analyzer: 250+ import-to-package mappings (Python AST, Bash regex, PowerShell Import-Module), cross-reference against approved ingredients, approval queue panel
+- Phase 114 — Curated bundles + starter templates: 5 pre-built bundles (Data Science, Web/API, Network Ops, File Processing, Windows Automation), Template Gallery with 3-click build flow, auto-approval pipeline
+- Phase 116 — DB migration fix + EE licence hot-reload: Idempotent migration_v46.sql, POST /api/admin/licence/reload, 60s background expiry timer, WebSocket broadcast, grace period warnings
+- Phase 117 — Light/dark mode toggle: CSS variable theming, warm stone palette for light mode, ThemeToggle in sidebar footer, FOWT prevention script, localStorage persistence, all 9 views theme-aware
+- Phase 118 — UI polish + verification: Skeleton loaders, responsive design, GH #20/#21/#22 fixes, permanent Playwright test framework with 18 screenshot baselines
+- Phase 119 — Traceability closure: All 21 requirement checkboxes verified, VERIFICATION.md for all 12 phases, SUMMARY frontmatter audit
+
+**Delivered:** Production-grade Foundry/Smelter pipeline for air-gapped deployments with full transitive dependency resolution, 7 ecosystem mirror backends, operator-friendly UX (script analyzer, bundles, templates), and dashboard light/dark theming.
+
+---
+
 ## v18.0 First-User Experience & E2E Validation (Shipped: 2026-04-01)
 
 **Phases completed:** 6 phases (101–106), 15 plans
