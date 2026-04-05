@@ -37,6 +37,7 @@ import { CreateTemplateDialog } from '../components/CreateTemplateDialog';
 import { MirrorHealthBanner } from '../components/MirrorHealthBanner';
 import BlueprintWizard from '../components/foundry/BlueprintWizard';
 import { ScriptAnalyzerPanel } from '../components/ScriptAnalyzerPanel';
+import { BundleAdminPanel } from '../components/BundleAdminPanel';
 
 interface Template {
     id: string;
@@ -48,6 +49,7 @@ interface Template {
     network_blueprint_id: string;
     is_compliant: boolean;
     status?: string;
+    is_starter?: boolean;
 }
 
 interface Blueprint {
@@ -783,32 +785,86 @@ const Templates = () => {
                             <Monitor className="mr-1 h-3.5 w-3.5" />
                             Approved OS ({approvedOSList.length})
                         </TabsTrigger>
+                        {currentUser?.role === 'admin' && (
+                            <TabsTrigger value="bundles">Bundles</TabsTrigger>
+                        )}
                     </TabsList>
 
                     <TabsContent value="smelter" className="space-y-4">
                         <ScriptAnalyzerPanel />
                     </TabsContent>
 
-                    <TabsContent value="templates">
-                        <div className="flex justify-end mb-4">
-                            <Button
-                                className="bg-primary hover:bg-primary/90 text-foreground h-10 px-4 rounded-xl font-bold shadow-lg shadow-primary/10"
-                                onClick={() => setIsTemplateOpen(true)}
-                            >
-                                <Plus className="mr-2 h-4 w-4" /> New Node Image
-                            </Button>
-                        </div>
-                        {templates.length > 0 ? (
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {templates.map(t => <TemplateCard key={t.id} template={t} baseUpdatedAt={baseUpdatedAt} />)}
-                            </div>
-                        ) : (
-                            <div className="py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
-                                <Boxes className="h-12 w-12 text-muted mx-auto mb-4" />
-                                <h3 className="text-muted-foreground font-medium">No node images found</h3>
-                                <p className="text-muted-foreground/60 text-sm mt-1">Compose your first node image using image recipes.</p>
+                    <TabsContent value="templates" className="space-y-8">
+                        {/* Starter Templates Gallery */}
+                        {templates.filter(t => t.is_starter === true).length > 0 && (
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold">Starter Templates</h3>
+                                    <p className="text-sm text-muted-foreground">Pre-built templates. Pick one and build in 3 clicks.</p>
+                                </div>
+                                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                    {templates.filter(t => t.is_starter === true).map(t => (
+                                        <Card key={t.id} className="hover:shadow-lg transition-shadow">
+                                            <CardHeader className="pb-3">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <CardTitle className="text-base">{t.friendly_name}</CardTitle>
+                                                    </div>
+                                                    <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Starter</Badge>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="space-y-3">
+                                                {t.last_built_image && (
+                                                    <p className="text-sm text-muted-foreground truncate" title={t.last_built_image}>
+                                                        {t.last_built_image}
+                                                    </p>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {t.status || 'ACTIVE'}
+                                                    </Badge>
+                                                </div>
+                                                <Button
+                                                    className="w-full"
+                                                    onClick={() => {
+                                                        // Navigate to template or trigger build flow
+                                                        toast.success(`Selected: ${t.friendly_name}`);
+                                                    }}
+                                                >
+                                                    Use This Template
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
                             </div>
                         )}
+
+                        {/* User Node Images Section */}
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg font-semibold">Your Node Images</h3>
+                                </div>
+                                <Button
+                                    className="bg-primary hover:bg-primary/90 text-foreground h-10 px-4 rounded-xl font-bold shadow-lg shadow-primary/10"
+                                    onClick={() => setIsTemplateOpen(true)}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" /> New Node Image
+                                </Button>
+                            </div>
+                            {templates.filter(t => t.is_starter !== true).length > 0 ? (
+                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    {templates.filter(t => t.is_starter !== true).map(t => <TemplateCard key={t.id} template={t} baseUpdatedAt={baseUpdatedAt} />)}
+                                </div>
+                            ) : (
+                                <div className="py-20 text-center rounded-2xl border border-dashed border-muted bg-secondary/20">
+                                    <Boxes className="h-12 w-12 text-muted mx-auto mb-4" />
+                                    <h3 className="text-muted-foreground font-medium">No custom node images found</h3>
+                                    <p className="text-muted-foreground/60 text-sm mt-1">Compose your first node image using image recipes.</p>
+                                </div>
+                            )}
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="runtime">
@@ -1224,6 +1280,12 @@ const Templates = () => {
                             </div>
                         </div>
                     </TabsContent>
+
+                    {currentUser?.role === 'admin' && (
+                        <TabsContent value="bundles" className="space-y-4">
+                            <BundleAdminPanel />
+                        </TabsContent>
+                    )}
                 </Tabs>
             )}
 
