@@ -86,7 +86,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 113: Script Analyzer** - Auto-detect package dependencies from pasted scripts via AST/regex analysis (completed 2026-04-04)
 - [x] **Phase 114: Curated Bundles + Starter Templates** - Pre-built package bundles and seeded golden-image templates for non-developers (in progress)
 - ~~Phase 115: Operator UX Polish~~ — **deferred to v20.0** (UX polish, not blocking air-gap)
-- [ ] **Phase 119: v19.0 Traceability Closure** — Check unchecked requirement boxes, add SUMMARY frontmatter, create VERIFICATION.md for all phases
+- [x] **Phase 119: v19.0 Traceability Closure** — Check unchecked requirement boxes, add SUMMARY frontmatter, create VERIFICATION.md for all phases (completed 2026-04-05)
 
 ## Phase Details
 
@@ -276,7 +276,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 | 117. Light/dark mode toggle | 5/5 | Complete | 2026-04-04 |
 | 118. UI polish and verification | 4/4 | Complete | 2026-04-04 |
 | 115. Operator UX Polish | — | Deferred to v20.0 | - |
-| 119. v19.0 Traceability Closure | 2/2 | Complete | 2026-04-05 |
+| 119. v19.0 Traceability Closure | 2/2 | Complete    | 2026-04-05 |
 
 ## Archived
 
@@ -293,7 +293,7 @@ Phases execute in numeric order: 107 → 108 → 109 → 110 → 111 → 112 →
 
 **Depends on:** Phase 115
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 116-01-PLAN.md — DB migration gap audit + idempotent schema fixes
