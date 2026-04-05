@@ -263,6 +263,7 @@ class PuppetTemplate(Base):
     network_blueprint_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     canonical_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     current_image_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_built_image: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     last_built_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_compliant: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)

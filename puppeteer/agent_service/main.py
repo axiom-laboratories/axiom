@@ -171,6 +171,14 @@ async def lifespan(app: FastAPI):
             db.add(admin_user)
             await db.commit()
 
+    # Seed starter templates (Phase 114 - for EE only)
+    try:
+        from .services.foundry_service import FoundryService
+        async with AsyncSessionLocal() as db:
+            await FoundryService.seed_starter_templates(db)
+    except Exception as _e:
+        logger.debug(f"Starter template seeding skipped: {_e}")
+
     # Guard against silent APScheduler v4 install (v4 is a complete rewrite)
     import importlib.metadata as _importlib_metadata
     from packaging.version import Version as _Version

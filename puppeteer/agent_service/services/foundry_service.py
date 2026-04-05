@@ -7,9 +7,10 @@ import json
 import hashlib
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
+from uuid import uuid4
 from sqlalchemy.future import select
 from fastapi import HTTPException
-from ..db import Blueprint, PuppetTemplate, CapabilityMatrix, AsyncSession, Config, ApprovedIngredient, IngredientDependency
+from ..db import Blueprint, PuppetTemplate, CapabilityMatrix, AsyncSession, Config, ApprovedIngredient, IngredientDependency, CuratedBundle, CuratedBundleItem
 from ..models import ImageBuildRequest, ImageResponse
 from .smelter_service import SmelterService
 from .staging_service import StagingService
@@ -520,6 +521,110 @@ class FoundryService:
                 status=f"ERROR: {str(e)}",
                 created_at=datetime.utcnow()
             )
+
+    @staticmethod
+    async def seed_starter_templates(db: AsyncSession) -> None:
+        """
+        Seed 5 pre-built starter templates on first EE startup.
+        Idempotent: returns early if starters already exist.
+        """
+        # Check if starters already exist
+        stmt = select(PuppetTemplate).where(PuppetTemplate.is_starter == True)
+        result = await db.execute(stmt)
+        existing_starters = result.scalars().all()
+
+        if existing_starters:
+            logger.info(f"Starter templates already seeded ({len(existing_starters)} exist). Skipping.")
+            return
+
+        starters_config = [
+            {
+                "friendly_name": "Data Science Starter",
+                "description": "Python data analysis stack: numpy, pandas, scikit-learn, matplotlib",
+                "ecosystem": "PYPI",
+                "os_family": "DEBIAN",
+                "base_image": "debian:12-slim",
+                "packages": [
+                    ("numpy", "*"),
+                    ("pandas", "*"),
+                    ("scikit-learn", "*"),
+                    ("matplotlib", "*")
+                ]
+            },
+            {
+                "friendly_name": "Web/API Starter",
+                "description": "FastAPI/Flask web development: FastAPI, Flask, Django, SQLAlchemy, requests",
+                "ecosystem": "PYPI",
+                "os_family": "DEBIAN",
+                "base_image": "debian:12-slim",
+                "packages": [
+                    ("fastapi", "*"),
+                    ("flask", "*"),
+                    ("django", "*"),
+                    ("sqlalchemy", "*"),
+                    ("requests", "*")
+                ]
+            },
+            {
+                "friendly_name": "Network Tools Starter",
+                "description": "Network diagnostics and analysis: curl, nmap, tcpdump, netcat, iperf",
+                "ecosystem": "APT",
+                "os_family": "DEBIAN",
+                "base_image": "debian:12-slim",
+                "packages": [
+                    ("curl", "*"),
+                    ("nmap", "*"),
+                    ("tcpdump", "*"),
+                    ("netcat", "*"),
+                    ("iperf3", "*")
+                ]
+            },
+            {
+                "friendly_name": "File Processing Starter",
+                "description": "Document and image processing: Pillow, pdf2image, python-docx, openpyxl",
+                "ecosystem": "PYPI",
+                "os_family": "DEBIAN",
+                "base_image": "debian:12-slim",
+                "packages": [
+                    ("Pillow", "*"),
+                    ("pdf2image", "*"),
+                    ("python-docx", "*"),
+                    ("openpyxl", "*")
+                ]
+            },
+            {
+                "friendly_name": "Windows Automation Starter",
+                "description": "PowerShell and Windows administration: Active Directory, WMI utilities",
+                "ecosystem": "NUGET",
+                "os_family": "WINDOWS",
+                "base_image": "mcr.microsoft.com/windows/servercore:ltsc2022",
+                "packages": [
+                    ("ActiveDirectory", "*")
+                ]
+            }
+        ]
+
+        try:
+            for starter_config in starters_config:
+                # Create template
+                template = PuppetTemplate(
+                    id=str(uuid4()),
+                    friendly_name=starter_config["friendly_name"],
+                    is_starter=True,
+                    status="ACTIVE",
+                    created_at=datetime.utcnow()
+                )
+                db.add(template)
+                await db.flush()
+
+                logger.info(f"Seeded starter template: {starter_config['friendly_name']}")
+
+            await db.commit()
+            logger.info(f"Successfully seeded {len(starters_config)} starter templates")
+        except Exception as e:
+            logger.error(f"Error seeding starter templates: {str(e)}")
+            await db.rollback()
+            raise
 
     @staticmethod
     async def list_images() -> List[ImageResponse]:
