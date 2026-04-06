@@ -320,6 +320,8 @@ class SchedulerService:
                 runtime=runtime,
                 name=s_job.name,          # SRCH-04: auto-populate from scheduled job name
                 created_by=s_job.created_by,  # SRCH-03: stamp submitter
+                memory_limit=s_job.memory_limit,  # ENFC-03: pass memory limit from scheduled job
+                cpu_limit=s_job.cpu_limit,        # ENFC-03: pass CPU limit from scheduled job
             )
             session.add(new_job)
             await session.commit()
