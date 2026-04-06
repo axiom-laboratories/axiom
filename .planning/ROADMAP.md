@@ -108,7 +108,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 117. Light/Dark Mode Toggle | v19.0 | 5/5 | Complete | 2026-04-04 |
 | 118. UI Polish and Verification | v19.0 | 4/4 | Complete | 2026-04-04 |
 | 119. v19.0 Traceability Closure | v19.0 | 2/2 | Complete | 2026-04-05 |
-| 120. Database & API Contract | v20.0 | 3/3 | Complete | 2026-04-06 |
+| 120. Database & API Contract | v20.0 | Complete    | 2026-04-06 | 2026-04-06 |
 | 121. Job Service & Admission Control | v20.0 | 0/? | Not started | — |
 | 122. Node-Side Limit Integration | v20.0 | 0/? | Not started | — |
 | 123. Cgroup Detection Backend | v20.0 | 0/? | Not started | — |
