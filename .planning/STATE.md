@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-last_updated: "2026-04-06T18:47:22.244Z"
-last_activity: 2026-04-06 — Executed 120-03 plan (2 tasks, 4/4 tests passing, 2 commits)
+status: in-progress
+last_updated: "2026-04-06T22:10:00.000Z"
+last_activity: 2026-04-06 — Executed 121-01 plan (4 tasks, 19/19 tests passing, 2 commits)
 progress:
   total_phases: 40
   completed_phases: 39
   total_plans: 115
-  completed_plans: 123
+  completed_plans: 124
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 120 (Database & API Contract)
-Plan: 03 (WorkResponse Limit Population - Gap Closure) — COMPLETE
-Status: Gap closure complete; limits now flow through pull_work() to nodes
-Last activity: 2026-04-06 — Executed 120-03 plan (2 tasks, 4/4 tests passing, 2 commits)
+Phase: 121 (Job Service & Admission Control)
+Plan: 01 (Memory Admission Control) — COMPLETE
+Status: Admission control complete; jobs validated before queuing; no oversized jobs reach nodes
+Last activity: 2026-04-06 — Executed 121-01 plan (4 tasks, 19/19 tests passing, 2 commits)
 
 ## Performance Metrics
 
