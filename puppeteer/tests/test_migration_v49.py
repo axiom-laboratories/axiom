@@ -49,7 +49,7 @@ async def test_session(test_db_engine):
 @pytest.fixture
 def migration_v49_path():
     """Return path to migration_v49.sql file."""
-    base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    base_path = os.path.dirname(os.path.dirname(__file__))
     return os.path.join(base_path, "migration_v49.sql")
 
 
@@ -57,6 +57,7 @@ async def read_and_execute_migration(engine, migration_file):
     """
     Read migration_v49.sql and execute it against the test database.
 
+    Handles both PostgreSQL and SQLite syntax for ADD COLUMN IF NOT EXISTS.
     Raises FileNotFoundError if migration file doesn't exist.
     """
     if not os.path.exists(migration_file):
@@ -66,12 +67,41 @@ async def read_and_execute_migration(engine, migration_file):
         migration_sql = f.read()
 
     async with engine.begin() as conn:
+        # Check if database is SQLite
+        dialect = conn.dialect.name
+
         # SQLite doesn't support multiple statements in execute(),
         # so split and execute individually
         for statement in migration_sql.split(";"):
             statement = statement.strip()
-            if statement:
-                await conn.execute(text(statement))
+            if not statement or statement.startswith("--"):
+                continue
+
+            # Convert PostgreSQL syntax to SQLite for ADD COLUMN IF NOT EXISTS
+            if dialect == "sqlite":
+                # PostgreSQL: ALTER TABLE jobs ADD COLUMN IF NOT EXISTS memory_limit VARCHAR(255)
+                # SQLite: We need to check if column exists and add it manually
+                if "ADD COLUMN IF NOT EXISTS" in statement:
+                    # Extract table and column info
+                    import re as regex_module
+                    match = regex_module.search(
+                        r"ALTER TABLE (\w+) ADD COLUMN IF NOT EXISTS (\w+) (.*)",
+                        statement
+                    )
+                    if match:
+                        table_name, column_name, column_def = match.groups()
+                        # Check if column already exists using PRAGMA
+                        result = await conn.execute(text(f"PRAGMA table_info({table_name})"))
+                        columns_data = result.fetchall()
+                        column_names = [row[1] for row in columns_data]
+
+                        if column_name not in column_names:
+                            # Column doesn't exist, so add it
+                            await conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}"))
+                        continue
+
+            # For PostgreSQL or other statements, execute as-is
+            await conn.execute(text(statement))
 
 
 @pytest.mark.asyncio

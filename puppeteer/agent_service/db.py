@@ -60,6 +60,8 @@ class Job(Base):
     originating_guid: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # JOB-05: resubmit traceability
     target_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # VIS-04: explicit node targeting
     dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
+    memory_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # e.g., "512m", "1g", "1Gi"
+    cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)     # e.g., "2", "0.5"
 
     __table_args__ = (
         Index("ix_jobs_status_created_at", "status", "created_at"),

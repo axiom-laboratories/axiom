@@ -2,6 +2,7 @@ from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 import json as _json
+import re
 
 class JobCreate(BaseModel):
     task_type: str
@@ -18,6 +19,8 @@ class JobCreate(BaseModel):
     runtime: Optional[Literal["python", "bash", "powershell"]] = None
     name: Optional[str] = None          # SRCH-04: optional job name label
     created_by: Optional[str] = None    # SRCH-03: submitter username
+    memory_limit: Optional[str] = None  # e.g., "512m", "1g", "1Gi"
+    cpu_limit: Optional[str] = None     # e.g., "2", "0.5"
 
     @field_validator("env_tag", mode="before")
     @classmethod
@@ -34,6 +37,29 @@ class JobCreate(BaseModel):
         if self.task_type == "script" and self.runtime is None:
             raise ValueError("runtime is required when task_type is 'script'")
         return self
+
+    @field_validator("memory_limit", mode="before")
+    @classmethod
+    def validate_memory_format(cls, v):
+        if v is None:
+            return None
+        v_str = str(v).strip()
+        # Light validation: digits + optional decimal + unit (k/m/g/t, case-insensitive)
+        # Matches Docker memory format and Kubernetes Ki/Mi/Gi conventions
+        if not re.match(r'^\d+(\.\d+)?[kmKmgGtT][iIbB]?[bB]?$', v_str):
+            raise ValueError(f"Invalid memory format: {v}. Use format like '512m', '1g', '1Gi'")
+        return v_str
+
+    @field_validator("cpu_limit", mode="before")
+    @classmethod
+    def validate_cpu_format(cls, v):
+        if v is None:
+            return None
+        v_str = str(v).strip()
+        # Light validation: digits with optional decimal point (matches Docker --cpus format)
+        if not re.match(r'^\d+(\.\d+)?$', v_str):
+            raise ValueError(f"Invalid CPU format: {v}. Use format like '2', '0.5'")
+        return v_str
 
 class RegisterRequest(BaseModel):
     client_secret: str
@@ -68,6 +94,8 @@ class JobResponse(BaseModel):
     created_at: Optional[datetime] = None  # needed for cursor encoding in list response
     runtime: Optional[str] = None       # SRCH-03: runtime filter display
     originating_guid: Optional[str] = None  # JOB-05: set when job was created via resubmit
+    memory_limit: Optional[str] = None
+    cpu_limit: Optional[str] = None
 
 class PaginatedJobResponse(BaseModel):
     """Cursor-based paginated job list response (Phase 49 — SRCH-01)."""
@@ -97,6 +125,8 @@ class WorkResponse(BaseModel):
     backoff_multiplier: float = 2.0
     timeout_minutes: Optional[int] = None
     started_at: Optional[datetime] = None
+    memory_limit: Optional[str] = None
+    cpu_limit: Optional[str] = None
 
 class ResultReport(BaseModel):
     result: Optional[Dict] = None
