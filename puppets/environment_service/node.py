@@ -10,6 +10,7 @@ import base64
 import threading
 import psutil
 import time
+import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa, padding as asym_padding
@@ -20,6 +21,8 @@ from aiohttp import web
 import runtime
 
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 
 def parse_bytes(s: str) -> int:
@@ -32,6 +35,14 @@ def parse_bytes(s: str) -> int:
     elif s.endswith('k'):
         return int(s[:-1]) * 1024
     return int(s)
+
+
+def parse_cpu(s: str) -> float:
+    """Convert CPU limit string like '2', '0.5', '1.0' to float."""
+    try:
+        return float(s.strip())
+    except (ValueError, AttributeError, TypeError) as e:
+        raise ValueError(f"Invalid CPU format: {s}") from e
 
 
 def build_output_log(stdout: str, stderr: str) -> list:
