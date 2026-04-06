@@ -1,36 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v19.0
-milestone_name: — Foundry Improvements
-status: completed
-stopped_at: Completed 119-01 (v19.0 traceability closure wave 1)
-last_updated: "2026-04-05T18:21:46.786Z"
-last_activity: 2026-04-05 -- Completed 119-02 (verification documentation for all 11 phases)
+milestone: v20.0
+milestone_name: — Node Capacity & Isolation Validation
+status: active
+stopped_at: null
+last_updated: "2026-04-06"
+last_activity: 2026-04-06 -- Milestone v20.0 started
 progress:
-  total_phases: 12
-  completed_phases: 12
-  total_plans: 37
-  completed_plans: 37
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-05)
+See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** Jobs run reliably -- on the right node, when scheduled, with their output captured -- without any step in the chain weakening the security model.
-**Current focus:** Planning next milestone
+**Current focus:** v20.0 Node Capacity & Isolation Validation
 
 ## Current Position
 
-Phase: 119 of 12 (119 - v19.0 Traceability Closure) — COMPLETE
-Plan: 2 of 2 in current phase (119-02 complete - verification documentation)
-Status: milestone-complete
-Last activity: 2026-04-05 -- Completed 119-02 (verification documentation for all 11 phases)
-
-Progress: [██████████] 100%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-06 — Milestone v20.0 started
 
 ## Performance Metrics
 

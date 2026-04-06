@@ -16,7 +16,18 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 **Latest shipped:** v19.0 Foundry Improvements (2026-04-05)
 **Previous:** v18.0 First-User Experience & E2E Validation (2026-04-01)
-**Next:** Planning next milestone
+
+## Current Milestone: v20.0 Node Capacity & Isolation Validation
+
+**Goal:** Prove that resource limits set via the EE GUI are enforced end-to-end through nested containers, that all jobs execute in ephemeral containers (never directly on the node), and that concurrent jobs are isolated from each other.
+
+**Target features:**
+- Stress-test script corpus (Python, Bash, PowerShell) for CPU, memory, and noisy-neighbour validation
+- Cgroup pre-flight detection on nodes (v1 vs v2 vs unsupported)
+- End-to-end limit enforcement validation: GUI → API → node → inner container runtime flags
+- Verify no job code runs directly on the node host (all execution via ephemeral containers)
+- Fix any gaps found in runtime.py, container flags, or cgroup delegation
+- Concurrent job isolation proof (noisy-neighbour detection)
 
 ## Requirements
 
