@@ -76,14 +76,15 @@ See `.planning/milestones/` for detailed archive of each milestone.
 </details>
 
 <details>
-<summary>v20.0 — Node Capacity & Isolation Validation (Phases 120–128) — IN PLANNING</summary>
+<summary>v20.0 — Node Capacity & Isolation Validation (Phases 120–128) — IN PROGRESS</summary>
 
 - [x] **Phase 120: Database & API Contract** — Add job limit schema + API models for end-to-end traceability (completed 2026-04-06)
 - [x] **Phase 121: Job Service & Admission Control** — Memory limit persistence and API admission checks (3 plans completed 2026-04-06)
   - [x] Plan 01: parse_bytes() + admission check in create_job() + pull_work()
   - [x] Plan 02: Dispatch diagnosis extension with memory breakdown + ScheduledJob schema
   - [x] Plan 03: Scheduler integration + JobDefinitions UI + Jobs diagnosis display (completed 2026-04-06)
-- [ ] **Phase 122: Node-Side Limit Integration** — Extract limits from work queue and pass to runtime
+- [ ] **Phase 122: Node-Side Limit Integration** — Harden limit validation, structured error handling, and logging
+  - [ ] Plan 01: parse_cpu() helper + execute_task() validation + unit tests
 - [ ] **Phase 123: Cgroup Detection Backend** — Node detects cgroup v1 vs v2 at startup and heartbeat
 - [ ] **Phase 124: Ephemeral Execution Guarantee** — Block direct execution; flag EXECUTION_MODE=direct as unsafe
 - [ ] **Phase 125: Stress Test Corpus** — CPU, memory, and noisy-neighbour scripts in Python, Bash, PowerShell
@@ -112,8 +113,8 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 118. UI Polish and Verification | v19.0 | 4/4 | Complete | 2026-04-04 |
 | 119. v19.0 Traceability Closure | v19.0 | 2/2 | Complete | 2026-04-05 |
 | 120. Database & API Contract | v20.0 | 3/3 | Complete | 2026-04-06 |
-| 121. Job Service & Admission Control | v20.0 | Complete    | 2026-04-06 | 2026-04-06 |
-| 122. Node-Side Limit Integration | v20.0 | 0/? | Not started | — |
+| 121. Job Service & Admission Control | v20.0 | 3/3 | Complete | 2026-04-06 |
+| 122. Node-Side Limit Integration | v20.0 | 0/1 | Planning | — |
 | 123. Cgroup Detection Backend | v20.0 | 0/? | Not started | — |
 | 124. Ephemeral Execution Guarantee | v20.0 | 0/? | Not started | — |
 | 125. Stress Test Corpus | v20.0 | 0/? | Not started | — |
