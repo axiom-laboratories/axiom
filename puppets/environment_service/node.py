@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from aiohttp import web
-import runtime
+from . import runtime
 
 from dotenv import load_dotenv
 
