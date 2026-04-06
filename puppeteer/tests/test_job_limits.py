@@ -1,13 +1,20 @@
 """
 Unit tests for job admission control logic (v20.0).
 
-Tests parse_bytes() utility and basic capacity calculation.
+Tests parse_bytes() utility, capacity calculation, dispatch diagnosis, and ScheduledJob schema.
 """
 import pytest
+from datetime import datetime
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from agent_service.services.job_service import (
     parse_bytes,
     _format_bytes,
+    _sum_node_assigned_limits,
+    _get_node_available_capacity,
+    JobService,
 )
+from agent_service.db import Base, Job, Node, ScheduledJob, AsyncSessionLocal
 
 
 # ============================================================================
@@ -188,3 +195,197 @@ class TestAdmissionLogic:
             formatted = _format_bytes(bytes_val)
             # Just check that it's human-readable with some unit
             assert any(u in formatted for u in ["K", "M", "G", "B"]), f"Expected unit in {formatted}"
+
+
+# ============================================================================
+# TestDispatchDiagnosis - Diagnosis API with memory breakdown
+# ============================================================================
+
+@pytest.fixture
+async def test_db():
+    """Create an in-memory SQLite database for testing."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async_session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield async_session
+
+    await engine.dispose()
+
+
+class TestDispatchDiagnosis:
+    """Test get_dispatch_diagnosis() memory breakdown logic."""
+
+    @pytest.mark.asyncio
+    async def test_diagnosis_insufficient_memory(self, test_db):
+        """Test diagnosis when job exceeds all nodes' capacity."""
+        async with test_db() as db:
+            # Create job with 2Gi limit
+            job = Job(
+                guid="test-job-1",
+                task_type="script",
+                payload="{}",
+                status="PENDING",
+                memory_limit="2Gi"
+            )
+            db.add(job)
+
+            # Create node with 1Gi capacity
+            node = Node(
+                node_id="node1",
+                hostname="test-node",
+                ip="10.0.0.1",
+                status="ONLINE",
+                job_memory_limit="1Gi"
+            )
+            db.add(node)
+            await db.commit()
+
+            # Get diagnosis
+            diagnosis = await JobService.get_dispatch_diagnosis("test-job-1", db)
+
+            # Should return insufficient_memory reason
+            assert diagnosis["reason"] == "insufficient_memory"
+            assert "2Gi" in diagnosis["message"] or "2Gi" in str(diagnosis.get("nodes_breakdown", []))
+            assert "nodes_breakdown" in diagnosis
+            assert isinstance(diagnosis["nodes_breakdown"], list)
+            assert len(diagnosis["nodes_breakdown"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_diagnosis_nodes_breakdown(self, test_db):
+        """Test that nodes_breakdown includes required fields."""
+        async with test_db() as db:
+            job = Job(
+                guid="test-job-2",
+                task_type="script",
+                payload="{}",
+                status="PENDING",
+                memory_limit="512m"
+            )
+            db.add(job)
+
+            node = Node(
+                node_id="node2",
+                hostname="test-node-2",
+                ip="10.0.0.2",
+                status="ONLINE",
+                job_memory_limit="1Gi"
+            )
+            db.add(node)
+            await db.commit()
+
+            diagnosis = await JobService.get_dispatch_diagnosis("test-job-2", db)
+
+            # Check nodes_breakdown structure when present
+            if "nodes_breakdown" in diagnosis and diagnosis["nodes_breakdown"]:
+                breakdown = diagnosis["nodes_breakdown"][0]
+                assert "node_id" in breakdown
+                assert "capacity_mb" in breakdown
+                assert "used_mb" in breakdown
+                assert "available_mb" in breakdown
+                assert "fits" in breakdown
+                assert breakdown["fits"] in ["yes", "no"]
+
+    @pytest.mark.asyncio
+    async def test_diagnosis_fits_on_one_node(self, test_db):
+        """Test diagnosis when job fits on at least one eligible node."""
+        async with test_db() as db:
+            job = Job(
+                guid="test-job-3",
+                task_type="script",
+                payload="{}",
+                status="PENDING",
+                memory_limit="512m"
+            )
+            db.add(job)
+
+            node = Node(
+                node_id="node3",
+                hostname="test-node-3",
+                ip="10.0.0.3",
+                status="ONLINE",
+                job_memory_limit="1Gi"
+            )
+            db.add(node)
+            await db.commit()
+
+            diagnosis = await JobService.get_dispatch_diagnosis("test-job-3", db)
+
+            # Should not be insufficient_memory (either pending_dispatch or some other reason)
+            assert diagnosis["reason"] != "insufficient_memory"
+
+
+# ============================================================================
+# TestScheduledJobLimits - ScheduledJob schema validation
+# ============================================================================
+
+class TestScheduledJobLimits:
+    """Test ScheduledJob model has memory and CPU limit columns."""
+
+    def test_scheduled_job_has_memory_limit_column(self):
+        """Test that ScheduledJob model has memory_limit attribute."""
+        from agent_service.db import ScheduledJob
+        import inspect
+
+        # Get all attributes
+        attrs = [name for name, _ in inspect.getmembers(ScheduledJob)]
+        assert "memory_limit" in attrs, "ScheduledJob should have memory_limit column"
+
+    def test_scheduled_job_has_cpu_limit_column(self):
+        """Test that ScheduledJob model has cpu_limit attribute."""
+        from agent_service.db import ScheduledJob
+        import inspect
+
+        # Get all attributes
+        attrs = [name for name, _ in inspect.getmembers(ScheduledJob)]
+        assert "cpu_limit" in attrs, "ScheduledJob should have cpu_limit column"
+
+    @pytest.mark.asyncio
+    async def test_scheduled_job_limits_nullable(self, test_db):
+        """Test that ScheduledJob can be created with null limits."""
+        async with test_db() as db:
+            scheduled_job = ScheduledJob(
+                id="sched-1",
+                name="test-schedule",
+                script_content="print('hello')",
+                signature_id="sig-1",
+                signature_payload="abc123",
+                created_by="admin",
+                memory_limit=None,
+                cpu_limit=None
+            )
+            db.add(scheduled_job)
+            await db.commit()
+
+            # Verify it was saved
+            result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == "sched-1"))
+            saved = result.scalar_one_or_none()
+            assert saved is not None
+            assert saved.memory_limit is None
+            assert saved.cpu_limit is None
+
+    @pytest.mark.asyncio
+    async def test_scheduled_job_with_limits(self, test_db):
+        """Test that ScheduledJob can store memory and CPU limits."""
+        async with test_db() as db:
+            scheduled_job = ScheduledJob(
+                id="sched-2",
+                name="test-schedule-2",
+                script_content="print('hello')",
+                signature_id="sig-1",
+                signature_payload="abc123",
+                created_by="admin",
+                memory_limit="512m",
+                cpu_limit="1"
+            )
+            db.add(scheduled_job)
+            await db.commit()
+
+            # Verify it was saved with limits
+            result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == "sched-2"))
+            saved = result.scalar_one_or_none()
+            assert saved is not None
+            assert saved.memory_limit == "512m"
+            assert saved.cpu_limit == "1"
