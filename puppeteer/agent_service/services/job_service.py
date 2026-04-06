@@ -44,6 +44,102 @@ def _decode_cursor(cursor: str) -> tuple:
     return datetime.fromisoformat(payload["ts"]), payload["guid"]
 
 
+def parse_bytes(s: str) -> int:
+    """Convert memory string like '300m', '2g', '1024k' to bytes.
+
+    Args:
+        s: Memory string (e.g., "512m", "1g", "1Gi", "1024k", "2")
+
+    Returns:
+        Integer byte count
+
+    Examples:
+        parse_bytes("512m") -> 536870912 (512 * 1024^2)
+        parse_bytes("1g") -> 1073741824 (1 * 1024^3)
+        parse_bytes("1Gi") -> 1073741824 (1 * 1024^3, case-insensitive)
+        parse_bytes("1024k") -> 1048576 (1024 * 1024)
+        parse_bytes("2") -> 2 (raw bytes, no suffix)
+    """
+    s = s.strip().lower()
+    if s.endswith('gi'):
+        return int(s[:-2]) * (1024 ** 3)
+    elif s.endswith('mi'):
+        return int(s[:-2]) * (1024 ** 2)
+    elif s.endswith('ki'):
+        return int(s[:-2]) * 1024
+    elif s.endswith('g'):
+        return int(s[:-1]) * (1024 ** 3)
+    elif s.endswith('m'):
+        return int(s[:-1]) * (1024 ** 2)
+    elif s.endswith('k'):
+        return int(s[:-1]) * 1024
+    return int(s)  # Assume bytes if no suffix
+
+
+def _format_bytes(num_bytes: int) -> str:
+    """Convert byte count back to human-readable format.
+
+    Args:
+        num_bytes: Number of bytes
+
+    Returns:
+        Human-readable string (e.g., "1.0Gi", "512.0Mi")
+    """
+    for unit, divisor in [("Gi", 1024 ** 3), ("Mi", 1024 ** 2), ("Ki", 1024)]:
+        if num_bytes >= divisor:
+            return f"{num_bytes / divisor:.1f}{unit}"
+    return f"{num_bytes}B"
+
+
+async def _sum_node_assigned_limits(node_id: str, db: AsyncSession) -> int:
+    """Sum memory limits for all ASSIGNED and RUNNING jobs on a node.
+
+    Args:
+        node_id: Node ID to query
+        db: Async database session
+
+    Returns:
+        Total memory in bytes used by assigned/running jobs (default 0 if none)
+    """
+    result = await db.execute(
+        select(Job).where(
+            and_(
+                Job.node_id == node_id,
+                Job.status.in_(["ASSIGNED", "RUNNING"]),
+                Job.memory_limit.isnot(None)
+            )
+        )
+    )
+    jobs = result.scalars().all()
+
+    total = 0
+    for job in jobs:
+        if job.memory_limit:
+            total += parse_bytes(job.memory_limit)
+
+    return total
+
+
+async def _get_node_available_capacity(node: Node, db: AsyncSession) -> int:
+    """Calculate available memory capacity for a node.
+
+    Args:
+        node: Node record
+        db: Async database session
+
+    Returns:
+        Available memory in bytes (may be negative if oversubscribed)
+    """
+    # Get node capacity (default to 512m if None)
+    capacity_str = node.job_memory_limit or "512m"
+    capacity_bytes = parse_bytes(capacity_str)
+
+    # Get sum of assigned/running job limits
+    used = await _sum_node_assigned_limits(node.node_id, db)
+
+    return capacity_bytes - used
+
+
 class JobService:
     @staticmethod
     async def _get_zombie_timeout(db: AsyncSession) -> int:
