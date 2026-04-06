@@ -80,10 +80,19 @@ interface Job {
     runtime?: string;
 }
 
+interface NodeCapacityBreakdown {
+    node_id: string;
+    capacity_mb: number;
+    used_mb: number;
+    available_mb: number;
+    fits: string;
+}
+
 interface DispatchDiagnosis {
-    reason: 'no_nodes_online' | 'capability_mismatch' | 'all_nodes_busy' | 'target_node_unavailable' | 'pending_dispatch' | 'not_pending';
+    reason: 'no_nodes_online' | 'capability_mismatch' | 'all_nodes_busy' | 'target_node_unavailable' | 'pending_dispatch' | 'not_pending' | 'insufficient_memory' | 'stuck_assigned';
     message: string;
     queue_position?: number | null;
+    nodes_breakdown?: NodeCapacityBreakdown[];
 }
 
 interface GuidedFormState {
@@ -312,12 +321,47 @@ const JobDetailPanel = ({
                                 <p className="text-xs text-amber-300/60">Analysing...</p>
                             )}
                             {diagnosis && (
-                                <p className="text-sm text-amber-300">{diagnosis.message}</p>
-                            )}
-                            {diagnosis?.queue_position != null && diagnosis.queue_position > 1 && (
-                                <p className="text-xs text-amber-300/80 mt-1">
-                                    Approximately {diagnosis.queue_position - 1} jobs ahead in queue.
-                                </p>
+                                <>
+                                    <p className="text-sm text-amber-300">{diagnosis.message}</p>
+                                    {diagnosis?.queue_position != null && diagnosis.queue_position > 1 && (
+                                        <p className="text-xs text-amber-300/80 mt-1">
+                                            Approximately {diagnosis.queue_position - 1} jobs ahead in queue.
+                                        </p>
+                                    )}
+
+                                    {/* Node Capacity Breakdown Table */}
+                                    {diagnosis.nodes_breakdown && diagnosis.nodes_breakdown.length > 0 && (
+                                        <div className="mt-3">
+                                            <p className="text-xs text-amber-300/90 font-semibold mb-2">Per-Node Capacity:</p>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-xs border-collapse">
+                                                    <thead>
+                                                        <tr className="bg-amber-900/30">
+                                                            <th className="border border-amber-500/30 px-2 py-1 text-left text-amber-300">Node ID</th>
+                                                            <th className="border border-amber-500/30 px-2 py-1 text-right text-amber-300">Capacity</th>
+                                                            <th className="border border-amber-500/30 px-2 py-1 text-right text-amber-300">Used</th>
+                                                            <th className="border border-amber-500/30 px-2 py-1 text-right text-amber-300">Available</th>
+                                                            <th className="border border-amber-500/30 px-2 py-1 text-center text-amber-300">Fits?</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {diagnosis.nodes_breakdown.map((node) => (
+                                                            <tr key={node.node_id} className="hover:bg-amber-900/20 transition">
+                                                                <td className="border border-amber-500/20 px-2 py-1 text-amber-300/80 font-mono">{node.node_id}</td>
+                                                                <td className="border border-amber-500/20 px-2 py-1 text-right text-amber-300/80">{node.capacity_mb}MB</td>
+                                                                <td className="border border-amber-500/20 px-2 py-1 text-right text-amber-300/80">{node.used_mb}MB</td>
+                                                                <td className="border border-amber-500/20 px-2 py-1 text-right text-amber-300/80">{node.available_mb}MB</td>
+                                                                <td className={`border border-amber-500/20 px-2 py-1 text-center font-semibold ${node.fits === 'yes' ? 'text-green-400' : 'text-red-400'}`}>
+                                                                    {node.fits === 'yes' ? '✓' : '✗'}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
