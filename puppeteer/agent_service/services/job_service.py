@@ -744,6 +744,8 @@ class JobService:
             backoff_multiplier=selected_job.backoff_multiplier,
             timeout_minutes=selected_job.timeout_minutes,
             started_at=selected_job.started_at,
+            memory_limit=selected_job.memory_limit,
+            cpu_limit=selected_job.cpu_limit,
         )
         return PollResponse(job=work_resp, env_tag=current_env_tag)
 
