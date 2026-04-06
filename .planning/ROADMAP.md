@@ -79,10 +79,10 @@ See `.planning/milestones/` for detailed archive of each milestone.
 <summary>v20.0 — Node Capacity & Isolation Validation (Phases 120–128) — IN PLANNING</summary>
 
 - [x] **Phase 120: Database & API Contract** — Add job limit schema + API models for end-to-end traceability (completed 2026-04-06)
-- [ ] **Phase 121: Job Service & Admission Control** — Memory limit persistence and API admission checks (3 plans planned)
-  - [ ] Plan 01: parse_bytes() + admission check in create_job() + pull_work()
-  - [ ] Plan 02: Dispatch diagnosis extension with memory breakdown + ScheduledJob schema
-  - [ ] Plan 03: Scheduler integration + JobDefinitions UI + Jobs diagnosis display
+- [x] **Phase 121: Job Service & Admission Control** — Memory limit persistence and API admission checks (3 plans completed 2026-04-06)
+  - [x] Plan 01: parse_bytes() + admission check in create_job() + pull_work()
+  - [x] Plan 02: Dispatch diagnosis extension with memory breakdown + ScheduledJob schema
+  - [x] Plan 03: Scheduler integration + JobDefinitions UI + Jobs diagnosis display (completed 2026-04-06)
 - [ ] **Phase 122: Node-Side Limit Integration** — Extract limits from work queue and pass to runtime
 - [ ] **Phase 123: Cgroup Detection Backend** — Node detects cgroup v1 vs v2 at startup and heartbeat
 - [ ] **Phase 124: Ephemeral Execution Guarantee** — Block direct execution; flag EXECUTION_MODE=direct as unsafe
