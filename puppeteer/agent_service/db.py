@@ -96,6 +96,8 @@ class ScheduledJob(Base):
     max_retries: Mapped[int] = mapped_column(Integer, default=0)
     backoff_multiplier: Mapped[float] = mapped_column(Float, default=2.0)
     timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    memory_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # e.g., "512m", "1Gi"
+    cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)      # e.g., "0.5", "2"
     env_tag: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="python")  # RT-07
     allow_overlap: Mapped[bool] = mapped_column(Boolean, default=False)  # SRCH-08: default safe — no concurrent runs
@@ -144,6 +146,8 @@ class Node(Base):
     template_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     env_tag: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     operator_env_tag: Mapped[bool] = mapped_column(Boolean, default=False)
+    job_memory_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # e.g., "512m", "1Gi" (default: 512m)
+    job_cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)      # e.g., "0.5", "2" (default: unlimited)
 
 class Alert(Base):
     __tablename__ = "alerts"
