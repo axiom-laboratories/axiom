@@ -38,6 +38,8 @@ const EMPTY_FORM = {
     capability_requirements: '',
     allow_overlap: false,
     dispatch_timeout_minutes: null as number | null,
+    memory_limit: null as string | null,
+    cpu_limit: null as string | null,
 };
 
 const DefinitionHistoryPanel = ({ definitionId, onOpenRun }: {

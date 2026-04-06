@@ -43,6 +43,8 @@ interface JobDefinitionFormData {
     capability_requirements: string;
     allow_overlap: boolean;
     dispatch_timeout_minutes: number | null;
+    memory_limit: string | null;
+    cpu_limit: string | null;
 }
 
 interface EditingJob {
@@ -57,6 +59,8 @@ interface EditingJob {
     capability_requirements: Record<string, string> | null;
     allow_overlap?: boolean;
     dispatch_timeout_minutes?: number | null;
+    memory_limit?: string | null;
+    cpu_limit?: string | null;
 }
 
 interface JobDefinitionModalProps {
@@ -93,6 +97,8 @@ const JobDefinitionModal = ({
                 .join(', '),
             allow_overlap: editingJob.allow_overlap ?? false,
             dispatch_timeout_minutes: editingJob.dispatch_timeout_minutes ?? null,
+            memory_limit: editingJob.memory_limit ?? null,
+            cpu_limit: editingJob.cpu_limit ?? null,
         });
     }, [editingJob]);
 
@@ -175,6 +181,30 @@ const JobDefinitionModal = ({
                                         PENDING jobs failing to dispatch within this window are auto-failed. Leave blank for no timeout.
                                         <em className="ml-1">(Distinct from Execution Timeout which kills running jobs.)</em>
                                     </p>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-muted-foreground">Memory Limit (optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g., 512m, 1Gi"
+                                        value={formData.memory_limit || ""}
+                                        onChange={(e) => setFormData({ ...formData, memory_limit: e.target.value || null })}
+                                        className="mt-1 w-full bg-background border border-muted rounded px-3 py-2 text-sm text-foreground placeholder-muted-foreground"
+                                        aria-label="Memory limit"
+                                    />
+                                    <small className="text-xs text-muted-foreground">Format: 512m, 1g, 1Gi, etc. Leave empty for no limit.</small>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-muted-foreground">CPU Limit (optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g., 0.5, 2"
+                                        value={formData.cpu_limit || ""}
+                                        onChange={(e) => setFormData({ ...formData, cpu_limit: e.target.value || null })}
+                                        className="mt-1 w-full bg-background border border-muted rounded px-3 py-2 text-sm text-foreground placeholder-muted-foreground"
+                                        aria-label="CPU limit"
+                                    />
+                                    <small className="text-xs text-muted-foreground">Format: 0.5, 1, 2, etc. Leave empty for no limit.</small>
                                 </div>
                                 <Input
                                     id="job-target"
