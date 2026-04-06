@@ -312,3 +312,60 @@ class TestJobDBPersistence:
             # Verify limits are None (not missing)
             assert retrieved_job.memory_limit is None
             assert retrieved_job.cpu_limit is None
+
+
+class TestWorkResponseLimitPassthrough:
+    """Test that WorkResponse correctly accepts and serializes memory/cpu limits."""
+
+    def test_work_response_passthrough_512m_2cpu(self):
+        """Verify WorkResponse constructor accepts and preserves memory_limit and cpu_limit."""
+        response = WorkResponse(
+            guid="test-guid-001",
+            task_type="script",
+            payload={"key": "value"},
+            memory_limit="512m",
+            cpu_limit="2"
+        )
+        assert response.memory_limit == "512m"
+        assert response.cpu_limit == "2"
+        # Verify serialization
+        dump = response.model_dump()
+        assert dump["memory_limit"] == "512m"
+        assert dump["cpu_limit"] == "2"
+
+    def test_work_response_passthrough_1g_0_5cpu(self):
+        """Verify WorkResponse with 1g memory and 0.5 cpu limits."""
+        response = WorkResponse(
+            guid="test-guid-002",
+            task_type="script",
+            payload={"key": "value"},
+            memory_limit="1g",
+            cpu_limit="0.5"
+        )
+        assert response.memory_limit == "1g"
+        assert response.cpu_limit == "0.5"
+
+    def test_work_response_limits_nullable(self):
+        """Verify WorkResponse with None limits (backward compatibility)."""
+        response = WorkResponse(
+            guid="test-guid-003",
+            task_type="script",
+            payload={"key": "value"},
+            memory_limit=None,
+            cpu_limit=None
+        )
+        assert response.memory_limit is None
+        assert response.cpu_limit is None
+        dump = response.model_dump()
+        assert dump["memory_limit"] is None
+        assert dump["cpu_limit"] is None
+
+    def test_work_response_limits_omitted(self):
+        """Verify WorkResponse defaults limits to None when not provided."""
+        response = WorkResponse(
+            guid="test-guid-004",
+            task_type="script",
+            payload={"key": "value"}
+        )
+        assert response.memory_limit is None
+        assert response.cpu_limit is None
