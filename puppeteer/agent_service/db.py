@@ -486,7 +486,13 @@ async def seed_mirror_config(session: AsyncSession):
         "CONDA_MIRROR_URL": "http://mirror:8081/conda",
     }
 
-    for key, default_value in mirror_defaults.items():
+    # ENFC-04: Seed default job memory limit (used when job doesn't specify memory_limit)
+    defaults = {
+        **mirror_defaults,
+        "default_job_memory_limit": "512m",
+    }
+
+    for key, default_value in defaults.items():
         result = await session.execute(select(Config).where(Config.key == key))
         existing = result.scalar_one_or_none()
         if not existing:

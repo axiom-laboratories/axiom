@@ -457,6 +457,56 @@ class JobService:
                     },
                 )
 
+        # ENFC-03: Memory admission control — check job fits on at least one node
+        if job_req.memory_limit is not None or True:  # Always check (may use default)
+            from fastapi import HTTPException
+
+            # Determine effective memory limit (explicit or default)
+            effective_memory = job_req.memory_limit
+            if effective_memory is None:
+                # Get default from Config table
+                config_result = await db.execute(
+                    select(Config).where(Config.key == 'default_job_memory_limit')
+                )
+                config_obj = config_result.scalar_one_or_none()
+                effective_memory = config_obj.value if config_obj else "512m"
+
+            # Query online nodes with capacity
+            online_result = await db.execute(
+                select(Node).where(Node.status.in_(["ONLINE", "BUSY"]))
+            )
+            online_nodes = online_result.scalars().all()
+
+            # If online nodes exist, check admission
+            if online_nodes:
+                job_bytes = parse_bytes(effective_memory)
+                largest_available = 0
+                nodes_info = []
+
+                for node in online_nodes:
+                    available = await _get_node_available_capacity(node, db)
+                    largest_available = max(largest_available, available)
+                    capacity_mb = parse_bytes(node.job_memory_limit or "512m") // (1024 ** 2)
+                    used_mb = (await _sum_node_assigned_limits(node.node_id, db)) // (1024 ** 2)
+                    available_mb = available // (1024 ** 2)
+                    nodes_info.append({
+                        "node_id": node.node_id,
+                        "capacity_mb": capacity_mb,
+                        "used_mb": used_mb,
+                        "available_mb": available_mb,
+                    })
+
+                # Reject if job exceeds all nodes
+                if job_bytes > largest_available:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "error": "insufficient_capacity",
+                            "message": f"No online node can accommodate memory_limit={job_req.memory_limit or '(default 512m)'}. Largest available: {_format_bytes(largest_available)}",
+                            "nodes_info": nodes_info,
+                        },
+                    )
+
         # Merge runtime into payload dict before encryption (RT-05)
         payload_dict = dict(job_req.payload)
         if job_req.runtime is not None:
@@ -768,6 +818,15 @@ class JobService:
         for candidate in jobs:
             if not JobService._node_is_eligible(node, candidate, node_tags, node_caps_dict):
                 continue
+
+            # ENFC-03b: Check node capacity before assigning (fresh check at dispatch)
+            if candidate.memory_limit:
+                available_capacity = await _get_node_available_capacity(node, db)
+                job_bytes = parse_bytes(candidate.memory_limit)
+                if job_bytes > available_capacity:
+                    # Job doesn't fit on this node — try next candidate
+                    continue
+
             if IS_POSTGRES:
                 # Two-phase lock: lock only the single chosen row to prevent double-assignment
                 # SKIP LOCKED means if another node grabbed it first, we try the next candidate
