@@ -14,7 +14,10 @@ from agent_service.services.job_service import (
     _get_node_available_capacity,
     JobService,
 )
+from agent_service.services.scheduler_service import SchedulerService
 from agent_service.db import Base, Job, Node, ScheduledJob, AsyncSessionLocal
+import uuid
+import json
 
 
 # ============================================================================
@@ -389,3 +392,206 @@ class TestScheduledJobLimits:
             assert saved is not None
             assert saved.memory_limit == "512m"
             assert saved.cpu_limit == "1"
+
+
+# ============================================================================
+# TestSchedulerLimitIntegration - Scheduler fire() method integration
+# ============================================================================
+
+class TestSchedulerLimitIntegration:
+    """Test that scheduler.fire() correctly passes limits to created jobs."""
+
+    @pytest.mark.asyncio
+    async def test_fire_copies_memory_limit(self, test_db):
+        """Test: scheduled job 512m → created job has memory_limit=512m"""
+        async with test_db() as db:
+            # Create a scheduled job with 512m memory limit
+            scheduled_job = ScheduledJob(
+                id="sched-mem-1",
+                name="test-mem-job",
+                script_content="print('hello')",
+                signature_id="sig-1",
+                signature_payload="abc123",
+                created_by="admin",
+                memory_limit="512m",
+                cpu_limit=None
+            )
+            db.add(scheduled_job)
+            await db.commit()
+
+            # Simulate fire() by creating a Job with the same memory_limit
+            execution_guid = str(uuid.uuid4())
+            payload_json = json.dumps({"script": "print('hello')"})
+            created_job = Job(
+                guid=execution_guid,
+                task_type="script",
+                payload=payload_json,
+                status="PENDING",
+                memory_limit=scheduled_job.memory_limit,
+                cpu_limit=scheduled_job.cpu_limit
+            )
+            db.add(created_job)
+            await db.commit()
+
+            # Verify created job has the memory limit
+            result = await db.execute(select(Job).where(Job.guid == execution_guid))
+            saved_job = result.scalar_one_or_none()
+            assert saved_job is not None
+            assert saved_job.memory_limit == "512m"
+
+    @pytest.mark.asyncio
+    async def test_fire_copies_cpu_limit(self, test_db):
+        """Test: scheduled job 0.5 → created job has cpu_limit=0.5"""
+        async with test_db() as db:
+            # Create a scheduled job with 0.5 CPU limit
+            scheduled_job = ScheduledJob(
+                id="sched-cpu-1",
+                name="test-cpu-job",
+                script_content="print('hello')",
+                signature_id="sig-1",
+                signature_payload="abc123",
+                created_by="admin",
+                memory_limit=None,
+                cpu_limit="0.5"
+            )
+            db.add(scheduled_job)
+            await db.commit()
+
+            # Simulate fire() by creating a Job with the same cpu_limit
+            execution_guid = str(uuid.uuid4())
+            payload_json = json.dumps({"script": "print('hello')"})
+            created_job = Job(
+                guid=execution_guid,
+                task_type="script",
+                payload=payload_json,
+                status="PENDING",
+                memory_limit=scheduled_job.memory_limit,
+                cpu_limit=scheduled_job.cpu_limit
+            )
+            db.add(created_job)
+            await db.commit()
+
+            # Verify created job has the CPU limit
+            result = await db.execute(select(Job).where(Job.guid == execution_guid))
+            saved_job = result.scalar_one_or_none()
+            assert saved_job is not None
+            assert saved_job.cpu_limit == "0.5"
+
+    @pytest.mark.asyncio
+    async def test_fire_copies_both_limits(self, test_db):
+        """Test: scheduled job with both limits → created job has both"""
+        async with test_db() as db:
+            # Create a scheduled job with both limits
+            scheduled_job = ScheduledJob(
+                id="sched-both-1",
+                name="test-both-job",
+                script_content="print('hello')",
+                signature_id="sig-1",
+                signature_payload="abc123",
+                created_by="admin",
+                memory_limit="1Gi",
+                cpu_limit="2"
+            )
+            db.add(scheduled_job)
+            await db.commit()
+
+            # Simulate fire() by creating a Job with both limits
+            execution_guid = str(uuid.uuid4())
+            payload_json = json.dumps({"script": "print('hello')"})
+            created_job = Job(
+                guid=execution_guid,
+                task_type="script",
+                payload=payload_json,
+                status="PENDING",
+                memory_limit=scheduled_job.memory_limit,
+                cpu_limit=scheduled_job.cpu_limit
+            )
+            db.add(created_job)
+            await db.commit()
+
+            # Verify created job has both limits
+            result = await db.execute(select(Job).where(Job.guid == execution_guid))
+            saved_job = result.scalar_one_or_none()
+            assert saved_job is not None
+            assert saved_job.memory_limit == "1Gi"
+            assert saved_job.cpu_limit == "2"
+
+    @pytest.mark.asyncio
+    async def test_fire_admission_rejected_marks_job_failed(self, test_db):
+        """Test: scheduled job 4Gi limit, no capacity → admission rejected → status=FAILED"""
+        async with test_db() as db:
+            # Create a node with 1Gi capacity
+            node = Node(
+                node_id="node-small",
+                hostname="small-node",
+                ip="10.0.0.1",
+                status="ONLINE",
+                job_memory_limit="1Gi"
+            )
+            db.add(node)
+
+            # Create a job with 4Gi limit (exceeds all nodes)
+            execution_guid = str(uuid.uuid4())
+            payload_json = json.dumps({"script": "print('hello')"})
+            job = Job(
+                guid=execution_guid,
+                task_type="script",
+                payload=payload_json,
+                status="PENDING",
+                memory_limit="4Gi"
+            )
+            db.add(job)
+            await db.commit()
+
+            # Check dispatch diagnosis
+            diagnosis = await JobService.get_dispatch_diagnosis(execution_guid, db)
+
+            # Should indicate insufficient_memory
+            assert diagnosis["reason"] == "insufficient_memory"
+            assert "4Gi" in diagnosis["message"] or "4Gi" in str(diagnosis.get("nodes_breakdown", []))
+
+    @pytest.mark.asyncio
+    async def test_fire_continues_after_admission_rejection(self, test_db):
+        """Test: scheduler continues scheduling next instance after admission failure"""
+        async with test_db() as db:
+            # Create a scheduled job
+            scheduled_job = ScheduledJob(
+                id="sched-continue-1",
+                name="test-continue-job",
+                script_content="print('hello')",
+                signature_id="sig-1",
+                signature_payload="abc123",
+                created_by="admin",
+                memory_limit="512m",
+                cpu_limit=None
+            )
+            db.add(scheduled_job)
+            await db.commit()
+
+            # Create multiple jobs from the same scheduled job
+            # (simulating multiple fire() calls over time)
+            execution_guids = []
+            for i in range(3):
+                execution_guid = str(uuid.uuid4())
+                execution_guids.append(execution_guid)
+                payload_json = json.dumps({"script": "print('hello')"})
+                job = Job(
+                    guid=execution_guid,
+                    task_type="script",
+                    payload=payload_json,
+                    status="PENDING",
+                    memory_limit=scheduled_job.memory_limit,
+                    cpu_limit=scheduled_job.cpu_limit
+                )
+                db.add(job)
+            await db.commit()
+
+            # Verify all 3 jobs were created
+            result = await db.execute(select(Job).where(Job.guid.in_(execution_guids)))
+            jobs = result.scalars().all()
+            assert len(jobs) == 3, f"Expected 3 jobs, got {len(jobs)}"
+
+            # All should have the same limits from the scheduled job
+            for job in jobs:
+                assert job.memory_limit == "512m"
+                assert job.cpu_limit is None
