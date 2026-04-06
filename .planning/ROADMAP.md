@@ -78,7 +78,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 <details>
 <summary>v20.0 — Node Capacity & Isolation Validation (Phases 120–128) — IN PLANNING</summary>
 
-- [ ] **Phase 120: Database & API Contract** — Add job limit schema + API models for end-to-end traceability
+- [x] **Phase 120: Database & API Contract** — Add job limit schema + API models for end-to-end traceability (completed 2026-04-06)
 - [ ] **Phase 121: Job Service & Admission Control** — Memory limit persistence and API admission checks
 - [ ] **Phase 122: Node-Side Limit Integration** — Extract limits from work queue and pass to runtime
 - [ ] **Phase 123: Cgroup Detection Backend** — Node detects cgroup v1 vs v2 at startup and heartbeat
@@ -108,7 +108,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 117. Light/Dark Mode Toggle | v19.0 | 5/5 | Complete | 2026-04-04 |
 | 118. UI Polish and Verification | v19.0 | 4/4 | Complete | 2026-04-04 |
 | 119. v19.0 Traceability Closure | v19.0 | 2/2 | Complete | 2026-04-05 |
-| 120. Database & API Contract | v20.0 | 0/? | Not started | — |
+| 120. Database & API Contract | v20.0 | 3/3 | Complete | 2026-04-06 |
 | 121. Job Service & Admission Control | v20.0 | 0/? | Not started | — |
 | 122. Node-Side Limit Integration | v20.0 | 0/? | Not started | — |
 | 123. Cgroup Detection Backend | v20.0 | 0/? | Not started | — |
