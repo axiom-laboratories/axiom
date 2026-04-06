@@ -1481,6 +1481,36 @@ class JobService:
                 msg = f"No nodes have the required capability '{missing_cap}'."
             return {"reason": "capability_mismatch", "message": msg, "queue_position": None}
 
+        # 4.5. Memory admission check: verify job fits on at least one eligible node
+        if job.memory_limit and eligible_nodes:
+            job_bytes = parse_bytes(job.memory_limit)
+            nodes_breakdown = []
+            largest_available = 0
+
+            for node in eligible_nodes:
+                available = await _get_node_available_capacity(node, db)
+                largest_available = max(largest_available, available)
+
+                capacity = parse_bytes(node.job_memory_limit or "512m")
+                used = await _sum_node_assigned_limits(node.node_id, db)
+
+                nodes_breakdown.append({
+                    "node_id": node.node_id,
+                    "capacity_mb": capacity // (1024 ** 2),
+                    "used_mb": used // (1024 ** 2),
+                    "available_mb": available // (1024 ** 2),
+                    "fits": "yes" if available >= job_bytes else "no"
+                })
+
+            if job_bytes > largest_available:
+                return {
+                    "reason": "insufficient_memory",
+                    "message": f"Job requires {job.memory_limit} but no eligible node has sufficient capacity. "
+                              f"Largest available: {_format_bytes(largest_available)}",
+                    "nodes_breakdown": nodes_breakdown,
+                    "queue_position": None
+                }
+
         # 5. Check if all eligible nodes are at concurrency limit (default 5)
         all_busy = True
         for node in eligible_nodes:
