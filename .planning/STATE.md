@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 121 (Job Service & Admission Control)
-Plan: 01 (Memory Admission Control) — COMPLETE
-Status: Admission control complete; jobs validated before queuing; no oversized jobs reach nodes
-Last activity: 2026-04-06 — Executed 121-01 plan (4 tasks, 19/19 tests passing, 2 commits)
+Plan: 02 (Dispatch Diagnosis & ScheduledJob Limits) — COMPLETE
+Status: Diagnosis extended with memory breakdown; ScheduledJob schema updated for resource limits; 26/26 tests passing
+Last activity: 2026-04-06 — Executed 121-02 plan (4 tasks, 26/26 tests passing, 4 commits)
 
 ## Performance Metrics
 
