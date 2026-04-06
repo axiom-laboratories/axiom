@@ -70,29 +70,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CGRP-01 | — | Pending |
-| CGRP-02 | — | Pending |
-| CGRP-03 | — | Pending |
-| CGRP-04 | — | Pending |
-| STRS-01 | — | Pending |
-| STRS-02 | — | Pending |
-| STRS-03 | — | Pending |
-| STRS-04 | — | Pending |
-| STRS-05 | — | Pending |
-| ENFC-01 | — | Pending |
-| ENFC-02 | — | Pending |
-| ENFC-03 | — | Pending |
-| ENFC-04 | — | Pending |
-| EPHR-01 | — | Pending |
-| EPHR-02 | — | Pending |
-| ISOL-01 | — | Pending |
-| ISOL-02 | — | Pending |
+| CGRP-01 | 123 | Pending |
+| CGRP-02 | 123 | Pending |
+| CGRP-03 | 127 | Pending |
+| CGRP-04 | 127 | Pending |
+| STRS-01 | 125 | Pending |
+| STRS-02 | 125 | Pending |
+| STRS-03 | 125 | Pending |
+| STRS-04 | 125 | Pending |
+| STRS-05 | 125 | Pending |
+| ENFC-01 | 126 | Pending |
+| ENFC-02 | 126 | Pending |
+| ENFC-03 | 120, 121, 122 | Pending |
+| ENFC-04 | 126 | Pending |
+| EPHR-01 | 122, 124 | Pending |
+| EPHR-02 | 124 | Pending |
+| ISOL-01 | 128 | Pending |
+| ISOL-02 | 128 | Pending |
 
 **Coverage:**
 - v20.0 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17
+- Mapped to phases: 17
+- Unmapped: 0
 
 ---
+
 *Requirements defined: 2026-04-06*
-*Last updated: 2026-04-06 after initial definition*
+*Last updated: 2026-04-06 after roadmap creation*

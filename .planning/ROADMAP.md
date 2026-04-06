@@ -22,6 +22,7 @@
 - ✅ **v17.0 — Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
 - ✅ **v18.0 — First-User Experience & E2E Validation** — Phases 101–106 (shipped 2026-04-01)
 - ✅ **v19.0 — Foundry Improvements** — Phases 107–114, 116–119 (shipped 2026-04-05)
+- **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (in planning)
 
 ## Phases
 
@@ -74,6 +75,23 @@ See `.planning/milestones/` for detailed archive of each milestone.
 
 </details>
 
+<details>
+<summary>v20.0 — Node Capacity & Isolation Validation (Phases 120–128) — IN PLANNING</summary>
+
+- [ ] **Phase 120: Database & API Contract** — Add job limit schema + API models for end-to-end traceability
+- [ ] **Phase 121: Job Service & Admission Control** — Memory limit persistence and API admission checks
+- [ ] **Phase 122: Node-Side Limit Integration** — Extract limits from work queue and pass to runtime
+- [ ] **Phase 123: Cgroup Detection Backend** — Node detects cgroup v1 vs v2 at startup and heartbeat
+- [ ] **Phase 124: Ephemeral Execution Guarantee** — Block direct execution; flag EXECUTION_MODE=direct as unsafe
+- [ ] **Phase 125: Stress Test Corpus** — CPU, memory, and noisy-neighbour scripts in Python, Bash, PowerShell
+- [ ] **Phase 126: Limit Enforcement Validation** — CPU limits, both Docker and Podman job execution runtimes
+- [ ] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings
+- [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
+
+Archive: `.planning/milestones/v20.0-ROADMAP.md`
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -90,6 +108,15 @@ See `.planning/milestones/` for detailed archive of each milestone.
 | 117. Light/Dark Mode Toggle | v19.0 | 5/5 | Complete | 2026-04-04 |
 | 118. UI Polish and Verification | v19.0 | 4/4 | Complete | 2026-04-04 |
 | 119. v19.0 Traceability Closure | v19.0 | 2/2 | Complete | 2026-04-05 |
+| 120. Database & API Contract | v20.0 | 0/? | Not started | — |
+| 121. Job Service & Admission Control | v20.0 | 0/? | Not started | — |
+| 122. Node-Side Limit Integration | v20.0 | 0/? | Not started | — |
+| 123. Cgroup Detection Backend | v20.0 | 0/? | Not started | — |
+| 124. Ephemeral Execution Guarantee | v20.0 | 0/? | Not started | — |
+| 125. Stress Test Corpus | v20.0 | 0/? | Not started | — |
+| 126. Limit Enforcement Validation | v20.0 | 0/? | Not started | — |
+| 127. Cgroup Dashboard & Monitoring | v20.0 | 0/? | Not started | — |
+| 128. Concurrent Isolation Verification | v20.0 | 0/? | Not started | — |
 
 ## Archived
 
