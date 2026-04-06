@@ -551,17 +551,46 @@ class Node:
         timeout_secs = (timeout_minutes * 60) if timeout_minutes else 30
         max_retries = job.get("max_retries", 0)
 
-        print(f"[{self.node_id}] Executing Job {guid} [{task_type}]")
+        logger.info(f"Job {guid}: memory_limit={memory_limit}, cpu_limit={cpu_limit}")
+        logger.info(f"[{self.node_id}] Executing Job {guid} [{task_type}]")
 
-        # Secondary admission check
+        # Format validation BEFORE admission check
+        if memory_limit:
+            try:
+                parse_bytes(memory_limit)
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Job {guid}: Invalid memory_limit format '{memory_limit}': {e}")
+                await self.report_result(guid, False, {
+                    "error": "Invalid memory_limit format",
+                    "value": memory_limit,
+                    "expected": "e.g. 512m, 1g, 2Gi"
+                })
+                return
+
+        if cpu_limit:
+            try:
+                parse_cpu(cpu_limit)
+            except ValueError as e:
+                logger.warning(f"Job {guid}: Invalid cpu_limit format '{cpu_limit}': {e}")
+                await self.report_result(guid, False, {
+                    "error": "Invalid cpu_limit format",
+                    "value": cpu_limit,
+                    "expected": "e.g. 2, 0.5, 1.0"
+                })
+                return
+
+        # Secondary admission check (AFTER format validation)
         if memory_limit and self.job_memory_limit:
             try:
                 if parse_bytes(memory_limit) > parse_bytes(self.job_memory_limit):
-                    print(f"[{self.node_id}] Job {guid} requests {memory_limit}, node limit is {self.job_memory_limit} — skipping")
+                    logger.error(f"Job {guid} exceeds node capacity: requests {memory_limit}, limit is {self.job_memory_limit}")
                     await self.report_result(guid, False, {"error": "Job memory limit exceeds node capacity"})
                     return
-            except Exception:
-                pass
+            except (ValueError, KeyError) as e:
+                # Should not happen (format already validated), but defensive
+                logger.error(f"Job {guid}: Unexpected parse error in admission check: {e}")
+                await self.report_result(guid, False, {"error": "Internal validation error"})
+                return
         
         # Runtime dispatch maps — used by the 'script' task_type branch
         RUNTIME_EXT = {"python": "py", "bash": "sh", "powershell": "ps1"}
