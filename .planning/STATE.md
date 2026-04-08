@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2 of 4 (COMPLETE)
-status: "Bash stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with /usr/bin/time, dd, and nanosecond timestamps. All three scripts output valid JSON + human summaries. Ready for Plan 03 (PowerShell scripts)."
-last_updated: "2026-04-08T21:25:00.000Z"
-last_activity: 2026-04-08 — Executed 125-02 (3 tasks, Bash stress scripts, 3 commits)
+current_plan: 4 of 4 (COMPLETE)
+status: "Phase 125 complete: Preflight cgroup validator and stress test orchestrator created. All 4 scenarios implemented (single CPU burn, single memory OOM, concurrent isolation, all-language sweep). 9 stress scripts (Python/Bash/PowerShell) integrated. Ready for Phase 126 (Limit enforcement validation)."
+last_updated: "2026-04-08T21:40:00.000Z"
+last_activity: 2026-04-08 — Executed 125-04 (2 tasks, orchestrator + preflight, 2 commits)
 progress:
   total_phases: 48
   completed_phases: 43
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 125 (Stress-Test Corpus) — IN PROGRESS
-Current Plan: 2 of 4 (COMPLETE)
+Phase: 125 (Stress-Test Corpus) — COMPLETE
+Current Plan: 4 of 4 (COMPLETE)
 Total Plans: 4
-Plan: 02 (Bash Stress Scripts) — COMPLETE
-Status: Bash stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with /usr/bin/time, dd, and nanosecond timestamps. All three scripts output valid JSON + human summaries.
-Last activity: 2026-04-08 — Executed 125-02 (3 tasks, Bash stress scripts, 3 commits)
+Plan: 04 (Stress Test Orchestration) — COMPLETE
+Status: Preflight cgroup validator and stress test orchestrator created. Dispatches 4 scenarios (single CPU burn, single memory OOM, concurrent isolation, all-language sweep) across 9 scripts (3 languages × 3 types). Handles preflight failure gracefully. Generates JSON reports.
+Last activity: 2026-04-08 — Executed 125-04 (2 tasks, orchestrator + preflight, 2 commits)
 
 ## Performance Metrics
 
