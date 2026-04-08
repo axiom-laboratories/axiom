@@ -170,6 +170,7 @@ class HeartbeatPayload(BaseModel):
     env_tag: Optional[str] = None
     detected_cgroup_version: Optional[str] = None  # NEW: "v1", "v2", "unsupported"
     cgroup_raw: Optional[str] = None                # NEW: raw detection info for debugging
+    execution_mode: Optional[str] = None             # NEW: Phase 124 - reported runtime (docker/podman)
 
     @field_validator("env_tag", mode="before")
     @classmethod
@@ -213,6 +214,7 @@ class NodeResponse(BaseModel):
     stats_history: Optional[List[Dict]] = None
     env_tag: Optional[str] = None
     detected_cgroup_version: Optional[str] = None  # NEW: Phase 127 dashboard
+    execution_mode: Optional[str] = None             # NEW: Phase 124 - reported runtime (docker/podman)
 
 class SignatureCreate(BaseModel):
     name: str
