@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2 of 4 (Phase 124)
+current_plan: 4 of 4 (Phase 124)
 status: executing
-last_updated: "2026-04-08T20:16:27Z"
-last_activity: 2026-04-08 — Executed 124-03 (6 tasks, heartbeat reporting + documentation cleanup, 6 commits)
+last_updated: "2026-04-08T21:55:00Z"
+last_activity: 2026-04-08 — Executed 124-04 (4 tasks, test infrastructure for execution_mode validation, 4 commits)
 progress:
   total_phases: 48
   completed_phases: 42
   total_plans: 125
-  completed_plans: 132
+  completed_plans: 133
 ---
 
 # Project State
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 124 (Ephemeral Execution Guarantee) — IN PROGRESS
-Current Plan: 2 of 4 (124-03 just completed)
+Phase: 124 (Ephemeral Execution Guarantee) — COMPLETE
+Current Plan: 4 of 4 (All plans completed)
 Total Plans: 4
-Plan: 03 (Node-Side Reporting & Documentation Cleanup) — COMPLETE
-Status: Heartbeat now includes execution_mode field from runtime detection. Dead code branch removed from execute_task. All documentation (FAQ, architecture, CLAUDE.md) updated to mark EXECUTION_MODE=direct as deprecated v20.0. Modern Docker socket mount pattern documented for DinD scenarios.
-Last activity: 2026-04-08 — Executed 124-03 (6 tasks, node-side reporting + documentation, 6 commits)
+Plan: 04 (Test Coverage) — COMPLETE
+Status: Comprehensive test suite added: 16 test cases across 3 test files validating execution_mode field parsing, DB persistence, API response exposure, and compose endpoint rejection of direct mode. All tests passing, no regressions.
+Last activity: 2026-04-08 — Executed 124-04 (4 tasks, test infrastructure, 4 commits)
 
 ## Performance Metrics
 
