@@ -84,8 +84,9 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 02: Dispatch diagnosis extension with memory breakdown + ScheduledJob schema
   - [x] Plan 03: Scheduler integration + JobDefinitions UI + Jobs diagnosis display (completed 2026-04-06)
 - [x] **Phase 122: Node-Side Limit Integration** — Harden limit validation, structured error handling, and logging (completed 2026-04-06)
-  - [ ] Plan 01: parse_cpu() helper + execute_task() validation + unit tests
+  - [x] Plan 01: parse_cpu() helper + execute_task() validation + unit tests
 - [ ] **Phase 123: Cgroup Detection Backend** — Node detects cgroup v1 vs v2 at startup and heartbeat
+  - [ ] Plan 01: CgroupDetector class, node-side integration, orchestrator schema updates (3 tasks)
 - [ ] **Phase 124: Ephemeral Execution Guarantee** — Block direct execution; flag EXECUTION_MODE=direct as unsafe
 - [ ] **Phase 125: Stress Test Corpus** — CPU, memory, and noisy-neighbour scripts in Python, Bash, PowerShell
 - [ ] **Phase 126: Limit Enforcement Validation** — CPU limits, both Docker and Podman job execution runtimes
@@ -114,8 +115,8 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 119. v19.0 Traceability Closure | v19.0 | 2/2 | Complete | 2026-04-05 |
 | 120. Database & API Contract | v20.0 | 3/3 | Complete | 2026-04-06 |
 | 121. Job Service & Admission Control | v20.0 | 3/3 | Complete | 2026-04-06 |
-| 122. Node-Side Limit Integration | v20.0 | Complete    | 2026-04-06 | — |
-| 123. Cgroup Detection Backend | v20.0 | 0/? | Not started | — |
+| 122. Node-Side Limit Integration | v20.0 | 1/1 | Complete | 2026-04-06 |
+| 123. Cgroup Detection Backend | v20.0 | 0/1 | Not started | — |
 | 124. Ephemeral Execution Guarantee | v20.0 | 0/? | Not started | — |
 | 125. Stress Test Corpus | v20.0 | 0/? | Not started | — |
 | 126. Limit Enforcement Validation | v20.0 | 0/? | Not started | — |

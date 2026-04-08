@@ -26,7 +26,7 @@ Requirements for Node Capacity & Isolation Validation milestone. Each maps to ro
 
 - [ ] **ENFC-01**: Memory limit triggers OOMKill (exit code 137) when exceeded
 - [ ] **ENFC-02**: CPU limit caps available cores to the specified value
-- [ ] **ENFC-03**: Limits set in dashboard GUI reach inner container runtime flags end-to-end
+- [x] **ENFC-03**: Limits set in dashboard GUI reach inner container runtime flags end-to-end
 - [ ] **ENFC-04**: Limits validated on both Docker and Podman job execution runtimes
 
 ### Ephemeral Container Guarantee
@@ -81,7 +81,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STRS-05 | 125 | Pending |
 | ENFC-01 | 126 | Pending |
 | ENFC-02 | 126 | Pending |
-| ENFC-03 | 120, 121, 122 | Pending |
+| ENFC-03 | 120, 121, 122 | Complete |
 | ENFC-04 | 126 | Pending |
 | EPHR-01 | 122, 124 | Pending |
 | EPHR-02 | 124 | Pending |
