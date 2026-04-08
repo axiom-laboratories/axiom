@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4 of 4 (All plans completed)
-status: "Comprehensive test suite added: 16 test cases across 3 test files validating execution_mode field parsing, DB persistence, API response exposure, and compose endpoint rejection of direct mode. All tests passing, no regressions."
-last_updated: "2026-04-08T20:26:44.489Z"
-last_activity: 2026-04-08 — Executed 124-04 (4 tasks, test infrastructure, 4 commits)
+current_plan: 3 of 4
+status: "PowerShell stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor using System.Diagnostics.Stopwatch and native language features."
+last_updated: "2026-04-08T22:15:00.000Z"
+last_activity: 2026-04-08 — Executed 125-03 (3 tasks, PowerShell scripts, 4 commits)
 progress:
   total_phases: 48
   completed_phases: 43
   total_plans: 125
-  completed_plans: 133
+  completed_plans: 136
 ---
 
 # Project State
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 124 (Ephemeral Execution Guarantee) — COMPLETE
-Current Plan: 4 of 4 (All plans completed)
+Phase: 125 (Stress-Test Corpus) — IN PROGRESS
+Current Plan: 3 of 4
 Total Plans: 4
-Plan: 04 (Test Coverage) — COMPLETE
-Status: Comprehensive test suite added: 16 test cases across 3 test files validating execution_mode field parsing, DB persistence, API response exposure, and compose endpoint rejection of direct mode. All tests passing, no regressions.
-Last activity: 2026-04-08 — Executed 124-04 (4 tasks, test infrastructure, 4 commits)
+Plan: 03 (PowerShell Stress Scripts) — COMPLETE
+Status: PowerShell stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor using System.Diagnostics.Stopwatch and native language features.
+Last activity: 2026-04-08 — Executed 125-03 (3 tasks, PowerShell scripts, 4 commits)
 
 ## Performance Metrics
 
