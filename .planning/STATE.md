@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4 of 3 (Gap closure)
-status: verifying
-last_updated: "2026-04-08T19:39:09.237Z"
-last_activity: 2026-04-08 — Executed 123-04 gap closure (1 task, API response fix, 1 commit)
+current_plan: 2 of 4 (Phase 124)
+status: executing
+last_updated: "2026-04-08T20:12:00Z"
+last_activity: 2026-04-08 — Executed 124-02 (2 tasks, compose + startup validation, 1 commit)
 progress:
   total_phases: 48
   completed_phases: 42
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 123 (Cgroup Detection Backend) — COMPLETE
-Current Plan: 4 of 3 (Gap closure)
-Total Plans: 3 (plus 1 gap closure)
-Plan: 04 (API Response Exposure Gap Closure) — COMPLETE
-Status: All verification gaps resolved. Node detects cgroup v1/v2/unsupported at startup, reports in heartbeat, orchestrator persists to DB, and API exposes field to dashboard. All 7/7 must-haves verified. Ready for Phase 127 dashboard integration.
-Last activity: 2026-04-08 — Executed 123-04 gap closure (1 task, API response fix, 1 commit)
+Phase: 124 (Ephemeral Execution Guarantee) — IN PROGRESS
+Current Plan: 2 of 4
+Total Plans: 4
+Plan: 02 (Compose Generator & Startup Hardening) — COMPLETE
+Status: Execution mode validation implemented. Compose generator rejects EXECUTION_MODE=direct with HTTP 400 and actionable error message. Server startup validates NODE_EXECUTION_MODE env var and exits with code 1 if set to direct. Both checks fail fast before or at startup. Ready for Phase 124-03 heartbeat integration.
+Last activity: 2026-04-08 — Executed 124-02 (2 tasks, compose validation + startup check, 1 commit)
 
 ## Performance Metrics
 
