@@ -947,6 +947,9 @@ class JobService:
             node.detected_cgroup_version = hb.detected_cgroup_version
             node.cgroup_raw = hb.cgroup_raw
 
+            # Phase 124: Update execution_mode from heartbeat
+            node.execution_mode = hb.execution_mode
+
             # Security TDA-03: Zero-Trust Capability Guard
             if caps_json:
                 if node.expected_capabilities:
