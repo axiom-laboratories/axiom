@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 3 of 4
-status: "PowerShell stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor using System.Diagnostics.Stopwatch and native language features."
-last_updated: "2026-04-08T22:15:00.000Z"
-last_activity: 2026-04-08 — Executed 125-03 (3 tasks, PowerShell scripts, 4 commits)
+current_plan: 1 of 4 (COMPLETE)
+status: "Python stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with JSON+human dual output and env var configurability. Ready for Plan 04 orchestration."
+last_updated: "2026-04-08T21:15:30.000Z"
+last_activity: 2026-04-08 — Executed 125-01 (3 tasks, Python stress scripts, 1 commit in mop_validation + 1 in main repo)
 progress:
   total_phases: 48
   completed_phases: 43
   total_plans: 125
-  completed_plans: 136
+  completed_plans: 137
 ---
 
 # Project State
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 125 (Stress-Test Corpus) — IN PROGRESS
-Current Plan: 3 of 4
+Current Plan: 1 of 4 (COMPLETE)
 Total Plans: 4
-Plan: 03 (PowerShell Stress Scripts) — COMPLETE
-Status: PowerShell stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor using System.Diagnostics.Stopwatch and native language features.
-Last activity: 2026-04-08 — Executed 125-03 (3 tasks, PowerShell scripts, 4 commits)
+Plan: 01 (Python Stress Scripts) — COMPLETE
+Status: Python stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with JSON+human dual output and env var configurability. Ready for Plan 04 orchestration.
+Last activity: 2026-04-08 — Executed 125-01 (3 tasks, Python stress scripts, 1 commit in mop_validation + 1 in main repo)
 
 ## Performance Metrics
 
