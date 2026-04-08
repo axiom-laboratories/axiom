@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 4 (Phase 124)
+current_plan: 2 of 4 (Phase 124)
 status: executing
-last_updated: "2026-04-08T20:20:30Z"
-last_activity: 2026-04-08 — Executed 124-01 (4 tasks, execution_mode persistence, 4 commits)
+last_updated: "2026-04-08T20:16:27Z"
+last_activity: 2026-04-08 — Executed 124-03 (6 tasks, heartbeat reporting + documentation cleanup, 6 commits)
 progress:
   total_phases: 48
   completed_phases: 42
-  total_plans: 121
-  completed_plans: 129
+  total_plans: 125
+  completed_plans: 132
 ---
 
 # Project State
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 124 (Ephemeral Execution Guarantee) — IN PROGRESS
-Current Plan: 1 of 4
+Current Plan: 2 of 4 (124-03 just completed)
 Total Plans: 4
-Plan: 01 (Server-Side Execution Mode Persistence) — COMPLETE
-Status: Database schema, API models, heartbeat handler, and endpoint all extended with execution_mode field. Nodes will now report detected runtime (docker/podman) in heartbeat; orchestrator persists to DB; API exposes for dashboard. Ready for Phase 124-02 (compose validation).
-Last activity: 2026-04-08 — Executed 124-01 (4 tasks, execution_mode persistence, 4 commits)
+Plan: 03 (Node-Side Reporting & Documentation Cleanup) — COMPLETE
+Status: Heartbeat now includes execution_mode field from runtime detection. Dead code branch removed from execute_task. All documentation (FAQ, architecture, CLAUDE.md) updated to mark EXECUTION_MODE=direct as deprecated v20.0. Modern Docker socket mount pattern documented for DinD scenarios.
+Last activity: 2026-04-08 — Executed 124-03 (6 tasks, node-side reporting + documentation, 6 commits)
 
 ## Performance Metrics
 
