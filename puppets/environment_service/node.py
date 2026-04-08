@@ -430,6 +430,7 @@ def heartbeat_loop():
                     "env_tag": env_tag,
                     "detected_cgroup_version": DETECTED_CGROUP_VERSION,
                     "cgroup_raw": DETECTED_CGROUP_RAW,
+                    "execution_mode": self.runtime_engine.runtime,  # Phase 124
                 }
 
                 if pending_upgrade_result:
