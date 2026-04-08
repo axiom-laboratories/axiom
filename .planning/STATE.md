@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2 of 4 (Phase 124)
+current_plan: 1 of 4 (Phase 124)
 status: executing
-last_updated: "2026-04-08T20:12:00Z"
-last_activity: 2026-04-08 — Executed 124-02 (2 tasks, compose + startup validation, 1 commit)
+last_updated: "2026-04-08T20:20:30Z"
+last_activity: 2026-04-08 — Executed 124-01 (4 tasks, execution_mode persistence, 4 commits)
 progress:
   total_phases: 48
   completed_phases: 42
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 124 (Ephemeral Execution Guarantee) — IN PROGRESS
-Current Plan: 2 of 4
+Current Plan: 1 of 4
 Total Plans: 4
-Plan: 02 (Compose Generator & Startup Hardening) — COMPLETE
-Status: Execution mode validation implemented. Compose generator rejects EXECUTION_MODE=direct with HTTP 400 and actionable error message. Server startup validates NODE_EXECUTION_MODE env var and exits with code 1 if set to direct. Both checks fail fast before or at startup. Ready for Phase 124-03 heartbeat integration.
-Last activity: 2026-04-08 — Executed 124-02 (2 tasks, compose validation + startup check, 1 commit)
+Plan: 01 (Server-Side Execution Mode Persistence) — COMPLETE
+Status: Database schema, API models, heartbeat handler, and endpoint all extended with execution_mode field. Nodes will now report detected runtime (docker/podman) in heartbeat; orchestrator persists to DB; API exposes for dashboard. Ready for Phase 124-02 (compose validation).
+Last activity: 2026-04-08 — Executed 124-01 (4 tasks, execution_mode persistence, 4 commits)
 
 ## Performance Metrics
 

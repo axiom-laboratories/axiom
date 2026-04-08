@@ -87,8 +87,8 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 01: parse_cpu() helper + execute_task() validation + unit tests
 - [x] **Phase 123: Cgroup Detection Backend** — Node detects cgroup v1 vs v2 at startup and heartbeat (completed 2026-04-08)
   - [x] Plan 01: CgroupDetector class, node-side integration, orchestrator schema updates (3 tasks)
-- [ ] **Phase 124: Ephemeral Execution Guarantee** — Block direct execution; flag EXECUTION_MODE=direct as unsafe (planned 2026-04-08)
-  - [ ] Plan 01: Backend persistence (DB + models + heartbeat handler)
+- [ ] **Phase 124: Ephemeral Execution Guarantee** — Block direct execution; flag EXECUTION_MODE=direct as unsafe (in progress 2026-04-08)
+  - [x] Plan 01: Backend persistence (DB + models + heartbeat handler) — completed 2026-04-08
   - [ ] Plan 02: Compose validation + startup check
   - [ ] Plan 03: Documentation + dead code cleanup
   - [ ] Plan 04: Test verification
