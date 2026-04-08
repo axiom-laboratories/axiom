@@ -22,7 +22,7 @@
 - ✅ **v17.0 — Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
 - ✅ **v18.0 — First-User Experience & E2E Validation** — Phases 101–106 (shipped 2026-04-01)
 - ✅ **v19.0 — Foundry Improvements** — Phases 107–114, 116–119 (shipped 2026-04-05)
-- **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (in planning)
+- **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (in progress)
 
 ## Phases
 
@@ -87,12 +87,16 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 01: parse_cpu() helper + execute_task() validation + unit tests
 - [x] **Phase 123: Cgroup Detection Backend** — Node detects cgroup v1 vs v2 at startup and heartbeat (completed 2026-04-08)
   - [x] Plan 01: CgroupDetector class, node-side integration, orchestrator schema updates (3 tasks)
-- [x] **Phase 124: Ephemeral Execution Guarantee** (3 of 4 plans complete) — Block direct execution; flag EXECUTION_MODE=direct as unsafe (in progress 2026-04-08)
+- [x] **Phase 124: Ephemeral Execution Guarantee** — Block direct execution; flag EXECUTION_MODE=direct as unsafe (completed 2026-04-08)
   - [x] Plan 01: Backend persistence (DB + models + heartbeat handler) — completed 2026-04-08
   - [x] Plan 02: Compose validation + startup check — completed 2026-04-08
   - [x] Plan 03: Node-side reporting + documentation cleanup — completed 2026-04-08
-  - [ ] Plan 04: Test verification
-- [ ] **Phase 125: Stress Test Corpus** — CPU, memory, and noisy-neighbour scripts in Python, Bash, PowerShell
+  - [x] Plan 04: Test verification — completed 2026-04-08
+- **Phase 125: Stress Test Corpus** — CPU, memory, and noisy-neighbour scripts in Python, Bash, PowerShell (4 plans in planning)
+  - **Plan 01:** Python scripts (cpu_burn.py, memory_hog.py, noisy_monitor.py)
+  - **Plan 02:** Bash scripts (cpu_burn.sh, memory_hog.sh, noisy_monitor.sh)
+  - **Plan 03:** PowerShell scripts (cpu_burn.ps1, memory_hog.ps1, noisy_monitor.ps1)
+  - **Plan 04:** Preflight check + orchestrator (preflight_check.py, orchestrate_stress_tests.py)
 - [ ] **Phase 126: Limit Enforcement Validation** — CPU limits, both Docker and Podman job execution runtimes
 - [ ] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings
 - [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
@@ -120,9 +124,9 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 120. Database & API Contract | v20.0 | 3/3 | Complete | 2026-04-06 |
 | 121. Job Service & Admission Control | v20.0 | 3/3 | Complete | 2026-04-06 |
 | 122. Node-Side Limit Integration | v20.0 | 1/1 | Complete | 2026-04-06 |
-| 123. Cgroup Detection Backend | v20.0 | Complete | 2026-04-08 | — |
-| 124. Ephemeral Execution Guarantee | v20.0 | Complete    | 2026-04-08 | 2026-04-08 |
-| 125. Stress Test Corpus | v20.0 | 0/? | Not started | — |
+| 123. Cgroup Detection Backend | v20.0 | 1/1 | Complete | 2026-04-08 |
+| 124. Ephemeral Execution Guarantee | v20.0 | 4/4 | Complete | 2026-04-08 |
+| 125. Stress Test Corpus | v20.0 | 0/4 | Planning | — |
 | 126. Limit Enforcement Validation | v20.0 | 0/? | Not started | — |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 0/? | Not started | — |
 | 128. Concurrent Isolation Verification | v20.0 | 0/? | Not started | — |
