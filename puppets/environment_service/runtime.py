@@ -25,8 +25,10 @@ class ContainerRuntime:
         if shutil.which("docker"):
             return "docker"
         raise RuntimeError(
-            "No container runtime found and EXECUTION_MODE=auto. "
-            "Install docker/podman or set EXECUTION_MODE=docker or EXECUTION_MODE=podman."
+            "No container runtime detected. "
+            "Ensure Docker or Podman is installed in this image. "
+            "For Docker-in-Docker, mount the host Docker socket and use EXECUTION_MODE=docker or auto. "
+            "See docs/runbooks/faq.md for guidance."
         )
 
     async def run(
