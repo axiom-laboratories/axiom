@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 4 (COMPLETE)
-status: "Python stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with JSON+human dual output and env var configurability. Ready for Plan 04 orchestration."
-last_updated: "2026-04-08T21:15:30.000Z"
-last_activity: 2026-04-08 — Executed 125-01 (3 tasks, Python stress scripts, 1 commit in mop_validation + 1 in main repo)
+current_plan: 2 of 4 (COMPLETE)
+status: "Bash stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with /usr/bin/time, dd, and nanosecond timestamps. All three scripts output valid JSON + human summaries. Ready for Plan 03 (PowerShell scripts)."
+last_updated: "2026-04-08T21:25:00.000Z"
+last_activity: 2026-04-08 — Executed 125-02 (3 tasks, Bash stress scripts, 3 commits)
 progress:
   total_phases: 48
   completed_phases: 43
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 125 (Stress-Test Corpus) — IN PROGRESS
-Current Plan: 1 of 4 (COMPLETE)
+Current Plan: 2 of 4 (COMPLETE)
 Total Plans: 4
-Plan: 01 (Python Stress Scripts) — COMPLETE
-Status: Python stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with JSON+human dual output and env var configurability. Ready for Plan 04 orchestration.
-Last activity: 2026-04-08 — Executed 125-01 (3 tasks, Python stress scripts, 1 commit in mop_validation + 1 in main repo)
+Plan: 02 (Bash Stress Scripts) — COMPLETE
+Status: Bash stress test scripts created: CPU burner, memory hog, noisy-neighbour monitor with /usr/bin/time, dd, and nanosecond timestamps. All three scripts output valid JSON + human summaries.
+Last activity: 2026-04-08 — Executed 125-02 (3 tasks, Bash stress scripts, 3 commits)
 
 ## Performance Metrics
 
