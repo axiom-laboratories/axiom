@@ -168,6 +168,8 @@ class HeartbeatPayload(BaseModel):
     job_telemetry: Optional[Dict[str, Dict]] = None # guid -> metrics
     upgrade_result: Optional[Dict] = None # status, output, error
     env_tag: Optional[str] = None
+    detected_cgroup_version: Optional[str] = None  # NEW: "v1", "v2", "unsupported"
+    cgroup_raw: Optional[str] = None                # NEW: raw detection info for debugging
 
     @field_validator("env_tag", mode="before")
     @classmethod
@@ -210,6 +212,7 @@ class NodeResponse(BaseModel):
     tamper_details: Optional[str] = None
     stats_history: Optional[List[Dict]] = None
     env_tag: Optional[str] = None
+    detected_cgroup_version: Optional[str] = None  # NEW: Phase 127 dashboard
 
 class SignatureCreate(BaseModel):
     name: str

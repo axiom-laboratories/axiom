@@ -943,6 +943,10 @@ class JobService:
             if not node.operator_env_tag:
                 node.env_tag = hb.env_tag
 
+            # NEW: Always update cgroup version + raw info (unconditional, stateless)
+            node.detected_cgroup_version = hb.detected_cgroup_version
+            node.cgroup_raw = hb.cgroup_raw
+
             # Security TDA-03: Zero-Trust Capability Guard
             if caps_json:
                 if node.expected_capabilities:

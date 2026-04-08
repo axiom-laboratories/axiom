@@ -148,6 +148,8 @@ class Node(Base):
     operator_env_tag: Mapped[bool] = mapped_column(Boolean, default=False)
     job_memory_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # e.g., "512m", "1Gi" (default: 512m)
     job_cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)      # e.g., "0.5", "2" (default: unlimited)
+    detected_cgroup_version: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # NEW: "v1", "v2", "unsupported"
+    cgroup_raw: Mapped[Optional[str]] = mapped_column(Text, nullable=True)                  # NEW: raw detection info
 
 class Alert(Base):
     __tablename__ = "alerts"
