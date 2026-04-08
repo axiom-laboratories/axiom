@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 3 (Phase 122 plans)
-status: Node-side format validation, structured error reporting, and limit event logging hardened. parse_cpu() helper added. Format validation runs before admission check. All 7 tests passing.
-last_updated: "2026-04-06T22:04:51.461Z"
-last_activity: 2026-04-06 — Executed 122-01 plan (3 tasks, 7/7 tests passing, 3 commits including final summary)
+current_plan: 1 of 3 (Phase 123 plans)
+status: Phase 123-01 Complete. Cgroup detection (v1/v2/unsupported) implemented node-side with full heartbeat integration. All 14 tests passing. Ready for Phase 127 dashboard.
+last_updated: "2026-04-08T19:18:23Z"
+last_activity: 2026-04-08 — Executed 123-01 plan (3 tasks, 14/14 tests passing, 4 commits including summary)
 progress:
   total_phases: 42
   completed_phases: 41
   total_plans: 119
-  completed_plans: 127
+  completed_plans: 128
 ---
 
 # Project State
@@ -26,12 +26,12 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 122 (Node-Side Limit Integration) — IN PROGRESS
-Current Plan: 1 of 3 (Phase 122 plans)
+Phase: 123 (Cgroup Detection Backend) — COMPLETE
+Current Plan: 1 of 3 (Phase 123 plans)
 Total Plans: 3
-Plan: 01 (Limit Validation & Logging) — COMPLETE
-Status: Node-side format validation, structured error reporting, and limit event logging hardened. parse_cpu() helper added. Format validation runs before admission check. All 7 tests passing.
-Last activity: 2026-04-06 — Executed 122-01 plan (3 tasks, 7/7 tests passing, 3 commits including final summary)
+Plan: 01 (Node-Side Detection & Orchestrator Persistence) — COMPLETE
+Status: Node detects cgroup v1/v2/unsupported at startup, reports in heartbeat. Orchestrator persists to Node table. All 14 tests passing. Ready for Phase 127 dashboard integration.
+Last activity: 2026-04-08 — Executed 123-01 plan (3 tasks, 14/14 tests passing, 4 commits including summary)
 
 ## Performance Metrics
 
