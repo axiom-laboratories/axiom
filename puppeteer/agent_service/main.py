@@ -1761,6 +1761,7 @@ async def list_nodes(
             "stats_history": history_map.get(n.node_id, []),
             "env_tag": n.env_tag,
             "detected_cgroup_version": n.detected_cgroup_version,
+            "execution_mode": n.execution_mode,  # Phase 124
         })
 
     return {
