@@ -775,42 +775,24 @@ class Node:
                 # Prefer passing script via stdin to avoid Docker sibling
                 # container bind-mount issues (the node's /tmp is inside an
                 # overlay filesystem that the host Docker daemon cannot see).
-                # Fall back to file mount for direct execution mode.
-                execution_mode = os.getenv("EXECUTION_MODE", "auto").lower()
-                if execution_mode in ("docker", "podman", "auto"):
-                    # Stdin mode: pipe script content into the container
-                    stdin_cmd = RUNTIME_CMD_STDIN.get(runtime, RUNTIME_CMD_STDIN.get("python"))
-                    if stdin_cmd:
-                        cmd = stdin_cmd()
-                        result = await self.runtime_engine.run(
-                            image=image,
-                            command=cmd,
-                            env=env,
-                            mounts=mounts,
-                            network_ref=hostname,
-                            input_data=script,
-                            memory_limit=memory_limit,
-                            cpu_limit=cpu_limit,
-                            timeout=timeout_secs,
-                        )
-                    else:
-                        # Unknown runtime, fall back to file mount
-                        with open(tmp_path, "w") as f:
-                            f.write(script)
-                        mounts.append(f"{tmp_path}:{tmp_path}:ro")
-                        cmd = cmd_builder(tmp_path)
-                        result = await self.runtime_engine.run(
-                            image=image,
-                            command=cmd,
-                            env=env,
-                            mounts=mounts,
-                            network_ref=hostname,
-                            memory_limit=memory_limit,
-                            cpu_limit=cpu_limit,
-                            timeout=timeout_secs,
-                        )
+                # Startup block (_check_execution_mode) guarantees execution mode is docker/podman/auto.
+                # Stdin mode: pipe script content into the container
+                stdin_cmd = RUNTIME_CMD_STDIN.get(runtime, RUNTIME_CMD_STDIN.get("python"))
+                if stdin_cmd:
+                    cmd = stdin_cmd()
+                    result = await self.runtime_engine.run(
+                        image=image,
+                        command=cmd,
+                        env=env,
+                        mounts=mounts,
+                        network_ref=hostname,
+                        input_data=script,
+                        memory_limit=memory_limit,
+                        cpu_limit=cpu_limit,
+                        timeout=timeout_secs,
+                    )
                 else:
-                    # Direct execution mode: file mount works fine
+                    # Unknown runtime, fall back to file mount
                     with open(tmp_path, "w") as f:
                         f.write(script)
                     mounts.append(f"{tmp_path}:{tmp_path}:ro")
