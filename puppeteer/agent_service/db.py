@@ -150,6 +150,7 @@ class Node(Base):
     job_cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)      # e.g., "0.5", "2" (default: unlimited)
     detected_cgroup_version: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # NEW: "v1", "v2", "unsupported"
     cgroup_raw: Mapped[Optional[str]] = mapped_column(Text, nullable=True)                  # NEW: raw detection info
+    execution_mode: Mapped[Optional[str]] = mapped_column(String, nullable=True)            # NEW: Phase 124 - reported runtime (docker/podman)
 
 class Alert(Base):
     __tablename__ = "alerts"
