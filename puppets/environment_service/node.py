@@ -45,6 +45,75 @@ def parse_cpu(s: str) -> float:
         raise ValueError(f"Invalid CPU format: {s}") from e
 
 
+import pathlib
+
+
+class CgroupDetector:
+    """Detect cgroup v1 vs v2 vs unsupported from container perspective."""
+
+    CGROUP_V1_HEADER = "cgroup"  # v1 lines start with numbered hierarchy
+    CGROUP_V2_MARKER = "0::"      # v2 always has single line starting with "0::"
+    CGROUP_CONTROLLERS_PATH = pathlib.Path("/sys/fs/cgroup/cgroup.controllers")
+    PROC_SELF_CGROUP_PATH = pathlib.Path("/proc/self/cgroup")
+
+    @staticmethod
+    def detect() -> tuple[str, str]:
+        """
+        Detect cgroup version from container perspective.
+
+        Returns:
+            (version_str, raw_info_str)
+            - version_str: one of "v1", "v2", "unsupported"
+            - raw_info_str: detection reasoning + /proc/self/cgroup contents
+        """
+        try:
+            # Step 1: Check /proc/self/cgroup format
+            proc_cgroup = CgroupDetector.PROC_SELF_CGROUP_PATH.read_text(encoding='utf-8')
+            lines = proc_cgroup.strip().split('\n')
+
+            # Analyze format
+            v2_lines = sum(1 for line in lines if line.startswith(CgroupDetector.CGROUP_V2_MARKER))
+            v1_lines = sum(1 for line in lines if ':' in line and not line.startswith(CgroupDetector.CGROUP_V2_MARKER))
+
+            raw_info_parts = [f"proc_self_cgroup: {len(lines)} lines"]
+            raw_info_parts.append(f"v2_marker_lines: {v2_lines}, v1_numbered_lines: {v1_lines}")
+            raw_info_parts.append(f"content: {proc_cgroup[:200]}")
+
+            # Hybrid detection: mixed format → conservative v1
+            if v2_lines > 0 and v1_lines > 0:
+                raw_info = " | ".join(raw_info_parts)
+                return ("v1", f"Hybrid cgroup setup (mixed v1+v2) — treating as v1. {raw_info}")
+
+            # Pure v2: single 0:: line
+            if v2_lines > 0 and v1_lines == 0:
+                # Confirm v2 with cgroup.controllers existence
+                if CgroupDetector.CGROUP_CONTROLLERS_PATH.exists():
+                    raw_info = " | ".join(raw_info_parts)
+                    return ("v2", f"cgroup.controllers exists. {raw_info}")
+                else:
+                    # Inconsistent: v2 format but no controllers file
+                    raw_info = " | ".join(raw_info_parts)
+                    return ("unsupported", f"v2 format detected but cgroup.controllers missing (inconsistent). {raw_info}")
+
+            # Pure v1: numbered hierarchy lines
+            if v1_lines > 0 and v2_lines == 0:
+                raw_info = " | ".join(raw_info_parts)
+                return ("v1", f"Numbered cgroup hierarchy detected. {raw_info}")
+
+            # Fallback: no recognized format
+            raw_info = " | ".join(raw_info_parts)
+            return ("unsupported", f"No recognized cgroup format. {raw_info}")
+
+        except FileNotFoundError as e:
+            return ("unsupported", f"FileNotFoundError reading {e.filename}: container may be restricted")
+        except PermissionError as e:
+            return ("unsupported", f"PermissionError reading cgroup info: {e}")
+        except OSError as e:
+            return ("unsupported", f"OSError: {e}")
+        except Exception as e:
+            return ("unsupported", f"Unexpected error during cgroup detection: {type(e).__name__}: {e}")
+
+
 def build_output_log(stdout: str, stderr: str) -> list:
     """Split stdout/stderr into per-line timestamped entries for execution_records."""
     ts = datetime.now(timezone.utc).isoformat()
@@ -83,6 +152,26 @@ def _load_or_generate_node_id() -> str:
     return existing[0] if existing else f"node-{uuid.uuid4().hex[:8]}"
 
 NODE_ID = _load_or_generate_node_id()
+
+
+def _detect_cgroup_version() -> tuple[str, str]:
+    """Run cgroup detection once at module load."""
+    detector = CgroupDetector()
+    version, raw_info = detector.detect()
+
+    # Log startup
+    if version == "v1":
+        logger.info(f"Detected cgroup: v1 (numbered hierarchy)")
+    elif version == "v2":
+        logger.info(f"Detected cgroup: v2 (cgroup.controllers found at /sys/fs/cgroup/)")
+    else:
+        logger.warning(f"Detected cgroup: unsupported — node may have restricted cgroup access. Raw: {raw_info}")
+
+    return version, raw_info
+
+
+DETECTED_CGROUP_VERSION, DETECTED_CGROUP_RAW = _detect_cgroup_version()
+
 _current_env_tag = None  # Set by orchestrator via poll config; overrides ENV_TAG env var
 ROOT_CA_PATH = os.getenv("ROOT_CA_PATH", "c:/Development/Repos/master_of_puppets/ca/certs/root_ca.crt")
 CERT_FILE = f"secrets/{NODE_ID}.crt"
@@ -339,8 +428,10 @@ def heartbeat_loop():
                     "tags": tags,
                     "capabilities": caps,
                     "env_tag": env_tag,
+                    "detected_cgroup_version": DETECTED_CGROUP_VERSION,
+                    "cgroup_raw": DETECTED_CGROUP_RAW,
                 }
-                
+
                 if pending_upgrade_result:
                     payload["upgrade_result"] = pending_upgrade_result
                     pending_upgrade_result = None
