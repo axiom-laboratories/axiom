@@ -39,14 +39,16 @@ See [Foundry → Blueprints](../feature-guides/foundry.md#blueprints) for the fu
 
 ### Node container fails to run jobs — RuntimeError: No container runtime found
 
-When an Axiom Node runs inside a Docker container (for example, a Foundry-built image deployed via Docker Compose), `EXECUTION_MODE` must be set to `direct`. In `auto` mode, the node tries to spawn Podman or Docker sub-containers. Inside an existing Docker container, this fails due to cgroup v2 conflicts — neither Podman nor Docker is available in a standard Docker-in-Docker setup. `direct` mode executes job scripts as Python subprocesses within the node process, without a container wrapper.
+When an Axiom Node runs inside a Docker container (for example, a Foundry-built image deployed via Docker Compose), container runtime support is required. For Docker-in-Docker scenarios, mount the host Docker socket into the node container and use `EXECUTION_MODE=docker` or `EXECUTION_MODE=auto`. This allows the node to create ephemeral containers for job execution while staying isolated from the host.
 
 ```yaml
 # In node-compose.yaml environment section
-EXECUTION_MODE: direct
+EXECUTION_MODE: docker  # or 'auto'
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock  # Mount host Docker socket
 ```
 
-If the node image was built by Foundry and the build itself is the problem, see [Foundry Troubleshooting → Build Failures](foundry.md#build-failures).
+As of v20.0, `EXECUTION_MODE=direct` is no longer supported. All job code executes in ephemeral containers for security isolation. If the node image was built by Foundry and the build itself is the problem, see [Foundry Troubleshooting → Build Failures](foundry.md#build-failures).
 
 ---
 
