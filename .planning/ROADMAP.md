@@ -121,7 +121,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 121. Job Service & Admission Control | v20.0 | 3/3 | Complete | 2026-04-06 |
 | 122. Node-Side Limit Integration | v20.0 | 1/1 | Complete | 2026-04-06 |
 | 123. Cgroup Detection Backend | v20.0 | Complete | 2026-04-08 | — |
-| 124. Ephemeral Execution Guarantee | v20.0 | 3/4 | In Progress | 2026-04-08 |
+| 124. Ephemeral Execution Guarantee | v20.0 | Complete    | 2026-04-08 | 2026-04-08 |
 | 125. Stress Test Corpus | v20.0 | 0/? | Not started | — |
 | 126. Limit Enforcement Validation | v20.0 | 0/? | Not started | — |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 0/? | Not started | — |
