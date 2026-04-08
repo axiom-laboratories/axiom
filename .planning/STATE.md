@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 3 (Phase 123 plans)
-status: Phase 123-01 Complete. Cgroup detection (v1/v2/unsupported) implemented node-side with full heartbeat integration. All 14 tests passing. Ready for Phase 127 dashboard.
-last_updated: "2026-04-08T19:18:23Z"
-last_activity: 2026-04-08 — Executed 123-01 plan (3 tasks, 14/14 tests passing, 4 commits including summary)
+current_plan: 4 of 3 (Phase 123 gap closure)
+status: Phase 123-04 Complete. Gap closure: exposed detected_cgroup_version in /nodes API response. All verification gaps resolved. Ready for Phase 127 dashboard.
+last_updated: "2026-04-08T20:34:00Z"
+last_activity: 2026-04-08 — Executed 123-04 gap closure (1 task, API response fix applied, 1 commit)
 progress:
   total_phases: 42
   completed_phases: 41
@@ -27,11 +27,11 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 123 (Cgroup Detection Backend) — COMPLETE
-Current Plan: 1 of 3 (Phase 123 plans)
-Total Plans: 3
-Plan: 01 (Node-Side Detection & Orchestrator Persistence) — COMPLETE
-Status: Node detects cgroup v1/v2/unsupported at startup, reports in heartbeat. Orchestrator persists to Node table. All 14 tests passing. Ready for Phase 127 dashboard integration.
-Last activity: 2026-04-08 — Executed 123-01 plan (3 tasks, 14/14 tests passing, 4 commits including summary)
+Current Plan: 4 of 3 (Gap closure)
+Total Plans: 3 (plus 1 gap closure)
+Plan: 04 (API Response Exposure Gap Closure) — COMPLETE
+Status: All verification gaps resolved. Node detects cgroup v1/v2/unsupported at startup, reports in heartbeat, orchestrator persists to DB, and API exposes field to dashboard. All 7/7 must-haves verified. Ready for Phase 127 dashboard integration.
+Last activity: 2026-04-08 — Executed 123-04 gap closure (1 task, API response fix, 1 commit)
 
 ## Performance Metrics
 
