@@ -78,8 +78,14 @@ async def lifespan(app: FastAPI):
     # Startup logic
     await init_db()
 
-    # SQLite dev-mode warning — surfaces missing SKIP LOCKED before the first pull
+    # Phase 124: Validate NODE_EXECUTION_MODE at startup
     import sys as _sys
+    node_execution_mode = os.getenv("NODE_EXECUTION_MODE", "auto").lower()
+    if node_execution_mode == "direct":
+        logger.error("NODE_EXECUTION_MODE=direct is not supported. Use 'docker', 'podman', or 'auto'.")
+        _sys.exit(1)
+
+    # SQLite dev-mode warning — surfaces missing SKIP LOCKED before the first pull
     from .db import IS_POSTGRES as _IS_POSTGRES
     if not _IS_POSTGRES:
         print(
@@ -502,9 +508,17 @@ async def get_node_compose(token: str, mounts: Optional[str] = None, tags: Optio
     """Dynamic Compose File generator for Nodes."""
     effective_tags = tags if tags else "general,linux,arm64"
     # Allow caller or server default to set EXECUTION_MODE for the node container.
-    # Defaults to "auto" (Docker/Podman detection). Use "direct" for DinD environments
-    # where no container runtime socket is available inside the node container.
+    # Defaults to "auto" (Docker/Podman detection).
     effective_execution_mode = execution_mode or os.getenv("NODE_EXECUTION_MODE", "auto")
+
+    # Phase 124: Reject direct execution mode
+    if effective_execution_mode == "direct":
+        raise HTTPException(
+            status_code=400,
+            detail="EXECUTION_MODE=direct is not supported. Use 'docker', 'podman', or 'auto' instead. "
+                   "For Docker-in-Docker, mount the host Docker socket and use EXECUTION_MODE=docker or EXECUTION_MODE=auto."
+        )
+
     compose_content = f"""
 version: '3.8'
 services:
