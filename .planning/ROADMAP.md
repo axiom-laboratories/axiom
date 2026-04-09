@@ -92,12 +92,13 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 02: Compose validation + startup check — completed 2026-04-08
   - [x] Plan 03: Node-side reporting + documentation cleanup — completed 2026-04-08
   - [x] Plan 04: Test verification — completed 2026-04-08
-- **Phase 125: Stress Test Corpus** — CPU, memory, and noisy-neighbour scripts in Python, Bash, PowerShell (4 plans in planning)
-  - **Plan 01:** Python scripts (cpu_burn.py, memory_hog.py, noisy_monitor.py)
-  - **Plan 02:** Bash scripts (cpu_burn.sh, memory_hog.sh, noisy_monitor.sh)
-  - **Plan 03:** PowerShell scripts (cpu_burn.ps1, memory_hog.ps1, noisy_monitor.ps1)
-  - **Plan 04:** Preflight check + orchestrator (preflight_check.py, orchestrate_stress_tests.py)
-- [ ] **Phase 126: Limit Enforcement Validation** — CPU limits, both Docker and Podman job execution runtimes
+- [x] **Phase 125: Stress Test Corpus** — CPU, memory, and noisy-neighbour scripts in Python, Bash, PowerShell (4 plans completed 2026-04-08)
+  - [x] Plan 01: Python scripts (cpu_burn.py, memory_hog.py, noisy_monitor.py)
+  - [x] Plan 02: Bash scripts (cpu_burn.sh, memory_hog.sh, noisy_monitor.sh)
+  - [x] Plan 03: PowerShell scripts (cpu_burn.ps1, memory_hog.ps1, noisy_monitor.ps1)
+  - [x] Plan 04: Preflight check + orchestrator (preflight_check.py, orchestrate_stress_tests.py)
+- [ ] **Phase 126: Limit Enforcement Validation** — Memory and CPU limit enforcement on Docker and Podman job execution runtimes (1 plan)
+  - [ ] Plan 01: Deploy Podman node, enhance orchestrator with runtime filtering, run dual-runtime validation
 - [ ] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings
 - [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
 
@@ -126,8 +127,8 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 122. Node-Side Limit Integration | v20.0 | 1/1 | Complete | 2026-04-06 |
 | 123. Cgroup Detection Backend | v20.0 | 1/1 | Complete | 2026-04-08 |
 | 124. Ephemeral Execution Guarantee | v20.0 | 4/4 | Complete | 2026-04-08 |
-| 125. Stress Test Corpus | v20.0 | Complete    | 2026-04-08 | — |
-| 126. Limit Enforcement Validation | v20.0 | 0/? | Not started | — |
+| 125. Stress Test Corpus | v20.0 | 4/4 | Complete | 2026-04-08 |
+| 126. Limit Enforcement Validation | v20.0 | 0/1 | Planning | — |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 0/? | Not started | — |
 | 128. Concurrent Isolation Verification | v20.0 | 0/? | Not started | — |
 
