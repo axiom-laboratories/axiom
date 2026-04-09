@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 3 (IN PROGRESS)
-status: Limit enforcement validation framework complete. Orchestrator enhanced with dual-runtime filtering (--runtime docker|podman), runtime-specific JSON reports, skip tracking. Podman node compose config created. Framework ready; full validation blocked by Podman enrollment 403 error.
-last_updated: "2026-04-09T20:30:00.000Z"
-last_activity: 2026-04-09 — Executed 126-01 (3 tasks: 2 complete, 1 blocked; 2 commits; 45 min)
+current_plan: 2 of 3 (IN PROGRESS)
+status: Plan 126-02 (Docker Validation) executed. Orchestrator signature registration system complete. Node networking fixed. Database cleaned of stale enrollments. Node containers running but enrollment failing silently — blocked awaiting root cause diagnosis.
+last_updated: "2026-04-09T20:50:00.000Z"
+last_activity: 2026-04-09 — Executed 126-02 (orchestrator code complete, node enrollment blocked; 1 commit; 60 min)
 progress:
   total_phases: 48
   completed_phases: 45
@@ -27,11 +27,20 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 126 (Limit Enforcement Validation) — IN PROGRESS
-Current Plan: 1 of 3 (IN PROGRESS)
+Current Plan: 2 of 3 (IN PROGRESS)
 Total Plans: 3
-Plan: 01 (Limit Enforcement Validation) — PARTIAL (2 of 3 tasks complete)
-Status: Orchestrator enhanced with dual-runtime filtering and skip tracking. Podman node compose created. Full validation blocked by Podman enrollment failure (403 Forbidden).
-Last activity: 2026-04-09 — Executed 126-01 (2 tasks complete, 1 blocked; 45 min runtime)
+Plan: 02 (Docker-Only Validation) — PARTIAL (1 of 2 tasks complete + 1 blocked)
+Status: Task 1 (Signature Registration) COMPLETE and COMMITTED. Task 2 (Validation) BLOCKED by node enrollment issue.
+Details:
+  - Task 1: Implemented public key registration system in orchestrator (MopClient.register_signature())
+  - Task 1: Enhanced job payload with signature_id and signature_payload fields
+  - Task 1: Updated orchestrator login flow to call register_signature() before dispatching jobs
+  - Task 1: COMMITTED: 742faa4 (fix(126-02): Implement proper job signature registration and fix node networking)
+  - Task 2: Database cleaned (deleted 6 stale nodes)
+  - Task 2: Generated fresh JOIN_TOKENs with embedded CA
+  - Task 2: Restarted node containers with new tokens
+  - Task 2: BLOCKED: Nodes running but not enrolling (silent failure, no logs/output detected)
+Last activity: 2026-04-09 — Executed 126-02 (1 task complete, 1 blocked; 60 min runtime)
 
 ## Performance Metrics
 
