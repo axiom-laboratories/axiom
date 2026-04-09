@@ -18,7 +18,10 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from aiohttp import web
-from . import runtime
+try:
+    from . import runtime
+except ImportError:
+    import runtime
 
 from dotenv import load_dotenv
 
@@ -171,6 +174,8 @@ def _detect_cgroup_version() -> tuple[str, str]:
 
 
 DETECTED_CGROUP_VERSION, DETECTED_CGROUP_RAW = _detect_cgroup_version()
+
+_EXECUTION_MODE = runtime.ContainerRuntime().runtime  # Resolved once at module load for heartbeat_loop
 
 _current_env_tag = None  # Set by orchestrator via poll config; overrides ENV_TAG env var
 ROOT_CA_PATH = os.getenv("ROOT_CA_PATH", "c:/Development/Repos/master_of_puppets/ca/certs/root_ca.crt")
@@ -430,7 +435,7 @@ def heartbeat_loop():
                     "env_tag": env_tag,
                     "detected_cgroup_version": DETECTED_CGROUP_VERSION,
                     "cgroup_raw": DETECTED_CGROUP_RAW,
-                    "execution_mode": self.runtime_engine.runtime,  # Phase 124
+                    "execution_mode": _EXECUTION_MODE,
                 }
 
                 if pending_upgrade_result:
