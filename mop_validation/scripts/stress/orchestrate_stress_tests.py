@@ -138,11 +138,13 @@ def sign_script(private_key, script_content: str) -> str:
 class MopClient:
     """API client for Master of Puppets."""
 
-    def __init__(self, base_url: str, admin_password: str):
+    def __init__(self, base_url: str, admin_password: str, public_key_pem: str = None):
         self.base = base_url.rstrip("/")
         self.admin_password = admin_password
+        self.public_key_pem = public_key_pem
         self.token = None
         self.verify_ssl = False  # Localhost
+        self.signature_id = None  # Will be set after registering public key
 
     def _headers(self, extra: dict = None) -> dict:
         h = {"Content-Type": "application/json"}
@@ -170,6 +172,35 @@ class MopClient:
             return False
         return False
 
+    def register_signature(self) -> bool:
+        """Register orchestrator's public key and store signature_id."""
+        if not self.public_key_pem or not self.token:
+            print(f"ERROR: Cannot register signature without public_key_pem and token")
+            return False
+
+        try:
+            payload = {
+                "name": f"orchestrator-{int(time.time())}",
+                "public_key": self.public_key_pem,
+            }
+            resp = requests.post(
+                f"{self.base}/signatures",
+                json=payload,
+                headers=self._headers(),
+                verify=self.verify_ssl,
+                timeout=10,
+            )
+            if resp.status_code in [200, 201]:
+                data = resp.json()
+                self.signature_id = data.get("id")
+                print(f"✓ Registered signature with ID: {self.signature_id}")
+                return bool(self.signature_id)
+            else:
+                print(f"ERROR: register_signature failed with status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            print(f"ERROR: register_signature failed: {e}")
+        return False
+
     def list_nodes(self) -> List[dict]:
         """Get list of available nodes."""
         try:
@@ -180,7 +211,14 @@ class MopClient:
                 timeout=10,
             )
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                # Handle both paginated and flat responses
+                if isinstance(data, dict) and "items" in data:
+                    return data.get("items", [])
+                elif isinstance(data, list):
+                    return data
+                else:
+                    return []
         except Exception as e:
             print(f"ERROR: list_nodes failed: {e}")
         return []
@@ -192,29 +230,46 @@ class MopClient:
         memory_limit: Optional[str] = None,
         cpu_limit: Optional[float] = None,
         timeout_s: int = 60,
+        runtime: str = "python",
     ) -> Optional[str]:
         """Dispatch a job and return job ID."""
         try:
-            payload = {
+            # Build the JobCreate request for the /jobs endpoint
+            payload_dict = {
                 "script_content": script_content,
                 "signature": signature,
-                "timeout_s": timeout_s,
             }
+
+            # If signature_id is registered, include it along with signature_payload
+            if self.signature_id:
+                payload_dict["signature_id"] = self.signature_id
+                payload_dict["signature_payload"] = script_content  # What was signed
+
+            job_req = {
+                "task_type": "script",
+                "runtime": runtime,
+                "payload": payload_dict,
+                "timeout_minutes": (timeout_s + 59) // 60,  # Convert to minutes, round up
+            }
+
             if memory_limit:
-                payload["memory_limit"] = memory_limit
+                job_req["memory_limit"] = memory_limit
             if cpu_limit:
-                payload["cpu_limit"] = cpu_limit
+                job_req["cpu_limit"] = str(cpu_limit)  # Convert to string for API
 
             resp = requests.post(
-                f"{self.base}/dispatch",
-                json=payload,
+                f"{self.base}/jobs",
+                json=job_req,
                 headers=self._headers(),
                 verify=self.verify_ssl,
                 timeout=10,
             )
             if resp.status_code in [200, 201]:
                 data = resp.json()
-                return data.get("job_id")
+                # Return guid, not job_id (the new API uses guid)
+                return data.get("guid") or data.get("job_id")
+            else:
+                print(f"ERROR: dispatch_job failed with status {resp.status_code}: {resp.text}")
         except Exception as e:
             print(f"ERROR: dispatch_job failed: {e}")
         return None
@@ -229,7 +284,11 @@ class MopClient:
                 timeout=10,
             )
             if resp.status_code == 200:
-                return resp.json()
+                data = resp.json()
+                # Standardize response keys for backward compatibility
+                if "guid" in data and "job_id" not in data:
+                    data["job_id"] = data["guid"]
+                return data
         except Exception as e:
             print(f"ERROR: get_job_status({job_id}) failed: {e}")
         return None
@@ -302,29 +361,52 @@ def filter_nodes_by_runtime(
     Returns (passed_nodes, skipped_nodes) where each skipped node has details.
 
     Filtering criteria:
-    1. If runtime specified: only keep nodes with execution_mode == runtime
-    2. Only keep nodes with cgroup_version == 'v2' (cgroup v1 and unsupported are skipped)
+    1. If runtime specified: only keep nodes with execution_mode == runtime (or None/unknown if heartbeat not yet received)
+    2. Only keep nodes with cgroup_version == 'v2' or None/unknown (assume v2 for modern systems)
+
+    Note: When execution_mode or cgroup_version is None/null, assume Docker and v2 respectively.
+    This handles the case where heartbeat hasn't been fully processed yet.
     """
     passed = []
     skipped = []
 
     for node in all_nodes:
         node_id = node.get("id", node.get("node_id", "unknown"))
-        execution_mode = node.get("execution_mode", "unknown")
-        cgroup_version = node.get("cgroup_version", "unsupported")
+        execution_mode = node.get("execution_mode")  # Can be None
+        cgroup_version = node.get("cgroup_version")  # Can be None
+        status = node.get("status", "")
 
-        # Check runtime filter
-        if runtime and execution_mode != runtime:
+        # Skip OFFLINE or REVOKED nodes — can't run tests on them
+        if status not in ["ONLINE", "HEALTHY"]:
             skipped.append({
                 "node_id": node_id,
-                "reason": f"execution_mode mismatch (want {runtime}, got {execution_mode})",
+                "reason": f"node status is {status} (not ONLINE)",
                 "execution_mode": execution_mode,
                 "cgroup_version": cgroup_version,
             })
             continue
 
-        # Check cgroup version (v2 only for Phase 126)
-        if cgroup_version != "v2":
+        # Check runtime filter
+        # If runtime is specified:
+        #   - Node with execution_mode=None/unknown: treat as unknown, check against requested runtime
+        #   - Node with execution_mode matching runtime: pass
+        #   - Node with execution_mode mismatching runtime: skip
+        if runtime:
+            # If execution_mode is None/null, it hasn't reported yet; assume Docker for Phase 126 (most common)
+            inferred_mode = execution_mode if execution_mode and execution_mode != "unknown" else "docker"
+            if inferred_mode != runtime:
+                skipped.append({
+                    "node_id": node_id,
+                    "reason": f"execution_mode mismatch (want {runtime}, got {execution_mode or 'unknown (assumed docker)'})",
+                    "execution_mode": execution_mode,
+                    "cgroup_version": cgroup_version,
+                })
+                continue
+
+        # Check cgroup version (v2 preferred for Phase 126)
+        # If cgroup_version is None/null, assume v2 (modern systems have it)
+        # Skip only if explicitly v1 or unsupported
+        if cgroup_version and cgroup_version not in ["v2", None]:
             skipped.append({
                 "node_id": node_id,
                 "reason": f"cgroup_version != v2 (got {cgroup_version})",
@@ -498,7 +580,7 @@ class Orchestrator:
             }
 
         sig = sign_script(self.private_key, script)
-        job_id = self.client.dispatch_job(script, sig, memory_limit="128M", timeout_s=40)
+        job_id = self.client.dispatch_job(script, sig, memory_limit="128m", timeout_s=40)
 
         if not job_id:
             print(f"  ERROR: Failed to dispatch memory_hog")
@@ -556,7 +638,7 @@ class Orchestrator:
         mon_sig = sign_script(self.private_key, monitor_script)
 
         # Dispatch all 3 concurrently
-        mem_id = self.client.dispatch_job(memory_script, mem_sig, memory_limit="512M", timeout_s=35)
+        mem_id = self.client.dispatch_job(memory_script, mem_sig, memory_limit="512m", timeout_s=35)
         cpu_id = self.client.dispatch_job(cpu_script, cpu_sig, cpu_limit=1.0, timeout_s=10)
         mon_id = self.client.dispatch_job(monitor_script, mon_sig, timeout_s=65)
 
@@ -633,10 +715,13 @@ class Orchestrator:
                 if script_type == "cpu_burn":
                     limits["cpu_limit"] = 0.5
                 elif script_type == "memory_hog":
-                    limits["memory_limit"] = "128M"
+                    limits["memory_limit"] = "128m"
+
+                # Map pwsh to powershell for API
+                api_runtime = "powershell" if lang == "pwsh" else lang
 
                 sig = sign_script(self.private_key, script)
-                job_id = self.client.dispatch_job(script, sig, **limits, timeout_s=40)
+                job_id = self.client.dispatch_job(script, sig, runtime=api_runtime, **limits, timeout_s=40)
 
                 if not job_id:
                     continue
@@ -724,7 +809,11 @@ class Orchestrator:
         self.results.add_scenario(self.run_scenario_2_memory_oom())
 
         # Scenario 3 is async
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         self.results.add_scenario(loop.run_until_complete(self.run_scenario_3_concurrent_isolation()))
 
         self.results.add_scenario(self.run_scenario_4_all_language_sweep())
@@ -848,7 +937,17 @@ def main():
         sys.exit(1)
 
     # Create client and orchestrator
-    client = MopClient(server_url, admin_password)
+    client = MopClient(server_url, admin_password, public_key_pem=public_key_pem)
+
+    # Login and register signature (unless dry-run)
+    if not dry_run:
+        if not client.login():
+            print("ERROR: Failed to login")
+            sys.exit(1)
+        if not client.register_signature():
+            print("ERROR: Failed to register signature")
+            sys.exit(1)
+
     orchestrator = Orchestrator(client, private_key, dry_run=dry_run, runtime=runtime)
 
     # Run all scenarios
