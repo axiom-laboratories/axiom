@@ -2,15 +2,20 @@
 """
 Stress Test Orchestrator
 Dispatches preflight, CPU burn, memory OOM, concurrent isolation, and all-language sweep tests.
-Generates console table output and JSON report.
+Generates console table output and JSON report with runtime-specific filtering.
 
 Usage:
-    python3 orchestrate_stress_tests.py [--dry-run]
+    python3 orchestrate_stress_tests.py [--runtime docker|podman] [--dry-run]
+
+Arguments:
+    --runtime docker|podman   Target specific runtime (Docker or Podman); omit for all nodes
+    --dry-run                 Skip API calls, simulate orchestration logic
 
 Prerequisites:
     - mop_validation/secrets.env with ADMIN_PASSWORD, SERVER_URL
     - stress/{python,bash,pwsh}/ script files exist
     - cryptography, requests, python-dotenv installed
+    - Node heartbeat includes execution_mode and cgroup_version fields
 """
 
 import os
@@ -22,6 +27,7 @@ import subprocess
 import requests
 import asyncio
 import tempfile
+import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -286,6 +292,53 @@ def load_script(language: str, script_name: str) -> Optional[str]:
     return None
 
 
+# ── Node Filtering ──────────────────────────────────────────────────────────
+
+def filter_nodes_by_runtime(
+    all_nodes: List[dict], runtime: Optional[str] = None
+) -> Tuple[List[dict], List[dict]]:
+    """
+    Filter nodes by execution_mode and cgroup v2 support.
+    Returns (passed_nodes, skipped_nodes) where each skipped node has details.
+
+    Filtering criteria:
+    1. If runtime specified: only keep nodes with execution_mode == runtime
+    2. Only keep nodes with cgroup_version == 'v2' (cgroup v1 and unsupported are skipped)
+    """
+    passed = []
+    skipped = []
+
+    for node in all_nodes:
+        node_id = node.get("id", node.get("node_id", "unknown"))
+        execution_mode = node.get("execution_mode", "unknown")
+        cgroup_version = node.get("cgroup_version", "unsupported")
+
+        # Check runtime filter
+        if runtime and execution_mode != runtime:
+            skipped.append({
+                "node_id": node_id,
+                "reason": f"execution_mode mismatch (want {runtime}, got {execution_mode})",
+                "execution_mode": execution_mode,
+                "cgroup_version": cgroup_version,
+            })
+            continue
+
+        # Check cgroup version (v2 only for Phase 126)
+        if cgroup_version != "v2":
+            skipped.append({
+                "node_id": node_id,
+                "reason": f"cgroup_version != v2 (got {cgroup_version})",
+                "execution_mode": execution_mode,
+                "cgroup_version": cgroup_version,
+            })
+            continue
+
+        # Node passed all filters
+        passed.append(node)
+
+    return passed, skipped
+
+
 # ── Scenario Tests ─────────────────────────────────────────────────────────
 
 class TestResults:
@@ -296,6 +349,8 @@ class TestResults:
         self.preflight_total = 0
         self.preflight_passed = 0
         self.preflight_failed = 0
+        self.preflight_skipped = 0
+        self.skipped_nodes = []  # List of dicts with reason, cgroup_version, etc.
 
     def add_scenario(self, scenario: dict):
         self.scenarios.append(scenario)
@@ -307,14 +362,26 @@ class TestResults:
         else:
             self.preflight_failed += 1
 
+    def record_skipped_nodes(self, skipped_list: List[dict]):
+        """Record nodes that were skipped during filtering."""
+        self.preflight_skipped = len(skipped_list)
+        self.skipped_nodes = skipped_list
+
 
 class Orchestrator:
     """Main orchestrator for stress tests."""
 
-    def __init__(self, client: MopClient, private_key, dry_run: bool = False):
+    def __init__(
+        self,
+        client: MopClient,
+        private_key,
+        dry_run: bool = False,
+        runtime: Optional[str] = None,
+    ):
         self.client = client
         self.private_key = private_key
         self.dry_run = dry_run
+        self.runtime = runtime  # 'docker', 'podman', or None (all)
         self.results = TestResults()
         self.timestamp = datetime.utcnow().isoformat() + "Z"
 
@@ -607,6 +674,8 @@ class Orchestrator:
         """Run all 4 scenarios."""
         print("\n" + "=" * 60)
         print("STRESS TEST ORCHESTRATOR")
+        if self.runtime:
+            print(f"Runtime: {self.runtime.upper()}")
         print("=" * 60)
 
         # Load secrets and login
@@ -624,17 +693,28 @@ class Orchestrator:
             print("ERROR: Login failed")
             return self.results
 
-        # Get nodes
-        nodes = self.client.list_nodes()
-        print(f"Found {len(nodes)} available nodes")
+        # Get nodes and filter by runtime
+        all_nodes = self.client.list_nodes()
+        print(f"Found {len(all_nodes)} available nodes")
 
-        if not nodes and not self.dry_run:
-            print("ERROR: No nodes available")
+        # Filter by runtime and cgroup v2
+        target_nodes, skipped_nodes = filter_nodes_by_runtime(all_nodes, self.runtime)
+        self.results.record_skipped_nodes(skipped_nodes)
+
+        if skipped_nodes:
+            print(f"Skipped {len(skipped_nodes)} nodes:")
+            for skip in skipped_nodes:
+                print(f"  - {skip['node_id']}: {skip['reason']}")
+
+        if not target_nodes and not self.dry_run:
+            print("ERROR: No nodes available after filtering")
             return self.results
 
-        # Run preflight on first available node
-        if nodes and not self.dry_run:
-            node_id = nodes[0].get("node_id", "node-1")
+        print(f"Target nodes: {len(target_nodes)}")
+
+        # Run preflight on first target node
+        if target_nodes and not self.dry_run:
+            node_id = target_nodes[0].get("node_id", target_nodes[0].get("id", "node-1"))
             print(f"\nRunning preflight checks on {node_id}...")
             if not self.dispatch_preflight(node_id):
                 print(f"WARNING: Preflight failed on {node_id}, would skip in production")
@@ -665,9 +745,19 @@ class Orchestrator:
 
         print(f"Test Time: {self.timestamp}")
         print(f"Server: {self.client.base}")
+        if self.runtime:
+            print(f"Runtime: {self.runtime.upper()}")
         print(f"Total Tests: {total_tests}")
         print(f"Passed: {passed_tests}")
         print(f"Failed: {total_tests - passed_tests}")
+        print()
+
+        # Preflight summary
+        print(f"Preflight Check:")
+        print(f"  Total: {self.results.preflight_total}")
+        print(f"  Passed: {self.results.preflight_passed}")
+        print(f"  Failed: {self.results.preflight_failed}")
+        print(f"  Skipped (pre-filter): {self.results.preflight_skipped}")
         print()
 
         for scenario in self.results.scenarios:
@@ -689,15 +779,22 @@ class Orchestrator:
             for s in self.results.scenarios
         )
 
+        # Build preflight section with skip details
+        preflight_data = {
+            "total": self.results.preflight_total,
+            "passed": self.results.preflight_passed,
+            "failed": self.results.preflight_failed,
+            "skipped": self.results.preflight_skipped,
+        }
+        if self.results.skipped_nodes:
+            preflight_data["skipped_details"] = self.results.skipped_nodes
+
         report = {
             "timestamp": self.timestamp,
             "server": self.client.base,
+            "runtime": self.runtime or "all",
             "total_nodes": 0,  # Would be populated from list_nodes
-            "preflight": {
-                "total": self.results.preflight_total,
-                "passed": self.results.preflight_passed,
-                "failed": self.results.preflight_failed,
-            },
+            "preflight": preflight_data,
             "scenarios": self.results.scenarios,
             "summary": {
                 "total_tests": total_tests,
@@ -706,17 +803,37 @@ class Orchestrator:
             },
         }
 
-        # Write file
+        # Write file with runtime in filename
         timestamp_str = self.timestamp.replace(":", "").replace("-", "").replace(".", "")
-        report_path = REPORTS_DIR / f"stress_test_{timestamp_str}.json"
+        runtime_suffix = f"_{self.runtime}" if self.runtime else ""
+        report_path = REPORTS_DIR / f"stress_test{runtime_suffix}_{timestamp_str}.json"
         report_path.write_text(json.dumps(report, indent=2))
         print(f"\nJSON report written to: {report_path}")
 
 
 def main():
     """Main entry point."""
-    dry_run = "--dry-run" in sys.argv
-    print(f"Starting orchestrator (dry_run={dry_run})...")
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description="Stress Test Orchestrator with optional runtime filtering"
+    )
+    parser.add_argument(
+        "--runtime",
+        choices=["docker", "podman"],
+        default=None,
+        help="Target specific runtime (docker or podman); omit for all nodes",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Skip API calls, simulate orchestration logic",
+    )
+    args = parser.parse_args()
+
+    dry_run = args.dry_run
+    runtime = args.runtime
+
+    print(f"Starting orchestrator (dry_run={dry_run}, runtime={runtime})...")
 
     # Ensure signing keys exist
     private_key, public_key_pem = ensure_ed25519_keys()
@@ -732,7 +849,7 @@ def main():
 
     # Create client and orchestrator
     client = MopClient(server_url, admin_password)
-    orchestrator = Orchestrator(client, private_key, dry_run=dry_run)
+    orchestrator = Orchestrator(client, private_key, dry_run=dry_run, runtime=runtime)
 
     # Run all scenarios
     orchestrator.run_all_scenarios()
