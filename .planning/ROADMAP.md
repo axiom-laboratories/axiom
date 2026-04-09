@@ -97,8 +97,10 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 02: Bash scripts (cpu_burn.sh, memory_hog.sh, noisy_monitor.sh)
   - [x] Plan 03: PowerShell scripts (cpu_burn.ps1, memory_hog.ps1, noisy_monitor.ps1)
   - [x] Plan 04: Preflight check + orchestrator (preflight_check.py, orchestrate_stress_tests.py)
-- [ ] **Phase 126: Limit Enforcement Validation** — Memory and CPU limit enforcement on Docker and Podman job execution runtimes (1 plan)
-  - [ ] Plan 01: Deploy Podman node, enhance orchestrator with runtime filtering, run dual-runtime validation
+- [ ] **Phase 126: Limit Enforcement Validation** — Memory and CPU limit enforcement on Docker and Podman job execution runtimes (3 plans)
+  - [x] Plan 01: Deploy Podman node, enhance orchestrator with runtime filtering, run dual-runtime validation (2 tasks complete; 1 blocked on Podman enrollment)
+  - [ ] Plan 02: Docker-only validation (deferred pending Plan 01 completion)
+  - [ ] Plan 03: Full dual-runtime report (blocked on Podman enrollment fix)
 - [ ] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings
 - [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
 
@@ -128,7 +130,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 123. Cgroup Detection Backend | v20.0 | 1/1 | Complete | 2026-04-08 |
 | 124. Ephemeral Execution Guarantee | v20.0 | 4/4 | Complete | 2026-04-08 |
 | 125. Stress Test Corpus | v20.0 | 4/4 | Complete | 2026-04-08 |
-| 126. Limit Enforcement Validation | v20.0 | 0/1 | Planning | — |
+| 126. Limit Enforcement Validation | v20.0 | 1/3 | In Progress | 2026-04-09 |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 0/? | Not started | — |
 | 128. Concurrent Isolation Verification | v20.0 | 0/? | Not started | — |
 
