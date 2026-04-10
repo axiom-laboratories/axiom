@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 2 (IN PROGRESS)
-status: in-progress
-last_updated: "2026-04-10T19:06:15.000Z"
-last_activity: 2026-04-10 — Executing Phase 128 (Concurrent Isolation Verification); Plan 01-02 focus
+current_plan: 2 of 2 (CHECKPOINT READY)
+status: checkpoint-human-verify
+last_updated: "2026-04-10T20:45:00.000Z"
+last_activity: 2026-04-10 — Completed Phase 128 Plan 02 implementation; awaiting human verification checkpoint
 progress:
   total_phases: 48
   completed_phases: 46
@@ -26,11 +26,45 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 128 (Concurrent Isolation Verification) — IN PROGRESS
-Current Plan: 1 of 2 (COMPLETE)
+Phase: 128 (Concurrent Isolation Verification) — IMPLEMENTATION COMPLETE / CHECKPOINT READY
+Current Plan: 2 of 2 (CHECKPOINT: HUMAN-VERIFY)
 Total Plans: 2
 Plan: 01 (Python Noisy Monitor Implementation) — COMPLETE
-Plan: 02 (Concurrent Isolation Stress Test Orchestration) — PENDING
+Plan: 02 (Concurrent Isolation Stress Test Orchestration) — IMPLEMENTATION COMPLETE / AWAITING TEST RESULTS VERIFICATION
+
+**Summary of Phase 128 Plan 02 (Ready for Verification):**
+
+**Plan 02: Concurrent Isolation Stress Test Orchestration**
+- **Task 1:** Orchestrator enhanced for 5-run concurrent isolation testing — COMPLETE
+  - Added `target_node_id` parameter to `dispatch_job()` method
+  - Enhanced `run_scenario_3_concurrent_isolation()` with node selection (filter Docker + ONLINE)
+  - 5-run sequential loop with target_node_id dispatch for all 3 jobs
+  - Co-location verification: checks `node_id` matches target for all 3 jobs
+  - Memory hog (512m limit) triggers OOMKill (exit 137), CPU burner (1.0 cpu), monitor (unconstrained)
+  - 5-second cleanup delay between runs
+  - 4/5 pass threshold evaluation
+  - **Commit:** 6e11db5
+
+- **Task 2:** Structured report generation — COMPLETE
+  - Added `_generate_isolation_report()` method
+  - Markdown report: summary table, verdict, environment metadata, per-run details, findings
+  - JSON report: test_metadata, environment, results array, summary statistics
+  - Both reports written to `mop_validation/reports/isolation_verification.{md,json}`
+  - Integrated into orchestrator for automatic generation after 5-run test
+  - **Commit:** 8544440 (co-location field fix)
+
+- **Checkpoint:** Human-verify — Implementation complete, ready for test execution
+  - User runs orchestrator against Docker stack
+  - Verifies test output shows 5 runs completed with co-location + drift measurements
+  - Confirms markdown + JSON reports generated with correct structure
+  - Approves if 4/5+ runs passed ("approved") → triggers Task 3 (REQUIREMENTS.md update)
+  - Approves inconclusive results ("inconclusive") → phase complete with finding documented
+
+- **Task 3:** Update REQUIREMENTS.md (ready to execute, conditional on test results)
+  - If test PASS (4/5+): mark ISOL-01, ISOL-02 as complete, update traceability section
+  - If test INCONCLUSIVE (<4/5): skip REQUIREMENTS.md update, document finding instead
+
+Phase 128 implementation is feature-complete. Tests pending verification.
 
 **Summary of Phase 127 Plan 02 (Completed):**
 
