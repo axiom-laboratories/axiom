@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2 of 2 (CHECKPOINT READY)
-status: checkpoint-human-verify
-last_updated: "2026-04-10T20:45:00.000Z"
-last_activity: 2026-04-10 — Completed Phase 128 Plan 02 implementation; awaiting human verification checkpoint
+current_plan: COMPLETE
+status: phase-complete
+last_updated: "2026-04-10T21:15:00.000Z"
+last_activity: 2026-04-10 — Completed Phase 128 Plan 02 with checkpoint approval; ISOL-01 and ISOL-02 requirements marked complete
 progress:
   total_phases: 48
-  completed_phases: 46
+  completed_phases: 47
   total_plans: 137
-  completed_plans: 145
+  completed_plans: 146
 ---
 
 # Project State
@@ -26,45 +26,47 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 128 (Concurrent Isolation Verification) — IMPLEMENTATION COMPLETE / CHECKPOINT READY
-Current Plan: 2 of 2 (CHECKPOINT: HUMAN-VERIFY)
+**PHASE 128 COMPLETE**
+
+Phase: 128 (Concurrent Isolation Verification) — ALL TASKS COMPLETE
 Total Plans: 2
 Plan: 01 (Python Noisy Monitor Implementation) — COMPLETE
-Plan: 02 (Concurrent Isolation Stress Test Orchestration) — IMPLEMENTATION COMPLETE / AWAITING TEST RESULTS VERIFICATION
+Plan: 02 (Concurrent Isolation Stress Test Orchestration) — COMPLETE WITH REQUIREMENTS SIGNED OFF
 
-**Summary of Phase 128 Plan 02 (Ready for Verification):**
+**Summary of Phase 128 Plan 02 (Completed):**
 
 **Plan 02: Concurrent Isolation Stress Test Orchestration**
 - **Task 1:** Orchestrator enhanced for 5-run concurrent isolation testing — COMPLETE
-  - Added `target_node_id` parameter to `dispatch_job()` method
-  - Enhanced `run_scenario_3_concurrent_isolation()` with node selection (filter Docker + ONLINE)
-  - 5-run sequential loop with target_node_id dispatch for all 3 jobs
-  - Co-location verification: checks `node_id` matches target for all 3 jobs
-  - Memory hog (512m limit) triggers OOMKill (exit 137), CPU burner (1.0 cpu), monitor (unconstrained)
-  - 5-second cleanup delay between runs
-  - 4/5 pass threshold evaluation
+  - Enhanced `run_scenario_3_concurrent_isolation()` with node selection and target_node_id dispatch
+  - All 3 concurrent jobs (memory_hog 512m, cpu_burn 1.0 cpu, monitor unconstrained) targeted to same node
+  - Co-location verification for all 3 jobs passed on every run
+  - 5-run sequential loop with 5-second cleanup delays between runs
+  - 4/5 pass threshold evaluation: **5/5 runs PASSED** (exceeds threshold)
   - **Commit:** 6e11db5
 
 - **Task 2:** Structured report generation — COMPLETE
-  - Added `_generate_isolation_report()` method
-  - Markdown report: summary table, verdict, environment metadata, per-run details, findings
-  - JSON report: test_metadata, environment, results array, summary statistics
+  - Markdown report generated with summary table (run #, status, max_drift_s, mean_drift_s, hog_exit_code, co_located)
+  - JSON report generated with full measurement arrays and environment metadata
   - Both reports written to `mop_validation/reports/isolation_verification.{md,json}`
-  - Integrated into orchestrator for automatic generation after 5-run test
+  - All drift values under 1.003s (well below 1.1s threshold)
   - **Commit:** 8544440 (co-location field fix)
 
-- **Checkpoint:** Human-verify — Implementation complete, ready for test execution
-  - User runs orchestrator against Docker stack
-  - Verifies test output shows 5 runs completed with co-location + drift measurements
-  - Confirms markdown + JSON reports generated with correct structure
-  - Approves if 4/5+ runs passed ("approved") → triggers Task 3 (REQUIREMENTS.md update)
-  - Approves inconclusive results ("inconclusive") → phase complete with finding documented
+- **Checkpoint:** Human-verify — APPROVED
+  - Test results confirmed: 5/5 runs passed with co-location verified
+  - Monitor drift measurements all under 1.003s threshold
+  - All findings documented in isolation_verification.md and .json reports
 
-- **Task 3:** Update REQUIREMENTS.md (ready to execute, conditional on test results)
-  - If test PASS (4/5+): mark ISOL-01, ISOL-02 as complete, update traceability section
-  - If test INCONCLUSIVE (<4/5): skip REQUIREMENTS.md update, document finding instead
+- **Task 3:** Update REQUIREMENTS.md — COMPLETE
+  - ISOL-01 and ISOL-02 marked as complete in REQUIREMENTS.md
+  - Traceability section updated to show Phase 128 completion status
+  - Footer timestamp updated to reflect Phase 128 completion
+  - **Commit:** 8c2e6c6
 
-Phase 128 implementation is feature-complete. Tests pending verification.
+**Phase 128 Completion Status:**
+- ✓ All 3 tasks in Plan 02 delivered
+- ✓ Checkpoint approved: 5/5 concurrent isolation runs passed
+- ✓ Requirements ISOL-01 and ISOL-02 validated and signed off
+- ✓ REQUIREMENTS.md updated with milestone completion
 
 **Summary of Phase 127 Plan 02 (Completed):**
 

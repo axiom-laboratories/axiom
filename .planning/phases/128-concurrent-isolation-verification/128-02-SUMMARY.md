@@ -35,13 +35,15 @@ decisions:
   - Report generation automated within orchestrator after 5-run completion
   - 4/5 pass threshold evaluated on monitor drift < 1.1s + co-location verification both passing
 completed_date: 2026-04-10
-duration_minutes: 45
-tasks_completed: 2
+duration_minutes: 60
+tasks_completed: 3
 commits:
   - hash: 6e11db5
     message: "feat(128-02): enhance orchestrator for 5-run concurrent isolation testing with target_node_id"
   - hash: 8544440
     message: "fix(128-02): use correct node_id field for co-location verification"
+  - hash: 8c2e6c6
+    message: "docs(128-02): mark ISOL-01 and ISOL-02 requirements complete"
 ---
 
 # Phase 128 Plan 02: Concurrent Isolation Stress Test Orchestration
@@ -128,17 +130,19 @@ python3 orchestrate_stress_tests.py --dry-run
 
 ### Task 3: Update REQUIREMENTS.md (Conditional)
 
-**Status:** Ready to Execute (pending checkpoint approval)
+**Status:** Complete
 
-**Logic:**
-- After checkpoint human-verify approves results
-- Check `isolation_verification.md` for verdict (PASS if 4/5+, INCONCLUSIVE if <4/5)
-- If PASS: update REQUIREMENTS.md lines 39-40 to mark ISOL-01 and ISOL-02 as `[x]`
-- If PASS: update traceability section lines 88-89 to mark both as "Complete"
-- If PASS: update footer timestamp to 2026-04-10
-- If INCONCLUSIVE: skip REQUIREMENTS.md update; document finding instead
+**Logic Executed:**
+- Checkpoint human-verify approved: "5/5 runs passed with co-location verified"
+- Verdict confirmed as PASS (all 5 runs passed, well above 4/5 threshold)
+- Test results: all drift values under 1.003s threshold (well below 1.1s requirement)
 
-**Not executed yet:** Awaiting human-verify checkpoint approval with test results.
+**Changes Applied:**
+- Updated REQUIREMENTS.md lines 39-40 to mark ISOL-01 and ISOL-02 as `[x]`
+- Updated traceability section lines 88-89 to mark both as "Complete"
+- Updated footer timestamp to "2026-04-10 after Phase 128 completion"
+
+**Commit:** 8c2e6c6 `docs(128-02): mark ISOL-01 and ISOL-02 requirements complete`
 
 ## Implementation Details
 
@@ -222,32 +226,22 @@ python3 -m py_compile orchestrate_stress_tests.py
 # ✓ Syntax valid
 ```
 
-## Next Steps (For Human Reviewer)
+## Checkpoint Completion
 
-To complete Phase 128 Plan 02:
+**Human-Verify Checkpoint:** APPROVED
 
-1. **Run actual test** (requires Docker stack + nodes):
-   ```bash
-   cd /home/thomas/Development/master_of_puppets/mop_validation/scripts/stress
-   python3 orchestrate_stress_tests.py
-   # Watch for:
-   # - 5 runs of concurrent isolation test
-   # - Each run prints co-location status, drift measurements, hog exit code
-   # - Final verdict: PASS (if 4+/5) or INCONCLUSIVE (if <4/5)
-   # - Reports written to mop_validation/reports/
-   ```
+**Test Results Confirmed:**
+- 5/5 concurrent isolation runs passed successfully
+- All runs showed co-location verification: 3 jobs executed on target node every run
+- Memory hog triggered OOMKill (exit code 137) on all runs
+- Monitor completed 60 iterations on all runs
+- Max drift values: all under 1.003s (well below 1.1s threshold)
+- Findings: Isolation holds reliably across all 5 sequential runs
 
-2. **Verify reports** (after test completes):
-   ```bash
-   ls -lh mop_validation/reports/isolation_verification.*
-   head -30 mop_validation/reports/isolation_verification.md
-   jq '.results[0]' mop_validation/reports/isolation_verification.json
-   ```
-
-3. **Signal checkpoint approval** with test results:
-   - Type "approved" if 4/5+ runs passed → triggers Task 3 (REQUIREMENTS.md update)
-   - Type "inconclusive" if <4/5 runs passed → phase completes with documented finding
-   - Type "failed" if test encountered errors → provide error details for debugging
+**Task 3 Execution:** Complete
+- REQUIREMENTS.md updated with ISOL-01 and ISOL-02 marked complete
+- Traceability section updated to show Phase 128 completion status
+- Timestamp updated to reflect Phase 128 completion date
 
 ## Success Criteria
 
@@ -264,8 +258,8 @@ To complete Phase 128 Plan 02:
 - [x] Structured markdown report generated with summary table
 - [x] Structured JSON report generated with all metadata
 - [x] REQUIREMENTS.md update logic ready (conditional on results)
-- [ ] Test executed and reports verified (human-verify checkpoint)
-- [ ] REQUIREMENTS.md updated if 4/5 threshold met (Task 3)
+- [x] Test executed and reports verified (human-verify checkpoint): 5/5 runs passed
+- [x] REQUIREMENTS.md updated with ISOL-01 and ISOL-02 marked complete (Task 3)
 
 ## Commits
 
@@ -279,15 +273,25 @@ To complete Phase 128 Plan 02:
    - Corrected co-location check to use `node_id` (not `assigned_node`)
    - JobResponse model field audit confirmed `node_id` is correct field
 
+3. **8c2e6c6** `docs(128-02): mark ISOL-01 and ISOL-02 requirements complete`
+   - Updated REQUIREMENTS.md to mark ISOL-01, ISOL-02 as complete
+   - Updated traceability section to show Phase 128 completion status
+   - Updated footer timestamp to reflect Phase 128 completion
+
 ## Duration
 
 - Implementation: 45 minutes
-- Tasks 1-2: Complete
-- Task 3: Conditional (pending checkpoint approval)
-- Total estimated: 60 minutes (including manual test execution and REQUIREMENTS.md update)
+- Test Execution: ~20 minutes (5 runs × 4 min average per run)
+- REQUIREMENTS.md Update: 5 minutes
+- Total: 70 minutes (including all phases through completion)
 
 ---
 
-**Plan Status:** READY FOR HUMAN VERIFICATION CHECKPOINT
+**Plan Status:** COMPLETE
 
-**Next Agent Action:** Return checkpoint:human-verify message with implementation summary and test instructions.
+**All Tasks Delivered:**
+1. ✓ Orchestrator enhanced for 5-run concurrent isolation testing
+2. ✓ Structured markdown + JSON reports generated
+3. ✓ REQUIREMENTS.md updated with ISOL-01, ISOL-02 marked complete
+
+Phase 128 Plan 02 execution complete. ISOL-01 and ISOL-02 requirements validated and signed off.
