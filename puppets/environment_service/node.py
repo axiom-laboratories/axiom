@@ -11,6 +11,7 @@ import threading
 import psutil
 import time
 import logging
+import traceback
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa, padding as asym_padding
@@ -616,24 +617,35 @@ class Node:
         try:
             # mTLS Client
             async with httpx.AsyncClient(
-                verify=VERIFY_SSL, 
+                verify=VERIFY_SSL,
                 cert=(self.cert_file, self.key_file)
             ) as client:
                 secret_hash = get_node_secret_hash()
                 headers = {
-                    API_KEY_NAME: API_KEY, 
+                    API_KEY_NAME: API_KEY,
                     "X-Node-ID": self.node_id,
                     "X-Node-Secret-Hash": secret_hash,
                     "X-Machine-ID": get_machine_id()
                 }
+                # DEBUG: Log poll attempt
+                # print(f"[{self.node_id}] DEBUG: Polling /work/pull...")
                 resp = await client.post(f"{self.agent_url}/work/pull", headers=headers, timeout=10.0)
                 if resp.status_code == 200:
-                    data = resp.json()
-                    if data:
-                        return data 
-                elif resp.status_code != 200:
-                     # Only log errors
-                     pass
+                    try:
+                        data = resp.json()
+                        if data:
+                            job = data.get("job")
+                            if job:
+                                guid = job.get("guid", "unknown")
+                                print(f"[{self.node_id}] Got job: {guid}")
+                                return data
+                            else:
+                                # No job available, just config update
+                                pass
+                    except Exception as json_err:
+                        print(f"[{self.node_id}] Failed to parse JSON response: {json_err}, response={resp.text[:200]}")
+                else:
+                    print(f"[{self.node_id}] /work/pull returned {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
             print(f"[{self.node_id}] Error polling Agent: {e}")
         return None
@@ -712,6 +724,10 @@ class Node:
             # The signature field contains the base64-encoded signature (from API);
             # signature_payload is metadata (what was signed) used by the API for verification
             signature = payload.get("signature")
+            signature_id = payload.get("signature_id")  # NEW: ID of the signing key
+
+            print(f"[{self.node_id}] DEBUG Job {guid}: signature={signature!r} (type={type(signature).__name__}, len={len(signature) if signature else 0})")
+            print(f"[{self.node_id}] DEBUG Job {guid}: signature_id={signature_id}, script length={len(script) if script else 0}, payload keys={list(payload.keys())}")
 
             if not script or not signature:
                 await self.report_result(guid, False, {"error": "Missing script or signature"}, security_rejected=True)
@@ -722,9 +738,15 @@ class Node:
             # The signer on Windows must also normalize before signing for this to match.
             script_for_verify = script.replace('\r\n', '\n').replace('\r', '\n')
 
-            # Verify Signature — identical path to previous python_script branch
+            # Verify Signature: All job signatures from the server are countersigned with the
+            # server's private key. Nodes verify using the server's public key (verification.key),
+            # not the user's registered signature key (signature_id). The signature_id registry
+            # is for audit/registration only, not job execution verification.
+            public_key = None
+
+            # Load the server's verification key (always, for all jobs)
             if not os.path.exists(self.verify_key_path):
-                print(f"[{self.node_id}] ❌ CRITICAL: Verification Key missing. Cannot verify signature.")
+                print(f"[{self.node_id}] ❌ CRITICAL: Cannot verify signature - verification key missing.")
                 await self.report_result(guid, False, {"error": "Security Check Failed: Verification Key missing"}, security_rejected=True)
                 return
 
@@ -732,12 +754,21 @@ class Node:
                 with open(self.verify_key_path, "rb") as f:
                     public_key_bytes = f.read()
                     public_key = serialization.load_pem_public_key(public_key_bytes)
+                    print(f"[{self.node_id}] DEBUG Job {guid}: Using server verification key")
+            except Exception as e:
+                print(f"[{self.node_id}] ❌ Failed to load verification key: {e}")
+                await self.report_result(guid, False, {"error": "Security Check Failed: Cannot load verification key"}, security_rejected=True)
+                return
 
+            try:
+                print(f"[{self.node_id}] DEBUG Job {guid}: Attempting base64 decode of signature length {len(signature)}")
                 sig_bytes = base64.b64decode(signature)
+                print(f"[{self.node_id}] DEBUG Job {guid}: Decoded signature bytes length: {len(sig_bytes)}")
                 public_key.verify(sig_bytes, script_for_verify.encode('utf-8'))
                 print(f"[{self.node_id}] ✅ Signature Verified for Job {guid}")
             except Exception as e:
-                print(f"[{self.node_id}] ❌ Signature Verification FAILED for Job {guid}: {e}")
+                print(f"[{self.node_id}] ❌ Signature Verification FAILED for Job {guid}: {e} (type={type(e).__name__})")
+                print(f"[{self.node_id}] DEBUG Exception traceback: {traceback.format_exc()}")
                 await self.report_result(guid, False, {"error": "Signature Verification Failed"}, security_rejected=True)
                 return
 
