@@ -243,6 +243,9 @@ class MopClient:
             payload_dict = {
                 "script_content": script_content,
                 "signature": signature,
+                "env_vars": {
+                    "AXIOM_CAPABILITIES": "resource_limits_supported"
+                }
             }
 
             # If signature_id is registered, include it along with signature_payload

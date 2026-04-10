@@ -789,6 +789,9 @@ class Node:
                 "KRB5CCNAME": krb_ccname if krb_ccname else ""
             }
             env.update(secrets)
+            # Add custom environment variables from payload (e.g., AXIOM_CAPABILITIES for stress tests)
+            if "env_vars" in payload and isinstance(payload["env_vars"], dict):
+                env.update(payload["env_vars"])
 
             mounts = []
             # Only mount if it's a file path
