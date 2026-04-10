@@ -21,6 +21,7 @@ class JobCreate(BaseModel):
     created_by: Optional[str] = None    # SRCH-03: submitter username
     memory_limit: Optional[str] = None  # e.g., "512m", "1g", "1Gi"
     cpu_limit: Optional[str] = None     # e.g., "2", "0.5"
+    target_node_id: Optional[str] = None  # Explicit node targeting
 
     @field_validator("env_tag", mode="before")
     @classmethod

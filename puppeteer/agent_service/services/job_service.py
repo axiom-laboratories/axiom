@@ -557,6 +557,7 @@ class JobService:
             created_at=datetime.utcnow(),
             name=getattr(job_req, 'name', None),        # SRCH-04: optional job name label
             created_by=getattr(job_req, 'created_by', None),  # SRCH-03: submitter username
+            target_node_id=getattr(job_req, 'target_node_id', None),
         )
         
         # SEC-02: Stamp HMAC tag on signature_payload before persisting
@@ -796,6 +797,8 @@ class JobService:
             return PollResponse(job=None, env_tag=current_env_tag)
         
         # 3. Find highest priority PENDING or eligible RETRYING job matching criteria
+        # target_node_id enforcement: jobs with target_node_id set are only visible
+        # to the targeted node; jobs without target_node_id are visible to all nodes.
         result = await db.execute(
             select(Job).where(
                 or_(
@@ -807,6 +810,8 @@ class JobService:
                 )
             ).where(
                 (Job.node_id == None) | (Job.node_id == node_id)
+            ).where(
+                (Job.target_node_id == None) | (Job.target_node_id == node_id)
             ).order_by(Job.created_at.asc()).limit(50)
         )
         jobs = result.scalars().all()
