@@ -709,8 +709,9 @@ class Node:
             runtime = payload.get("runtime", "python")
             script = payload.get("script_content")
             secrets = payload.get("secrets", {})
-            # Accept both "signature_payload" (current API field name) and legacy "signature"
-            signature = payload.get("signature_payload") or payload.get("signature")
+            # The signature field contains the base64-encoded signature (from API);
+            # signature_payload is metadata (what was signed) used by the API for verification
+            signature = payload.get("signature")
 
             if not script or not signature:
                 await self.report_result(guid, False, {"error": "Missing script or signature"}, security_rejected=True)

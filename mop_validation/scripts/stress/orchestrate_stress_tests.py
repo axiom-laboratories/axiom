@@ -373,7 +373,7 @@ def filter_nodes_by_runtime(
     for node in all_nodes:
         node_id = node.get("id", node.get("node_id", "unknown"))
         execution_mode = node.get("execution_mode")  # Can be None
-        cgroup_version = node.get("cgroup_version")  # Can be None
+        cgroup_version = node.get("detected_cgroup_version", node.get("cgroup_version"))  # API returns detected_cgroup_version
         status = node.get("status", "")
 
         # Skip OFFLINE or REVOKED nodes — can't run tests on them
