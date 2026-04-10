@@ -103,7 +103,9 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 03: Podman validation and signature verification fix (2 tasks complete)
   - [x] Plan 04: Deploy live nodes and execute stress tests (3 tasks complete, 2026-04-10)
   - [x] Plan 05: Stress test execution and final validation report (3 tasks complete, 2026-04-10)
-- [ ] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings
+- [ ] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings (2 plans)
+  - [ ] Plan 01: Nodes.tsx cgroup badges + degradation banner (2 tasks)
+  - [ ] Plan 02: Admin.tsx System Health tab + cgroup compatibility card (2 tasks)
 - [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
 
 Archive: `.planning/milestones/v20.0-ROADMAP.md`
@@ -132,8 +134,8 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 123. Cgroup Detection Backend | v20.0 | 1/1 | Complete | 2026-04-08 |
 | 124. Ephemeral Execution Guarantee | v20.0 | 4/4 | Complete | 2026-04-08 |
 | 125. Stress Test Corpus | v20.0 | 4/4 | Complete | 2026-04-08 |
-| 126. Limit Enforcement Validation | v20.0 | Complete    | 2026-04-10 | 2026-04-10 |
-| 127. Cgroup Dashboard & Monitoring | v20.0 | 0/? | Not started | — |
+| 126. Limit Enforcement Validation | v20.0 | 5/5 | Complete | 2026-04-10 |
+| 127. Cgroup Dashboard & Monitoring | v20.0 | 0/2 | Planned | — |
 | 128. Concurrent Isolation Verification | v20.0 | 0/? | Not started | — |
 
 ## Archived
