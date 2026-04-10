@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 2
+current_plan: 2 of 2
 status: in-progress
-last_updated: "2026-04-10T16:36:00.000Z"
-last_activity: 2026-04-10 — Completed 127-01 (2 tasks; cgroup badges & degradation banner; 26/26 tests pass)
+last_updated: "2026-04-10T16:40:00.000Z"
+last_activity: 2026-04-10 — Completed 127-02 (2 tasks; System Health tab with cgroup fleet summary; 8/8 tests pass)
 progress:
   total_phases: 48
-  completed_phases: 45
+  completed_phases: 46
   total_plans: 134
-  completed_plans: 144
+  completed_plans: 145
 ---
 
 # Project State
@@ -26,11 +26,31 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 127 (Cgroup Dashboard & Monitoring) — IN PROGRESS
-Current Plan: 2 of 2 (READY TO START)
+Phase: 127 (Cgroup Dashboard & Monitoring) — COMPLETE
+Current Plan: 2 of 2 (COMPLETE)
 Total Plans: 2
 Plan: 01 (Cgroup Dashboard Badges and Degradation Warnings) — COMPLETE
-Plan: 02 (Admin System Health Tab) — QUEUED
+Plan: 02 (Admin System Health Tab) — COMPLETE
+
+**Summary of Phase 127 Plan 02 (Completed):**
+
+**Plan 02: Admin System Health Tab**
+- **Task 1:** Write unit tests for cgroup fleet summary calculation functions — COMPLETE
+  - 8 new test cases added to `Admin.test.tsx` (RED state)
+  - Tests cover getCgroupSegmentCounts (mixed versions, offline filtering, revoked filtering, null handling, edge cases)
+  - Tests cover calculateSegmentPercentages (correct percentages, single node, zero nodes edge cases)
+  - **Commit:** e8d263f
+
+- **Task 2:** Implement System Health tab with cgroup compatibility card — COMPLETE
+  - Added `detected_cgroup_version?: string | null` field support in Node interface
+  - Implemented two exported helper functions: getCgroupSegmentCounts, calculateSegmentPercentages
+  - Added System Health tab trigger in Admin.tsx TabsList (peer with Licence, Data, Mirrors tabs)
+  - Implemented Cgroup Compatibility card with stacked-bar visualization (4 segments: v2/v1/unsupported/unknown)
+  - Color scheme: emerald v2, amber v1, red unsupported, gray unknown (matches CONTEXT.md spec)
+  - Added legend grid showing count + percentage for each version
+  - Edge case handling: "No online nodes" message, only counts ONLINE status nodes
+  - All 8 tests pass, linting passes, no TypeScript errors
+  - **Commit:** c58e499
 
 **Summary of Phase 127 Plan 01 (Completed):**
 
@@ -49,9 +69,11 @@ Plan: 02 (Admin System Health Tab) — QUEUED
   - Lint passes, no TypeScript errors
   - **Commit:** 1f92ff7
 
-**Next Plan: 02 (Admin System Health Tab)** — will reuse helper functions to add System Health tab in Admin.tsx with fleet-wide cgroup distribution bar chart
+**Phase 127 Complete:** Both plans delivered:
+- Plan 01: Cgroup badges + degradation banner (complete)
+- Plan 02: System Health tab (complete)
 
-Last activity: 2026-04-10 — Executed 127-01 (2 tasks complete; cgroup badges & degradation banner; 26/26 tests pass; 25 min runtime)
+Last activity: 2026-04-10 — Executed 127-02 (2 tasks complete; System Health tab with cgroup fleet summary; 8/8 tests pass; 2 min runtime)
 
 ## Performance Metrics
 
@@ -160,16 +182,16 @@ Last activity: 2026-04-10 — Executed 127-01 (2 tasks complete; cgroup badges &
 
 ## Session Continuity
 
-**For next planning session (Phase 120):**
-1. Confirm v20.0-ROADMAP.md loaded (`.planning/milestones/v20.0-ROADMAP.md`)
-2. Read REQUIREMENTS.md traceability table (updated with phase mappings)
-3. Start Phase 120 with `/gsd:plan-phase 120`
-4. Phase 120 should focus on: migration_v14.sql, Job table columns, Pydantic models (JobCreate, JobResponse, WorkResponse)
+**For next planning session (Phase 128 - Concurrent Isolation Verification):**
+1. Confirm Phase 127 complete (both plans delivered: cgroup badges + System Health tab)
+2. Phase 128 is the final phase in v20.0 roadmap
+3. Phase 128 depends on: Phase 125 (Stress-Test Corpus) and Phase 126 (Limit Enforcement Validation)
+4. Phase 128 focuses on: Memory isolation + latency drift verification for concurrent jobs
 
 **Handoff checklist:**
-- [x] ROADMAP.md updated with v20.0 entry
-- [x] v20.0-ROADMAP.md created with full phase details
-- [x] STATE.md updated with v20.0 metadata
-- [ ] REQUIREMENTS.md traceability table updated with phase assignments (next step)
-- [ ] Phase 120 planning begins (after REQUIREMENTS.md update)
+- [x] Phase 127 complete (2 plans: cgroup badges + System Health tab)
+- [x] STATE.md updated with Phase 127 completion
+- [x] ROADMAP.md to be updated with plan progress (127-02)
+- [ ] REQUIREMENTS.md CGRP-04 to be marked complete
+- [ ] Phase 128 planning begins (final phase in v20.0)
 

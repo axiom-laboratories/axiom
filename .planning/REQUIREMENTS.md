@@ -11,8 +11,8 @@ Requirements for Node Capacity & Isolation Validation milestone. Each maps to ro
 
 - [ ] **CGRP-01**: Node detects cgroup v1 vs v2 vs unsupported at startup
 - [ ] **CGRP-02**: Node reports cgroup version in heartbeat to orchestrator
-- [ ] **CGRP-03**: Dashboard shows cgroup version badge per node in Nodes view
-- [ ] **CGRP-04**: Operator warned when node has degraded cgroup support (v1 or unsupported)
+- [x] **CGRP-03**: Dashboard shows cgroup version badge per node in Nodes view
+- [x] **CGRP-04**: Operator warned when node has degraded cgroup support (v1 or unsupported)
 
 ### Stress-Test Corpus
 
@@ -72,8 +72,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | CGRP-01 | 123 | Pending |
 | CGRP-02 | 123 | Pending |
-| CGRP-03 | 127 | Pending |
-| CGRP-04 | 127 | Pending |
+| CGRP-03 | 127 | Complete |
+| CGRP-04 | 127 | Complete |
 | STRS-01 | 125 | Pending |
 | STRS-02 | 125 | Pending |
 | STRS-03 | 125 | Pending |
