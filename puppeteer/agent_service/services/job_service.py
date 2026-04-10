@@ -1341,7 +1341,7 @@ class JobService:
         record.attestation_verified = attestation_status
         db.add(record)
 
-        # Update job — keep result as minimal summary only (no stdout/stderr)
+        # Update job — include stdout/stderr in result for orchestrator clients
         if not report.success and not report.security_rejected:
             error_info = report.error_details or {}
             flight_report = {
@@ -1352,9 +1352,9 @@ class JobService:
                 "stack_trace": error_info.get("stack_trace"),
                 "analysis": "Automated Flight Recorder: Job failed during node execution."
             }
-            job.result = json.dumps({"flight_recorder": flight_report})
+            job.result = json.dumps({"flight_recorder": flight_report, "stdout": stdout_text, "stderr": stderr_text})
         else:
-            job.result = json.dumps({"exit_code": report.exit_code})
+            job.result = json.dumps({"exit_code": report.exit_code, "stdout": stdout_text, "stderr": stderr_text})
 
         # Retry classification (only for genuine failures, not security rejections)
         if new_status == "FAILED":
