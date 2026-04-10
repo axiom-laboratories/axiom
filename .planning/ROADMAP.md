@@ -141,7 +141,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 125. Stress Test Corpus | v20.0 | 4/4 | Complete | 2026-04-08 |
 | 126. Limit Enforcement Validation | v20.0 | 5/5 | Complete | 2026-04-10 |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 2/2 | Complete | 2026-04-10 |
-| 128. Concurrent Isolation Verification | v20.0 | 2/2 | Complete | 2026-04-10 |
+| 128. Concurrent Isolation Verification | v20.0 | Complete    | 2026-04-10 | 2026-04-10 |
 
 ## Archived
 
