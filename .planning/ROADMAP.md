@@ -107,6 +107,8 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 01: Nodes.tsx cgroup badges + degradation banner (2 tasks, completed 2026-04-10)
   - [x] Plan 02: Admin.tsx System Health tab + cgroup compatibility card (2 tasks, completed 2026-04-10)
 - [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
+  - [x] Plan 01: Create noisy_monitor.py (Python sleep drift monitor)
+  - [ ] Plan 02: Orchestrator 5-run test with target_node_id and reports
 
 ### Phase 128: Concurrent Isolation Verification
 **Goal:** Verify that memory limits and CPU constraints are properly enforced when multiple jobs run concurrently on the same node, and that isolation prevents one job from affecting another's resource allocation or execution latency.
