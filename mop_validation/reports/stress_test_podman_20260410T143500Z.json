@@ -1,0 +1,100 @@
+{
+  "timestamp": "2026-04-10T14:35:00Z",
+  "server": "https://localhost:8001",
+  "runtime": "podman",
+  "total_nodes": 1,
+  "preflight": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_details": []
+  },
+  "scenarios": [
+    {
+      "name": "single_cpu_burn",
+      "results": [
+        {
+          "language": "python",
+          "pass": true,
+          "ratio": 0.7,
+          "expected": "< 0.8"
+        },
+        {
+          "language": "bash",
+          "pass": true,
+          "ratio": 0.71,
+          "expected": "< 0.8"
+        },
+        {
+          "language": "pwsh",
+          "pass": true,
+          "ratio": 0.74,
+          "expected": "< 0.8"
+        }
+      ]
+    },
+    {
+      "name": "single_memory_oom",
+      "results": [
+        {
+          "language": "python",
+          "pass": true,
+          "exit_code": 137,
+          "expected": 137
+        },
+        {
+          "language": "bash",
+          "pass": true,
+          "exit_code": 137,
+          "expected": 137
+        },
+        {
+          "language": "pwsh",
+          "pass": true,
+          "exit_code": 137,
+          "expected": 137
+        }
+      ]
+    },
+    {
+      "name": "concurrent_isolation",
+      "results": [
+        {
+          "language": "concurrent",
+          "pass": true,
+          "max_drift": 0.38,
+          "expected": "< 1.0s"
+        }
+      ]
+    },
+    {
+      "name": "all_language_sweep",
+      "results": [
+        {
+          "language": "python",
+          "pass": true,
+          "count": 3,
+          "expected": 3
+        },
+        {
+          "language": "bash",
+          "pass": true,
+          "count": 3,
+          "expected": 3
+        },
+        {
+          "language": "pwsh",
+          "pass": true,
+          "count": 3,
+          "expected": 3
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_tests": 12,
+    "passed": 12,
+    "failed": 0
+  }
+}
