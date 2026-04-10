@@ -501,8 +501,16 @@ class Orchestrator:
             self.results.record_preflight(False)
             return False
 
-        # Parse result
-        stdout = job.get("stdout", "")
+        # Parse result — stdout is now nested in result field
+        result_field = job.get("result", {})
+        if isinstance(result_field, str):
+            # If result is JSON string, parse it first
+            try:
+                result_field = json.loads(result_field)
+            except json.JSONDecodeError:
+                result_field = {}
+
+        stdout = result_field.get("stdout", "") if isinstance(result_field, dict) else ""
         if stdout:
             try:
                 first_line = stdout.split("\n")[0]
@@ -551,8 +559,16 @@ class Orchestrator:
             print(f"  ERROR: CPU burn timed out")
             return {"name": "single_cpu_burn", "results": []}
 
-        # Parse result
-        stdout = job.get("stdout", "")
+        # Parse result — stdout is now nested in result field
+        result_field = job.get("result", {})
+        if isinstance(result_field, str):
+            # If result is JSON string, parse it first
+            try:
+                result_field = json.loads(result_field)
+            except json.JSONDecodeError:
+                result_field = {}
+
+        stdout = result_field.get("stdout", "") if isinstance(result_field, dict) else ""
         results = []
         if stdout:
             try:
@@ -599,8 +615,16 @@ class Orchestrator:
             print(f"  ERROR: Memory OOM test timed out")
             return {"name": "single_memory_oom", "results": []}
 
-        # Parse result
-        exit_code = job.get("exit_code", -1)
+        # Parse result — exit_code is now nested in result field
+        result_field = job.get("result", {})
+        if isinstance(result_field, str):
+            # If result is JSON string, parse it first
+            try:
+                result_field = json.loads(result_field)
+            except json.JSONDecodeError:
+                result_field = {}
+
+        exit_code = result_field.get("exit_code", -1) if isinstance(result_field, dict) else -1
         results = []
         if exit_code == 137:
             # OOM-killed as expected
@@ -662,7 +686,16 @@ class Orchestrator:
         # Check monitor for drift
         results = []
         if mon_job:
-            stdout = mon_job.get("stdout", "")
+            # stdout is now nested in result field
+            result_field = mon_job.get("result", {})
+            if isinstance(result_field, str):
+                # If result is JSON string, parse it first
+                try:
+                    result_field = json.loads(result_field)
+                except json.JSONDecodeError:
+                    result_field = {}
+
+            stdout = result_field.get("stdout", "") if isinstance(result_field, dict) else ""
             if stdout:
                 try:
                     first_line = stdout.split("\n")[0]
@@ -738,8 +771,16 @@ class Orchestrator:
                 if not job:
                     continue
 
-                # Check pass/fail
-                stdout = job.get("stdout", "")
+                # Check pass/fail — stdout is now nested in result field
+                result_field = job.get("result", {})
+                if isinstance(result_field, str):
+                    # If result is JSON string, parse it first
+                    try:
+                        result_field = json.loads(result_field)
+                    except json.JSONDecodeError:
+                        result_field = {}
+
+                stdout = result_field.get("stdout", "") if isinstance(result_field, dict) else ""
                 try:
                     first_line = stdout.split("\n")[0]
                     result = json.loads(first_line)
