@@ -188,3 +188,196 @@ describe('Nodes View — ENVTAG-03', () => {
         });
     });
 });
+
+// ── CGRP-03/CGRP-04: Cgroup badge and degradation banner ─────────────────────────
+
+import {
+    getCgroupBadgeClass,
+    getCgroupTooltip,
+    getCgroupDisplayText,
+} from '../Nodes';
+
+describe('Cgroup Badge and Degradation Banner Logic', () => {
+    describe('getCgroupBadgeClass', () => {
+        it('CGRP-03: returns emerald classes for v2', () => {
+            const result = getCgroupBadgeClass('v2');
+            expect(result).toBe('bg-emerald-500/10 text-emerald-500 border-emerald-500/20');
+        });
+
+        it('CGRP-03: returns amber classes for v1', () => {
+            const result = getCgroupBadgeClass('v1');
+            expect(result).toBe('bg-amber-500/10 text-amber-500 border-amber-500/20');
+        });
+
+        it('CGRP-03: returns red classes for unsupported', () => {
+            const result = getCgroupBadgeClass('unsupported');
+            expect(result).toBe('bg-red-500/10 text-red-500 border-red-500/20');
+        });
+
+        it('CGRP-03: returns muted classes for null', () => {
+            const result = getCgroupBadgeClass(null);
+            expect(result).toBe('bg-muted text-muted-foreground border-muted');
+        });
+
+        it('CGRP-03: returns muted classes for undefined', () => {
+            const result = getCgroupBadgeClass(undefined);
+            expect(result).toBe('bg-muted text-muted-foreground border-muted');
+        });
+    });
+
+    describe('getCgroupTooltip', () => {
+        it('CGRP-03: returns v2 tooltip text', () => {
+            const result = getCgroupTooltip('v2');
+            expect(result).toBe(
+                'Cgroup v2 — Full resource isolation. Memory and CPU limits fully enforced.'
+            );
+        });
+
+        it('CGRP-03: returns v1 tooltip text', () => {
+            const result = getCgroupTooltip('v1');
+            expect(result).toBe(
+                'Cgroup v1 (Degraded) — Memory limits supported. CPU enforcement may be limited. Upgrade to v2 recommended.'
+            );
+        });
+
+        it('CGRP-03: returns unsupported tooltip text', () => {
+            const result = getCgroupTooltip('unsupported');
+            expect(result).toBe(
+                'No cgroup support detected. Resource limits cannot be enforced. Jobs run without isolation.'
+            );
+        });
+
+        it('CGRP-03: returns unknown tooltip text for null', () => {
+            const result = getCgroupTooltip(null);
+            expect(result).toBe(
+                'Cgroup status not reported. Node may be running an older version.'
+            );
+        });
+
+        it('CGRP-03: returns unknown tooltip text for undefined', () => {
+            const result = getCgroupTooltip(undefined);
+            expect(result).toBe(
+                'Cgroup status not reported. Node may be running an older version.'
+            );
+        });
+    });
+
+    describe('getCgroupDisplayText', () => {
+        it('CGRP-03: returns v2 for v2', () => {
+            const result = getCgroupDisplayText('v2');
+            expect(result).toBe('v2');
+        });
+
+        it('CGRP-03: returns v1 for v1', () => {
+            const result = getCgroupDisplayText('v1');
+            expect(result).toBe('v1');
+        });
+
+        it('CGRP-03: returns unsupported for unsupported', () => {
+            const result = getCgroupDisplayText('unsupported');
+            expect(result).toBe('unsupported');
+        });
+
+        it('CGRP-03: returns unknown for null', () => {
+            const result = getCgroupDisplayText(null);
+            expect(result).toBe('unknown');
+        });
+
+        it('CGRP-03: returns unknown for undefined', () => {
+            const result = getCgroupDisplayText(undefined);
+            expect(result).toBe('unknown');
+        });
+    });
+
+    describe('Degradation Banner Logic — CGRP-04', () => {
+        it('CGRP-04: shows banner when online nodes include v1', () => {
+            const nodes = [
+                { node_id: '1', status: 'ONLINE', detected_cgroup_version: 'v1' } as any,
+                { node_id: '2', status: 'ONLINE', detected_cgroup_version: 'v2' } as any,
+            ];
+            const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+            const degradedNodes = onlineNodes.filter(
+                n => n.detected_cgroup_version && n.detected_cgroup_version !== 'v2'
+            );
+            expect(degradedNodes.length).toBeGreaterThan(0);
+        });
+
+        it('CGRP-04: shows banner when online nodes include unsupported', () => {
+            const nodes = [
+                {
+                    node_id: '1',
+                    status: 'ONLINE',
+                    detected_cgroup_version: 'unsupported',
+                } as any,
+                { node_id: '2', status: 'ONLINE', detected_cgroup_version: 'v2' } as any,
+            ];
+            const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+            const degradedNodes = onlineNodes.filter(
+                n => n.detected_cgroup_version && n.detected_cgroup_version !== 'v2'
+            );
+            expect(degradedNodes.length).toBeGreaterThan(0);
+        });
+
+        it('CGRP-04: hides banner when all online nodes are v2', () => {
+            const nodes = [
+                { node_id: '1', status: 'ONLINE', detected_cgroup_version: 'v2' } as any,
+                { node_id: '2', status: 'ONLINE', detected_cgroup_version: 'v2' } as any,
+            ];
+            const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+            const degradedNodes = onlineNodes.filter(
+                n => n.detected_cgroup_version && n.detected_cgroup_version !== 'v2'
+            );
+            expect(degradedNodes.length).toBe(0);
+        });
+
+        it('CGRP-04: excludes offline nodes from degraded count', () => {
+            const nodes = [
+                { node_id: '1', status: 'OFFLINE', detected_cgroup_version: 'v1' } as any,
+                { node_id: '2', status: 'ONLINE', detected_cgroup_version: 'v2' } as any,
+            ];
+            const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+            const degradedNodes = onlineNodes.filter(
+                n => n.detected_cgroup_version && n.detected_cgroup_version !== 'v2'
+            );
+            expect(degradedNodes.length).toBe(0);
+        });
+
+        it('CGRP-04: excludes revoked nodes from degraded count', () => {
+            const nodes = [
+                { node_id: '1', status: 'REVOKED', detected_cgroup_version: 'v1' } as any,
+                { node_id: '2', status: 'ONLINE', detected_cgroup_version: 'v2' } as any,
+            ];
+            const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+            const degradedNodes = onlineNodes.filter(
+                n => n.detected_cgroup_version && n.detected_cgroup_version !== 'v2'
+            );
+            expect(degradedNodes.length).toBe(0);
+        });
+
+        it('CGRP-04: counts v1 and unsupported separately', () => {
+            const nodes = [
+                { node_id: '1', status: 'ONLINE', detected_cgroup_version: 'v1' } as any,
+                { node_id: '2', status: 'ONLINE', detected_cgroup_version: 'v1' } as any,
+                {
+                    node_id: '3',
+                    status: 'ONLINE',
+                    detected_cgroup_version: 'unsupported',
+                } as any,
+                { node_id: '4', status: 'ONLINE', detected_cgroup_version: 'v2' } as any,
+            ];
+            const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+            const degradedNodes = onlineNodes.filter(
+                n => n.detected_cgroup_version && n.detected_cgroup_version !== 'v2'
+            );
+            const v1Count = degradedNodes.filter(
+                n => n.detected_cgroup_version === 'v1'
+            ).length;
+            const unsupportedCount = degradedNodes.filter(
+                n => n.detected_cgroup_version === 'unsupported'
+            ).length;
+            expect(v1Count).toBe(2);
+            expect(unsupportedCount).toBe(1);
+            expect(degradedNodes.length).toBe(3);
+        });
+    });
+});
