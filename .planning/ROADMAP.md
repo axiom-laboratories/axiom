@@ -22,7 +22,7 @@
 - ✅ **v17.0 — Scale Hardening** — Phases 96–100 (shipped 2026-03-31)
 - ✅ **v18.0 — First-User Experience & E2E Validation** — Phases 101–106 (shipped 2026-04-01)
 - ✅ **v19.0 — Foundry Improvements** — Phases 107–114, 116–119 (shipped 2026-04-05)
-- **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (in progress)
+- ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 
 ## Phases
 
@@ -106,9 +106,9 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings (2 plans completed 2026-04-10)
   - [x] Plan 01: Nodes.tsx cgroup badges + degradation banner (2 tasks, completed 2026-04-10)
   - [x] Plan 02: Admin.tsx System Health tab + cgroup compatibility card (2 tasks, completed 2026-04-10)
-- [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
-  - [x] Plan 01: Create noisy_monitor.py (Python sleep drift monitor)
-  - [ ] Plan 02: Orchestrator 5-run test with target_node_id and reports
+- [x] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
+  - [x] Plan 01: Create noisy_monitor.py (Python sleep drift monitor) — completed 2026-04-10
+  - [x] Plan 02: Orchestrator 5-run test with target_node_id and reports — completed 2026-04-10
 
 ### Phase 128: Concurrent Isolation Verification
 **Goal:** Verify that memory limits and CPU constraints are properly enforced when multiple jobs run concurrently on the same node, and that isolation prevents one job from affecting another's resource allocation or execution latency.
@@ -141,7 +141,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 125. Stress Test Corpus | v20.0 | 4/4 | Complete | 2026-04-08 |
 | 126. Limit Enforcement Validation | v20.0 | 5/5 | Complete | 2026-04-10 |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 2/2 | Complete | 2026-04-10 |
-| 128. Concurrent Isolation Verification | v20.0 | 1/2 | In progress | — |
+| 128. Concurrent Isolation Verification | v20.0 | 2/2 | Complete | 2026-04-10 |
 
 ## Archived
 
