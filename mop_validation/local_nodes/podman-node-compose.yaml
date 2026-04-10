@@ -13,7 +13,7 @@ services:
     extra_hosts:
       - "host.docker.internal:172.17.0.1"
     environment:
-      - AGENT_URL=https://host.docker.internal:8001
+      - AGENT_URL=https://puppeteer-agent-1:8001
       - VERIFY_SSL=false
       - API_KEY=master-secret-key
       - NODE_TAGS=podman-test,validation
@@ -27,6 +27,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - podman_secrets:/app/secrets
     privileged: true
+    networks:
+      - puppeteer_default
 
 volumes:
   podman_secrets:
+
+networks:
+  puppeteer_default:
+    external: true
