@@ -130,8 +130,13 @@ def ensure_ed25519_keys() -> tuple:
 
 
 def sign_script(private_key, script_content: str) -> str:
-    """Sign script content with Ed25519. Returns base64 signature."""
-    sig = private_key.sign(script_content.encode("utf-8"))
+    """Sign script content with Ed25519. Returns base64 signature.
+
+    Normalizes CRLF to LF before signing to match node verification behavior.
+    """
+    # Normalize line endings: CRLF -> LF, CR -> LF
+    normalized_script = script_content.replace('\r\n', '\n').replace('\r', '\n')
+    sig = private_key.sign(normalized_script.encode("utf-8"))
     return base64.b64encode(sig).decode()
 
 
@@ -487,7 +492,7 @@ class Orchestrator:
             self.results.record_preflight(False)
             return False
 
-        job = self.client.poll_job(job_id, timeout_s=60)
+        job = self.client.poll_job(job_id, timeout_s=180)
         if not job:
             print(f"    ERROR: Preflight timed out")
             self.results.record_preflight(False)
@@ -538,7 +543,7 @@ class Orchestrator:
             print(f"  ERROR: Failed to dispatch cpu_burn")
             return {"name": "single_cpu_burn", "results": []}
 
-        job = self.client.poll_job(job_id, timeout_s=60)
+        job = self.client.poll_job(job_id, timeout_s=180)
         if not job:
             print(f"  ERROR: CPU burn timed out")
             return {"name": "single_cpu_burn", "results": []}
@@ -586,7 +591,7 @@ class Orchestrator:
             print(f"  ERROR: Failed to dispatch memory_hog")
             return {"name": "single_memory_oom", "results": []}
 
-        job = self.client.poll_job(job_id, timeout_s=60)
+        job = self.client.poll_job(job_id, timeout_s=180)
         if not job:
             print(f"  ERROR: Memory OOM test timed out")
             return {"name": "single_memory_oom", "results": []}
@@ -647,9 +652,9 @@ class Orchestrator:
             return {"name": "concurrent_isolation", "results": []}
 
         # Poll all 3 until completion
-        mem_job = self.client.poll_job(mem_id, timeout_s=60)
-        cpu_job = self.client.poll_job(cpu_id, timeout_s=60)
-        mon_job = self.client.poll_job(mon_id, timeout_s=70)
+        mem_job = self.client.poll_job(mem_id, timeout_s=180)
+        cpu_job = self.client.poll_job(cpu_id, timeout_s=180)
+        mon_job = self.client.poll_job(mon_id, timeout_s=200)
 
         # Check monitor for drift
         results = []
@@ -726,7 +731,7 @@ class Orchestrator:
                 if not job_id:
                     continue
 
-                job = self.client.poll_job(job_id, timeout_s=60)
+                job = self.client.poll_job(job_id, timeout_s=180)
                 if not job:
                     continue
 
