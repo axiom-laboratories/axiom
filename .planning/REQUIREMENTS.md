@@ -36,8 +36,8 @@ Requirements for Node Capacity & Isolation Validation milestone. Each maps to ro
 
 ### Concurrent Isolation
 
-- [ ] **ISOL-01**: Two concurrent jobs on same node — memory hog does not starve neighbour
-- [ ] **ISOL-02**: Control monitor detects latency spikes below threshold (<1.1s sleep drift)
+- [x] **ISOL-01**: Two concurrent jobs on same node — memory hog does not starve neighbour
+- [x] **ISOL-02**: Control monitor detects latency spikes below threshold (<1.1s sleep drift)
 
 ## Future Requirements
 
@@ -85,8 +85,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ENFC-04 | 126 | Complete |
 | EPHR-01 | 122, 124 | Pending |
 | EPHR-02 | 124 | Pending |
-| ISOL-01 | 128 | Pending |
-| ISOL-02 | 128 | Pending |
+| ISOL-01 | 128 | Complete |
+| ISOL-02 | 128 | Complete |
 
 **Coverage:**
 - v20.0 requirements: 17 total
@@ -96,4 +96,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 ---
 
 *Requirements defined: 2026-04-06*
-*Last updated: 2026-04-10 after Phase 126 completion*
+*Last updated: 2026-04-10 after Phase 128 completion*
