@@ -83,6 +83,7 @@ interface Node {
     job_memory_limit?: string;
     stats_history?: StatPoint[];
     env_tag?: string;
+    detected_cgroup_version?: string | null;
 }
 
 interface NodeDetail {
@@ -141,6 +142,28 @@ const getEnvTagBadgeClass = (tag: string): string => {
         default:
             return 'bg-muted text-foreground border-muted';
     }
+};
+
+export const getCgroupBadgeClass = (version: string | null | undefined): string => {
+    switch (version) {
+        case 'v2': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+        case 'v1': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+        case 'unsupported': return 'bg-red-500/10 text-red-500 border-red-500/20';
+        default: return 'bg-muted text-muted-foreground border-muted';
+    }
+};
+
+export const getCgroupTooltip = (version: string | null | undefined): string => {
+    switch (version) {
+        case 'v2': return 'Cgroup v2 — Full resource isolation. Memory and CPU limits fully enforced.';
+        case 'v1': return 'Cgroup v1 (Degraded) — Memory limits supported. CPU enforcement may be limited. Upgrade to v2 recommended.';
+        case 'unsupported': return 'No cgroup support detected. Resource limits cannot be enforced. Jobs run without isolation.';
+        default: return 'Cgroup status not reported. Node may be running an older version.';
+    }
+};
+
+export const getCgroupDisplayText = (version: string | null | undefined): string => {
+    return version || 'unknown';
 };
 
 const StatsSparkline = ({ history }: { history: StatPoint[] }) => {
@@ -392,6 +415,14 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
                         {node.env_tag && (
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getEnvTagBadgeClass(node.env_tag)}`}>
                                 {node.env_tag.toUpperCase()}
+                            </span>
+                        )}
+                        {node.detected_cgroup_version && (
+                            <span
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getCgroupBadgeClass(node.detected_cgroup_version)}`}
+                                title={getCgroupTooltip(node.detected_cgroup_version)}
+                            >
+                                {getCgroupDisplayText(node.detected_cgroup_version)}
                             </span>
                         )}
                     </CardTitle>
@@ -683,6 +714,26 @@ const Nodes = () => {
                     </Select>
                 </div>
             )}
+
+            {(() => {
+                const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+                const degradedNodes = onlineNodes.filter(
+                    n => n.detected_cgroup_version && n.detected_cgroup_version !== 'v2'
+                );
+                const v1Count = degradedNodes.filter(n => n.detected_cgroup_version === 'v1').length;
+                const unsupportedCount = degradedNodes.filter(n => n.detected_cgroup_version === 'unsupported').length;
+
+                return degradedNodes.length > 0 ? (
+                    <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-amber-700">
+                            <strong>{degradedNodes.length} of {onlineNodes.length} nodes have degraded cgroup support</strong>
+                            {v1Count > 0 && <div className="text-xs mt-1">• {v1Count} node{v1Count !== 1 ? 's' : ''} running cgroup v1 (limited enforcement)</div>}
+                            {unsupportedCount > 0 && <div className="text-xs mt-1">• {unsupportedCount} node{unsupportedCount !== 1 ? 's' : ''} with unsupported cgroups (no enforcement)</div>}
+                        </div>
+                    </div>
+                ) : null;
+            })()}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {isLoading ? (
