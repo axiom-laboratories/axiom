@@ -132,7 +132,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 123. Cgroup Detection Backend | v20.0 | 1/1 | Complete | 2026-04-08 |
 | 124. Ephemeral Execution Guarantee | v20.0 | 4/4 | Complete | 2026-04-08 |
 | 125. Stress Test Corpus | v20.0 | 4/4 | Complete | 2026-04-08 |
-| 126. Limit Enforcement Validation | v20.0 | 5/5 | Complete | 2026-04-10 |
+| 126. Limit Enforcement Validation | v20.0 | Complete    | 2026-04-10 | 2026-04-10 |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 0/? | Not started | — |
 | 128. Concurrent Isolation Verification | v20.0 | 0/? | Not started | — |
 
