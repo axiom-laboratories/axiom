@@ -721,11 +721,11 @@ class Orchestrator:
             cpu_job = self.client.poll_job(cpu_id, timeout_s=180)
             mon_job = self.client.poll_job(mon_id, timeout_s=200)
 
-            # Verify co-location (assigned_node must match target)
+            # Verify co-location (node_id must match target)
             co_located = True
             for job_result, job_name in [(mem_job, "memory_hog"), (cpu_job, "cpu_burn"), (mon_job, "monitor")]:
                 if job_result:
-                    assigned_node = job_result.get('assigned_node')
+                    assigned_node = job_result.get('node_id')
                     if assigned_node != target_node['node_id']:
                         print(f"    WARNING: {job_name} assigned to {assigned_node}, not {target_node['node_id']}")
                         co_located = False
