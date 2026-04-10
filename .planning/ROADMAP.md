@@ -108,6 +108,9 @@ See `.planning/milestones/` for detailed archive of each milestone.
   - [x] Plan 02: Admin.tsx System Health tab + cgroup compatibility card (2 tasks, completed 2026-04-10)
 - [ ] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
 
+### Phase 128: Concurrent Isolation Verification
+**Goal:** Verify that memory limits and CPU constraints are properly enforced when multiple jobs run concurrently on the same node, and that isolation prevents one job from affecting another's resource allocation or execution latency.
+
 Archive: `.planning/milestones/v20.0-ROADMAP.md`
 
 </details>
