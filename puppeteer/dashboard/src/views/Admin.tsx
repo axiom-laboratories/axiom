@@ -106,6 +106,77 @@ const STATUS_LABEL: Record<string, string> = {
     valid: 'Active', grace: 'Grace Period', expired: 'Expired', ce: 'Community',
 };
 
+// --- Phase 127 Plan 02: Cgroup Fleet Summary Helper Functions ---
+
+interface CgroupSegmentCounts {
+    v2: number;
+    v1: number;
+    unsupported: number;
+    unknown: number;
+}
+
+interface CgroupSegmentPercentages {
+    v2: number;
+    v1: number;
+    unsupported: number;
+    unknown: number;
+}
+
+interface NodeForCgroup {
+    node_id: string;
+    status: string;
+    detected_cgroup_version?: string | null;
+}
+
+/**
+ * Count online nodes by cgroup version.
+ * Excludes offline, revoked, and other non-online nodes.
+ * Counts null/undefined versions as 'unknown'.
+ */
+export const getCgroupSegmentCounts = (nodes: NodeForCgroup[]): CgroupSegmentCounts => {
+    const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+
+    const counts: CgroupSegmentCounts = {
+        v2: 0,
+        v1: 0,
+        unsupported: 0,
+        unknown: 0,
+    };
+
+    for (const node of onlineNodes) {
+        const version = node.detected_cgroup_version;
+        if (version === 'v2') {
+            counts.v2++;
+        } else if (version === 'v1') {
+            counts.v1++;
+        } else if (version === 'unsupported') {
+            counts.unsupported++;
+        } else {
+            // null, undefined, or any other value counts as unknown
+            counts.unknown++;
+        }
+    }
+
+    return counts;
+};
+
+/**
+ * Convert cgroup segment counts to percentages (0-100).
+ * Handles zero total gracefully (all percentages become NaN or 0).
+ */
+export const calculateSegmentPercentages = (counts: CgroupSegmentCounts, total: number): CgroupSegmentPercentages => {
+    if (total === 0) {
+        return { v2: 0, v1: 0, unsupported: 0, unknown: 0 };
+    }
+
+    return {
+        v2: (counts.v2 / total) * 100,
+        v1: (counts.v1 / total) * 100,
+        unsupported: (counts.unsupported / total) * 100,
+        unknown: (counts.unknown / total) * 100,
+    };
+};
+
 const LicenceSection = () => {
     const licence = useLicence();
     const { isEnterprise, status, tier, days_until_expiry, node_limit, customer_id } = licence;
@@ -1602,6 +1673,18 @@ const Admin = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
+    // Fetch nodes for System Health tab
+    const { data: nodes = [] } = useQuery({
+        queryKey: ['nodes'],
+        queryFn: async () => {
+            const res = await authenticatedFetch('/nodes');
+            if (!res.ok) throw new Error('Failed to fetch nodes');
+            const data = await res.json();
+            // Handle both paginated and bare array responses
+            return Array.isArray(data) ? data : (data.items || []);
+        },
+    });
+
     // Tab scroll state
     const tabsRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -1761,6 +1844,7 @@ const Admin = () => {
                     {!isEnterprise && (
                         <TabsTrigger value="enterprise" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">+ Enterprise</TabsTrigger>
                     )}
+                    <TabsTrigger value="system-health" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">System Health</TabsTrigger>
                     <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Licence</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Data</TabsTrigger>
                     {features.foundry && (
@@ -1890,6 +1974,100 @@ const Admin = () => {
                             </CardContent>
                         </Card>
                     </div>
+                </TabsContent>
+
+                {/* System Health Tab - Fleet-wide Cgroup Monitoring (Phase 127) */}
+                <TabsContent value="system-health" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Cgroup Compatibility</CardTitle>
+                            <CardDescription>Fleet-wide cgroup version support across online nodes</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {(() => {
+                                const onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+                                if (onlineNodes.length === 0) {
+                                    return <p className="text-sm text-muted-foreground">No online nodes</p>;
+                                }
+
+                                const counts = getCgroupSegmentCounts(onlineNodes);
+                                const total = onlineNodes.length;
+                                const percentages = calculateSegmentPercentages(counts, total);
+
+                                return (
+                                    <div className="space-y-3">
+                                        {/* Stacked bar visualization */}
+                                        <div className="flex h-8 w-full rounded-lg overflow-hidden border border-muted">
+                                            {/* v2 segment */}
+                                            {counts.v2 > 0 && (
+                                                <div
+                                                    className="bg-emerald-500/10 flex items-center justify-center"
+                                                    style={{ width: `${percentages.v2}%` }}
+                                                >
+                                                    <span className="text-[10px] font-bold text-emerald-500 px-1 truncate">
+                                                        {counts.v2} {counts.v2 === 1 ? 'node' : 'nodes'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {/* v1 segment */}
+                                            {counts.v1 > 0 && (
+                                                <div
+                                                    className="bg-amber-500/10 flex items-center justify-center"
+                                                    style={{ width: `${percentages.v1}%` }}
+                                                >
+                                                    <span className="text-[10px] font-bold text-amber-500 px-1 truncate">
+                                                        {counts.v1} {counts.v1 === 1 ? 'node' : 'nodes'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {/* unsupported segment */}
+                                            {counts.unsupported > 0 && (
+                                                <div
+                                                    className="bg-red-500/10 flex items-center justify-center"
+                                                    style={{ width: `${percentages.unsupported}%` }}
+                                                >
+                                                    <span className="text-[10px] font-bold text-red-500 px-1 truncate">
+                                                        {counts.unsupported} {counts.unsupported === 1 ? 'node' : 'nodes'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {/* unknown segment */}
+                                            {counts.unknown > 0 && (
+                                                <div
+                                                    className="bg-muted flex items-center justify-center"
+                                                    style={{ width: `${percentages.unknown}%` }}
+                                                >
+                                                    <span className="text-[10px] font-bold text-muted-foreground px-1 truncate">
+                                                        {counts.unknown} unknown
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Legend with counts and percentages */}
+                                        <div className="grid grid-cols-4 gap-2 text-xs">
+                                            <div>
+                                                <span className="font-bold text-emerald-500">v2</span>
+                                                <div className="text-muted-foreground">{counts.v2} ({Math.round(percentages.v2)}%)</div>
+                                            </div>
+                                            <div>
+                                                <span className="font-bold text-amber-500">v1</span>
+                                                <div className="text-muted-foreground">{counts.v1} ({Math.round(percentages.v1)}%)</div>
+                                            </div>
+                                            <div>
+                                                <span className="font-bold text-red-500">Unsupported</span>
+                                                <div className="text-muted-foreground">{counts.unsupported} ({Math.round(percentages.unsupported)}%)</div>
+                                            </div>
+                                            <div>
+                                                <span className="font-bold text-muted-foreground">Unknown</span>
+                                                <div className="text-muted-foreground">{counts.unknown} ({Math.round(percentages.unknown)}%)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 {features.foundry && (
