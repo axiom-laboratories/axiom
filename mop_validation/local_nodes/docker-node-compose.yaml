@@ -1,0 +1,38 @@
+version: "3"
+
+# Node Docker — Docker-based test node for dual-runtime validation
+# Tests resource limit enforcement on Docker
+# Mounts Docker socket for nested container execution
+
+services:
+  puppet-docker:
+    image: localhost/master-of-puppets-node:latest
+    container_name: puppet-docker
+    hostname: puppet-docker
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
+    environment:
+      - AGENT_URL=https://puppeteer-agent-1:8001
+      - VERIFY_SSL=false
+      - API_KEY=master-secret-key
+      - NODE_TAGS=docker-test,validation
+      - JOIN_TOKEN=${JOIN_TOKEN_DOCKER}
+      - ENV_TAG=VALIDATION
+      - EXECUTION_MODE=docker
+      - JOB_IMAGE=docker.io/library/python:3.12-slim
+      - HEARTBEAT_INTERVAL=5
+      - REGISTRATION_TIMEOUT=30
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - docker_secrets:/app/secrets
+    privileged: true
+    networks:
+      - puppeteer_default
+
+volumes:
+  docker_secrets:
+
+networks:
+  puppeteer_default:
+    external: true
