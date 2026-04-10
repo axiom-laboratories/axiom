@@ -2161,11 +2161,13 @@
 <p>See <a href="../../feature-guides/foundry/#blueprints">Foundry → Blueprints</a> for the full blueprint format reference.</p>
 <hr />
 <h3 id="node-container-fails-to-run-jobs-runtimeerror-no-container-runtime-found">Node container fails to run jobs — RuntimeError: No container runtime found</h3>
-<p>When an Axiom Node runs inside a Docker container (for example, a Foundry-built image deployed via Docker Compose), <code>EXECUTION_MODE</code> must be set to <code>direct</code>. In <code>auto</code> mode, the node tries to spawn Podman or Docker sub-containers. Inside an existing Docker container, this fails due to cgroup v2 conflicts — neither Podman nor Docker is available in a standard Docker-in-Docker setup. <code>direct</code> mode executes job scripts as Python subprocesses within the node process, without a container wrapper.</p>
+<p>When an Axiom Node runs inside a Docker container (for example, a Foundry-built image deployed via Docker Compose), container runtime support is required. For Docker-in-Docker scenarios, mount the host Docker socket into the node container and use <code>EXECUTION_MODE=docker</code> or <code>EXECUTION_MODE=auto</code>. This allows the node to create ephemeral containers for job execution while staying isolated from the host.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># In node-compose.yaml environment section</span>
-<span class="nt">EXECUTION_MODE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">direct</span>
+<span class="nt">EXECUTION_MODE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker</span><span class="w">  </span><span class="c1"># or &#39;auto&#39;</span>
+<span class="nt">volumes</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span><span class="w">  </span><span class="c1"># Mount host Docker socket</span>
 </code></pre></div>
-<p>If the node image was built by Foundry and the build itself is the problem, see <a href="../foundry/#build-failures">Foundry Troubleshooting → Build Failures</a>.</p>
+<p>As of v20.0, <code>EXECUTION_MODE=direct</code> is no longer supported. All job code executes in ephemeral containers for security isolation. If the node image was built by Foundry and the build itself is the problem, see <a href="../foundry/#build-failures">Foundry Troubleshooting → Build Failures</a>.</p>
 <hr />
 <h3 id="node-fails-to-enroll-token-payload-missing-t-or-ca">Node fails to enroll — Token payload missing 't' or 'ca'</h3>
 <p>The <code>JOIN_TOKEN</code> is a base64-encoded JSON object — it is not a plain string or a JWT. It contains exactly two keys: <code>t</code> (the actual token) and <code>ca</code> (the Root CA PEM). A single trailing newline, a space, or a URL-encoding artefact in the value will corrupt the base64 decode and trigger the <code>Token payload missing 't' or 'ca'</code> error, aborting enrollment.</p>
