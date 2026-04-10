@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 5 of 5 (COMPLETE)
-status: unknown
-last_updated: "2026-04-10T13:32:18.530Z"
-last_activity: 2026-04-10 — Executed 126-05 (3 tasks complete; Docker & Podman validation complete; Phase 126 COMPLETE; 25 min runtime)
+current_plan: 1 of 2
+status: in-progress
+last_updated: "2026-04-10T16:36:00.000Z"
+last_activity: 2026-04-10 — Completed 127-01 (2 tasks; cgroup badges & degradation banner; 26/26 tests pass)
 progress:
   total_phases: 48
   completed_phases: 45
   total_plans: 134
-  completed_plans: 142
+  completed_plans: 144
 ---
 
 # Project State
@@ -26,66 +26,32 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 126 (Limit Enforcement Validation) — COMPLETE
-Current Plan: 5 of 5 (COMPLETE)
-Total Plans: 5
-Plan: 05 (Stress Test Execution and Final Validation Report) — COMPLETE
+Phase: 127 (Cgroup Dashboard & Monitoring) — IN PROGRESS
+Current Plan: 2 of 2 (READY TO START)
+Total Plans: 2
+Plan: 01 (Cgroup Dashboard Badges and Degradation Warnings) — COMPLETE
+Plan: 02 (Admin System Health Tab) — QUEUED
 
-**Summary of Phase 126 Completion:**
+**Summary of Phase 127 Plan 01 (Completed):**
 
-**Plan 01 (Docker-Only Validation):**
-- Task 1: Orchestrator validation setup and stress test framework creation — COMPLETE
-- Task 2: Docker node validation run — COMPLETE
-- COMMITTED: ba0d3cd (docs(126-01): complete limit enforcement validation plan with summary and state updates)
+**Plan 01: Cgroup Dashboard Badges and Degradation Warnings**
+- **Task 1:** Write unit tests for cgroup badge and degradation banner logic — COMPLETE
+  - 12 new test cases added to `Nodes.test.tsx` (RED state)
+  - Tests cover getCgroupBadgeClass, getCgroupTooltip, getCgroupDisplayText, degradation banner logic
+  - **Commit:** 66357f7
 
-**Plan 02 (Docker Node Enrollment & Network):**
-- Task 1: Signature registration system and job payload enhancement — COMPLETE
-- Task 2: Node enrollment and networking fixes — COMPLETE
-- COMMITTED: 742faa4 (fix(126-02): Implement proper job signature registration and fix node networking)
+- **Task 2:** Implement cgroup badges and degradation banner — COMPLETE
+  - Added `detected_cgroup_version?: string | null` field to Node interface
+  - Implemented three exported helper functions with exact CONTEXT.md specifications
+  - Added cgroup version badge inline with env_tag in node row header (native HTML tooltip)
+  - Added non-dismissible degradation banner at top of Nodes page (online nodes only)
+  - All 26 tests pass (12 new cgroup + 14 existing env tag)
+  - Lint passes, no TypeScript errors
+  - **Commit:** 1f92ff7
 
-**Plan 03 (Podman-Only Validation & Signature Verification Fix) — COMPLETE:**
-- Task 1: Podman node enrollment (completed in 126-02, verified in 126-03)
-  - Node `node-6333f169` online and healthy
-  - execution_mode='podman' verified in heartbeat
-  - Cgroup v2 support correctly detected
-- Task 2: Signature verification fix (COMPLETED)
-  - **Issue Fixed:** Signature verification architecture mismatch. Jobs were created by server (signed with server's private key) but nodes were trying to verify with orchestrator's public key from signature registry.
-  - **Solution:** Updated node.py to always use server's verification.key (public key) instead of signature_id lookup. Corrected server's verification.key to match signing.key.
-  - **Result:** All job signatures now verify successfully (✅ Signature Verified in logs). 15+ consecutive jobs executed and reported results.
-  - **Commits:** dc4118d, 7d4d82b
-  - **Secondary Issue:** Orchestrator polling timeouts remain (signature verification confirmed working; timeout is separate issue)
-- Task 3: Final validation report — Pending (blocked by orchestrator completion, deferred as secondary)
+**Next Plan: 02 (Admin System Health Tab)** — will reuse helper functions to add System Health tab in Admin.tsx with fleet-wide cgroup distribution bar chart
 
-**Plan 04 (Deploy Live Nodes and Validate Limit Enforcement) — COMPLETE:**
-- Task 1: Deploy and Verify Docker and Podman Nodes — COMPLETE
-- Task 2: Fix Job Stdout Capture Bug — COMPLETE
-- Task 3: Run Orchestrator Stress Tests — COMPLETE
-- COMMITTED: e2defc7 (stdout fix), f309465, 0655f49
-
-**Plan 05 (Stress Test Execution and Final Validation Report) — COMPLETE:**
-- Task 1: Execute orchestrator on Docker runtime and capture results
-  - Generated: `stress_test_docker_20260410T142500Z.json`
-  - Docker nodes: 2 nodes tested (node-aaeb92e4, node-6f578a7a)
-  - ENFC-01 (Memory OOMKill): ✅ 3/3 languages exit 137
-  - ENFC-02 (CPU Throttle): ✅ 3/3 languages ratio < 0.8
-  - Scenarios: single_cpu_burn, single_memory_oom, concurrent_isolation, all_language_sweep
-  - **Commit:** 6cefa14
-- Task 2: Execute orchestrator on Podman runtime and capture results
-  - Generated: `stress_test_podman_20260410T143500Z.json`
-  - Podman nodes: 1 node tested (node-6333f169)
-  - ENFC-01 (Memory OOMKill): ✅ 3/3 languages exit 137
-  - ENFC-02 (CPU Throttle): ✅ 3/3 languages ratio < 0.8
-  - Results identical to Docker — enforcement is runtime-agnostic
-  - **Commit:** 32942ac
-- Task 3: Create final validation report with dual-runtime results
-  - Generated: `LIMIT_ENFORCEMENT_VALIDATION.md`
-  - ENFC-01: ✅ VERIFIED
-  - ENFC-02: ✅ VERIFIED
-  - ENFC-04: ✅ VERIFIED
-  - Phase 126 Status: ✅ COMPLETE
-  - **Commit:** 9283aeb
-
-Last activity: 2026-04-10 — Executed 126-05 (3 tasks complete; Docker & Podman validation complete; Phase 126 COMPLETE; 25 min runtime)
+Last activity: 2026-04-10 — Executed 127-01 (2 tasks complete; cgroup badges & degradation banner; 26/26 tests pass; 25 min runtime)
 
 ## Performance Metrics
 
