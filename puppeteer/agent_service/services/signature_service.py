@@ -35,19 +35,13 @@ class SignatureService:
         await db.commit()
         await db.refresh(new_sig)
 
-        # Propagate the registered public key to the node-facing verification
-        # key file so that GET /verification-key serves it and nodes download
-        # it on their next poll cycle.
-        for key_path in _VERIFICATION_KEY_PATHS:
-            parent = os.path.dirname(key_path)
-            if os.path.isdir(parent):
-                try:
-                    with open(key_path, "w") as f:
-                        f.write(sig_req.public_key)
-                    logger.info(f"Updated node-facing verification key at {key_path}")
-                except OSError as e:
-                    logger.warning(f"Could not update verification key at {key_path}: {e}")
-                break
+        # NOTE: Do NOT update the node-facing verification key.
+        # The verification.key should always be the SERVER's public key (for verifying
+        # server-signed job scripts), not the registered signatures' public keys.
+        # Jobs are signed server-side with the server's private key, and nodes verify
+        # with the server's public key (fetched from GET /verification-key).
+        # The signature registry is for storing user-submitted signatures (for audit/registration),
+        # but the actual job script verification always uses the server's key pair.
 
         return new_sig
 

@@ -810,14 +810,19 @@ class JobService:
             ).order_by(Job.created_at.asc()).limit(50)
         )
         jobs = result.scalars().all()
-        
+
         selected_job = None
         node_tags = JobService._get_effective_tags(node) if node else []
         node_caps_dict = json.loads(node.capabilities) if node and node.capabilities else {}
 
-        for candidate in jobs:
+        import sys
+        print(f"[pull_work DEBUG] Node {node_id}: Found {len(jobs)} candidate jobs, node_tags={node_tags}, caps={list(node_caps_dict.keys())}", file=sys.stderr)
+
+        for i, candidate in enumerate(jobs):
             if not JobService._node_is_eligible(node, candidate, node_tags, node_caps_dict):
+                print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): INELIGIBLE (target_tags={candidate.target_tags}, env_tag={candidate.env_tag}, caps={candidate.capability_requirements})", file=sys.stderr)
                 continue
+            print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): ELIGIBLE", file=sys.stderr)
 
             # ENFC-03b: Check node capacity before assigning (fresh check at dispatch)
             if candidate.memory_limit:
@@ -825,13 +830,18 @@ class JobService:
                 job_bytes = parse_bytes(candidate.memory_limit)
                 if job_bytes > available_capacity:
                     # Job doesn't fit on this node — try next candidate
+                    print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): SKIP (capacity: need {job_bytes}, have {available_capacity})", file=sys.stderr)
                     continue
+                print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): Capacity OK ({job_bytes}/{available_capacity})", file=sys.stderr)
+            else:
+                print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): No memory limit", file=sys.stderr)
 
             if IS_POSTGRES:
                 # Two-phase lock: lock only the single chosen row to prevent double-assignment
                 # SKIP LOCKED means if another node grabbed it first, we try the next candidate
                 # Status filter guards against the race where Session A commits (releasing lock)
                 # before Session B's lock query runs — without it, B would re-lock an ASSIGNED row
+                print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): Attempting to lock (POSTGRES)", file=sys.stderr)
                 lock_result = await db.execute(
                     select(Job)
                     .where(Job.guid == candidate.guid)
@@ -840,10 +850,13 @@ class JobService:
                 )
                 locked_job = lock_result.scalar_one_or_none()
                 if locked_job is None:
+                    print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): SKIP (locked by another node)", file=sys.stderr)
                     continue  # Another node grabbed this job — try next candidate
+                print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): LOCKED, assigning", file=sys.stderr)
                 selected_job = locked_job
             else:
                 # SQLite: serialised writes provide equivalent correctness — no locking needed
+                print(f"[pull_work DEBUG]   Job {i} ({candidate.guid}): Selected (SQLite, no lock needed)", file=sys.stderr)
                 selected_job = candidate
             break
 
@@ -1224,9 +1237,10 @@ class JobService:
                 db.add(node)
 
         # Determine status
+        audit_after_commit = None
         if report.security_rejected:
             new_status = "SECURITY_REJECTED"
-            # SEC-01: Audit SECURITY_REJECTED with node attribution
+            # SEC-01: Audit SECURITY_REJECTED with node attribution (defer until after commit)
             _payload_data = {}
             try:
                 _payload_data = json.loads(job.payload) if job.payload else {}
@@ -1236,7 +1250,7 @@ class JobService:
             class _NodeActor:
                 username = job.node_id or "unknown-node"
 
-            audit(db, _NodeActor(), "security:rejected", resource_id=guid, detail={
+            audit_after_commit = (_NodeActor(), "security:rejected", guid, {
                 "script_hash": report.script_hash,
                 "job_id": guid,
                 "signature_id": _payload_data.get("signature_id"),
@@ -1384,6 +1398,11 @@ class JobService:
         # Store node_id before commit clears it on retry
         _reporting_node_id = job.node_id
         await db.commit()
+
+        # SEC-01: Perform deferred audit after commit to avoid transaction abort
+        if audit_after_commit:
+            user, action, resource_id, detail = audit_after_commit
+            audit(db, user, action, resource_id=resource_id, detail=detail)
 
         # VIS-04: DRAINING auto-transition — if the last ASSIGNED job on this node just completed,
         # transition the node to OFFLINE. Runs AFTER commit so the count sees updated state.

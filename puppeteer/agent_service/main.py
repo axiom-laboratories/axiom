@@ -1430,6 +1430,12 @@ async def get_job(guid: str, current_user: User = Depends(require_permission("jo
     payload = job.payload if isinstance(job.payload, dict) else json.loads(job.payload or '{}')
     result_val = job.result if isinstance(job.result, dict) else json.loads(job.result or 'null') if job.result else None
     target_tags = job.target_tags if isinstance(job.target_tags, list) else json.loads(job.target_tags or 'null') if job.target_tags else None
+
+    # Calculate duration_seconds from started_at and completed_at
+    duration = None
+    if job.started_at and job.completed_at:
+        duration = int((job.completed_at - job.started_at).total_seconds())
+
     return JobResponse(
         guid=job.guid,
         status=job.status,
@@ -1437,7 +1443,7 @@ async def get_job(guid: str, current_user: User = Depends(require_permission("jo
         result=result_val,
         node_id=job.node_id,
         started_at=job.started_at,
-        duration_seconds=job.duration_seconds,
+        duration_seconds=duration,
         target_tags=target_tags,
         task_type=job.task_type,
         display_type=getattr(job, 'display_type', None),
@@ -2206,6 +2212,15 @@ async def upload_signature(sig: SignatureCreate, current_user: User = Depends(re
 @app.get("/signatures", response_model=List[SignatureResponse], tags=["Signatures"])
 async def list_signatures(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     return await SignatureService.list_signatures(db)
+
+@app.get("/signatures/{id}", response_model=SignatureResponse, tags=["Signatures"])
+async def get_signature(id: str, db: AsyncSession = Depends(get_db)):
+    """Get a signature by ID. Unauthenticated (nodes need to fetch this for verification)."""
+    result = await db.execute(select(Signature).where(Signature.id == id))
+    sig = result.scalar_one_or_none()
+    if not sig:
+        raise HTTPException(status_code=404, detail="Signature not found")
+    return sig
 
 @app.delete("/signatures/{id}", tags=["Signatures"])
 async def delete_signature(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
