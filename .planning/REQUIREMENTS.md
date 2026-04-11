@@ -9,18 +9,18 @@ Requirements for Node Capacity & Isolation Validation milestone. Each maps to ro
 
 ### Cgroup Detection
 
-- [ ] **CGRP-01**: Node detects cgroup v1 vs v2 vs unsupported at startup
-- [ ] **CGRP-02**: Node reports cgroup version in heartbeat to orchestrator
+- [x] **CGRP-01**: Node detects cgroup v1 vs v2 vs unsupported at startup
+- [x] **CGRP-02**: Node reports cgroup version in heartbeat to orchestrator
 - [x] **CGRP-03**: Dashboard shows cgroup version badge per node in Nodes view
 - [x] **CGRP-04**: Operator warned when node has degraded cgroup support (v1 or unsupported)
 
 ### Stress-Test Corpus
 
-- [ ] **STRS-01**: CPU burner script in Python, Bash, and PowerShell
-- [ ] **STRS-02**: Memory hog script in Python, Bash, and PowerShell
-- [ ] **STRS-03**: Noisy-neighbour control monitor script in Python, Bash, and PowerShell
-- [ ] **STRS-04**: Pre-flight cgroup check script validates node environment before stress tests
-- [ ] **STRS-05**: Automated test orchestrator dispatches stress jobs via API and reports pass/fail
+- [x] **STRS-01**: CPU burner script in Python, Bash, and PowerShell
+- [x] **STRS-02**: Memory hog script in Python, Bash, and PowerShell
+- [x] **STRS-03**: Noisy-neighbour control monitor script in Python, Bash, and PowerShell
+- [x] **STRS-04**: Pre-flight cgroup check script validates node environment before stress tests
+- [x] **STRS-05**: Automated test orchestrator dispatches stress jobs via API and reports pass/fail
 
 ### Limit Enforcement
 
@@ -31,8 +31,8 @@ Requirements for Node Capacity & Isolation Validation milestone. Each maps to ro
 
 ### Ephemeral Container Guarantee
 
-- [ ] **EPHR-01**: All job code executes inside ephemeral containers, never directly on the node host
-- [ ] **EPHR-02**: EXECUTION_MODE=direct flagged as unsafe; operator warned or blocked in production
+- [x] **EPHR-01**: All job code executes inside ephemeral containers, never directly on the node host
+- [x] **EPHR-02**: EXECUTION_MODE=direct flagged as unsafe; operator warned or blocked in production
 
 ### Concurrent Isolation
 
@@ -70,21 +70,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CGRP-01 | 123 | Pending |
-| CGRP-02 | 123 | Pending |
+| CGRP-01 | 123 | Complete |
+| CGRP-02 | 123 | Complete |
 | CGRP-03 | 127 | Complete |
 | CGRP-04 | 127 | Complete |
-| STRS-01 | 125 | Pending |
-| STRS-02 | 125 | Pending |
-| STRS-03 | 125 | Pending |
-| STRS-04 | 125 | Pending |
-| STRS-05 | 125 | Pending |
+| STRS-01 | 125 | Complete |
+| STRS-02 | 125 | Complete |
+| STRS-03 | 125 | Complete |
+| STRS-04 | 125 | Complete |
+| STRS-05 | 125 | Complete |
 | ENFC-01 | 126 | Complete |
 | ENFC-02 | 126 | Complete |
 | ENFC-03 | 120, 121, 122 | Complete |
 | ENFC-04 | 126 | Complete |
-| EPHR-01 | 122, 124 | Pending |
-| EPHR-02 | 124 | Pending |
+| EPHR-01 | 122, 124 | Complete |
+| EPHR-02 | 124 | Complete |
 | ISOL-01 | 128 | Complete |
 | ISOL-02 | 128 | Complete |
 
@@ -96,4 +96,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 ---
 
 *Requirements defined: 2026-04-06*
-*Last updated: 2026-04-10 after Phase 128 completion*
+*Last updated: 2026-04-11 after integration verification completion*
