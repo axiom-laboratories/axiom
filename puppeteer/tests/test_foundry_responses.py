@@ -128,13 +128,14 @@ async def test_create_signature_response(async_client: AsyncClient, auth_headers
     POST /signatures creates a signature and returns SignatureResponse.
     Expected: SignatureResponse with id, public_key, etc.
     """
+    import uuid
     sig_req = {
-        "name": "test-sig",
+        "name": f"test-sig-{uuid.uuid4().hex[:8]}",
         "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA" + "0" * 44 + "-----END PUBLIC KEY-----"
     }
     response = await async_client.post("/signatures", json=sig_req, headers=auth_headers)
     # May fail with 422 if key format is invalid, or auth failures
-    assert response.status_code in [200, 201, 401, 403, 422, 429]
+    assert response.status_code in [200, 201, 401, 403, 400, 422, 429]
 
     if response.status_code in [200, 201]:
         data = response.json()

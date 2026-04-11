@@ -45,6 +45,7 @@ from .models import (
     LicenceReloadRequest, LicenceReloadResponse,
     SIGNING_FIELDS,
     PaginatedResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
+    DependencyTreeResponse, DiscoverDependenciesResponse,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets,
@@ -3070,6 +3071,7 @@ async def _build_tree_response(db, ingredient):
 
 @app.get(
     "/api/smelter/ingredients/{ingredient_id}/tree",
+    response_model=DependencyTreeResponse,
     tags=["Smelter"],
     summary="Get dependency tree with CVE information"
 )
@@ -3102,6 +3104,7 @@ async def get_dependency_tree(
 
 @app.post(
     "/api/smelter/ingredients/{ingredient_id}/discover",
+    response_model=DiscoverDependenciesResponse,
     tags=["Smelter"],
     summary="Discover and resolve transitive dependencies",
     status_code=200
