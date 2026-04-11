@@ -1863,9 +1863,8 @@ async def update_node_config(node_id: str, config: NodeUpdateRequest, current_us
     await db.commit()
     return {
         "status": "updated",
-        "node_id": node_id,
-        "tags": config.tags,
-        "env_tag": node.env_tag,
+        "resource_type": "node",
+        "resource_id": node_id,
     }
 
 @app.delete("/nodes/{node_id}", status_code=204, tags=["Nodes"], summary="Delete a node", description="Permanently delete a node and its associated metadata")
@@ -1927,7 +1926,7 @@ async def undrain_node(node_id: str, current_user: User = Depends(require_permis
     audit(db, current_user, "node:undrain", node_id)
     await db.commit()
     await ws_manager.broadcast("node:updated", {"node_id": node_id, "status": "ONLINE"})
-    return {"status": "ONLINE", "node_id": node_id}
+    return {"status": "enabled", "resource_type": "node", "resource_id": node_id, "message": "Node accepting jobs"}
 
 
 @app.post("/api/nodes/{node_id}/clear-tamper", response_model=ActionResponse, summary="Clear tamper flag", description="Reset a node from TAMPERED to ONLINE after forensic review", tags=["Nodes"])
@@ -1940,14 +1939,14 @@ async def clear_node_tamper(node_id: str, current_user: User = Depends(require_a
         raise HTTPException(status_code=404, detail="Node not found")
     
     if node.status != "TAMPERED":
-        return {"status": "skipped", "message": "Node is not in tampered state"}
-        
+        raise HTTPException(status_code=409, detail="Node is not in tampered state")
+
     node.status = "ONLINE"
     node.tamper_details = None
     await db.commit()
-    
+
     audit(db, current_user, "node:clear_tamper", node_id)
-    return {"status": "cleared", "node_id": node_id}
+    return {"status": "approved", "resource_type": "node", "resource_id": node_id}
 
 @app.post("/nodes/{node_id}/reinstate", response_model=ActionResponse, summary="Reinstate a revoked node", description="Transition a REVOKED node back to OFFLINE status for re-enrollment", tags=["Nodes"])
 async def reinstate_node(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
@@ -1960,7 +1959,7 @@ async def reinstate_node(node_id: str, current_user: User = Depends(require_auth
     node.status = "OFFLINE"
     audit(db, current_user, "node:reinstate", node_id)
     await db.commit()
-    return {"status": "reinstated", "node_id": node_id}
+    return {"status": "approved", "resource_type": "node", "resource_id": node_id}
 
 @app.post("/auth/register", response_model=RegisterResponse, tags=["Authentication"])
 async def register_node(req: RegisterRequest, db: AsyncSession = Depends(get_db)):

@@ -155,12 +155,14 @@ async def test_revoke_node_action(async_client):
         # Try validating as ActionResponse
         action = ActionResponse(**data)
         assert action.status == "revoked"
+        assert action.resource_type == "node"
+        assert action.resource_id == "test-node"
 
 
 @pytest.mark.asyncio
 async def test_drain_node_action(async_client):
     """
-    Snapshot test: PATCH /nodes/{node_id}/drain returns ActionResponse with status="DRAINING".
+    Snapshot test: PATCH /nodes/{node_id}/drain returns ActionResponse with status="enabled".
     RED: Tests that drain returns correct action response.
     """
     token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
@@ -172,15 +174,16 @@ async def test_drain_node_action(async_client):
     # Verify response structure when available
     if response.status_code == 200:
         data = response.json()
-        assert isinstance(data, dict)
-        assert "status" in data
-        assert data["status"] == "DRAINING" or data.get("status") == "DRAINING"
+        action = ActionResponse(**data)
+        assert action.status == "enabled"
+        assert action.resource_type == "node"
+        assert action.resource_id == "test-node"
 
 
 @pytest.mark.asyncio
 async def test_undrain_node_action(async_client):
     """
-    Snapshot test: PATCH /nodes/{node_id}/undrain returns ActionResponse with status="ONLINE".
+    Snapshot test: PATCH /nodes/{node_id}/undrain returns ActionResponse with status="enabled".
     RED: Tests that undrain returns correct action response.
     """
     token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
@@ -192,14 +195,16 @@ async def test_undrain_node_action(async_client):
     # Verify response structure when available
     if response.status_code == 200:
         data = response.json()
-        assert isinstance(data, dict)
-        assert "status" in data
+        action = ActionResponse(**data)
+        assert action.status == "enabled"
+        assert action.resource_type == "node"
+        assert action.resource_id == "test-node"
 
 
 @pytest.mark.asyncio
 async def test_clear_tamper_action(async_client):
     """
-    Snapshot test: POST /api/nodes/{node_id}/clear-tamper returns ActionResponse with status="cleared".
+    Snapshot test: POST /api/nodes/{node_id}/clear-tamper returns ActionResponse with status="approved".
     RED: Tests that clear-tamper returns correct action response.
     """
     token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
@@ -211,14 +216,16 @@ async def test_clear_tamper_action(async_client):
     # Verify response structure when available
     if response.status_code == 200:
         data = response.json()
-        assert isinstance(data, dict)
-        assert "status" in data
+        action = ActionResponse(**data)
+        assert action.status == "approved"
+        assert action.resource_type == "node"
+        assert action.resource_id == "test-node"
 
 
 @pytest.mark.asyncio
 async def test_reinstate_node_action(async_client):
     """
-    Snapshot test: POST /nodes/{node_id}/reinstate returns ActionResponse with status="reinstated".
+    Snapshot test: POST /nodes/{node_id}/reinstate returns ActionResponse with status="approved".
     RED: Tests that reinstate returns correct action response.
     """
     token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
@@ -230,5 +237,7 @@ async def test_reinstate_node_action(async_client):
     # Verify response structure when available
     if response.status_code == 200:
         data = response.json()
-        assert isinstance(data, dict)
-        assert "status" in data
+        action = ActionResponse(**data)
+        assert action.status == "approved"
+        assert action.resource_type == "node"
+        assert action.resource_id == "test-node"
