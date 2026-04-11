@@ -27,7 +27,7 @@ from contextlib import asynccontextmanager
 from .models import (
     JobCreate, RegisterRequest, RegisterResponse, JobResponse, WorkResponse,
     ResultReport, TokenResponse, HeartbeatPayload, PollResponse, NodeUpdateRequest,
-    NodeResponse, SignatureCreate, SignatureResponse, JobDefinitionCreate, JobDefinitionUpdate,
+    NodeResponse, SignatureCreate, SignatureResponse, UserResponse, JobDefinitionCreate, JobDefinitionUpdate,
     JobDefinitionResponse, JobPushRequest, PingRequest, NetworkMount, MountsConfig,
     UploadKeyRequest,
     EnrollmentTokenCreate,
@@ -39,6 +39,8 @@ from .models import (
     DispatchRequest, DispatchResponse, DispatchStatusResponse,
     BulkJobActionRequest, BulkActionResponse, BulkDiagnosisRequest,
     SchedulingHealthResponse, DefinitionHealthRow, ScaleHealthResponse,
+    SystemHealthResponse, FeaturesResponse, LicenceStatusResponse,
+    DeviceCodeResponse, EnrollmentTokenResponse,
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
     LicenceReloadRequest, LicenceReloadResponse,
     SIGNING_FIELDS,
@@ -773,7 +775,7 @@ def _generate_user_code() -> str:
     p2 = "".join(_secrets.choice(_USER_CODE_ALPHABET) for _ in range(4))
     return f"{p1}-{p2}"
 
-@app.post("/auth/device", tags=["Authentication"])
+@app.post("/auth/device", response_model=DeviceCodeResponse, tags=["Authentication"])
 async def device_authorization():
     """RFC 8628 Device Authorization Request — issues device_code and user_code."""
     now = datetime.utcnow()
@@ -811,7 +813,7 @@ class DeviceTokenRequest(BaseModel):
     device_code: str
     grant_type: str = "urn:ietf:params:oauth:grant-type:device_code"
 
-@app.post("/auth/device/token", tags=["Authentication"])
+@app.post("/auth/device/token", response_model=TokenResponse, tags=["Authentication"])
 async def device_token_exchange(req: DeviceTokenRequest, db: AsyncSession = Depends(get_db)):
     """RFC 8628 Device Access Token Request — exchange device_code for JWT."""
     entry = _device_codes.get(req.device_code)
@@ -854,7 +856,7 @@ async def device_token_exchange(req: DeviceTokenRequest, db: AsyncSession = Depe
 
     audit(db, user, "device_flow:token_issued", None, {"username": user.username})
     await db.commit()
-    return {"access_token": token, "token_type": "bearer"}
+    return TokenResponse(access_token=token, token_type="bearer", must_change_password=user.must_change_password)
 
 @app.get("/auth/device/approve", response_class=HTMLResponse, tags=["Authentication"])
 async def device_approve_page(user_code: str = ""):
@@ -995,11 +997,11 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
     )
     return {"access_token": access_token, "token_type": "bearer", "must_change_password": user.must_change_password}
 
-@app.get("/auth/me", tags=["Authentication"])
+@app.get("/auth/me", response_model=UserResponse, tags=["Authentication"])
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {"username": current_user.username}
+    return UserResponse(id=current_user.id, username=current_user.username, role=current_user.role, created_at=current_user.created_at)
 
-@app.patch("/auth/me", tags=["Authentication"])
+@app.patch("/auth/me", response_model=TokenResponse, tags=["Authentication"])
 async def update_self(req: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Allow a logged-in user to change their own password.
     Returns a fresh access token so the current session continues uninterrupted."""
@@ -1021,7 +1023,7 @@ async def update_self(req: dict, current_user: User = Depends(get_current_user),
         data={"sub": current_user.username, "tv": current_user.token_version, "role": current_user.role},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    return {"status": "ok", "access_token": new_token}
+    return TokenResponse(access_token=new_token, token_type="bearer", must_change_password=False)
 
 # --- Core Endpoints ---
 
@@ -1034,7 +1036,7 @@ async def health_check():
         "mirrors_available": mirrors_available
     }
 
-@app.get("/system/health", tags=["System"])
+@app.get("/system/health", response_model=SystemHealthResponse, tags=["System"])
 async def system_health():
     mirrors_available = getattr(app.state, "mirrors_available", True)
     return {
@@ -1097,7 +1099,7 @@ async def get_scale_health_endpoint(
     )
 
 
-@app.get("/api/features", tags=["System"])
+@app.get("/api/features", response_model=FeaturesResponse, tags=["System"])
 async def get_features(request: Request):
     ctx = getattr(request.app.state, "ee", None)
     if ctx is None:
@@ -1117,7 +1119,7 @@ async def get_features(request: Request):
         "executions": ctx.executions,
     }
 
-@app.get("/api/licence", tags=["System"])
+@app.get("/api/licence", response_model=LicenceStatusResponse, tags=["System"])
 async def get_licence_status(request: Request, current_user: User = Depends(require_auth)):
     """Returns current licence status. Requires authentication."""
     ls: Optional[LicenceState] = getattr(request.app.state, "licence_state", None)
@@ -2057,7 +2059,7 @@ async def enroll_node(req: EnrollmentRequest, request: Request, db: AsyncSession
 
 import base64
 
-@app.post("/admin/generate-token", tags=["Admin"])
+@app.post("/admin/generate-token", response_model=EnrollmentTokenResponse, tags=["Admin"])
 @limiter.limit("10/minute")
 async def generate_token(request: Request, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
          
@@ -2074,14 +2076,14 @@ async def generate_token(request: Request, current_user: User = Depends(require_
     }
     
     b64_token = base64.b64encode(json.dumps(payload).encode()).decode()
-    return {"token": b64_token}
+    return EnrollmentTokenResponse(token=b64_token)
 
 @app.get("/job-definitions", tags=["Job Definitions"])
 async def dashboard_job_definitions(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     """Dashboard expects /job-definitions instead of /jobs/definitions"""
     return await scheduler_service.list_job_definitions(db)
 
-@app.post("/api/enrollment-tokens", tags=["Node Agent"])
+@app.post("/api/enrollment-tokens", response_model=EnrollmentTokenResponse, tags=["Node Agent"])
 async def create_enrollment_token(req: Optional[EnrollmentTokenCreate] = None, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
 
     token_str = uuid.uuid4().hex
@@ -2091,8 +2093,8 @@ async def create_enrollment_token(req: Optional[EnrollmentTokenCreate] = None, c
 
     db.add(token_entry)
     await db.commit()
-    return {"token": token_str}
-@app.post("/admin/upload-key", tags=["Admin"])
+    return EnrollmentTokenResponse(token=token_str)
+@app.post("/admin/upload-key", response_model=ActionResponse, tags=["Admin"])
 async def upload_public_key(req: UploadKeyRequest, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Config).where(Config.key == "signing_public_key"))
     row = result.scalar_one_or_none()
@@ -2102,7 +2104,7 @@ async def upload_public_key(req: UploadKeyRequest, current_user: User = Depends(
         db.add(Config(key="signing_public_key", value=req.key_content))
     audit(db, current_user, "key:upload")
     await db.commit()
-    return {"status": "stored"}
+    return ActionResponse(status="created", resource_type="public_key", resource_id="signing_public_key", message="Public key uploaded and stored")
 
 # --- Licence Management (Phase 116) ---
 
@@ -2246,24 +2248,24 @@ async def get_network_mounts(
     except:
         return []
 
-@app.post("/config/mounts", tags=["System"])
+@app.post("/config/mounts", response_model=ActionResponse, tags=["System"])
 async def update_network_mounts(config: MountsConfig, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    
+
     for m in config.mounts:
         if not m.name.replace("_", "").isalnum():
              raise HTTPException(status_code=400, detail=f"Invalid mount name: {m.name}")
-    
+
     json_str = json.dumps([m.dict() for m in config.mounts])
-    
+
     result = await db.execute(select(Config).where(Config.key == "global_network_mounts"))
     row = result.scalar_one_or_none()
     if row:
         row.value = json_str
     else:
         db.add(Config(key="global_network_mounts", value=json_str))
-    
+
     await db.commit()
-    return {"status": "updated", "count": len(config.mounts)}
+    return {"status": "updated", "resource_type": "mounts", "resource_id": "global_network_mounts", "message": f"Updated {len(config.mounts)} mount(s)"}
 
 # --- Signature Registry API ---
 
@@ -2284,14 +2286,14 @@ async def get_signature(id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Signature not found")
     return sig
 
-@app.delete("/signatures/{id}", tags=["Signatures"])
+@app.delete("/signatures/{id}", response_model=ActionResponse, tags=["Signatures"])
 async def delete_signature(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     success = await SignatureService.delete_signature(id, db)
     if not success:
         raise HTTPException(status_code=404, detail="Signature not found")
     audit(db, current_user, "signature:delete", id)
     await db.commit()
-    return {"status": "deleted"}
+    return {"status": "deleted", "resource_type": "signature", "resource_id": id}
 
 # --- Job Definitions API ---
 
@@ -2303,7 +2305,7 @@ async def create_job_definition(def_req: JobDefinitionCreate, current_user: User
 async def list_job_definitions(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.list_job_definitions(db)
 
-@app.delete("/jobs/definitions/{id}", tags=["Job Definitions"])
+@app.delete("/jobs/definitions/{id}", response_model=ActionResponse, tags=["Job Definitions"])
 async def delete_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == id))
     job_def = result.scalar_one_or_none()
@@ -2315,9 +2317,9 @@ async def delete_job_definition(id: str, current_user: User = Depends(require_au
         pass
     await db.delete(job_def)
     await db.commit()
-    return {"status": "deleted"}
+    return {"status": "deleted", "resource_type": "job_definition", "resource_id": id}
 
-@app.patch("/jobs/definitions/{id}/toggle", tags=["Job Definitions"])
+@app.patch("/jobs/definitions/{id}/toggle", response_model=ActionResponse, tags=["Job Definitions"])
 async def toggle_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == id))
     job_def = result.scalar_one_or_none()
@@ -2326,7 +2328,7 @@ async def toggle_job_definition(id: str, current_user: User = Depends(require_au
     job_def.is_active = not job_def.is_active
     await db.commit()
     await scheduler_service.sync_scheduler()
-    return {"id": id, "is_active": job_def.is_active}
+    return {"status": "updated", "resource_type": "job_definition", "resource_id": id, "message": f"Job definition is now {'active' if job_def.is_active else 'inactive'}"}
 
 @app.get("/jobs/definitions/{id}", response_model=JobDefinitionResponse, tags=["Job Definitions"])
 async def get_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):

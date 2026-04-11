@@ -214,6 +214,28 @@ class TokenResponse(BaseModel):
     token_type: str
     must_change_password: bool = False
 
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DeviceCodeResponse(BaseModel):
+    """Response for RFC 8628 Device Authorization Request (POST /auth/device)."""
+    device_code: str = Field(description="Device code for token polling")
+    user_code: str = Field(description="User-friendly code for approval page")
+    verification_uri: str = Field(description="URL for user to visit for approval")
+    verification_uri_complete: Optional[str] = Field(None, description="Verification URL with user_code pre-filled")
+    expires_in: int = Field(description="Device code TTL in seconds")
+    interval: int = Field(description="Minimum polling interval in seconds")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EnrollmentTokenResponse(BaseModel):
+    """Response for enrollment token creation (POST /admin/generate-token)."""
+    token: str = Field(description="Base64-encoded enrollment token containing token_string and CA PEM")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class EnrollmentTokenCreate(BaseModel):
     template_id: Optional[str] = None
 
@@ -550,6 +572,54 @@ class ScaleHealthResponse(BaseModel):
     overflow: Optional[int]
     apscheduler_jobs: int
     pending_job_depth: int
+
+
+# --- System / Config Response Models ---
+
+class SystemHealthResponse(BaseModel):
+    """Response model for GET /system/health."""
+    status: str = Field(description="Overall health status (healthy/degraded/unhealthy)")
+    mirrors_available: bool = Field(description="Whether package mirrors are available")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeaturesResponse(BaseModel):
+    """Response model for GET /api/features."""
+    audit: bool = Field(description="Audit logging feature enabled")
+    foundry: bool = Field(description="Foundry template builder enabled")
+    webhooks: bool = Field(description="Webhook support enabled")
+    triggers: bool = Field(description="Job triggers enabled")
+    rbac: bool = Field(description="Role-based access control enabled")
+    resource_limits: bool = Field(description="Resource limit enforcement enabled")
+    service_principals: bool = Field(description="Service principals support enabled")
+    api_keys: bool = Field(description="API keys support enabled")
+    executions: bool = Field(description="Execution attestation enabled")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LicenceStatusResponse(BaseModel):
+    """Response model for GET /api/licence."""
+    status: str = Field(description="Licence status (ce/valid/grace/expired)")
+    days_until_expiry: int = Field(description="Days until licence expires")
+    node_limit: int = Field(description="Maximum number of nodes allowed")
+    tier: str = Field(description="Licence tier (ce/ee)")
+    customer_id: Optional[str] = Field(None, description="Customer ID for EE licence")
+    grace_days: int = Field(description="Grace period days")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NetworkMount(BaseModel):
+    """Response model for GET /config/mounts."""
+    id: Optional[str] = Field(None, description="Mount identifier")
+    source: str = Field(description="Source path on host")
+    target: str = Field(description="Target path in container")
+    readonly: bool = Field(default=False, description="Whether mount is read-only")
+    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Foundry / EE Pydantic Models ---
