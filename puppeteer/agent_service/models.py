@@ -1,8 +1,44 @@
-from pydantic import BaseModel, field_validator, model_validator
-from typing import Optional, List, Dict, Any, Literal
+from pydantic import BaseModel, field_validator, model_validator, Field, ConfigDict
+from typing import Optional, List, Dict, Any, Literal, TypeVar, Generic
 from datetime import datetime
 import json as _json
 import re
+
+# TypeVar for generic PaginatedResponse
+T = TypeVar("T")
+
+
+class ActionResponse(BaseModel):
+    """Standardized response model for action endpoints (acknowledge, cancel, revoke, approve, delete, update, create, enable, disable)."""
+    status: Literal["acknowledged", "cancelled", "revoked", "approved", "deleted", "updated", "created", "enabled", "disabled"] = Field(
+        description="Action status, Literal union catches typos at dev time"
+    )
+    resource_type: str = Field(description="Type of resource actioned (e.g., 'job', 'node', 'signature')")
+    resource_id: str | int = Field(description="ID of the actioned resource")
+    message: Optional[str] = Field(None, description="Optional detail message about the action")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Generic paginated response model for list endpoints."""
+    items: List[T] = Field(
+        description="Array of items in this page",
+        json_schema_extra={"examples": [[]]}
+    )
+    total: int = Field(description="Total count of all items across all pages")
+    page: int = Field(description="Current page number (1-indexed)")
+    page_size: int = Field(description="Number of items per page")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ErrorResponse(BaseModel):
+    """Standardized error response model."""
+    detail: str = Field(description="Error message describing what went wrong")
+    status_code: int = Field(description="HTTP status code")
+
+    model_config = ConfigDict(from_attributes=True)
 
 class JobCreate(BaseModel):
     task_type: str
