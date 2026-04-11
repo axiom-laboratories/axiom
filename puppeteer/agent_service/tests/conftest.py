@@ -4,7 +4,9 @@ import importlib.metadata
 import uuid
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from agent_service.db import Base
+from httpx import AsyncClient, ASGITransport
+from agent_service.db import Base, User
+import bcrypt
 
 @pytest.fixture(scope="session")
 def anyio_backend():
@@ -79,6 +81,43 @@ async def test_ingredients(db_session):
     await db_session.commit()
 
     return {"manual": manual_ing, "auto": auto_ing}
+
+
+@pytest.fixture
+async def async_client(db_session):
+    """Create an async HTTP client for testing API endpoints."""
+    from agent_service.main import app, get_db
+
+    # Override the dependency to use the test session
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def auth_headers(db_session):
+    """Create authenticated headers with a valid JWT token."""
+    from agent_service.auth import create_access_token
+
+    # Create a test user
+    hashed_password = bcrypt.hashpw(b"testpass123", bcrypt.gensalt()).decode("utf-8")
+    test_user = User(
+        username="testuser",
+        password_hash=hashed_password,
+        role="admin",
+        token_version=0
+    )
+    db_session.add(test_user)
+    await db_session.commit()
+
+    # Create JWT token
+    token = create_access_token({"sub": test_user.username, "tv": test_user.token_version})
+
+    return {"Authorization": f"Bearer {token}"}
 
 
 def pytest_collection_modifyitems(config, items):
