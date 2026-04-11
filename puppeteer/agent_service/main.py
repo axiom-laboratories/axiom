@@ -1478,27 +1478,18 @@ async def create_job(job_req: JobCreate, current_user: User = Depends(require_au
             except Exception as _ve:
                 raise HTTPException(status_code=422, detail=f"Signature verification failed: {_ve}")
 
-            # 2. Countersign script with the server's Ed25519 signing key so the
-            #    node can verify using its fetched verification.key (which is the
-            #    server's public counterpart).
-            _signing_key_path = "/app/secrets/signing.key"
-            if not os.path.exists(_signing_key_path):
-                _signing_key_path = "secrets/signing.key"
-            if os.path.exists(_signing_key_path):
-                try:
-                    from cryptography.hazmat.primitives.asymmetric import ed25519 as _ed
-                    from cryptography.hazmat.primitives import serialization as _ser
-                    import base64 as _b64
-                    with open(_signing_key_path, "rb") as _f:
-                        _sk = _ser.load_pem_private_key(_f.read(), password=None)
-                    _server_sig = _b64.b64encode(_sk.sign(script_content.encode("utf-8"))).decode("ascii")
-                    # Replace user signature with server countersignature so node verifies correctly
-                    payload_dict["signature"] = _server_sig
-                    job_req = job_req.model_copy(update={"payload": payload_dict})
-                except Exception as _se:
-                    # Non-fatal: log and continue without countersignature
-                    import logging as _log
-                    _log.getLogger(__name__).warning("Server countersign failed: %s", _se)
+        # 2. Countersign script with the server's Ed25519 signing key so the
+        #    node can verify using its fetched verification.key (which is the
+        #    server's public counterpart). This is mandatory for all job scripts.
+        if script_content:
+            try:
+                from .services.signature_service import SignatureService
+                server_sig = SignatureService.countersign_for_node(script_content)
+                # Set server countersignature so node verifies correctly
+                payload_dict["signature"] = server_sig
+                job_req = job_req.model_copy(update={"payload": payload_dict})
+            except Exception as e:
+                raise HTTPException(status_code=500, detail="Server signing key unavailable — contact admin")
 
         result = await JobService.create_job(job_req, db)
         await ws_manager.broadcast("job:created", {"guid": result["guid"], "status": "PENDING", "task_type": job_req.task_type})

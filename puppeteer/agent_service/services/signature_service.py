@@ -73,10 +73,51 @@ class SignatureService:
             public_key = serialization.load_pem_public_key(public_key_pem.encode())
             if not isinstance(public_key, ed25519.Ed25519PublicKey):
                  raise ValueError("Only Ed25519 signatures are currently supported for notary validation")
-                 
+
             sig_bytes = base64.b64decode(signature_b64)
             public_key.verify(sig_bytes, payload.encode('utf-8'))
             return True
         except Exception as e:
             logger.error(f"Signature Verification Failed: {e}")
             raise e
+
+    @staticmethod
+    def countersign_for_node(script_content: str) -> str:
+        """
+        Server-signs a job script with the Ed25519 private key.
+        Returns base64-encoded signature ready for inclusion in job payload.
+
+        Normalizes CRLF to LF before signing (WIN-05 pattern) for cross-platform compatibility.
+
+        Args:
+            script_content: The job script to sign
+
+        Returns:
+            Base64-encoded signature string
+
+        Raises:
+            FileNotFoundError: If signing.key is absent or inaccessible
+            RuntimeError: If key file is corrupted or signing fails
+        """
+        # Try production path first, fall back to dev path
+        _signing_key_path = "/app/secrets/signing.key"
+        if not os.path.exists(_signing_key_path):
+            _signing_key_path = "secrets/signing.key"
+
+        # Hard fail if key doesn't exist
+        if not os.path.exists(_signing_key_path):
+            raise FileNotFoundError("Server signing key unavailable (signing.key not found)")
+
+        try:
+            # Normalize CRLF to LF (WIN-05 pattern) before signing
+            normalized_script = script_content.replace('\r\n', '\n').replace('\r', '\n')
+
+            with open(_signing_key_path, "rb") as f:
+                sk = serialization.load_pem_private_key(f.read(), password=None)
+
+            sig_bytes = sk.sign(normalized_script.encode("utf-8"))
+            return base64.b64encode(sig_bytes).decode("ascii")
+        except FileNotFoundError:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Server countersigning failed: {e}") from e

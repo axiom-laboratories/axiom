@@ -297,14 +297,35 @@ class SchedulerService:
 
             payload_dict = {
                 "script_content": s_job.script_content,
-                "signature": s_job.signature_payload,
                 "secrets": {},
                 "runtime": runtime,
             }
 
+            # Countersign the script with server key
+            try:
+                from .signature_service import SignatureService
+                server_sig = SignatureService.countersign_for_node(s_job.script_content)
+                payload_dict["signature"] = server_sig
+            except Exception as e:
+                # Hard fail on missing key: mark as signing_error, audit, and return
+                logger.error(f"Failed to countersign scheduled job {s_job.id}: {e}")
+                fire_log.status = 'signing_error'
+                try:
+                    from ..db import AuditLog
+                    session.add(AuditLog(
+                        username="scheduler",
+                        action="job:signing_error",
+                        resource_id=s_job.id,
+                        detail=json.dumps({"scheduled_job_id": s_job.id, "error": str(e)})
+                    ))
+                except Exception:
+                    pass  # CE mode: AuditLog may be absent
+                await session.commit()
+                return
+
             payload_json = json.dumps(payload_dict)
 
-            # Create Job
+            # Create Job with HMAC stamp (SEC-02: dispatch-time integrity)
             new_job = Job(
                 guid=execution_guid,
                 task_type="script",
@@ -323,6 +344,17 @@ class SchedulerService:
                 memory_limit=s_job.memory_limit,  # ENFC-03: pass memory limit from scheduled job
                 cpu_limit=s_job.cpu_limit,        # ENFC-03: pass CPU limit from scheduled job
             )
+
+            # SEC-02: Stamp HMAC for dispatch-time integrity verification
+            if payload_dict.get("signature"):
+                from ..security import compute_signature_hmac, ENCRYPTION_KEY
+                new_job.signature_hmac = compute_signature_hmac(
+                    ENCRYPTION_KEY,
+                    payload_dict.get("signature"),  # server signature
+                    s_job.id,  # signature_id (use scheduled_job_id as reference)
+                    execution_guid  # job_id
+                )
+
             session.add(new_job)
             await session.commit()
             logger.info(f"✅ Job {execution_guid} created for scheduled task {s_job.name}")
