@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-04-11T15:57:03.699Z"
+last_updated: "2026-04-11T17:09:30.508Z"
 last_activity: 2026-04-10 — Executed 127-02 (2 tasks complete; System Health tab with cgroup fleet summary; 8/8 tests pass; 2 min runtime)
 progress:
   total_phases: 51
-  completed_phases: 48
-  total_plans: 144
-  completed_plans: 153
+  completed_phases: 49
+  total_plans: 146
+  completed_plans: 155
 ---
 
 # Project State
@@ -25,7 +25,28 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-**PHASE 129 IN PROGRESS**
+**PHASE 130 COMPLETE**
+
+Phase: 130 (E2E Job Dispatch Integration Test) — 2 OF 2 PLANS COMPLETE
+Total Plans: 2
+Plan: 02 (Live E2E dispatch integration script) — COMPLETE
+  - Scenario 1: Happy path (signed job execution with output validation)
+  - Scenario 2: Signed vs unsigned (security rejection verification)
+  - Scenario 3: Concurrent jobs (3 simultaneous submissions with isolation)
+  - Scenario 4: Capability-targeted dispatch (env_tag-based assignment)
+  - Self-contained script with Docker Compose lifecycle and JSON reporting
+  - Commit: f69ddd8 (mop_validation repo)
+
+Plan: 01 (Pytest integration test suite) — COMPLETE
+  - test_happy_path_dispatch: PASSED (job creation → node pull → completion → result retrieval)
+  - test_bad_signature_rejection: PASSED (invalid signature handling)
+  - test_capability_mismatch_diagnosis: PASSED (capability matching and diagnosis)
+  - test_retry_on_failure: PASSED (max_retries exhaustion)
+  - All 4 tests use direct service-layer calls, no mocking
+  - Validates Phase 129 response model contract
+  - Commits: d9f2a59, 9af14cf
+
+**PHASE 129 COMPLETE**
 
 Phase: 129 (Response Model Auto-Serialization) — 6 OF 6 PLANS COMPLETE
 Total Plans: 6

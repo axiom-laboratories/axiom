@@ -125,9 +125,9 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
   - [x] Plan 04: Admin/Auth domain (~15 routes) — Wave 3 (completed 2026-04-11)
   - [x] Plan 05: Foundry/Smelter/System (~25 routes) — Wave 3 (completed 2026-04-11)
 
-- [ ] **Phase 130: E2E Job Dispatch Integration Test** — 2 plans covering pytest + live E2E script
-  - [ ] Plan 01: Pytest integration tests (happy path, bad signature, capability mismatch, retry) — Wave 1
-  - [ ] Plan 02: Live E2E script with node orchestration (4 scenarios, JSON reporting) — Wave 2
+- [x] **Phase 130: E2E Job Dispatch Integration Test** — 2 plans covering pytest + live E2E script (completed 2026-04-12)
+  - [x] Plan 01: Pytest integration tests (happy path, bad signature, capability mismatch, retry) — Wave 1 (completed 2026-04-12)
+  - [x] Plan 02: Live E2E script with node orchestration (4 scenarios, JSON reporting) — Wave 2 (completed 2026-04-12)
 
 - [ ] **Phase 131: Signature Verification Path Unification** — [To be planned]
 
@@ -159,7 +159,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 2/2 | Complete | 2026-04-10 |
 | 128. Concurrent Isolation Verification | v20.0 | 2/2 | Complete | 2026-04-10 |
 | 129. Response Model Auto-Serialization | v21.0 | 5/5 | Complete | 2026-04-11 |
-| 130. E2E Job Dispatch Integration Test | v21.0 | 0/2 | Planned | pending |
+| 130. E2E Job Dispatch Integration Test | v21.0 | Complete    | 2026-04-11 | 2026-04-12 |
 
 ## Archived
 
