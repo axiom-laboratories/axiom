@@ -133,6 +133,28 @@ async def auth_headers(async_client: AsyncClient, setup_db):
 
 
 @pytest.fixture
+async def clean_db(setup_db):
+    """
+    Clean up jobs, nodes, and related tables before each test.
+    Ensures test isolation by removing data from previous test runs.
+    """
+    from agent_service.db import AsyncSessionLocal
+
+    async def cleanup():
+        async with AsyncSessionLocal() as session:
+            # Delete all jobs and nodes to ensure test isolation
+            await session.execute(text("DELETE FROM jobs"))
+            await session.execute(text("DELETE FROM nodes"))
+            await session.commit()
+
+    # Clean before test
+    await cleanup()
+    yield
+    # Clean after test
+    await cleanup()
+
+
+@pytest.fixture
 async def created_job_guid(async_client: AsyncClient, auth_headers: dict):
     """Create a test job and return its GUID."""
     req = {
