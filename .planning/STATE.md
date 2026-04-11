@@ -147,6 +147,11 @@ Phase 128 in progress: Ready for Plan 02 (Concurrent Isolation Stress Test Orche
 
 ## Accumulated Context
 
+### Roadmap Evolution
+- Phase 129 added: Response Model Auto-Serialization
+- Phase 130 added: E2E Job Dispatch Integration Test
+- Phase 131 added: Signature Verification Path Unification
+
 ### Roadmap Derivation (v20.0)
 
 **Research-informed phase structure from `.planning/research/SUMMARY.md`:**
