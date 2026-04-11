@@ -7,9 +7,9 @@ last_updated: "2026-04-11T15:50:00Z"
 last_activity: 2026-04-11 — Executed 129-05 (2 tasks complete; Foundry/System response models + 20 snapshot tests; 45 min runtime)
 progress:
   total_phases: 1
-  completed_phases: 1
+  completed_phases: 0
   total_plans: 5
-  completed_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -25,16 +25,20 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-**PHASE 129 COMPLETE**
+**PHASE 129 IN PROGRESS**
 
-Phase: 129 (Response Model Auto-Serialization) — ALL 5 PLANS COMPLETE
-Total Plans: 5 (completed)
+Phase: 129 (Response Model Auto-Serialization) — 4 OF 5 PLANS COMPLETE
+Total Plans: 5
 Plan: 05 (Foundry/Smelter/System Domain Response Models) — COMPLETE
   - 11 routes updated with response_model decorators (SystemHealthResponse, FeaturesResponse, LicenceStatusResponse, ActionResponse)
   - 20 snapshot tests created documenting expected response shapes (System/Config/Signature/Foundry routes)
   - Action endpoint return values fixed to include resource_type and resource_id fields
   - All routes in System, Config, Signature, and Foundry/Smelter domains now have explicit OpenAPI contracts
   - Zero breaking changes to API structure
+
+Plan: 04 (Admin/Auth Domain Response Models) — IN PROGRESS
+  - Task 1: Snapshot tests for Admin/Auth routes (RED phase) — COMPLETE (commit 5f86116)
+  - Task 2: Response model implementation (GREEN phase) — NOT STARTED
 
 **Summary of Phase 129 Plan 05 (Completed):**
 
