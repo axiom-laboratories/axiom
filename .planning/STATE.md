@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-04-11T15:50:00Z"
-last_activity: 2026-04-11 — Executed 129-05 (2 tasks complete; Foundry/System response models + 20 snapshot tests; 45 min runtime)
+last_updated: "2026-04-11T16:55:00Z"
+last_activity: 2026-04-11 — Executed 129-06 (2 tasks complete; 100% response_model coverage + test infrastructure fixes; 60 min runtime)
 progress:
   total_phases: 1
   completed_phases: 0
-  total_plans: 5
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -27,8 +27,20 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 **PHASE 129 IN PROGRESS**
 
-Phase: 129 (Response Model Auto-Serialization) — 4 OF 5 PLANS COMPLETE
-Total Plans: 5
+Phase: 129 (Response Model Auto-Serialization) — 6 OF 6 PLANS COMPLETE
+Total Plans: 6
+Plan: 06 (Gap Closure: 100% Coverage + Test Infrastructure) — COMPLETE
+  - Task 1: Complete response_model decorator coverage — COMPLETE (100% coverage: 73 response_model + 16 response_class across 89 routes)
+    - Identified and added response_model to 2 final undecorated routes (GET /api/smelter/ingredients/{id}/tree, POST /api/smelter/ingredients/{id}/discover)
+    - Achieved 100% route coverage with response_model or response_class parameters
+    - No route implementation changes (backward compatible)
+  - Task 2: Fix test infrastructure and achieve all-pass test suite — COMPLETE (62/62 tests passing)
+    - Fixed "no such column" errors by adding 19 missing DB schema columns to test fixture setup (jobs and scheduled_jobs tables)
+    - Fixed JWT authentication by updating auth_headers fixture to read correct token_version from database
+    - Fixed signature test duplicate name collisions using UUID-based unique names
+    - All 62 snapshot tests now passing (test_foundry_responses.py: 20, test_nodes_responses.py: 10, test_models_core.py: 32)
+  - Commits: 1ca0479 (test infrastructure fixes), 294a7b1 (DB schema evolution)
+
 Plan: 05 (Foundry/Smelter/System Domain Response Models) — COMPLETE
   - 11 routes updated with response_model decorators (SystemHealthResponse, FeaturesResponse, LicenceStatusResponse, ActionResponse)
   - 20 snapshot tests created documenting expected response shapes (System/Config/Signature/Foundry routes)
