@@ -4,7 +4,7 @@ import pytest
 import json
 from pydantic import ValidationError
 
-from puppeteer.agent_service.models import ActionResponse, PaginatedResponse, ErrorResponse
+from agent_service.models import ActionResponse, PaginatedResponse, ErrorResponse
 
 
 class TestActionResponse:

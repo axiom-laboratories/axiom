@@ -41,7 +41,7 @@ from .models import (
     SchedulingHealthResponse, DefinitionHealthRow, ScaleHealthResponse,
     SystemHealthResponse, FeaturesResponse, LicenceStatusResponse,
     DeviceCodeResponse, EnrollmentTokenResponse,
-    JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
+    JobTemplateCreate, JobTemplateUpdate, JobTemplateResponse, RetentionConfigUpdate,
     LicenceReloadRequest, LicenceReloadResponse,
     SIGNING_FIELDS,
     PaginatedResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
@@ -491,7 +491,13 @@ async def list_alerts(
     """List system alerts with optional filtering."""
     return await AlertService.list_alerts(db, skip, limit, unacknowledged_only)
 
-@app.post("/api/alerts/{alert_id}/acknowledge", tags=["Alerts & Webhooks"])
+@app.post(
+    "/api/alerts/{alert_id}/acknowledge",
+    response_model=ActionResponse,
+    tags=["Alerts & Webhooks"],
+    summary="Acknowledge an alert",
+    description="Mark an alert as acknowledged by ID"
+)
 async def acknowledge_alert(
     alert_id: int,
     current_user: User = Depends(require_auth),
@@ -502,11 +508,23 @@ async def acknowledge_alert(
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     await db.commit()
-    return {"status": "acknowledged", "id": alert_id}
+    return {"status": "acknowledged", "resource_type": "alert", "resource_id": alert_id}
 
 # Serve Installer Scripts
-@app.get("/api/node/compose", tags=["System"])
-@app.get("/api/installer/compose", tags=["System"])
+@app.get(
+    "/api/node/compose",
+    response_class=Response,
+    tags=["System"],
+    summary="Generate Docker Compose file for node deployment",
+    description="Dynamically generate docker-compose.yaml for node with enrollment token and configuration"
+)
+@app.get(
+    "/api/installer/compose",
+    response_class=Response,
+    tags=["System"],
+    summary="Generate Docker Compose file for node installation",
+    description="Alias for /api/node/compose - generates docker-compose.yaml for node deployment"
+)
 async def get_node_compose(token: str, mounts: Optional[str] = None, tags: Optional[str] = None, execution_mode: Optional[str] = None):
     """Dynamic Compose File generator for Nodes."""
     effective_tags = tags if tags else "general,linux,arm64"
@@ -544,7 +562,13 @@ if not os.path.exists("installer"):
     os.makedirs("installer")
 app.mount("/installer", StaticFiles(directory="installer"), name="installer")
 
-@app.get("/verification-key", tags=["System"])
+@app.get(
+    "/verification-key",
+    response_class=Response,
+    tags=["System"],
+    summary="Get Ed25519 verification public key",
+    description="Returns the PEM-encoded Ed25519 public key used to verify signed job scripts"
+)
 async def get_verification_key():
     """Serves the Public Verification Key for Code Signing."""
     key_path = "/app/secrets/verification.key"
@@ -557,7 +581,13 @@ async def get_verification_key():
     with open(key_path, "r") as f:
         return Response(content=f.read(), media_type="text/plain")
 
-@app.get("/installer", tags=["System"])
+@app.get(
+    "/installer",
+    response_class=Response,
+    tags=["System"],
+    summary="Get PowerShell installer script",
+    description="Returns the universal PowerShell script for node installation"
+)
 async def get_installer_ps1():
     """Serves the Universal PowerShell Installer (One-Liner)."""
     file_path = "installer/install_universal.ps1"
@@ -566,7 +596,13 @@ async def get_installer_ps1():
     with open(file_path, "r") as f:
         return Response(content=f.read(), media_type="text/plain")
 
-@app.get("/installer.sh", tags=["System"])
+@app.get(
+    "/installer.sh",
+    response_class=Response,
+    tags=["System"],
+    summary="Get Bash installer script",
+    description="Returns the universal Bash script for node installation"
+)
 async def get_installer_sh():
     """Serves the Universal Bash Installer."""
     file_path = "installer/install_universal.sh"
@@ -575,7 +611,13 @@ async def get_installer_sh():
     with open(file_path, "r") as f:
         return Response(content=f.read(), media_type="text/plain")
 
-@app.get("/system/root-ca", tags=["System"])
+@app.get(
+    "/system/root-ca",
+    response_class=Response,
+    tags=["System"],
+    summary="Download Root CA certificate",
+    description="Returns the PEM-encoded internal Root CA certificate for mTLS node enrollment"
+)
 async def get_root_ca():
     """Download the Internal Root CA (Public Key)."""
     try:
@@ -600,7 +642,13 @@ def _get_dashboard_ca_pem() -> str:
             return f.read()
     return pki_service.get_root_cert_pem()
 
-@app.get("/system/root-ca-installer", tags=["System"])
+@app.get(
+    "/system/root-ca-installer",
+    response_class=Response,
+    tags=["System"],
+    summary="Get Bash script to install Root CA",
+    description="Returns a self-contained bash script that installs the MoP Root CA into system trust stores (Debian, RHEL, macOS) and browser NSS databases"
+)
 async def get_ca_installer_bash():
     """
     Returns a self-contained bash script that installs the MoP Root CA into
@@ -702,7 +750,13 @@ echo "[MoP] Done. You can now access the dashboard at https://<host>:8443"
     return Response(content=script, media_type="text/plain",
                     headers={"Content-Disposition": "inline; filename=mop-install-ca.sh"})
 
-@app.get("/system/root-ca-installer.ps1", tags=["System"])
+@app.get(
+    "/system/root-ca-installer.ps1",
+    response_class=Response,
+    tags=["System"],
+    summary="Get PowerShell script to install Root CA",
+    description="Returns a PowerShell script that installs the MoP Root CA into the Windows Root Certificate Store"
+)
 async def get_ca_installer_ps1():
     """
     Returns a PowerShell script that installs the MoP Root CA on Windows.
@@ -999,7 +1053,7 @@ async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequ
 
 @app.get("/auth/me", response_model=UserResponse, tags=["Authentication"])
 async def read_users_me(current_user: User = Depends(get_current_user)):
-    return UserResponse(id=current_user.id, username=current_user.username, role=current_user.role, created_at=current_user.created_at)
+    return UserResponse(id=current_user.username, username=current_user.username, role=current_user.role, created_at=current_user.created_at)
 
 @app.patch("/auth/me", response_model=TokenResponse, tags=["Authentication"])
 async def update_self(req: dict, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -1027,7 +1081,13 @@ async def update_self(req: dict, current_user: User = Depends(get_current_user),
 
 # --- Core Endpoints ---
 
-@app.get("/", tags=["System"])
+@app.get(
+    "/",
+    response_model=dict,
+    tags=["System"],
+    summary="Health check endpoint",
+    description="Simple health check that returns service status and mirror availability"
+)
 async def health_check():
     mirrors_available = getattr(app.state, "mirrors_available", True)
     return {
@@ -1189,7 +1249,13 @@ async def count_jobs(status: Optional[str] = None, current_user: User = Depends(
     result = await db.execute(query)
     return {"total": result.scalar()}
 
-@app.get("/jobs/export", tags=["Jobs"])
+@app.get(
+    "/jobs/export",
+    response_class=StreamingResponse,
+    tags=["Jobs"],
+    summary="Export jobs as CSV",
+    description="Export filtered job records as a CSV file with streaming response"
+)
 async def export_jobs(
     status: Optional[str] = None,
     runtime: Optional[str] = None,
@@ -1749,19 +1815,31 @@ async def pull_work(request: Request, node_id: str = Depends(verify_node_secret)
         raise HTTPException(status_code=403, detail="Node is revoked")
     return await JobService.pull_work(node_id, node_ip, db)
 
-@app.post("/heartbeat", tags=["Node Agent"])
+@app.post(
+    "/heartbeat",
+    response_model=dict,
+    tags=["Node Agent"],
+    summary="Receive node heartbeat",
+    description="Process heartbeat from node agent with health status, resource stats, and system metrics"
+)
 async def receive_heartbeat(req: Request, hb: HeartbeatPayload, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
     node_ip = req.client.host
     result = await JobService.receive_heartbeat(node_id, node_ip, hb, db)
     await ws_manager.broadcast("node:heartbeat", {"node_id": node_id, "status": "ONLINE", "stats": hb.stats})
     return result
 
-@app.post("/work/{guid}/result", tags=["Node Agent"])
+@app.post(
+    "/work/{guid}/result",
+    response_model=dict,
+    tags=["Node Agent"],
+    summary="Report job execution result",
+    description="Node agent reports job completion status, output, and execution metrics"
+)
 async def report_result(guid: str, report: ResultReport, req: Request, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
     node_ip = req.client.host
     if report.result:
         report.result = mask_pii(report.result)
-        
+
     updated = await JobService.report_result(guid, report, node_ip, db)
     if not updated:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -1839,7 +1917,7 @@ async def list_nodes(
         "items": resp,
         "total": total,
         "page": page,
-        "pages": math.ceil(total / page_size) if total > 0 else 1,
+        "page_size": page_size,
     }
 
 @app.get("/nodes/{node_id}/detail", tags=["Nodes"], response_model=NodeResponse, summary="Get node details", description="Retrieve full details of a specific node")
@@ -1869,7 +1947,14 @@ async def update_node_config(node_id: str, config: NodeUpdateRequest, current_us
         "resource_id": node_id,
     }
 
-@app.delete("/nodes/{node_id}", status_code=204, tags=["Nodes"], summary="Delete a node", description="Permanently delete a node and its associated metadata")
+@app.delete(
+    "/nodes/{node_id}",
+    status_code=204,
+    response_class=Response,
+    tags=["Nodes"],
+    summary="Delete a node",
+    description="Permanently delete a node and its associated metadata"
+)
 async def delete_node(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
@@ -2078,7 +2163,13 @@ async def generate_token(request: Request, current_user: User = Depends(require_
     b64_token = base64.b64encode(json.dumps(payload).encode()).decode()
     return EnrollmentTokenResponse(token=b64_token)
 
-@app.get("/job-definitions", tags=["Job Definitions"])
+@app.get(
+    "/job-definitions",
+    response_model=List[JobDefinitionResponse],
+    tags=["Job Definitions"],
+    summary="List job definitions (alias)",
+    description="Alias for GET /jobs/definitions - returns list of all scheduled job definitions"
+)
 async def dashboard_job_definitions(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     """Dashboard expects /job-definitions instead of /jobs/definitions"""
     return await scheduler_service.list_job_definitions(db)
@@ -2207,7 +2298,13 @@ async def reload_licence_endpoint(
         is_ee_active=new_state.is_ee_active
     )
 
-@app.get("/config/public-key", tags=["System"])
+@app.get(
+    "/config/public-key",
+    response_model=dict,
+    tags=["System"],
+    summary="Get signing public key",
+    description="Returns the Ed25519 public key for job script signature verification (requires valid enrollment token)"
+)
 async def get_public_key(x_join_token: str = Header(None), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Token).where(Token.token == x_join_token))
     if not result.scalar_one_or_none():
@@ -2405,7 +2502,13 @@ async def update_job_definition(id: str, update_req: JobDefinitionUpdate, curren
 
 # --- Installer & Doc Endpoints ---
 
-@app.get("/api/installer", tags=["System"])
+@app.get(
+    "/api/installer",
+    response_class=Response,
+    tags=["System"],
+    summary="Get node installer script",
+    description="Returns the PowerShell installer script for node deployment"
+)
 async def get_installer():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     file_path = os.path.join(base_dir, "installer", "install_node.ps1")
@@ -2417,7 +2520,13 @@ async def get_installer():
         content = f.read()
     return Response(content=content, media_type="text/plain", headers={"Content-Disposition": "attachment; filename=install_node.ps1"})
 
-@app.get("/api/docs", tags=["System"])
+@app.get(
+    "/api/docs",
+    response_model=list,
+    tags=["System"],
+    summary="List available documentation files",
+    description="Get list of available markdown documentation files"
+)
 async def list_docs(current_user: User = Depends(require_auth)):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     docs_dir = os.path.join(base_dir, "docs")
@@ -2441,7 +2550,13 @@ async def list_docs(current_user: User = Depends(require_auth)):
             files.append({"filename": f, "title": title})
     return files
 
-@app.get("/api/docs/{filename}", tags=["System"])
+@app.get(
+    "/api/docs/{filename}",
+    response_model=dict,
+    tags=["System"],
+    summary="Get documentation file content",
+    description="Retrieve the full content of a markdown documentation file"
+)
 async def get_doc_content(filename: str, current_user: User = Depends(require_auth)):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     docs_dir = os.path.join(base_dir, "docs")
@@ -2498,7 +2613,13 @@ async def websocket_endpoint(ws: WebSocket, token: Optional[str] = None):
 
 # --- CRL Endpoint ---
 
-@app.get("/system/crl.pem", tags=["System"])
+@app.get(
+    "/system/crl.pem",
+    response_class=Response,
+    tags=["System"],
+    summary="Get Certificate Revocation List",
+    description="Returns signed X.509 CRL (Certificate Revocation List) of all revoked node client certificates"
+)
 async def get_crl(db: AsyncSession = Depends(get_db)):
     """Returns a signed X.509 CRL of all revoked node certificates."""
     result = await db.execute(select(RevokedCert))
@@ -2509,7 +2630,13 @@ async def get_crl(db: AsyncSession = Depends(get_db)):
 
 # --- Signal API (Reactive Orchestration) ---
 
-@app.post("/api/signals/{name}", tags=["Headless Automation"])
+@app.post(
+    "/api/signals/{name}",
+    response_model=SignalResponse,
+    tags=["Headless Automation"],
+    summary="Fire a named signal",
+    description="Fire a named signal to unblock dependent jobs waiting on signal conditions"
+)
 async def fire_signal(
     name: str,
     req: Optional[SignalFire] = None,
@@ -2561,7 +2688,13 @@ async def list_signals(
         ))
     return resp
 
-@app.delete("/api/signals/{name}", tags=["Headless Automation"])
+@app.delete(
+    "/api/signals/{name}",
+    response_model=dict,
+    tags=["Headless Automation"],
+    summary="Clear a signal",
+    description="Delete a signal from the system"
+)
 async def clear_signal(
     name: str,
     current_user: User = Depends(require_auth),
@@ -2583,7 +2716,14 @@ EXEC_CSV_HEADERS = ["job_guid", "node_id", "status", "exit_code",
                     "started_at", "completed_at", "duration_s", "attempt_number", "pinned"]
 
 
-@app.post("/api/job-templates", status_code=201, tags=["Job Templates"])
+@app.post(
+    "/api/job-templates",
+    response_model=JobTemplateResponse,
+    status_code=201,
+    tags=["Job Templates"],
+    summary="Create job template",
+    description="Create a new reusable job template with visibility controls (private or shared)"
+)
 async def create_job_template(
     body: JobTemplateCreate,
     current_user: User = Depends(require_permission("jobs:write")),
@@ -2611,7 +2751,13 @@ async def create_job_template(
     }
 
 
-@app.get("/api/job-templates", tags=["Job Templates"])
+@app.get(
+    "/api/job-templates",
+    response_model=List[JobTemplateResponse],
+    tags=["Job Templates"],
+    summary="List job templates",
+    description="List all job templates visible to the current user (own private templates + all shared templates)"
+)
 async def list_job_templates(
     current_user: User = Depends(require_permission("jobs:read")),
     db: AsyncSession = Depends(get_db),
@@ -2636,7 +2782,13 @@ async def list_job_templates(
     ]
 
 
-@app.get("/api/job-templates/{template_id}", tags=["Job Templates"])
+@app.get(
+    "/api/job-templates/{template_id}",
+    response_model=JobTemplateResponse,
+    tags=["Job Templates"],
+    summary="Get job template",
+    description="Fetch a single job template by ID (visibility rules apply - admin can see all, others see own + shared)"
+)
 async def get_job_template(
     template_id: str,
     current_user: User = Depends(require_permission("jobs:read")),
@@ -2659,7 +2811,13 @@ async def get_job_template(
     }
 
 
-@app.patch("/api/job-templates/{template_id}", tags=["Job Templates"])
+@app.patch(
+    "/api/job-templates/{template_id}",
+    response_model=JobTemplateResponse,
+    tags=["Job Templates"],
+    summary="Update a job template",
+    description="Update job template name or visibility"
+)
 async def update_job_template(
     template_id: str,
     body: JobTemplateUpdate,
@@ -2689,7 +2847,14 @@ async def update_job_template(
     }
 
 
-@app.delete("/api/job-templates/{template_id}", status_code=204, tags=["Job Templates"])
+@app.delete(
+    "/api/job-templates/{template_id}",
+    status_code=204,
+    response_class=Response,
+    tags=["Job Templates"],
+    summary="Delete a job template",
+    description="Permanently delete a job template"
+)
 async def delete_job_template(
     template_id: str,
     current_user: User = Depends(require_permission("jobs:write")),
@@ -2708,7 +2873,13 @@ async def delete_job_template(
 
 # --- Retention Config (SRCH-08) ---
 
-@app.get("/api/admin/retention", tags=["Admin"])
+@app.get(
+    "/api/admin/retention",
+    response_model=dict,
+    tags=["Admin"],
+    summary="Get retention configuration",
+    description="Get current execution retention settings and counts of eligible/pinned records"
+)
 async def get_retention_config(
     current_user: User = Depends(require_permission("users:write")),
     db: AsyncSession = Depends(get_db),
@@ -2736,7 +2907,13 @@ async def get_retention_config(
     }
 
 
-@app.patch("/api/admin/retention", tags=["Admin"])
+@app.patch(
+    "/api/admin/retention",
+    response_model=dict,
+    tags=["Admin"],
+    summary="Update retention configuration",
+    description="Update the execution record retention period in days"
+)
 async def update_retention_config(
     body: RetentionConfigUpdate,
     current_user: User = Depends(require_permission("users:write")),

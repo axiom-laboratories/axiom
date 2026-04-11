@@ -30,17 +30,13 @@ def _make_node(node_id=None, hostname="test-node", status="ONLINE", last_seen=No
 
 
 @pytest.mark.asyncio
-async def test_list_nodes_shape(async_client):
+async def test_list_nodes_shape(async_client, auth_headers: dict):
     """
     Snapshot test: GET /nodes returns PaginatedResponse[NodeResponse] with pagination fields.
     RED: Tests that response matches expected shape (items, total, page, page_size).
     """
-    # Create auth token (admin user assumed to exist in test DB)
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute
-    response = await async_client.get("/nodes?page=1&page_size=10", headers=headers)
+    response = await async_client.get("/nodes?page=1&page_size=10", headers=auth_headers)
 
     # Verify status
     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
@@ -56,16 +52,13 @@ async def test_list_nodes_shape(async_client):
 
 
 @pytest.mark.asyncio
-async def test_list_nodes_default_pagination(async_client):
+async def test_list_nodes_default_pagination(async_client, auth_headers: dict):
     """
     Snapshot test: GET /nodes (no params) uses default pagination (page=1, page_size=25).
     RED: Tests pagination defaults.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute
-    response = await async_client.get("/nodes", headers=headers)
+    response = await async_client.get("/nodes", headers=auth_headers)
 
     # Verify
     assert response.status_code == 200
@@ -79,16 +72,13 @@ async def test_list_nodes_default_pagination(async_client):
 
 
 @pytest.mark.asyncio
-async def test_get_node_detail(async_client):
+async def test_get_node_detail(async_client, auth_headers: dict):
     """
     Snapshot test: GET /nodes/{node_id}/detail returns NodeResponse.
     RED: Tests that detail endpoint returns valid NodeResponse.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute — will return 404 if no node exists, which is OK for RED state
-    response = await async_client.get("/nodes/test-node/detail", headers=headers)
+    response = await async_client.get("/nodes/test-node/detail", headers=auth_headers)
 
     # Either 200 with NodeResponse shape or 404 (no node exists) is acceptable in RED
     if response.status_code == 200:
@@ -98,19 +88,16 @@ async def test_get_node_detail(async_client):
 
 
 @pytest.mark.asyncio
-async def test_patch_node_response(async_client):
+async def test_patch_node_response(async_client, auth_headers: dict):
     """
     Snapshot test: PATCH /nodes/{node_id} returns ActionResponse or similar.
     RED: Tests that PATCH returns expected response structure.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute — 404 if node doesn't exist (acceptable in RED)
     response = await async_client.patch(
         "/nodes/test-node",
         json={"tags": ["prod"]},
-        headers=headers
+        headers=auth_headers
     )
 
     # Verify response structure when it succeeds
@@ -122,32 +109,26 @@ async def test_patch_node_response(async_client):
 
 
 @pytest.mark.asyncio
-async def test_delete_node_no_content(async_client):
+async def test_delete_node_no_content(async_client, auth_headers: dict):
     """
     Snapshot test: DELETE /nodes/{node_id} returns 204 No Content.
     RED: Tests that DELETE returns 204 status when successful.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute — 404 if node doesn't exist (acceptable in RED)
-    response = await async_client.delete("/nodes/test-node", headers=headers)
+    response = await async_client.delete("/nodes/test-node", headers=auth_headers)
 
     # Either 204 (success) or 404 (not found) is acceptable in RED
     assert response.status_code in [204, 404]
 
 
 @pytest.mark.asyncio
-async def test_revoke_node_action(async_client):
+async def test_revoke_node_action(async_client, auth_headers: dict):
     """
     Snapshot test: POST /nodes/{node_id}/revoke returns ActionResponse with status="revoked".
     RED: Tests that revoke returns correct action response structure.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute
-    response = await async_client.post("/nodes/test-node/revoke", headers=headers)
+    response = await async_client.post("/nodes/test-node/revoke", headers=auth_headers)
 
     # Verify response structure when available (404 OK if node doesn't exist)
     if response.status_code == 200:
@@ -160,16 +141,13 @@ async def test_revoke_node_action(async_client):
 
 
 @pytest.mark.asyncio
-async def test_drain_node_action(async_client):
+async def test_drain_node_action(async_client, auth_headers: dict):
     """
     Snapshot test: PATCH /nodes/{node_id}/drain returns ActionResponse with status="enabled".
     RED: Tests that drain returns correct action response.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute
-    response = await async_client.patch("/nodes/test-node/drain", headers=headers)
+    response = await async_client.patch("/nodes/test-node/drain", headers=auth_headers)
 
     # Verify response structure when available
     if response.status_code == 200:
@@ -181,16 +159,13 @@ async def test_drain_node_action(async_client):
 
 
 @pytest.mark.asyncio
-async def test_undrain_node_action(async_client):
+async def test_undrain_node_action(async_client, auth_headers: dict):
     """
     Snapshot test: PATCH /nodes/{node_id}/undrain returns ActionResponse with status="enabled".
     RED: Tests that undrain returns correct action response.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute
-    response = await async_client.patch("/nodes/test-node/undrain", headers=headers)
+    response = await async_client.patch("/nodes/test-node/undrain", headers=auth_headers)
 
     # Verify response structure when available
     if response.status_code == 200:
@@ -202,16 +177,13 @@ async def test_undrain_node_action(async_client):
 
 
 @pytest.mark.asyncio
-async def test_clear_tamper_action(async_client):
+async def test_clear_tamper_action(async_client, auth_headers: dict):
     """
     Snapshot test: POST /api/nodes/{node_id}/clear-tamper returns ActionResponse with status="approved".
     RED: Tests that clear-tamper returns correct action response.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute
-    response = await async_client.post("/api/nodes/test-node/clear-tamper", headers=headers)
+    response = await async_client.post("/api/nodes/test-node/clear-tamper", headers=auth_headers)
 
     # Verify response structure when available
     if response.status_code == 200:
@@ -223,16 +195,13 @@ async def test_clear_tamper_action(async_client):
 
 
 @pytest.mark.asyncio
-async def test_reinstate_node_action(async_client):
+async def test_reinstate_node_action(async_client, auth_headers: dict):
     """
     Snapshot test: POST /nodes/{node_id}/reinstate returns ActionResponse with status="approved".
     RED: Tests that reinstate returns correct action response.
     """
-    token = create_access_token({"sub": "admin", "role": "admin", "tv": 0})
-    headers = {"Authorization": f"Bearer {token}"}
-
     # Execute
-    response = await async_client.post("/nodes/test-node/reinstate", headers=headers)
+    response = await async_client.post("/nodes/test-node/reinstate", headers=auth_headers)
 
     # Verify response structure when available
     if response.status_code == 200:

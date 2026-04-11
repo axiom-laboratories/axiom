@@ -5,6 +5,7 @@ import pytest
 import asyncio
 from httpx import AsyncClient, ASGITransport
 from agent_service.main import app
+from sqlalchemy import text
 
 
 @pytest.fixture(scope="session")
@@ -22,8 +23,66 @@ def event_loop(event_loop_policy):
     loop.close()
 
 
+@pytest.fixture(scope="session")
+def setup_db():
+    """
+    Ensure test database is initialized and has all required columns.
+    Handles schema evolution where columns may have been added after tests were created.
+    This runs once at the start of the test session.
+    """
+    import asyncio
+    from agent_service.db import init_db, AsyncSessionLocal, User
+    from agent_service.auth import get_password_hash
+    from sqlalchemy import select
+
+    # First, initialize the full schema via init_db (called at app startup)
+    asyncio.run(init_db())
+
+    # Then, add any missing columns for schema evolution and create test admin user
+    async def add_missing_columns_and_users():
+        async with AsyncSessionLocal() as session:
+            # List of (table_name, column_name, column_definition) tuples for columns that might be missing
+            missing_columns = [
+                ("nodes", "env_tag", "VARCHAR(32)"),
+                ("nodes", "operator_env_tag", "BOOLEAN DEFAULT 0"),
+                ("nodes", "job_memory_limit", "VARCHAR"),
+                ("nodes", "job_cpu_limit", "VARCHAR"),
+                ("nodes", "detected_cgroup_version", "VARCHAR"),
+                ("nodes", "cgroup_raw", "TEXT"),
+                ("nodes", "execution_mode", "VARCHAR"),
+            ]
+
+            for table_name, column_name, column_def in missing_columns:
+                try:
+                    # Try to add the column if it doesn't exist
+                    await session.execute(
+                        text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
+                    )
+                except Exception:
+                    # Column likely already exists; ignore error
+                    pass
+
+            await session.commit()
+
+            # Ensure admin user exists for tests
+            result = await session.execute(select(User).where(User.username == "admin"))
+            admin = result.scalar_one_or_none()
+            if not admin:
+                admin = User(
+                    username="admin",
+                    password_hash=get_password_hash("admin123"),
+                    role="admin",
+                    token_version=0,
+                    must_change_password=False
+                )
+                session.add(admin)
+                await session.commit()
+
+    asyncio.run(add_missing_columns_and_users())
+
+
 @pytest.fixture
-async def async_client():
+async def async_client(setup_db):
     """Create an async HTTP client for testing FastAPI endpoints."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as client:
@@ -31,17 +90,26 @@ async def async_client():
 
 
 @pytest.fixture
-async def auth_headers(async_client: AsyncClient):
+async def auth_headers(async_client: AsyncClient, setup_db):
     """Create auth headers with a valid JWT token."""
-    # Create an admin user and get a token
-    login_response = await async_client.post(
-        "/auth/login",
-        data={"username": "admin", "password": "admin123"}
-    )
-    if login_response.status_code == 200:
-        token = login_response.json().get("access_token")
-        return {"Authorization": f"Bearer {token}"}
-    # Fallback: return empty headers (may cause tests to fail, but better than error)
+    from agent_service.auth import create_access_token
+    from agent_service.db import AsyncSessionLocal, User
+    from sqlalchemy import select
+
+    # Get the admin user's current token_version from DB
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).where(User.username == "admin"))
+        admin = result.scalar_one_or_none()
+        if admin:
+            # Create token with the correct token_version from DB
+            token = create_access_token({
+                "sub": "admin",
+                "role": "admin",
+                "tv": admin.token_version
+            })
+            return {"Authorization": f"Bearer {token}"}
+
+    # Fallback: return empty headers (should not happen with setup_db)
     return {}
 
 

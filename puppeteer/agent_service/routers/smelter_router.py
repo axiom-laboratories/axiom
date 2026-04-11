@@ -302,7 +302,13 @@ async def discover_dependencies(
 # Docker Provisioning Endpoints (MIRR-09)
 # ---------------------------------------------------------------------------
 
-@router.post("/api/admin/mirror-provision/{service}")
+@router.post(
+    "/api/admin/mirror-provision/{service}",
+    response_model=dict,
+    tags=["Smelter"],
+    summary="Provision mirror service container",
+    description="Start or stop a mirror service container (pypi, apt, apk, npm, nuget, oci_hub, oci_ghcr, conda)"
+)
 async def provision_mirror_service(
     service: str,
     body: dict,
@@ -360,7 +366,13 @@ async def provision_mirror_service(
         )
 
 
-@router.get("/api/admin/mirror-provision/status")
+@router.get(
+    "/api/admin/mirror-provision/status",
+    response_model=dict,
+    tags=["Smelter"],
+    summary="Get mirror service container statuses",
+    description="Get current status of all mirror service containers (pypi, apt, apk, npm, nuget, oci_hub, oci_ghcr, conda)"
+)
 async def get_provision_status(
     current_user = Depends(require_permission("foundry:read"))
 ):

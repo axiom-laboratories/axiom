@@ -83,9 +83,12 @@ async def test_config_mounts_post_response(async_client: AsyncClient, auth_heade
     Expected: NetworkMount or ActionResponse.
     """
     mount_req = {
-        "source": "/tmp/test",
-        "target": "/mnt/test",
-        "readonly": False
+        "mounts": [
+            {
+                "name": "test_mount",
+                "path": "//server/share"
+            }
+        ]
     }
     response = await async_client.post("/config/mounts", json=mount_req, headers=auth_headers)
     # May be 201 or 200, or auth failures
@@ -164,10 +167,10 @@ async def test_delete_signature_response(async_client: AsyncClient, auth_headers
 @pytest.mark.asyncio
 async def test_job_definitions_list_shape(async_client: AsyncClient, auth_headers: dict):
     """
-    GET /jobs/definitions returns list of JobDefinitionResponse objects.
+    GET /job-definitions returns list of JobDefinitionResponse objects.
     Expected: List[JobDefinitionResponse] or PaginatedResponse[JobDefinitionResponse].
     """
-    response = await async_client.get("/jobs/definitions", headers=auth_headers)
+    response = await async_client.get("/job-definitions", headers=auth_headers)
     assert response.status_code in [200, 401, 403, 429]
 
     if response.status_code == 200:
