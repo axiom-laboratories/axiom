@@ -118,7 +118,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 <details>
 <summary>v21.0 — API Maturity & Contract Standardization (Phases 129–131) — IN PROGRESS</summary>
 
-- [ ] **Phase 129: Response Model Auto-Serialization** — Add response_model to 62 routes; standardize pagination and action responses (5 plans planned)
+- [x] **Phase 129: Response Model Auto-Serialization** — Add response_model to 62 routes; standardize pagination and action responses (5 plans planned) (completed 2026-04-11)
   - [x] Plan 01: Core models (ActionResponse, PaginatedResponse[T], ErrorResponse) — Wave 1 (completed 2026-04-11)
   - [x] Plan 02: Jobs domain (~12 routes) — Wave 2 (completed 2026-04-11)
   - [x] Plan 03: Nodes domain (~10 routes) — Wave 2 (completed 2026-04-11)
@@ -156,7 +156,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 126. Limit Enforcement Validation | v20.0 | 5/5 | Complete | 2026-04-10 |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 2/2 | Complete | 2026-04-10 |
 | 128. Concurrent Isolation Verification | v20.0 | 2/2 | Complete | 2026-04-10 |
-| 129. Response Model Auto-Serialization | v21.0 | 5/5 | Complete | 2026-04-11 |
+| 129. Response Model Auto-Serialization | v21.0 | Complete    | 2026-04-11 | 2026-04-11 |
 
 ## Archived
 
