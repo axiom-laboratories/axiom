@@ -154,6 +154,38 @@ class BulkActionResponse(BaseModel):
     skipped: int
     skipped_guids: List[str]
 
+
+class JobCountResponse(BaseModel):
+    """Response for job count endpoint (Phase 129 — Response Model Auto-Serialization)."""
+    total: int = Field(description="Total number of jobs matching filter criteria")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JobStatsResponse(BaseModel):
+    """Response for job stats endpoint (Phase 129 — Response Model Auto-Serialization)."""
+    counts: Dict[str, int] = Field(description="Job count by status")
+    success_rate: float = Field(description="Percentage of completed jobs that succeeded (0-100)")
+    total_jobs: int = Field(description="Total number of jobs")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DispatchDiagnosisResponse(BaseModel):
+    """Response for dispatch diagnosis endpoint (Phase 129)."""
+    reason: Optional[str] = Field(None, description="Why job hasn't dispatched (e.g., 'no_eligible_nodes', 'capability_mismatch')")
+    message: Optional[str] = Field(None, description="Human-readable explanation")
+    details: Optional[Dict[str, Any]] = Field(None, description="Additional diagnostic data")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BulkDispatchDiagnosisResponse(BaseModel):
+    """Response for bulk dispatch diagnosis endpoint (Phase 129)."""
+    results: Dict[str, Dict[str, Any]] = Field(description="Diagnosis results keyed by job GUID")
+
+    model_config = ConfigDict(from_attributes=True)
+
 class WorkResponse(BaseModel):
     guid: str
     task_type: str

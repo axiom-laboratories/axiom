@@ -42,6 +42,7 @@ from .models import (
     JobTemplateCreate, JobTemplateUpdate, RetentionConfigUpdate,
     LicenceReloadRequest, LicenceReloadResponse,
     SIGNING_FIELDS,
+    PaginatedResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets,
@@ -1140,7 +1141,13 @@ async def get_licence_status(request: Request, current_user: User = Depends(requ
     }
 
 
-@app.get("/jobs", tags=["Jobs"])
+@app.get(
+    "/jobs",
+    response_model=PaginatedResponse[JobResponse],
+    tags=["Jobs"],
+    summary="List all jobs",
+    description="Retrieve a paginated list of all jobs with optional filtering by status, runtime, tags, and other criteria."
+)
 async def list_jobs(
     cursor: Optional[str] = None,
     limit: int = 50,
@@ -1165,7 +1172,13 @@ async def list_jobs(
     )
     return result  # {items, total, next_cursor}
 
-@app.get("/jobs/count", tags=["Jobs"])
+@app.get(
+    "/jobs/count",
+    response_model=JobCountResponse,
+    tags=["Jobs"],
+    summary="Get job count",
+    description="Get total count of jobs, optionally filtered by status."
+)
 async def count_jobs(status: Optional[str] = None, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     from sqlalchemy import func as sqlfunc
     query = select(sqlfunc.count()).select_from(Job).where(Job.task_type != 'system_heartbeat')
@@ -1228,7 +1241,13 @@ async def export_jobs(
         },
     )
 
-@app.get("/api/jobs/stats", tags=["Jobs"])
+@app.get(
+    "/api/jobs/stats",
+    response_model=JobStatsResponse,
+    tags=["Jobs"],
+    summary="Get job statistics",
+    description="Retrieve aggregated job statistics including counts by status and success rate."
+)
 async def get_job_stats(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     """Backend Stats for Dashboard charts."""
     return await JobService.get_job_stats(db)
@@ -1454,7 +1473,13 @@ async def get_job(guid: str, current_user: User = Depends(require_permission("jo
         originating_guid=getattr(job, 'originating_guid', None),
     )
 
-@app.patch("/jobs/{guid}/cancel", tags=["Jobs"])
+@app.patch(
+    "/jobs/{guid}/cancel",
+    response_model=ActionResponse,
+    tags=["Jobs"],
+    summary="Cancel a job",
+    description="Cancel a PENDING or ASSIGNED job, transitioning it to CANCELLED status."
+)
 async def cancel_job(guid: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Job).where(Job.guid == guid))
     job = result.scalar_one_or_none()
@@ -1467,9 +1492,15 @@ async def cancel_job(guid: str, current_user: User = Depends(require_auth), db: 
     audit(db, current_user, "job:cancel", guid)
     await db.commit()
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": "CANCELLED"})
-    return {"status": "cancelled", "guid": guid}
+    return {"status": "cancelled", "resource_type": "job", "resource_id": guid}
 
-@app.get("/jobs/{guid}/dispatch-diagnosis", tags=["Jobs"])
+@app.get(
+    "/jobs/{guid}/dispatch-diagnosis",
+    response_model=DispatchDiagnosisResponse,
+    tags=["Jobs"],
+    summary="Get dispatch diagnosis",
+    description="Get diagnostic information explaining why a PENDING job has not yet been dispatched to a node."
+)
 async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     """Returns structured explanation for why a PENDING job has not yet dispatched."""
     result = await JobService.get_dispatch_diagnosis(guid, db)
@@ -1478,7 +1509,13 @@ async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require
     return result
 
 
-@app.post("/jobs/dispatch-diagnosis/bulk", tags=["Jobs"])
+@app.post(
+    "/jobs/dispatch-diagnosis/bulk",
+    response_model=BulkDispatchDiagnosisResponse,
+    tags=["Jobs"],
+    summary="Get bulk dispatch diagnosis",
+    description="Get dispatch diagnostic information for multiple jobs in one request."
+)
 async def bulk_dispatch_diagnosis(
     req: BulkDiagnosisRequest,
     current_user: User = Depends(require_auth),
@@ -1491,7 +1528,13 @@ async def bulk_dispatch_diagnosis(
     return {"results": results}
 
 
-@app.post("/jobs/{guid}/retry", tags=["Jobs"])
+@app.post(
+    "/jobs/{guid}/retry",
+    response_model=JobResponse,
+    tags=["Jobs"],
+    summary="Retry a job",
+    description="Reset a FAILED or DEAD_LETTER job back to PENDING status to retry execution."
+)
 async def retry_job(
     guid: str,
     current_user: User = Depends(require_auth),
@@ -1515,7 +1558,27 @@ async def retry_job(
     audit(db, current_user, "job:retry", guid)
     await db.commit()
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": "PENDING"})
-    return {"status": "PENDING", "guid": guid}
+    # Construct JobResponse from updated job
+    payload = job.payload if isinstance(job.payload, dict) else json.loads(job.payload or '{}')
+    result_val = job.result if isinstance(job.result, dict) else json.loads(job.result or 'null') if job.result else None
+    target_tags = job.target_tags if isinstance(job.target_tags, list) else json.loads(job.target_tags or 'null') if job.target_tags else None
+    return JobResponse(
+        guid=job.guid,
+        status=job.status,
+        payload=payload,
+        result=result_val,
+        node_id=job.node_id,
+        started_at=job.started_at,
+        duration_seconds=None,
+        target_tags=target_tags,
+        task_type=job.task_type,
+        display_type=getattr(job, 'display_type', None),
+        name=getattr(job, 'name', None),
+        created_by=getattr(job, 'created_by', None),
+        created_at=job.created_at,
+        runtime=getattr(job, 'runtime', None),
+        originating_guid=getattr(job, 'originating_guid', None),
+    )
 
 # --- Resubmit / Bulk job operations (Phase 51) ---
 
@@ -1703,7 +1766,7 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": updated.get("status", "COMPLETED")})
     return updated
 
-@app.get("/nodes", tags=["Nodes"])
+@app.get("/nodes", tags=["Nodes"], response_model=PaginatedResponse[NodeResponse], summary="List all nodes", description="Retrieve paginated list of nodes with online/offline status and capability info")
 async def list_nodes(
     page: int = 1,
     page_size: int = 25,
@@ -1777,7 +1840,7 @@ async def list_nodes(
         "pages": math.ceil(total / page_size) if total > 0 else 1,
     }
 
-@app.get("/nodes/{node_id}/detail", tags=["Nodes"])
+@app.get("/nodes/{node_id}/detail", tags=["Nodes"], response_model=NodeResponse, summary="Get node details", description="Retrieve full details of a specific node")
 async def get_node_detail(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     detail = await JobService.get_node_detail(node_id, db)
     if detail is None:
@@ -1785,7 +1848,7 @@ async def get_node_detail(node_id: str, current_user: User = Depends(require_aut
     return detail
 
 
-@app.patch("/nodes/{node_id}", tags=["Nodes"])
+@app.patch("/nodes/{node_id}", tags=["Nodes"], response_model=ActionResponse, summary="Update node metadata", description="Update node tags and environment tag")
 async def update_node_config(node_id: str, config: NodeUpdateRequest, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
@@ -1805,7 +1868,7 @@ async def update_node_config(node_id: str, config: NodeUpdateRequest, current_us
         "env_tag": node.env_tag,
     }
 
-@app.delete("/nodes/{node_id}", status_code=204, tags=["Nodes"])
+@app.delete("/nodes/{node_id}", status_code=204, tags=["Nodes"], summary="Delete a node", description="Permanently delete a node and its associated metadata")
 async def delete_node(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
@@ -1818,7 +1881,7 @@ async def delete_node(node_id: str, current_user: User = Depends(require_auth), 
     await db.commit()
     return Response(status_code=204)
 
-@app.post("/nodes/{node_id}/revoke", tags=["Nodes"])
+@app.post("/nodes/{node_id}/revoke", tags=["Nodes"], response_model=ActionResponse, summary="Revoke node certificates", description="Prevent a node from accepting further work and block its enrollment")
 async def revoke_node(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
@@ -1835,9 +1898,9 @@ async def revoke_node(node_id: str, current_user: User = Depends(require_auth), 
             pass
     audit(db, current_user, "node:revoke", node_id)
     await db.commit()
-    return {"status": "revoked", "node_id": node_id}
+    return {"status": "revoked", "resource_type": "node", "resource_id": node_id}
 
-@app.patch("/nodes/{node_id}/drain", tags=["Nodes"])
+@app.patch("/nodes/{node_id}/drain", response_model=ActionResponse, summary="Drain node workload", description="Stop assigning new jobs while completing existing jobs", tags=["Nodes"])
 async def drain_node(node_id: str, current_user: User = Depends(require_permission("nodes:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
@@ -1849,10 +1912,10 @@ async def drain_node(node_id: str, current_user: User = Depends(require_permissi
     audit(db, current_user, "node:drain", node_id)
     await db.commit()
     await ws_manager.broadcast("node:updated", {"node_id": node_id, "status": "DRAINING"})
-    return {"status": "DRAINING", "node_id": node_id}
+    return {"status": "enabled", "resource_type": "node", "resource_id": node_id, "message": "Draining jobs"}
 
 
-@app.patch("/nodes/{node_id}/undrain", tags=["Nodes"])
+@app.patch("/nodes/{node_id}/undrain", response_model=ActionResponse, summary="Resume assigning jobs to drained node", description="Re-enable job assignment on a previously drained node", tags=["Nodes"])
 async def undrain_node(node_id: str, current_user: User = Depends(require_permission("nodes:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
@@ -1867,7 +1930,7 @@ async def undrain_node(node_id: str, current_user: User = Depends(require_permis
     return {"status": "ONLINE", "node_id": node_id}
 
 
-@app.post("/api/nodes/{node_id}/clear-tamper", tags=["Nodes"])
+@app.post("/api/nodes/{node_id}/clear-tamper", response_model=ActionResponse, summary="Clear tamper flag", description="Reset a node from TAMPERED to ONLINE after forensic review", tags=["Nodes"])
 async def clear_node_tamper(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     """Resets a node from TAMPERED to ONLINE after administrator review."""
     
@@ -1886,7 +1949,7 @@ async def clear_node_tamper(node_id: str, current_user: User = Depends(require_a
     audit(db, current_user, "node:clear_tamper", node_id)
     return {"status": "cleared", "node_id": node_id}
 
-@app.post("/nodes/{node_id}/reinstate", tags=["Nodes"])
+@app.post("/nodes/{node_id}/reinstate", response_model=ActionResponse, summary="Reinstate a revoked node", description="Transition a REVOKED node back to OFFLINE status for re-enrollment", tags=["Nodes"])
 async def reinstate_node(node_id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Node).where(Node.node_id == node_id))
     node = result.scalar_one_or_none()
