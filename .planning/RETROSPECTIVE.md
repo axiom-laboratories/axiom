@@ -608,6 +608,8 @@
 | v17.0 | 5 | 6 | Scale hardening; clean first-pass execution across all phases; no gap-closure plans needed |
 | v18.0 | 6 | 15 | E2E validation milestone; 50% phases were gap-closure; integration checker found final gap; lost-commit risk pattern |
 | v19.0 | 12 | 37 | Foundry production-grade; clean first-pass (1 traceability phase only); compose profile inheritance; 22min avg plan; 5-day delivery |
+| v20.0 | 9 | 22 | Node capacity + isolation; cgroup detection; stress corpus; ephemeral-only enforcement; clean first-pass; real hardware validation |
+| v21.0 | 3 | 9 | API contract milestone; response_model on all 89 routes; TDD RED→GREEN for Phase 131; audit passed first run; 2-day delivery |
 
 ## Milestone: v16.1 — PR Merge & Backlog Closure
 
@@ -749,3 +751,78 @@
 - 1 phase, 2 plans, 16 commits — smallest milestone to date
 - Single-day delivery (2026-03-26)
 - Checkpoint added ~20 min for live Pages activation (GitHub UI step required)
+
+## Milestone: v20.0 — Node Capacity & Isolation Validation
+
+**Shipped:** 2026-04-10
+**Phases:** 9 (120–128) | **Plans:** 22 | **Requirements:** all
+
+### What Was Built
+- Phase 120–122: Job memory/CPU limit schema, API admission control, `parse_bytes()` helper, node-side limit validation — full limit lifecycle from DB through API through node enforcement
+- Phase 123: `CgroupDetector` class — v1 vs v2 detection at node startup and heartbeat, orchestrator schema updates to surface cgroup mode per node
+- Phase 124: Ephemeral execution guarantee — block `EXECUTION_MODE=direct`, startup enforcement check, node reporting, compose validation
+- Phase 125: Stress test corpus — CPU burn, memory hog, noisy-neighbour scripts across Python/Bash/PowerShell; preflight check + orchestrator script
+- Phase 126: Limit enforcement validation — Docker/Podman node enrollment, live network fixes, signature verification fix, stress test execution, final validation report
+- Phase 127: Cgroup dashboard — node cgroup badges, degradation banner, Admin System Health tab with cgroup compatibility card
+- Phase 128: Concurrent isolation — `noisy_monitor.py` sleep-drift monitor, 5-run orchestrator with `target_node_id`, isolation reports
+
+### What Worked
+- Real hardware validation approach (live Docker/Podman nodes) rather than mocked enforcement — discovered actual issues (signature verification, network routing) that would have been invisible in unit tests
+- Stress corpus scripts across all 3 runtimes (Python/Bash/PowerShell) validated the ephemeral execution model under load
+- Cgroup detection as a first-class feature (not just a diagnostic) — surfaced as dashboard UI, giving operators actionable visibility
+
+### What Was Inefficient
+- Phase 126 required 5 plans due to iterative discovery: Docker enrollment, network fixes, Podman validation, live node deployment, final execution — the complexity of live-infrastructure validation phases is consistently underestimated
+- Two phase 121 plans covered overlapping concerns (dispatcher diagnosis extension + scheduler integration) — could have been one combined plan
+
+### Patterns Established
+- `CgroupDetector` startup detection pattern: run once at init, persist result in heartbeat payload — operator doesn't need to configure anything
+- Stress corpus directory structure: `mop_validation/stress_tests/{python,bash,powershell}/` with `preflight_check.py` + `orchestrate_*.py` at root — reusable for future validation milestones
+- Validation report format: JSON results file + markdown summary per stress test run — consistent with MATRIX EVIDENCE pattern from v11.1
+
+### Key Lessons
+- Live-infra phases should budget for 4-5 plans (not 2-3) — network, auth, and signature issues are only discoverable at execution time
+- Ephemeral-only enforcement (`EXECUTION_MODE=direct` blocked) is a hard prerequisite for any isolation claim — defer the isolation milestone until enforcement is confirmed
+- Cgroup v1 vs v2 detection belongs in the node, not operator docs — automatic detection removes the most common node misconfiguration
+
+### Cost Observations
+- 9 phases, 22 plans, 5-day delivery (2026-04-06 → 2026-04-10)
+- 89 files changed, 11,264 insertions
+- Phase 126 (live validation) was 5 plans alone — live infra phases are disproportionately plan-heavy
+
+## Milestone: v21.0 — API Maturity & Contract Standardization
+
+**Shipped:** 2026-04-11
+**Phases:** 3 (129–131) | **Plans:** 9
+
+### What Was Built
+- Phase 129: `ActionResponse`, `PaginatedResponse[T]` (Pydantic v2 Generic), `ErrorResponse` added as core models; `response_model=` applied to all 89 API routes (143% of original 62-route target); zero untyped routes remain; full test coverage per response shape
+- Phase 130: Pytest integration test suite — 4 service-layer test cases (happy path, bad signature, capability mismatch, retry); live E2E orchestration script with 4 scenarios and JSON reporting; 4/4 pass
+- Phase 131: `SignatureService.countersign_for_node()` unified static method; HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance); hard-fail semantics (HTTP 500) when signing key absent; TDD RED→GREEN with 112 new tests across 7 test files
+
+### What Worked
+- TDD methodology for Phase 131 produced a correct implementation on first green pass — RED phase caught 3 separate gaps (missing HMAC for scheduled jobs, missing hard-fail, non-unified code paths) before implementation began
+- `PaginatedResponse[T]` as a Pydantic v2 Generic resolved the type safety problem for list endpoints without requiring per-type response models — pattern is reusable for any future paginated endpoint
+- Audit-before-close passed on first run with 0 gaps and 7 non-critical tech debt items — highest first-run audit score to date
+- Wave-based plan execution (Phase 129 in 5 waves, 130 in 2 waves) kept each plan bounded and verifiable
+
+### What Was Inefficient
+- Phase 129 target was 62 routes; 89 were actually found — the route count in the plan was based on an outdated estimate. Actual scope was 44% larger than planned, though execution still completed cleanly
+- Phase 131 was originally dated "completed 2026-04-11" in ROADMAP.md but Phase 130 was completed 2026-04-12 — the phase ordering in the milestone didn't match completion order (131 completed before 130)
+
+### Patterns Established
+- `countersign_for_node(job_guid, script, signature_id)` static method as the single signing entry point — all callers (manual dispatch, scheduled dispatch, staged jobs) route through one method
+- HMAC stamping at dispatch time for scheduled jobs — ensures the same SEC-02 compliance path as manually-dispatched jobs
+- Hard-fail (`raise HTTPException(500)`) on missing signing key — explicit failure mode rather than silent no-signature dispatch
+- `PaginatedResponse[T]` Generic pattern for typed list endpoints — avoids per-type boilerplate while preserving full OpenAPI type information
+
+### Key Lessons
+- Route count estimates in plans should be derived from `grep -c 'async def.*route\|@router\.' main.py` at plan time, not carried forward from design documents — the 62→89 gap caused no execution problem here but could have in a more constrained plan
+- TDD's RED phase is worth the investment: Phase 131's RED tests identified 3 security gaps before a single line of implementation code was written — prevents the "passes tests that don't test the right thing" failure mode
+- HMAC/signing coverage must be explicitly audited per dispatch path, not assumed to be covered by "signature verification tests" — the SEC-02 gap (scheduled jobs not HMAC-stamped) was invisible to path-specific tests
+
+### Cost Observations
+- 3 phases, 9 plans, 2-day delivery (2026-04-11 → 2026-04-12)
+- 46 files changed, +10,649 / -352 lines, 39 commits
+- Smallest plan count per phase ratio to date (3 plans/phase average) — clean problem decomposition
+- 112 new tests added; 110/112 pass (2 intentional EE-only expected failures)

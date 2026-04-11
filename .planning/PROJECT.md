@@ -14,20 +14,8 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Current State
 
-**Latest shipped:** v19.0 Foundry Improvements (2026-04-05)
-**Previous:** v18.0 First-User Experience & E2E Validation (2026-04-01)
-
-## Current Milestone: v20.0 Node Capacity & Isolation Validation
-
-**Goal:** Prove that resource limits set via the EE GUI are enforced end-to-end through nested containers, that all jobs execute in ephemeral containers (never directly on the node), and that concurrent jobs are isolated from each other.
-
-**Target features:**
-- Stress-test script corpus (Python, Bash, PowerShell) for CPU, memory, and noisy-neighbour validation
-- Cgroup pre-flight detection on nodes (v1 vs v2 vs unsupported)
-- End-to-end limit enforcement validation: GUI → API → node → inner container runtime flags
-- Verify no job code runs directly on the node host (all execution via ephemeral containers)
-- Fix any gaps found in runtime.py, container flags, or cgroup delegation
-- Concurrent job isolation proof (noisy-neighbour detection)
+**Latest shipped:** v21.0 API Maturity & Contract Standardization (2026-04-11)
+**Previous:** v20.0 Node Capacity & Isolation Validation (2026-04-10)
 
 ## Requirements
 
@@ -288,6 +276,31 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ Admin Repository Health card shows live pool checkout, pending jobs, APScheduler rows — v17.0
 - ✓ `upgrade.md` updated with `migration_v44.sql` entry, `CONCURRENTLY` transaction-block caveat, v17.0 ops reference — v17.0
 
+### Validated — v20.0 Node Capacity & Isolation Validation
+
+- ✓ Node detects cgroup v1 vs v2 vs unsupported at startup; reports in heartbeat — v20.0
+- ✓ Dashboard shows cgroup version badge per node; operator warned when node has degraded cgroup support — v20.0
+- ✓ CPU burner, memory hog, and noisy-neighbour monitor scripts in Python, Bash, and PowerShell — v20.0
+- ✓ Pre-flight cgroup check script validates node environment before stress tests — v20.0
+- ✓ Automated stress test orchestrator dispatches jobs via API and reports pass/fail — v20.0
+- ✓ Memory limit triggers OOMKill (exit 137) when exceeded; CPU limit caps available cores — v20.0
+- ✓ Limits set in dashboard GUI reach inner container runtime flags end-to-end (GUI → API → node → container) — v20.0
+- ✓ Limit enforcement validated on both Docker and Podman job execution runtimes — v20.0
+- ✓ All job code executes inside ephemeral containers; `EXECUTION_MODE=direct` flagged unsafe — v20.0
+- ✓ Concurrent isolation verified: memory hog does not starve neighbour; sleep drift < 1.1s — v20.0
+- ✓ Admin System Health tab with cgroup compatibility card; degradation banner in Nodes view — v20.0
+
+### Validated — v21.0 API Maturity & Contract Standardization
+
+- ✓ `ActionResponse` (8-status Literal), `PaginatedResponse[T]` (Pydantic v2 Generic), `ErrorResponse` standardized across all API routes — v21.0
+- ✓ `response_model` applied to all 89 routes (143% of 62-route target); zero untyped surfaces remain — v21.0
+- ✓ Service-layer pytest integration tests: happy path, bad signature, capability mismatch, retry exhaustion (4/4 pass) — v21.0
+- ✓ Live E2E orchestration script covering 4 dispatch scenarios with JSON reporting — v21.0
+- ✓ `SignatureService.countersign_for_node()` unifies all server-side signing (on-demand + scheduled jobs) — v21.0
+- ✓ Hard-fail (HTTP 500) when signing key absent; silent fallback security gap eliminated — v21.0
+- ✓ HMAC stamping for scheduled jobs at dispatch time; `signing_error` fire_log status on countersign failure — v21.0
+- ✓ CRLF/LF normalization in countersign path for cross-platform signature determinism — v21.0
+
 ### Active — Future Milestones
 
 - [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
@@ -309,7 +322,9 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), and Foundry/Smelter production-grade for air-gapped deployments (v19.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite with light/dark theming. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~54,190 LOC (29,603 Python + 24,587 TypeScript). v19.0 shipped 2026-04-05.
+Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), and API contract fully typed with unified signature path (v21.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite with light/dark theming. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~34,000 LOC Python backend. v21.0 shipped 2026-04-11.
+
+All 89 API routes have explicit `response_model` declarations. The full dispatch pipeline is covered by service-layer integration tests and a live E2E orchestration script. All server-side job signing flows through `SignatureService.countersign_for_node()` — no unsigned jobs can be created or scheduled.
 
 Documentation site lives at `https://axiom-laboratories.github.io/axiom/docs/` (GitHub Pages, subtree deploy via `ghp-import`). Marketing homepage lives at `https://axiom-laboratories.github.io/axiom/`. Both auto-deploy from `main` via separate GitHub Actions jobs in `gh-pages-deploy.yml`. MkDocs Material, CDN-free, `mkdocs --strict` enforced in CI. API reference auto-generated from FastAPI OpenAPI schema at container build time.
 
@@ -377,6 +392,12 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | FOWT prevention via inline script in index.html | Runs before React hydration; reads localStorage theme; applies .dark class immediately; no flash | ✓ Good |
 | Two-stage Dockerfile for docs (builder + nginx) | mkdocs serve is not production-safe (GitHub issue #1825) | ✓ Good |
 | Caddy `handle /docs/*` + nginx `alias` | `handle_path` strips prefix → silently breaks all CSS/JS asset resolution | ✓ Good |
+| `countersign_for_node()` as static method in SignatureService | Centralizes all signing paths; static avoids instance coupling; raises ValueError on missing key rather than silently skipping | ✓ Good |
+| Hard-fail (HTTP 500) on missing signing key | Silent fallback was a security gap — operators must configure signing before jobs run; fail-fast surfaces misconfiguration immediately | ✓ Good |
+| HMAC stamping for scheduled jobs at dispatch time (not definition time) | Dispatch-time stamp covers the actual execution context (node_id, guid); definition-time stamp would be stale on retry | ✓ Good |
+| `PaginatedResponse[T]` as Pydantic v2 Generic over per-domain types | Single reusable contract; Generic[T] avoids type explosion across 20+ list endpoints; OpenAPI inlines correctly | ✓ Good |
+| `response_model` on all 89 routes (including admin/system) | Zero untyped surfaces means any breaking response change is caught immediately by type checkers and integration tests | ✓ Good |
+| Service-layer tests for E2E dispatch (not HTTP transport) | Faster CI, no running server needed, tests actual business logic; HTTP-layer tested separately by `test_*.py` suite | ✓ Good |
 | openapi.json generated at container build time | No running server required; dummy env vars (postgresql+asyncpg, API_KEY) in Dockerfile builder stage | ✓ Good |
 | CLI renamed `axiom-push`; package `axiom-sdk` | Axiom brand alignment; mop-push name retired | ✓ Good |
 | CDN verification uses `https://` prefix match | Privacy plugin stores assets under `assets/external/fonts.googleapis.com/` — bare domain grep matches local paths (false positive) | ✓ Good |
@@ -422,6 +443,14 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `_pool_kwargs` module-level (not function-scoped) | Allows test imports without triggering asyncpg side effects at import time | ✓ Good |
 | `require_auth` (JWT only) for `/api/health/scale`, no RBAC gate | Scale metrics are observability-only with no sensitive data — any authenticated user can view | ✓ Good |
 | `upgrade.md` symlinked from `puppeteer/upgrade.md` to `docs/docs/runbooks/upgrade.md` | Test path resolves `puppeteer/upgrade.md`; symlink avoids content duplication | ✓ Good |
+
+## Previous State — v21.0 Complete (2026-04-11)
+
+Axiom v21.0 delivered API Maturity & Contract Standardization — 3 phases (129–131), 9 plans, all 3/3 milestone goals satisfied. Response models standardized across all 89 API routes (143% of 62-route target) using three foundational contracts: `ActionResponse`, `PaginatedResponse[T]` (Pydantic v2 Generic), `ErrorResponse`. Service-layer pytest integration test suite added for job dispatch pipeline (4 tests covering happy path, bad signature, capability mismatch, retry exhaustion). Live E2E orchestration script with 4 scenarios and JSON reporting. Server-side countersigning unified in `SignatureService.countersign_for_node()` — eliminates path duplication between on-demand and scheduled jobs; hard-fail semantics on missing key; HMAC stamping for scheduled jobs at dispatch time (SEC-02). 112 new tests, 46 files changed, 39 commits over 2 days.
+
+## Previous State — v20.0 Complete (2026-04-10)
+
+Axiom v20.0 delivered Node Capacity & Isolation Validation — 9 phases (120–128), 25 plans, all 17/17 requirements satisfied. Cgroup detection (v1/v2/unsupported) at node startup with heartbeat reporting and dashboard badges. Stress-test corpus in Python, Bash, and PowerShell for CPU, memory, and noisy-neighbour scenarios. Memory and CPU limit enforcement validated end-to-end on Docker and Podman runtimes. Ephemeral execution guarantee: `EXECUTION_MODE=direct` flagged unsafe; all job code runs in ephemeral containers. Concurrent isolation verified: memory hog does not starve neighbours; sleep drift < 1.1s under load. Cgroup compatibility card in Admin System Health tab. Dashboard degradation banner when nodes report v1 or unsupported cgroup.
 
 ## Previous State — v19.0 Complete (2026-04-05)
 

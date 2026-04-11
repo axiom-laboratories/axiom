@@ -1,5 +1,21 @@
 # Milestones
 
+## v21.0 API Maturity & Contract Standardization (Shipped: 2026-04-11)
+
+**Phases:** 129–131 (3 phases, 9 plans)
+**Stats:** 46 files changed, +10,649 / -352 lines | 39 commits | 2 days (2026-04-11 → 2026-04-12)
+**Git range:** `4e4757c` → `7f66878`
+
+**Key accomplishments:**
+- Phase 129 — Response model standardization: `ActionResponse`, `PaginatedResponse[T]`, `ErrorResponse` added to all 89 routes (143% of original 62-route target); zero untyped routes remain
+- Phase 130 — E2E integration test suite: 4 pytest service-layer tests (happy path, bad signature, capability mismatch, retry exhaustion) + 4-scenario live E2E orchestration script; 4/4 pass
+- Phase 131 — Unified countersigning: `SignatureService.countersign_for_node()` centralizes all job signing (on-demand + scheduled); hard-fail semantics on missing key; HMAC stamping for scheduled jobs (SEC-02)
+- 112 new tests across 7 test files (110/112 pass; 2 intentional EE-only expected failures)
+
+**Delivered:** Production-grade API contract with typed response models on every route, full E2E dispatch coverage, and unified signature path eliminating security gaps in scheduled job signing.
+
+---
+
 ## v19.0 Foundry Improvements (Shipped: 2026-04-05)
 
 **Phases completed:** 12 phases, 37 plans, 80 tasks
