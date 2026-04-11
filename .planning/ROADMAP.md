@@ -130,7 +130,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
   - [x] Plan 02: Live E2E script with node orchestration (4 scenarios, JSON reporting) — Wave 2 (completed 2026-04-12)
 
 - [x] **Phase 131: Signature Verification Path Unification** — Unify server-side countersigning into single service method; fix missing HMAC for scheduled jobs; hard-fail on missing signing key (1 plan planned) (completed 2026-04-11)
-  - [ ] Plan 01: TDD test infrastructure + countersign_for_node() implementation + integration updates (Wave 1)
+  - [x] Plan 01: TDD test infrastructure + countersign_for_node() implementation + integration updates (Wave 1)
 
 </details>
 
