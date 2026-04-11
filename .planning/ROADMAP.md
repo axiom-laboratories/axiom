@@ -23,6 +23,7 @@
 - ✅ **v18.0 — First-User Experience & E2E Validation** — Phases 101–106 (shipped 2026-04-01)
 - ✅ **v19.0 — Foundry Improvements** — Phases 107–114, 116–119 (shipped 2026-04-05)
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
+- **v21.0 — API Maturity & Contract Standardization** — Phases 129–131
 
 ## Phases
 
@@ -76,7 +77,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 </details>
 
 <details>
-<summary>v20.0 — Node Capacity & Isolation Validation (Phases 120–128) — IN PROGRESS</summary>
+<summary>✅ v20.0 — Node Capacity & Isolation Validation (Phases 120–128) — SHIPPED 2026-04-10</summary>
 
 - [x] **Phase 120: Database & API Contract** — Add job limit schema + API models for end-to-end traceability (completed 2026-04-06)
 - [x] **Phase 121: Job Service & Admission Control** — Memory limit persistence and API admission checks (3 plans completed 2026-04-06)
@@ -106,14 +107,27 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - [x] **Phase 127: Cgroup Dashboard & Monitoring** — Dashboard cgroup badges and operator warnings (2 plans completed 2026-04-10)
   - [x] Plan 01: Nodes.tsx cgroup badges + degradation banner (2 tasks, completed 2026-04-10)
   - [x] Plan 02: Admin.tsx System Health tab + cgroup compatibility card (2 tasks, completed 2026-04-10)
-- [x] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load
+- [x] **Phase 128: Concurrent Isolation Verification** — Memory isolation and latency monitoring under load (2 plans completed 2026-04-10)
   - [x] Plan 01: Create noisy_monitor.py (Python sleep drift monitor) — completed 2026-04-10
   - [x] Plan 02: Orchestrator 5-run test with target_node_id and reports — completed 2026-04-10
 
-### Phase 128: Concurrent Isolation Verification
-**Goal:** Verify that memory limits and CPU constraints are properly enforced when multiple jobs run concurrently on the same node, and that isolation prevents one job from affecting another's resource allocation or execution latency.
-
 Archive: `.planning/milestones/v20.0-ROADMAP.md`
+
+</details>
+
+<details>
+<summary>v21.0 — API Maturity & Contract Standardization (Phases 129–131) — IN PROGRESS</summary>
+
+- [ ] **Phase 129: Response Model Auto-Serialization** — Add response_model to 62 routes; standardize pagination and action responses (5 plans planned)
+  - [ ] Plan 01: Core models (ActionResponse, PaginatedResponse[T], ErrorResponse) — Wave 1
+  - [ ] Plan 02: Jobs domain (~12 routes) — Wave 2
+  - [ ] Plan 03: Nodes domain (~10 routes) — Wave 2
+  - [ ] Plan 04: Admin/Auth domain (~15 routes) — Wave 3
+  - [ ] Plan 05: Foundry/Smelter/System (~25 routes) — Wave 3
+
+- [ ] **Phase 130: E2E Job Dispatch Integration Test** — [To be planned]
+
+- [ ] **Phase 131: Signature Verification Path Unification** — [To be planned]
 
 </details>
 
@@ -141,10 +155,12 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 125. Stress Test Corpus | v20.0 | 4/4 | Complete | 2026-04-08 |
 | 126. Limit Enforcement Validation | v20.0 | 5/5 | Complete | 2026-04-10 |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 2/2 | Complete | 2026-04-10 |
-| 128. Concurrent Isolation Verification | v20.0 | Complete    | 2026-04-10 | 2026-04-10 |
+| 128. Concurrent Isolation Verification | v20.0 | 2/2 | Complete | 2026-04-10 |
+| 129. Response Model Auto-Serialization | v21.0 | 0/5 | Planned | TBD |
 
 ## Archived
 
+- ✅ **v20.0 — Node Capacity & Isolation Validation** (Phases 120–128) — shipped 2026-04-10 → `.planning/milestones/v20.0-ROADMAP.md`
 - ✅ **v19.0 — Foundry Improvements** (Phases 107–114, 116–119) — shipped 2026-04-05 → `.planning/milestones/v19.0-ROADMAP.md`
 - ✅ **v18.0 — First-User Experience & E2E Validation** (Phases 101–106) — shipped 2026-04-01 → `.planning/milestones/v18.0-ROADMAP.md`
 - ✅ **v16.1 — PR Merge & Backlog Closure** (Phases 92–95) — shipped 2026-03-30 → `.planning/milestones/v16.1-ROADMAP.md`
