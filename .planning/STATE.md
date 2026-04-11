@@ -36,9 +36,15 @@ Plan: 05 (Foundry/Smelter/System Domain Response Models) — COMPLETE
   - All routes in System, Config, Signature, and Foundry/Smelter domains now have explicit OpenAPI contracts
   - Zero breaking changes to API structure
 
-Plan: 04 (Admin/Auth Domain Response Models) — IN PROGRESS
+Plan: 04 (Admin/Auth Domain Response Models) — COMPLETE
   - Task 1: Snapshot tests for Admin/Auth routes (RED phase) — COMPLETE (commit 5f86116)
-  - Task 2: Response model implementation (GREEN phase) — NOT STARTED
+  - Task 2: Response model implementation (GREEN phase) — COMPLETE
+    - 2 new response models: DeviceCodeResponse (RFC 8628 device authorization), EnrollmentTokenResponse (base64 enrollment token)
+    - 6 core routes updated with response_model decorators (POST /auth/device, POST /auth/device/token, GET /auth/me, PATCH /auth/me, POST /admin/generate-token, POST /admin/upload-key)
+    - Return statements updated to match response model schemas
+    - 16/18 snapshot tests passing (2 expected 404s for DELETE operations on non-existent IDs)
+    - Zero breaking changes to API contract
+    - SUMMARY.md created: 129-04-SUMMARY.md
 
 **Summary of Phase 129 Plan 05 (Completed):**
 

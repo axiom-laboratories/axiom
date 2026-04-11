@@ -120,10 +120,10 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 
 - [ ] **Phase 129: Response Model Auto-Serialization** — Add response_model to 62 routes; standardize pagination and action responses (5 plans planned)
   - [x] Plan 01: Core models (ActionResponse, PaginatedResponse[T], ErrorResponse) — Wave 1 (completed 2026-04-11)
-  - [ ] Plan 02: Jobs domain (~12 routes) — Wave 2
-  - [ ] Plan 03: Nodes domain (~10 routes) — Wave 2
-  - [ ] Plan 04: Admin/Auth domain (~15 routes) — Wave 3
-  - [ ] Plan 05: Foundry/Smelter/System (~25 routes) — Wave 3
+  - [x] Plan 02: Jobs domain (~12 routes) — Wave 2 (completed 2026-04-11)
+  - [x] Plan 03: Nodes domain (~10 routes) — Wave 2 (completed 2026-04-11)
+  - [x] Plan 04: Admin/Auth domain (~15 routes) — Wave 3 (completed 2026-04-11)
+  - [x] Plan 05: Foundry/Smelter/System (~25 routes) — Wave 3 (completed 2026-04-11)
 
 - [ ] **Phase 130: E2E Job Dispatch Integration Test** — [To be planned]
 
@@ -156,7 +156,7 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 126. Limit Enforcement Validation | v20.0 | 5/5 | Complete | 2026-04-10 |
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 2/2 | Complete | 2026-04-10 |
 | 128. Concurrent Isolation Verification | v20.0 | 2/2 | Complete | 2026-04-10 |
-| 129. Response Model Auto-Serialization | v21.0 | 1/5 | In Progress | 2026-04-11 |
+| 129. Response Model Auto-Serialization | v21.0 | 5/5 | Complete | 2026-04-11 |
 
 ## Archived
 
