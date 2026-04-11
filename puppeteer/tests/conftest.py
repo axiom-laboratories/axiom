@@ -28,3 +28,33 @@ async def async_client():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
+
+
+@pytest.fixture
+async def auth_headers(async_client: AsyncClient):
+    """Create auth headers with a valid JWT token."""
+    # Create an admin user and get a token
+    login_response = await async_client.post(
+        "/auth/login",
+        data={"username": "admin", "password": "admin123"}
+    )
+    if login_response.status_code == 200:
+        token = login_response.json().get("access_token")
+        return {"Authorization": f"Bearer {token}"}
+    # Fallback: return empty headers (may cause tests to fail, but better than error)
+    return {}
+
+
+@pytest.fixture
+async def created_job_guid(async_client: AsyncClient, auth_headers: dict):
+    """Create a test job and return its GUID."""
+    req = {
+        "task_type": "script",
+        "runtime": "python",
+        "payload": {"script_content": "print('test')"},
+    }
+    response = await async_client.post("/jobs", json=req, headers=auth_headers)
+    if response.status_code == 200:
+        return response.json().get("guid")
+    # Return None if creation fails
+    return None
