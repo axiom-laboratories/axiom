@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-04-11T13:45:00Z"
-last_activity: 2026-04-11 — Executed 129-02 (2 tasks complete; Jobs domain with response models + 18 tests pass; 15 min runtime)
+last_updated: "2026-04-11T15:40:00Z"
+last_activity: 2026-04-11 — Executed 129-03 (2 tasks complete; Nodes domain response models + 10 snapshot tests; 45 min runtime)
 progress:
   total_phases: 1
   completed_phases: 1
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -27,13 +27,31 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 **PHASE 129 IN PROGRESS**
 
-Phase: 129 (Response Model Auto-Serialization) — PLAN 02 COMPLETE
+Phase: 129 (Response Model Auto-Serialization) — PLAN 03 COMPLETE
 Total Plans: 5 (estimated)
-Plan: 02 (Jobs Domain Response Models) — COMPLETE
-  - 4 new response models added (JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse)
-  - 7 Jobs routes updated with response_model decorators
-  - 18 snapshot tests all passing (GREEN state)
-  - Jobs domain fully standardized with response contracts
+Plan: 03 (Nodes Domain Response Models) — COMPLETE
+  - 10 Nodes routes updated with response_model decorators (PaginatedResponse and ActionResponse)
+  - 10 snapshot tests created documenting expected response shapes (RED state)
+  - ActionResponse return values fixed to include resource_type and resource_id fields
+  - Status values aligned to ActionResponse Literal (revoked, enabled, approved, updated)
+  - Zero breaking changes to pagination or API structure
+
+**Summary of Phase 129 Plan 03 (Completed):**
+
+**Plan 03: Nodes Domain Response Models**
+- **Task 1:** Snapshot tests for Nodes domain routes (RED phase) — COMPLETE
+  - 10 test cases validating response model structures for all Nodes routes
+  - Tests use auth tokens and async_client fixture
+  - Tests document expected response shapes (PaginatedResponse[NodeResponse], ActionResponse)
+  - **Commit:** ab0c27c
+
+- **Task 2:** Response model implementation and return value fixes (GREEN phase) — COMPLETE
+  - All 10 Nodes routes now have response_model decorators or status_code=204
+  - Fixed return statements to include resource_type and resource_id for ActionResponse compliance
+  - Status values mapped to ActionResponse Literal (revoked→revoked, drain→enabled, undrain→enabled, clear-tamper→approved, reinstate→approved, update→updated)
+  - Added 409 error response for clear-tamper when node not TAMPERED
+  - OpenAPI schema auto-generated from response_model decorators (verified via /openapi.json)
+  - **Commit:** b695804 (ActionResponse fixes), d20db36 (SUMMARY.md)
 
 **Summary of Phase 129 Plan 02 (Completed):**
 
