@@ -186,7 +186,7 @@ async def test_admin_generate_token_response(async_client: AsyncClient, auth_hea
 
 
 @pytest.mark.asyncio
-async def test_admin_upload_key_response(async_client: AsyncClient, auth_token: str):
+async def test_admin_upload_key_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: POST /admin/upload-key returns action response.
 
     Expected response shape:
@@ -207,7 +207,7 @@ async def test_admin_upload_key_response(async_client: AsyncClient, auth_token: 
 
 
 @pytest.mark.asyncio
-async def test_list_users_response(async_client: AsyncClient, auth_token: str):
+async def test_list_users_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: GET /admin/users returns paginated user list.
 
     Expected response shape:
@@ -230,7 +230,7 @@ async def test_list_users_response(async_client: AsyncClient, auth_token: str):
 
 
 @pytest.mark.asyncio
-async def test_create_user_response(async_client: AsyncClient, auth_token: str):
+async def test_create_user_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: POST /admin/users creates user and returns UserResponse.
 
     Expected response shape:
@@ -252,7 +252,7 @@ async def test_create_user_response(async_client: AsyncClient, auth_token: str):
 
 
 @pytest.mark.asyncio
-async def test_update_user_response(async_client: AsyncClient, auth_token: str):
+async def test_update_user_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: PATCH /admin/users/{id} updates user and returns response.
 
     Expected: UserResponse or ActionResponse
@@ -276,7 +276,7 @@ async def test_update_user_response(async_client: AsyncClient, auth_token: str):
 
 
 @pytest.mark.asyncio
-async def test_delete_user_response(async_client: AsyncClient, auth_token: str):
+async def test_delete_user_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: DELETE /admin/users/{id} deletes user.
 
     Expected: 204 No Content OR ActionResponse
@@ -296,7 +296,7 @@ async def test_delete_user_response(async_client: AsyncClient, auth_token: str):
 
 
 @pytest.mark.asyncio
-async def test_list_role_permissions_response(async_client: AsyncClient, auth_token: str):
+async def test_list_role_permissions_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: GET /admin/roles/{role}/permissions lists permissions.
 
     Expected response shape:
@@ -322,7 +322,7 @@ async def test_list_role_permissions_response(async_client: AsyncClient, auth_to
 
 
 @pytest.mark.asyncio
-async def test_grant_permission_response(async_client: AsyncClient, auth_token: str):
+async def test_grant_permission_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: POST /admin/roles/{role}/permissions grants permission.
 
     Expected response shape:
@@ -341,7 +341,7 @@ async def test_grant_permission_response(async_client: AsyncClient, auth_token: 
 
 
 @pytest.mark.asyncio
-async def test_revoke_permission_response(async_client: AsyncClient, auth_token: str):
+async def test_revoke_permission_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: DELETE /admin/roles/{role}/permissions/{permission} revokes.
 
     Expected response shape:
@@ -362,7 +362,7 @@ async def test_revoke_permission_response(async_client: AsyncClient, auth_token:
 # Additional tests for User Account features
 
 @pytest.mark.asyncio
-async def test_create_signing_key_response(async_client: AsyncClient, auth_token: str):
+async def test_create_signing_key_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: POST /account/signing-keys creates a signing key.
 
     Expected response shape:
@@ -381,7 +381,7 @@ async def test_create_signing_key_response(async_client: AsyncClient, auth_token
 
 
 @pytest.mark.asyncio
-async def test_list_signing_keys_response(async_client: AsyncClient, auth_token: str):
+async def test_list_signing_keys_response(async_client: AsyncClient, auth_headers: dict):
     """Snapshot test: GET /account/signing-keys lists user's signing keys.
 
     Expected response shape:

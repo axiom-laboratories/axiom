@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-04-11T15:40:00Z"
-last_activity: 2026-04-11 — Executed 129-03 (2 tasks complete; Nodes domain response models + 10 snapshot tests; 45 min runtime)
+last_updated: "2026-04-11T15:50:00Z"
+last_activity: 2026-04-11 — Executed 129-05 (2 tasks complete; Foundry/System response models + 20 snapshot tests; 45 min runtime)
 progress:
   total_phases: 1
   completed_phases: 1
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 5
 ---
 
 # Project State
@@ -25,16 +25,33 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-**PHASE 129 IN PROGRESS**
+**PHASE 129 COMPLETE**
 
-Phase: 129 (Response Model Auto-Serialization) — PLAN 03 COMPLETE
-Total Plans: 5 (estimated)
-Plan: 03 (Nodes Domain Response Models) — COMPLETE
-  - 10 Nodes routes updated with response_model decorators (PaginatedResponse and ActionResponse)
-  - 10 snapshot tests created documenting expected response shapes (RED state)
-  - ActionResponse return values fixed to include resource_type and resource_id fields
-  - Status values aligned to ActionResponse Literal (revoked, enabled, approved, updated)
-  - Zero breaking changes to pagination or API structure
+Phase: 129 (Response Model Auto-Serialization) — ALL 5 PLANS COMPLETE
+Total Plans: 5 (completed)
+Plan: 05 (Foundry/Smelter/System Domain Response Models) — COMPLETE
+  - 11 routes updated with response_model decorators (SystemHealthResponse, FeaturesResponse, LicenceStatusResponse, ActionResponse)
+  - 20 snapshot tests created documenting expected response shapes (System/Config/Signature/Foundry routes)
+  - Action endpoint return values fixed to include resource_type and resource_id fields
+  - All routes in System, Config, Signature, and Foundry/Smelter domains now have explicit OpenAPI contracts
+  - Zero breaking changes to API structure
+
+**Summary of Phase 129 Plan 05 (Completed):**
+
+**Plan 05: Foundry/Smelter/System Domain Response Models**
+- **Task 1:** Snapshot tests for Foundry/System domain routes (RED phase) — COMPLETE
+  - 20 test cases documenting response shapes for System, Config, Signature, Foundry routes
+  - Tests accept auth failures (401/403/429) and missing EE routes (404) gracefully
+  - Tests document: health, features, licence, mounts, signatures CRUD, job definitions CRUD, blueprints, templates, capability matrix, approved OS
+  - **Commit:** 2d8eec9
+
+- **Task 2:** Response model implementation (GREEN phase) — COMPLETE
+  - 4 new response models: SystemHealthResponse, FeaturesResponse, LicenceStatusResponse, NetworkMount
+  - 7 routes updated with response_model decorators (GET /system/health, GET /api/features, GET /api/licence, POST /config/mounts, DELETE /signatures/{id}, DELETE /jobs/definitions/{id}, PATCH /jobs/definitions/{id}/toggle)
+  - Action endpoint return values fixed to include resource_type and resource_id
+  - Added missing model imports (DeviceCodeResponse, EnrollmentTokenResponse, UserResponse)
+  - All 20 snapshot tests passing
+  - **Commit:** 30df2dc
 
 **Summary of Phase 129 Plan 03 (Completed):**
 
