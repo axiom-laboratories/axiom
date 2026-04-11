@@ -129,7 +129,8 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
   - [x] Plan 01: Pytest integration tests (happy path, bad signature, capability mismatch, retry) — Wave 1 (completed 2026-04-12)
   - [x] Plan 02: Live E2E script with node orchestration (4 scenarios, JSON reporting) — Wave 2 (completed 2026-04-12)
 
-- [ ] **Phase 131: Signature Verification Path Unification** — [To be planned]
+- [ ] **Phase 131: Signature Verification Path Unification** — Unify server-side countersigning into single service method; fix missing HMAC for scheduled jobs; hard-fail on missing signing key (1 plan planned)
+  - [ ] Plan 01: TDD test infrastructure + countersign_for_node() implementation + integration updates (Wave 1)
 
 </details>
 
@@ -159,7 +160,8 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
 | 127. Cgroup Dashboard & Monitoring | v20.0 | 2/2 | Complete | 2026-04-10 |
 | 128. Concurrent Isolation Verification | v20.0 | 2/2 | Complete | 2026-04-10 |
 | 129. Response Model Auto-Serialization | v21.0 | 5/5 | Complete | 2026-04-11 |
-| 130. E2E Job Dispatch Integration Test | v21.0 | Complete    | 2026-04-11 | 2026-04-12 |
+| 130. E2E Job Dispatch Integration Test | v21.0 | 2/2 | Complete | 2026-04-12 |
+| 131. Signature Verification Path Unification | v21.0 | 0/1 | Planning | TBD |
 
 ## Archived
 
