@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: unknown
 last_updated: "2026-04-11T17:09:30.508Z"
-last_activity: 2026-04-10 — Executed 127-02 (2 tasks complete; System Health tab with cgroup fleet summary; 8/8 tests pass; 2 min runtime)
+last_activity: 2026-04-11 — Executed 131-01 (Unified countersigning; 10 tests passing; TDD workflow RED→GREEN; 6 hour runtime)
 progress:
   total_phases: 51
   completed_phases: 49
@@ -24,6 +24,22 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 **Milestone Goal:** Prove that resource limits set via the GUI are enforced end-to-end through nested containers, that all jobs execute in ephemeral containers (never directly on the node), and that concurrent jobs are isolated from each other.
 
 ## Current Position
+
+**PHASE 131 IN PROGRESS**
+
+Phase: 131 (Signature Verification Path Unification) — 1 OF 1 PLANS COMPLETE
+Total Plans: 1
+Plan: 01 (Unified Server-Side Countersigning) — COMPLETE
+  - Unified SignatureService.countersign_for_node() static method
+  - Integrated into create_job() on-demand path
+  - Integrated into execute_scheduled_job() scheduled path
+  - CRLF/LF normalization for cross-platform compatibility (WIN-05 pattern)
+  - Hard failure (HTTP 500) when signing key missing instead of silent dispatch
+  - HMAC stamping for scheduled jobs at dispatch time (SEC-02 boundary)
+  - Comprehensive test suite: 10 tests for unit + integration + E2E validation
+  - All 11 tests passing (10 signature unification + 1 scheduler integration)
+  - No regressions introduced
+  - Commits: 8bb8a0d, c2e0036
 
 **PHASE 130 COMPLETE**
 

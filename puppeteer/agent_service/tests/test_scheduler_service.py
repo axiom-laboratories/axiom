@@ -107,7 +107,10 @@ async def test_execute_scheduled_job(db_session, test_user, valid_signature):
     # But usually services handle their own sessions.
 
     # Let's just verify it runs without crashing for now.
-    await scheduler_service.execute_scheduled_job("test_sched_id")
+    # Mock countersign_for_node to avoid signing key requirement
+    from unittest.mock import patch
+    with patch('agent_service.services.scheduler_service.SignatureService.countersign_for_node', return_value="mock_sig_b64"):
+        await scheduler_service.execute_scheduled_job("test_sched_id")
 
     # Check if a Job was created in the DB
     # Note: execute_scheduled_job uses its own session, so we need to refresh or re-query

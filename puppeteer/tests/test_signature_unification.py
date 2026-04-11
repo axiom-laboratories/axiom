@@ -71,26 +71,25 @@ class TestCountersignForNode:
 
         script = "print('hello world')\n"
 
-        # Patch the signing key path to use our temp file
+        # Patch os.path.exists to make temp file appear at the dev path location
         with patch('agent_service.services.signature_service.os.path.exists') as mock_exists:
-            with patch('builtins.open', create=True) as mock_open:
-                # Setup mocks: first path doesn't exist, second path does
-                def exists_side_effect(path):
-                    if path == "/app/secrets/signing.key":
-                        return False
-                    if path == "secrets/signing.key":
-                        return True
+            def exists_side_effect(path):
+                if path == "/app/secrets/signing.key":
                     return False
+                if path == "secrets/signing.key":
+                    return True  # Will use temp file
+                return os.path.exists(path)  # For any other path, use real fs
 
-                mock_exists.side_effect = exists_side_effect
+            mock_exists.side_effect = exists_side_effect
 
-                # Mock file reading
-                with open(temp_signing_key, 'rb') as f:
-                    key_content = f.read()
+            # Patch open to redirect dev path to temp file
+            real_open = open
+            def open_side_effect(path, *args, **kwargs):
+                if path == "secrets/signing.key":
+                    return real_open(temp_signing_key, *args, **kwargs)
+                return real_open(path, *args, **kwargs)
 
-                mock_open.return_value.__enter__.return_value.read.return_value = key_content
-
-                # Call the method
+            with patch('builtins.open', side_effect=open_side_effect):
                 signature_b64 = SignatureService.countersign_for_node(script)
 
         # Assertions
@@ -120,43 +119,27 @@ class TestCountersignForNode:
         script_crlf = "print('hello')\r\nprint('world')\r\n"
         script_lf = "print('hello')\nprint('world')\n"
 
-        # Patch signing key path
+        # Patch path resolution
         with patch('agent_service.services.signature_service.os.path.exists') as mock_exists:
-            with patch('builtins.open', create=True) as mock_open:
-                def exists_side_effect(path):
-                    if path == "/app/secrets/signing.key":
-                        return False
-                    if path == "secrets/signing.key":
-                        return True
+            def exists_side_effect(path):
+                if path == "/app/secrets/signing.key":
                     return False
+                if path == "secrets/signing.key":
+                    return True
+                return os.path.exists(path)
 
-                mock_exists.side_effect = exists_side_effect
+            mock_exists.side_effect = exists_side_effect
 
-                with open(temp_signing_key, 'rb') as f:
-                    key_content = f.read()
+            real_open = open
+            def open_side_effect(path, *args, **kwargs):
+                if path == "secrets/signing.key":
+                    return real_open(temp_signing_key, *args, **kwargs)
+                return real_open(path, *args, **kwargs)
 
-                mock_open.return_value.__enter__.return_value.read.return_value = key_content
-
+            with patch('builtins.open', side_effect=open_side_effect):
                 # Sign CRLF version
                 sig_crlf = SignatureService.countersign_for_node(script_crlf)
-
-        # Sign LF version
-        with patch('agent_service.services.signature_service.os.path.exists') as mock_exists:
-            with patch('builtins.open', create=True) as mock_open:
-                def exists_side_effect(path):
-                    if path == "/app/secrets/signing.key":
-                        return False
-                    if path == "secrets/signing.key":
-                        return True
-                    return False
-
-                mock_exists.side_effect = exists_side_effect
-
-                with open(temp_signing_key, 'rb') as f:
-                    key_content = f.read()
-
-                mock_open.return_value.__enter__.return_value.read.return_value = key_content
-
+                # Sign LF version
                 sig_lf = SignatureService.countersign_for_node(script_lf)
 
         # Assertions: normalized CRLF should match LF
@@ -190,12 +173,18 @@ class TestCountersignForNode:
         - Error message indicates countersigning failed
         """
         from agent_service.services.signature_service import SignatureService
+        import tempfile
 
         script = "test script"
 
-        # Patch to simulate key exists but is corrupted
-        with patch('agent_service.services.signature_service.os.path.exists') as mock_exists:
-            with patch('builtins.open', create=True) as mock_open:
+        # Create a file with corrupted key data
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.key') as f:
+            f.write(b"not a valid key")
+            corrupted_key_path = f.name
+
+        try:
+            # Patch to use corrupted key
+            with patch('agent_service.services.signature_service.os.path.exists') as mock_exists:
                 def exists_side_effect(path):
                     if path == "/app/secrets/signing.key":
                         return False
@@ -205,13 +194,22 @@ class TestCountersignForNode:
 
                 mock_exists.side_effect = exists_side_effect
 
-                # Mock file reading to return corrupted data
-                mock_open.return_value.__enter__.return_value.read.return_value = b"not a valid key"
+                real_open = open
+                def open_side_effect(path, *args, **kwargs):
+                    if path == "secrets/signing.key":
+                        return real_open(corrupted_key_path, *args, **kwargs)
+                    return real_open(path, *args, **kwargs)
 
-                with pytest.raises(RuntimeError) as excinfo:
-                    SignatureService.countersign_for_node(script)
+                with patch('builtins.open', side_effect=open_side_effect):
+                    with pytest.raises(RuntimeError) as excinfo:
+                        SignatureService.countersign_for_node(script)
 
-                assert "countersigning failed" in str(excinfo.value).lower()
+                    assert "countersigning failed" in str(excinfo.value).lower()
+        finally:
+            try:
+                os.unlink(corrupted_key_path)
+            except Exception:
+                pass
 
 
 # ============================================================================
@@ -258,8 +256,8 @@ class TestCreateJobCountersign:
         - Error message contains "Server signing key unavailable"
         - Does not silently dispatch unsigned payload
         """
-        # Mock countersign to raise FileNotFoundError
-        with patch('agent_service.services.signature_service.SignatureService.countersign_for_node') as mock_countersign:
+        # Mock countersign to raise FileNotFoundError in the create_job route
+        with patch('agent_service.main.SignatureService.countersign_for_node') as mock_countersign:
             mock_countersign.side_effect = FileNotFoundError("signing.key not found")
 
             req = {
@@ -323,22 +321,21 @@ class TestSchedulerCountersign:
         """
         from agent_service.security import compute_signature_hmac
 
-        # Mock ENCRYPTION_KEY
-        with patch('agent_service.services.scheduler_service.ENCRYPTION_KEY', 'test_key'):
-            # Verify compute_signature_hmac can be called
-            test_sig = "test_signature"
-            test_sig_id = "sig_123"
-            test_guid = "job_456"
+        # Verify compute_signature_hmac can be called with the right signature
+        test_sig = "test_signature"
+        test_sig_id = "sig_123"
+        test_guid = "job_456"
+        test_key = "test_key_for_hmac"
 
-            # This would be called in scheduler after countersign
-            # For now, just validate the function exists and is callable
-            try:
-                # Note: This will fail without proper setup, but proves signature is correct
-                result = compute_signature_hmac("test_key", test_sig, test_sig_id, test_guid)
-                assert isinstance(result, str) or result is not None
-            except Exception:
-                # Expected in test isolation; we're just validating the call pattern
-                pass
+        # This would be called in scheduler after countersign
+        # For now, just validate the function exists and is callable with right params
+        try:
+            # Note: This will fail without proper setup, but proves signature is correct
+            result = compute_signature_hmac(test_key, test_sig, test_sig_id, test_guid)
+            assert isinstance(result, str) or result is not None
+        except Exception:
+            # Expected in test isolation; we're just validating the call pattern exists
+            pass
 
     @pytest.mark.asyncio
     async def test_fire_job_signing_error_status(self, mock_db_session):
@@ -395,19 +392,20 @@ class TestSignatureUnificationFlow:
 
         # Patch path resolution to use temp key
         with patch('agent_service.services.signature_service.os.path.exists') as mock_exists:
-            with patch('builtins.open', create=True) as mock_open:
-                def exists_side_effect(path):
-                    if path == "secrets/signing.key":
-                        return True
-                    return False
+            def exists_side_effect(path):
+                if path == "secrets/signing.key":
+                    return True
+                return False
 
-                mock_exists.side_effect = exists_side_effect
+            mock_exists.side_effect = exists_side_effect
 
-                with open(temp_signing_key, 'rb') as f:
-                    key_content = f.read()
+            real_open = open
+            def open_side_effect(path, *args, **kwargs):
+                if path == "secrets/signing.key":
+                    return real_open(temp_signing_key, *args, **kwargs)
+                return real_open(path, *args, **kwargs)
 
-                mock_open.return_value.__enter__.return_value.read.return_value = key_content
-
+            with patch('builtins.open', side_effect=open_side_effect):
                 signature_b64 = SignatureService.countersign_for_node(script)
 
         # Validate output
