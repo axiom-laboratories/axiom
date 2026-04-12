@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 136 (User Propagation to Generated Images)
+**Phase:** 137 (Signed EE Wheel Manifest)
 **Plan:** 01 (complete)
-**Status:** Ready to plan
-**Last activity:** 2026-04-12T19:15:00Z — Phase 136 Plan 01 complete: Extended non-root user execution to Foundry-generated Dockerfiles. Added user creation (DEBIAN: useradd, ALPINE: adduser) after FROM; added chown+USER before CMD. Both guarded by OS family. 6 new unit+integration tests added; all 19 foundry tests pass. CONT-08 satisfied.
+**Status:** Ready to plan Phase 138
+**Last activity:** 2026-04-12T21:00:00Z — Phase 137 Plan 01 complete: EE wheel manifest verification with Ed25519 signature check. Implemented _verify_wheel_manifest() with 6-step verification (manifest existence, JSON format, required fields, SHA256 hash, signature decoding, Ed25519 verification). Integrated into _install_ee_wheel() and activate_ee_live(). Added ee_activation_error field to /admin/licence endpoint. All 14 unit tests pass. EE-01 satisfied.
 
 ## Roadmap Summary
 
@@ -65,6 +65,15 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 137 Plan 01)
+
+**2026-04-12 — EE wheel manifest verification with Ed25519 signatures**
+- Decision: Implement 6-step manifest verification gate (existence, JSON format, required fields, SHA256 hash, signature decoding, Ed25519 signature verification)
+- Rationale: Enforce wheel integrity and authenticity; prevent installation of unsigned, tampered, or corrupted wheels
+- Impact: RuntimeError on any verification failure; graceful degradation to CE mode; error visibility in /admin/licence endpoint
+- Implementation: _verify_wheel_manifest() in ee/__init__.py; integration in _install_ee_wheel() and activate_ee_live(); ee_activation_error field in get_licence_status()
+- Status: Implemented and verified; all 14 unit tests pass; EE-01 requirement satisfied
 
 ## Decisions Made (Phase 136 Plan 01)
 
