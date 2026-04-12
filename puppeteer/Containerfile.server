@@ -57,6 +57,14 @@ COPY installer/ installer/
 # Create non-root appuser and set ownership
 RUN adduser -D appuser
 RUN chown -R appuser:appuser /app
-USER appuser
+
+# Copy entrypoint scripts that fix volume permissions before dropping to appuser
+COPY entrypoint.py /app/entrypoint.py
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.py /app/entrypoint.sh
+
+# Set ENTRYPOINT to fix permissions and drop privileges
+# The entrypoint will: 1) fix /app/secrets ownership, 2) drop to appuser, 3) exec the main command
+ENTRYPOINT ["/app/entrypoint.py"]
 
 # Entrypoints done via command in compose
