@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 ## Current Position
 
 **Phase:** 136 (User Propagation to Generated Images)
-**Plan:** 01 (completed; User Injection in Foundry)
-**Status:** Ready to plan
-**Last activity:** 2026-04-12 — Phase 136 Plan 01 complete: Extended non-root user execution to Foundry-generated Dockerfiles. Added user creation (DEBIAN: useradd, ALPINE: adduser) after FROM; added chown+USER before CMD. Both guarded by OS family. 6 new unit+integration tests added; all 19 foundry tests pass. CONT-08 satisfied.
+**Plan:** 01 (complete)
+**Status:** Plan executed
+**Last activity:** 2026-04-12T19:15:00Z — Phase 136 Plan 01 complete: Extended non-root user execution to Foundry-generated Dockerfiles. Added user creation (DEBIAN: useradd, ALPINE: adduser) after FROM; added chown+USER before CMD. Both guarded by OS family. 6 new unit+integration tests added; all 19 foundry tests pass. CONT-08 satisfied.
 
 ## Roadmap Summary
 
