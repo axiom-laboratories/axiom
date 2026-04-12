@@ -621,11 +621,15 @@ def test_check_and_record_boot_integration():
             assert result is True
             assert boot_log.exists()
 
-            # Read the first entry
+            # Read the first entry (now in HMAC format: hmac:<64-hex> <iso_ts>)
             lines = boot_log.read_text().strip().splitlines()
             assert len(lines) >= 1
-            first_hash, first_ts = lines[0].split(" ", 1)
-            assert len(first_hash) == 64  # SHA256 hex
+            first_line = lines[0]
+            # New entries have "hmac:" prefix
+            assert first_line.startswith("hmac:"), f"Expected hmac: prefix, got {first_line}"
+            first_entry, first_ts = first_line.split(" ", 1)
+            first_hmac = first_entry[5:]  # strip "hmac:" prefix
+            assert len(first_hmac) == 64  # HMAC-SHA256 hex is 64 chars
 
             # Second boot — should succeed
             result = check_and_record_boot(LicenceStatus.CE)
@@ -634,9 +638,12 @@ def test_check_and_record_boot_integration():
             # Read the second entry
             lines = boot_log.read_text().strip().splitlines()
             assert len(lines) >= 2
-            second_hash, second_ts = lines[1].split(" ", 1)
-            assert len(second_hash) == 64
-            assert first_hash != second_hash  # Hash should change
+            second_line = lines[1]
+            assert second_line.startswith("hmac:"), f"Expected hmac: prefix, got {second_line}"
+            second_entry, second_ts = second_line.split(" ", 1)
+            second_hmac = second_entry[5:]  # strip "hmac:" prefix
+            assert len(second_hmac) == 64
+            assert first_hmac != second_hmac  # HMAC should change
 
 
 # ---------------------------------------------------------------------------
