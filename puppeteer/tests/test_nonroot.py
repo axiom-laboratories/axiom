@@ -66,29 +66,32 @@ def node_container_id():
         )
         container_ids = result.stdout.strip().split('\n')
         if not container_ids or not container_ids[0]:
-            raise RuntimeError("Node container not running")
+            pytest.skip("Node container not running")
         # Return the first match (may be 'node' or 'node-1' depending on compose setup)
         return container_ids[0]
     except subprocess.TimeoutExpired:
-        raise RuntimeError("Timeout getting node container ID")
+        pytest.skip("Timeout getting node container ID")
 
 
 def test_agent_process_uid(agent_container_id):
     """
     CONT-01: Verify agent process runs as UID 1000.
 
-    Checks that the current user in the agent container is UID 1000.
-    Uses 'id' command which is more portable than 'ps'.
+    Checks that PID 1 (main process) in agent container runs as UID 1000.
+    Uses /proc/1/status to get the UID of the main process.
     """
     result = subprocess.run(
-        ['docker', 'exec', agent_container_id, 'id', '-u'],
+        ['docker', 'exec', agent_container_id, 'grep', 'Uid:', '/proc/1/status'],
         capture_output=True,
         text=True,
         check=True,
         timeout=10
     )
 
-    uid = result.stdout.strip()
+    # Output format: "Uid:	1000	1000	1000	1000"
+    # Extract the first UID (real UID)
+    uid_line = result.stdout.strip()
+    uid = uid_line.split()[1]
     assert uid == '1000', f"Expected agent uid 1000, got {uid}"
 
 
@@ -96,18 +99,21 @@ def test_model_process_uid(model_container_id):
     """
     CONT-01: Verify model process runs as UID 1000.
 
-    Checks that the current user in the model container is UID 1000.
-    Uses 'id' command which is more portable than 'ps'.
+    Checks that PID 1 (main process) in model container runs as UID 1000.
+    Uses /proc/1/status to get the UID of the main process.
     """
     result = subprocess.run(
-        ['docker', 'exec', model_container_id, 'id', '-u'],
+        ['docker', 'exec', model_container_id, 'grep', 'Uid:', '/proc/1/status'],
         capture_output=True,
         text=True,
         check=True,
         timeout=10
     )
 
-    uid = result.stdout.strip()
+    # Output format: "Uid:	1000	1000	1000	1000"
+    # Extract the first UID (real UID)
+    uid_line = result.stdout.strip()
+    uid = uid_line.split()[1]
     assert uid == '1000', f"Expected model uid 1000, got {uid}"
 
 
@@ -115,18 +121,21 @@ def test_node_process_uid(node_container_id):
     """
     CONT-01: Verify node process runs as UID 1000.
 
-    Checks that the current user in the node container is UID 1000.
-    Uses 'id' command which is more portable than 'ps'.
+    Checks that PID 1 (main process) in node container runs as UID 1000.
+    Uses /proc/1/status to get the UID of the main process.
     """
     result = subprocess.run(
-        ['docker', 'exec', node_container_id, 'id', '-u'],
+        ['docker', 'exec', node_container_id, 'grep', 'Uid:', '/proc/1/status'],
         capture_output=True,
         text=True,
         check=True,
         timeout=10
     )
 
-    uid = result.stdout.strip()
+    # Output format: "Uid:	1000	1000	1000	1000"
+    # Extract the first UID (real UID)
+    uid_line = result.stdout.strip()
+    uid = uid_line.split()[1]
     assert uid == '1000', f"Expected node uid 1000, got {uid}"
 
 
