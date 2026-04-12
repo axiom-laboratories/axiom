@@ -11,11 +11,29 @@ import subprocess
 import sys
 import glob
 import os
+import json
+import base64
+import hashlib
+from pathlib import Path
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 logger = logging.getLogger(__name__)
 
 # Tag applied to stub routes so they can be identified and removed
 _STUB_TAG = "__ee_stub__"
+
+# ---------------------------------------------------------------------------
+# EE Wheel Manifest Verification
+# Manifest path and verification public key
+# ---------------------------------------------------------------------------
+MANIFEST_PATH = Path("/tmp/axiom_ee.manifest.json")
+
+_MANIFEST_PUBLIC_KEY_PEM: bytes = b"""-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAu+al02k0lyKWoDLmM8gwo2YYXvkUyO1JU2gysKETKus=
+-----END PUBLIC KEY-----"""
+
+_manifest_pub_key: Ed25519PublicKey = serialization.load_pem_public_key(_MANIFEST_PUBLIC_KEY_PEM)  # type: ignore[assignment]
 
 @dataclass
 class EEContext:
@@ -75,9 +93,89 @@ def _remove_ce_stubs(app: Any) -> int:
     return removed
 
 
+def _verify_wheel_manifest(wheel_path: str) -> None:
+    """Verify the EE wheel manifest signature and SHA256 hash.
+
+    Performs 6-step verification:
+    1. Check manifest file exists
+    2. Parse JSON and validate required fields (sha256, signature)
+    3. Compute SHA256 of wheel bytes
+    4. Assert computed SHA256 matches manifest
+    5. Decode signature from base64
+    6. Verify Ed25519 signature over hex SHA256 string (UTF-8 encoded)
+
+    Raises RuntimeError on any verification failure.
+    """
+    # Step 1: Check manifest file exists
+    if not MANIFEST_PATH.exists():
+        raise RuntimeError(
+            f"Manifest not found: {MANIFEST_PATH} (wheel: {wheel_path})"
+        )
+
+    # Step 2: Parse JSON and validate required fields
+    try:
+        with open(MANIFEST_PATH, 'r') as f:
+            manifest = json.load(f)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"Manifest JSON malformed at {MANIFEST_PATH}: {e}"
+        )
+
+    if 'sha256' not in manifest:
+        raise RuntimeError(
+            f"Manifest missing required field 'sha256' at {MANIFEST_PATH}"
+        )
+    if 'signature' not in manifest:
+        raise RuntimeError(
+            f"Manifest missing required field 'signature' at {MANIFEST_PATH}"
+        )
+
+    manifest_sha256 = manifest['sha256']
+    signature_b64 = manifest['signature']
+
+    # Step 3: Compute SHA256 of wheel bytes
+    try:
+        sha256_hash = hashlib.sha256()
+        with open(wheel_path, 'rb') as f:
+            while chunk := f.read(65536):  # 64KB chunks
+                sha256_hash.update(chunk)
+        computed_sha256 = sha256_hash.hexdigest()
+    except (OSError, IOError) as e:
+        raise RuntimeError(
+            f"Failed to read wheel file {wheel_path}: {e}"
+        )
+
+    # Step 4: Assert computed SHA256 matches manifest
+    if computed_sha256 != manifest_sha256:
+        raise RuntimeError(
+            f"Wheel SHA256 mismatch: computed={computed_sha256}, "
+            f"manifest={manifest_sha256} (wheel: {wheel_path})"
+        )
+
+    # Step 5: Decode signature from base64
+    try:
+        signature_bytes = base64.b64decode(signature_b64)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to decode signature as base64: {e}"
+        )
+
+    # Step 6: Verify Ed25519 signature over hex SHA256 string (UTF-8 encoded)
+    signature_message = computed_sha256.encode('utf-8')
+    try:
+        _manifest_pub_key.verify(signature_bytes, signature_message)
+    except Exception as e:
+        raise RuntimeError(
+            f"Wheel signature verification failed: {e} (wheel: {wheel_path})"
+        )
+
+    logger.info("Manifest verification passed for wheel: %s", wheel_path)
+
+
 def _install_ee_wheel() -> bool:
     """Install the EE wheel from /tmp/ and apply source patches.
 
+    Raises RuntimeError if manifest verification fails.
     Returns True if installation succeeded, False otherwise.
     """
     wheels = glob.glob("/tmp/axiom_ee-*.whl")
@@ -87,6 +185,9 @@ def _install_ee_wheel() -> bool:
 
     wheel_path = wheels[0]
     logger.info("Installing EE wheel: %s", wheel_path)
+
+    # Verify manifest signature and wheel hash before pip install
+    _verify_wheel_manifest(wheel_path)
 
     try:
         subprocess.check_call(
@@ -135,6 +236,8 @@ def _install_ee_wheel() -> bool:
 async def activate_ee_live(app: Any, engine: Any) -> EEContext | None:
     """Install EE wheel, remove stubs, and load real EE plugins.
 
+    Stores error message in app.state.ee_activation_error if activation fails.
+
     Called from the licence reload endpoint when licence is valid but
     EE plugin is not yet loaded. Returns the new EEContext on success,
     or None if activation failed.
@@ -145,9 +248,18 @@ async def activate_ee_live(app: Any, engine: Any) -> EEContext | None:
         logger.info("EE already active, skipping activation")
         return existing
 
-    # Install the wheel
-    if not _install_ee_wheel():
+    # Install wheel with manifest verification
+    try:
+        if not _install_ee_wheel():
+            return None
+    except RuntimeError as e:
+        error_msg = str(e)
+        app.state.ee_activation_error = error_msg
+        logger.error("EE activation failed: %s", error_msg)
         return None
+
+    # Clear error on successful install
+    app.state.ee_activation_error = None
 
     # Verify entry points are now discoverable
     from importlib.metadata import entry_points

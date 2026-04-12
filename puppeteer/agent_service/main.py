@@ -1184,6 +1184,7 @@ async def get_features(request: Request):
 async def get_licence_status(request: Request, current_user: User = Depends(require_auth)):
     """Returns current licence status. Requires authentication."""
     ls: Optional[LicenceState] = getattr(request.app.state, "licence_state", None)
+    ee_error = getattr(request.app.state, "ee_activation_error", None)
     if ls is None:
         # CE mode — no licence loaded
         return {
@@ -1193,6 +1194,7 @@ async def get_licence_status(request: Request, current_user: User = Depends(requ
             "tier": "ce",
             "customer_id": None,
             "grace_days": 0,
+            "ee_activation_error": ee_error,
         }
     return {
         "status": ls.status.value if hasattr(ls.status, "value") else str(ls.status),
@@ -1201,6 +1203,7 @@ async def get_licence_status(request: Request, current_user: User = Depends(requ
         "tier": ls.tier,
         "customer_id": ls.customer_id,
         "grace_days": ls.grace_days,
+        "ee_activation_error": ee_error,
     }
 
 
