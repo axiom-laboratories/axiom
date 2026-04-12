@@ -805,8 +805,9 @@ class Node:
                     if os.path.exists(v):
                         mounts.append(f"{v}:{v}")
 
-            # Detect Hostname (Container ID) for Sidecar Networking
-            hostname = socket.gethostname()
+            # Job network isolation: pass jobs_network bridge name to runtime (Phase 134)
+            # Sidecar is reachable via network_mode: service:node, so it shares node's network namespace
+            network_ref = "jobs_network"
 
             try:
                 default_img = "python:3.12-alpine" if os.name == 'nt' else "localhost/master-of-puppets-node:latest"
@@ -825,7 +826,7 @@ class Node:
                         command=cmd,
                         env=env,
                         mounts=mounts,
-                        network_ref=hostname,
+                        network_ref=network_ref,
                         input_data=script,
                         memory_limit=memory_limit,
                         cpu_limit=cpu_limit,
@@ -842,7 +843,7 @@ class Node:
                         command=cmd,
                         env=env,
                         mounts=mounts,
-                        network_ref=hostname,
+                        network_ref=network_ref,
                         memory_limit=memory_limit,
                         cpu_limit=cpu_limit,
                         timeout=timeout_secs,
