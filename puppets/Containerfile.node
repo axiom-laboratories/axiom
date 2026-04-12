@@ -43,4 +43,9 @@ COPY environment_service/runtime.py .
 
 ENV PYTHONUNBUFFERED=1
 
+# Create non-root appuser and set ownership
+RUN useradd -m appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
 CMD ["python", "-u", "node.py"]
