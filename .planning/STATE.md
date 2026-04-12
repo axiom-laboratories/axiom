@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 ## Current Position
 
 **Phase:** 134 (Socket Mount & Podman Support)
-**Plan:** 01 (completed; Socket-First Detection & Network Isolation)
-**Status:** Ready to execute Plan 02
-**Last activity:** 2026-04-12 — Phase 134 Plan 01 complete: Socket-first detection, Podman socket support, network_ref wiring. 10/10 tests passing. CONT-10 satisfied.
+**Plan:** 02 (completed; Compose Files & Network Wiring)
+**Status:** Ready to execute Phase 135 (Resource Limits)
+**Last activity:** 2026-04-12 — Phase 134 Plan 02 complete: Updated node-compose.yaml (removed privileged, socket mount, cap_drop), created node-compose.podman.yaml (userns_mode: keep-id, Podman socket), wired jobs_network through node.py. 19/19 tests passing. CONT-02 and CONT-09 satisfied.
 
 ## Roadmap Summary
 
