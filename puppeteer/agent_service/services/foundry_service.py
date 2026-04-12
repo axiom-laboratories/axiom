@@ -205,6 +205,13 @@ class FoundryService:
 
             dockerfile = [f"FROM {base_image}"]
 
+            # Phase 136: User Injection - Create non-root user for DEBIAN/ALPINE only
+            if os_family in ("DEBIAN", "ALPINE"):
+                if os_family == "ALPINE":
+                    dockerfile.append("RUN adduser -D appuser")
+                elif os_family == "DEBIAN":
+                    dockerfile.append("RUN useradd --no-create-home appuser")
+
             # 2.5 Mirror Configuration Injection (content computed now, files written after build_dir exists)
             pip_conf = MirrorService.get_pip_conf_content()
             sources_list = MirrorService.get_sources_list_content()
@@ -295,6 +302,12 @@ class FoundryService:
             dockerfile.append("COPY requirements.txt .")
             dockerfile.append("RUN pip install --no-cache-dir -r requirements.txt --break-system-packages")
             dockerfile.append("COPY environment_service/ environment_service/")
+
+            # Phase 136: User Directive - Set ownership and switch to non-root for DEBIAN/ALPINE only
+            if os_family in ("DEBIAN", "ALPINE"):
+                dockerfile.append("RUN chown -R appuser:appuser /app")
+                dockerfile.append("USER appuser")
+
             dockerfile.append("CMD [\"python\", \"environment_service/node.py\"]")
 
             # Alpine post-processing: Inject --allow-untrusted into apk add commands
