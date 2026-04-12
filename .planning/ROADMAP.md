@@ -150,7 +150,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - ⬜ **Phase 135: Resource Limits & Package Cleanup** — Define memory/CPU limits, strip unnecessary node packages (1 plan planned)
   - [ ] Plan 01: compose.server.yaml resource limits + Containerfile.node package cleanup (Wave 1)
 - [x] **Phase 136: User Propagation to Generated Images** — Foundry Dockerfiles append USER appuser (completed 2026-04-12)
-- [ ] **Phase 137: Signed EE Wheel Manifest** — Verify Ed25519 manifest before EE wheel install
+- [x] **Phase 137: Signed EE Wheel Manifest** — Verify Ed25519 manifest before EE wheel install (completed 2026-04-12)
 - [ ] **Phase 138: HMAC-Keyed Boot Log** — HMAC-SHA256 boot log with backward-compatible SHA256 reads
 - [ ] **Phase 139: Entry Point Whitelist & Enforcement** — Validate entry points, enforce ENCRYPTION_KEY presence
 - [ ] **Phase 140: Wheel Signing Release Tool** — CLI to sign wheel manifests at release time
