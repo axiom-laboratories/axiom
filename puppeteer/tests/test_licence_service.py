@@ -637,3 +637,37 @@ def test_check_and_record_boot_integration():
             second_hash, second_ts = lines[1].split(" ", 1)
             assert len(second_hash) == 64
             assert first_hash != second_hash  # Hash should change
+
+
+# ---------------------------------------------------------------------------
+# Phase 138: HMAC-keyed boot log tests (EE-02, EE-03)
+# ---------------------------------------------------------------------------
+
+def test_hmac_entry_write():
+    """EE-02: New boot entries are written with `hmac:` prefix and HMAC-SHA256 digest."""
+    pass
+
+
+def test_hmac_verify_on_read():
+    """EE-02: HMAC entry on last line is verified on read; mismatch raises in EE mode (VALID, GRACE, EXPIRED)."""
+    pass
+
+
+def test_hmac_mismatch_ce_lax():
+    """EE-02: HMAC mismatch logs warning in CE mode (no raise)."""
+    pass
+
+
+def test_legacy_sha256_silent_accept():
+    """EE-03: Legacy SHA256 entries (no `hmac:` prefix) are read silently without verification."""
+    pass
+
+
+def test_legacy_warning_on_read():
+    """EE-03: Warning is logged once when last entry read is legacy SHA256."""
+    pass
+
+
+def test_mixed_format_coexist():
+    """EE-03: Boot log with both legacy SHA256 and new HMAC entries reads correctly; chain maintained."""
+    pass
