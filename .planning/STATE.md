@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-04-12T16:23:15.213Z"
-last_activity: "2026-04-12 — Phase 135 Plan 01 complete: Added resource limits to all 7 orchestrator services (mem_limit + cpus); removed podman, iptables, krb5-user from node image. Compose validation and regression tests pass. CONT-05 and CONT-07 satisfied."
+last_updated: "2026-04-12T19:12:49.330Z"
+last_activity: "2026-04-12T19:15:00Z — Phase 136 Plan 01 complete: Extended non-root user execution to Foundry-generated Dockerfiles. Added user creation (DEBIAN: useradd, ALPINE: adduser) after FROM; added chown+USER before CMD. Both guarded by OS family. 6 new unit+integration tests added; all 19 foundry tests pass. CONT-08 satisfied."
 progress:
   total_phases: 60
-  completed_phases: 54
-  total_plans: 153
-  completed_plans: 162
+  completed_phases: 55
+  total_plans: 154
+  completed_plans: 163
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 **Phase:** 136 (User Propagation to Generated Images)
 **Plan:** 01 (complete)
-**Status:** Plan executed
+**Status:** Ready to plan
 **Last activity:** 2026-04-12T19:15:00Z — Phase 136 Plan 01 complete: Extended non-root user execution to Foundry-generated Dockerfiles. Added user creation (DEBIAN: useradd, ALPINE: adduser) after FROM; added chown+USER before CMD. Both guarded by OS family. 6 new unit+integration tests added; all 19 foundry tests pass. CONT-08 satisfied.
 
 ## Roadmap Summary
