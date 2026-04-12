@@ -144,8 +144,8 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [ ] Plan 01: Update Containerfile.server and Containerfile.node with appuser + chown + USER directives (Wave 1)
   - [ ] Plan 02: Integration tests + verification script + stack validation (Wave 2)
 - [x] **Phase 133: Network & Security Capabilities** — Drop capabilities, disable privilege escalation, restrict Postgres to loopback (completed 2026-04-12)
-- [ ] **Phase 134: Socket Mount & Podman Support** — Remove privileged mode, auto-detect Podman socket
-  - [ ] Plan 01: Socket-first detection in runtime.py + network_ref wiring (Wave 1)
+- [x] **Phase 134: Socket Mount & Podman Support** — Remove privileged mode, auto-detect Podman socket (completed 2026-04-12)
+  - [x] Plan 01: Socket-first detection in runtime.py + network_ref wiring (Wave 1; completed 2026-04-12)
   - [ ] Plan 02: Docker + Podman compose variants + node.py integration (Wave 2)
 - [ ] **Phase 135: Resource Limits & Package Cleanup** — Define memory/CPU limits, strip unnecessary node packages
 - [ ] **Phase 136: User Propagation to Generated Images** — Foundry Dockerfiles append USER appuser
@@ -187,6 +187,8 @@ Full details: `.planning/v22.0-ROADMAP.md`
 | 130. E2E Job Dispatch Integration Test | v21.0 | 2/2 | Complete | 2026-04-12 |
 | 131. Signature Verification Path Unification | v21.0 | 1/1 | Complete | 2026-04-11 |
 | 132. Non-Root User Foundation | v22.0 | Complete    | 2026-04-12 | — |
+| 133. Network & Security Capabilities | v22.0 | 1/1 | Complete | 2026-04-12 |
+| 134. Socket Mount & Podman Support | v22.0 | 1/2 | In Progress | — |
 
 ## Archived
 
