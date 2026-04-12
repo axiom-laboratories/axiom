@@ -54,4 +54,9 @@ COPY model_service/ model_service/
 # Copy Installer Scripts for static serving
 COPY installer/ installer/
 
+# Create non-root appuser and set ownership
+RUN adduser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
 # Entrypoints done via command in compose
