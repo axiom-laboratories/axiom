@@ -1,452 +1,365 @@
-# Stack Research
+# Technology Stack: Container Hardening + EE Licence Protection
 
-**Domain:** Foundry Improvements — transitive dependency resolution, multi-ecosystem mirrors, script analysis, operator UX
-**Researched:** 2026-04-01
-**Confidence:** HIGH (backend), MEDIUM (mirror sidecars)
+**Project:** Master of Puppets (Axiom)  
+**Researched:** 2026-04-12  
+**Research Mode:** Ecosystem (NEW features for existing stack)
 
----
+## Overview
 
-## Context: Scope of This Milestone
+This research covers **stack requirements for two hardening workstreams**:
+1. **Container Security Hardening** — non-root users, capability dropping, socket mounting, Postgres port restriction
+2. **EE Licence Protection** — signed wheel manifest verification, HMAC-keyed boot logs, entry point validation
 
-This research covers only NEW capabilities required for v19.0 Foundry Improvements. The existing stack (FastAPI, SQLAlchemy async, asyncpg, APScheduler 3.x, React 19 / Radix UI / Tailwind / Recharts) is validated and not re-researched.
-
-Four capability clusters need new stack decisions:
-
-1. **Transitive dependency resolution** — walk the full dep tree for a Python package list and download/scan all transitive deps
-2. **Multi-ecosystem mirror backends** — APT, apk, npm (Verdaccio), Conda (conda-mirror), NuGet (BaGet/BaGetter), OCI pull-through (registry:2)
-3. **Script analyzer** — static analysis of uploaded Python/Bash scripts to infer required packages and flag risky constructs
-4. **Operator UX** — tree viewer for dep graphs, simplified naming, curated bundles, plain-language search (frontend additions)
+Both workstreams use **existing dependencies** (cryptography, PyJWT, importlib.metadata) and **Python stdlib** (hmac, hashlib, importlib.metadata). **No new third-party dependencies required.**
 
 ---
 
-## Recommended Stack
+## Recommended Stack — NO NEW DEPENDENCIES
 
-### Backend: Transitive Dependency Resolution
+### Python Standard Library (Already Available)
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `pip` (subprocess) | >=26.0 (already present) | Resolve and download full dep tree for Python packages | `pip download <pkg>` without `--no-deps` walks the full transitive tree; already in base image. Avoids a separate resolver library. |
-| `pip-tools` (`pip-compile`) | `>=7.4,<8` | Pre-resolve a `.in` requirements list into a pinned flat `requirements.txt` including all transitive deps | Produces a deterministic locked file that can then be fed to `pip download --no-deps` for precise mirroring. Has stable CLI; invoke via subprocess. |
-| PyPI JSON API (HTTP, no lib) | REST — `https://pypi.org/pypi/{pkg}/json` | Fetch package metadata (requires_dist) without installing | Zero-dependency approach for building dep trees server-side: `httpx` (already in requirements) fetches metadata; parse `requires_dist` with `packaging.requirements.Requirement` |
-| `packaging` | >=24.0 (already in requirements) | Parse PEP 508 requirement strings (`requires_dist`) and version specifiers | Already present; `packaging.requirements.Requirement` parses `"requests>=2.0; python_version>='3.8'"` correctly, including extras and markers |
-| `pip-audit` | >=2.7 (already in requirements) | CVE scan the resolved transitive set | Already in requirements; pass the full resolved `requirements.txt` as input — it scans all packages including transitives |
+| Module | Purpose | Current Code | New Use |
+|--------|---------|--------------|---------|
+| `hmac` | SHA256-based message authentication (constant-time comparison) | ✓ Existing: `compute_signature_hmac()`, `verify_signature_hmac()` in `security.py` | HMAC-keyed boot log for licence tamper detection |
+| `hashlib` | SHA256, MD5 for hashing | ✓ Existing: licence boot log hash chain | Boot log append-only integrity |
+| `importlib.metadata` | Entry point discovery and loading | ✓ Existing: `entry_points(group="axiom.ee")` in `ee/__init__.py` | Whitelist entry points by name; validate loaded modules |
+| `json` | Serialization (already used everywhere) | ✓ Existing | Wheel manifest parsing (METADATA, RECORD) |
+| `pathlib.Path` | File system operations | ✓ Existing | Wheel extraction path validation, secure path handling |
+| `zipfile` | ZIP archive handling (wheels are ZIP) | Not currently used | Wheel signature extraction (RECORD.sig file) |
 
-**Recommended resolution flow for `mirror_ingredient` (replacing `--no-deps` pattern):**
+**Confidence:** HIGH — all modules are stable, standard, documented in Python 3.12 docs.
 
+---
+
+### Existing Third-Party Dependencies (NO VERSION CHANGES NEEDED)
+
+#### cryptography (v46.0.5 minimum)
+
+| Feature | Needed By | Version Requirement | Status |
+|---------|-----------|-------------------|--------|
+| Ed25519PublicKey + verify() | Wheel manifest verification | ≥ 40.0 | ✓ v46.0.5 supports all operations |
+| PEM key loading + serialization | Licence JWT verification (existing) | ≥ 2.0 | ✓ Since v2.0 |
+
+**Existing integration:** `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey` used in `licence_service.py` for JWT verification.
+
+**New integration:** Same library, same public key hardcoding pattern, used for wheel RECORD.sig verification:
+```python
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+_wheel_sign_key = Ed25519PublicKey.from_public_bytes(hardcoded_public_key_bytes)
+_wheel_sign_key.verify(signature_bytes, manifest_bytes)  # Raises InvalidSignature on mismatch
 ```
-1. Build requirements.in from ingredient list (name + version constraint)
-2. subprocess: pip-compile requirements.in → requirements.txt (pinned, includes transitives)
-3. subprocess: pip download --no-deps -r requirements.txt --dest <mirror_dir>
-4. subprocess: pip-audit -r requirements.txt --format json → structured CVE results
-5. Store resolved package list (with versions) as JSON in DB for tree UI
+
+**Confidence:** HIGH — cryptography v46 is current (released 2025), maintains backward compatibility, Ed25519 is stable since v3.4.
+
+#### PyJWT (≥2.7.0, existing requirement)
+
+No new integration needed. Licence JWT verification already uses PyJWT's EdDSA support:
+```python
+import jwt
+jwt.decode(licence_token, public_key_pem, algorithms=["EdDSA"], key=ed25519_key)
 ```
 
-This three-step pipeline is deterministic, air-gap compatible (once packages are downloaded), and produces an explicit manifest of every package in the mirror.
+**Confidence:** HIGH — requirement already specified in requirements.txt; EdDSA (RFC 8037) since v2.7.0.
 
-**Alternative: PyPI JSON API recursive walker (no subprocess)**
+---
 
-For building a dep-tree JSON to display in the UI (not for downloading), walk the tree purely via HTTP:
+## Stack Additions by Feature
+
+### Feature 1: Container Security Hardening
+
+#### 1a. Dockerfile Enhancements — Alpine & Debian Base Images
+
+| Base Image | Purpose | Requirements | Special Handling |
+|------------|---------|--------------|------------------|
+| `python:3.12-alpine` | Agent/Model (existing) | `addgroup --system`, `adduser --system` | Alpine uses BusyBox addgroup/adduser; IDs recommended: 1001 for appuser, 1001 for appgroup |
+| `python:3.12-slim` | Node image (existing) | `useradd`, `groupadd` (Debian GNU tools) | Debian allows `-N` flag for `useradd` (no home); gid range 999 for docker group |
+| Docker multi-stage COPY | Node builds (existing) | No new deps | COPY --from=docker:cli and docker:dind for socket/CLI access |
+
+**New Dockerfile directives needed:**
+```dockerfile
+# Alpine (Containerfile.server)
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup --no-create-home appuser && \
+    addgroup appuser docker  # For socket access (gid 999 on Linux)
+RUN chown -R appuser:appgroup /app
+USER appuser
+
+# Debian (Containerfile.node)
+RUN groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup --no-create-home appuser && \
+    getent group docker >/dev/null || groupadd --gid 999 docker && \
+    usermod -aG docker appuser
+RUN chown -R appuser:appgroup /app
+USER appuser
+```
+
+**Confidence:** HIGH — standard Linux userland tooling, no new packages.
+
+#### 1b. Docker Compose v3+ Syntax — Hardening Directives
+
+| Directive | Purpose | Syntax |
+|-----------|---------|--------|
+| `cap_drop` | Drop all Linux capabilities by default | `cap_drop: [ALL]` |
+| `cap_add` | Selectively restore only needed caps | `cap_add: [NET_BIND_SERVICE]` (Caddy only) |
+| `security_opt` | Disable privilege escalation | `security_opt: [no-new-privileges:true]` |
+| `deploy.resources.limits` | Memory + CPU caps | `deploy: { resources: { limits: { memory: '1g', cpus: '2.0' } } }` |
+| `deploy.resources.reservations` | Minimum guaranteed resources | `deploy: { resources: { reservations: { memory: '256m' } } }` |
+| `volumes` (socket mounts) | Node → host Docker socket access | `- /var/run/docker.sock:/var/run/docker.sock` (Docker) or `/run/podman/podman.sock:/run/podman/podman.sock` (Podman) |
+
+**Key decision:** Replace `privileged: true` on node with socket mount + `cap_drop: [ALL]`.
+
+**Examples:**
+```yaml
+# Caddy (cert-manager) — needs NET_BIND_SERVICE for :80/:443
+cert-manager:
+  cap_drop: [ALL]
+  cap_add: [NET_BIND_SERVICE]
+  security_opt: [no-new-privileges:true]
+
+# Node (Docker host variant)
+node:
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+  environment:
+    EXECUTION_MODE: docker  # Explicit, not auto-detect
+  deploy:
+    resources:
+      limits:
+        memory: 2g
+        cpus: '2.0'
+
+# Node (Podman host variant)
+node:
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  volumes:
+    - /run/podman/podman.sock:/run/podman/podman.sock
+  environment:
+    EXECUTION_MODE: podman
+```
+
+**Postgres port restriction:**
+```yaml
+db:
+  ports:
+    - "127.0.0.1:5432:5432"  # Loopback only; internal: use db:5432
+```
+
+**Confidence:** HIGH — Docker Compose v3.7+ (2019) fully supports all directives; `deploy.resources` is standard since v3.2.
+
+#### 1c. runtime.py Socket Mount Auto-Detection
+
+**Current code:** Checks only `/var/run/docker.sock` in `detect_runtime()`.
+
+**New requirement:** Also check `/run/podman/podman.sock` (Podman rootful) and `/run/user/1000/podman/podman.sock` (Podman rootless).
+
+**No new dependencies.** Uses `shutil.which()` and `os.path.exists()` (already present).
 
 ```python
-async def resolve_tree(pkg: str, version: str) -> dict:
-    url = f"https://pypi.org/pypi/{pkg}/{version}/json"
-    resp = await http_client.get(url)
-    info = resp.json()["info"]
-    requires = info.get("requires_dist") or []
-    # parse each with packaging.requirements.Requirement, filter by markers
-    # recurse for each dependency
+def detect_runtime(self) -> str:
+    mode = os.environ.get("EXECUTION_MODE", "auto").lower()
+    if mode in ("docker", "podman"):
+        logger.info(f"EXECUTION_MODE={mode} (explicit)")
+        return mode
+    # auto: probe in order
+    if os.path.exists("/var/run/docker.sock") and shutil.which("docker"):
+        return "docker"
+    if os.path.exists("/run/podman/podman.sock") and shutil.which("podman"):
+        return "podman"
+    if os.path.exists(f"/run/user/{os.getuid()}/podman/podman.sock") and shutil.which("podman"):
+        return "podman"
+    raise RuntimeError("...")
 ```
 
-This is suitable for the UI tree viewer (read-only, no download). Use `pip-compile` for the authoritative resolution used during mirroring.
+**Confidence:** HIGH — no new packages, uses stdlib `os`, `shutil`.
 
----
+#### 1d. foundry_service.py — Generated Dockerfile User Directive
 
-### Backend: Script Analyzer
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `ast` (Python stdlib) | stdlib — no install | Parse Python scripts into AST; walk `Import` and `ImportFrom` nodes to extract `import X` and `from X import Y` statements | Zero-dependency, no subprocess; built into every Python version. Handles syntax errors gracefully with `ast.parse(source, mode='exec')` in a try/except. |
-| `bandit` | `>=1.8,<2` | Security scan Python scripts; detect `subprocess.call(shell=True)`, hardcoded credentials, pickle use, etc. | Provides a programmatic API: instantiate `BanditNodeVisitor` or invoke via subprocess with `--format json`. Already proven pattern in CI/CD contexts. |
-| `packaging.requirements` | already in requirements | Map extracted import names to PyPI package names | `import requests` → `requests`; handles most cases. Stdlib detection via `sys.stdlib_module_names` (Python 3.10+) to filter out builtins. |
-
-**What stdlib AST gives for free (no new deps):**
+**New requirement:** Append `USER appuser` after all RUN commands that install packages.
 
 ```python
-import ast
-
-def extract_imports(source: str) -> list[str]:
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    imports = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imports.extend(alias.name.split(".")[0] for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                imports.append(node.module.split(".")[0])
-    return list(set(imports))
+def _generate_dockerfile(...):
+    lines = [...]
+    # ... existing lines: FROM, RUN apt-get install, etc.
+    lines.append("")
+    lines.append("# Switch to non-root user")
+    lines.append("USER appuser")
+    return "\n".join(lines)
 ```
 
-**Bandit integration (subprocess JSON):**
-
-```bash
-bandit -r script.py -f json -q
-```
-
-Returns structured JSON with `results[].issue_severity` (LOW/MEDIUM/HIGH), `issue_confidence`, `issue_text`, and `line_number`. Parse in Python and store results in DB.
-
-**Bash/PowerShell script analysis:**
-
-No mature stdlib equivalent for Bash AST parsing. For Bash: use regex patterns to detect `pip install`, `apt-get install`, `apk add`, `npm install` commands — sufficient for the "detect required packages" use case. For PowerShell: similar pattern matching for `Install-Package`, `pip install`. Do not attempt full shell AST parsing — it is not worth the complexity for this use case.
+**Confidence:** HIGH — no dependencies, string concatenation.
 
 ---
 
-### Mirror Sidecars: New Services
+### Feature 2: EE Licence Protection — Signed Wheel Manifest Verification
 
-#### npm Mirror — Verdaccio
+#### 2a. Wheel Signature Verification (Python stdlib + existing cryptography)
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `verdaccio/verdaccio` Docker image | `6` (latest stable) | npm private proxy/caching registry | Zero-config pull-through proxy; packages cached on first download; air-gap compatible; `verdaccio:6` requires Node.js 18+; official Docker image on Docker Hub |
+**New module needed:** `puppeteer/agent_service/services/wheel_service.py` (single, focused module for wheel validation).
 
-**Compose service pattern:**
+**Inputs:**
+- Wheel file path (e.g., `/tmp/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl`)
+- Hardcoded Ed25519 public key (same pattern as licence key)
 
-```yaml
-verdaccio:
-  image: verdaccio/verdaccio:6
-  restart: unless-stopped
-  ports:
-    - "4873:4873"
-  volumes:
-    - verdaccio-data:/verdaccio/storage
-    - ./verdaccio/config.yaml:/verdaccio/conf/config.yaml:ro
+**Process:**
+1. Extract wheel (ZIP archive)
+2. Read `dist-info/WHEEL` metadata (JSON or RFC822 format)
+3. Read `dist-info/RECORD` (manifest of all files + hashes)
+4. Read `dist-info/RECORD.sig` (Ed25519 signature of RECORD)
+5. Verify signature using `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey`
+6. Validate RECORD hashes match extracted files
+
+**No new dependencies.** Uses:
+- `zipfile` (stdlib)
+- `hashlib.sha256()` (stdlib, existing)
+- `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey` (existing)
+
+**Confidence:** HIGH — all components (zipfile, hashlib, cryptography) are stable; wheel format is standardized (PEP 427, 566).
+
+#### 2b. Boot Log HMAC — Tamper Detection (Existing Pattern)
+
+**Current:** `boot.log` is a plaintext file with SHA256 hash chain (per `licence_service.py`).
+
+**Enhancement:** Add HMAC-SHA256 to detect tampering (e.g., clock rollback via manual `/app/secrets/boot.log` edit).
+
+**No new dependencies.** Uses existing `hmac` + `hashlib`:
+
+```python
+import hmac
+import hashlib
+
+def append_to_boot_log_with_hmac(secret: bytes, entry: str) -> None:
+    """Append entry with HMAC-SHA256 tag for tamper detection."""
+    with open(Path("secrets/boot.log"), "a") as f:
+        tag = hmac.new(secret, entry.encode('utf-8'), hashlib.sha256).hexdigest()
+        f.write(f"{entry} HMAC:{tag}\n")
+
+def verify_boot_log_integrity(secret: bytes) -> bool:
+    """Verify all HMAC tags in boot.log. Returns True if all valid."""
+    with open(Path("secrets/boot.log"), "r") as f:
+        for line in f:
+            line = line.rstrip()
+            if not line or "HMAC:" not in line:
+                continue
+            entry, tag_part = line.rsplit(" HMAC:", 1)
+            expected = hmac.new(secret, entry.encode('utf-8'), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(tag_part, expected):
+                return False
+    return True
 ```
 
-**Minimal `config.yaml` for pull-through proxy:**
+**Integration:** Call `verify_boot_log_integrity(ENCRYPTION_KEY)` in `load_licence()` as part of clock-rollback detection.
 
-```yaml
-storage: /verdaccio/storage
-uplinks:
-  npmjs:
-    url: https://registry.npmjs.org/
-packages:
-  '@*/*':
-    access: $all
-    proxy: npmjs
-  '**':
-    access: $all
-    proxy: npmjs
-```
+**Confidence:** HIGH — existing pattern in `compute_signature_hmac()` and `verify_signature_hmac()`.
 
-Node clients point `npm config set registry http://verdaccio:4873` in the Foundry-generated Dockerfile.
+#### 2c. Entry Point Whitelist Validation (importlib.metadata + stdlib)
 
-#### Conda Mirror — conda-mirror
+**Current:** `ee/__init__.py` uses `importlib.metadata.entry_points(group="axiom.ee")` to discover plugins.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `conda-mirror` | `0.10.0` (latest on PyPI) | Mirror a conda channel (e.g. `conda-forge/linux-64`) to a local directory served via nginx/Caddy | Pure Python, no Anaconda Enterprise required; mirrors channel index + selected packages; existing Caddy `mirror` service can serve the mirrored directory. Install in agent container or a dedicated sidecar. |
-| Caddy (existing `mirror` service) | already in compose | Serve mirrored conda channel via HTTP | Existing `mirror` service already serves a volume; add a new location block for conda path |
+**New requirement:** Validate that:
+1. Only one entry point exists in the `axiom.ee` group (no user-installed conflicting plugins)
+2. The entry point name matches expected (e.g., `axiom_ee`)
+3. The loaded module comes from the wheel (not a shadow import)
 
-**conda-mirror invocation pattern (subprocess from mirror_service.py):**
+**No new dependencies.** Uses `importlib.metadata` (existing).
 
-```bash
-conda-mirror \
-  --upstream-channel conda-forge \
-  --target-directory /app/mirror_data/conda/conda-forge \
-  --platform linux-64 \
-  --num-threads 4
-```
+**Confidence:** HIGH — `importlib.metadata` is stdlib (since Python 3.8); entry point discovery is stable.
 
-Generates `channeldata.json`, `repodata.json`, and `.conda`/`.tar.bz2` files in the standard conda channel layout. Clients set `channels: [http://mirror/conda/conda-forge]` in their `.condarc`.
+#### 2d. Wheel Installation Bootstrap Safety
 
-**Limitation:** `conda-mirror 0.10.0` was last released in 2022. It remains functional but is not actively maintained. Monitor for `conda-mirror-ng` (more recent fork on PyPI) as an alternative.
+**Current:** `ee/__init__.py` calls `pip install --no-deps` on the wheel.
 
-#### NuGet Mirror — BaGetter
+**Enhancement:** Before installation, verify wheel signature (using Feature 2a).
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `bagetter/BaGetter` Docker image | `latest` (BaGetter fork, not original BaGet) | NuGet + symbol server with pull-through caching | BaGetter is the actively maintained community fork of the original BaGet; supports read-through caching from nuget.org; SQLite backend works out of the box; ARM64 support |
-
-**Compose service pattern:**
-
-```yaml
-nuget:
-  image: ghcr.io/bagetter/bagetter:latest
-  restart: unless-stopped
-  ports:
-    - "5555:8080"
-  volumes:
-    - nuget-data:/var/baget
-  environment:
-    - ApiKey=${NUGET_API_KEY:-changeme}
-    - Storage__Type=FileSystem
-    - Storage__Path=/var/baget/packages
-    - Database__Type=Sqlite
-    - Database__ConnectionString=Data Source=/var/baget/baget.db
-    - Mirror__Enabled=true
-    - Mirror__PackageSource=https://api.nuget.org/v3/index.json
-```
-
-PowerShell scripts use `Register-PSRepository -Name Axiom -SourceLocation http://nuget:5555/v3/index.json`.
-
-#### APT Mirror — apt-cacher-ng (existing, complete the placeholder)
-
-The existing `_mirror_apt()` placeholder in `mirror_service.py` should be completed. The existing Caddy `mirror` service already serves `/data/apt`. The correct implementation for air-gapped APT mirroring is:
-
-**Option A: apt-get download (single package, no sidecar):**
-
-```bash
-apt-get download <package>  # downloads .deb to current dir
-dpkg-scanpackages . > Packages  # generates index
-gzip -k Packages  # creates Packages.gz
-```
-
-This is the "upload a specific .deb" approach — analogous to the existing air-gap PyPI upload flow. Use this for the `_mirror_apt()` implementation.
-
-**Option B: apt-mirror sidecar (full channel mirror):**
-
-```yaml
-apt-mirror:
-  image: ghcr.io/inhumantsar/docker-apt-mirror:latest
-  volumes:
-    - mirror-data:/apt-mirror/mirror
-    - ./apt-mirror.list:/etc/apt/mirror.list:ro
-```
-
-Option A (apt-get download + dpkg-scanpackages) is recommended for the current milestone because it mirrors the existing air-gap upload pattern and adds no new sidecar. Option B is appropriate if full automated channel mirroring is required.
-
-**apt-cacher-ng** (already referenced in docs) is a caching proxy, not a full mirror — it requires internet access to the upstream Debian/Ubuntu repos. Use Option A or B for true air-gap support.
-
-#### apk Mirror — Nginx + rsync
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `alpine` base + rsync | latest Alpine | Sync Alpine package repo via rsync; serve via nginx | Standard Alpine mirror setup; Alpine packages are static files (`.apk` + `APKINDEX.tar.gz`); rsync pull from `rsync://dl-cdn.alpinelinux.org/alpine/`; nginx serves them |
-
-**Compose service pattern:**
-
-```yaml
-apk-mirror:
-  image: nginx:alpine
-  restart: unless-stopped
-  volumes:
-    - apk-data:/usr/share/nginx/html/alpine:ro
-  ports:
-    - "8082:80"
-
-apk-syncer:
-  image: alpine:latest
-  restart: unless-stopped
-  volumes:
-    - apk-data:/mirror/alpine
-  command: |
-    sh -c "while true; do
-      rsync -avz --delete rsync://dl-cdn.alpinelinux.org/alpine/v3.21/ /mirror/alpine/v3.21/
-      sleep 3600
-    done"
-```
-
-Alpine clients set `https_proxy` or edit `/etc/apk/repositories` to point to `http://apk-mirror/alpine/v3.21`.
-
-**`_mirror_apk()` implementation in mirror_service.py:**
-
-Like `_mirror_apt`, use `apk fetch --no-cache -R <package>` to download a specific `.apk` and its deps to a local directory, then serve via existing Caddy. No full channel sync required for the air-gap upload pattern.
-
-#### OCI Mirror — registry:2 (already present, use pull-through mode)
-
-The existing `registry:2` service in `compose.server.yaml` is already deployed for Foundry-built images. For OCI pull-through caching, configure it with `REGISTRY_PROXY_*` env vars:
-
-```yaml
-registry:
-  image: registry:2
-  environment:
-    REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
-    REGISTRY_PROXY_USERNAME: ${DOCKER_HUB_USER:-}
-    REGISTRY_PROXY_PASSWORD: ${DOCKER_HUB_PASSWORD:-}
-  volumes:
-    - registry-data:/var/lib/registry
-```
-
-When `REGISTRY_PROXY_REMOTEURL` is set, registry:2 acts as a pull-through cache. Docker daemons on nodes point their `registry-mirrors` config to `http://registry:5000`. This is the CNCF-standard approach for air-gapped OCI — no new service required.
-
-**Limitation:** registry:2 in proxy mode cannot serve images it has never pulled (cold start). Seed the cache by pulling required base images once before air-gapping.
+**Confidence:** HIGH — integrates with existing `_install_ee_wheel()` pattern.
 
 ---
 
-### Frontend: Dependency Tree Viewer
+## Integration Points — How Features Connect
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `react-d3-tree` | `3.6.6` | Interactive collapsible dep tree visualization | 253K weekly downloads; MIT license; renders hierarchical JSON as an SVG tree with expand/collapse; fits the dep tree shape (root → transitive nodes) naturally |
-| Radix UI `Collapsible` + shadcn tree pattern | already in `package.json` | Alternative for simple package lists (flat parent → children) | If the dep tree is shallow (2-3 levels), a pure-CSS shadcn `Collapsible` tree avoids the `react-d3-tree` SVG overhead. Use `react-d3-tree` only for deep transitive trees. |
+### Container Hardening → Foundry Propagation
+- **Requirement:** Foundry-built node images inherit non-root USER
+- **Implementation:** `foundry_service.py` appends `USER appuser` to generated Dockerfile
+- **No new dependencies**
 
-**Decision rule:**
-- Dep tree viewer for displaying transitive resolution results: use `react-d3-tree` (handles arbitrary depth gracefully).
-- Blueprint/ingredient list with simple expansion: use existing Radix `Collapsible` (no new dep).
+### Wheel Signature Verification → Licence Loading
+- **Requirement:** Verify wheel integrity before entry point discovery
+- **Implementation:** `ee/__init__.py` calls `wheel_service.verify_wheel_integrity()` before `pip install`
+- **Entry points:** Already using `importlib.metadata.entry_points(group="axiom.ee")`
+- **No new dependencies**
 
-**react-d3-tree data shape:**
-
-```typescript
-interface RawNodeDatum {
-  name: string;
-  attributes?: Record<string, string | number | boolean>;
-  children?: RawNodeDatum[];
-}
-// e.g. { name: "flask==3.0.2", children: [{ name: "werkzeug==3.0.1" }, ...] }
-```
-
-Backend endpoint provides this shape; frontend passes it directly to `<Tree data={tree} />`.
+### Boot Log HMAC → Licence State
+- **Requirement:** Detect clock rollback via tampered boot.log
+- **Implementation:** `licence_service.py` calls `verify_boot_log_integrity()` in `load_licence()`
+- **Uses:** Existing `ENCRYPTION_KEY` (from `secrets.env`)
+- **No new dependencies**
 
 ---
 
-### Frontend: No New UI Libraries Required for Other Features
+## Summary Table — Stack Changes by Feature
 
-| Feature | Implementation | Libraries |
-|---------|----------------|-----------|
-| Edit Blueprint / Edit Tool Recipe | Extend existing modal pattern (Radix Dialog + form) | Already in stack |
-| Approved OS Management | CRUD table (existing pattern from Users/Signatures views) | Already in stack |
-| Runtime Dep Confirmation | Confirmation dialog with package list (Radix AlertDialog) | Already in stack |
-| Curated Bundles | Accordion/card list with one-click add; uses existing Radix Collapsible | Already in stack |
-| Plain-language search | Fuse.js or simple substring filter on ingredient catalog | Fuse.js is optional (client-side fuzzy search); stdlib string filter is sufficient for MVP |
-| Simplified naming | Frontend-only rename mapping (display labels) | No new lib |
+| Feature | New Modules | New Packages | Modified Files | Dependency Changes |
+|---------|------------|--------------|-----------------|-------------------|
+| **Container Hardening** | None | None | `Containerfile.server`, `Containerfile.node`, `compose.server.yaml`, `node-compose.yaml`, `runtime.py`, `foundry_service.py` | None |
+| **Wheel Signature Verification** | `wheel_service.py` (new) | None | `ee/__init__.py` | None (uses existing cryptography) |
+| **Boot Log HMAC** | None (extend existing) | None | `licence_service.py` | None (uses stdlib hmac) |
+| **Entry Point Whitelist** | None (extend existing) | None | `ee/__init__.py` | None (uses stdlib importlib.metadata) |
 
 ---
 
-## Installation
+## Versions Verified
 
-### Backend additions
-
-```bash
-# In puppeteer/requirements.txt — add:
-pip-tools>=7.4,<8
-bandit>=1.8,<2
-
-# Already present (no changes needed):
-# packaging, pip-audit, httpx
-```
-
-### Frontend addition
-
-```bash
-cd puppeteer/dashboard
-npm install react-d3-tree@3.6.6
-```
-
-All other frontend changes use existing Radix UI, Tailwind, and shadcn patterns already in `package.json`.
-
-### New Docker Compose services
-
-Add to `compose.server.yaml` (optional per deployment, controlled by `MIRROR_BACKENDS` config):
-
-```yaml
-# npm mirror
-verdaccio:
-  image: verdaccio/verdaccio:6
-  volumes: [verdaccio-data:/verdaccio/storage, ./verdaccio/config.yaml:/verdaccio/conf/config.yaml:ro]
-  ports: ["4873:4873"]
-
-# NuGet mirror
-nuget:
-  image: ghcr.io/bagetter/bagetter:latest
-  volumes: [nuget-data:/var/baget]
-  ports: ["5555:8080"]
-  environment: [ApiKey=${NUGET_API_KEY:-changeme}, Mirror__Enabled=true, ...]
-
-# Alpine apk mirror (nginx serves, alpine syncer pulls)
-apk-mirror:
-  image: nginx:alpine
-  volumes: [apk-data:/usr/share/nginx/html/alpine:ro]
-  ports: ["8082:80"]
-
-# New volumes
-volumes:
-  verdaccio-data:
-  nuget-data:
-  apk-data:
-  conda-data:
-```
-
-`conda-mirror` runs as a Python subprocess inside the agent container (already has Python), not as a separate sidecar. No new image required.
+| Library | Current Version | Minimum Required | Status |
+|---------|-----------------|------------------|--------|
+| cryptography | 46.0.5 | 40.0+ (Ed25519 stable since 3.4) | ✓ Sufficient |
+| PyJWT | ≥2.7.0 (required) | 2.7.0+ (EdDSA support) | ✓ Sufficient |
+| Python | 3.12 | 3.12+ | ✓ Current |
+| Docker API (via docker SDK) | 7.0.0+ (existing) | 7.0.0 | ✓ Compatible |
 
 ---
 
-## Alternatives Considered
+## Confidence Assessment
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| `pip-tools` (pip-compile subprocess) | `resolvelib` directly | Only if a pure-Python in-process resolver is needed; resolvelib is what pip uses internally but has no stable public API — subprocess pip-compile is simpler and more reliable |
-| `pip-tools` | `uv` (Rust) | uv is faster but has no stable Python API for programmatic dep-tree extraction; use uv if replacing the entire build pipeline in a future milestone |
-| `ast` stdlib | `libcst` (concrete syntax tree) | libcst preserves formatting and supports source rewriting; overkill for import detection only — stdlib ast is sufficient |
-| `bandit` subprocess | `semgrep` | semgrep supports multi-language (Bash, Python, PS) with one tool; heavier dependency and licensing concerns for self-hosted; bandit is lighter and PyPI-native |
-| `react-d3-tree` | `@xyflow/react` (React Flow) | React Flow is better for graph editors (drag/drop nodes); for read-only tree display, react-d3-tree is simpler and lighter |
-| BaGetter (`bagetter` fork) | original `loicsharma/baget` | Original BaGet is effectively unmaintained since 2021; BaGetter is the active community continuation with same API surface |
-| `verdaccio:6` | Nexus Repository / Artifactory | Enterprise features (auth, multi-format); massively heavier operationally; Verdaccio is sufficient for npm proxy in homelab/enterprise internal deployment |
-| `registry:2` pull-through mode | Harbor | Harbor adds project-based access control and vulnerability scanning; registry:2 is sufficient for basic OCI mirror; add Harbor only if image ACLs are required |
-| apt-get download + dpkg-scanpackages | apt-mirror sidecar | Full channel mirror for large Debian repos; apt-get download approach is sufficient for curated ingredient lists |
+| Area | Confidence | Notes |
+|------|------------|-------|
+| **Stdlib modules (hmac, hashlib, importlib.metadata)** | HIGH | Stable since Python 3.8+; standard library |
+| **cryptography v46 Ed25519 operations** | HIGH | Verified working for licence JWTs; wheel signature uses same APIs |
+| **Docker Compose syntax (cap_drop, security_opt, deploy.resources)** | HIGH | Standard since v3.2–3.7 (2019–2021); widely used in production |
+| **Dockerfile user/group management (Alpine + Debian)** | HIGH | Standard Linux userland; no surprises |
+| **Wheel format (zipfile + RECORD + signature)** | HIGH | PEP 427, PEP 566 standardized; zipfile is stdlib |
+| **importlib.metadata entry point discovery** | HIGH | Stdlib since Python 3.8; used in existing code |
+| **Integration with existing codebase** | HIGH | All features extend existing patterns (HMAC, Ed25519, entry points, socket mounts) |
 
 ---
 
-## What NOT to Use
+## What NOT to Add
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| `pip download --no-deps` for mirroring | Only downloads the declared package, not its transitive deps — the current bug this milestone fixes | `pip-compile` to resolve, then `pip download --no-deps -r resolved.txt` |
-| `pipdeptree` for resolution | pipdeptree analyzes installed packages in a live environment — requires installing first; not suitable for pre-download resolution | PyPI JSON API walker for tree display; `pip-compile` for authoritative resolution |
-| `uv` Python bindings | No stable public API for programmatic dep resolution; CLI-only in 2025 | subprocess `pip-compile` or PyPI JSON API |
-| `conda` full Anaconda distribution | 1.5 GB Docker image; licence complexity | `conda-mirror` (PyPI package, runs in existing agent container) + Caddy to serve |
-| `loicsharma/baget` Docker image | Effectively unmaintained since 2021; no recent Docker image pushes | `ghcr.io/bagetter/bagetter:latest` (active fork) |
-| `apt-cacher-ng` for air-gap APT | apt-cacher-ng is a caching proxy — requires internet access at cache-fill time; not air-gap compatible | `apt-get download` + `dpkg-scanpackages` for true air-gap |
-| `libcst` or `parso` for script analysis | Heavy parser dependencies for a use case (import detection) that stdlib `ast` handles completely | Python `ast` stdlib; regex for Bash/PowerShell |
+❌ **Do not add:**
+- `wheel` / `setuptools` packages (wheel format is ZIP; use stdlib `zipfile`)
+- `cryptojwt` or `python-jose` (PyJWT already supports EdDSA)
+- `pydantic-extra-types` or validation frameworks (use stdlib validators)
+- Custom seccomp profiles (Docker default is sufficient; maintenance cost high)
+- AppArmor/SELinux custom rules (host-level config outside our control)
+- Container orchestration platforms (Docker Compose v3 is the target)
 
----
-
-## Version Compatibility
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| `pip-tools>=7.4,<8` | Python 3.8+, pip>=22 | pip-tools 7.x is stable; pin `<8` to avoid API changes |
-| `bandit>=1.8,<2` | Python 3.8+, `ast` stdlib | bandit 1.8 added Python 3.12 AST compat; 2.0 would be a new major — pin `<2` |
-| `react-d3-tree@3.6.6` | React 16.8+, d3 | React 19 compatible (hooks only, no deprecated APIs used); requires `d3` peer dep — bundled in the react-d3-tree package |
-| `verdaccio:6` | Node.js 18+, npm 7+ | Node.js 18 is LTS; verdaccio:6 is the current stable tag |
-| `ghcr.io/bagetter/bagetter:latest` | .NET 8, SQLite or SQL Server | Default SQLite backend requires no external DB; .NET 8 is baked into image |
-
----
-
-## Integration Points
-
-| New Capability | Where It Hooks In |
-|----------------|-------------------|
-| `pip-compile` transitive resolution | `mirror_service.py`: replace `_mirror_pypi()` body; write resolved `requirements.txt` to temp dir; call `pip download --no-deps -r` on it |
-| `pip-audit` on full resolved set | `smelter_service.py` / `mirror_service.py`: pass resolved `requirements.txt` to `pip-audit --format json`; parse results; store per-ingredient CVE list |
-| `ast` import extractor | New `script_analyzer_service.py`; called from `POST /api/smelter/analyze-script`; returns detected packages list for Foundry wizard pre-population |
-| `bandit` security scan | Same `script_analyzer_service.py`; returns severity findings list; displayed as warnings in Foundry script upload UI |
-| Verdaccio | `mirror_service.py`: `_mirror_npm()` invokes `npm pack <pkg>` then pushes to Verdaccio via its REST API, or configure Verdaccio as pull-through and skip explicit push |
-| BaGetter | `mirror_service.py`: `_mirror_nuget()` invokes `nuget push` or `dotnet nuget push` to BaGetter REST endpoint |
-| conda-mirror | `mirror_service.py`: `_mirror_conda()` invokes `conda-mirror` via subprocess with target channel and platform args |
-| `react-d3-tree` | New `DepTreeModal.tsx` component; rendered from ingredient detail panel when `transitive_deps` JSON field is present; receives tree-shaped JSON from `GET /api/smelter/ingredients/{id}/dep-tree` |
+❌ **Do not change:**
+- cryptography version (46.0.5 is current, backward compatible)
+- PyJWT version (≥2.7.0 requirement is locked correctly)
+- Base images (python:3.12-alpine and python:3.12-slim are standard)
 
 ---
 
 ## Sources
 
-- [pip dependency resolution docs](https://pip.pypa.io/en/stable/topics/dependency-resolution/) — `pip download` transitive behavior, `--no-deps` semantics — HIGH confidence (official pip docs)
-- [pip-tools GitHub](https://github.com/jazzband/pip-tools) — pip-compile resolves transitive deps into pinned requirements.txt — HIGH confidence
-- [PyPI JSON API](https://docs.pypi.org/api/json/) — `requires_dist` field, package metadata endpoint — HIGH confidence (official PyPI docs)
-- [packaging library docs](https://packaging.pypa.io/en/stable/) — `packaging.requirements.Requirement` — HIGH confidence
-- [pip-audit PyPI / GitHub](https://github.com/pypa/pip-audit) — scans requirements files for known CVEs, JSON output — HIGH confidence
-- [Python `ast` stdlib](https://docs.python.org/3/library/ast.html) — `Import`, `ImportFrom` nodes, `ast.walk()` — HIGH confidence (stdlib)
-- [Bandit GitHub (PyCQA)](https://github.com/PyCQA/bandit) — 1.8.x stable, programmatic + subprocess JSON mode — HIGH confidence
-- [react-d3-tree npm](https://www.npmjs.com/package/react-d3-tree) — v3.6.6, 253K weekly downloads, collapsible tree — HIGH confidence
-- [Verdaccio Docker Hub](https://hub.docker.com/r/verdaccio/verdaccio/) — `verdaccio:6` tag, Node 18+ requirement — HIGH confidence
-- [BaGetter GitHub](https://github.com/bagetter/BaGetter) — active fork of BaGet, ghcr.io image, SQLite + mirror enabled — MEDIUM confidence (GitHub, not official docs page)
-- [conda-mirror PyPI](https://pypi.org/project/conda-mirror/) — v0.10.0 latest, conda-forge channels — MEDIUM confidence (package last updated 2022, still functional)
-- [Alpine mirror setup (community)](https://github.com/m3talstorm/docker-alpine-mirror) — rsync + nginx pattern for apk mirrors — MEDIUM confidence (community project)
-- [Docker registry:2 pull-through config](https://distribution.github.io/distribution/recipes/mirror/) — REGISTRY_PROXY_REMOTEURL env var — HIGH confidence (official distribution docs)
-- [shadcn-tree-view GitHub](https://github.com/MrLightful/shadcn-tree-view) — Radix Collapsible-based tree for simple hierarchies — MEDIUM confidence
-
----
-
-*Stack research for: v19.0 Foundry Improvements — transitive deps, multi-ecosystem mirrors, script analysis, operator UX*
-*Researched: 2026-04-01*
+- [Python hmac documentation](https://docs.python.org/3/library/hmac.html)
+- [Python hashlib documentation](https://docs.python.org/3/library/hashlib.html)
+- [Python importlib.metadata documentation](https://docs.python.org/3/library/importlib.metadata.html)
+- [Python zipfile documentation](https://docs.python.org/3/library/zipfile.html)
+- [cryptography library Ed25519 API](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/)
+- [PEP 427 — The Wheel Binary Package Format](https://www.python.org/dev/peps/pep-0427/)
+- [PEP 566 — Metadata 2.2 for the JSON-based Serialisation](https://www.python.org/dev/peps/pep-0566/)
+- [Docker Compose Specification — Services Security](https://github.com/compose-spec/compose-spec/blob/master/spec.md#security)
+- Existing codebase: `licence_service.py`, `ee/__init__.py`, `security.py`, `runtime.py`
