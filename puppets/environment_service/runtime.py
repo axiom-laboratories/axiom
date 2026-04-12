@@ -17,17 +17,30 @@ class ContainerRuntime:
         if mode in ("docker", "podman"):
             logger.info(f"EXECUTION_MODE={mode} (explicit)")
             return mode
-        # auto: probe available runtimes, no silent fallback
-        if os.path.exists("/var/run/docker.sock") and shutil.which("docker"):
+
+        # auto mode: socket-first detection
+        if os.path.exists("/var/run/docker.sock"):
+            logger.info("Container runtime: docker (socket detected)")
             return "docker"
-        if shutil.which("podman"):
+
+        if os.path.exists("/run/podman/podman.sock"):
+            logger.info("Container runtime: podman (socket detected)")
             return "podman"
+
+        # Fallback: binary detection
+        if shutil.which("podman"):
+            logger.info("Container runtime: podman (binary in PATH)")
+            return "podman"
+
         if shutil.which("docker"):
+            logger.info("Container runtime: docker (binary in PATH)")
             return "docker"
+
         raise RuntimeError(
             "No container runtime detected. "
-            "Ensure Docker or Podman is installed in this image. "
-            "For Docker-in-Docker, mount the host Docker socket and use EXECUTION_MODE=docker or auto. "
+            "Ensure Docker or Podman is installed and accessible. "
+            "For Docker-in-Docker, mount the host Docker socket at /var/run/docker.sock. "
+            "For Podman, ensure /run/podman/podman.sock is mounted or podman binary is in PATH. "
             "See docs/runbooks/faq.md for guidance."
         )
 
@@ -59,9 +72,10 @@ class ContainerRuntime:
         if cpu_limit:
             cmd.extend(["--cpus", str(cpu_limit)])
 
-        # 2. Network Strategy
+        # 2. Network Strategy (DEPRECATED: replaced with jobs_network bridge isolation per Phase 134)
         if os.name != 'nt':
-            cmd.extend(["--network=host"])
+            network = network_ref or "jobs_network"
+            cmd.extend([f"--network={network}"])
 
         # 3. Namespace Mapping (Podman specific)
         if self.runtime == "podman":
