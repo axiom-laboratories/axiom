@@ -145,6 +145,8 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [ ] Plan 02: Integration tests + verification script + stack validation (Wave 2)
 - [x] **Phase 133: Network & Security Capabilities** — Drop capabilities, disable privilege escalation, restrict Postgres to loopback (completed 2026-04-12)
 - [ ] **Phase 134: Socket Mount & Podman Support** — Remove privileged mode, auto-detect Podman socket
+  - [ ] Plan 01: Socket-first detection in runtime.py + network_ref wiring (Wave 1)
+  - [ ] Plan 02: Docker + Podman compose variants + node.py integration (Wave 2)
 - [ ] **Phase 135: Resource Limits & Package Cleanup** — Define memory/CPU limits, strip unnecessary node packages
 - [ ] **Phase 136: User Propagation to Generated Images** — Foundry Dockerfiles append USER appuser
 - [ ] **Phase 137: Signed EE Wheel Manifest** — Verify Ed25519 manifest before EE wheel install
