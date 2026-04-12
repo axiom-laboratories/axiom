@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v22.0
-milestone_name: Security Hardening
-status: in-progress
-last_updated: "2026-04-12"
-last_activity: 2026-04-12 — Phase 132 Plan 02 complete; Verified non-root user execution and secrets volume ownership via pytest + shell tests
+milestone: v1.0
+milestone_name: milestone
+status: planning
+last_updated: "2026-04-12T12:05:39.920Z"
+last_activity: "2026-04-12 — Phase 132 Plan 02 complete: Verified non-root execution (agent/model/node run as UID 1000), secrets volume ownership via pytest + shell tests (8/8 passing)"
 progress:
-  total_phases: 9
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 2
+  total_phases: 60
+  completed_phases: 51
+  total_plans: 149
+  completed_plans: 158
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 **Phase:** 132 (Non-root user foundation)
 **Plan:** 03 (next; Fallback entrypoint testing)
-**Status:** Plan 01 & 02 complete; all 8 integration tests passing
+**Status:** Ready to plan
 **Last activity:** 2026-04-12 — Phase 132 Plan 02 complete: Verified non-root execution (agent/model/node run as UID 1000), secrets volume ownership via pytest + shell tests (8/8 passing)
 
 ## Roadmap Summary

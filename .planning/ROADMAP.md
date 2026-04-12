@@ -140,7 +140,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 <details>
 <summary>🔄 v22.0 — Security Hardening (Phases 132–140) — IN PROGRESS</summary>
 
-- [ ] **Phase 132: Non-Root User Foundation** — All containers run as non-root appuser (UID 1000) with correct volume ownership
+- [x] **Phase 132: Non-Root User Foundation** — All containers run as non-root appuser (UID 1000) with correct volume ownership (completed 2026-04-12)
   - [ ] Plan 01: Update Containerfile.server and Containerfile.node with appuser + chown + USER directives (Wave 1)
   - [ ] Plan 02: Integration tests + verification script + stack validation (Wave 2)
 - [ ] **Phase 133: Network & Security Capabilities** — Drop capabilities, disable privilege escalation, restrict Postgres to loopback
@@ -184,7 +184,7 @@ Full details: `.planning/v22.0-ROADMAP.md`
 | 129. Response Model Auto-Serialization | v21.0 | 5/5 | Complete | 2026-04-11 |
 | 130. E2E Job Dispatch Integration Test | v21.0 | 2/2 | Complete | 2026-04-12 |
 | 131. Signature Verification Path Unification | v21.0 | 1/1 | Complete | 2026-04-11 |
-| 132. Non-Root User Foundation | v22.0 | 0/2 | Planned | — |
+| 132. Non-Root User Foundation | v22.0 | Complete    | 2026-04-12 | — |
 
 ## Archived
 
