@@ -40,6 +40,11 @@ def drop_privileges():
         appuser = pwd.getpwnam("appuser")
         os.setgid(appuser.pw_gid)
         os.setuid(appuser.pw_uid)
+
+        # Set environment variables for appuser context
+        os.environ['HOME'] = appuser.pw_dir
+        os.environ['USER'] = appuser.pw_name
+
         print("✓ Dropped privileges to appuser", file=sys.stderr)
     except Exception as e:
         print(f"✗ Failed to drop privileges: {e}", file=sys.stderr)
