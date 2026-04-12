@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-04-12T20:04:46.394Z"
+last_updated: "2026-04-12T22:15:00.000Z"
 last_activity: "2026-04-12T21:00:00Z — Phase 137 Plan 01 complete: EE wheel manifest verification with Ed25519 signature check. Implemented _verify_wheel_manifest() with 6-step verification (manifest existence, JSON format, required fields, SHA256 hash, signature decoding, Ed25519 verification). Integrated into _install_ee_wheel() and activate_ee_live(). Added ee_activation_error field to /admin/licence endpoint. All 14 unit tests pass. EE-01 satisfied."
 progress:
   total_phases: 60
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 137 (Signed EE Wheel Manifest)
+**Phase:** 138 (HMAC-Keyed Boot Log)
 **Plan:** 01 (complete)
 **Status:** Ready to plan
-**Last activity:** 2026-04-12T21:00:00Z — Phase 137 Plan 01 complete: EE wheel manifest verification with Ed25519 signature check. Implemented _verify_wheel_manifest() with 6-step verification (manifest existence, JSON format, required fields, SHA256 hash, signature decoding, Ed25519 verification). Integrated into _install_ee_wheel() and activate_ee_live(). Added ee_activation_error field to /admin/licence endpoint. All 14 unit tests pass. EE-01 satisfied.
+**Last activity:** 2026-04-12T22:15:00Z — Phase 138 Plan 01 complete: HMAC-SHA256 boot log upgrade with backward compatibility. Implemented _compute_boot_hmac(), _verify_boot_hmac(), and _parse_boot_log_entry() helpers. Refactored check_and_record_boot() for mixed HMAC+legacy support. New entries use 'hmac:' prefix; legacy SHA256 entries (no prefix) accepted silently. Strict error handling in EE mode, lax in CE. All 6 new HMAC tests + 2 existing boot log tests pass (8/8). EE-02 and EE-03 satisfied.
 
 ## Roadmap Summary
 
@@ -65,6 +65,16 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 138 Plan 01)
+
+**2026-04-12 — HMAC-SHA256 boot log keyed on ENCRYPTION_KEY**
+- Decision: Implement HMAC-SHA256 verification for boot log entries using 'hmac:' prefix for new entries; legacy SHA256 entries (no prefix) continue to work indefinitely without forced migration
+- Rationale: Strengthen EE licence protection by binding boot log integrity to encryption key; maintain full backward compatibility with existing deployments
+- Impact: New boot log entries include cryptographically signed HMAC digest; mixed-format logs (legacy + HMAC) supported simultaneously; constant-time verification prevents timing attacks
+- Entry format: New `hmac:<64-hex-hmac> <ISO8601>`, Legacy `<64-hex-sha256> <ISO8601>`
+- Error handling: EE mode (VALID/GRACE/EXPIRED) raises RuntimeError on HMAC mismatch; CE mode logs warning (non-blocking)
+- Status: Implemented and verified; 6 new unit tests + 2 existing boot log tests pass; EE-02 and EE-03 satisfied
 
 ## Decisions Made (Phase 137 Plan 01)
 

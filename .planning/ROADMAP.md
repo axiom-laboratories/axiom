@@ -151,8 +151,8 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [ ] Plan 01: compose.server.yaml resource limits + Containerfile.node package cleanup (Wave 1)
 - [x] **Phase 136: User Propagation to Generated Images** — Foundry Dockerfiles append USER appuser (completed 2026-04-12)
 - [x] **Phase 137: Signed EE Wheel Manifest** — Verify Ed25519 manifest before EE wheel install (completed 2026-04-12)
-- ⬜ **Phase 138: HMAC-Keyed Boot Log** — HMAC-SHA256 boot log with backward-compatible SHA256 reads (1 plan planned)
-  - [ ] Plan 01: HMAC helpers + boot log entry detection + read/write refactor (Wave 1)
+- [x] **Phase 138: HMAC-Keyed Boot Log** — HMAC-SHA256 boot log with backward-compatible SHA256 reads (completed 2026-04-12)
+  - [x] Plan 01: HMAC helpers + boot log entry detection + read/write refactor (completed 2026-04-12)
 - [ ] **Phase 139: Entry Point Whitelist & Enforcement** — Validate entry points, enforce ENCRYPTION_KEY presence
 - [ ] **Phase 140: Wheel Signing Release Tool** — CLI to sign wheel manifests at release time
 
@@ -191,7 +191,7 @@ Full details: `.planning/v22.0-ROADMAP.md`
 | 132. Non-Root User Foundation | v22.0 | Complete    | 2026-04-12 | — |
 | 133. Network & Security Capabilities | v22.0 | 1/1 | Complete | 2026-04-12 |
 | 134. Socket Mount & Podman Support | v22.0 | Complete    | 2026-04-12 | — |
-| 138. HMAC-Keyed Boot Log | v22.0 | 1/1 planned | Ready for execution | — |
+| 138. HMAC-Keyed Boot Log | v22.0 | 1/1 | Complete | 2026-04-12 |
 
 ## Archived
 
