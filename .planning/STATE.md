@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v22.0
 milestone_name: Security Hardening
-status: planning
+status: in-progress
 last_updated: "2026-04-12"
-last_activity: 2026-04-12 — Roadmap created; 9 phases defined; 16 requirements mapped (100% coverage)
+last_activity: 2026-04-12 — Phase 132 Plan 01 complete; Containerfile.server and Containerfile.node updated with appuser
 progress:
   total_phases: 9
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** Not started (roadmap approval pending)
-**Plan:** —
-**Status:** Roadmap created
-**Last activity:** 2026-04-12 — Roadmap created with 9 phases (132–140) addressing 16 requirements
+**Phase:** 132 (Non-root user foundation)
+**Plan:** 02 (next; Image rebuild and validation)
+**Status:** Plan 01 complete; awaiting Plan 02 execution
+**Last activity:** 2026-04-12 — Phase 132 Plan 01 complete: Containerfiles updated with appuser (UID 1000) and chown directives
 
 ## Roadmap Summary
 
