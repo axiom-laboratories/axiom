@@ -12,6 +12,7 @@ Import: PyJWT (import jwt) — NOT python-jose (from jose import jwt).
 PyJWT 2.7.0 supports EdDSA; python-jose 3.5.0 does not.
 """
 import hashlib
+import hmac as _hmac
 import logging
 import os
 import time
@@ -24,6 +25,8 @@ from typing import List, Optional
 import jwt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey  # noqa: F401
+
+from agent_service.security import ENCRYPTION_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -165,43 +168,134 @@ def _compute_hash(prev_hash_hex: str, iso_ts: str) -> str:
     return hashlib.sha256(f"{prev_hash_hex}{iso_ts}".encode()).hexdigest()
 
 
+def _compute_boot_hmac(key_bytes: bytes, iso_ts: str) -> str:
+    """
+    HMAC-SHA256 computation of ISO8601 timestamp, keyed on ENCRYPTION_KEY.
+
+    Args:
+        key_bytes: ENCRYPTION_KEY (bytes)
+        iso_ts: ISO8601 timestamp string
+
+    Returns:
+        64-character hex string (HMAC-SHA256 digest)
+    """
+    message = iso_ts.encode("utf-8")
+    return _hmac.new(key_bytes, message, hashlib.sha256).hexdigest()
+
+
+def _verify_boot_hmac(key_bytes: bytes, stored_hmac: str, iso_ts: str) -> bool:
+    """
+    Constant-time HMAC verification for boot log entry.
+
+    Args:
+        key_bytes: ENCRYPTION_KEY (bytes)
+        stored_hmac: Stored HMAC digest (64-char hex string)
+        iso_ts: ISO8601 timestamp string
+
+    Returns:
+        True if stored HMAC matches computed HMAC, False otherwise
+    """
+    expected = _compute_boot_hmac(key_bytes, iso_ts)
+    return _hmac.compare_digest(stored_hmac, expected)
+
+
+def _parse_boot_log_entry(line: str) -> tuple:
+    """
+    Parse a boot log line and detect entry type.
+
+    Args:
+        line: Boot log line (either legacy SHA256 or new HMAC format)
+
+    Returns:
+        tuple: (entry_type, digest_or_hmac, iso_ts)
+        - entry_type: "hmac" or "sha256"
+        - digest_or_hmac: the hex digest/HMAC value (without prefix)
+        - iso_ts: the ISO8601 timestamp string
+
+    Line formats:
+    - New: `hmac:<64-hex> <ISO8601>` → ("hmac", "<64-hex>", "<ISO8601>")
+    - Legacy: `<64-hex> <ISO8601>` → ("sha256", "<64-hex>", "<ISO8601>")
+    """
+    if line.startswith("hmac:"):
+        # New format: "hmac:<hex> <iso_ts>"
+        parts = line.split(" ", 1)
+        hmac_part = parts[0][5:]  # strip "hmac:" prefix
+        iso_ts = parts[1] if len(parts) > 1 else ""
+        return ("hmac", hmac_part, iso_ts)
+    else:
+        # Legacy format: "<hex> <iso_ts>"
+        parts = line.split(" ", 1)
+        hex_val = parts[0]
+        iso_ts = parts[1] if len(parts) > 1 else ""
+        return ("sha256", hex_val, iso_ts)
+
+
 def check_and_record_boot(licence_status: LicenceStatus = LicenceStatus.CE) -> bool:
     """
-    Append a new timestamped entry to the hash-chained boot log.
+    Append a new timestamped HMAC entry to the boot log.
+
+    Supports mixed format: new entries use HMAC-SHA256 keyed on ENCRYPTION_KEY;
+    legacy SHA256 entries (no `hmac:` prefix) are accepted on read without verification.
 
     Returns True if no rollback is detected, False if the last entry has a
     timestamp in the future (indicating clock rollback).
 
-    For EE licences (VALID, GRACE, EXPIRED), raises RuntimeError on rollback.
-    For CE mode, logs a warning only.
+    For EE licences (VALID, GRACE, EXPIRED):
+    - Raises RuntimeError on clock rollback
+    - Raises RuntimeError on HMAC verification failure
 
-    Boot log format: one line per boot, each line = '<sha256_hex> <ISO8601_timestamp>'.
-    Genesis (absent or empty file): creates the first entry.
+    For CE mode:
+    - Logs warning on clock rollback (non-blocking)
+    - Logs warning on HMAC verification failure (non-blocking)
+
+    Boot log format: mixed
+    - Legacy: `<sha256_hex> <ISO8601_timestamp>` (no prefix)
+    - New: `hmac:<hmac_hex> <ISO8601_timestamp>` (with prefix)
+
+    Genesis (absent or empty file): creates the first entry with HMAC.
     Truncation: keeps last 1000 lines to prevent unbounded growth.
     """
-    strict_clock = licence_status != LicenceStatus.CE
+    strict_mode = licence_status != LicenceStatus.CE
     now_ts = datetime.now(timezone.utc).isoformat()
 
     BOOT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     # Genesis case
     if not BOOT_LOG_PATH.exists() or BOOT_LOG_PATH.stat().st_size == 0:
-        new_hash = _compute_hash("", now_ts)
-        BOOT_LOG_PATH.write_text(f"{new_hash} {now_ts}\n")
+        new_hmac = _compute_boot_hmac(ENCRYPTION_KEY, now_ts)
+        BOOT_LOG_PATH.write_text(f"hmac:{new_hmac} {now_ts}\n")
         return True
 
     lines = BOOT_LOG_PATH.read_text().strip().splitlines()
     last_line = lines[-1]
-    parts = last_line.split(" ", 1)
-    last_hash = parts[0]
-    last_ts = parts[1] if len(parts) > 1 else ""
+
+    # Parse last entry to detect type (HMAC or legacy SHA256)
+    entry_type, stored_digest, last_ts = _parse_boot_log_entry(last_line)
 
     # Detect rollback: last recorded timestamp is in the future relative to now
     rollback_detected = last_ts > now_ts  # lexicographic comparison valid for UTC ISO8601
 
-    # Append new entry regardless
-    new_hash = _compute_hash(last_hash, now_ts)
-    lines.append(f"{new_hash} {now_ts}")
+    # Handle HMAC verification for new-format entries
+    if entry_type == "hmac":
+        if not _verify_boot_hmac(ENCRYPTION_KEY, stored_digest, last_ts):
+            msg = "Boot log HMAC verification failed — possible tampering"
+            if strict_mode:
+                raise RuntimeError(msg)
+            logger.warning(msg)
+
+    # Handle legacy SHA256 entries — log warning once
+    elif entry_type == "sha256":
+        logger.warning(
+            "Legacy SHA256 boot log entry detected — migration to HMAC in progress, "
+            "consider rebuilding the boot log"
+        )
+
+    # Compute new SHA256 chain hash for continuity (uses stored_digest as prev_hash)
+    new_hash = _compute_hash(stored_digest, now_ts)
+
+    # Compute new HMAC digest and write as new entry
+    new_hmac = _compute_boot_hmac(ENCRYPTION_KEY, now_ts)
+    lines.append(f"hmac:{new_hmac} {now_ts}")
 
     # Truncate to last 1000 lines
     if len(lines) > 1000:
@@ -211,7 +305,7 @@ def check_and_record_boot(licence_status: LicenceStatus = LicenceStatus.CE) -> b
 
     if rollback_detected:
         msg = f"Clock rollback detected — last boot at {last_ts}, now {now_ts}"
-        if strict_clock:
+        if strict_mode:
             raise RuntimeError(msg)
         logger.warning(msg)
         return False

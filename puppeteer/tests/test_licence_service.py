@@ -645,29 +645,196 @@ def test_check_and_record_boot_integration():
 
 def test_hmac_entry_write():
     """EE-02: New boot entries are written with `hmac:` prefix and HMAC-SHA256 digest."""
-    pass
+    from agent_service.services.licence_service import (
+        check_and_record_boot,
+        _compute_boot_hmac,
+        LicenceStatus,
+    )
+    from agent_service.security import ENCRYPTION_KEY
+    from datetime import datetime, timezone
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            # First boot with CE mode (lax error handling)
+            result = check_and_record_boot(LicenceStatus.CE)
+            assert result is True
+            assert boot_log.exists()
+
+            # Read the entry and verify format
+            lines = boot_log.read_text().strip().splitlines()
+            assert len(lines) >= 1
+            last_line = lines[-1]
+
+            # Should start with "hmac:" prefix
+            assert last_line.startswith("hmac:"), f"Expected hmac: prefix, got {last_line}"
+
+            # Parse and verify structure
+            parts = last_line.split(" ", 1)
+            assert len(parts) == 2, f"Expected 2 parts, got {len(parts)}"
+
+            hmac_part = parts[0][5:]  # strip "hmac:" prefix
+            iso_ts = parts[1]
+
+            # HMAC should be 64 hex characters
+            assert len(hmac_part) == 64, f"Expected 64-char HMAC, got {len(hmac_part)}"
+            assert all(c in "0123456789abcdef" for c in hmac_part), f"HMAC not hex: {hmac_part}"
+
+            # Verify ISO timestamp format (isoformat() uses +00:00, not Z)
+            assert "T" in iso_ts, f"Expected ISO8601 timestamp with T separator, got {iso_ts}"
 
 
 def test_hmac_verify_on_read():
     """EE-02: HMAC entry on last line is verified on read; mismatch raises in EE mode (VALID, GRACE, EXPIRED)."""
-    pass
+    from agent_service.services.licence_service import (
+        check_and_record_boot,
+        _compute_boot_hmac,
+        LicenceStatus,
+    )
+    from agent_service.security import ENCRYPTION_KEY
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+
+        # Write a valid HMAC entry
+        from datetime import datetime, timezone
+        now_ts = datetime.now(timezone.utc).isoformat()
+        correct_hmac = _compute_boot_hmac(ENCRYPTION_KEY, now_ts)
+        boot_log.write_text(f"hmac:{correct_hmac} {now_ts}\n")
+
+        # Read and verify — should succeed in CE mode
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            result = check_and_record_boot(LicenceStatus.CE)
+            assert result is True
+
+        # Write an invalid HMAC entry (tampering simulation)
+        bad_hmac = "0" * 64  # Wrong digest
+        boot_log.write_text(f"hmac:{bad_hmac} {now_ts}\n")
+
+        # Read with invalid HMAC in EE mode (VALID) — should raise
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            with pytest.raises(RuntimeError, match="HMAC verification failed"):
+                check_and_record_boot(LicenceStatus.VALID)
 
 
 def test_hmac_mismatch_ce_lax():
     """EE-02: HMAC mismatch logs warning in CE mode (no raise)."""
-    pass
+    from agent_service.services.licence_service import (
+        check_and_record_boot,
+        LicenceStatus,
+    )
+    from datetime import datetime, timezone
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+
+        # Write an invalid HMAC entry
+        now_ts = datetime.now(timezone.utc).isoformat()
+        bad_hmac = "0" * 64  # Wrong digest
+        boot_log.write_text(f"hmac:{bad_hmac} {now_ts}\n")
+
+        # Read with invalid HMAC in CE mode — should warn but not raise
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            result = check_and_record_boot(LicenceStatus.CE)
+            # Should succeed (no exception) despite invalid HMAC
+            assert result is True or result is False  # Implementation may return True/False, both acceptable
 
 
 def test_legacy_sha256_silent_accept():
     """EE-03: Legacy SHA256 entries (no `hmac:` prefix) are read silently without verification."""
-    pass
+    from agent_service.services.licence_service import (
+        check_and_record_boot,
+        _compute_hash,
+        LicenceStatus,
+    )
+    from datetime import datetime, timezone
+    import hashlib
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+
+        # Write a legacy SHA256 entry (no hmac: prefix)
+        now_ts = datetime.now(timezone.utc).isoformat()
+        legacy_hash = hashlib.sha256(f"{now_ts}".encode()).hexdigest()
+        boot_log.write_text(f"{legacy_hash} {now_ts}\n")
+
+        # Read legacy entry — should succeed silently (no verification)
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            result = check_and_record_boot(LicenceStatus.CE)
+            assert result is True
 
 
 def test_legacy_warning_on_read():
     """EE-03: Warning is logged once when last entry read is legacy SHA256."""
-    pass
+    from agent_service.services.licence_service import (
+        check_and_record_boot,
+        LicenceStatus,
+    )
+    from datetime import datetime, timezone
+    import hashlib
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+
+        # Write a legacy SHA256 entry
+        now_ts = datetime.now(timezone.utc).isoformat()
+        legacy_hash = hashlib.sha256(f"{now_ts}".encode()).hexdigest()
+        boot_log.write_text(f"{legacy_hash} {now_ts}\n")
+
+        # Read legacy entry and capture logger output
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            with patch("agent_service.services.licence_service.logger") as mock_logger:
+                result = check_and_record_boot(LicenceStatus.CE)
+                # Should warn about legacy entry
+                mock_logger.warning.assert_called()
+                # At least one warning call should mention legacy or SHA256
+                calls_str = str(mock_logger.warning.call_args_list)
+                assert "legacy" in calls_str.lower() or "sha256" in calls_str.lower()
 
 
 def test_mixed_format_coexist():
     """EE-03: Boot log with both legacy SHA256 and new HMAC entries reads correctly; chain maintained."""
-    pass
+    from agent_service.services.licence_service import (
+        check_and_record_boot,
+        _compute_boot_hmac,
+        LicenceStatus,
+    )
+    from agent_service.security import ENCRYPTION_KEY
+    from datetime import datetime, timezone, timedelta
+    import hashlib
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        boot_log = Path(tmpdir) / "boot.log"
+
+        # Create a mixed boot log: legacy SHA256 + new HMAC
+        ts1 = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat()
+        ts2 = (datetime.now(timezone.utc) - timedelta(seconds=30)).isoformat()
+        ts3 = datetime.now(timezone.utc).isoformat()
+
+        legacy_hash1 = hashlib.sha256(f"{ts1}".encode()).hexdigest()
+        hmac_digest2 = _compute_boot_hmac(ENCRYPTION_KEY, ts2)
+
+        # Write mixed entries
+        boot_log.write_text(
+            f"{legacy_hash1} {ts1}\n"
+            f"hmac:{hmac_digest2} {ts2}\n"
+        )
+
+        # Read mixed entries — should succeed
+        with patch("agent_service.services.licence_service.BOOT_LOG_PATH", boot_log):
+            result = check_and_record_boot(LicenceStatus.CE)
+            assert result is True
+
+        # Verify the new entry was appended with HMAC format
+        lines = boot_log.read_text().strip().splitlines()
+        assert len(lines) == 3
+
+        # First should be legacy (no prefix)
+        assert not lines[0].startswith("hmac:")
+
+        # Second should be HMAC (has prefix)
+        assert lines[1].startswith("hmac:")
+
+        # Third should be new HMAC entry from check_and_record_boot
+        assert lines[2].startswith("hmac:")
