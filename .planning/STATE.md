@@ -7,9 +7,9 @@ last_updated: "2026-04-12T12:05:39.920Z"
 last_activity: "2026-04-12 — Phase 132 Plan 02 complete: Verified non-root execution (agent/model/node run as UID 1000), secrets volume ownership via pytest + shell tests (8/8 passing)"
 progress:
   total_phases: 60
-  completed_phases: 51
+  completed_phases: 52
   total_plans: 149
-  completed_plans: 158
+  completed_plans: 159
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 132 (Non-root user foundation)
-**Plan:** 03 (next; Fallback entrypoint testing)
-**Status:** Ready to plan
-**Last activity:** 2026-04-12 — Phase 132 Plan 02 complete: Verified non-root execution (agent/model/node run as UID 1000), secrets volume ownership via pytest + shell tests (8/8 passing)
+**Phase:** 133 (Network & security capabilities)
+**Plan:** 01 (completed; Docker Compose hardening)
+**Status:** Complete
+**Last activity:** 2026-04-12 — Phase 133 Plan 01 complete: Applied Linux capability restrictions (cap_drop ALL), loopback-scoped PostgreSQL, removed dead services (tunnel, ddns-updater), verified all 7 services running with correct security posture (CONT-03, CONT-04 satisfied)
 
 ## Roadmap Summary
 
@@ -65,6 +65,20 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 133 Plan 01)
+
+**2026-04-12 — Linux capability strategy for all services**
+- Decision: Apply `cap_drop: ALL` + `security_opt: no-new-privileges:true` to all 7 services (uniform policy)
+- Rationale: Least-privilege principle; prevents privilege escalation via setuid/setgid. Service-specific `cap_add` only where functionally required.
+- Impact: Services require correct capabilities for their runtime operations (PostgreSQL init, nginx file setup, Python privilege dropping). Discovered during testing that initial assumptions were incomplete—added missing capabilities per service.
+- Status: Implemented, verified via docker inspect, all services running without capability errors
+
+**2026-04-12 — Loopback-only PostgreSQL binding**
+- Decision: Change port binding from `5432:5432` to `127.0.0.1:5432:5432`
+- Rationale: Prevents external host-to-container access; service-to-service connectivity via Docker DNS `db:` service name remains unaffected (uses bridge network, not host port binding)
+- Impact: External tools (psql, DBeaver) must connect via localhost only; internal agent/model services unaffected
+- Status: Verified via docker inspect (PortBindings shows 127.0.0.1:5432) and service logs (no connection errors)
 
 ## Decisions Made (Phase 132)
 

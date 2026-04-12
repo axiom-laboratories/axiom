@@ -10,8 +10,8 @@
 
 - [ ] **CONT-01**: All services run as non-root appuser (UID 1000) with correct ownership of app directories and mounted volumes
 - [ ] **CONT-02**: Node removes `privileged: true` and uses host Docker/Podman socket mount instead
-- [ ] **CONT-03**: `cap_drop: ALL` + `security_opt: no-new-privileges` on all compose services; Caddy gets `cap_add: NET_BIND_SERVICE`
-- [ ] **CONT-04**: Postgres external port binding restricted to `127.0.0.1:5432` (loopback only)
+- [x] **CONT-03**: `cap_drop: ALL` + `security_opt: no-new-privileges` on all compose services; Caddy gets `cap_add: NET_BIND_SERVICE` (COMPLETE — Phase 133 Plan 01)
+- [x] **CONT-04**: Postgres external port binding restricted to `127.0.0.1:5432` (loopback only) (COMPLETE — Phase 133 Plan 01)
 - [ ] **CONT-05**: Memory and CPU resource limits defined for all orchestrator services (agent, model, db, dashboard, docs, registry)
 - [ ] **CONT-06**: Secrets volume ownership migrates correctly when upgrading from root-based containers to non-root
 - [ ] **CONT-07**: `Containerfile.node` strips Podman/iptables/krb5 packages no longer needed after socket mount
@@ -55,8 +55,8 @@ These were considered for v22.0 but deferred:
 |--------|-------|--------|
 | CONT-01 | 132 | Pending |
 | CONT-02 | 134 | Pending |
-| CONT-03 | 133 | Pending |
-| CONT-04 | 133 | Pending |
+| CONT-03 | 133 | Complete |
+| CONT-04 | 133 | Complete |
 | CONT-05 | 135 | Pending |
 | CONT-06 | 132 | Pending |
 | CONT-07 | 135 | Pending |
