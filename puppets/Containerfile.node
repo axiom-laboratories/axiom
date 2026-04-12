@@ -30,6 +30,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm /tmp/powershell.deb \
     && rm -rf /var/lib/apt/lists/*
 
+# Remove packages no longer needed after privileged mode → socket mount migration (Phase 134)
+# podman: was needed for job execution in privileged mode; socket mount makes it redundant
+# iptables: only used in privileged mode for network setup; not needed with socket mounts
+# krb5-user: Kerberos authentication library; not used by any orchestration job function
+RUN apt-get update && \
+    apt-get purge -y podman iptables krb5-user && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
 # Required for PowerShell on Debian 13: libicu74 uses a different collation format.
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 
