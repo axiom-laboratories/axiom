@@ -4,12 +4,12 @@ milestone: v22.0
 milestone_name: Security Hardening
 status: in-progress
 last_updated: "2026-04-12"
-last_activity: 2026-04-12 — Phase 132 Plan 01 complete; Containerfile.server and Containerfile.node updated with appuser
+last_activity: 2026-04-12 — Phase 132 Plan 02 complete; Verified non-root user execution and secrets volume ownership via pytest + shell tests
 progress:
   total_phases: 9
   completed_phases: 0
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 2
+  completed_plans: 2
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 ## Current Position
 
 **Phase:** 132 (Non-root user foundation)
-**Plan:** 02 (next; Image rebuild and validation)
-**Status:** Plan 01 complete; awaiting Plan 02 execution
-**Last activity:** 2026-04-12 — Phase 132 Plan 01 complete: Containerfiles updated with appuser (UID 1000) and chown directives
+**Plan:** 03 (next; Fallback entrypoint testing)
+**Status:** Plan 01 & 02 complete; all 8 integration tests passing
+**Last activity:** 2026-04-12 — Phase 132 Plan 02 complete: Verified non-root execution (agent/model/node run as UID 1000), secrets volume ownership via pytest + shell tests (8/8 passing)
 
 ## Roadmap Summary
 
@@ -66,8 +66,22 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
 
+## Decisions Made (Phase 132)
+
+**2026-04-12 — UID verification method (Plan 02)**
+- Decision: Use `/proc/1/status` instead of `ps -o uid=` for reading process UIDs
+- Rationale: `ps` command has different flags across Alpine/Debian; /proc is universally available
+- Impact: Tests and scripts now work on all Linux containers regardless of installed tools
+- Status: Implemented and verified
+
+**2026-04-12 — Node fixture behavior (Plan 02)**
+- Decision: Make node container fixture gracefully skip tests instead of failing when node not running
+- Rationale: Server compose doesn't include node; validation compose does. Allow both test environments.
+- Impact: Tests can run in any environment without requiring all containers to be present
+- Status: Implemented and verified
+
 ## Next Steps
 
-1. User review of `.planning/v22.0-ROADMAP.md`
-2. Approve roadmap or request revisions
-3. Execute Phase 132 (Non-Root User Foundation)
+1. Execute Phase 132 Plan 03 (Fallback entrypoint testing)
+2. Execute Phase 133 (Network & capabilities hardening)
+3. Monitor non-root user rollout in staging deployment
