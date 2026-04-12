@@ -188,7 +188,7 @@ Full details: `.planning/v22.0-ROADMAP.md`
 | 131. Signature Verification Path Unification | v21.0 | 1/1 | Complete | 2026-04-11 |
 | 132. Non-Root User Foundation | v22.0 | Complete    | 2026-04-12 | — |
 | 133. Network & Security Capabilities | v22.0 | 1/1 | Complete | 2026-04-12 |
-| 134. Socket Mount & Podman Support | v22.0 | 1/2 | In Progress | — |
+| 134. Socket Mount & Podman Support | v22.0 | Complete    | 2026-04-12 | — |
 
 ## Archived
 
