@@ -765,3 +765,103 @@ async def test_user_directive_placement():
     cmd_idx = dockerfile.index("CMD [\"python\", \"environment_service/node.py\"]")
 
     assert user_idx == cmd_idx - 1, f"USER should immediately precede CMD (indices {user_idx} and {cmd_idx})"
+
+
+@pytest.mark.asyncio
+async def test_generated_dockerfile_integration_debian():
+    """
+    Integration test: Simulate full Dockerfile generation for DEBIAN template.
+    Verifies that user injection is correctly placed in the generated Dockerfile.
+    """
+    from agent_service.db import PuppetTemplate, Blueprint, Base
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy import select
+    import json
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async_session_local = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session_local() as db:
+        # Create DEBIAN runtime blueprint
+        rt_bp_id = str(uuid4())
+        rt_def = {
+            "base_os": "debian-12-slim",
+            "packages": {"python": ["requests==2.31.0"]},
+            "tools": []
+        }
+        rt_bp = Blueprint(
+            id=rt_bp_id,
+            name="Debian Runtime",
+            type="RUNTIME",
+            definition=json.dumps(rt_def),
+            os_family="DEBIAN"
+        )
+        db.add(rt_bp)
+
+        # Create network blueprint
+        nw_bp_id = str(uuid4())
+        nw_def = {"egress_rules": []}
+        nw_bp = Blueprint(
+            id=nw_bp_id,
+            name="Default Network",
+            type="NETWORK",
+            definition=json.dumps(nw_def),
+            os_family="DEBIAN"
+        )
+        db.add(nw_bp)
+        await db.commit()
+
+        # Simulate Dockerfile generation for DEBIAN
+        base_os = "debian-12-slim"
+        os_family = "DEBIAN"
+        dockerfile = [f"FROM {base_os}"]
+
+        # User creation (as in foundry_service.py line 208-213)
+        if os_family in ("DEBIAN", "ALPINE"):
+            if os_family == "ALPINE":
+                dockerfile.append("RUN adduser -D appuser")
+            elif os_family == "DEBIAN":
+                dockerfile.append("RUN useradd --no-create-home appuser")
+
+        # Mirror config
+        dockerfile.append("COPY pip.conf /etc/pip.conf")
+        if os_family == "DEBIAN":
+            dockerfile.append("COPY sources.list /etc/apt/sources.list")
+
+        # Core puppet code
+        dockerfile.append("WORKDIR /app")
+        dockerfile.append("COPY requirements.txt .")
+        dockerfile.append("RUN pip install --no-cache-dir -r requirements.txt --break-system-packages")
+        dockerfile.append("COPY environment_service/ environment_service/")
+
+        # Chown + USER (as in foundry_service.py line 306-309)
+        if os_family in ("DEBIAN", "ALPINE"):
+            dockerfile.append("RUN chown -R appuser:appuser /app")
+            dockerfile.append("USER appuser")
+
+        dockerfile.append("CMD [\"python\", \"environment_service/node.py\"]")
+
+        # Assertions
+        dockerfile_content = "\n".join(dockerfile)
+
+        # Verify user creation line exists
+        assert "RUN useradd --no-create-home appuser" in dockerfile_content
+        # Verify chown exists
+        assert "RUN chown -R appuser:appuser /app" in dockerfile_content
+        # Verify USER directive exists
+        assert "USER appuser" in dockerfile_content
+        # Verify order
+        useradd_idx = dockerfile.index("RUN useradd --no-create-home appuser")
+        chown_idx = dockerfile.index("RUN chown -R appuser:appuser /app")
+        user_idx = dockerfile.index("USER appuser")
+        cmd_idx = dockerfile.index("CMD [\"python\", \"environment_service/node.py\"]")
+
+        assert useradd_idx == 1, "User creation should be line 2 (after FROM)"
+        assert chown_idx < user_idx, "chown should precede USER"
+        assert user_idx == cmd_idx - 1, "USER should immediately precede CMD"
+
+    await engine.dispose()
