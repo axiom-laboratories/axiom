@@ -1,27 +1,49 @@
+version: '3'
+
 networks:
   puppeteer_default:
     external: true
+  jobs_network:
+    driver: bridge
+
 services:
   node:
     build:
       context: .
       dockerfile: Containerfile.node
-    environment:
-    - NODE_TAGS=general,linux,test-group
-    - JOB_IMAGE=docker.io/library/python:3.12-alpine
-    - AGENT_URL=https://puppeteer-agent-1:8001
-    - JOIN_TOKEN=eyJ0IjogImJiYzU0ZDJiZDA2ZjQ1OWJhODM2N2JjM2E2ODRlNjZjIiwgImNhIjogIi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLVxuTUlJQmhEQ0NBU3FnQXdJQkFnSVJBTXIzWXM2RktkZW03OGJZdE4xU1I2a3dDZ1lJS29aSXpqMEVBd0l3SURFZVxuTUJ3R0ExVUVBeE1WVUhWd2NHVjBJRTFoYzNSbGNpQlNiMjkwSUVOQk1CNFhEVEkyTURJeU56RXpNRE14T0ZvWFxuRFRNMk1ESXlOVEV6TURNeE9Gb3dJREVlTUJ3R0ExVUVBeE1WVUhWd2NHVjBJRTFoYzNSbGNpQlNiMjkwSUVOQlxuTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFbktRSGRqNjlCRWtRQXpHYXpCY01jUjkzMWJybVxudkZQUVEvWk5KT1dWR2V6QVM5UzBlU3pTT0dILzBUZU5CUjB0MnViTko3MnB1UnVjRHFzSnBuRXhrNk5GTUVNd1xuRGdZRFZSMFBBUUgvQkFRREFnRUdNQklHQTFVZEV3RUIvd1FJTUFZQkFmOENBUUV3SFFZRFZSME9CQllFRkNPRFxuTHg3SVZpWk5kRk9SVDZQSTF2L0ErajVxTUFvR0NDcUdTTTQ5QkFNQ0EwZ0FNRVVDSVFDYzVDZjdaMldnbEllUFxuRWFtTUVCUFR3aVp1KzVEak8yLzhEVU9JNzVEcUtBSWdjejlMTlR1K1J4bC9VY1hBRGNHYTVPVGVYenB0R0NoL1xucjhaK1hmOGljSWM9XG4tLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tXG4ifQ==
-    - ROOT_CA_PATH=/app/secrets/root_ca.crt
-    - PYTHONUNBUFFERED=1
     image: localhost/master-of-puppets-node:latest
-    networks:
-    - puppeteer_default
-    privileged: true
     restart: always
+
+    # Security: remove privileged mode, use capability restrictions (Phase 134)
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+    # Socket access: group_add grants docker group membership for socket access
+    group_add:
+      - "999"  # GID 999 is the docker group default — verify on your host with: getent group docker
+
+    # Volumes: secrets + docker socket for job execution
     volumes:
-    - ./secrets:/app/secrets
+      - ./secrets:/app/secrets
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+
+    networks:
+      - puppeteer_default
+      - jobs_network
+
+    environment:
+      - NODE_TAGS=general,linux,test-group
+      - JOB_IMAGE=docker.io/library/python:3.12-alpine
+      - AGENT_URL=https://puppeteer-agent-1:8001
+      - JOIN_TOKEN=${JOIN_TOKEN}
+      - ROOT_CA_PATH=/app/secrets/root_ca.crt
+      - PYTHONUNBUFFERED=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - EXECUTION_MODE=auto
+
   sidecar:
     image: localhost/mop-sidecar-proxy:v1
-    network_mode: service:node
     restart: always
-version: '3'
+    network_mode: service:node  # Shares node's network namespace
