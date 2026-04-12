@@ -24,6 +24,7 @@
 - ✅ **v19.0 — Foundry Improvements** — Phases 107–114, 116–119 (shipped 2026-04-05)
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
+- 🔄 **v22.0 — Security Hardening** — Phases 132–140 (in progress)
 
 ## Phases
 
@@ -133,6 +134,23 @@ Archive: `.planning/milestones/v20.0-ROADMAP.md`
   - [x] Plan 01: TDD test infrastructure + countersign_for_node() implementation + integration updates (Wave 1)
 
 Archive: `.planning/milestones/v21.0-ROADMAP.md`
+
+</details>
+
+<details>
+<summary>🔄 v22.0 — Security Hardening (Phases 132–140) — IN PROGRESS</summary>
+
+- [ ] **Phase 132: Non-Root User Foundation** — All containers run as non-root appuser (UID 1000) with correct volume ownership
+- [ ] **Phase 133: Network & Security Capabilities** — Drop capabilities, disable privilege escalation, restrict Postgres to loopback
+- [ ] **Phase 134: Socket Mount & Podman Support** — Remove privileged mode, auto-detect Podman socket
+- [ ] **Phase 135: Resource Limits & Package Cleanup** — Define memory/CPU limits, strip unnecessary node packages
+- [ ] **Phase 136: User Propagation to Generated Images** — Foundry Dockerfiles append USER appuser
+- [ ] **Phase 137: Signed EE Wheel Manifest** — Verify Ed25519 manifest before EE wheel install
+- [ ] **Phase 138: HMAC-Keyed Boot Log** — HMAC-SHA256 boot log with backward-compatible SHA256 reads
+- [ ] **Phase 139: Entry Point Whitelist & Enforcement** — Validate entry points, enforce ENCRYPTION_KEY presence
+- [ ] **Phase 140: Wheel Signing Release Tool** — CLI to sign wheel manifests at release time
+
+Full details: `.planning/v22.0-ROADMAP.md`
 
 </details>
 
