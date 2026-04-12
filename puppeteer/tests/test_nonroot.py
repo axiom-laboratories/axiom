@@ -77,69 +77,57 @@ def test_agent_process_uid(agent_container_id):
     """
     CONT-01: Verify agent process runs as UID 1000.
 
-    Checks that the python process in the agent container has uid=1000.
+    Checks that the current user in the agent container is UID 1000.
+    Uses 'id' command which is more portable than 'ps'.
     """
     result = subprocess.run(
-        ['docker', 'exec', agent_container_id, 'ps', '-o', 'uid=,comm='],
+        ['docker', 'exec', agent_container_id, 'id', '-u'],
         capture_output=True,
         text=True,
         check=True,
         timeout=10
     )
 
-    for line in result.stdout.split('\n'):
-        if line.strip() and 'python' in line:
-            uid = line.split()[0]
-            assert uid == '1000', f"Expected agent uid 1000, got {uid}"
-            return
-
-    raise AssertionError("No python process found in agent container")
+    uid = result.stdout.strip()
+    assert uid == '1000', f"Expected agent uid 1000, got {uid}"
 
 
 def test_model_process_uid(model_container_id):
     """
     CONT-01: Verify model process runs as UID 1000.
 
-    Checks that the python process in the model container has uid=1000.
+    Checks that the current user in the model container is UID 1000.
+    Uses 'id' command which is more portable than 'ps'.
     """
     result = subprocess.run(
-        ['docker', 'exec', model_container_id, 'ps', '-o', 'uid=,comm='],
+        ['docker', 'exec', model_container_id, 'id', '-u'],
         capture_output=True,
         text=True,
         check=True,
         timeout=10
     )
 
-    for line in result.stdout.split('\n'):
-        if line.strip() and 'python' in line:
-            uid = line.split()[0]
-            assert uid == '1000', f"Expected model uid 1000, got {uid}"
-            return
-
-    raise AssertionError("No python process found in model container")
+    uid = result.stdout.strip()
+    assert uid == '1000', f"Expected model uid 1000, got {uid}"
 
 
 def test_node_process_uid(node_container_id):
     """
     CONT-01: Verify node process runs as UID 1000.
 
-    Checks that the python process in the node container has uid=1000.
+    Checks that the current user in the node container is UID 1000.
+    Uses 'id' command which is more portable than 'ps'.
     """
     result = subprocess.run(
-        ['docker', 'exec', node_container_id, 'ps', '-o', 'uid=,comm='],
+        ['docker', 'exec', node_container_id, 'id', '-u'],
         capture_output=True,
         text=True,
         check=True,
         timeout=10
     )
 
-    for line in result.stdout.split('\n'):
-        if line.strip() and 'python' in line:
-            uid = line.split()[0]
-            assert uid == '1000', f"Expected node uid 1000, got {uid}"
-            return
-
-    raise AssertionError("No python process found in node container")
+    uid = result.stdout.strip()
+    assert uid == '1000', f"Expected node uid 1000, got {uid}"
 
 
 def test_agent_app_ownership(agent_container_id):
