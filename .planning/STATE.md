@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 135 (Resource Limits & Package Cleanup)
-**Plan:** 01 (completed; Resource Limits & Package Cleanup)
+**Phase:** 136 (User Propagation to Generated Images)
+**Plan:** 01 (completed; User Injection in Foundry)
 **Status:** Ready to plan
-**Last activity:** 2026-04-12 — Phase 135 Plan 01 complete: Added resource limits to all 7 orchestrator services (mem_limit + cpus); removed podman, iptables, krb5-user from node image. Compose validation and regression tests pass. CONT-05 and CONT-07 satisfied.
+**Last activity:** 2026-04-12 — Phase 136 Plan 01 complete: Extended non-root user execution to Foundry-generated Dockerfiles. Added user creation (DEBIAN: useradd, ALPINE: adduser) after FROM; added chown+USER before CMD. Both guarded by OS family. 6 new unit+integration tests added; all 19 foundry tests pass. CONT-08 satisfied.
 
 ## Roadmap Summary
 
@@ -65,6 +65,15 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 136 Plan 01)
+
+**2026-04-12 — User injection in Foundry-generated Dockerfiles**
+- Decision: Inject user creation (adduser/useradd) after FROM; inject chown+USER before CMD
+- Rationale: Align Foundry-generated images with Phase 132 base images on non-root execution (UID 1000)
+- Impact: All node images now enforce privilege isolation at image build time; consistent security posture across base + custom images
+- OS families: DEBIAN (useradd --no-create-home appuser), ALPINE (adduser -D appuser), WINDOWS (skipped)
+- Status: Implemented and verified; all 19 foundry tests pass; CONT-08 satisfied
 
 ## Decisions Made (Phase 135 Plan 01)
 
