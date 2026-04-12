@@ -8,7 +8,7 @@
 # Requirements verified: CONT-01 (non-root user), CONT-06 (secrets volume ownership)
 #
 
-set -e
+set +e
 
 # Color codes for output
 RED='\033[0;31m'
@@ -37,17 +37,17 @@ echo ""
 
 # Check 1: Agent process UID (CONT-01)
 echo "Checking Agent container..."
-agent_uid=$(docker exec puppeteer-agent-1 ps -o uid=,comm= | grep python | awk '{print $1}' | head -1)
+agent_uid=$(docker exec puppeteer-agent-1 grep Uid: /proc/1/status | awk '{print $2}')
 check_result "Agent process UID" "1000" "$agent_uid"
 
 # Check 2: Model process UID (CONT-01)
 echo "Checking Model container..."
-model_uid=$(docker exec puppeteer-model-1 ps -o uid=,comm= | grep python | awk '{print $1}' | head -1)
+model_uid=$(docker exec puppeteer-model-1 grep Uid: /proc/1/status | awk '{print $2}')
 check_result "Model process UID" "1000" "$model_uid"
 
 # Check 3: Node process UID (CONT-01)
 echo "Checking Node container..."
-node_uid=$(docker exec node ps -o uid=,comm= | grep python | awk '{print $1}' | head -1)
+node_uid=$(docker exec puppets-node-1 grep Uid: /proc/1/status | awk '{print $2}')
 check_result "Node process UID" "1000" "$node_uid"
 
 # Check 4: Agent /app ownership (CONT-01)
@@ -62,7 +62,7 @@ check_result "Model /app ownership" "appuser:appuser" "$model_app_owner"
 
 # Check 6: Node /app ownership (CONT-01)
 echo "Checking Node /app ownership..."
-node_app_owner=$(docker exec node stat -c %U:%G /app)
+node_app_owner=$(docker exec puppets-node-1 stat -c %U:%G /app)
 check_result "Node /app ownership" "appuser:appuser" "$node_app_owner"
 
 # Check 7: Secrets volume ownership (CONT-06)
