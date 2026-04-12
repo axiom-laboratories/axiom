@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-12T15:36:23.052Z"
-last_activity: "2026-04-12 — Phase 134 Plan 02 complete: Updated node-compose.yaml (removed privileged, socket mount, cap_drop), created node-compose.podman.yaml (userns_mode: keep-id, Podman socket), wired jobs_network through node.py. 19/19 tests passing. CONT-02 and CONT-09 satisfied."
+status: executing
+last_updated: "2026-04-12T17:20:30.000Z"
+last_activity: "2026-04-12 — Phase 135 Plan 01 complete: Added resource limits to all 7 orchestrator services (mem_limit + cpus); removed podman, iptables, krb5-user from node image. Compose validation and regression tests pass. CONT-05 and CONT-07 satisfied."
 progress:
   total_phases: 60
   completed_phases: 53
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 134 (Socket Mount & Podman Support)
-**Plan:** 02 (completed; Compose Files & Network Wiring)
-**Status:** Ready to plan
-**Last activity:** 2026-04-12 — Phase 134 Plan 02 complete: Updated node-compose.yaml (removed privileged, socket mount, cap_drop), created node-compose.podman.yaml (userns_mode: keep-id, Podman socket), wired jobs_network through node.py. 19/19 tests passing. CONT-02 and CONT-09 satisfied.
+**Phase:** 135 (Resource Limits & Package Cleanup)
+**Plan:** 01 (completed; Resource Limits & Package Cleanup)
+**Status:** Executing
+**Last activity:** 2026-04-12 — Phase 135 Plan 01 complete: Added resource limits to all 7 orchestrator services (mem_limit + cpus); removed podman, iptables, krb5-user from node image. Compose validation and regression tests pass. CONT-05 and CONT-07 satisfied.
 
 ## Roadmap Summary
 
@@ -66,6 +66,20 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
 
+## Decisions Made (Phase 135 Plan 01)
+
+**2026-04-12 — Resource limits for all orchestrator services**
+- Decision: Apply explicit mem_limit and cpus to all 7 services in compose.server.yaml per locked decision values
+- Rationale: Prevents resource exhaustion by any single service; ensures predictable cluster behavior; supports capacity planning
+- Impact: Cgroups enforce hard memory limits and CPU time-slice restrictions at runtime; admin can monitor actual consumption against limits
+- Status: Implemented and verified; docker compose config --quiet passes; all 7 services properly configured
+
+**2026-04-12 — Package cleanup for node image**
+- Decision: Remove exactly podman, iptables, krb5-user from node image; run apt-get autoremove to clean orphaned deps
+- Rationale: Phase 134 migrated from privileged mode (which needed these packages) to socket mount approach (which does not); reduces attack surface
+- Impact: Node image is smaller; potential vulnerability surface reduced; pod-to-node execution unchanged (no functional loss)
+- Status: Implemented and verified; dpkg -l confirms removal; essential packages (curl, wget, gnupg, apt-transport-https) retained
+
 ## Decisions Made (Phase 133 Plan 01)
 
 **2026-04-12 — Linux capability strategy for all services**
@@ -96,6 +110,6 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 
 ## Next Steps
 
-1. Execute Phase 132 Plan 03 (Fallback entrypoint testing)
-2. Execute Phase 133 (Network & capabilities hardening)
-3. Monitor non-root user rollout in staging deployment
+1. Execute Phase 135 Plan 02 (verification and integration testing)
+2. Execute Phase 136 (User Propagation & Non-Root Execution Hardening)
+3. Complete container hardening milestone (Phases 132–136)
