@@ -191,7 +191,7 @@ Full details: `.planning/v22.0-ROADMAP.md`
 | 132. Non-Root User Foundation | v22.0 | Complete    | 2026-04-12 | — |
 | 133. Network & Security Capabilities | v22.0 | 1/1 | Complete | 2026-04-12 |
 | 134. Socket Mount & Podman Support | v22.0 | Complete    | 2026-04-12 | — |
-| 138. HMAC-Keyed Boot Log | v22.0 | 1/1 | Complete | 2026-04-12 |
+| 138. HMAC-Keyed Boot Log | v22.0 | Complete    | 2026-04-12 | 2026-04-12 |
 
 ## Archived
 

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-04-12T22:15:00.000Z"
-last_activity: "2026-04-12T21:00:00Z — Phase 137 Plan 01 complete: EE wheel manifest verification with Ed25519 signature check. Implemented _verify_wheel_manifest() with 6-step verification (manifest existence, JSON format, required fields, SHA256 hash, signature decoding, Ed25519 verification). Integrated into _install_ee_wheel() and activate_ee_live(). Added ee_activation_error field to /admin/licence endpoint. All 14 unit tests pass. EE-01 satisfied."
+last_updated: "2026-04-12T20:51:32.104Z"
+last_activity: "2026-04-12T22:15:00Z — Phase 138 Plan 01 complete: HMAC-SHA256 boot log upgrade with backward compatibility. Implemented _compute_boot_hmac(), _verify_boot_hmac(), and _parse_boot_log_entry() helpers. Refactored check_and_record_boot() for mixed HMAC+legacy support. New entries use 'hmac:' prefix; legacy SHA256 entries (no prefix) accepted silently. Strict error handling in EE mode, lax in CE. All 6 new HMAC tests + 2 existing boot log tests pass (8/8). EE-02 and EE-03 satisfied."
 progress:
   total_phases: 60
-  completed_phases: 56
-  total_plans: 155
-  completed_plans: 164
+  completed_phases: 57
+  total_plans: 156
+  completed_plans: 165
 ---
 
 # Project State
