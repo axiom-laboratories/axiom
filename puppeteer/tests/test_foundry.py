@@ -529,3 +529,35 @@ async def test_clone_rejects_non_starter_templates():
         assert custom.is_starter == False
 
     await engine.dispose()
+
+
+# Phase 136: User Injection Tests (Wave 0 stubs, Task 2 implementation)
+
+@pytest.mark.skip("Pending implementation")
+def test_debian_user_injection():
+    """Verify Dockerfile includes `RUN useradd --no-create-home appuser` when os_family == "DEBIAN"."""
+    pass
+
+
+@pytest.mark.skip("Pending implementation")
+def test_alpine_user_injection():
+    """Verify Dockerfile includes `RUN adduser -D appuser` when os_family == "ALPINE"."""
+    pass
+
+
+@pytest.mark.skip("Pending implementation")
+def test_windows_skip_user_injection():
+    """Verify Dockerfile does NOT include user creation lines when os_family == "WINDOWS"."""
+    pass
+
+
+@pytest.mark.skip("Pending implementation")
+def test_chown_user_placement():
+    """Verify `RUN chown -R appuser:appuser /app` appears before `USER appuser`."""
+    pass
+
+
+@pytest.mark.skip("Pending implementation")
+def test_user_directive_placement():
+    """Verify `USER appuser` appears immediately before `CMD`."""
+    pass
