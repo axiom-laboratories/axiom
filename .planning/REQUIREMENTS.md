@@ -51,23 +51,21 @@ These were considered for v22.0 but deferred:
 
 ## Traceability
 
-_Populated by roadmapper._
-
-| REQ-ID | Phase | Plan |
-|--------|-------|------|
-| CONT-01 | — | — |
-| CONT-02 | — | — |
-| CONT-03 | — | — |
-| CONT-04 | — | — |
-| CONT-05 | — | — |
-| CONT-06 | — | — |
-| CONT-07 | — | — |
-| CONT-08 | — | — |
-| CONT-09 | — | — |
-| CONT-10 | — | — |
-| EE-01 | — | — |
-| EE-02 | — | — |
-| EE-03 | — | — |
-| EE-04 | — | — |
-| EE-05 | — | — |
-| EE-06 | — | — |
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| CONT-01 | 132 | Pending |
+| CONT-02 | 134 | Pending |
+| CONT-03 | 133 | Pending |
+| CONT-04 | 133 | Pending |
+| CONT-05 | 135 | Pending |
+| CONT-06 | 132 | Pending |
+| CONT-07 | 135 | Pending |
+| CONT-08 | 136 | Pending |
+| CONT-09 | 134 | Pending |
+| CONT-10 | 134 | Pending |
+| EE-01 | 137 | Pending |
+| EE-02 | 138 | Pending |
+| EE-03 | 138 | Pending |
+| EE-04 | 139 | Pending |
+| EE-05 | 140 | Pending |
+| EE-06 | 139 | Pending |
