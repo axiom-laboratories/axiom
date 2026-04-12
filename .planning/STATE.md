@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-04-12T12:05:39.920Z"
-last_activity: "2026-04-12 — Phase 132 Plan 02 complete: Verified non-root execution (agent/model/node run as UID 1000), secrets volume ownership via pytest + shell tests (8/8 passing)"
+last_updated: "2026-04-12T14:28:56.518Z"
+last_activity: "2026-04-12 — Phase 133 Plan 01 complete: Applied Linux capability restrictions (cap_drop ALL), loopback-scoped PostgreSQL, removed dead services (tunnel, ddns-updater), verified all 7 services running with correct security posture (CONT-03, CONT-04 satisfied)"
 progress:
   total_phases: 60
   completed_phases: 52
-  total_plans: 149
+  total_plans: 150
   completed_plans: 159
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 **Phase:** 133 (Network & security capabilities)
 **Plan:** 01 (completed; Docker Compose hardening)
-**Status:** Complete
+**Status:** Ready to plan
 **Last activity:** 2026-04-12 — Phase 133 Plan 01 complete: Applied Linux capability restrictions (cap_drop ALL), loopback-scoped PostgreSQL, removed dead services (tunnel, ddns-updater), verified all 7 services running with correct security posture (CONT-03, CONT-04 satisfied)
 
 ## Roadmap Summary

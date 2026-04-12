@@ -143,7 +143,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - [x] **Phase 132: Non-Root User Foundation** — All containers run as non-root appuser (UID 1000) with correct volume ownership (completed 2026-04-12)
   - [ ] Plan 01: Update Containerfile.server and Containerfile.node with appuser + chown + USER directives (Wave 1)
   - [ ] Plan 02: Integration tests + verification script + stack validation (Wave 2)
-- [ ] **Phase 133: Network & Security Capabilities** — Drop capabilities, disable privilege escalation, restrict Postgres to loopback
+- [x] **Phase 133: Network & Security Capabilities** — Drop capabilities, disable privilege escalation, restrict Postgres to loopback (completed 2026-04-12)
 - [ ] **Phase 134: Socket Mount & Podman Support** — Remove privileged mode, auto-detect Podman socket
 - [ ] **Phase 135: Resource Limits & Package Cleanup** — Define memory/CPU limits, strip unnecessary node packages
 - [ ] **Phase 136: User Propagation to Generated Images** — Foundry Dockerfiles append USER appuser
