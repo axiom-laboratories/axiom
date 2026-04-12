@@ -1,0 +1,49 @@
+version: '3'
+
+networks:
+  puppeteer_default:
+    external: true
+  jobs_network:
+    driver: bridge
+
+services:
+  node:
+    build:
+      context: .
+      dockerfile: Containerfile.node
+    image: localhost/master-of-puppets-node:latest
+    restart: always
+
+    # Security: capability restrictions (socket access doesn't need extra privileges)
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+    # Rootless Podman: keep-id maps UID 1000 inside container to host user running Podman
+    userns_mode: keep-id
+
+    # Volumes: secrets + podman socket (rootless path with env var override support)
+    volumes:
+      - ./secrets:/app/secrets
+      - ${PODMAN_SOCK:-/run/user/1000/podman/podman.sock}:/run/podman/podman.sock:rw
+
+    networks:
+      - puppeteer_default
+      - jobs_network
+
+    environment:
+      - NODE_TAGS=general,linux,test-group
+      - JOB_IMAGE=docker.io/library/python:3.12-alpine
+      - AGENT_URL=https://puppeteer-agent-1:8001
+      - JOIN_TOKEN=${JOIN_TOKEN}
+      - ROOT_CA_PATH=/app/secrets/root_ca.crt
+      - PYTHONUNBUFFERED=1
+      # Podman socket path — override via PODMAN_SOCK env var if using non-standard location
+      # Requires: systemctl --user enable podman.socket on host before deployment
+      - EXECUTION_MODE=podman
+
+  sidecar:
+    image: localhost/mop-sidecar-proxy:v1
+    restart: always
+    network_mode: service:node  # Shares node's network namespace
