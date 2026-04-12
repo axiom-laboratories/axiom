@@ -147,7 +147,8 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - [x] **Phase 134: Socket Mount & Podman Support** — Remove privileged mode, auto-detect Podman socket (completed 2026-04-12)
   - [x] Plan 01: Socket-first detection in runtime.py + network_ref wiring (Wave 1; completed 2026-04-12)
   - [ ] Plan 02: Docker + Podman compose variants + node.py integration (Wave 2)
-- [ ] **Phase 135: Resource Limits & Package Cleanup** — Define memory/CPU limits, strip unnecessary node packages
+- ⬜ **Phase 135: Resource Limits & Package Cleanup** — Define memory/CPU limits, strip unnecessary node packages (1 plan planned)
+  - [ ] Plan 01: compose.server.yaml resource limits + Containerfile.node package cleanup (Wave 1)
 - [ ] **Phase 136: User Propagation to Generated Images** — Foundry Dockerfiles append USER appuser
 - [ ] **Phase 137: Signed EE Wheel Manifest** — Verify Ed25519 manifest before EE wheel install
 - [ ] **Phase 138: HMAC-Keyed Boot Log** — HMAC-SHA256 boot log with backward-compatible SHA256 reads
