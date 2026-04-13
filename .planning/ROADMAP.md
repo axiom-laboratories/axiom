@@ -153,7 +153,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - [x] **Phase 137: Signed EE Wheel Manifest** — Verify Ed25519 manifest before EE wheel install (completed 2026-04-12)
 - [x] **Phase 138: HMAC-Keyed Boot Log** — HMAC-SHA256 boot log with backward-compatible SHA256 reads (completed 2026-04-12)
   - [x] Plan 01: HMAC helpers + boot log entry detection + read/write refactor (completed 2026-04-12)
-- [ ] **Phase 139: Entry Point Whitelist & Enforcement** — Validate entry points, enforce ENCRYPTION_KEY presence
+- [x] **Phase 139: Entry Point Whitelist & Enforcement** — Validate entry points, enforce ENCRYPTION_KEY presence (completed 2026-04-13)
   - [ ] Plan 01: ENCRYPTION_KEY hard requirement + entry point whitelist validation (Wave 1)
 - [ ] **Phase 140: Wheel Signing Release Tool** — CLI to sign wheel manifests at release time
 
