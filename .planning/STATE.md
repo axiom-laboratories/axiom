@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-13T07:14:59.487Z"
-last_activity: "2026-04-13T00:30:00Z — Phase 139 Plan 01 complete: Enforced ENCRYPTION_KEY hard requirement and entry point whitelist validation. Implemented _load_or_generate_encryption_key() with no fallbacks (EE-06); added whitelist checks in load_ee_plugins() and activate_ee_live() (EE-04). 8 new tests: 4 for ENCRYPTION_KEY enforcement, 4 for entry point whitelist. All tests passing (100%). EE-04 and EE-06 satisfied."
+status: executing
+last_updated: "2026-04-13T11:12:27Z"
+last_activity: "2026-04-13T11:12:27Z — Phase 140 Plan 01 Wave 0 complete: Created test infrastructure (conftest with 4 fixtures), implemented gen_wheel_key.py and sign_wheels.py CLI scripts, created 23 test stubs. All scripts operational and ready for Wave 1 test implementation. EE-05 infrastructure complete."
 progress:
   total_phases: 60
   completed_phases: 58
   total_plans: 157
-  completed_plans: 166
+  completed_plans: 167
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 139 (Entry Point Whitelist & ENCRYPTION_KEY Enforcement)
-**Plan:** 01 (complete)
-**Status:** Ready to plan
-**Last activity:** 2026-04-13T00:30:00Z — Phase 139 Plan 01 complete: Enforced ENCRYPTION_KEY hard requirement and entry point whitelist validation. Implemented _load_or_generate_encryption_key() with no fallbacks (EE-06); added whitelist checks in load_ee_plugins() and activate_ee_live() (EE-04). 8 new tests: 4 for ENCRYPTION_KEY enforcement, 4 for entry point whitelist. All tests passing (100%). EE-04 and EE-06 satisfied.
+**Phase:** 140 (Wheel Signing Release Tool)
+**Plan:** 01 (executing)
+**Status:** Wave 0 complete, Wave 1 pending
+**Last activity:** 2026-04-13T11:12:27Z — Phase 140 Plan 01 Wave 0 complete: Created test infrastructure (conftest with 4 fixtures), implemented gen_wheel_key.py and sign_wheels.py CLI scripts, created 23 test stubs. All scripts operational and ready for Wave 1 test implementation. EE-05 infrastructure complete.
 
 ## Roadmap Summary
 
@@ -65,6 +65,15 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 140 Plan 01)
+
+**2026-04-13 — Wheel signing infrastructure (Wave 0 complete)**
+- Decision: Deliver two complementary CLI scripts (`gen_wheel_key.py` for one-time keypair generation, `sign_wheels.py` for repeated release-time signing) plus comprehensive test infrastructure (4 fixtures, 23 test stubs)
+- Rationale: Separate concerns (generation vs. signing); enable operators to sign EE wheels at release time with Ed25519 keys; create test framework for Wave 1 implementation
+- Implementation: Both scripts follow `issue_licence.py` pattern; key resolution via `--key` arg or `AXIOM_WHEEL_SIGNING_KEY` env var; chunked hashing (64KB) matching Phase 137; per-wheel manifests with optional `--deploy-name` flag
+- Status: Wave 0 infrastructure complete; scripts operational and tested with argparse; 23 test stubs in place with clear TODO messages; ready for Wave 1 test implementation
+- Wave 1: Fill in test bodies and make tests pass (implementation details follow from tests)
 
 ## Decisions Made (Phase 139 Plan 01)
 
