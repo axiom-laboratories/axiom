@@ -301,6 +301,12 @@ async def load_ee_plugins(app: Any, engine: Any) -> EEContext:
         plugins = list(entry_points(group="axiom.ee"))
         if plugins:
             for ep in plugins:
+                # EE-04: Entry point whitelist validation — exact value match only
+                if ep.value != "ee.plugin:EEPlugin":
+                    raise RuntimeError(
+                        f"Untrusted axiom.ee entry point: '{ep.value}' — expected 'ee.plugin:EEPlugin'"
+                    )
+
                 plugin_cls = ep.load()
                 plugin = plugin_cls(app, engine)
                 await plugin.register(ctx)
