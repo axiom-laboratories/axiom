@@ -15,15 +15,22 @@ load_dotenv()
 
 # Encryption Key for Secrets
 def _load_or_generate_encryption_key() -> bytes:
+    """Load ENCRYPTION_KEY from environment variable.
+
+    ENCRYPTION_KEY is required for all deployments (CE and EE).
+    No fallbacks: no file-based fallback, no auto-generation.
+
+    Raises:
+        RuntimeError: if ENCRYPTION_KEY environment variable is not set.
+    """
     if val := os.getenv("ENCRYPTION_KEY"):
         return val.encode()
-    key_path = Path("/app/secrets/encryption.key")
-    if key_path.exists():
-        return key_path.read_bytes().strip()
-    key = Fernet.generate_key()
-    key_path.parent.mkdir(parents=True, exist_ok=True)
-    key_path.write_bytes(key)
-    return key
+
+    # EE-06: ENCRYPTION_KEY hard requirement — no fallbacks
+    raise RuntimeError(
+        "ENCRYPTION_KEY environment variable is required but not set.\n"
+        "Set it to a Fernet key (use: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+    )
 
 ENCRYPTION_KEY = _load_or_generate_encryption_key()
 cipher_suite = Fernet(ENCRYPTION_KEY)
