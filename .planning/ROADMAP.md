@@ -156,6 +156,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - [x] **Phase 139: Entry Point Whitelist & Enforcement** — Validate entry points, enforce ENCRYPTION_KEY presence (completed 2026-04-13)
   - [ ] Plan 01: ENCRYPTION_KEY hard requirement + entry point whitelist validation (Wave 1)
 - [ ] **Phase 140: Wheel Signing Release Tool** — CLI to sign wheel manifests at release time
+  - [ ] Plan 01: gen_wheel_key.py + sign_wheels.py implementation + 23 unit tests (Wave 1)
 
 Full details: `.planning/v22.0-ROADMAP.md`
 
