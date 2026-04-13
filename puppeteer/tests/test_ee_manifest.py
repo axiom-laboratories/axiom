@@ -370,6 +370,122 @@ class TestLicenceEndpointEEActivationError:
         assert response["ee_activation_error"] == "Manifest verification failed: signature invalid"
 
 
+class TestEntryPointWhitelist:
+    """Tests for EE-04: Entry point whitelist validation.
+
+    Tests cover startup and live-reload paths with both trusted and untrusted
+    entry point values.
+    """
+
+    @pytest.mark.anyio
+    async def test_entry_point_whitelist_startup_trusted(self):
+        """load_ee_plugins() loads entry point with trusted value 'ee.plugin:EEPlugin'."""
+        from agent_service.ee import load_ee_plugins
+
+        # Create mock app and engine
+        app = MagicMock()
+        engine = MagicMock()
+
+        # Mock entry_points() to return a trusted entry point
+        mock_ep = MagicMock()
+        mock_ep.value = "ee.plugin:EEPlugin"
+        mock_ep.name = "axiom-ee-plugin"
+
+        # Create a mock plugin class and instance
+        mock_plugin_cls = MagicMock()
+        mock_plugin_instance = AsyncMock()
+        mock_plugin_cls.return_value = mock_plugin_instance
+
+        mock_ep.load.return_value = mock_plugin_cls
+
+        with patch('importlib.metadata.entry_points', return_value=[mock_ep]):
+            result = await load_ee_plugins(app, engine)
+
+        # Should successfully load plugin without raising
+        assert result is not None
+        mock_ep.load.assert_called_once()
+        mock_plugin_instance.register.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_entry_point_whitelist_startup_untrusted(self):
+        """load_ee_plugins() rejects entry point with untrusted value and falls back to CE mode."""
+        from agent_service.ee import load_ee_plugins
+
+        # Create mock app and engine
+        app = MagicMock()
+        engine = MagicMock()
+
+        # Mock entry_points() to return an untrusted entry point
+        mock_ep = MagicMock()
+        mock_ep.value = "evil.module:Malware"
+        mock_ep.name = "malicious-plugin"
+
+        with patch('importlib.metadata.entry_points', return_value=[mock_ep]):
+            result = await load_ee_plugins(app, engine)
+
+        # Should not raise, but should mount CE stubs due to exception handler
+        assert result is not None
+        # entry point load should not have been called due to whitelist rejection
+        mock_ep.load.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_entry_point_whitelist_live_reload_trusted(self):
+        """activate_ee_live() loads entry point with trusted value during live-reload."""
+        from agent_service.ee import activate_ee_live
+
+        # Create mock app and engine
+        app = MagicMock()
+        app.state = MagicMock()
+        app.state.ee = None  # Skip "already active" check
+        engine = MagicMock()
+
+        # Mock _install_ee_wheel to succeed
+        mock_ep = MagicMock()
+        mock_ep.value = "ee.plugin:EEPlugin"
+        mock_ep.name = "axiom-ee-plugin"
+
+        # Create a mock plugin class and instance
+        mock_plugin_cls = MagicMock()
+        mock_plugin_instance = AsyncMock()
+        mock_plugin_cls.return_value = mock_plugin_instance
+
+        mock_ep.load.return_value = mock_plugin_cls
+
+        with patch('agent_service.ee._install_ee_wheel', return_value=True):
+            with patch('importlib.metadata.entry_points', return_value=[mock_ep]):
+                result = await activate_ee_live(app, engine)
+
+        # Should successfully load plugin without raising
+        assert result is not None
+        mock_ep.load.assert_called_once()
+        mock_plugin_instance.register.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_entry_point_whitelist_live_reload_untrusted(self):
+        """activate_ee_live() rejects untrusted entry point and remounts stubs during live-reload."""
+        from agent_service.ee import activate_ee_live
+
+        # Create mock app and engine
+        app = MagicMock()
+        app.state = MagicMock()
+        app.state.ee = None  # Skip "already active" check
+        engine = MagicMock()
+
+        # Mock entry_points() to return an untrusted entry point
+        mock_ep = MagicMock()
+        mock_ep.value = "evil.module:BadCode"
+        mock_ep.name = "bad-plugin"
+
+        with patch('agent_service.ee._install_ee_wheel', return_value=True):
+            with patch('importlib.metadata.entry_points', return_value=[mock_ep]):
+                result = await activate_ee_live(app, engine)
+
+        # Should return None on failure (exception caught in error handler)
+        assert result is None
+        # entry point load should not have been called due to whitelist rejection
+        mock_ep.load.assert_not_called()
+
+
 # Fixture for anyio backend support (async tests)
 @pytest.fixture
 def anyio_backend():
