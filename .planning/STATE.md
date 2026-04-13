@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 138 (HMAC-Keyed Boot Log)
+**Phase:** 139 (Entry Point Whitelist & ENCRYPTION_KEY Enforcement)
 **Plan:** 01 (complete)
-**Status:** Ready to plan
-**Last activity:** 2026-04-12T22:15:00Z — Phase 138 Plan 01 complete: HMAC-SHA256 boot log upgrade with backward compatibility. Implemented _compute_boot_hmac(), _verify_boot_hmac(), and _parse_boot_log_entry() helpers. Refactored check_and_record_boot() for mixed HMAC+legacy support. New entries use 'hmac:' prefix; legacy SHA256 entries (no prefix) accepted silently. Strict error handling in EE mode, lax in CE. All 6 new HMAC tests + 2 existing boot log tests pass (8/8). EE-02 and EE-03 satisfied.
+**Status:** Ready to plan Phase 140
+**Last activity:** 2026-04-13T00:30:00Z — Phase 139 Plan 01 complete: Enforced ENCRYPTION_KEY hard requirement and entry point whitelist validation. Implemented _load_or_generate_encryption_key() with no fallbacks (EE-06); added whitelist checks in load_ee_plugins() and activate_ee_live() (EE-04). 8 new tests: 4 for ENCRYPTION_KEY enforcement, 4 for entry point whitelist. All tests passing (100%). EE-04 and EE-06 satisfied.
 
 ## Roadmap Summary
 
@@ -65,6 +65,15 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 139 Plan 01)
+
+**2026-04-13 — Entry point whitelist and ENCRYPTION_KEY hard requirement**
+- Decision: Enforce ENCRYPTION_KEY at module load time (no fallbacks); validate EE entry points against whitelist "ee.plugin:EEPlugin" in both startup and live-reload paths
+- Rationale: Prevent accidental deployment without encryption; block malicious or misconfigured plugin entry points from loading
+- Impact: Agent service fails fast with clear error message if ENCRYPTION_KEY missing; EE loader rejects untrusted entry points (startup or live-reload)
+- Implementation: _load_or_generate_encryption_key() raises RuntimeError if absent; ep.value validation in load_ee_plugins() and activate_ee_live()
+- Status: Implemented and verified; 8 new tests passing (4 ENCRYPTION_KEY, 4 entry point); EE-04 and EE-06 satisfied
 
 ## Decisions Made (Phase 138 Plan 01)
 

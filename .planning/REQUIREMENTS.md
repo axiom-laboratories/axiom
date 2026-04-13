@@ -24,9 +24,9 @@
 - [ ] **EE-01**: EE wheel installation verifies signed manifest (Ed25519 signature + SHA256 wheel hash) before pip install; raises `RuntimeError` on any verification failure
 - [x] **EE-02**: Boot log uses HMAC-SHA256 keyed on `ENCRYPTION_KEY` (replacing plain SHA256 hash chain) (COMPLETE — Phase 138 Plan 01)
 - [x] **EE-03**: Boot log backward-compatible — legacy SHA256 chain entries accepted on read (no forced migration on upgrade) (COMPLETE — Phase 138 Plan 01)
-- [ ] **EE-04**: Importlib entry point loader validates `ep.value == "ee.plugin:EEPlugin"` before loading; untrusted entry points raise `RuntimeError`
+- [x] **EE-04**: Importlib entry point loader validates `ep.value == "ee.plugin:EEPlugin"` before loading; untrusted entry points raise `RuntimeError` (COMPLETE — Phase 139 Plan 01)
 - [ ] **EE-05**: `sign_wheels.py` CLI generates signed wheel manifests at release time (Ed25519 key + SHA256 per wheel)
-- [ ] **EE-06**: EE startup enforces `ENCRYPTION_KEY` presence with hard `RuntimeError` if absent (no dev-fallback in production)
+- [x] **EE-06**: EE startup enforces `ENCRYPTION_KEY` presence with hard `RuntimeError` if absent (no dev-fallback in production) (COMPLETE — Phase 139 Plan 01)
 
 ## Future Requirements
 
@@ -66,6 +66,6 @@ These were considered for v22.0 but deferred:
 | EE-01 | 137 | Complete |
 | EE-02 | 138 | Complete |
 | EE-03 | 138 | Complete |
-| EE-04 | 139 | Pending |
+| EE-04 | 139 | Complete |
 | EE-05 | 140 | Pending |
-| EE-06 | 139 | Pending |
+| EE-06 | 139 | Complete |
