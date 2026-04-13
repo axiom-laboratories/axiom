@@ -275,6 +275,12 @@ async def activate_ee_live(app: Any, engine: Any) -> EEContext | None:
     ctx = EEContext()
     try:
         for ep in plugins:
+            # EE-04: Entry point whitelist validation — same check as load_ee_plugins()
+            if ep.value != "ee.plugin:EEPlugin":
+                raise RuntimeError(
+                    f"Untrusted axiom.ee entry point: '{ep.value}' — expected 'ee.plugin:EEPlugin'"
+                )
+
             plugin_cls = ep.load()
             plugin = plugin_cls(app, engine)
             await plugin.register(ctx)
