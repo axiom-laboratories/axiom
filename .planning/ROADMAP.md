@@ -24,7 +24,7 @@
 - ✅ **v19.0 — Foundry Improvements** — Phases 107–114, 116–119 (shipped 2026-04-05)
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
-- 🔄 **v22.0 — Security Hardening** — Phases 132–140 (in progress)
+- 🔄 **v22.0 — Security Hardening** — Phases 132–142 (in progress)
 
 ## Phases
 
@@ -157,6 +157,8 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [ ] Plan 01: ENCRYPTION_KEY hard requirement + entry point whitelist validation (Wave 1)
 - [x] **Phase 140: Wheel Signing Release Tool** — CLI to sign wheel manifests at release time (completed 2026-04-13)
   - [ ] Plan 01: gen_wheel_key.py + sign_wheels.py implementation + 23 unit tests (Wave 1)
+- ⬜ **Phase 141: v22.0 Compliance Documentation Cleanup** — Create Phase 139 phase-level VERIFICATION.md; fix 10 stale REQUIREMENTS.md checkboxes and traceability rows (gap closure phase)
+- ⬜ **Phase 142: Wheel Signing Tool Tests** — Implement 23 test stubs in axiom-licenses/tests/tools/ for sign_wheels.py and gen_wheel_key.py (gap closure phase)
 
 Full details: `.planning/v22.0-ROADMAP.md`
 

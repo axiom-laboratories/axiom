@@ -2,30 +2,30 @@
 
 - **Milestone:** v22.0
 - **Status:** Active
-- **Last updated:** 2026-04-12
+- **Last updated:** 2026-04-13
 
 ## Milestone v22.0 Requirements
 
 ### Container Hardening
 
-- [ ] **CONT-01**: All services run as non-root appuser (UID 1000) with correct ownership of app directories and mounted volumes
-- [ ] **CONT-02**: Node removes `privileged: true` and uses host Docker/Podman socket mount instead
+- [x] **CONT-01**: All services run as non-root appuser (UID 1000) with correct ownership of app directories and mounted volumes (COMPLETE — Phase 132)
+- [x] **CONT-02**: Node removes `privileged: true` and uses host Docker/Podman socket mount instead (COMPLETE — Phase 134)
 - [x] **CONT-03**: `cap_drop: ALL` + `security_opt: no-new-privileges` on all compose services; Caddy gets `cap_add: NET_BIND_SERVICE` (COMPLETE — Phase 133 Plan 01)
 - [x] **CONT-04**: Postgres external port binding restricted to `127.0.0.1:5432` (loopback only) (COMPLETE — Phase 133 Plan 01)
-- [ ] **CONT-05**: Memory and CPU resource limits defined for all orchestrator services (agent, model, db, dashboard, docs, registry)
-- [ ] **CONT-06**: Secrets volume ownership migrates correctly when upgrading from root-based containers to non-root
-- [ ] **CONT-07**: `Containerfile.node` strips Podman/iptables/krb5 packages no longer needed after socket mount
-- [ ] **CONT-08**: Foundry-generated Dockerfiles append `USER appuser` after all package installs
-- [ ] **CONT-09**: `node-compose.podman.yaml` variant ships alongside `node-compose.yaml` for Podman host deployments
-- [ ] **CONT-10**: `runtime.py` auto-detects Podman socket path (`/run/podman/podman.sock`) in addition to Docker
+- [x] **CONT-05**: Memory and CPU resource limits defined for all orchestrator services (agent, model, db, dashboard, docs, registry) (COMPLETE — Phase 135)
+- [x] **CONT-06**: Secrets volume ownership migrates correctly when upgrading from root-based containers to non-root (COMPLETE — Phase 132)
+- [x] **CONT-07**: `Containerfile.node` strips Podman/iptables/krb5 packages no longer needed after socket mount (COMPLETE — Phase 135)
+- [x] **CONT-08**: Foundry-generated Dockerfiles append `USER appuser` after all package installs (COMPLETE — Phase 136)
+- [x] **CONT-09**: `node-compose.podman.yaml` variant ships alongside `node-compose.yaml` for Podman host deployments (COMPLETE — Phase 134)
+- [x] **CONT-10**: `runtime.py` auto-detects Podman socket path (`/run/podman/podman.sock`) in addition to Docker (COMPLETE — Phase 134)
 
 ### EE Licence Protection
 
-- [ ] **EE-01**: EE wheel installation verifies signed manifest (Ed25519 signature + SHA256 wheel hash) before pip install; raises `RuntimeError` on any verification failure
+- [x] **EE-01**: EE wheel installation verifies signed manifest (Ed25519 signature + SHA256 wheel hash) before pip install; raises `RuntimeError` on any verification failure (COMPLETE — Phase 137)
 - [x] **EE-02**: Boot log uses HMAC-SHA256 keyed on `ENCRYPTION_KEY` (replacing plain SHA256 hash chain) (COMPLETE — Phase 138 Plan 01)
 - [x] **EE-03**: Boot log backward-compatible — legacy SHA256 chain entries accepted on read (no forced migration on upgrade) (COMPLETE — Phase 138 Plan 01)
 - [x] **EE-04**: Importlib entry point loader validates `ep.value == "ee.plugin:EEPlugin"` before loading; untrusted entry points raise `RuntimeError` (COMPLETE — Phase 139 Plan 01)
-- [ ] **EE-05**: `sign_wheels.py` CLI generates signed wheel manifests at release time (Ed25519 key + SHA256 per wheel)
+- [x] **EE-05**: `sign_wheels.py` CLI generates signed wheel manifests at release time (Ed25519 key + SHA256 per wheel) (COMPLETE — Phase 140)
 - [x] **EE-06**: EE startup enforces `ENCRYPTION_KEY` presence with hard `RuntimeError` if absent (no dev-fallback in production) (COMPLETE — Phase 139 Plan 01)
 
 ## Future Requirements
@@ -53,19 +53,19 @@ These were considered for v22.0 but deferred:
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| CONT-01 | 132 | Pending |
-| CONT-02 | 134 | Pending |
+| CONT-01 | 132 | Complete |
+| CONT-02 | 134 | Complete |
 | CONT-03 | 133 | Complete |
 | CONT-04 | 133 | Complete |
-| CONT-05 | 135 | Pending |
-| CONT-06 | 132 | Pending |
-| CONT-07 | 135 | Pending |
-| CONT-08 | 136 | Pending |
-| CONT-09 | 134 | Pending |
-| CONT-10 | 134 | Pending |
+| CONT-05 | 135 | Complete |
+| CONT-06 | 132 | Complete |
+| CONT-07 | 135 | Complete |
+| CONT-08 | 136 | Complete |
+| CONT-09 | 134 | Complete |
+| CONT-10 | 134 | Complete |
 | EE-01 | 137 | Complete |
 | EE-02 | 138 | Complete |
 | EE-03 | 138 | Complete |
 | EE-04 | 139 | Complete |
-| EE-05 | 140 | Pending |
+| EE-05 | 140 | Complete |
 | EE-06 | 139 | Complete |
