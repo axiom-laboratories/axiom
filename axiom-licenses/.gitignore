@@ -3,3 +3,12 @@
 __pycache__/
 *.pyc
 .env
+
+# Wheel signing keys and manifests
+keys/
+*.manifest.json
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
