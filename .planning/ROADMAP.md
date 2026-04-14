@@ -24,7 +24,7 @@
 - ✅ **v19.0 — Foundry Improvements** — Phases 107–114, 116–119 (shipped 2026-04-05)
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
-- 🔄 **v22.0 — Security Hardening** — Phases 132–142 (in progress)
+- 🔄 **v22.0 — Security Hardening** — Phases 132–145 (in progress)
 
 ## Phases
 
@@ -163,7 +163,9 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [x] Plan 02: test_key_resolution.py (6 tests) — Wave 1 (completed 2026-04-14)
   - [x] Plan 03: test_gen_wheel_key.py (5 tests) — Wave 1 (completed 2026-04-14)
 - ⬜ **Phase 143: Nyquist Validation — Container Security (Phases 132–136)** — Run validate-phase for all 5 container hardening phases; fill any test coverage gaps found (gap closure)
+  - [x] Plan 01: Create comprehensive test coverage for phases 132–136; mark all VALIDATION.md compliant (completed 2026-04-14)
 - ⬜ **Phase 144: Nyquist Validation — EE Features (Phases 137–140)** — Run validate-phase for all 4 EE feature phases; fill any test coverage gaps found (gap closure)
+  - [ ] Plan 01: Fix Phase 138 test failures; mark all 4 VALIDATION.md files compliant (Wave 1)
 - ⬜ **Phase 145: Nyquist Validation — Cleanup Phases (Phases 141–142)** — Run validate-phase for both gap-closure phases; fill any test coverage gaps found (gap closure)
 
 Full details: `.planning/v22.0-ROADMAP.md`
@@ -202,6 +204,7 @@ Full details: `.planning/v22.0-ROADMAP.md`
 | 133. Network & Security Capabilities | v22.0 | 1/1 | Complete | 2026-04-12 |
 | 134. Socket Mount & Podman Support | v22.0 | Complete    | 2026-04-12 | — |
 | 138. HMAC-Keyed Boot Log | v22.0 | Complete    | 2026-04-12 | 2026-04-12 |
+| 143. Nyquist Validation — Container Security | v22.0 | 1/1 | Complete | 2026-04-14 |
 
 ## Archived
 
