@@ -1,9 +1,9 @@
 ---
 phase: 139
 slug: entry-point-whitelist-enforcement
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-13
 ---
 
