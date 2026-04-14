@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 142 (Wheel Signing Tool Tests)
-**Plan:** 02 (complete)
-**Status:** Milestone complete
-**Last activity:** 2026-04-14T12:15Z — Phase 142 Plan 02 complete: Implemented 6 passing unit tests validating key resolution for wheel signing tools (argument priority, AXIOM_WHEEL_SIGNING_KEY env var fallback, missing key errors, file not found, malformed PEM, private-to-public fallback). All tests pass with pytest exit code 0.
+**Phase:** 143 (Nyquist Validation - Container Security)
+**Plan:** 01 (complete)
+**Status:** Nyquist validation complete
+**Last activity:** 2026-04-14T14:45Z — Phase 143 Plan 01 complete: Created comprehensive test coverage for all 5 container hardening phases (132–136). Implemented 15 new tests (7 security capabilities + 4 containerfile + 4 foundry user injection). All 5 VALIDATION.md files marked nyquist_compliant: true and wave_0_complete: true. Full test suite: 34 tests passing.
 
 ## Roadmap Summary
 
@@ -65,6 +65,15 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 143 Plan 01)
+
+**2026-04-14 — Nyquist validation of container security phases (132–136)**
+- Decision: Create comprehensive test coverage across all 5 completed container hardening phases and mark all as nyquist_compliant: true
+- Rationale: Ensure all per-task verifications have automated tests that are realistic and executable without manual steps; validate test infrastructure consistency across phases
+- Implementation: Created test_security_capabilities.py (7 tests for Phase 133), test_containerfile_validation.py (4 tests for Phase 135), added 4 tests to test_foundry.py (Phase 136)
+- Coverage: Phase 132 (existing tests still pass), Phase 133 (cap_drop/security_opt/port bindings), Phase 134 (compose validation via docker compose config), Phase 135 (package removal verification), Phase 136 (user injection across OS families)
+- Status: All 15 new tests passing; all 5 VALIDATION.md files updated; full test suite: 34 tests passing; NYQUIST_COMPLIANT status confirmed
 
 ## Decisions Made (Phase 142 Plan 03)
 
