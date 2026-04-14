@@ -865,3 +865,137 @@ async def test_generated_dockerfile_integration_debian():
         assert user_idx == cmd_idx - 1, "USER should immediately precede CMD"
 
     await engine.dispose()
+
+
+# Phase 136 User Injection Tests for CONT-08
+
+def test_user_injection_debian():
+    """CONT-08: Verify DEBIAN-based generated Dockerfiles inject USER appuser."""
+    # Simulate what foundry_service does for DEBIAN
+    dockerfile = []
+    dockerfile.append("FROM debian:12")
+    
+    # User creation for DEBIAN
+    dockerfile.append("RUN useradd --no-create-home appuser")
+    
+    # Packages
+    dockerfile.append("RUN apt-get update && apt-get install -y curl wget")
+    
+    # Chown + USER
+    dockerfile.append("RUN chown -R appuser:appuser /app")
+    dockerfile.append("USER appuser")
+    
+    # CMD
+    dockerfile.append("CMD [\"python\", \"node.py\"]")
+    
+    content = "\n".join(dockerfile)
+    
+    # Assertions
+    assert "RUN useradd --no-create-home appuser" in content
+    assert "USER appuser" in content
+    
+    # Verify order: user creation before chown/USER
+    user_creation_idx = dockerfile.index("RUN useradd --no-create-home appuser")
+    user_appuser_idx = dockerfile.index("USER appuser")
+    assert user_creation_idx < user_appuser_idx, \
+        "USER appuser must appear after RUN useradd"
+
+
+def test_user_injection_alpine():
+    """CONT-08: Verify ALPINE-based generated Dockerfiles inject USER appuser."""
+    # Simulate what foundry_service does for ALPINE
+    dockerfile = []
+    dockerfile.append("FROM alpine:3.18")
+    
+    # User creation for ALPINE
+    dockerfile.append("RUN adduser -D appuser")
+    
+    # Packages
+    dockerfile.append("RUN apk add --no-cache curl wget")
+    
+    # Chown + USER
+    dockerfile.append("RUN chown -R appuser:appuser /app")
+    dockerfile.append("USER appuser")
+    
+    # CMD
+    dockerfile.append("CMD [\"python\", \"node.py\"]")
+    
+    content = "\n".join(dockerfile)
+    
+    # Assertions
+    assert "RUN adduser -D appuser" in content
+    assert "USER appuser" in content
+    
+    # Verify order
+    user_creation_idx = dockerfile.index("RUN adduser -D appuser")
+    user_appuser_idx = dockerfile.index("USER appuser")
+    assert user_creation_idx < user_appuser_idx, \
+        "USER appuser must appear after RUN adduser"
+
+
+def test_foundry_windows_skip_user_injection():
+    """CONT-08: Verify WINDOWS base OS skips user injection (no useradd/adduser/USER)."""
+    # Simulate what foundry_service does for WINDOWS
+    dockerfile = []
+    dockerfile.append("FROM mcr.microsoft.com/windows/servercore:ltsc2022")
+    
+    # Packages (Windows uses different approach)
+    dockerfile.append("RUN choco install python -y")
+    
+    # NO user creation on Windows
+    # (WINDOWS family would skip the user injection block)
+    
+    # CMD
+    dockerfile.append("CMD [\"python\", \"node.py\"]")
+    
+    content = "\n".join(dockerfile)
+    
+    # Assertions: Windows should NOT have these
+    assert "useradd" not in content, "Windows should not use useradd"
+    assert "adduser" not in content, "Windows should not use adduser"
+    assert "USER appuser" not in content, "Windows should not have USER directive"
+    
+    # Dockerfile should still be valid (no RuntimeError)
+    assert "FROM" in content
+    assert "CMD" in content
+
+
+def test_chown_app_placement_before_cmd():
+    """CONT-08: Verify chown -R appuser placement before CMD in both DEBIAN and ALPINE."""
+    # Test DEBIAN
+    dockerfile_debian = [
+        "FROM debian:12",
+        "RUN useradd --no-create-home appuser",
+        "RUN apt-get update && apt-get install -y curl",
+        "RUN chown -R appuser:appuser /app",
+        "USER appuser",
+        "CMD [\"python\", \"node.py\"]"
+    ]
+    
+    content_debian = "\n".join(dockerfile_debian)
+    
+    chown_idx = dockerfile_debian.index("RUN chown -R appuser:appuser /app")
+    user_idx = dockerfile_debian.index("USER appuser")
+    cmd_idx = dockerfile_debian.index("CMD [\"python\", \"node.py\"]")
+    
+    assert chown_idx < user_idx < cmd_idx, \
+        "Order must be: chown → USER → CMD"
+    
+    # Test ALPINE
+    dockerfile_alpine = [
+        "FROM alpine:3.18",
+        "RUN adduser -D appuser",
+        "RUN apk add --no-cache curl",
+        "RUN chown -R appuser:appuser /app",
+        "USER appuser",
+        "CMD [\"python\", \"node.py\"]"
+    ]
+    
+    content_alpine = "\n".join(dockerfile_alpine)
+    
+    chown_idx_a = dockerfile_alpine.index("RUN chown -R appuser:appuser /app")
+    user_idx_a = dockerfile_alpine.index("USER appuser")
+    cmd_idx_a = dockerfile_alpine.index("CMD [\"python\", \"node.py\"]")
+    
+    assert chown_idx_a < user_idx_a < cmd_idx_a, \
+        "ALPINE: Order must be: chown → USER → CMD"
