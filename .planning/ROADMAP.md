@@ -138,7 +138,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🔄 v22.0 — Security Hardening (Phases 132–142) — IN PROGRESS</summary>
+<summary>🔄 v22.0 — Security Hardening (Phases 132–145) — IN PROGRESS</summary>
 
 - [x] **Phase 132: Non-Root User Foundation** — All containers run as non-root appuser (UID 1000) with correct volume ownership (completed 2026-04-12)
   - [ ] Plan 01: Update Containerfile.server and Containerfile.node with appuser + chown + USER directives (Wave 1)
@@ -162,6 +162,9 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [x] Plan 01: test_sign_wheels.py (12 tests) — Wave 1 (completed 2026-04-14)
   - [x] Plan 02: test_key_resolution.py (6 tests) — Wave 1 (completed 2026-04-14)
   - [x] Plan 03: test_gen_wheel_key.py (5 tests) — Wave 1 (completed 2026-04-14)
+- ⬜ **Phase 143: Nyquist Validation — Container Security (Phases 132–136)** — Run validate-phase for all 5 container hardening phases; fill any test coverage gaps found (gap closure)
+- ⬜ **Phase 144: Nyquist Validation — EE Features (Phases 137–140)** — Run validate-phase for all 4 EE feature phases; fill any test coverage gaps found (gap closure)
+- ⬜ **Phase 145: Nyquist Validation — Cleanup Phases (Phases 141–142)** — Run validate-phase for both gap-closure phases; fill any test coverage gaps found (gap closure)
 
 Full details: `.planning/v22.0-ROADMAP.md`
 
