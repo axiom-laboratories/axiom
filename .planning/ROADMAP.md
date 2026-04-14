@@ -159,8 +159,8 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [ ] Plan 01: gen_wheel_key.py + sign_wheels.py implementation + 23 unit tests (Wave 1)
 - ⬜ **Phase 141: v22.0 Compliance Documentation Cleanup** — Create Phase 139 phase-level VERIFICATION.md; fix 10 stale REQUIREMENTS.md checkboxes and traceability rows (gap closure phase)
 - ⬜ **Phase 142: Wheel Signing Tool Tests** — Implement 23 test stubs in axiom-licenses/tests/tools/ for sign_wheels.py and gen_wheel_key.py (3 plans)
-  - [ ] Plan 01: test_sign_wheels.py (12 tests) — Wave 1
-  - [ ] Plan 02: test_key_resolution.py (6 tests) — Wave 1
+  - [x] Plan 01: test_sign_wheels.py (12 tests) — Wave 1 (completed 2026-04-14)
+  - [x] Plan 02: test_key_resolution.py (6 tests) — Wave 1 (completed 2026-04-14)
   - [x] Plan 03: test_gen_wheel_key.py (5 tests) — Wave 1 (completed 2026-04-14)
 
 Full details: `.planning/v22.0-ROADMAP.md`
