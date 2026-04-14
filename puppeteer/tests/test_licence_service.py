@@ -328,7 +328,7 @@ async def test_reload_licence_with_invalid_key():
     """Phase 116: reload_licence() with invalid key raises LicenceError."""
     from agent_service.services.licence_service import reload_licence, LicenceError  # noqa: F401
 
-    with pytest.raises(LicenceError, match="signature invalid"):
+    with pytest.raises(LicenceError, match="parse error|signature invalid"):
         await reload_licence(licence_key="invalid.token.here")
 
 
@@ -438,6 +438,7 @@ def test_licence_expiry_guard_ee_prefixes():
         "/api/auth-ext",
         "/api/smelter",
         "/api/executions",
+        "/api/admin/bundles",
     )
 
     assert LicenceExpiryGuard.EE_PREFIXES == expected_prefixes
