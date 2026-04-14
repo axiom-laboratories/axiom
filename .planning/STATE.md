@@ -9,7 +9,7 @@ progress:
   total_phases: 62
   completed_phases: 60
   total_plans: 159
-  completed_plans: 168
+  completed_plans: 169
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 ## Current Position
 
-**Phase:** 141 (v22.0 Compliance Documentation Cleanup)
+**Phase:** 142 (Wheel Signing Tool Tests)
 **Plan:** 01 (complete)
-**Status:** Ready to plan
-**Last activity:** 2026-04-13T18:07:54Z — Phase 141 Plan 01 complete: Synthesized Phase 139 phase-level VERIFICATION.md from comprehensive plan-level verification (139-01-VERIFICATION.md), closing procedural gap identified in v22.0 audit. All 16 requirements (CONT-01–CONT-10, EE-01–EE-06) marked complete. v22.0 Security Hardening milestone fully documented and closed.
+**Status:** Executing plans sequentially
+**Last activity:** 2026-04-14T12:30Z — Phase 142 Plan 01 complete: Implemented 12 comprehensive unit tests for sign_wheels.py wheel discovery, hashing, signing, manifests, verification, and CLI flags. All 12 tests pass with pytest exit code 0. Wave 1 test infrastructure for sign_wheels.py now complete.
 
 ## Roadmap Summary
 
@@ -65,6 +65,15 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - HMAC stamping for scheduled jobs at dispatch time (SEC-02 compliance)
 - Hard-fail semantics on missing signing key
 - 4-scenario E2E integration test suite (4/4 pass); 112 new unit tests
+
+## Decisions Made (Phase 142 Plan 03)
+
+**2026-04-14 — Wheel signing tool test implementation (Wave 1 complete)**
+- Decision: Implement 5 tests for gen_wheel_key.py using direct function imports, pytest fixtures, and SystemExit exception handling
+- Rationale: Isolated test environment via temp_wheel_dir and test_keypair fixtures; direct function calls avoid subprocess complexity; exception handling matches CLI error patterns
+- Implementation: test_generate_keypair validates Ed25519 key generation and file write; test_no_overwrite_without_force verifies error when file exists; test_public_key_bytes_literal validates output format; test_force_flag_overwrites confirms force behavior; test_file_permissions_0600 validates secure permissions
+- Status: All 5 tests pass (0.03s execution); no TODO comments remain; ready for remaining phase 142 plans
+- Wave 1: gen_wheel_key.py test coverage complete (5/5 tests); next wave will cover sign_wheels.py (12 tests) and key_resolution.py (6 tests)
 
 ## Decisions Made (Phase 140 Plan 01)
 

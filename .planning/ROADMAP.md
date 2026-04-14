@@ -161,7 +161,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - ⬜ **Phase 142: Wheel Signing Tool Tests** — Implement 23 test stubs in axiom-licenses/tests/tools/ for sign_wheels.py and gen_wheel_key.py (3 plans)
   - [ ] Plan 01: test_sign_wheels.py (12 tests) — Wave 1
   - [ ] Plan 02: test_key_resolution.py (6 tests) — Wave 1
-  - [ ] Plan 03: test_gen_wheel_key.py (5 tests) — Wave 1
+  - [x] Plan 03: test_gen_wheel_key.py (5 tests) — Wave 1 (completed 2026-04-14)
 
 Full details: `.planning/v22.0-ROADMAP.md`
 
