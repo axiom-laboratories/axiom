@@ -84,8 +84,13 @@
 
 ## Traceability
 
-> Filled by roadmapper — maps each phase to the requirements it satisfies.
-
 | Phase | Name | Requirements |
 |-------|------|-------------|
-| TBD | TBD | TBD |
+| 146 | Workflow Data Model | WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05 |
+| 147 | WorkflowRun Execution Engine | ENGINE-01, ENGINE-02, ENGINE-03, ENGINE-04, ENGINE-05, ENGINE-06, ENGINE-07 |
+| 148 | Gate Node Types | GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06 |
+| 149 | Triggers & Parameter Injection | TRIGGER-01, TRIGGER-02, TRIGGER-03, TRIGGER-04, TRIGGER-05, PARAMS-01, PARAMS-02 |
+| 150 | Dashboard Read-Only Views | UI-01, UI-02, UI-03, UI-04, UI-05 |
+| 151 | Visual DAG Editor | UI-06, UI-07 |
+
+**Coverage:** 32/32 requirements mapped ✓

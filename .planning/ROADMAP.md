@@ -25,6 +25,7 @@
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
+- 🚀 **v23.0 — DAG & Workflow Orchestration** — Phases 146–151 (in progress)
 
 ## Phases
 
@@ -174,6 +175,20 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
   - [x] Plan 01: Validate Phase 141 shell checks + Phase 142 tests; regression check
 
 Archive: `.planning/milestones/v22.0-ROADMAP.md`
+
+</details>
+
+<details>
+<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–151) — IN PROGRESS</summary>
+
+- [ ] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection (plans TBD)
+- [ ] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation (plans TBD)
+- [ ] **Phase 148: Gate Node Types** — IF conditionals, AND/JOIN, OR, parallel fan-out, signal wait (plans TBD)
+- [ ] **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC, WORKFLOW_PARAM_* injection (plans TBD)
+- [ ] **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (plans TBD)
+- [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
+
+Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 </details>
 
