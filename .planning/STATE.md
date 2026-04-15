@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-15T09:58:00Z"
-last_activity: "2026-04-15T09:58Z — Phase 145 Plan 01 complete: Nyquist validation of Phases 141 and 142. Phase 141: 16/16 requirements verified, VALIDATION.md marked complete. Phase 142: 23/23 tests pass, all behaviors covered, VALIDATION.md marked complete. Regression: 0 collateral damage. Both phases ready for v22.0 release."
+status: completed
+last_updated: "2026-04-15T09:48:08.149Z"
+last_activity: "2026-04-14T18:21Z — Phase 144 Plan 01 complete: Nyquist validation of all 4 EE licence protection phases (137–140). Fixed 2 test expectations in Phase 138; all 103 tests passing. All 4 VALIDATION.md files marked nyquist_compliant: true and wave_0_complete: true."
 progress:
   total_phases: 65
-  completed_phases: 63
-  total_plans: 164
-  completed_plans: 173
+  completed_phases: 64
+  total_plans: 165
+  completed_plans: 174
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-12)
 
 **Phase:** 144 (Nyquist Validation - EE Features)
 **Plan:** 01 (complete)
-**Status:** Ready to plan
+**Status:** Milestone complete
 **Last activity:** 2026-04-14T18:21Z — Phase 144 Plan 01 complete: Nyquist validation of all 4 EE licence protection phases (137–140). Fixed 2 test expectations in Phase 138; all 103 tests passing. All 4 VALIDATION.md files marked nyquist_compliant: true and wave_0_complete: true.
 
 ## Roadmap Summary
