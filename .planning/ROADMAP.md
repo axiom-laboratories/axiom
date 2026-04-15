@@ -181,7 +181,10 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 <details>
 <summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–151) — IN PROGRESS</summary>
 
-- [ ] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection (plans TBD)
+- [x] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection
+  - [x] Plan 01: Test & Schema Foundation — database schema (4 tables), test stubs (13 tests), fixtures, networkx dependency (completed 2026-04-15)
+  - [ ] Plan 02: ORM Models & Service Layer — Workflow/Step/Edge/Parameter models, workflow_service with validation
+  - [ ] Plan 03: API Routes — CRUD endpoints, fork, validation, structured error responses
 - [ ] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation (plans TBD)
 - [ ] **Phase 148: Gate Node Types** — IF conditionals, AND/JOIN, OR, parallel fan-out, signal wait (plans TBD)
 - [ ] **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC, WORKFLOW_PARAM_* injection (plans TBD)

@@ -10,11 +10,11 @@
 
 ### WORKFLOW — Core Data Model
 
-- [ ] **WORKFLOW-01**: User can create a named Workflow composed of ScheduledJob steps connected by directed dependency edges
-- [ ] **WORKFLOW-02**: User can list all Workflow definitions with step count, trigger config, and last-run status
-- [ ] **WORKFLOW-03**: User can update a Workflow definition (steps, edges, parameters); system re-validates DAG on save (cycle detection, depth check)
-- [ ] **WORKFLOW-04**: User can delete a Workflow definition (blocked if active WorkflowRuns exist)
-- [ ] **WORKFLOW-05**: System auto-pauses an existing cron schedule when user executes "Save as New" from a scheduled Workflow to prevent ghost execution
+- [x] **WORKFLOW-01**: User can create a named Workflow composed of ScheduledJob steps connected by directed dependency edges (Phase 146 Plan 02-03)
+- [x] **WORKFLOW-02**: User can list all Workflow definitions with step count, trigger config, and last-run status (Phase 146 Plan 02-03)
+- [x] **WORKFLOW-03**: User can update a Workflow definition (steps, edges, parameters); system re-validates DAG on save (cycle detection, depth check) (Phase 146 Plan 02-03)
+- [x] **WORKFLOW-04**: User can delete a Workflow definition (blocked if active WorkflowRuns exist) (Phase 146 Plan 02-03)
+- [x] **WORKFLOW-05**: System auto-pauses an existing cron schedule when user executes "Save as New" from a scheduled Workflow to prevent ghost execution (Phase 146 Plan 02-03)
 
 ### ENGINE — Execution Engine
 
