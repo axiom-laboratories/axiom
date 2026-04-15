@@ -237,7 +237,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 143. Nyquist Validation — Container Security | v22.0 | 1/1 | Complete | 2026-04-14 |
 | 144. Nyquist Validation — EE Features | v22.0 | 1/1 | Complete | 2026-04-14 |
 | 145. Nyquist Validation — Cleanup Phases | v22.0 | 1/1 | Complete | 2026-04-15 |
-| 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
+| 146. Workflow Data Model | v23.0 | Complete    | 2026-04-15 | 2026-04-15 |
 
 ## Archived
 
