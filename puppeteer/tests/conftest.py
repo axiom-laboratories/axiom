@@ -2,6 +2,7 @@
 Pytest configuration and shared fixtures.
 """
 import pytest
+import pytest_asyncio
 import asyncio
 from httpx import AsyncClient, ASGITransport
 from agent_service.main import app
@@ -167,3 +168,176 @@ async def created_job_guid(async_client: AsyncClient, auth_headers: dict):
         return response.json().get("guid")
     # Return None if creation fails
     return None
+
+
+@pytest_asyncio.fixture
+async def async_db_session():
+    """
+    Async SQLAlchemy session for test isolation.
+
+    Each test gets a fresh session wrapped in a transaction that rolls back after the test.
+    Ensures parallel test isolation and no cross-test contamination.
+    """
+    from agent_service.db import AsyncSessionLocal, engine
+    from sqlalchemy import text
+
+    async with AsyncSessionLocal() as session:
+        # Start a transaction for this test
+        await session.begin()
+        yield session
+        # Rollback after test to restore database state
+        await session.rollback()
+
+
+@pytest_asyncio.fixture
+async def workflow_fixture(async_db_session):
+    """
+    Pre-created workflow with 3 steps and 2 edges forming a simple chain.
+
+    Structure:
+      Step 1 → Step 2 → Step 3
+
+    Returns the full Workflow entity with nested steps[], edges[], parameters[].
+    Uses async_db_session for automatic transaction cleanup.
+    """
+    from agent_service.db import (
+        Workflow, WorkflowStep, WorkflowEdge, WorkflowParameter,
+        ScheduledJob, Signature
+    )
+    from uuid import uuid4
+
+    # Generate UUIDs for all entities
+    workflow_id = str(uuid4())
+    step_ids = [str(uuid4()) for _ in range(3)]
+    edge_ids = [str(uuid4()) for _ in range(2)]
+    param_id = str(uuid4())
+
+    # Create a signature for the scheduled jobs (required FK)
+    sig_id = str(uuid4())
+    sig = Signature(
+        id=sig_id,
+        name=f"test-sig-{uuid4().hex[:8]}",
+        public_key="-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANDiE2Zm7HK5Q=\n-----END PUBLIC KEY-----",
+        uploaded_by="admin"
+    )
+    async_db_session.add(sig)
+    await async_db_session.flush()
+
+    # Create 3 scheduled jobs (step units)
+    jobs = []
+    for i in range(3):
+        job = ScheduledJob(
+            id=step_ids[i],
+            name=f"test-scheduled-job-{i}-{uuid4().hex[:8]}",
+            script_content=f"echo 'Step {i+1}'",
+            signature_id=sig_id,
+            signature_payload="Zm9vYmFyYmF6",  # base64 dummy
+            created_by="admin"
+        )
+        async_db_session.add(job)
+        jobs.append(job)
+
+    await async_db_session.flush()
+
+    # Create the workflow
+    workflow = Workflow(
+        id=workflow_id,
+        name=f"test-workflow-{uuid4().hex[:8]}",
+        created_by="admin",
+        is_paused=False
+    )
+    async_db_session.add(workflow)
+    await async_db_session.flush()
+
+    # Create 3 workflow steps
+    workflow_steps = []
+    for i, job_id in enumerate(step_ids):
+        step = WorkflowStep(
+            id=step_ids[i],
+            workflow_id=workflow_id,
+            scheduled_job_id=job_id,
+            node_type="SCRIPT",
+            config_json=None
+        )
+        async_db_session.add(step)
+        workflow_steps.append(step)
+
+    await async_db_session.flush()
+
+    # Create 2 edges: step1 → step2, step2 → step3
+    edges = [
+        WorkflowEdge(
+            id=edge_ids[0],
+            workflow_id=workflow_id,
+            from_step_id=step_ids[0],
+            to_step_id=step_ids[1],
+            branch_name=None
+        ),
+        WorkflowEdge(
+            id=edge_ids[1],
+            workflow_id=workflow_id,
+            from_step_id=step_ids[1],
+            to_step_id=step_ids[2],
+            branch_name=None
+        )
+    ]
+    for edge in edges:
+        async_db_session.add(edge)
+
+    await async_db_session.flush()
+
+    # Create a parameter
+    param = WorkflowParameter(
+        id=param_id,
+        workflow_id=workflow_id,
+        name="test_param",
+        type="string",
+        default_value="default_value"
+    )
+    async_db_session.add(param)
+
+    await async_db_session.commit()
+
+    # Return as dict with nested arrays (matching API response structure)
+    return {
+        "id": workflow_id,
+        "name": workflow.name,
+        "created_by": "admin",
+        "created_at": workflow.created_at,
+        "is_paused": False,
+        "steps": [
+            {
+                "id": step_ids[i],
+                "workflow_id": workflow_id,
+                "scheduled_job_id": step_ids[i],
+                "node_type": "SCRIPT",
+                "config_json": None
+            }
+            for i in range(3)
+        ],
+        "edges": [
+            {
+                "id": edge_ids[0],
+                "workflow_id": workflow_id,
+                "from_step_id": step_ids[0],
+                "to_step_id": step_ids[1],
+                "branch_name": None
+            },
+            {
+                "id": edge_ids[1],
+                "workflow_id": workflow_id,
+                "from_step_id": step_ids[1],
+                "to_step_id": step_ids[2],
+                "branch_name": None
+            }
+        ],
+        "parameters": [
+            {
+                "id": param_id,
+                "workflow_id": workflow_id,
+                "name": "test_param",
+                "type": "string",
+                "default_value": "default_value"
+            }
+        ]
+    }
