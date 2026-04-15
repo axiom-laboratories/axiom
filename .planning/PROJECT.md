@@ -12,11 +12,23 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
+## Current Milestone: v23.0 DAG & Workflow Orchestration
+
+**Goal:** Compose ScheduledJob steps into named Workflow templates, trigger them manually, on cron, or via webhook, and track each run through a WorkflowRun entity with step-level status and a visual DAG canvas.
+
+**Target features:**
+- WorkflowRun execution engine with atomic BFS dispatch and PARTIAL/FAILED/CANCELLED state machine
+- 6 node types: Script step, IF gate (result.json conditions), AND/JOIN, OR, Parallel fan-out, Signal wait
+- Three trigger modes: manual, cron (APScheduler), webhook (HMAC-SHA256 + nonce replay protection)
+- WORKFLOW_PARAM_* environment variable injection for signed scripts
+- Visual drag-and-drop DAG canvas (ReactFlow + elkjs) with live run status overlay
+- Unified schedule view combining ScheduledJob (JOB) and Workflow (FLOW) entries
+
 ## Current State
 
 **Latest shipped:** v22.0 Security Hardening (2026-04-15)
 **Previous:** v21.0 API Maturity & Contract Standardization (2026-04-11)
-**Next milestone:** TBD — run `/gsd:new-milestone` to define
+**Current milestone:** v23.0 DAG & Workflow Orchestration (in progress)
 
 ## Requirements
 
