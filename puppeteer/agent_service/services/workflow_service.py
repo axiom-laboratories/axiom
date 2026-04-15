@@ -5,16 +5,17 @@ from datetime import datetime
 
 import networkx as nx
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, and_
+from sqlalchemy import select, delete, update, and_
 from fastapi import HTTPException
 
 from puppeteer.agent_service.db import (
     Workflow, WorkflowStep, WorkflowEdge, WorkflowParameter,
-    ScheduledJob, WorkflowRun
+    ScheduledJob, WorkflowRun, WorkflowStepRun, Job
 )
 from puppeteer.agent_service.models import (
     WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowValidationError,
-    WorkflowStepResponse, WorkflowEdgeResponse, WorkflowParameterResponse
+    WorkflowStepResponse, WorkflowEdgeResponse, WorkflowParameterResponse,
+    WorkflowRunResponse, WorkflowStepRunResponse, JobCreate
 )
 
 
@@ -381,3 +382,357 @@ class WorkflowService:
                 for p in workflow.parameters
             ]
         )
+
+    async def dispatch_next_wave(
+        self,
+        run_id: str,
+        db: AsyncSession
+    ) -> List[str]:
+        """
+        Dispatch all steps whose predecessors have COMPLETED.
+        Atomically transitions PENDING→RUNNING, creates jobs for eligible steps.
+        Uses BFS topological order via networkx.predecessors().
+        Returns list of newly created job GUIDs.
+        """
+        # Get WorkflowRun
+        run = await db.get(WorkflowRun, run_id)
+        if run is None or run.status == "CANCELLED":
+            return []
+
+        # Get Workflow
+        workflow = await db.get(Workflow, run.workflow_id)
+        if workflow is None:
+            return []
+
+        # Build graph for BFS dispatch order (reuse validate_dag pattern)
+        G = nx.DiGraph()
+        for step in workflow.steps:
+            G.add_node(step.id)
+        for edge in workflow.edges:
+            if edge.branch_name is None:  # Only unconditional edges in Phase 147
+                G.add_edge(edge.from_step_id, edge.to_step_id)
+
+        # Create step_map for quick lookup
+        step_map = {step.id: step for step in workflow.steps}
+
+        # Get all existing WorkflowStepRuns for this run
+        stmt = select(WorkflowStepRun).where(WorkflowStepRun.workflow_run_id == run_id)
+        result = await db.execute(stmt)
+        existing_step_runs = result.scalars().all()
+        step_run_map = {sr.workflow_step_id: sr for sr in existing_step_runs}
+
+        new_jobs = []
+
+        # Process each step in topological order
+        for step in workflow.steps:
+            # Create WorkflowStepRun if it doesn't exist
+            if step.id not in step_run_map:
+                sr = WorkflowStepRun(
+                    id=str(uuid4()),
+                    workflow_run_id=run_id,
+                    workflow_step_id=step.id,
+                    status="PENDING",
+                    created_at=datetime.utcnow()
+                )
+                db.add(sr)
+                await db.flush()  # Ensure sr.id is available
+                step_run_map[step.id] = sr
+            else:
+                sr = step_run_map[step.id]
+
+            # Check if any predecessor is FAILED → cascade to CANCELLED
+            predecessors = list(G.predecessors(step.id))
+            has_failed_predecessor = False
+            for pred_id in predecessors:
+                pred_sr = step_run_map.get(pred_id)
+                if pred_sr and pred_sr.status == "FAILED":
+                    has_failed_predecessor = True
+                    break
+
+            if has_failed_predecessor:
+                # Mark this step as CANCELLED
+                sr.status = "CANCELLED"
+                sr.completed_at = datetime.utcnow()
+                continue
+
+            # Check if all predecessors are COMPLETED (or no predecessors for root steps)
+            if len(predecessors) == 0:
+                # Root step
+                all_complete = True
+            else:
+                all_complete = all(
+                    step_run_map.get(pred_id) and step_run_map.get(pred_id).status == "COMPLETED"
+                    for pred_id in predecessors
+                )
+
+            if not all_complete:
+                # Not ready yet
+                continue
+
+            # Atomic CAS: try to transition status PENDING→RUNNING
+            stmt_update = (
+                update(WorkflowStepRun)
+                .where(
+                    and_(
+                        WorkflowStepRun.id == sr.id,
+                        WorkflowStepRun.status == "PENDING"
+                    )
+                )
+                .values(status="RUNNING", started_at=datetime.utcnow())
+            )
+            result = await db.execute(stmt_update)
+
+            # If rowcount == 0, another process already claimed it — skip
+            if result.rowcount == 0:
+                continue
+
+            # Create Job for this step
+            # Get the ScheduledJob to fetch job details
+            scheduled_job = await db.get(ScheduledJob, step.scheduled_job_id)
+            if scheduled_job is None:
+                # Skip if scheduled job not found
+                continue
+
+            # Parse payload from scheduled_job
+            try:
+                payload = json.loads(scheduled_job.payload) if isinstance(scheduled_job.payload, str) else scheduled_job.payload
+            except (json.JSONDecodeError, TypeError):
+                payload = {}
+
+            # Calculate depth: max(predecessor_depths) + 1, capped at 30
+            if len(predecessors) == 0:
+                job_depth = 0
+            else:
+                # Fetch predecessor jobs to get their depths
+                pred_job_guids = []
+                for pred_id in predecessors:
+                    pred_sr = step_run_map.get(pred_id)
+                    if pred_sr:
+                        # Get the job for this predecessor step run
+                        stmt_job = select(Job).where(Job.workflow_step_run_id == pred_sr.id)
+                        job_result = await db.execute(stmt_job)
+                        pred_job = job_result.scalar_one_or_none()
+                        if pred_job:
+                            pred_job_guids.append(pred_job.guid)
+
+                # Get max depth from predecessor jobs
+                if pred_job_guids:
+                    stmt_depths = select(Job.depth).where(Job.guid.in_(pred_job_guids))
+                    depth_result = await db.execute(stmt_depths)
+                    depths = depth_result.scalars().all()
+                    max_pred_depth = max(depths) if depths else 0
+                    job_depth = min(max_pred_depth + 1, 30)  # ENGINE-02: cap at 30
+                else:
+                    job_depth = 0
+
+            # Create JobCreate
+            job_create = JobCreate(
+                task_type=scheduled_job.task_type,
+                payload=payload,
+                priority=scheduled_job.priority or 0,
+                target_tags=json.loads(scheduled_job.target_tags) if scheduled_job.target_tags else None,
+                capability_requirements=json.loads(scheduled_job.capability_requirements) if scheduled_job.capability_requirements else None,
+                max_retries=scheduled_job.max_retries or 0,
+                backoff_multiplier=scheduled_job.backoff_multiplier or 2.0,
+                timeout_minutes=scheduled_job.timeout_minutes,
+                scheduled_job_id=step.scheduled_job_id,
+                env_tag=scheduled_job.env_tag,
+                runtime=scheduled_job.runtime,
+                name=scheduled_job.name
+            )
+
+            # Create Job via JobService
+            try:
+                from puppeteer.agent_service.services.job_service import JobService
+
+                # Create job GUID
+                job_guid = str(uuid4())
+                job = Job(
+                    guid=job_guid,
+                    task_type=job_create.task_type,
+                    payload=json.dumps(job_create.payload),
+                    status="PENDING",
+                    target_tags=json.dumps(job_create.target_tags) if job_create.target_tags else None,
+                    capability_requirements=json.dumps(job_create.capability_requirements) if job_create.capability_requirements else None,
+                    max_retries=job_create.max_retries,
+                    backoff_multiplier=job_create.backoff_multiplier,
+                    timeout_minutes=job_create.timeout_minutes,
+                    scheduled_job_id=job_create.scheduled_job_id,
+                    env_tag=job_create.env_tag,
+                    runtime=job_create.runtime,
+                    name=job_create.name,
+                    workflow_step_run_id=sr.id,
+                    depth=job_depth
+                )
+                db.add(job)
+                new_jobs.append(job_guid)
+            except Exception as e:
+                # Skip on job creation failure
+                continue
+
+        # Commit all changes
+        await db.commit()
+        return new_jobs
+
+    async def advance_workflow(
+        self,
+        run_id: str,
+        db: AsyncSession
+    ) -> None:
+        """
+        After a step completes, re-evaluate workflow and dispatch eligible next steps.
+        Checks for terminal condition and computes final status.
+        """
+        # Dispatch next wave of eligible steps
+        await self.dispatch_next_wave(run_id, db)
+
+        # Query all WorkflowStepRuns to check if run is complete
+        stmt = select(WorkflowStepRun).where(WorkflowStepRun.workflow_run_id == run_id)
+        result = await db.execute(stmt)
+        step_runs = result.scalars().all()
+
+        # Count by status
+        pending_count = sum(1 for sr in step_runs if sr.status == "PENDING")
+        running_count = sum(1 for sr in step_runs if sr.status == "RUNNING")
+        completed_count = sum(1 for sr in step_runs if sr.status == "COMPLETED")
+        failed_count = sum(1 for sr in step_runs if sr.status == "FAILED")
+        cancelled_count = sum(1 for sr in step_runs if sr.status == "CANCELLED")
+        skipped_count = sum(1 for sr in step_runs if sr.status == "SKIPPED")
+
+        # If there's still pending or running work, return early
+        if pending_count > 0 or running_count > 0:
+            return
+
+        # Compute final status
+        total_steps = len(step_runs)
+        if total_steps == 0:
+            final_status = "COMPLETED"
+        elif completed_count == total_steps:
+            final_status = "COMPLETED"
+        elif completed_count > 0 and failed_count > 0:
+            final_status = "PARTIAL"
+        elif completed_count == 0 and failed_count > 0:
+            final_status = "FAILED"
+        else:
+            # All CANCELLED or SKIPPED — edge case
+            final_status = "FAILED"
+
+        # Update WorkflowRun
+        run = await db.get(WorkflowRun, run_id)
+        if run:
+            run.status = final_status
+            run.completed_at = datetime.utcnow()
+            await db.commit()
+
+    async def _run_to_response(
+        self,
+        db: AsyncSession,
+        run: WorkflowRun
+    ) -> WorkflowRunResponse:
+        """
+        Populate a WorkflowRunResponse with all step_runs.
+        Queries WorkflowStepRuns and converts to response objects.
+        """
+        stmt = select(WorkflowStepRun).where(WorkflowStepRun.workflow_run_id == run.id)
+        result = await db.execute(stmt)
+        step_runs = result.scalars().all()
+
+        step_runs_response = [
+            WorkflowStepRunResponse.model_validate(sr, from_attributes=True)
+            for sr in step_runs
+        ]
+
+        return WorkflowRunResponse(
+            id=run.id,
+            workflow_id=run.workflow_id,
+            status=run.status,
+            started_at=run.started_at,
+            completed_at=run.completed_at,
+            trigger_type=run.trigger_type,
+            triggered_by=run.triggered_by,
+            created_at=run.created_at,
+            step_runs=step_runs_response
+        )
+
+    async def start_run(
+        self,
+        workflow_id: str,
+        parameters: Dict[str, Any],
+        triggered_by: str,
+        db: AsyncSession
+    ) -> WorkflowRunResponse:
+        """
+        Create and start a WorkflowRun.
+        Validates workflow exists and is not paused, creates run, dispatches first wave.
+        """
+        # Fetch workflow
+        workflow = await db.get(Workflow, workflow_id)
+        if workflow is None:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        # Check if workflow is paused
+        if workflow.is_paused:
+            raise HTTPException(status_code=409, detail="Workflow is paused")
+
+        # Create WorkflowRun
+        run_id = str(uuid4())
+        run = WorkflowRun(
+            id=run_id,
+            workflow_id=workflow_id,
+            status="RUNNING",
+            started_at=datetime.utcnow(),
+            trigger_type="MANUAL",
+            triggered_by=triggered_by
+        )
+        db.add(run)
+        await db.flush()  # Ensure run.id is set before dispatch
+
+        # Dispatch first wave (root steps)
+        await self.dispatch_next_wave(run_id, db)
+
+        # Commit
+        await db.commit()
+
+        # Return populated response
+        return await self._run_to_response(db, run)
+
+    async def cancel_run(
+        self,
+        run_id: str,
+        db: AsyncSession
+    ) -> WorkflowRunResponse:
+        """
+        Cancel a running WorkflowRun.
+        Blocks further step dispatches; running jobs continue to completion.
+        """
+        # Fetch run
+        run = await db.get(WorkflowRun, run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail="WorkflowRun not found")
+
+        # Check if run is already terminal
+        if run.status in ["COMPLETED", "PARTIAL", "FAILED", "CANCELLED"]:
+            raise HTTPException(status_code=409, detail="Run is already terminal")
+
+        # Set status to CANCELLED
+        run.status = "CANCELLED"
+        run.completed_at = datetime.utcnow()
+
+        # Mark all PENDING WorkflowStepRuns as CANCELLED
+        stmt = (
+            update(WorkflowStepRun)
+            .where(
+                and_(
+                    WorkflowStepRun.workflow_run_id == run_id,
+                    WorkflowStepRun.status == "PENDING"
+                )
+            )
+            .values(status="CANCELLED", completed_at=datetime.utcnow())
+        )
+        await db.execute(stmt)
+
+        # Commit
+        await db.commit()
+
+        # Return response
+        return await self._run_to_response(db, run)
