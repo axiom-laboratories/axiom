@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, Header, status, WebSocket, WebSocketDisconnect, Query, Form
+from fastapi import FastAPI, HTTPException, Request, Depends, Header, status, WebSocket, WebSocketDisconnect, Query, Form, Body
 from fastapi.responses import Response, HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -46,6 +46,7 @@ from .models import (
     SIGNING_FIELDS,
     PaginatedResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
     DependencyTreeResponse, DiscoverDependenciesResponse,
+    WorkflowCreate, WorkflowResponse, WorkflowUpdate,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets,
@@ -72,6 +73,7 @@ from .services.scheduler_service import scheduler_service
 from .services.pki_service import pki_service
 from .services.alert_service import AlertService
 from .services.licence_service import load_licence, check_and_record_boot, reload_licence, check_licence_expiry, LicenceState, LicenceStatus, LicenceError
+from .services.workflow_service import WorkflowService
 
 load_dotenv()
 
@@ -2494,6 +2496,94 @@ async def push_job_definition(
 @app.patch("/jobs/definitions/{id}", response_model=JobDefinitionResponse, tags=["Job Definitions"])
 async def update_job_definition(id: str, update_req: JobDefinitionUpdate, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.update_job_definition(id, update_req, current_user, db)
+
+# === Workflow Routes ===
+
+@app.post("/api/workflows", tags=["workflows"], response_model=WorkflowResponse, status_code=201)
+async def create_workflow(
+    workflow_create: WorkflowCreate,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> WorkflowResponse:
+    """Create a new Workflow with full-graph contract."""
+    workflow_service = WorkflowService()
+    return await workflow_service.create(db, workflow_create, current_user.id)
+
+@app.get("/api/workflows", tags=["workflows"], response_model=list[WorkflowResponse])
+async def list_workflows(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db)
+) -> list[WorkflowResponse]:
+    """List all Workflows with metadata (step_count, last_run_status)."""
+    workflow_service = WorkflowService()
+    return await workflow_service.list(db, skip, limit)
+
+@app.get("/api/workflows/{workflow_id}", tags=["workflows"], response_model=WorkflowResponse)
+async def get_workflow(
+    workflow_id: str,
+    db: AsyncSession = Depends(get_db)
+) -> WorkflowResponse:
+    """Get a single Workflow with full DAG (nested steps, edges, parameters)."""
+    workflow_service = WorkflowService()
+    return await workflow_service.get(db, workflow_id)
+
+@app.put("/api/workflows/{workflow_id}", tags=["workflows"], response_model=WorkflowResponse)
+async def update_workflow(
+    workflow_id: str,
+    workflow_update: WorkflowUpdate,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> WorkflowResponse:
+    """Update a Workflow definition (atomic replace of steps/edges/parameters)."""
+    workflow_service = WorkflowService()
+    return await workflow_service.update(db, workflow_id, workflow_update)
+
+@app.delete("/api/workflows/{workflow_id}", tags=["workflows"], status_code=204)
+async def delete_workflow(
+    workflow_id: str,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete a Workflow (blocked if active WorkflowRuns exist)."""
+    workflow_service = WorkflowService()
+    await workflow_service.delete(db, workflow_id)
+
+@app.post("/api/workflows/{workflow_id}/fork", tags=["workflows"], response_model=WorkflowResponse, status_code=201)
+async def fork_workflow(
+    workflow_id: str,
+    fork_request: dict = Body({"new_name": "..."}),  # {"new_name": "cloned-workflow"}
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> WorkflowResponse:
+    """
+    Fork (Save-as-New) a Workflow: clone all steps/edges/parameters into a new Workflow,
+    and pause the source workflow's cron schedule.
+    """
+    new_name = fork_request.get("new_name")
+    if not new_name:
+        raise HTTPException(status_code=422, detail="new_name is required")
+
+    workflow_service = WorkflowService()
+    return await workflow_service.fork(db, workflow_id, new_name, current_user.id)
+
+@app.post("/api/workflows/validate", tags=["workflows"], response_model=dict)
+async def validate_workflow(
+    workflow_create: WorkflowCreate
+) -> dict:
+    """
+    Validate a Workflow definition without saving (static check).
+    Used by the DAG editor (Phase 151) on every canvas change.
+    Returns {valid: true} or {valid: false, error: ..., cycle_path: ..., etc.}
+    """
+    steps_data = [s.model_dump() for s in workflow_create.steps]
+    edges_data = [e.model_dump() for e in workflow_create.edges]
+
+    is_valid, error = WorkflowService.validate_dag(steps_data, edges_data)
+    if is_valid:
+        return {"valid": True}
+    else:
+        return {"valid": False, **error}
 
 # --- Installer & Doc Endpoints ---
 
