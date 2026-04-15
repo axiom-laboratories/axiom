@@ -1307,3 +1307,42 @@ class WorkflowValidationError(BaseModel):
     edge: Optional[Dict[str, str]] = None  # For INVALID_EDGE_REFERENCE
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- WorkflowRun Execution Models (Phase 147) ---
+
+class WorkflowStepRunCreate(BaseModel):
+    """Create request for a workflow step run."""
+    workflow_run_id: str
+    workflow_step_id: str
+    status: str = "PENDING"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowStepRunResponse(BaseModel):
+    """Response model for a workflow step run."""
+    id: str
+    workflow_run_id: str
+    workflow_step_id: str
+    status: str
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowRunResponse(BaseModel):
+    """Response model for a workflow run with step execution status."""
+    id: str
+    workflow_id: str
+    status: str
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    trigger_type: Optional[str] = None
+    triggered_by: Optional[str] = None
+    created_at: datetime
+    step_runs: List[WorkflowStepRunResponse] = []
+
+    model_config = ConfigDict(from_attributes=True)
