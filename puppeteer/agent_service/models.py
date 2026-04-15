@@ -1197,3 +1197,113 @@ class ApplyBundleResult(BaseModel):
     approved: int  # Count of newly approved ingredients
     skipped: int   # Count of already-approved ingredients (silently skipped)
     total: int     # approved + skipped
+
+
+# --- Workflow Models (Phase 146) ---
+
+class WorkflowStepCreate(BaseModel):
+    """Create request for a workflow step."""
+    scheduled_job_id: str
+    node_type: str  # "SCRIPT", "IF_GATE", etc.
+    config_json: Optional[str] = None  # JSON as string
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowStepResponse(BaseModel):
+    """Response model for a workflow step."""
+    id: str
+    workflow_id: str
+    scheduled_job_id: str
+    node_type: str
+    config_json: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowEdgeCreate(BaseModel):
+    """Create request for a workflow edge."""
+    from_step_id: str
+    to_step_id: str
+    branch_name: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowEdgeResponse(BaseModel):
+    """Response model for a workflow edge."""
+    id: str
+    workflow_id: str
+    from_step_id: str
+    to_step_id: str
+    branch_name: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowParameterCreate(BaseModel):
+    """Create request for a workflow parameter."""
+    name: str
+    type: str  # "string", "int", "bool"
+    default_value: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowParameterResponse(BaseModel):
+    """Response model for a workflow parameter."""
+    id: str
+    workflow_id: str
+    name: str
+    type: str
+    default_value: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowCreate(BaseModel):
+    """Create request for a workflow."""
+    name: str
+    steps: List[WorkflowStepCreate]
+    edges: List[WorkflowEdgeCreate]
+    parameters: List[WorkflowParameterCreate] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowUpdate(BaseModel):
+    """Update request for a workflow (all fields optional)."""
+    steps: Optional[List[WorkflowStepCreate]] = None
+    edges: Optional[List[WorkflowEdgeCreate]] = None
+    parameters: Optional[List[WorkflowParameterCreate]] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowResponse(BaseModel):
+    """Response model for a workflow with full graph."""
+    id: str
+    name: str
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    is_paused: bool
+    step_count: int  # Computed
+    last_run_status: Optional[str]  # Computed from workflow_runs
+    steps: List[WorkflowStepResponse]
+    edges: List[WorkflowEdgeResponse]
+    parameters: List[WorkflowParameterResponse]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowValidationError(BaseModel):
+    """Validation error response for workflow DAG validation."""
+    error: str  # "CYCLE_DETECTED", "DEPTH_LIMIT_EXCEEDED", "INVALID_EDGE_REFERENCE"
+    detail: Optional[str] = None
+    cycle_path: Optional[List[str]] = None  # For CYCLE_DETECTED
+    max_depth: Optional[int] = None  # For DEPTH_LIMIT_EXCEEDED
+    actual_depth: Optional[int] = None
+    edge: Optional[Dict[str, str]] = None  # For INVALID_EDGE_REFERENCE
+
+    model_config = ConfigDict(from_attributes=True)
