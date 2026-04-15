@@ -23,10 +23,10 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 
 ## Current Position
 
-**Phase:** 146 (Workflow Data Model) — COMPLETE
-**Plan:** 03 (API Routes & Verification) — COMPLETE
-**Status:** Milestone complete
-**Progress:** 1/6 phases (complete — all 3/3 plans in Phase 146 complete)
+**Phase:** 147 (WorkflowRun Execution Engine) — IN PROGRESS
+**Plan:** 01 (WorkflowStepRun Schema) — COMPLETE
+**Status:** Active execution
+**Progress:** 2/6 phases (1/4 plans in Phase 147 complete)
 
 ## Roadmap Summary
 
