@@ -185,7 +185,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 01: Test & Schema Foundation — database schema (4 tables), test stubs (13 tests), fixtures, networkx dependency (completed 2026-04-15)
   - [x] Plan 02: ORM Models & Service Layer — Workflow/Step/Edge/Parameter models, workflow_service with validation (completed 2026-04-15)
   - [x] Plan 03: API Routes — CRUD endpoints, fork, validation, structured error responses (completed 2026-04-15)
-- [ ] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation
+- [x] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation (completed 2026-04-15)
   - [x] Plan 01: Database & Pydantic Models — WorkflowStepRun ORM + Job.workflow_step_run_id FK + migration_v54.sql (Wave 1, completed 2026-04-15)
   - [x] Plan 02: Service Layer — dispatch_next_wave(), advance_workflow(), start_run(), cancel_run() with BFS + CAS + cascade logic (Wave 1, completed 2026-04-15)
   - [ ] Plan 03: API Routes & Integration — POST /api/workflow-runs, POST /api/workflow-runs/{id}/cancel, report_result hook (Wave 2)
@@ -242,7 +242,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 144. Nyquist Validation — EE Features | v22.0 | 1/1 | Complete | 2026-04-14 |
 | 145. Nyquist Validation — Cleanup Phases | v22.0 | 1/1 | Complete | 2026-04-15 |
 | 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
-| 147. WorkflowRun Execution Engine | v23.0 | 2/4 | In Progress | 2026-04-15 |
+| 147. WorkflowRun Execution Engine | v23.0 | Complete    | 2026-04-15 | 2026-04-15 |
 
 ## Archived
 
