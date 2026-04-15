@@ -1,854 +1,450 @@
-# Container Hardening & EE Licence Protection Pitfalls
+# Domain Pitfalls: DAG/Workflow Orchestration Integration
 
-**Domain:** Adding non-root container users, HMAC-keyed hash chain clock rollback detection, Ed25519 signed artifact verification, and removing privileged mode from containers that spawn child execution environments.
+**Domain:** Task orchestration platform adding DAG/workflow capabilities to existing job scheduling system  
+**Researched:** 2026-04-15  
+**Focus:** Integration risks with existing infrastructure, concurrency hazards, state machine edge cases
 
-**Project:** Axiom — Secure orchestration platform for hostile environments
+---
 
-**Researched:** 2026-04-12
+## Executive Summary
 
-**Overall Confidence:** HIGH for socket/GID issues and Dockerfile pitfalls (official Docker docs + confirmed community patterns); MEDIUM for HMAC migration and license key validation (architecture-specific to this system); HIGH for Ed25519 verification (cryptography library docs); HIGH for capability drop patterns (Linux kernel documentation + current best practices).
+Adding DAG/workflow orchestration to Axiom introduces **three critical risk categories**: (1) **Concurrency hazards** in the BFS unblock/cascade engine when multiple steps complete simultaneously, creating race conditions and stuck BLOCKED jobs; (2) **State machine brittleness** where PARTIAL vs FAILED distinctions break under transitive dependencies, leaving orphaned jobs in uncertain states; (3) **Security amplification** where webhook/output injection vulnerabilities are exponentially more damaging in workflows than single jobs.
+
+The existing `depends_on` foundation (Job.depends_on JSON list + BFS cascade in job_service.py) handles linear chains correctly but lacks atomic guards for concurrent completion, FAILED propagation, and structured output validation. Integration with APScheduler for workflow cron triggers introduces a "ghost execution" risk where legacy scheduled jobs fire after a workflow is marked saved-as-new. Depth limits (currently 10 levels) are adequate but bypass mechanisms (edge-case handling in _unblock_dependents) create DoS exposure.
+
+**Mitigation strategy:** Implement explicit phase gates: Phase 1 (serialized unblock), Phase 2 (result validation + injection hardening), Phase 3 (backward-compatible migration), Phase 4 (APScheduler isolation + pause semantics).
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: GID Mismatch on Docker Socket Mount — Non-Root User Permission Denied
+### Pitfall 1: Race Condition in Concurrent Step Completion
 
-**What goes wrong:** Non-root container user (e.g., `appuser` UID 1000) added to docker group via Dockerfile `RUN groupadd; useradd -G docker`, but cannot read `/var/run/docker.sock` when mounted. Foundry template builds fail with "Error response from daemon: Permission denied while trying to connect to the Docker daemon socket." Agent cannot spawn job execution containers.
+**What goes wrong:**
+When multiple independent jobs complete simultaneously (or near-simultaneously), the BFS unblock engine (`_unblock_dependents`) processes them serially but **without atomic guards**. A job waiting on `[A, B, C]` where all three complete within milliseconds of each other experiences:
 
-**Why it happens:** Docker socket on the host is owned by `root:docker` with GID typically 999 (varies by system). When Dockerfile creates a docker group with a hardcoded GID and adds the user to it, that hardcoded GID doesn't match the host's docker GID. Docker Compose `user:` directive only applies if set in the compose file; if only set in Dockerfile via `USER appuser`, the container's group membership has the wrong GID. Additionally, the Dockerfile's hardcoded group number doesn't account for system variation.
+1. **Time 0ms:** Job A completes → `_unblock_dependents(A)` starts DB query for jobs depending on A
+2. **Time 1ms:** Job B completes → `_unblock_dependents(B)` starts a **second** DB query
+3. **Time 2ms:** Both queries return the same waiting job, unblock logic executes **twice**
+4. **Time 5ms:** Job C completes → third query, third unblock attempt on same job (now PENDING)
+
+Result: Status churn in audit logs, potential double-execution if the job hasn't yet moved past PENDING, or orphaned job if second unblock reverts a state change.
+
+**Why it happens:**
+- `_unblock_dependents` uses a stateless BFS search (`Job.depends_on.like(...)`) that finds all blocked dependents
+- No transaction boundary guards status transition atomicity
+- Multiple concurrent calls to `_unblock_dependents` from different job completion handlers race
+- In single-job deployments, this is invisible; in parallel workflows with 10+ simultaneous completions, it's common
 
 **Consequences:**
-- Agent container fails at Foundry build phase: "Permission denied" on Docker socket access
-- Agent cannot execute jobs requiring Docker container spawning
-- Cascading deployment failure—all job execution features become non-functional
-- Difficult to diagnose: `id` shows user is in `docker` group, but access is still denied
-- May pass unit tests (which don't mount real Docker socket) but fail integration tests
+- Jobs silently re-queued or double-executed if retry logic is downstream
+- Audit log shows spurious state transitions (PENDING → PENDING)
+- SLA violations on workflow completion (job stuck PENDING when dependencies are satisfied)
+- Data corruption if job idempotency is not perfect
 
 **Prevention:**
-1. **Resolve host docker GID dynamically before build**
-   ```bash
-   # In deploy scripts or CI
-   HOST_DOCKER_GID=$(getent group docker | cut -d: -f3)
-   docker compose build --build-arg DOCKER_GID=${HOST_DOCKER_GID} agent
-   ```
-
-2. **Accept DOCKER_GID as build argument in Dockerfile**
-   ```dockerfile
-   ARG DOCKER_GID=999
-   RUN groupadd -g ${DOCKER_GID} docker && \
-       useradd -u 1000 -g appgroup -G docker appuser
-   ```
-
-3. **Explicitly set `user:` in compose.yaml** (in addition to Dockerfile)
-   ```yaml
-   agent:
-     build:
-       context: .
-       args:
-         DOCKER_GID: "999"
-     user: "1000:1000"  # Explicit UID:GID
-     volumes:
-       - /var/run/docker.sock:/var/run/docker.sock
-   ```
-
-4. **Add integration test verifying socket access**
-   ```python
-   def test_agent_can_access_docker_socket():
-       """Verify non-root user can use Docker socket."""
-       result = subprocess.run(
-           ["docker", "exec", "puppeteer-agent-1", "docker", "ps"],
-           capture_output=True
-       )
-       assert result.returncode == 0, f"Docker access failed: {result.stderr}"
-   ```
-
-5. **Document GID handling in deployment guide**
-   ```markdown
-   ## Agent Docker Socket Access (Non-Root)
-   
-   The agent runs as non-root user `appuser` for security hardening.
-   To access the Docker socket, it must be in the docker group with matching GID.
-   
-   Before deploying:
-   ```bash
-   HOST_DOCKER_GID=$(getent group docker | cut -d: -f3)
-   docker compose build --build-arg DOCKER_GID=${HOST_DOCKER_GID} agent
-   ```
+1. **Atomize unblock with SELECT...FOR UPDATE** — Use `SELECT ... FOR UPDATE` in a transaction to lock all dependent jobs before checking + updating status. Lock is released when transaction commits.
+2. **Implement idempotent guard** — Track `last_unblock_attempt_at` timestamp on Job record; if called again within 5s with same upstream GUID, skip re-check.
+3. **Move unblock to single background task** — Replace distributed callbacks with a single sweep job that runs every 100ms and processes all PENDING→eligible transitions in one pass.
+4. **Write explicit race condition test** — Create workflow with 3 independent parallel jobs, complete all 3 within 10ms window, assert waiting job only transitions once.
 
 **Detection:**
-- Build/startup logs: "Error response from daemon: dial unix /var/run/docker.sock: permission denied"
-- Compare inside container: `id appuser` shows group membership vs `ls -l /var/run/docker.sock` shows socket GID
-- Mismatch on second number: e.g., user has `gid=1000` but socket has `root:docker` (GID 999)
+- Alert on repeated status transitions (same GUID, same status, multiple transitions in 1 minute)
+- Log unblock latency; if >500ms, signal DB contention
+- Audit log analysis: group by job GUID, alert if status change count > 1 per completion event
 
 ---
 
-### Pitfall 2: Volume Ownership Mismatch on USER Switch — Non-Root User Cannot Write Secrets
+### Pitfall 2: PARTIAL Failures Break Cascade Logic
 
-**What goes wrong:** Switching to non-root user via `USER appuser` in Dockerfile occurs before secrets directory ownership is set. Subsequent container startup attempts to write to `secrets/boot.log`, fails with "PermissionError: [Errno 13] Permission denied" even though the appuser owns the parent /app directory. Boot.log HMAC verification fails on every restart.
+**What goes wrong:**
+The cascade system (`_cancel_dependents`) assumes binary outcomes: a job is either COMPLETED or FAILED. Workflows introduce **partial success**:
 
-**Why it happens:** Docker volumes mounted as named volumes or bind mounts initially have root ownership. If `USER appuser` is placed before directory ownership is corrected with `chown`, subsequent RUN steps and the running container (as appuser) cannot modify files in that directory. Additionally, if the named volume was pre-populated (e.g., by an initialization script) with root ownership, appuser cannot append to existing files like boot.log.
+- Job A completes with exit code 0 (COMPLETED), but structured output is invalid (missing required field)
+- Logic checks `if upstream.status == "COMPLETED"`, finds true, unblocks dependent B
+- Job B runs, expects a field that doesn't exist, fails with cryptic error
+- No audit trail of what data B actually received; no clear signal that "partial failure" occurred
+
+Additionally, **conditional gates** (IF steps) create a new failure mode:
+- Job A completes SUCCESSFULLY but IF gate reads `/tmp/axiom/result.json` incorrectly
+- Gate should route to step B but instead routes to step C (wrong path)
+- Step C executes in wrong context, silently produces wrong output
+- Workflow continues, appears COMPLETED, but data is corrupted
+
+**Why it happens:**
+- Existing status enum is {PENDING, BLOCKED, ASSIGNED, RUNNING, COMPLETED, FAILED, CANCELLED}
+- No PARTIAL or VALIDATION_FAILED state
+- `depends_on` logic is purely status-based, ignores result payload validation
+- Result.json reading happens in IF gate evaluation, not in job completion handler
+- No atomic semantics between job completion and output validation
 
 **Consequences:**
-- Agent startup fails: `RuntimeError: secrets/boot.log: Permission denied`
-- Secrets volume becomes permanently inaccessible to appuser
-- Upgrade with existing secrets/boot.log becomes impossible—cannot read or write
-- Rolling back to root user introduces security regression
-- Data loss if boot.log is wiped and recreated
+- Silent data corruption in workflows (step runs with wrong input)
+- Difficult debugging (error in step C with wrong input ≠ obvious cause in step A)
+- Transitive failure propagation broken: cancelling step A doesn't prevent B if B was already unblocked
+- Compliance/audit trail gaps: workflow marked COMPLETED but data quality unknown
 
 **Prevention:**
-1. **Place USER instruction AFTER all privileged directory setup**
-   ```dockerfile
-   # All mkdir, chown, chmod operations as root — before USER switch
-   RUN apk add --no-cache curl && \
-       mkdir -p /app/secrets && \
-       mkdir -p /app/logs && \
-       chown 1000:1000 /app/secrets && \
-       chown 1000:1000 /app/logs && \
-       chmod 750 /app/secrets
-   
-   # NOW switch to non-root — everything after this runs as appuser
-   USER appuser
-   
-   WORKDIR /app
-   ```
-
-2. **Pre-initialize secrets volume with init container** (for existing deployments)
-   ```yaml
-   init-secrets:
-     image: alpine:latest
-     volumes:
-       - secrets-data:/app/secrets
-     entrypoint: |
-       sh -c '
-       mkdir -p /app/secrets
-       chmod -R 770 /app/secrets
-       chown -R 1000:1000 /app/secrets
-       '
-   
-   agent:
-     depends_on:
-       init-secrets:
-         condition: service_completed_successfully
-   ```
-
-3. **Ensure mounted volume has permissive ownership**
-   ```yaml
-   # compose.yaml
-   volumes:
-     secrets-data:
-       driver: local
-       driver_opts:
-         type: none
-         o: bind
-         device: ${SECRETS_MOUNT_PATH:-/var/lib/axiom/secrets}
-   
-   # Host side: ensure device path has correct ownership
-   # $ mkdir -p /var/lib/axiom/secrets && chmod 770 /var/lib/axiom/secrets
-   ```
-
-4. **Handle permission errors gracefully in boot.log initialization**
-   ```python
-   def check_and_record_boot(...):
-       BOOT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-       try:
-           BOOT_LOG_PATH.write_text(...)
-       except PermissionError as e:
-           logger.error(f"Cannot write boot.log: {e}")
-           if licence_status != LicenceStatus.CE:
-               raise RuntimeError(
-                   "EE mode requires writable boot.log. "
-                   "Check /app/secrets directory ownership: "
-                   f"current user = {os.getuid()}:{os.getgid()}"
-               )
-           logger.warning("CE mode: clock rollback detection disabled")
-           return False
-   ```
-
-5. **Document volume ownership expectations**
-   ```markdown
-   ## Secrets Volume Setup
-   
-   The secrets-data volume must be writable by UID 1000 (appuser).
-   Before deployment, ensure:
-   
-   ```bash
-   mkdir -p /var/lib/axiom/secrets
-   chmod 770 /var/lib/axiom/secrets
-   chown 1000:1000 /var/lib/axiom/secrets  # If bind mount
-   ```
+1. **Add VALIDATION_FAILED state** — Introduce status = VALIDATION_FAILED when output validation rules (if defined) fail. Mark job as terminal but distinguishable from FAILED.
+2. **Atomic validation before unblock** — Before calling `_unblock_dependents`, run output validation in same transaction. If validation fails, set VALIDATION_FAILED and skip unblock.
+3. **IF gate atomicity** — Parse and validate result.json immediately after job completion, in same DB transaction. If parsing fails, mark job VALIDATION_FAILED and prevent downstream triggers.
+4. **Transitive failure isolation** — Add `failed_upstream_guid` field to Job record. When cancelling, check this field; if set, this job was blocked by that upstream. Cancel it transitively only if upstream is actually FAILED or CANCELLED (not VALIDATION_FAILED).
+5. **Output validation schema in workflow definition** — Store expected output schema alongside workflow. Validate at step completion time, not at IF gate runtime.
 
 **Detection:**
-- Startup logs: "PermissionError: [Errno 13] Permission denied: 'secrets/boot.log'"
-- Container exits on lifespan startup: `docker logs puppeteer-agent-1 | grep PermissionError`
-- Directory inspection: `docker exec puppeteer-agent-1 ls -la /app/secrets` shows root ownership
-- Mismatch: appuser owns /app but not /app/secrets
+- Alert on jobs in VALIDATION_FAILED state persisting >5 minutes
+- Log all IF gate parsing errors with result.json sample
+- Audit trail: compare expected output schema vs actual result.json fields
 
 ---
 
-### Pitfall 3: Boot.log SHA256 Entries Invalid After HMAC Migration
+### Pitfall 3: Depth Limit Bypass via Conditional Unblocking
 
-**What goes wrong:** Upgrading from SHA256-hashed boot.log format to HMAC-keyed format causes immediate startup failure. Existing boot.log entries (plain SHA256) are treated as HMAC verification failures, triggering "Clock rollback detected" error in EE mode or breaking hash chain continuity in CE mode.
+**What goes wrong:**
+The current depth limit (10 levels) is enforced at **job creation time** only. An attacker (or misconfigured workflow) can **bypass this** by creating a workflow that appears to comply, then using conditional unblocking to create hidden depth, leading to stack exhaustion in recursive BFS traversal and exponential resource consumption when a single job failure cascades to 500+ downstream jobs.
 
-**Why it happens:** Current implementation stores boot.log as `<sha256_hex> <iso_timestamp>` per line. After upgrade to HMAC-keyed hashing, code tries to verify each entry as HMAC using `ENCRYPTION_KEY`. Legacy SHA256 entries have no HMAC tag and cannot be verified. The verification logic doesn't gracefully degrade—it either rejects the entry as corrupted or silently switches to a new chain, losing continuity.
+**Why it happens:**
+- Depth check is on direct `depends_on` list only
+- Conditional dependencies are not depth-checked
+- `_unblock_dependents` BFS can unblock jobs that themselves have dependents, creating exponential exploration
+- No cycle detection in conditional logic
 
 **Consequences:**
-- EE deployment fails immediately post-upgrade: "Clock rollback detected" (strict mode raises RuntimeError)
-- Audit trail broken: boot.log chain is severed, existing entries abandoned
-- Forced downgrade or manual boot.log deletion (data loss)
-- Customer deployments must rollback to prior version or lose boot.log history
-- No graceful migration path—operator must manually edit boot.log or delete it
+- Stack exhaustion in recursive BFS traversal (DoS)
+- Exponential resource consumption on cascade
+- Server CPU spike when exploring millions of potential paths
+- Denial of service against other workflows
 
 **Prevention:**
-1. **Implement dual-format parsing with version detection**
-   ```python
-   def check_and_record_boot(licence_status: LicenceStatus = LicenceStatus.CE) -> bool:
-       """Support both legacy SHA256 and new HMAC formats."""
-       
-       if not BOOT_LOG_PATH.exists():
-           # Fresh start: use HMAC format
-           new_entry = _compute_hmac_entry(...)
-           BOOT_LOG_PATH.write_text(f"{new_entry} HMAC-v2\n")
-           return True
-       
-       lines = BOOT_LOG_PATH.read_text().strip().splitlines()
-       last_line = lines[-1]
-       
-       # Detect format from line structure
-       parts = last_line.split(" ")
-       if len(parts) >= 3 and parts[-1] == "HMAC-v2":
-           # New HMAC format — verify as normal
-           stored_hmac = parts[0]
-           stored_ts = parts[1]
-           # Verify HMAC...
-       elif len(parts) >= 2 and len(parts[0]) == 64:
-           # Legacy SHA256 format — accept and migrate
-           legacy_hash = parts[0]
-           legacy_ts = parts[1]
-           logger.info("Migrating from SHA256 boot.log to HMAC format")
-           # Append new HMAC entry after legacy entry
-           new_entry = _compute_hmac_entry(legacy_hash, ...)
-           lines.append(f"{new_entry} HMAC-v2")
-       
-       BOOT_LOG_PATH.write_text("\n".join(lines) + "\n")
-       return True
-   ```
-
-2. **Add boot.log version header**
-   ```python
-   # At first write in HMAC format
-   if not BOOT_LOG_PATH.exists():
-       BOOT_LOG_PATH.write_text("# boot.log v2 (HMAC-keyed)\n")
-   
-   # Parser checks header
-   first_line = lines[0] if lines else ""
-   if first_line.startswith("# boot.log v2"):
-       # New format
-       lines = lines[1:]  # Skip header
-   else:
-       # Legacy format
-   ```
-
-3. **Migration window with explicit operator action**
-   - Document in UPGRADE.md: "First boot post-upgrade will migrate boot.log format automatically"
-   - Log clearly: `logger.info("boot.log: migrated from SHA256 to HMAC-v2 format, 5 legacy entries preserved")`
-
-4. **Provide boot.log repair tool**
-   ```python
-   # tools/repair_bootlog.py
-   def repair_bootlog(legacy_file, new_encryption_key):
-       """Migrate legacy SHA256 boot.log to HMAC format."""
-       # Read legacy entries, preserve order
-       # Recompute new chain: HMAC(prev_hmac + ts) for each entry
-       # Write new file with version header
-   ```
-
-5. **Test migration path explicitly**
-   ```python
-   def test_boot_log_migration_sha256_to_hmac():
-       """Verify SHA256 entries are accepted during upgrade."""
-       # Create legacy boot.log with SHA256 entries
-       legacy_log = Path(tmpdir) / "boot.log"
-       legacy_hash = "abc123" * 10 + "ff"  # 64 hex chars
-       legacy_log.write_text(f"{legacy_hash} 2026-04-01T10:00:00+00:00\n")
-       
-       # Mock ENCRYPTION_KEY
-       with patch("ENCRYPTION_KEY", b"test-key"):
-           # Should accept legacy entry and append new HMAC entry
-           check_and_record_boot()
-       
-       # Verify: legacy entry still there + new HMAC entry added
-       new_lines = legacy_log.read_text().strip().splitlines()
-       assert len(new_lines) == 2
-       assert new_lines[0].startswith("abc123")  # Legacy preserved
-       assert "HMAC-v2" in new_lines[1]  # New entry
-   ```
+1. **Check transitive depth at creation time** — Recursively check depth of **all** listed upstreams, including conditional dependencies. Reject if any path exceeds depth 12.
+2. **Implement IF gate depth limit** — Conditional dependencies are still dependencies; count them in depth calculation.
+3. **Batch unblock with exponential backoff** — If `_unblock_dependents` discovers >100 potential unblocks, queue them for batch processing with 50ms delays between batches.
+4. **Circuit breaker on cascade size** — Track jobs cancelled/unblocked per failure event. If a single job failure unblocks >1000 dependents, fail the cascade and alert ops.
+5. **Explicit cycle detection in IF gates** — Before committing a workflow, check for logical cycles.
 
 **Detection:**
-- Upgrade logs: "Clock rollback detected" on first EE boot post-upgrade
-- boot.log parsing fails: ValueError on HMAC format parsing
-- Legacy entries in boot.log: `cat secrets/boot.log | head -1` shows plain hex, no HMAC tag
+- Log cascade size, alert if >500
+- Monitor `_unblock_dependents` execution time; if >5s, signal DoS attempt
+- Audit: flag workflows with conditional dependencies on jobs at depth >8
 
 ---
 
-### Pitfall 4: ENCRYPTION_KEY Missing or Mismatched in Production — HMAC Verification Silent Failure
+### Pitfall 4: Webhook Replay Attacks → Workflow State Corruption
 
-**What goes wrong:** Agent container runs without ENCRYPTION_KEY env var set (or set to wrong value). HMAC verification falls back to dev-only hardcoded key or skips entirely. Boot.log becomes unverifiable—attacker could modify it without detection. On cluster upgrade, different agents have different ENCRYPTION_KEY values; HMAC verification fails inconsistently.
+**What goes wrong:**
+Workflows accept external event triggers via webhooks. Without replay protection, an attacker (or network retry) can send the same webhook multiple times:
 
-**Why it happens:** ENCRYPTION_KEY is loaded lazily during security module initialization. If unset, code falls back to a development key or logs a warning but continues. In production, operators may forget to set ENCRYPTION_KEY in secrets.env. In distributed deployments, if the key isn't centrally managed, agents may have different keys. EE licence validation doesn't strictly enforce ENCRYPTION_KEY presence at startup, so boot.log validation silently weakens.
+1. Send webhook with signed event payload
+2. Server validates HMAC signature, emits signal "event-kafka-received"
+3. All jobs waiting on this signal unblock simultaneously
+4. **Network glitch or operator error**: Webhook retried 3 times
+5. Signal emitted 4 times total; jobs unblock 4 times, re-execute, corrupt state
+
+Compounded by Pitfall 1: concurrent `_unblock_dependents` calls process it twice, unblocking the same job twice.
+
+**Why it happens:**
+- Webhook handler validates HMAC but doesn't track `nonce` or `replay_id`
+- `unblock_jobs_by_signal` is idempotent by design, **but** if a job re-executes instead of idempotently transitioning, state corrupts
+- No timestamp on webhook; accepts events from any time in past
+- APScheduler retry logic + network retries mean webhooks arrive multiple times
 
 **Consequences:**
-- Silent security gap: boot.log can be tampered with if ENCRYPTION_KEY is dev-fallback
-- Inconsistent HMAC validation across cluster: agent-1 accepts boot.log, agent-2 rejects it
-- Startup confusion: "Why is this agent failing while that one works?" (different ENCRYPTION_KEY)
-- No clear warning to operator that ENCRYPTION_KEY is missing in production
+- Workflow executes steps multiple times (2x, 3x, or more)
+- Duplicate data writes (payments charged twice, records inserted multiple times)
+- State corruption if downstream steps assume "executed once" semantics
+- Audit trail confusion (same job appears COMPLETED multiple times)
 
 **Prevention:**
-1. **Enforce ENCRYPTION_KEY at startup for EE mode**
-   ```python
-   def load_encryption_key(licence_status: LicenceStatus):
-       """Load ENCRYPTION_KEY, enforce in EE mode."""
-       env_key = os.getenv("ENCRYPTION_KEY", "").strip()
-       
-       if licence_status.is_ee_active:
-           # EE requires explicit key
-           if not env_key:
-               raise RuntimeError(
-                   "ENCRYPTION_KEY env var is REQUIRED for EE mode "
-                   "(needed for boot.log HMAC verification and secrets encryption). "
-                   "Generate with: openssl rand -base64 32"
-               )
-           return env_key.encode()
-       else:
-           # CE: use dev fallback with warning
-           if not env_key:
-               logger.warning(
-                   "ENCRYPTION_KEY not set — using development fallback. "
-                   "For production, set ENCRYPTION_KEY env var."
-               )
-               return b"dev-fallback-key-ce-only"
-           return env_key.encode()
-   ```
-
-2. **Document ENCRYPTION_KEY generation in installation guide**
-   ```markdown
-   ## Step 2: Generate Encryption Key
-   
-   The ENCRYPTION_KEY is used to encrypt secrets in the database and for EE licence boot.log verification.
-   
-   ```bash
-   openssl rand -base64 32
-   # Copy output to .env or secrets.env:
-   echo "ENCRYPTION_KEY=<output>" >> .env
-   ```
-   
-   For EE mode, this is REQUIRED. For CE mode, it's optional but strongly recommended for production.
-   ```
-
-3. **Validate ENCRYPTION_KEY consistency across cluster** (optional but valuable)
-   ```python
-   # Health check endpoint
-   @app.get("/health/crypto")
-   async def health_crypto_key():
-       """Verify ENCRYPTION_KEY is consistent with boot.log."""
-       # Compare ENCRYPTION_KEY hash with one stored in boot.log
-       # Return 200 if consistent, 503 if mismatch
-       return {"status": "healthy", "encryption_key_set": bool(ENCRYPTION_KEY)}
-   ```
-
-4. **Pre-seed ENCRYPTION_KEY in init container**
-   ```yaml
-   init-secrets:
-     image: alpine:latest
-     environment:
-       ENCRYPTION_KEY: ${ENCRYPTION_KEY}  # From .env
-     entrypoint: |
-       sh -c '
-       mkdir -p /app/secrets
-       echo $ENCRYPTION_KEY > /app/secrets/encryption.key
-       chmod 600 /app/secrets/encryption.key
-       chown 1000:1000 /app/secrets/encryption.key
-       '
-     volumes:
-       - secrets-data:/app/secrets
-   ```
-
-5. **Strict startup validation for EE**
-   ```python
-   async def lifespan(app: FastAPI):
-       # Load licence early
-       licence = await load_licence()
-       
-       # Enforce ENCRYPTION_KEY in EE mode
-       if licence.is_ee_active and not os.getenv("ENCRYPTION_KEY"):
-           logger.critical(
-               "EE licence active but ENCRYPTION_KEY not set. "
-               "This is a security misconfiguration. Refusing to start."
-           )
-           raise RuntimeError("ENCRYPTION_KEY required for EE mode")
-       
-       # Validate boot.log accessibility
-       if licence.is_ee_active:
-           try:
-               check_and_record_boot(licence.status)
-           except PermissionError as e:
-               logger.critical(f"Cannot access boot.log: {e}")
-               raise RuntimeError("boot.log inaccessible in EE mode")
-       
-       yield
-   ```
+1. **Implement nonce tracking** — Store `webhook_nonce` in a dedicated table with TTL (24 hours). Reject any webhook with nonce already seen.
+2. **Timestamp validation** — Include `timestamp` in HMAC payload. Reject if `current_time - timestamp > 300 seconds`.
+3. **Idempotency key in signal definition** — Signals include `event_id` or `nonce`. Change the signal name if the event retries.
+4. **Database-backed idempotency** — Before emitting a signal, check if this exact signal was emitted in last 60 seconds. If yes, return cached result.
+5. **Explicit webhook signature format** — Require `X-Webhook-Signature: HMAC-SHA256=<hash>`, `X-Webhook-Timestamp: <unix_seconds>`, `X-Webhook-Nonce: <uuid>`. All three must be present and valid.
 
 **Detection:**
-- EE deployment fails at startup: "ENCRYPTION_KEY env var is REQUIRED for EE mode"
-- Cluster inconsistency: `docker exec agent-1 env | grep ENCRYPTION_KEY` differs from agent-2
-- boot.log tampering undetected: HMAC verification passes even though boot.log was modified
+- Alert on signal emitted twice with same name within 1 minute
+- Log webhook handler latency; if retries happen, log it explicitly
+- Audit trail: flag jobs that transitioned from PENDING multiple times
 
 ---
 
-### Pitfall 5: Removing `privileged: true` Breaks Job Execution Without Capability-Drop Replacement
+### Pitfall 5: Structured Output Injection via IF Gates
 
-**What goes wrong:** Operator removes `privileged: true` from agent container in compose.yaml to harden the deployment. Agent starts fine but job execution fails: "Error response from daemon: denied capability: cap_sys_admin" when attempting to spawn job containers. Foundry builds fail. All job execution becomes non-functional.
+**What goes wrong:**
+IF gates read `/tmp/axiom/result.json` to decide which step executes next. If the job's output is user-controlled or from an untrusted source, an attacker can inject malicious JSON to manipulate control flow:
 
-**Why it happens:** The existing configuration runs with `privileged: true`, which grants all Linux capabilities (CAP_SYS_ADMIN, CAP_NET_ADMIN, CAP_SYS_RESOURCE, etc.). Removing this flag without providing specific `cap_add` entries revokes all capabilities. Job execution via Docker-in-Docker requires CAP_SYS_ADMIN. Resource limit enforcement requires CAP_SYS_RESOURCE. Removing privileged mode without replacement is a hard regression.
+1. Job A fetches data from a URL: `curl https://untrusted-api.com/data > result.json`
+2. IF gate reads result.json: `if $.status == "success" then unblock B, else unblock C`
+3. Attacker controls the API; returns JSON with injected fields
+4. IF gate logic uses this to construct the next job name or targets
+5. Workflow routes to wrong step or creates job with wrong node targeting
+
+Compounded with Pitfall 2 (no validation): Job A completes, IF gate reads corrupted JSON, unblocks wrong step silently.
+
+**Why it happens:**
+- Jobs can execute arbitrary scripts; scripts can write arbitrary JSON to result.json
+- IF gate evaluation trusts result.json content implicitly
+- No schema validation on result.json
+- JSON parsing might use unsafe deserialization
 
 **Consequences:**
-- Foundry image builds fail immediately: "denied capability"
-- All job dispatch fails: jobs stuck in PENDING state
-- No graceful degradation: failure is visible only at runtime, not startup
-- Rolling back to privileged mode is the only recovery (security regression)
-- Operator confusion: "Why did security hardening break everything?"
+- Workflow takes wrong branch
+- Sensitive data is accessed/leaked if wrong step executes
+- If result.json is used to construct node IDs, job runs on wrong node
+- Audit trail shows "wrong" step executed; difficult to trace to injection
 
 **Prevention:**
-1. **Replace `privileged: true` with minimal `cap_add` set**
-   ```yaml
-   agent:
-     cap_drop: [ALL]
-     cap_add:
-       - SYS_ADMIN    # Required: Docker-in-Docker, nested containers
-       - NET_ADMIN    # Required: virtual network setup for job isolation
-       - SYS_RESOURCE # Required: cgroup memory/CPU limit enforcement
-       - SYS_PTRACE   # Required: process monitoring, job status tracking
-       - SETFCAP      # Required: file capability operations during builds
-   ```
-
-2. **Add detailed comments explaining each capability**
-   ```yaml
-   # Capabilities required for job execution:
-   # - SYS_ADMIN: Allows Docker-in-Docker (nested container spawning)
-   # - NET_ADMIN: Allows virtual network namespace setup
-   # - SYS_RESOURCE: Allows cgroup operations (memory/CPU limits)
-   # - SYS_PTRACE: Allows process tracing (job monitoring, exit codes)
-   # - SETFCAP: Allows setting file capabilities (build operations)
-   #
-   # NOT REQUIRED: CHOWN, KILL, NET_BIND_SERVICE, AUDIT_WRITE
-   # Explicitly dropped for security hardening.
-   ```
-
-3. **Validate capabilities at container startup**
-   ```python
-   def validate_agent_hardening():
-       """Verify agent has exactly the required capabilities."""
-       import socket
-       result = docker.containers.get(socket.gethostname()).inspect()
-       cap_add = set(result.get("HostConfig", {}).get("CapAdd") or [])
-       cap_drop = set(result.get("HostConfig", {}).get("CapDrop") or [])
-       
-       required = {"SYS_ADMIN", "NET_ADMIN", "SYS_RESOURCE", "SYS_PTRACE", "SETFCAP"}
-       dropped = {"ALL"} if cap_drop else set()
-       
-       if cap_add != required:
-           logger.warning(f"Unexpected caps: {cap_add - required}")
-       if not dropped:
-           logger.warning("CAP_DROP not set to ALL — consider dropping unused caps")
-   ```
-
-4. **Test each capability individually** (integration test suite)
-   ```python
-   def test_job_execution_with_minimal_caps():
-       """Verify jobs can run with minimal capabilities."""
-       # Spawn a test job that uses each required capability
-       # SYS_ADMIN: docker run hello-world
-       # NET_ADMIN: configure job network
-       # SYS_RESOURCE: set memory limit
-       # SYS_PTRACE: check job exit code
-       result = dispatch_job(...)
-       assert result.status == "COMPLETED"
-   ```
-
-5. **Document capability requirements in security guide**
-   ```markdown
-   # Agent Hardening: Linux Capabilities
-   
-   The agent container requires minimal Linux capabilities to function securely:
-   
-   | Capability | Purpose | Why Required |
-   |---|---|---|
-   | SYS_ADMIN | Docker-in-Docker | Job containers spawned via docker run |
-   | NET_ADMIN | Virtual networks | Job network isolation setup |
-   | SYS_RESOURCE | cgroup operations | Memory and CPU limits on jobs |
-   | SYS_PTRACE | Process monitoring | Exit code tracking, job status |
-   | SETFCAP | File capabilities | Dockerfile RUN operations during builds |
-   
-   It explicitly does NOT require:
-   - CHOWN (files owned by appuser, not changed)
-   - KILL (jobs killed via signals, not SIG_KILL)
-   - NET_BIND_SERVICE (no ports < 1024 bound by agent)
-   - AUDIT_WRITE (no audit log writes)
-   ```
+1. **JSON Schema validation** — Before IF gate evaluation, validate result.json against a strict schema defined in the workflow. Reject if invalid.
+2. **Sandbox IF gate expressions** — Use restricted expression language (Lua, Jinja2 with no function calls) instead of arbitrary eval. Disallow file access, network calls, imports.
+3. **Typed field extraction** — If IF gate reads `$.status`, enforce that status is a string from a finite set {success, failure, retry}. No nested objects, no wildcards.
+4. **Immutable result.json** — Once job completes, make result.json read-only. If a step tries to modify it, fail the workflow.
+5. **Sign result.json** — Have the node sign result.json with its private key. Verify signature before using it in IF gate.
 
 **Detection:**
-- Job execution logs: "Error response from daemon: denied capability: cap_sys_admin"
-- Jobs stuck in PENDING state indefinitely
-- `docker inspect <agent-container> | grep Cap` shows empty or wrong capabilities
+- Log IF gate expression + inputs for each evaluation
+- Alert on JSON parsing errors in result.json
+- Audit: flag workflows where result.json size is >10 MB or contains non-scalar types
 
 ---
 
-### Pitfall 6: Ed25519 Signature Verification Message Encoding Mismatch
+### Pitfall 6: APScheduler "Ghost Execution" in Workflow Scheduling
 
-**What goes wrong:** Job script signature verification fails intermittently or consistently even with correct key and operator-verified signature. Scripts signed locally on operator's machine (via axiom-push) verify successfully, but fail when agent attempts verification. Jobs rejected with HTTP 422 "Signature verification failed."
+**What goes wrong:**
+When a workflow is scheduled with a cron trigger via APScheduler, the "save as new" pattern creates a **ghost execution** risk:
 
-**Why it happens:** Ed25519 signature verification is encoding and byte-order sensitive. Common causes:
-1. Script content encoded as UTF-8 during signing, but stored in database with different encoding
-2. Script has trailing newlines when signed (`script\n`), but stored without trailing whitespace
-3. Script signed on Windows with CRLF line endings (`\r\n`), stored/verified on Unix with LF (`\n`)
-4. Script normalized (spaces trimmed) after signing but before verification
-5. Signature payload field contains modified script (e.g., HMAC field added post-signing)
+1. User creates workflow W1 with cron trigger `0 9 * * *` (daily at 9 AM)
+2. APScheduler registers this as job ID `w1-cron` that fires at 9 AM
+3. User decides to modify W1, clicks "Save as New Workflow" → creates W1.2
+4. The **original APScheduler job for W1 is never paused**; it still fires at 9 AM
+5. At 9 AM, APScheduler triggers W1, spawns jobs, completes workflow
+6. User expects W1.2 to run; instead W1 ran (invisibly, no UI indicator)
+7. Workflow history is confusing; "which version ran?"
+
+**Why it happens:**
+- Workflow CRUD doesn't cascade to APScheduler job management
+- APScheduler job IDs are based on workflow ID, not version
+- "Save as new" creates a new workflow record but doesn't pause the old one
+- No explicit pause/unpause workflow semantics in API
 
 **Consequences:**
-- Legitimate job scripts rejected with "Signature verification failed"
-- Operator workflow breaks: "I signed it locally and it verified, why won't it submit?"
-- No visibility into what bytes were actually signed (debugging difficult)
-- Operator workaround: disable signature verification or re-sign repeatedly
-- Security false positives: legitimate scripts look tampered with
+- Duplicate workflows executing (both W1 and W1.2 fire, different data)
+- Missed expectation: user thinks W1.2 runs but W1 ran instead
+- Audit trail confusion: workflow history shows W1 completed, but user "saved as new"
+- Job contamination: W1's old data pipeline runs, corrupts state meant for W1.2
 
 **Prevention:**
-1. **Enforce strict encoding at signature and verification time**
-   ```python
-   def normalize_script(script_content: str) -> bytes:
-       """Normalize script to canonical form for signing."""
-       # 1. Ensure UTF-8 encoding
-       if isinstance(script_content, bytes):
-           script_bytes = script_content
-       else:
-           script_bytes = script_content.encode("utf-8")
-       
-       # 2. Normalize line endings to LF only
-       script_str = script_bytes.decode("utf-8").replace("\r\n", "\n")
-       
-       # 3. Ensure single trailing newline
-       script_str = script_str.rstrip() + "\n"
-       
-       return script_str.encode("utf-8")
-   ```
-
-2. **Use same normalization function at both signing and verification**
-   ```python
-   # axiom-push CLI (signing)
-   script_bytes = normalize_script(script_content)
-   signature = private_key.sign(script_bytes)
-   
-   # Agent (verification)
-   script_bytes = normalize_script(script_content)
-   public_key.verify(signature_bytes, script_bytes)
-   ```
-
-3. **Document the signing contract in API spec and guide**
-   ```markdown
-   ## Job Signing Contract
-   
-   Script content is normalized before signing:
-   1. UTF-8 encoding enforced
-   2. Line endings normalized to LF (\\n)
-   3. Single trailing newline appended
-   
-   Both the axiom-push CLI and the Agent enforce this normalization.
-   
-   **Do not:**
-   - Sign raw file bytes with embedded newlines
-   - Modify script content after signing (add comments, spaces, etc.)
-   - Change line endings between signing and submission
-   ```
-
-4. **Hash the script before signing** (optional but adds safety margin)
-   ```python
-   # More robust: sign the SHA256 hash, not raw content
-   script_hash = hashlib.sha256(normalized_script_bytes).digest()
-   signature = private_key.sign(script_hash)
-   
-   # Verification
-   script_hash = hashlib.sha256(normalized_script_bytes).digest()
-   public_key.verify(signature_bytes, script_hash)
-   ```
-
-5. **Add test vectors for known-good signatures**
-   ```python
-   # Test with fixed script and signature
-   CANONICAL_SCRIPT = "#!/bin/bash\necho hello\n"
-   CANONICAL_SIG_HEX = "abc123..."  # Pre-computed with above script
-   
-   def test_signature_verification_canonical():
-       """Verify canonical test vector works."""
-       sig_bytes = bytes.fromhex(CANONICAL_SIG_HEX)
-       script_bytes = normalize_script(CANONICAL_SCRIPT)
-       # Should not raise InvalidSignature
-       public_key.verify(sig_bytes, script_bytes)
-   ```
-
-6. **Provide clear error messages with debugging context**
-   ```python
-   from cryptography.exceptions import InvalidSignature
-   
-   try:
-       public_key.verify(signature_bytes, script_bytes)
-   except InvalidSignature:
-       import hashlib
-       raise HTTPException(
-           status_code=422,
-           detail=(
-               "Signature verification failed. "
-               "Ensure the script was signed with the exact same content. "
-               f"Script SHA256: {hashlib.sha256(script_bytes).hexdigest()} "
-               "Check for: line ending changes (LF vs CRLF), trailing whitespace, encoding mismatches."
-           )
-       )
-   ```
+1. **Pause workflow explicitly on save-as-new** — When creating W1.2 from W1, auto-pause W1's APScheduler jobs. Require user confirmation if active jobs exist.
+2. **Workflow version semantics** — Store `workflow_version` on both Workflow and Job records. APScheduler job ID includes version: `w1-v1-cron`, `w1-v2-cron`.
+3. **Pause/resume API** — Add explicit `PATCH /workflows/{id}/pause` and `PATCH /workflows/{id}/resume` endpoints. Mark workflow with `paused_at` timestamp. Pull_work checks this before dispatching.
+4. **APScheduler job cleanup on delete** — When deleting a workflow, explicitly remove its APScheduler jobs.
+5. **Workflow state in DB** — Track workflow status = {ACTIVE, PAUSED, ARCHIVED}. Only active workflows dispatch.
 
 **Detection:**
-- Job dispatch fails with "Signature verification failed"
-- Operator verifies signature locally: `axiom-push verify-signature`, passes
-- Same script fails on server: suggests encoding/normalization mismatch
-- Compare hashes: `sha256sum` of script on operator machine vs agent database
-- Line ending inspection: `od -c script.sh | head` shows presence of CR bytes
+- Alert on multiple workflows with same definition executing simultaneously
+- Log when APScheduler job fires: include workflow ID + version
+- Audit: flag workflows where pause event is missing but "save as new" event exists
 
 ---
 
-### Pitfall 7: Privileged Job Containers Introduced as "Temporary Workaround" During Hardening
+### Pitfall 7: Backward Compatibility with Non-Workflow Scheduled Jobs
 
-**What goes wrong:** During hardening, when capability-drop causes test failures, operator adds `privileged: true` to job containers as a "quick fix" while working through the actual capability requirements. The workaround becomes permanent; security audit later discovers privileged jobs are being executed.
+**What goes wrong:**
+Existing ScheduledJob records (cron-scheduled jobs, no workflows) will coexist with new Workflow records. A database migration or schema change breaks backward compatibility:
 
-**Why it happens:** Test failure is frustrating. Adding `privileged: true` makes it go away immediately. Temporary flag becomes permanent if not explicitly removed later. No enforcement mechanism prevents privileged job containers.
+1. Phase 1 adds Workflow table
+2. Phase 2 modifies ScheduledJob to add `workflow_id` foreign key (nullable)
+3. Existing ScheduledJobs have `workflow_id = NULL`
+4. Code path: `if job.workflow_id: execute_as_workflow() else: execute_as_legacy_job()`
+5. During migration, developer forgets the `else` branch; legacy jobs silently don't execute
+6. Or: new code assumes all ScheduledJobs are workflows, crashes on NULL workflow_id
+
+**Why it happens:**
+- Migration window where old + new coexist is a footgun
+- Two execution paths need explicit guards
+- Test coverage gaps: tests assume all jobs are workflows
+- Rollback risk: if Phase 2 is rolled back, workflow jobs are lost
 
 **Consequences:**
-- Major security regression: jobs gain full access to host kernel
-- Jobs can escape container isolation
-- Potential for kernel compromise via malicious job script
-- Audit trail shows privileged execution (discovers issue post-facto)
-- Contradicts documented security model
+- Scheduled jobs vanish (silently don't run) after upgrade
+- No alarm: job didn't run, but no error log
+- Data pipeline interruption: jobs that should have run never execute
+- Operator discovers issue days later when downstream systems fail
 
 **Prevention:**
-1. **Add pre-commit hook to prevent `privileged: true` in job containers**
-   ```bash
-   # .git/hooks/pre-commit
-   if git diff --cached --name-only | grep -E "compose|Dockerfile" | \
-      xargs grep -l "privileged: true"; then
-       echo "ERROR: 'privileged: true' found in container config"
-       echo "Jobs and agents must use minimal capabilities, not privileged mode."
-       exit 1
-   fi
-   ```
-
-2. **Add CI gate to block privileged containers**
-   ```yaml
-   # .github/workflows/ci.yml
-   - name: Check for privileged containers
-     run: |
-       if grep -r "privileged: true" puppeteer puppets; then
-           echo "ERROR: Found 'privileged: true' in container configs"
-           echo "Containers must use cap_add/cap_drop instead."
-           exit 1
-       fi
-   ```
-
-3. **Explicitly forbid privileged in compose with comments**
-   ```yaml
-   # compose.server.yaml
-   agent:
-     # privileged: false  # Explicitly false — do not change to true
-     cap_drop: [ALL]
-     cap_add:
-       - SYS_ADMIN
-       - NET_ADMIN
-       - SYS_RESOURCE
-       - SYS_PTRACE
-       - SETFCAP
-   ```
-
-4. **Document security hardening rationale**
-   ```markdown
-   ## Security: Why No Privileged Mode
-   
-   The agent and job containers do NOT run with `privileged: true`.
-   
-   Privileged mode grants all Linux capabilities and breaks the security model.
-   Instead, we use minimal `cap_add` with `cap_drop: [ALL]` for defense-in-depth.
-   
-   If you see `privileged: true` in the code or tests, it is a security regression.
-   Remove it immediately and use capability-based hardening instead.
-   ```
-
-5. **Runtime validation at startup**
-   ```python
-   def validate_no_privileged_mode():
-       """Fail if container is running as privileged."""
-       result = docker.containers.get("self").inspect()
-       if result.get("HostConfig", {}).get("Privileged"):
-           raise RuntimeError(
-               "Container is running as privileged — hardening has been compromised. "
-               "This is a security regression. Remove 'privileged: true' from compose config."
-           )
-   ```
+1. **Explicit dual-path tests** — Integration tests covering both legacy ScheduledJob execution AND new Workflow execution in same test run.
+2. **Feature flag for workflow execution** — Add `ENABLE_WORKFLOW_ENGINE=false` env var. Phase 1: workflows ignored, only legacy. Phase 2: flips to true.
+3. **Gradual migration strategy** — Add separate table `ScheduledWorkflow` with same schedule semantics. Operator manually migrates ScheduledJobs to workflows.
+4. **Sanity check on startup** — At lifespan startup, count ScheduledJobs with workflow_id = NULL. If count > 100, log WARNING with explicit migration instructions.
+5. **Audit logging on execution** — Log explicitly which code path was taken: legacy vs workflow.
 
 **Detection:**
-- Code review: `grep -r "privileged: true"` in compose/Dockerfile
-- CI failure: pre-commit hook or GitHub Actions check blocks the commit
-- Runtime: `docker inspect <container> | grep Privileged`
+- Alert on zero scheduled jobs executed in 24 hours (if non-zero expected)
+- Log job count mismatch: APScheduler N jobs, DB M ScheduledJob records
+- Audit: count execution paths, ensure both legacy + workflow paths exercised
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 8: Signature Service Public Key Format Inconsistency
+### Pitfall 8: IF Gate Expression Complexity → Undefined Behavior
 
-**What goes wrong:** Operator registers Ed25519 public key in PEM format via API, but signature verification code loads the key as raw bytes. Verification fails with format error or type mismatch.
+Complex boolean logic in IF gates is hard to test: `if (A.status == "success" and B.output.count > 10) or (C retried < 3) then step D else step E`. Operator writes expression with unclear precedence; expected parse != actual parse.
 
 **Prevention:**
-1. **Standardize on PEM format at registration and verification**
-   ```python
-   # At registration
-   def register_public_key(req: RegisterKeyRequest):
-       public_key_pem = normalize_public_key_to_pem(req.public_key)
-       # Validate PEM format
-       from cryptography.hazmat.primitives import serialization
-       serialization.load_pem_public_key(public_key_pem.encode())  # Will raise if invalid
-   ```
-
-2. **Load from PEM at verification time**
-   ```python
-   def verify_job_signature(sig_rec: Signature, user_sig: str, script_content: str):
-       from cryptography.hazmat.primitives import serialization
-       pub_key = serialization.load_pem_public_key(sig_rec.public_key.encode())
-       pub_key.verify(bytes.fromhex(user_sig), script_content.encode("utf-8"))
-   ```
+1. Limit IF gate to single field comparison: `if A.output.status == "success" then B else C`. No AND/OR.
+2. Validate expression syntax at workflow creation time.
+3. Surface IF gate evaluation in logs: `IF expression: <expr>, inputs: <values>, result: <branch>`.
 
 ---
 
-### Pitfall 9: Foundry-Generated Dockerfile USER Placement in the Middle of RUN Steps
+### Pitfall 9: Missing Result.json in Node Environment
 
-**What goes wrong:** Foundry dynamically generates Dockerfile by inserting capability/package snippets. Template builder inserts `USER appuser` before all privileged operations complete. Subsequent `RUN apk add` or `RUN pip install` fails because non-root user lacks permission to write to `/usr/local/bin` or system directories.
+Node runtime writes `/tmp/axiom/result.json`; if the job never creates this file, the IF gate parser crashes.
 
 **Prevention:**
-1. **Enforce USER placement rule in template generation**
-   ```python
-   def generate_dockerfile(template, runtime_recipe):
-       lines = [
-           "FROM <base>",
-           "# System dependencies",
-           "RUN apk add --no-cache <packages>",
-           "# Python dependencies",
-           "RUN pip install <packages>",
-           "# Ownership and permissions setup",
-           "RUN chown -R 1000:1000 /app /usr/local",
-           "RUN chmod -R u+rwx /app",
-           "",
-           "# Switch to non-root user",
-           "USER appuser",
-           "",
-           "WORKDIR /app",
-           "ENTRYPOINT [...]",
-       ]
-   ```
-
-2. **Document in Foundry UI** — show template structure with USER placement highlighted
+1. Default result.json: If job completes without writing result.json, node automatically writes `{"status": "success", "output": null}`.
+2. IF gate guard on missing file: Check if result.json exists; if not, default to "no data" branch.
 
 ---
 
-### Pitfall 10: Node Containers Can Read Boot.log But Cannot Execute
+### Pitfall 10: Cron Trigger Misalignment with Workflow Duration
 
-**What goes wrong:** Node container job executes Python script that tries to `import axiom_bootstrap` (which reads boot.log for validation). Script fails with "boot.log not readable" because the job container doesn't have access to the host's secrets volume.
+Workflow scheduled daily, but previous run takes 25 hours. APScheduler fires next run while previous still executes.
 
 **Prevention:**
-1. **Boot.log validation is agent-only, not node-side** — Document this clearly
-2. **Jobs should not attempt to read boot.log** — It's a cluster-level security mechanism
-3. **Node containers don't need secrets volume** — Only bind `/var/run/docker.sock` for job spawning
+1. `max_instances=1` on APScheduler job.
+2. Dispatch timeout: Cancel workflow if it exceeds expected duration.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 11: Missing ENCRYPTION_KEY in Local Development
+### Pitfall 11: Job Template Versioning + Workflows
 
-**What goes wrong:** Developer runs agent locally without setting ENCRYPTION_KEY in `.env`. HMAC verification silently falls back to dev key, masking real issues. Tests pass locally but fail in CI where ENCRYPTION_KEY is enforced.
+Workflows reference job templates. If template is modified, old workflows using it might break.
 
-**Prevention:**
-1. **Make ENCRYPTION_KEY prominent in .env.example**
-2. **Log clear warning at startup if unset in CE mode**
-3. **Enforce ENCRYPTION_KEY in EE mode at startup**
+**Prevention:** Store template version on workflow step definition. When step executes, use that specific template version.
 
----
+### Pitfall 12: Webhook Secret Rotation
 
-### Pitfall 12: System CA Certificates Unreadable by Non-Root User
+Webhook HMAC secret is rotated; old webhooks are rejected; integration partners' webhooks fail.
 
-**What goes wrong:** After switching to non-root user, agent fails to validate HTTPS upstream connections. Errors like "certificate verify failed" or "unable to load CA cert" occur because `/etc/ssl/certs/` is root-owned.
-
-**Prevention:**
-1. **Make system CA certs world-readable**
-   ```dockerfile
-   RUN chmod -R a+rX /etc/ssl/certs/
-   ```
-
-2. **Use Python certifi bundle instead**
-   ```python
-   import certifi
-   import ssl
-   ssl_context = ssl.create_default_context(cafile=certifi.where())
-   ```
+**Prevention:** Support multiple active secrets during rotation window. Include secret version in X-Webhook-Signature header.
 
 ---
 
 ## Phase-Specific Warnings
 
-| Phase | Topic | Pitfall | Mitigation |
-|-------|-------|---------|-----------|
-| Container Hardening | Non-root Setup | GID mismatch on Docker socket | Resolve host docker GID dynamically, pass to build, test in CI |
-| Container Hardening | Volume Ownership | Non-root user cannot write secrets | Place USER after all chown/chmod, use init container for existing deployments |
-| Container Hardening | Privilege Removal | Removing privileged breaks job execution | Replace with minimal cap_add, test each capability, add CI gate |
-| Licence Hardening | Boot.log Migration | SHA256 entries fail HMAC validation post-upgrade | Dual-format parsing with version marker, explicit test case |
-| Licence Hardening | Encryption Key | ENCRYPTION_KEY missing or mismatched | Enforce in EE mode at startup, document generation, validate consistency |
-| Job Signing | Signature Verification | Message encoding mismatch | Enforce UTF-8 + LF normalization, document contract, add test vectors |
-| Foundry Build | Dockerfile Generation | USER instruction breaks subsequent RUN | Enforce USER after all RUN, document rule, test generated Dockerfiles |
+| Phase | Topic | Likely Pitfall | Mitigation |
+|-------|-------|--------------|-----------|
+| **Phase 1: Core DAG Model** | Concurrency in completion | Race condition in _unblock_dependents (Pitfall 1) | SELECT...FOR UPDATE atomicity; concurrent completion test |
+| **Phase 1** | Job status states | VALIDATION_FAILED missing (Pitfall 2) | Add VALIDATION_FAILED state; single unblock task |
+| **Phase 2: Result Validation** | Output validation | Validation too late (Pitfall 2, 5) | Validate result.json at job completion, before unblock |
+| **Phase 2** | IF gate evaluation | Structured output injection (Pitfall 5) | JSON schema enforcement; sandboxed expression language |
+| **Phase 2** | Depth limit | Bypass via conditional deps (Pitfall 3) | Transitive depth check for all depends_on |
+| **Phase 3: Backward Compatibility** | ScheduledJob coexistence | Ghost execution + migration gaps (Pitfalls 6, 7) | Feature-flag engine; dual execution paths with tests |
+| **Phase 3** | APScheduler integration | Pause/resume missing (Pitfall 6) | Explicit pause/resume API; cascade to APScheduler |
+| **Phase 4: Webhooks** | External events | Replay attacks (Pitfall 4) | Nonce tracking + timestamp validation; idempotency |
+| **Phase 4** | Secrets | Secret rotation (Pitfall 12) | Multiple active secrets during rotation |
+| **All phases** | Testing | Concurrency gaps | Concurrent completion, parallel steps, replay tests |
 
 ---
 
-## Integration Testing Checklist
+## Integration-Specific Risks
 
-Before deploying hardening changes, verify:
+### Risk: Ed25519 Signature Validation + Workflows
 
-- [ ] Agent builds with non-root user (UID 1000, GID matches docker)
-- [ ] Agent can mount and read `/var/run/docker.sock` (test: `docker ps` inside agent)
-- [ ] Agent can spawn job containers (test: `docker run` from inside agent)
-- [ ] Agent can write to `secrets/boot.log` on startup and after restart
-- [ ] Foundry generates Dockerfile with correct USER placement (USER after all RUN)
-- [ ] Job signature verification works with UTF-8 encoded scripts
-- [ ] Boot.log persists across container restart (volume persistence test)
-- [ ] ENCRYPTION_KEY validation enforced in EE mode (test: fail on missing key)
-- [ ] No `privileged: true` in any Dockerfile or compose file (CI gate)
-- [ ] Node containers run with `privileged: false` and `cap_drop: [ALL]`
-- [ ] Agent runs with minimal `cap_add` (SYS_ADMIN, NET_ADMIN, SYS_RESOURCE, SYS_PTRACE, SETFCAP)
-- [ ] Boot.log SHA256→HMAC migration path works (test: legacy entries + new HMAC)
-- [ ] Secrets directory ownership correct after USER switch
+Workflows contain multiple jobs. If workflow serialization includes job payloads, modifying a single job breaks the workflow signature.
+
+**Mitigation:** Workflows don't have Ed25519 signatures; only individual job steps do. Workflow definition is immutable; steps reference job templates by ID + version. Each job executed by a step must pass full signature verification.
+
+### Risk: Node Resource Limits + Parallel Steps
+
+Workflow with 10 parallel steps, each needing 2GB RAM. Node has 4GB total. First 5 steps assigned; step 6 stuck PENDING indefinitely.
+
+**Mitigation:** Workflow DAG includes resource reservation: sum memory of all **concurrent** steps; reject if exceeds node capacity. Calculate critical path and peak parallelism at dispatch time.
+
+### Risk: Audit Trail Ambiguity in Workflows
+
+Audit log shows job A executed, but doesn't indicate it was step 3 of workflow W1 v2. Operator can't trace back.
+
+**Mitigation:** Add `workflow_id`, `workflow_version`, `step_name` fields to Job. Audit log includes full context.
+
+---
+
+## Summary: Prevention Checklist for Each Phase
+
+### Phase 1: Core DAG Model
+- [ ] SELECT...FOR UPDATE atomicity on job status transitions
+- [ ] Concurrent completion test: 3 jobs complete within 10ms, no double-unblock
+- [ ] Add VALIDATION_FAILED status
+- [ ] Transitive depth check for all depends_on (limit 12)
+- [ ] BFS unblock batch size limit (circuit breaker at 1000)
+
+### Phase 2: Result Validation + IF Gates
+- [ ] Output validation schema in workflow definition
+- [ ] Validate result.json in same transaction as job completion
+- [ ] Sandboxed IF gate expression language
+- [ ] JSON schema enforcement before IF gate evaluation
+- [ ] Tests include valid + invalid result.json scenarios
+
+### Phase 3: Backward Compatibility
+- [ ] Feature flag for workflow engine (ENABLE_WORKFLOW_ENGINE)
+- [ ] Dual-path tests: legacy ScheduledJob + Workflow in same test
+- [ ] Sanity check: count legacy jobs on startup, warn if high
+- [ ] APScheduler pause/resume API + workflow state column
+- [ ] Manual migration path: ScheduledJob → Workflow documented
+
+### Phase 4: Webhooks + External Events
+- [ ] Nonce tracking table with 24h TTL
+- [ ] Timestamp validation (±300s window)
+- [ ] Webhook signature format validation (3 required headers)
+- [ ] Database-backed idempotency check
+- [ ] Replay attack test: same webhook 3 times, verify single execution
+
+### All Phases
+- [ ] Concurrent execution test matrix (2, 5, 10 simultaneous jobs)
+- [ ] Partial failure scenarios (VALIDATION_FAILED, wrong IF branch)
+- [ ] Audit trail verification: all critical paths logged with context
+- [ ] Performance regression: 1000-job workflow DAG unblock latency <5s
 
 ---
 
 ## Sources
 
-- [Fix Docker Permission Denied: 5 Solutions That Actually Work](https://oneuptime.com/blog/post/2026-01-16-docker-permission-denied-errors/view)
-- [Docker daemon access within Docker as non-root user: Permission denied](https://forums.docker.com/t/docker-daemon-access-within-docker-as-non-root-user-permission-denied-while-trying-to-connect-to-docker-daemon-socket/94181)
-- [The Complete Guide to Docker Mount Permission Issues](https://eastondev.com/blog/en/posts/dev/20251217-docker-mount-permissions-guide/)
-- [Understanding the Docker USER Instruction](https://www.docker.com/blog/understanding-the-docker-user-instruction/)
-- [Top 21 Dockerfile best practices for container security](https://sysdig.com/learn-cloud-native/dockerfile-best-practices)
-- [Understanding User File Ownership in Docker](https://linuxvox.com/blog/understanding-user-file-ownership-in-docker-how-to-avoid-changing-permissions-of-linked-volumes/)
-- [How to Drop Linux Capabilities in Docker Containers](https://oneuptime.com/blog/post/2026-01-16-docker-drop-capabilities/view)
-- [How to Use Docker Compose cap_add and cap_drop](https://oneuptime.com/blog/post/2026-02-08-how-to-use-docker-compose-capadd-and-capdrop/view)
-- [Ed25519 signing — Cryptography 47.0.0 documentation](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/)
-- [EdDSA: Sign / Verify - Examples](https://cryptobook.nakov.com/digital-signatures/eddsa-sign-verify-examples)
-- [Securing Dockerized Applications: User Permissions and Capabilities Explained](https://medium.com/@vasanthancomrads/securing-dockerized-applications-user-permissions-and-capabilities-explained-54841c5bed9e)
+### Orchestration Architecture & Concurrency
+- [Troubleshooting Apache Airflow](https://www.mindfulchase.com/explore/troubleshooting-tips/troubleshooting-apache-airflow-optimizing-dag-scheduling,-parallelism,-and-performance.html)
+- [Building a DAG-Based Workflow Execution Engine](https://medium.com/@amit.anjani89/building-a-dag-based-workflow-execution-engine-in-java-with-spring-boot-ba4a5376713d)
+- [Data Pipeline Orchestration Tools 2026](https://dagster.io/learn/data-pipeline-orchestration-tools)
+
+### Webhook Security & Replay Prevention
+- [Webhook Security Fundamentals 2026](https://www.hooklistener.com/learn/webhook-security-fundamentals)
+- [Replay Prevention Best Practices](https://webhooks.fyi/security/replay-prevention)
+- [Webhook Security Best Practices](https://hooque.io/guides/webhook-security/)
+- [Preventing Replay Attacks](https://dohost.us/index.php/2026/02/15/preventing-replay-attacks-implementing-timestamps-and-nonces-in-webhook-handlers/)
+
+### Structured Output Security
+- [MCP Attack Vectors](https://unit42.paloaltonetworks.com/model-context-protocol-attack-vectors/)
+- [Output Constraints as Attack Surface](https://arxiv.org/html/2503.24191v1)
+- [PromptGuard: Injection-Resilient Models](https://www.nature.com/articles/s41598-025-31086-y)
+
+### Backward Compatibility & Migration
+- [API Backward Compatibility Best Practices](https://zuplo.com/learning-center/api-versioning-backward-compatibility-best-practices)
+- [Database Migration Strategies for Zero-Downtime](https://www.deployhq.com/blog/database-migration-strategies-for-zero-downtime-deployments-a-step-by-step-guide)
+- [Database Design for Backward Compatibility](https://www.pingcap.com/article/database-design-patterns-for-ensuring-backward-compatibility/)
+
+### Denial of Service & Recursion Limits
+- [CVE-2026-12345: GraphQL Depth Bypass](https://dailycve.com/mercurius-query-depth-bypass-cve-2026-12345-low/)
+- [CVE-2026-24006: Deeply Nested Objects DoS](https://advisories.gitlab.com/pkg/npm/seroval/CVE-2026-24006/)
+- [CVE-2026-27601: Unlimited Recursion](https://cvefeed.io/vuln/detail/CVE-2026-27601)
+
+### Distributed Systems & State Management
+- [Temporal Workflow Orchestration & Scalability](https://temporal.io/blog/how-modern-workflow-orchestration-solves-scalability-challenges)
+- [AWS Step Functions: Orchestration & State Machine Design](https://middleware.io/blog/aws-step-functions/)
+- [Workflow Orchestration Patterns](https://www.thedataops.org/workflow-orchestration/)
+
+### Axiom Codebase References
+- `puppeteer/agent_service/services/job_service.py` — BFS cascade, depth limits
+- `puppeteer/agent_service/db.py` — Job model, depends_on schema
+- `puppeteer/agent_service/services/scheduler_service.py` — APScheduler integration
+- `mop_validation/reports/competitor_product_notes.md` — Workflow comparative analysis
