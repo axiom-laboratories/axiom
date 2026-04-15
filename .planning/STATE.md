@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v23.0
 milestone_name: DAG & Workflow Orchestration
 status: in_progress
-last_updated: "2026-04-15T18:47:00Z"
-last_activity: "2026-04-15 19:32 — Phase 146 Plan 02 executed. ORM models (Workflow, WorkflowStep, WorkflowEdge, WorkflowParameter, WorkflowRun), Pydantic models (11 total), and WorkflowService with DAG validation complete."
+last_updated: "2026-04-15T22:15:00Z"
+last_activity: "2026-04-15 22:15 — Phase 146 complete (3/3 plans). Plan 03: Added 7 workflow routes to main.py (create, list, get, update, delete, fork, validate). All write routes require workflows:write permission. Full-graph API contract in place. Ready for Phase 147 (WorkflowRun Execution Engine)."
 progress:
   total_phases: 6
-  completed_phases: 0
-  total_plans: 3
-  completed_plans: 2
-  current_phase: 146
+  completed_phases: 1
+  total_plans: 18
+  completed_plans: 3
+  current_phase: 147
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 
 ## Current Position
 
-**Phase:** 146 (Workflow Data Model) — Wave 1 complete
-**Plan:** 02 (ORM Models & Service Layer) — COMPLETE
-**Status:** Plans 01–02 executed; data layer and CRUD complete; ready for Plan 03 (API routes)
-**Progress:** 1/6 phases (partial — 2/3 plans in Phase 146 complete)
+**Phase:** 146 (Workflow Data Model) — COMPLETE
+**Plan:** 03 (API Routes & Verification) — COMPLETE
+**Status:** Plans 01–03 executed; Phase 146 complete; ready for Phase 147 (WorkflowRun Execution Engine)
+**Progress:** 1/6 phases (complete — all 3/3 plans in Phase 146 complete)
 
 ## Roadmap Summary
 

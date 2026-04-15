@@ -183,8 +183,8 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 
 - [x] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection
   - [x] Plan 01: Test & Schema Foundation — database schema (4 tables), test stubs (13 tests), fixtures, networkx dependency (completed 2026-04-15)
-  - [ ] Plan 02: ORM Models & Service Layer — Workflow/Step/Edge/Parameter models, workflow_service with validation
-  - [ ] Plan 03: API Routes — CRUD endpoints, fork, validation, structured error responses
+  - [x] Plan 02: ORM Models & Service Layer — Workflow/Step/Edge/Parameter models, workflow_service with validation (completed 2026-04-15)
+  - [x] Plan 03: API Routes — CRUD endpoints, fork, validation, structured error responses (completed 2026-04-15)
 - [ ] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation (plans TBD)
 - [ ] **Phase 148: Gate Node Types** — IF conditionals, AND/JOIN, OR, parallel fan-out, signal wait (plans TBD)
 - [ ] **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC, WORKFLOW_PARAM_* injection (plans TBD)
@@ -237,6 +237,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 143. Nyquist Validation — Container Security | v22.0 | 1/1 | Complete | 2026-04-14 |
 | 144. Nyquist Validation — EE Features | v22.0 | 1/1 | Complete | 2026-04-14 |
 | 145. Nyquist Validation — Cleanup Phases | v22.0 | 1/1 | Complete | 2026-04-15 |
+| 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
 
 ## Archived
 
