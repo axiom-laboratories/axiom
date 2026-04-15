@@ -167,6 +167,7 @@ Archive: `.planning/milestones/v21.0-ROADMAP.md`
 - ⬜ **Phase 144: Nyquist Validation — EE Features (Phases 137–140)** — Run validate-phase for all 4 EE feature phases; fill any test coverage gaps found (gap closure)
   - [ ] Plan 01: Fix Phase 138 test failures; mark all 4 VALIDATION.md files compliant (Wave 1)
 - ⬜ **Phase 145: Nyquist Validation — Cleanup Phases (Phases 141–142)** — Run validate-phase for both gap-closure phases; fill any test coverage gaps found (gap closure)
+  - [ ] Plan 01: Validate Phase 141 shell checks + Phase 142 tests; update VALIDATION.md for both; regression check (Wave 1)
 
 Full details: `.planning/v22.0-ROADMAP.md`
 
