@@ -23,10 +23,10 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 
 ## Current Position
 
-**Phase:** 147 (WorkflowRun Execution Engine) — IN PROGRESS
-**Plan:** 03 (API Routes & Integration) — COMPLETE
-**Status:** Active execution
-**Progress:** 2/6 phases (3/4 plans in Phase 147 complete)
+**Phase:** 147 (WorkflowRun Execution Engine) — COMPLETE
+**Plan:** 04 (Test Suite) — COMPLETE
+**Status:** Phase 147 complete; ready for Phase 148
+**Progress:** 2/6 phases (4/4 plans in Phase 147 complete)
 
 ## Roadmap Summary
 
