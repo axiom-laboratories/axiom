@@ -46,7 +46,7 @@ from .models import (
     SIGNING_FIELDS,
     PaginatedResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
     DependencyTreeResponse, DiscoverDependenciesResponse,
-    WorkflowCreate, WorkflowResponse, WorkflowUpdate,
+    WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowRunResponse,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets,
