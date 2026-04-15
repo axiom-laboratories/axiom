@@ -65,7 +65,7 @@ from sqlalchemy.future import select
 from sqlalchemy import update, desc, func, delete
 from collections import defaultdict
 from cryptography import x509 as _x509
-from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert, JobTemplate, ApprovedIngredient, IngredientDependency, ApprovedOS
+from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert, JobTemplate, ApprovedIngredient, IngredientDependency, ApprovedOS, WorkflowStepRun
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 from .services.job_service import JobService
 from .services.signature_service import SignatureService
@@ -1840,6 +1840,16 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
     updated = await JobService.report_result(guid, report, node_ip, db)
     if not updated:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    # Phase 147: If job is linked to a workflow step, advance the workflow
+    job = await db.get(Job, guid)
+    if job and job.workflow_step_run_id:
+        # Extract run_id from workflow_step_run_id by querying the step run
+        step_run = await db.get(WorkflowStepRun, job.workflow_step_run_id)
+        if step_run:
+            workflow_service = WorkflowService()
+            await workflow_service.advance_workflow(step_run.workflow_run_id, db)
+
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": updated.get("status", "COMPLETED")})
     return updated
 
@@ -2584,6 +2594,53 @@ async def validate_workflow(
         return {"valid": True}
     else:
         return {"valid": False, **error}
+
+@app.post("/api/workflow-runs", tags=["workflows"], response_model=WorkflowRunResponse, status_code=201)
+async def create_workflow_run(
+    body: dict,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Trigger a WorkflowRun.
+
+    Request body: {
+        "workflow_id": str,
+        "parameters": {key: value} (optional)
+    }
+
+    Returns WorkflowRunResponse with initial step runs.
+    """
+    if not body.get("workflow_id"):
+        raise HTTPException(status_code=400, detail="workflow_id required")
+
+    workflow_service = WorkflowService()
+    run = await workflow_service.start_run(
+        workflow_id=body["workflow_id"],
+        parameters=body.get("parameters", {}),
+        triggered_by=current_user.username,
+        db=db
+    )
+
+    await ws_manager.broadcast("workflow:run:created", {"run_id": run.id, "workflow_id": run.workflow_id, "status": "RUNNING"})
+    return run
+
+@app.post("/api/workflow-runs/{run_id}/cancel", tags=["workflows"], response_model=WorkflowRunResponse)
+async def cancel_workflow_run(
+    run_id: str,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancel a running WorkflowRun.
+
+    Blocks new step dispatches; running jobs continue to completion.
+    """
+    workflow_service = WorkflowService()
+    run = await workflow_service.cancel_run(run_id, db)
+
+    await ws_manager.broadcast("workflow:run:cancelled", {"run_id": run.id, "status": "CANCELLED"})
+    return run
 
 # --- Installer & Doc Endpoints ---
 
