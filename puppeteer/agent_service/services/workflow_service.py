@@ -6,13 +6,14 @@ from datetime import datetime
 import networkx as nx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, update, and_
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 
-from puppeteer.agent_service.db import (
+from agent_service.db import (
     Workflow, WorkflowStep, WorkflowEdge, WorkflowParameter,
     ScheduledJob, WorkflowRun, WorkflowStepRun, Job
 )
-from puppeteer.agent_service.models import (
+from agent_service.models import (
     WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowValidationError,
     WorkflowStepResponse, WorkflowEdgeResponse, WorkflowParameterResponse,
     WorkflowRunResponse, WorkflowStepRunResponse, JobCreate
@@ -399,8 +400,13 @@ class WorkflowService:
         if run is None or run.status == "CANCELLED":
             return []
 
-        # Get Workflow
-        workflow = await db.get(Workflow, run.workflow_id)
+        # Get Workflow with eager-loaded relationships
+        stmt = select(Workflow).where(Workflow.id == run.workflow_id).options(
+            selectinload(Workflow.steps),
+            selectinload(Workflow.edges)
+        )
+        result = await db.execute(stmt)
+        workflow = result.scalar_one_or_none()
         if workflow is None:
             return []
 
@@ -493,11 +499,11 @@ class WorkflowService:
                 # Skip if scheduled job not found
                 continue
 
-            # Parse payload from scheduled_job
-            try:
-                payload = json.loads(scheduled_job.payload) if isinstance(scheduled_job.payload, str) else scheduled_job.payload
-            except (json.JSONDecodeError, TypeError):
-                payload = {}
+            # Construct payload from script_content
+            payload = {
+                "script_content": scheduled_job.script_content,
+                "signature_payload": scheduled_job.signature_payload
+            }
 
             # Calculate depth: max(predecessor_depths) + 1, capped at 30
             if len(predecessors) == 0:
@@ -525,42 +531,24 @@ class WorkflowService:
                 else:
                     job_depth = 0
 
-            # Create JobCreate
-            job_create = JobCreate(
-                task_type=scheduled_job.task_type,
-                payload=payload,
-                priority=scheduled_job.priority or 0,
-                target_tags=json.loads(scheduled_job.target_tags) if scheduled_job.target_tags else None,
-                capability_requirements=json.loads(scheduled_job.capability_requirements) if scheduled_job.capability_requirements else None,
-                max_retries=scheduled_job.max_retries or 0,
-                backoff_multiplier=scheduled_job.backoff_multiplier or 2.0,
-                timeout_minutes=scheduled_job.timeout_minutes,
-                scheduled_job_id=step.scheduled_job_id,
-                env_tag=scheduled_job.env_tag,
-                runtime=scheduled_job.runtime,
-                name=scheduled_job.name
-            )
-
-            # Create Job via JobService
+            # Create Job for this workflow step (script task type)
             try:
-                from puppeteer.agent_service.services.job_service import JobService
-
                 # Create job GUID
                 job_guid = str(uuid4())
                 job = Job(
                     guid=job_guid,
-                    task_type=job_create.task_type,
-                    payload=json.dumps(job_create.payload),
+                    task_type="script",  # Workflow jobs are always script tasks
+                    payload=json.dumps(payload),
                     status="PENDING",
-                    target_tags=json.dumps(job_create.target_tags) if job_create.target_tags else None,
-                    capability_requirements=json.dumps(job_create.capability_requirements) if job_create.capability_requirements else None,
-                    max_retries=job_create.max_retries,
-                    backoff_multiplier=job_create.backoff_multiplier,
-                    timeout_minutes=job_create.timeout_minutes,
-                    scheduled_job_id=job_create.scheduled_job_id,
-                    env_tag=job_create.env_tag,
-                    runtime=job_create.runtime,
-                    name=job_create.name,
+                    target_tags=json.dumps(json.loads(scheduled_job.target_tags)) if scheduled_job.target_tags else None,
+                    capability_requirements=json.dumps(json.loads(scheduled_job.capability_requirements)) if scheduled_job.capability_requirements else None,
+                    max_retries=scheduled_job.max_retries or 0,
+                    backoff_multiplier=scheduled_job.backoff_multiplier or 2.0,
+                    timeout_minutes=scheduled_job.timeout_minutes,
+                    scheduled_job_id=step.scheduled_job_id,
+                    env_tag=scheduled_job.env_tag,
+                    runtime=scheduled_job.runtime or "python",
+                    name=scheduled_job.name,
                     workflow_step_run_id=sr.id,
                     depth=job_depth
                 )
