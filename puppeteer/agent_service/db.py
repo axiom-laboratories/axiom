@@ -62,6 +62,8 @@ class Job(Base):
     dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
     memory_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # e.g., "512m", "1g", "1Gi"
     cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)     # e.g., "2", "0.5"
+    workflow_step_run_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # FK to workflow_step_runs.id (Phase 147)
+    depth: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Nesting depth for ENGINE-02 override
 
     __table_args__ = (
         Index("ix_jobs_status_created_at", "status", "created_at"),
@@ -531,6 +533,24 @@ class WorkflowRun(Base):
     trigger_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # MANUAL, CRON, WEBHOOK — Phase 149
     triggered_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # user ID or webhook name
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    step_runs: Mapped[List["WorkflowStepRun"]] = relationship("WorkflowStepRun", back_populates="workflow_run")
+
+
+class WorkflowStepRun(Base):
+    __tablename__ = "workflow_step_runs"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workflow_run_id: Mapped[str] = mapped_column(ForeignKey("workflow_runs.id"))
+    workflow_step_id: Mapped[str] = mapped_column(ForeignKey("workflow_steps.id"))
+    status: Mapped[str] = mapped_column(String)  # PENDING/RUNNING/COMPLETED/FAILED/SKIPPED/CANCELLED
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    workflow_run: Mapped["WorkflowRun"] = relationship("WorkflowRun", back_populates="step_runs")
+    workflow_step: Mapped["WorkflowStep"] = relationship("WorkflowStep")
 
 
 async def init_db():
