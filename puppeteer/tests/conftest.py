@@ -341,3 +341,129 @@ async def workflow_fixture(async_db_session):
             }
         ]
     }
+
+
+@pytest_asyncio.fixture
+async def workflow_run_fixture(async_db_session, workflow_fixture):
+    """Create a WorkflowRun in RUNNING state (Phase 147 execution engine)."""
+    from agent_service.db import WorkflowRun
+
+    run = WorkflowRun(
+        id=str(uuid4()),
+        workflow_id=workflow_fixture["id"],
+        status="RUNNING",
+        started_at=datetime.utcnow(),
+        trigger_type="MANUAL",
+        triggered_by="test_user"
+    )
+    async_db_session.add(run)
+    await async_db_session.flush()
+    return run
+
+
+@pytest_asyncio.fixture
+async def workflow_step_run_fixture(async_db_session, workflow_fixture, workflow_run_fixture):
+    """Create a WorkflowStepRun in PENDING state."""
+    from agent_service.db import WorkflowStepRun
+
+    step_id = workflow_fixture["steps"][0]["id"]
+    step_run = WorkflowStepRun(
+        id=str(uuid4()),
+        workflow_run_id=workflow_run_fixture.id,
+        workflow_step_id=step_id,
+        status="PENDING",
+        created_at=datetime.utcnow()
+    )
+    async_db_session.add(step_run)
+    await async_db_session.flush()
+    return step_run
+
+
+@pytest_asyncio.fixture
+async def sample_3_step_linear_workflow(setup_db):
+    """
+    Create a workflow with 3 steps in linear dependency: A→B→C.
+    Reuses Phase 146 ScheduledJob factory.
+    Returns: (workflow ORM object, dict with step IDs keyed as 'step_0', 'step_1', 'step_2')
+
+    Uses setup_db to ensure tables are created, then creates workflow directly.
+    """
+    from agent_service.db import (
+        Workflow, WorkflowStep, WorkflowEdge, ScheduledJob, Signature, AsyncSessionLocal
+    )
+    from uuid import uuid4
+
+    async with AsyncSessionLocal() as session:
+        # Create signature first (required for ScheduledJob FK)
+        sig = Signature(
+            id=str(uuid4()),
+            name=f"test-sig-{uuid4().hex[:8]}",
+            public_key="-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANDiE2Zm7HK5Q=\n-----END PUBLIC KEY-----",
+            uploaded_by="admin"
+        )
+        session.add(sig)
+        await session.flush()
+
+        # Create 3 scheduled jobs (reuse Phase 146 factory pattern)
+        job_ids = [str(uuid4()) for _ in range(3)]
+        jobs = []
+        for i in range(3):
+            job = ScheduledJob(
+                id=job_ids[i],
+                name=f"test_job_{uuid4().hex[:8]}_{i}",
+                script_content=f"echo 'job {i}'",
+                signature_id=sig.id,
+                signature_payload="Zm9vYmFyYmF6",
+                created_by="test_user"
+            )
+            session.add(job)
+            jobs.append(job)
+        await session.flush()
+
+        # Create workflow
+        workflow = Workflow(
+            id=str(uuid4()),
+            name="test_linear_workflow",
+            created_by="test_user",
+            is_paused=False
+        )
+        session.add(workflow)
+        await session.flush()
+
+        # Create 3 steps
+        step_ids = [str(uuid4()) for _ in range(3)]
+        for i, job_id in enumerate(job_ids):
+            step = WorkflowStep(
+                id=step_ids[i],
+                workflow_id=workflow.id,
+                scheduled_job_id=job_id,
+                node_type="SCRIPT"
+            )
+            session.add(step)
+        await session.flush()
+
+        # Create edges A→B, B→C
+        edge_ab = WorkflowEdge(
+            id=str(uuid4()),
+            workflow_id=workflow.id,
+            from_step_id=step_ids[0],
+            to_step_id=step_ids[1],
+            branch_name=None
+        )
+        edge_bc = WorkflowEdge(
+            id=str(uuid4()),
+            workflow_id=workflow.id,
+            from_step_id=step_ids[1],
+            to_step_id=step_ids[2],
+            branch_name=None
+        )
+        session.add(edge_ab)
+        session.add(edge_bc)
+        await session.commit()
+
+        return workflow, {f"step_{i}": step_ids[i] for i in range(3)}
+
+
+# Add uuid4 and datetime to imports if not present
+from uuid import uuid4
+from datetime import datetime
