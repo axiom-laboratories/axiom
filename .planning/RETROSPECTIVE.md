@@ -1,5 +1,52 @@
 # Retrospective
 
+## Milestone: v22.0 — Security Hardening
+
+**Shipped:** 2026-04-15
+**Phases:** 14 (132–145) | **Plans:** 165 (includes Nyquist validation and documentation cleanup)
+**Duration:** 4 days (2026-04-12 → 2026-04-15) | **Commits:** 26
+
+### What Was Built
+
+**Container Hardening (Phases 132–136):**
+- All orchestrator and node images run as `appuser` (UID 1000); volumes and app dirs owned by UID 1000; upgrade path from root containers handled
+- `cap_drop: ALL` + `security_opt: no-new-privileges` on all 7 compose services; Caddy gets `cap_add: NET_BIND_SERVICE`; Postgres port restricted to `127.0.0.1:5432`
+- `privileged: true` removed from node containers; Docker/Podman socket auto-detected in `runtime.py`; `node-compose.podman.yaml` variant ships alongside Docker variant
+- `mem_limit` and `cpus` set on all orchestrator services; `Containerfile.node` strips Podman/iptables/krb5 packages; Foundry-generated Dockerfiles inject `USER appuser` per OS family
+
+**EE Licence Protection (Phases 137–140):**
+- `_verify_wheel_manifest()` 6-step gate (existence → JSON → required fields → SHA256 hash → base64 decode → Ed25519 verify) before any EE wheel install
+- HMAC-SHA256 boot log with `hmac:` prefix on new entries; legacy plain-SHA256 accepted on read; constant-time comparison; no forced migration
+- Entry point whitelist (`ep.value == "ee.plugin:EEPlugin"` exact match) validated on startup and live-reload; `ENCRYPTION_KEY` absence raises hard `RuntimeError` — no dev fallback
+- `gen_wheel_key.py` (one-time keypair generation, 0600 file perms, Python bytes literal output) + `sign_wheels.py` (per-wheel manifests, `--verify` mode, `--deploy-name` flag) release CLI tools
+
+**Quality (Phases 141–145):**
+- Compliance documentation cleanup: VERIFICATION.md for Phase 139, all stale REQUIREMENTS.md checkboxes fixed
+- 23 tests for wheel signing tools; 15 tests for container security; full Nyquist validation across all 11 implementation phases
+- All phases marked `nyquist_compliant: true`; full regression suite (puppeteer + axiom-licenses) passing; 103 tests across EE phases
+
+### What Worked
+
+- **Separation of concerns between container hardening and EE protection** — the two workstreams were genuinely independent and could be developed in any order; the roadmap correctly identified this and laid them out as separate phase groups
+- **6-step manifest verification gate structure** — each step catches a distinct failure class; the step-by-step design made test coverage straightforward and error messages informative
+- **`hmac:` prefix approach for boot log** — zero-migration backward compat at no cost; mixed-format logs coexist transparently; the same pattern is reusable if further digest schemes are added
+- **Nyquist validation phases (143–145) as explicit milestone phases** — treating test validation as first-class milestone work (not an afterthought) meant test coverage was verified before the milestone was marked shipped
+- **`/proc/1/status` for UID verification** — platform-independent; caught the `ps` flag divergence between Alpine and Debian early
+
+### What Was Inefficient
+
+- **Phase 138 had 2 stale test expectations found during Nyquist validation** — the initial test implementation used regex patterns from an earlier design draft; both failed under Phase 144. Pattern: write tests closer in time to the implementation they cover, or use a TDD approach
+- **Progress table in ROADMAP.md had malformed v22.0 rows** — some rows had columns shifted or missing; these were not caught during phase execution and required cleanup at milestone close. Pattern: validate progress table format as part of plan completion protocol
+- **gsd-tools `roadmap analyze` returned empty phases** — the tool reads ROADMAP.md, not v22.0-ROADMAP.md; phase data for the active milestone lives in a separate file that the tool doesn't know about. Workaround: read files directly. Pattern: tool is designed for archived milestones; active milestone data requires direct file access
+
+### Patterns Established
+
+- Two-file container security approach: `Containerfile` changes (hardening) paired with compose changes (caps, ports, limits) — both needed for full effect; verify together
+- `pytest.skip()` (not `xfail`) when a test depends on optional infrastructure (e.g., node container not running in server-only compose) — semantically correct; skip = inapplicable, xfail = expected to fail
+- Nyquist validation phases at 3 levels: implementation (phase-level automated tests), integration (cross-phase regression), milestone audit (requirement coverage) — all three are distinct and complementary
+
+---
+
 ## Milestone: v7.0 — Advanced Foundry & Smelter
 
 **Shipped:** 2026-03-16

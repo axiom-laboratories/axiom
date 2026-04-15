@@ -14,27 +14,9 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Current State
 
-**Latest shipped:** v21.0 API Maturity & Contract Standardization (2026-04-11)
-**Previous:** v20.0 Node Capacity & Isolation Validation (2026-04-10)
-**Current:** v22.0 Security Hardening (in progress)
-
-## Current Milestone: v22.0 Security Hardening
-
-**Goal:** Harden the container security posture across all stack components and strengthen EE licence protection against casual bypass.
-
-**Target features:**
-- Non-root container users (appuser UID 1000) across all orchestrator and node images
-- Remove `privileged: true` from node — replace with Docker/Podman socket mount
-- `cap_drop: ALL` + `security_opt: no-new-privileges` on all compose services
-- Postgres port restricted to loopback-only binding
-- Memory/CPU resource limits on all orchestrator services
-- Foundry Dockerfiles propagate `USER appuser` to custom node images
-- Podman socket variant (`node-compose.podman.yaml`) shipped alongside Docker variant
-- `runtime.py` Podman socket auto-detection
-- Signed wheel manifest (Ed25519 + SHA256) verified before EE wheel install
-- HMAC-SHA256 boot log (keyed on `ENCRYPTION_KEY`) with backward compatibility
-- Importlib entry point whitelist (`ee.plugin:EEPlugin` only)
-- `sign_wheels.py` release CLI for manifest generation
+**Latest shipped:** v22.0 Security Hardening (2026-04-15)
+**Previous:** v21.0 API Maturity & Contract Standardization (2026-04-11)
+**Next milestone:** TBD — run `/gsd:new-milestone` to define
 
 ## Requirements
 
@@ -320,24 +302,24 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ HMAC stamping for scheduled jobs at dispatch time; `signing_error` fire_log status on countersign failure — v21.0
 - ✓ CRLF/LF normalization in countersign path for cross-platform signature determinism — v21.0
 
-### Active — v22.0 Security Hardening
+### Validated — v22.0 Security Hardening
 
-- [ ] **CONT-01**: All services run as non-root appuser (UID 1000) with correct ownership of app directories and mounted volumes
-- [ ] **CONT-02**: Node removes `privileged: true` and uses host Docker/Podman socket mount instead
-- [ ] **CONT-03**: `cap_drop: ALL` + `security_opt: no-new-privileges` on all compose services; Caddy gets `cap_add: NET_BIND_SERVICE`
-- [ ] **CONT-04**: Postgres external port binding restricted to `127.0.0.1:5432` (loopback only)
-- [ ] **CONT-05**: Memory and CPU resource limits defined for all orchestrator services
-- [ ] **CONT-06**: Secrets volume ownership migrates correctly when upgrading from root-based containers to non-root
-- [ ] **CONT-07**: `Containerfile.node` strips Podman/iptables/krb5 packages no longer needed after socket mount
-- [ ] **CONT-08**: Foundry-generated Dockerfiles append `USER appuser` after all package installs
-- [ ] **CONT-09**: `node-compose.podman.yaml` variant ships alongside `node-compose.yaml` for Podman host deployments
-- [ ] **CONT-10**: `runtime.py` auto-detects Podman socket path (`/run/podman/podman.sock`) in addition to Docker
-- [ ] **EE-01**: EE wheel installation verifies signed manifest (Ed25519 signature + SHA256 wheel hash) before pip install
-- [ ] **EE-02**: Boot log uses HMAC-SHA256 keyed on `ENCRYPTION_KEY` (replacing plain SHA256 hash chain)
-- [ ] **EE-03**: Boot log backward-compatible — legacy SHA256 chain entries accepted on read (no forced migration)
-- [ ] **EE-04**: Importlib entry point loader validates `ep.value == "ee.plugin:EEPlugin"` before loading
-- [ ] **EE-05**: `sign_wheels.py` CLI generates signed wheel manifests at release time
-- [ ] **EE-06**: EE startup enforces `ENCRYPTION_KEY` presence with hard `RuntimeError` if absent
+- ✓ **CONT-01**: All services run as non-root appuser (UID 1000) with correct ownership of app directories and mounted volumes — v22.0
+- ✓ **CONT-02**: Node removes `privileged: true` and uses host Docker/Podman socket mount instead — v22.0
+- ✓ **CONT-03**: `cap_drop: ALL` + `security_opt: no-new-privileges` on all compose services; Caddy gets `cap_add: NET_BIND_SERVICE` — v22.0
+- ✓ **CONT-04**: Postgres external port binding restricted to `127.0.0.1:5432` (loopback only) — v22.0
+- ✓ **CONT-05**: Memory and CPU resource limits defined for all orchestrator services — v22.0
+- ✓ **CONT-06**: Secrets volume ownership migrates correctly when upgrading from root-based containers to non-root — v22.0
+- ✓ **CONT-07**: `Containerfile.node` strips Podman/iptables/krb5 packages no longer needed after socket mount — v22.0
+- ✓ **CONT-08**: Foundry-generated Dockerfiles append `USER appuser` after all package installs — v22.0
+- ✓ **CONT-09**: `node-compose.podman.yaml` variant ships alongside `node-compose.yaml` for Podman host deployments — v22.0
+- ✓ **CONT-10**: `runtime.py` auto-detects Podman socket path (`/run/podman/podman.sock`) in addition to Docker — v22.0
+- ✓ **EE-01**: EE wheel installation verifies signed manifest (Ed25519 signature + SHA256 wheel hash) before pip install; raises `RuntimeError` on any failure — v22.0
+- ✓ **EE-02**: Boot log uses HMAC-SHA256 keyed on `ENCRYPTION_KEY` (replacing plain SHA256 hash chain) — v22.0
+- ✓ **EE-03**: Boot log backward-compatible — legacy SHA256 chain entries accepted on read (no forced migration) — v22.0
+- ✓ **EE-04**: Importlib entry point loader validates `ep.value == "ee.plugin:EEPlugin"` before loading; untrusted entry points raise `RuntimeError` — v22.0
+- ✓ **EE-05**: `sign_wheels.py` CLI generates signed wheel manifests at release time (Ed25519 key + SHA256 per wheel) — v22.0
+- ✓ **EE-06**: EE startup enforces `ENCRYPTION_KEY` presence with hard `RuntimeError` if absent (no dev-fallback in production) — v22.0
 
 ### Active — Future Milestones
 
@@ -360,7 +342,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), and API contract fully typed with unified signature path (v21.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite with light/dark theming. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~34,000 LOC Python backend. v21.0 shipped 2026-04-11.
+Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), API contract fully typed with unified signature path (v21.0), and container security posture fully hardened with layered EE licence protection (v22.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite with light/dark theming. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~34,000 LOC Python backend. v22.0 shipped 2026-04-15.
 
 All 89 API routes have explicit `response_model` declarations. The full dispatch pipeline is covered by service-layer integration tests and a live E2E orchestration script. All server-side job signing flows through `SignatureService.countersign_for_node()` — no unsigned jobs can be created or scheduled.
 
@@ -481,6 +463,19 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `_pool_kwargs` module-level (not function-scoped) | Allows test imports without triggering asyncpg side effects at import time | ✓ Good |
 | `require_auth` (JWT only) for `/api/health/scale`, no RBAC gate | Scale metrics are observability-only with no sensitive data — any authenticated user can view | ✓ Good |
 | `upgrade.md` symlinked from `puppeteer/upgrade.md` to `docs/docs/runbooks/upgrade.md` | Test path resolves `puppeteer/upgrade.md`; symlink avoids content duplication | ✓ Good |
+| `_verify_wheel_manifest()` as 6-step gate (existence → JSON → fields → SHA256 → decode → Ed25519) | Each failure mode produces a distinct error; stops at the first failure rather than accumulating errors; gate is called before pip install — no partial installs on failure | ✓ Good |
+| `hmac:` prefix on new boot log entries; legacy bare SHA256 accepted on read | Backward compat without schema migration; mixed-format logs work across rolling upgrades; prefix detection is O(1) | ✓ Good |
+| `ep.value == "ee.plugin:EEPlugin"` exact match (not prefix/glob) | Exact match prevents `ee.plugin:EEPlugin2` or other variants from loading; whitelist semantics are unambiguous | ✓ Good |
+| `_load_or_generate_encryption_key()` raises `RuntimeError` immediately (no dev fallback) | Dev fallback was the pre-v22.0 security gap; failing fast surfaces misconfiguration in staging before it reaches production | ✓ Good |
+| Separate `gen_wheel_key.py` and `sign_wheels.py` CLI scripts (not combined) | Different lifecycle: key generation is one-time operator ceremony; signing runs on every release build — separation prevents accidental key regeneration | ✓ Good |
+| HMAC constant-time comparison (`hmac.compare_digest`) in boot log verification | Prevents timing attack leaking whether a log entry's HMAC prefix matches; standard practice for any MAC verification | ✓ Good |
+| `cap_drop: ALL` on all 7 services (not per-service tuning initially) | Uniform policy is auditable and least-surprise; service-specific `cap_add` only where operationally required (Caddy: NET_BIND_SERVICE) | ✓ Good |
+| `/proc/1/status` over `ps -o uid=` for UID verification in tests | `ps` flags differ between Alpine and Debian; `/proc/1/status` is universally available on all Linux containers | ✓ Good |
+| Node fixture `pytest.skip()` when node not running (not `xfail`) | Compose environments vary (server compose excludes node); skip is the correct semantic — the test is inapplicable, not expected to fail | ✓ Good |
+
+## Previous State — v22.0 Complete (2026-04-15)
+
+Axiom v22.0 delivered Security Hardening — 14 phases (132–145), all 16/16 requirements satisfied. Container posture hardened: all orchestrator and node images run as `appuser` (UID 1000); `privileged: true` removed from node containers in favour of Docker/Podman socket mount with auto-detection; `cap_drop: ALL` + `security_opt: no-new-privileges` on all 7 services; Postgres restricted to loopback-only binding; memory and CPU resource limits set on all services; Foundry-generated Dockerfiles propagate `USER appuser`. EE licence protection layered: `_verify_wheel_manifest()` gate (6 steps, Ed25519 + SHA256) before any wheel install; HMAC-SHA256 boot log keyed on `ENCRYPTION_KEY` with backward-compatible SHA256 reads; entry point whitelist (`ee.plugin:EEPlugin` exact match) on startup and live-reload; `gen_wheel_key.py` + `sign_wheels.py` release CLI tools. Full Nyquist-compliant test coverage across all 11 implementation phases (23 wheel-tool tests, 15 container security tests, 14 wheel manifest tests, 8 entry point tests, 6 HMAC boot log tests). 26 commits, 4 days.
 
 ## Previous State — v21.0 Complete (2026-04-11)
 

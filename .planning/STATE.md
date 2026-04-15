@@ -1,33 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
+milestone: v22.0
+milestone_name: Security Hardening
 status: completed
-last_updated: "2026-04-15T09:48:08.149Z"
-last_activity: "2026-04-14T18:21Z — Phase 144 Plan 01 complete: Nyquist validation of all 4 EE licence protection phases (137–140). Fixed 2 test expectations in Phase 138; all 103 tests passing. All 4 VALIDATION.md files marked nyquist_compliant: true and wave_0_complete: true."
+last_updated: "2026-04-15T00:00:00.000Z"
+last_activity: "2026-04-15 — v22.0 milestone archived. All 14 phases (132–145) complete, all 16 requirements satisfied. REQUIREMENTS.md archived to milestones/v22.0-REQUIREMENTS.md. MILESTONES.md, ROADMAP.md, PROJECT.md updated. Git tag v22.0 pending."
 progress:
   total_phases: 65
-  completed_phases: 64
+  completed_phases: 65
   total_plans: 165
-  completed_plans: 174
+  completed_plans: 165
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-12)
+See: .planning/PROJECT.md (updated 2026-04-15)
 
 **Core value:** Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-**Current focus:** v22.0 Security Hardening — hardening container security posture and strengthening EE licence protection.
+**Current focus:** v22.0 Security Hardening milestone archived. Ready for `/gsd:new-milestone` to begin v23.0.
 
 ## Current Position
 
-**Phase:** 144 (Nyquist Validation - EE Features)
+**Phase:** 145 (Nyquist Validation — Cleanup Phases)
 **Plan:** 01 (complete)
-**Status:** Milestone complete
-**Last activity:** 2026-04-14T18:21Z — Phase 144 Plan 01 complete: Nyquist validation of all 4 EE licence protection phases (137–140). Fixed 2 test expectations in Phase 138; all 103 tests passing. All 4 VALIDATION.md files marked nyquist_compliant: true and wave_0_complete: true.
+**Status:** v22.0 milestone archived (2026-04-15)
+**Last activity:** 2026-04-15 — v22.0 milestone archived. All 14 phases (132–145) complete. REQUIREMENTS.md archived, MILESTONES.md updated with accomplishments, ROADMAP.md marked SHIPPED, PROJECT.md evolved (v22.0 requirements validated, Current State updated, Previous State entry added).
 
 ## Roadmap Summary
 

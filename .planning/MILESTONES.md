@@ -1,5 +1,24 @@
 # Milestones
 
+## v22.0 Security Hardening (Shipped: 2026-04-15)
+
+**Phases completed:** 14 phases (132–145), 165 plans, 195 tasks
+**Stats:** 26 commits | 4 days (2026-04-12 → 2026-04-15)
+**Git range:** Phase 132 first commit → `dddb709`
+
+**Key accomplishments:**
+- Phase 132/133 — Non-root container foundation: all orchestrator and node images run as `appuser` (UID 1000); `cap_drop: ALL` + `security_opt: no-new-privileges` on all 7 services; Postgres restricted to `127.0.0.1:5432` loopback only
+- Phase 134 — Socket mount replaces privileged mode: `privileged: true` removed from node container; Docker/Podman socket mount via auto-detection in `runtime.py`; `node-compose.podman.yaml` variant shipped
+- Phase 135/136 — Resource limits + Foundry user propagation: `mem_limit` and `cpus` set on all 7 orchestrator services; `Containerfile.node` strips Podman/iptables/krb5; Foundry-generated Dockerfiles inject `USER appuser`
+- Phase 137 — Ed25519 signed wheel manifest: `_verify_wheel_manifest()` gate (existence, JSON, required fields, SHA256 hash, signature decode, Ed25519 verify) before any EE wheel install; hard `RuntimeError` on any failure
+- Phase 138 — HMAC-SHA256 boot log: new entries keyed on `ENCRYPTION_KEY` with `hmac:` prefix; legacy plain-SHA256 entries still accepted on read; constant-time comparison; no forced migration on upgrade
+- Phase 139 — Entry point whitelist + ENCRYPTION_KEY enforcement: `ep.value == "ee.plugin:EEPlugin"` validated on startup and live-reload; hard `RuntimeError` if `ENCRYPTION_KEY` absent in production (no dev fallback)
+- Phase 140/142 — Wheel signing release tools: `gen_wheel_key.py` (Ed25519 keypair, 0600 permissions, Python bytes literal output) + `sign_wheels.py` (per-wheel manifest signing, `--verify` mode, `--deploy-name` fixed-name mode); 23 tests all passing
+
+**Delivered:** Full container security posture hardening (non-root, no-privileged, cap_drop, loopback Postgres, resource limits) plus a layered EE licence protection chain (signed wheel manifests, HMAC boot log, entry point whitelist, release signing tools) — all backed by Nyquist-compliant automated test coverage.
+
+---
+
 ## v21.0 API Maturity & Contract Standardization (Shipped: 2026-04-11)
 
 **Phases:** 129–131 (3 phases, 9 plans)
