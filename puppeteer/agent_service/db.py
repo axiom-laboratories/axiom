@@ -4,7 +4,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint, ForeignKey, Index
 from datetime import datetime
 import json
-from typing import Optional
+from typing import Optional, List
 from uuid import uuid4
 
 # Database URL (Default to Postgres, fallback to SQLite for local dev if needed)
@@ -467,6 +467,70 @@ class ScriptAnalysisRequest(Base):
     __table_args__ = (
         UniqueConstraint('requester_id', 'package_name', 'ecosystem', 'source_script_hash', name='uq_analysis_request'),
     )
+
+
+class Workflow(Base):
+    __tablename__ = "workflows"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    created_by: Mapped[str] = mapped_column(ForeignKey("users.username"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_paused: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Relationships
+    steps: Mapped[List["WorkflowStep"]] = relationship("WorkflowStep", back_populates="workflow", cascade="all, delete-orphan")
+    edges: Mapped[List["WorkflowEdge"]] = relationship("WorkflowEdge", back_populates="workflow", cascade="all, delete-orphan")
+    parameters: Mapped[List["WorkflowParameter"]] = relationship("WorkflowParameter", back_populates="workflow", cascade="all, delete-orphan")
+
+
+class WorkflowStep(Base):
+    __tablename__ = "workflow_steps"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
+    scheduled_job_id: Mapped[str] = mapped_column(ForeignKey("scheduled_jobs.id"))
+    node_type: Mapped[str] = mapped_column(String)  # "SCRIPT", "IF_GATE", etc. — validated at service layer
+    config_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON as string, not blob
+
+    # Relationships
+    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="steps")
+    scheduled_job: Mapped["ScheduledJob"] = relationship("ScheduledJob")
+
+
+class WorkflowEdge(Base):
+    __tablename__ = "workflow_edges"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
+    from_step_id: Mapped[str] = mapped_column(ForeignKey("workflow_steps.id"))
+    to_step_id: Mapped[str] = mapped_column(ForeignKey("workflow_steps.id"))
+    branch_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # NULL = unconditional, non-null = IF gate branch
+
+    # Relationships
+    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="edges")
+
+
+class WorkflowParameter(Base):
+    __tablename__ = "workflow_parameters"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
+    name: Mapped[str] = mapped_column(String)
+    type: Mapped[str] = mapped_column(String)  # "string", "int", "bool" — validated at service layer
+    default_value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Relationships
+    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="parameters")
+
+
+class WorkflowRun(Base):
+    __tablename__ = "workflow_runs"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
+    status: Mapped[str] = mapped_column(String)  # RUNNING, COMPLETED, PARTIAL, FAILED, CANCELLED — Phase 147
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    trigger_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # MANUAL, CRON, WEBHOOK — Phase 149
+    triggered_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # user ID or webhook name
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 async def init_db():
