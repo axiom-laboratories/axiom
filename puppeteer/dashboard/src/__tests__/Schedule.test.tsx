@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import Schedule from '../Schedule';
+import Schedule from '../views/Schedule';
 
 // Mock authenticatedFetch
 const mockAuthFetch = vi.fn();
