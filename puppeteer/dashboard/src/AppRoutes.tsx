@@ -18,6 +18,9 @@ const Account = lazy(() => import('./views/Account'));
 const ServicePrincipals = lazy(() => import('./views/ServicePrincipals'));
 const Webhooks = lazy(() => import('./views/Webhooks'));
 const Queue = lazy(() => import('./views/Queue'));
+const Workflows = lazy(() => import('./views/Workflows').then(m => ({ default: m.Workflows })));
+const WorkflowDetail = lazy(() => import('./views/WorkflowDetail').then(m => ({ default: m.WorkflowDetail })));
+const WorkflowRunDetail = lazy(() => import('./views/WorkflowRunDetail').then(m => ({ default: m.WorkflowRunDetail })));
 
 // Temporary explicit imports for JS files (if allowed) or placeholder
 // Because we haven't migrated everything, we might need to suppress TS errors
@@ -46,6 +49,9 @@ const AppRoutes = () => {
                     <Route path="history" element={<History />} />
                     <Route path="signatures" element={<Signatures />} />
                     <Route path="templates" element={<Templates />} />
+                    <Route path="workflows" element={<Workflows />} />
+                    <Route path="workflows/:id" element={<WorkflowDetail />} />
+                    <Route path="workflows/:id/runs/:runId" element={<WorkflowRunDetail />} />
                     <Route path="admin" element={<Admin />} />
                     <Route path="audit" element={<AuditLog />} />
                     <Route path="users" element={<Users />} />
