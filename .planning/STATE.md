@@ -5,7 +5,7 @@ milestone_name: milestone
 current_phase: Phase 154 (Unified Schedule View)
 current_plan: Plan 02 (Integration Testing)
 status: complete
-last_updated: "2026-04-16T20:30:00Z"
+last_updated: "2026-04-16T21:20:00Z"
 progress:
   total_phases: 3
   completed_phases: 2
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 154 (Unified Schedule View)
-**Current plan:** Plan 01 (Schedule UI & API)
+**Current plan:** Plan 02 (Integration Testing)
 **Status:** Complete
 
 ## Recent Completion
@@ -44,6 +44,12 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T21:20:00Z: Phase 154 Plan 02 finalized — Unified Schedule View Integration Testing (continuation)
+  - Fixed frontend test mock configuration: added getToken/setToken/getUser mocks, set localStorage token
+  - All 17 tests passing (7 backend + 10 frontend, 100%)
+  - Commits: 89e780a (backend tests), 014a930 (frontend tests), 103aaad (test fix), 11baf55 (SUMMARY update)
+  - Execution complete and verified
 
 - 2026-04-16T20:30:00Z: Phase 154 Plan 02 completed — Unified Schedule View Integration Testing
   - 2 implementation tasks: backend integration tests + frontend component tests
