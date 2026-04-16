@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v23.0
 milestone_name: "DAG & Workflow Orchestration"
 current_phase: 150-dashboard-read-only-views
-current_plan: 02
+current_plan: 03
 status: Active
-last_updated: "2026-04-16T15:59:00Z"
+last_updated: "2026-04-16T14:20:00Z"
 progress:
   total_phases: 150
   completed_phases: 149
   total_plans: 1000
-  completed_plans: 190
+  completed_plans: 191
 ---
 
 # Session State
@@ -23,14 +23,23 @@ See: .planning/PROJECT.md
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 150 (Dashboard Read-Only Views)
-**Current plan:** Plan 02 (Backend WebSocket Events) — next up
+**Current plan:** Plan 03 (Frontend Dashboard Components) — next up
 **Status:** Active
 
 ## Recent Completion
 
+- ✓ **Phase 150 Plan 02** (WebSocket Events & Run List) — Real-time updates, pagination — completed 2026-04-16
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T14:20:00Z: Phase 150 Plan 02 completed — WebSocket Events & Run List
+  - WorkflowRunUpdatedEvent + WorkflowStepUpdatedEvent models added
+  - broadcast_workflow_run_updated() + broadcast_workflow_step_updated() methods added to ConnectionManager
+  - Event emission on workflow completion and cancellation via workflow_service
+  - GET /api/workflows/{id}/runs endpoint implemented with pagination
+  - 5 integration tests created (all passing)
+  - Commits: 8db2d46 (implementation), 5374de5 (tests), 97cd170 (summary)
 
 - 2026-04-16T15:59:00Z: Phase 150 Plan 01 completed — Wave 0 Foundations (libraries + 9 test scaffolds)
   - ReactFlow @12.10.2 + dagre @3.0.0 installed
