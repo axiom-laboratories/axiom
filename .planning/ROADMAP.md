@@ -211,7 +211,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 - [ ] **Phase 152: Workflow Feature Documentation** — Developer docs (API reference, architecture, data model) and user-facing docs (how-to guides, UI walkthroughs) for all workflow features (Phases 146–150)
   - [x] Plan 01: Directory structure + MkDocs nav registration (Wave 1) — completed 2026-04-16
   - [x] Plan 02: Overview, Concepts, User Guide pages (Wave 2) — completed 2026-04-16
-  - [ ] Plan 03: Operator Guide, Developer Guide pages (Wave 3)
+  - [x] Plan 03: Operator Guide, Developer Guide pages (Wave 3) — completed 2026-04-16
   - [ ] Plan 04: API Reference section, Operational Runbook (Wave 4)
 
 Archive: `.planning/milestones/v23.0-ROADMAP.md`
@@ -265,7 +265,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 149. Triggers & Parameter Injection | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
 | 150. Dashboard Read-Only Views | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
-| 152. Workflow Feature Documentation | v23.0 | 4 plans planned | In progress | (TBD) |
+| 152. Workflow Feature Documentation | v23.0 | 3/4 | In progress | 2026-04-16 (Plan 03) |
 
 ## Archived
 
