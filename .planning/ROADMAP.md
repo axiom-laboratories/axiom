@@ -199,7 +199,14 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 01: Database Schema & Pydantic Models — Workflow.schedule_cron, WorkflowRun.parameters_json, WorkflowWebhook ORM + migration_v55.sql (Wave 1, completed 2026-04-16)
   - [ ] Plan 02: APScheduler Integration & Webhook Trigger — sync_workflow_crons(), webhook endpoint with HMAC, parameter resolution (Wave 1, planned)
   - [ ] Plan 03+: Parameter injection, API endpoints, run history (planned)
-- [ ] **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (plans TBD)
+- [ ] **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (7 plans planned)
+  - [ ] Plan 01: Test Foundation (Wave 0) — Test scaffolds for all views, hooks, utilities, components
+  - [ ] Plan 02: Backend WebSocket Events (Wave 1) — workflow_run_updated/workflow_step_updated events, /api/workflows/{id}/runs endpoint
+  - [ ] Plan 03: DAG Components (Wave 2) — useLayoutedElements hook, WorkflowStepNode, DAGCanvas with dagre layout
+  - [ ] Plan 04: Main Views (Wave 3) — Workflows list, WorkflowDetail, WorkflowRunDetail pages with React Query
+  - [ ] Plan 05: Step Drawer (Wave 4) — WorkflowStepDrawer component, useStepLogs hook, integration with DAGCanvas
+  - [ ] Plan 06: Routing & Navigation (Wave 5) — AppRoutes.tsx, MainLayout sidebar, breadcrumbs, deep linking
+  - [ ] Plan 07: Integration Testing (Wave 6) — Backend + frontend integration tests, E2E Playwright verification
 - [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
 
 Archive: `.planning/milestones/v23.0-ROADMAP.md`
