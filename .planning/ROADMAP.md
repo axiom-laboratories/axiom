@@ -25,7 +25,7 @@
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
-- 🚀 **v23.0 — DAG & Workflow Orchestration** — Phases 146–152 (in progress)
+- 🚀 **v23.0 — DAG & Workflow Orchestration** — Phases 146–155 (in progress)
 
 ## Phases
 
@@ -208,17 +208,21 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 06: Routing & Navigation (Wave 5) — AppRoutes.tsx, MainLayout sidebar, breadcrumbs, deep linking (completed 2026-04-16)
   - [x] Plan 07: Integration Testing (Wave 6) — Backend + frontend integration tests, E2E Playwright verification (completed 2026-04-16)
 - [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
-- [x] **Phase 152: Workflow Feature Documentation**
+- [x] **Phase 152: Workflow Feature Documentation** — Overview, concepts, user guide, operator guide, developer guide, API reference, runbook (4 plans completed 2026-04-16)
+  - [x] Plan 01: Directory structure + MkDocs nav registration (Wave 1, completed 2026-04-16)
+  - [x] Plan 02: Overview, Concepts, User Guide pages (Wave 2, completed 2026-04-16)
+  - [x] Plan 03: Operator Guide, Developer Guide pages (Wave 3, completed 2026-04-16)
+  - [x] Plan 04: API Reference section, Operational Runbook (Wave 4, completed 2026-04-16)
 - [ ] **Phase 153: Verify Gate Node Types** — Run verify-work for Phase 148 to create VERIFICATION.md; tick satisfied-but-unchecked REQUIREMENTS.md checkboxes (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04)
+  - **Plans:** 3 plans
+  - Plan 01 (Wave 1): Fix SQLite test schema, verify GATE-01/02 unit tests (condition evaluation, IF_GATE routing)
+  - Plan 02 (Wave 2): Verify GATE-03/04/05 integration tests (AND_JOIN, OR_GATE, PARALLEL dispatch)
+  - Plan 03 (Wave 3): Verify GATE-06 (SIGNAL_WAIT), full test suite validation, create VERIFICATION.md, tick requirement checkboxes
   - **Gap Closure:** Closes GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06
 - [ ] **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status
   - **Gap Closure:** Closes UI-05
 - [ ] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config)
-  - **Gap Closure:** Closes UI-06, UI-07 — Developer docs (API reference, architecture, data model) and user-facing docs (how-to guides, UI walkthroughs) for all workflow features (Phases 146–150) — completed 2026-04-16
-  - [x] Plan 01: Directory structure + MkDocs nav registration (Wave 1) — completed 2026-04-16
-  - [x] Plan 02: Overview, Concepts, User Guide pages (Wave 2) — completed 2026-04-16
-  - [x] Plan 03: Operator Guide, Developer Guide pages (Wave 3) — completed 2026-04-16
-  - [x] Plan 04: API Reference section, Operational Runbook (Wave 4) — completed 2026-04-16
+  - **Gap Closure:** Closes UI-06, UI-07
 
 Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
@@ -269,9 +273,62 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
 | 147. WorkflowRun Execution Engine | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
-| 149. Triggers & Parameter Injection | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
-| 150. Dashboard Read-Only Views | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
-| 152. Workflow Feature Documentation | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
+| 149. Triggers & Parameter Injection | v23.0 | 1/3 (in progress) | 2026-04-16 | — |
+| 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
+| 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
+| 153. Verify Gate Node Types | v23.0 | 3/3 (planned) | — | — |
+
+## Phase Detail Sections
+
+### Phase 153: Verify Gate Node Types
+
+**Goal:** Run verify-work for Phase 148 to produce VERIFICATION.md and close GATE-01..06 requirement gaps; tick satisfied-but-unchecked checkboxes in REQUIREMENTS.md (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04).
+
+**Plans:** 3 plans across 3 waves
+
+**Plan 01 (Wave 1):** Fix SQLite test database schema; verify GATE-01/02 unit tests
+- Task 1: Fix SQLite test database schema for gate tests (conftest.py)
+- Task 2: Run and verify GATE-01 unit tests (condition evaluation)
+- Task 3: Run and verify GATE-02 unit tests (IF_GATE routing)
+
+**Plan 02 (Wave 2):** Verify GATE-03/04/05 dispatch integration tests
+- Task 1: Verify GATE-03 AND_JOIN dispatch integration
+- Task 2: Verify GATE-04 OR_GATE branch skip integration
+- Task 3: Verify GATE-05 PARALLEL fan-out integration
+
+**Plan 03 (Wave 3):** Verify GATE-06, create VERIFICATION.md, update REQUIREMENTS.md
+- Task 1: Verify GATE-06 SIGNAL_WAIT blocking and wakeup
+- Task 2: Run full workflow test suite and verify no regressions
+- Task 3: Create VERIFICATION.md for Phase 148 gate implementation
+- Task 4: Tick GATE-01..06 and re-verify ENGINE/TRIGGER/PARAMS/UI checkboxes in REQUIREMENTS.md
+
+**Success Criteria:**
+1. VERIFICATION.md exists for Phase 148 confirming all gate node types are implemented and tested
+2. GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06 marked [x] complete in REQUIREMENTS.md
+3. All 33 gate tests passing (22 unit + 11 integration)
+4. Full test suite green (60+ tests), no regressions in ENGINE/TRIGGER/PARAMS/UI
+5. Layer 2 behavioral trace planned (Docker stack verification of gate dispatch)
+
+### Phase 154: Unified Schedule View
+
+**Goal:** Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status.
+
+**Success Criteria:**
+1. Unified schedule view page implemented and accessible from sidebar
+2. ScheduledJob entries shown with JOB badge and next-run time
+3. Workflow entries with cron schedules shown with FLOW badge and next-run time
+4. UI-05 requirement marked complete in REQUIREMENTS.md
+
+### Phase 155: Visual DAG Editor
+
+**Goal:** Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config).
+
+**Success Criteria:**
+1. ReactFlow drag-and-drop canvas renders existing workflow DAGs
+2. New steps can be dragged and connected on the canvas
+3. Cycle detection and depth warnings shown in real time
+4. IF gate condition config editable inline on the canvas
+5. UI-06 and UI-07 requirements marked complete in REQUIREMENTS.md
 
 ## Archived
 
