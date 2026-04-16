@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Badge } from '@/components/ui/badge';
+import { AlertTriangle } from 'lucide-react';
 import {
   getStatusColor,
   getStatusVariant,
@@ -22,6 +23,9 @@ export interface WorkflowStepNodeData {
     | 'FAILED'
     | 'SKIPPED'
     | 'CANCELLED';
+  // Edit mode data
+  scheduled_job_id?: string | null;
+  isEditing?: boolean;
 }
 
 interface WorkflowStepNodeProps {
@@ -47,6 +51,7 @@ const WorkflowStepNode: React.FC<WorkflowStepNodeProps> = ({
       transition-all duration-200
       ${isPulsing ? 'animate-pulse' : ''}
       ${isSelected ? 'ring-2 ring-offset-2' : ''}
+      ${data.isEditing && data.nodeType === 'SCRIPT' && !data.scheduled_job_id ? 'cursor-pointer' : ''}
     `;
 
     const shapeClasses: Record<string, string> = {
@@ -58,9 +63,11 @@ const WorkflowStepNode: React.FC<WorkflowStepNodeProps> = ({
       SIGNAL_WAIT: 'rounded-full', // circle with hourglass/clock icon
     };
 
+    const isUnlinked = data.isEditing && data.nodeType === 'SCRIPT' && !data.scheduled_job_id;
+
     return (
       <div
-        className={`${baseClasses} ${shapeClasses[data.nodeType] || 'rounded-md'}`}
+        className={`relative ${baseClasses} ${shapeClasses[data.nodeType] || 'rounded-md'}`}
         style={{
           borderColor: statusColor,
           backgroundColor: `${statusColor}15`, // 15% opacity background
@@ -80,6 +87,14 @@ const WorkflowStepNode: React.FC<WorkflowStepNodeProps> = ({
           >
             {data.status}
           </Badge>
+        )}
+
+        {/* Unlinked indicator for SCRIPT nodes in edit mode */}
+        {isUnlinked && (
+          <div className="absolute -top-2 -right-2 bg-amber-100 text-amber-800 rounded-full px-2 py-1 text-xs flex items-center gap-1 shadow-md">
+            <AlertTriangle size={12} />
+            Unlinked
+          </div>
         )}
 
         <Handle type="source" position={Position.Right} />
