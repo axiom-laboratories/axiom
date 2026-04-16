@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -102,6 +103,17 @@ export function WorkflowDetail() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb section */}
+      <div className="mb-6 flex items-center gap-2">
+        <button
+          onClick={() => navigate('/workflows')}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Workflows
+        </button>
+      </div>
+
       {/* Workflow info header */}
       {workflowLoading && <p className="text-muted-foreground">Loading workflow...</p>}
       {workflowError && (
@@ -112,6 +124,14 @@ export function WorkflowDetail() {
 
       {workflow && (
         <>
+          {/* Header with workflow name */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold">{workflow.name || 'Loading...'}</h1>
+            <p className="text-muted-foreground mt-1">
+              {workflow.steps?.length || 0} steps · Trigger: {workflow.schedule_cron ? 'CRON' : 'MANUAL'}
+            </p>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { authenticatedFetch } from '@/auth';
 import DAGCanvas from '@/components/DAGCanvas';
+import { WorkflowStepDrawer } from '@/components/WorkflowStepDrawer';
 import { getStatusVariant } from '@/utils/workflowStatusUtils';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
@@ -34,6 +36,7 @@ interface WorkflowStepRunResponse {
   started_at?: string;
   completed_at?: string;
   job_guid?: string;
+  step_detail?: WorkflowStepResponse;
 }
 
 interface WorkflowRunResponse {
@@ -49,6 +52,7 @@ interface WorkflowRunResponse {
 
 export function WorkflowRunDetail() {
   const { id: workflowId, runId } = useParams<{ id: string; runId: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
@@ -118,10 +122,8 @@ export function WorkflowRunDetail() {
     });
   }
 
-  const handleNodeClick = (stepId: string) => {
-    setSelectedStepId(stepId);
-    // Drawer open will be handled in Plan 05 (WorkflowStepDrawer integration)
-  };
+  // Find the selected step from step_runs for the drawer
+  const selectedStep = run?.step_runs.find((sr) => sr.id === selectedStepId) || null;
 
   return (
     <div className="space-y-6">
@@ -134,6 +136,37 @@ export function WorkflowRunDetail() {
 
       {run && (
         <>
+          {/* Breadcrumb section */}
+          <div className="mb-6 flex items-center gap-3 text-sm">
+            <button
+              onClick={() => navigate(`/workflows/${workflowId}`)}
+              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {workflowId || 'Workflow'}
+            </button>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-foreground font-medium">Run {runId?.slice(0, 8)}...</span>
+          </div>
+
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">Run Details</h1>
+              <Badge variant={getStatusVariant(run.status)}>
+                {run.status || 'LOADING'}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground mt-2">
+              Started: {run.started_at ? new Date(run.started_at).toLocaleString() : 'N/A'} ·
+              Duration: {run.completed_at ? `${(
+                (new Date(run.completed_at).getTime() -
+                  new Date(run.started_at).getTime()) /
+                1000
+              ).toFixed(1)}s` : '—'}
+            </p>
+          </div>
+
           {/* Run header with status */}
           <Card>
             <CardHeader>
@@ -182,7 +215,11 @@ export function WorkflowRunDetail() {
                   steps={run.steps}
                   edges={run.edges}
                   stepRunStatus={stepRunStatus}
-                  onNodeClick={handleNodeClick}
+                  onNodeClick={(stepId) => {
+                    // Map workflow_step_id to step run id
+                    const stepRun = run.step_runs.find(sr => sr.workflow_step_id === stepId);
+                    if (stepRun) setSelectedStepId(stepRun.id);
+                  }}
                   height="500px"
                 />
               ) : (
@@ -215,7 +252,7 @@ export function WorkflowRunDetail() {
                       <TableRow
                         key={sr.id}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedStepId(sr.workflow_step_id)}
+                        onClick={() => setSelectedStepId(sr.id)}
                       >
                         <TableCell className="font-mono text-sm">{sr.workflow_step_id}</TableCell>
                         <TableCell>
@@ -244,16 +281,12 @@ export function WorkflowRunDetail() {
             </CardContent>
           </Card>
 
-          {/* Selected step info (will integrate drawer in Plan 05) */}
-          {selectedStepId && (
-            <div className="p-4 bg-muted rounded border">
-              <p className="text-sm">
-                Selected step: <strong>{selectedStepId}</strong>
-                <br />
-                <em className="text-muted-foreground">(Drawer will open here in Plan 05)</em>
-              </p>
-            </div>
-          )}
+          {/* Step drawer for log viewing */}
+          <WorkflowStepDrawer
+            step={selectedStep || undefined}
+            isOpen={!!selectedStepId}
+            onClose={() => setSelectedStepId(null)}
+          />
         </>
       )}
     </div>

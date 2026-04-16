@@ -58,7 +58,11 @@ export function Workflows() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Workflows</h1>
+        <p className="text-muted-foreground mt-2">Manage and monitor your workflow definitions</p>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Workflows</CardTitle>
