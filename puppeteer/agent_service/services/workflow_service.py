@@ -491,6 +491,91 @@ class WorkflowService:
             # If rowcount == 0, another process already claimed it — skip
             if result.rowcount == 0:
                 continue
+            # NEW: Gate node handling (Phase 148)
+            # Skip job creation for gate nodes; handle them with gate-specific logic
+            if step.node_type == "PARALLEL":
+                # PARALLEL gate: mark immediately COMPLETED (no job dispatch)
+                stmt = update(WorkflowStepRun).where(
+                    and_(WorkflowStepRun.id == sr.id, WorkflowStepRun.status == "PENDING")
+                ).values(status="COMPLETED", completed_at=datetime.utcnow())
+                result = await db.execute(stmt)
+                if result.rowcount == 0:
+                    continue  # Already transitioned; skip
+                # Next wave will naturally fan out via BFS to all outgoing edges
+                continue  # Skip job creation
+            
+            elif step.node_type == "AND_JOIN":
+                # AND_JOIN gate: check all predecessors
+                all_predecessors_complete = True
+                any_predecessor_failed = False
+                
+                for pred_id in predecessors:
+                    pred_sr = step_run_map.get(pred_id)
+                    if not pred_sr:
+                        all_predecessors_complete = False
+                        break
+                    if pred_sr.status == "FAILED" or pred_sr.status == "CANCELLED":
+                        any_predecessor_failed = True
+                        break
+                    if pred_sr.status != "COMPLETED":
+                        all_predecessors_complete = False
+                        break
+                
+                if any_predecessor_failed:
+                    # Fail fast
+                    stmt = update(WorkflowStepRun).where(
+                        and_(WorkflowStepRun.id == sr.id, WorkflowStepRun.status == "PENDING")
+                    ).values(status="FAILED", completed_at=datetime.utcnow())
+                    await db.execute(stmt)
+                    continue
+                
+                if not all_predecessors_complete:
+                    # Wait for remaining predecessors
+                    continue
+                
+                # All predecessors complete: mark this AND_JOIN COMPLETED
+                stmt = update(WorkflowStepRun).where(
+                    and_(WorkflowStepRun.id == sr.id, WorkflowStepRun.status == "PENDING")
+                ).values(status="COMPLETED", completed_at=datetime.utcnow())
+                await db.execute(stmt)
+                continue  # Skip job creation
+            
+            elif step.node_type == "OR_GATE":
+                # OR_GATE: check if any predecessor is COMPLETED
+                any_complete = any(
+                    step_run_map.get(p_id) and step_run_map.get(p_id).status == "COMPLETED"
+                    for p_id in predecessors
+                )
+                
+                if any_complete:
+                    # Mark OR_GATE COMPLETED
+                    stmt = update(WorkflowStepRun).where(
+                        and_(WorkflowStepRun.id == sr.id, WorkflowStepRun.status == "PENDING")
+                    ).values(status="COMPLETED", completed_at=datetime.utcnow())
+                    await db.execute(stmt)
+                    
+                    # Eagerly mark non-triggering branches SKIPPED
+                    for p_id in predecessors:
+                        p_status = step_run_map.get(p_id, None)
+                        if p_status and p_status.status != "COMPLETED":
+                            # Mark all descendants of this predecessor SKIPPED
+                            await self._mark_branch_skipped(p_id, sr.workflow_run_id, G, db)
+                    
+                    continue  # Skip job creation
+                else:
+                    # No predecessor complete; wait for one
+                    continue
+            
+            elif step.node_type == "SIGNAL_WAIT":
+                # SIGNAL_WAIT: mark RUNNING; signal creation endpoint will advance it
+                stmt = update(WorkflowStepRun).where(
+                    and_(WorkflowStepRun.id == sr.id, WorkflowStepRun.status == "PENDING")
+                ).values(status="RUNNING", started_at=datetime.utcnow())
+                await db.execute(stmt)
+                continue  # Skip job creation
+            
+            # For non-gate nodes (SCRIPT), continue to job creation below
+
 
             # Create Job for this step
             # Get the ScheduledJob to fetch job details
@@ -571,6 +656,9 @@ class WorkflowService:
         After a step completes, re-evaluate workflow and dispatch eligible next steps.
         Checks for terminal condition and computes final status.
         """
+        # NEW: Evaluate IF gates for COMPLETED steps
+        await self._evaluate_if_gates(run_id, db)
+
         # Dispatch next wave of eligible steps
         await self.dispatch_next_wave(run_id, db)
 
@@ -683,6 +771,164 @@ class WorkflowService:
 
         # Return populated response
         return await self._run_to_response(db, run)
+
+    async def _mark_branch_skipped(
+        self,
+        starting_step_id: str,
+        run_id: str,
+        graph: nx.DiGraph,
+        db: AsyncSession
+    ) -> None:
+        """
+        Recursively mark all descendant steps on a branch SKIPPED.
+        Used by OR_GATE to mark non-selected branches.
+        """
+        visited = set()
+        to_process = [starting_step_id]
+        
+        while to_process:
+            step_id = to_process.pop(0)
+            if step_id in visited:
+                continue
+            visited.add(step_id)
+            
+            # Get all descendants of this step
+            descendants = list(graph.successors(step_id))
+            for desc_id in descendants:
+                # Query WorkflowStepRun for this descendant in this run
+                stmt = select(WorkflowStepRun).where(
+                    and_(
+                        WorkflowStepRun.workflow_run_id == run_id,
+                        WorkflowStepRun.workflow_step_id == desc_id,
+                        WorkflowStepRun.status == "PENDING"  # Only mark PENDING steps
+                    )
+                )
+                desc_run = (await db.execute(stmt)).scalar_one_or_none()
+                if desc_run:
+                    desc_run.status = "SKIPPED"
+                    to_process.append(desc_id)
+        
+        await db.flush()
+
+    async def _evaluate_if_gates(self, run_id: str, db: AsyncSession) -> None:
+        """
+        For each COMPLETED step with node_type IF_GATE, evaluate its condition
+        against the predecessor's result_json and route to matching branch or fail.
+        """
+        from agent_service.services.gate_evaluation_service import GateEvaluationService
+        
+        # Get all COMPLETED IF_GATE step runs in this run
+        stmt = select(WorkflowStepRun).join(
+            WorkflowStep, WorkflowStepRun.workflow_step_id == WorkflowStep.id
+        ).where(
+            and_(
+                WorkflowStepRun.workflow_run_id == run_id,
+                WorkflowStep.node_type == "IF_GATE",
+                WorkflowStepRun.status == "COMPLETED"
+            )
+        )
+        if_gate_runs = (await db.execute(stmt)).scalars().all()
+        
+        for gate_run in if_gate_runs:
+            step = await db.get(WorkflowStep, gate_run.workflow_step_id)
+            
+            # Get predecessor's result_json via edge lookup
+            # IF gates should have exactly one unconditional predecessor
+            edge_stmt = select(WorkflowEdge).where(
+                and_(
+                    WorkflowEdge.to_step_id == step.id,
+                    WorkflowEdge.branch_name.is_(None)  # Only unconditional edges
+                )
+            )
+            pred_edges = (await db.execute(edge_stmt)).scalars().all()
+            
+            if not pred_edges:
+                # No predecessors — mark FAILED
+                gate_run.status = "FAILED"
+                continue
+            
+            pred_step_id = pred_edges[0].from_step_id
+            pred_run_stmt = select(WorkflowStepRun).where(
+                and_(
+                    WorkflowStepRun.workflow_run_id == run_id,
+                    WorkflowStepRun.workflow_step_id == pred_step_id
+                )
+            )
+            pred_run = (await db.execute(pred_run_stmt)).scalar_one_or_none()
+            
+            if not pred_run or not pred_run.result_json:
+                # No result — mark FAILED
+                gate_run.status = "FAILED"
+                continue
+            
+            # Evaluate IF gate
+            try:
+                result = json.loads(pred_run.result_json)
+            except json.JSONDecodeError:
+                gate_run.status = "FAILED"
+                continue
+            
+            branch_taken, error = GateEvaluationService.evaluate_if_gate(
+                step.config_json or '{"branches": {}}', result
+            )
+            
+            if branch_taken is None:
+                # No branch matched — mark FAILED
+                gate_run.status = "FAILED"
+                # Cascade failure: mark all descendants CANCELLED
+                await self._cascade_cancel(step.id, run_id, db)
+            else:
+                # Branch matched — status is already COMPLETED
+                pass
+
+    async def _cascade_cancel(self, step_id: str, run_id: str, db: AsyncSession) -> None:
+        """
+        Recursively mark all PENDING descendants of a step as CANCELLED.
+        Used when a step fails to cascade failure downstream.
+        """
+        visited = set()
+        to_process = [step_id]
+        
+        while to_process:
+            current_id = to_process.pop(0)
+            if current_id in visited:
+                continue
+            visited.add(current_id)
+            
+            # Find all descendants in workflow
+            edge_stmt = select(WorkflowEdge).where(WorkflowEdge.from_step_id == current_id)
+            edges = (await db.execute(edge_stmt)).scalars().all()
+            
+            for edge in edges:
+                desc_id = edge.to_step_id
+                
+                # Query for step run
+                stmt = select(WorkflowStepRun).where(
+                    and_(
+                        WorkflowStepRun.workflow_run_id == run_id,
+                        WorkflowStepRun.workflow_step_id == desc_id,
+                        WorkflowStepRun.status == "PENDING"
+                    )
+                )
+                desc_run = (await db.execute(stmt)).scalar_one_or_none()
+                if desc_run:
+                    desc_run.status = "CANCELLED"
+                    to_process.append(desc_id)
+        
+        await db.flush()
+
+    async def store_step_result(self, step_run_id: str, result: Optional[Dict], db: AsyncSession) -> None:
+        """Store step execution result for IF gate evaluation."""
+        if result is None:
+            return
+        
+        result_json_str = json.dumps(result)
+        
+        stmt = update(WorkflowStepRun).where(
+            WorkflowStepRun.id == step_run_id
+        ).values(result_json=result_json_str)
+        await db.execute(stmt)
+        await db.flush()
 
     async def cancel_run(
         self,
