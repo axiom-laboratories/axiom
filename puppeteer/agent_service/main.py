@@ -201,6 +201,7 @@ async def lifespan(app: FastAPI):
     # Start Scheduler
     scheduler_service.start()
     await scheduler_service.sync_scheduler()
+    await scheduler_service.sync_workflow_crons()  # NEW: Phase 149
 
     # Start background node monitoring
     import asyncio

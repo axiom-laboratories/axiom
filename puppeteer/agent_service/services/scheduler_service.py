@@ -5,12 +5,12 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.future import select
-from sqlalchemy import delete, func
+from sqlalchemy import delete, func, and_
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from .. import db as db_module
-from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord, ScheduledFireLog, IS_POSTGRES
+from ..db import ScheduledJob, Job, Signature, Node, NodeStats, AsyncSession, User, Config, ExecutionRecord, ScheduledFireLog, IS_POSTGRES, Workflow
 from ..models import JobDefinitionCreate, JobDefinitionResponse, JobDefinitionUpdate
 from .signature_service import SignatureService
 from .alert_service import AlertService
@@ -173,6 +173,105 @@ class SchedulerService:
                 logger.error(f"❌ Failed to schedule {j.name}: {e}")
 
         logger.info(f"✅ Scheduler Synced: {count} jobs active.")
+
+    async def sync_workflow_crons(self):
+        """Syncs DB Workflows with APScheduler cron jobs using diff-based algorithm.
+
+        Only syncs workflows where schedule_cron IS NOT NULL and is_paused = False.
+        Removes jobs for paused or deleted workflows; adds/updates jobs for active workflows.
+        """
+        logger.info("🔄 Syncing Workflow Crons...")
+
+        # Fetch all active (non-paused) workflows with non-null schedule_cron
+        async with db_module.AsyncSessionLocal() as session:
+            stmt = select(Workflow).where(
+                and_(
+                    Workflow.schedule_cron.isnot(None),
+                    Workflow.is_paused == False
+                )
+            )
+            result = await session.execute(stmt)
+            db_workflows = result.scalars().all()
+
+        # Build desired set: {workflow.id → Workflow} for valid crons
+        desired = {}
+        for w in db_workflows:
+            # Validate cron expression: should be 5 fields (minute hour day month day_of_week)
+            parts = w.schedule_cron.strip().split()
+            if len(parts) == 5:
+                desired[w.id] = w
+            else:
+                logger.warning(f"⚠️ Workflow {w.name} ({w.id}) has invalid cron: {w.schedule_cron}")
+
+        # Build current set: all jobs in scheduler (exclude internal jobs starting with '__')
+        current_ids = {
+            job.id for job in self.scheduler.get_jobs()
+            if not job.id.startswith('__')
+        }
+
+        # Remove jobs no longer desired (deleted workflows or paused)
+        to_remove = current_ids - set(desired.keys())
+        for job_id in to_remove:
+            try:
+                self.scheduler.remove_job(job_id)
+                logger.info(f"✅ Removed workflow cron job: {job_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not remove workflow cron {job_id}: {e}")
+
+        # Add or update desired jobs
+        count = 0
+        for w in desired.values():
+            parts = w.schedule_cron.split()
+            try:
+                callback = self._make_workflow_cron_callback(w.id)
+                self.scheduler.add_job(
+                    callback,
+                    'cron',
+                    minute=parts[0],
+                    hour=parts[1],
+                    day=parts[2],
+                    month=parts[3],
+                    day_of_week=parts[4],
+                    id=w.id,
+                    replace_existing=True
+                )
+                count += 1
+                logger.info(f"✅ Scheduled workflow cron: {w.name} ({w.id})")
+            except Exception as e:
+                logger.error(f"❌ Failed to schedule workflow {w.name}: {e}")
+
+        logger.info(f"✅ Workflow Crons Synced: {count} workflows active.")
+
+    def _make_workflow_cron_callback(self, workflow_id: str):
+        """Returns APScheduler callback that triggers workflow with trigger_type=CRON."""
+        def _callback():
+            try:
+                loop = asyncio.get_event_loop()
+                # Import WorkflowService here to avoid circular imports
+                from .workflow_service import WorkflowService
+                # Call WorkflowService.start_run() with trigger_type=CRON, triggered_by="scheduler"
+                task = loop.create_task(
+                    self._trigger_workflow_cron(workflow_id)
+                )
+            except Exception as e:
+                logger.error(f"❌ Failed to trigger workflow cron {workflow_id}: {e}")
+        return _callback
+
+    async def _trigger_workflow_cron(self, workflow_id: str):
+        """Trigger a workflow cron run asynchronously."""
+        try:
+            from .workflow_service import WorkflowService
+            async with db_module.AsyncSessionLocal() as session:
+                workflow_service = WorkflowService()
+                await workflow_service.start_run(
+                    workflow_id=workflow_id,
+                    parameters={},  # Cron uses only defaults
+                    trigger_type="CRON",
+                    triggered_by="scheduler",
+                    db=session
+                )
+        except Exception as e:
+            logger.error(f"❌ Failed to trigger workflow cron {workflow_id}: {e}")
 
     def _make_cron_callback(self, scheduled_job_id: str):
         """Returns a synchronous APScheduler callback that spawns execute_scheduled_job as a task."""

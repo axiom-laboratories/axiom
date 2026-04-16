@@ -159,5 +159,58 @@ async def verify_node_secret(
 
     if node.node_secret_hash and node.node_secret_hash != x_node_secret_hash:
         raise HTTPException(status_code=403, detail="Invalid Node Secret Hash - Identity Binding Failure")
-    
+
     return x_node_id
+
+
+# ---------------------------------------------------------------------------
+# Webhook Secret & Signature Verification Helpers (Phase 149)
+# ---------------------------------------------------------------------------
+
+def hash_webhook_secret(plaintext_secret: str) -> str:
+    """Hash webhook secret using bcrypt. Called at webhook creation time.
+
+    Args:
+        plaintext_secret: Plaintext webhook secret to hash
+
+    Returns:
+        Bcrypt hash of the secret
+    """
+    try:
+        from .auth import pwd_context
+    except ImportError:
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    return pwd_context.hash(plaintext_secret)
+
+
+def verify_webhook_signature(
+    header_signature: str,
+    request_body: bytes,
+    plaintext_secret: str
+) -> bool:
+    """Verify webhook signature using constant-time HMAC-SHA256 comparison.
+
+    Validates the X-Hub-Signature-256 header against the raw request body
+    using the webhook's plaintext secret. Uses constant-time comparison to
+    prevent timing attacks.
+
+    Args:
+        header_signature: Header value from X-Hub-Signature-256 header
+                         Format: "sha256=<hex>"
+        request_body: Raw request body bytes (not parsed JSON)
+        plaintext_secret: Plaintext webhook secret
+
+    Returns:
+        True if signature matches; False otherwise
+    """
+    # Compute expected signature
+    expected_signature = "sha256=" + _hmac.new(
+        plaintext_secret.encode(),
+        request_body,
+        hashlib.sha256
+    ).hexdigest()
+
+    # Constant-time comparison to prevent timing attacks
+    return _hmac.compare_digest(header_signature, expected_signature)
