@@ -458,6 +458,6 @@ Set up alerts on:
 
 ## See Also
 
-- [Workflows API Reference](../api-reference/index.md#workflows-api)
+- [Workflows API Reference](../api-reference/index.md#workflows)
 - [Workflow Concepts](../workflows/concepts.md)
 - [Workflow User Guide](../workflows/user-guide.md)

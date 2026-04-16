@@ -3,7 +3,7 @@
 Full REST API for Axiom. All endpoints require JWT authentication
 except node-facing endpoints (enroll, work/pull, heartbeat) which use mTLS.
 
-## Workflows API
+## Workflows API {#workflows}
 
 Workflow endpoints enable CRUD operations on DAG-structured job workflows, execution lifecycle management, and webhook-based triggering. All endpoints are authenticated (JWT) except node-facing endpoints.
 
