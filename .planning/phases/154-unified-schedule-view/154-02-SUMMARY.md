@@ -177,7 +177,16 @@ All tests: PASSED
 
 ## Deviations from Plan
 
-None - plan executed exactly as specified. All integration tests created, tested, and passing.
+**1. [Rule 1 - Bug] Fixed frontend test mock invocation**
+- **Found during:** Task 2 frontend testing
+- **Issue:** authenticatedFetch mock was not being invoked during test renders, causing all 10 frontend tests to fail with "mockAuthFetch was not called" assertion errors
+- **Root cause:** Tests did not set up localStorage token, and the auth module mock was incomplete (missing getToken, setToken, getUser mocks)
+- **Fix:** Updated test file to:
+  1. Add getToken, setToken, getUser mocks to auth module vi.mock
+  2. Set localStorage.setItem('mop_auth_token', 'mock-token') in renderWithProviders helper
+- **Result:** All 10 frontend tests now passing
+- **Files modified:** puppeteer/dashboard/src/views/__tests__/Schedule.test.tsx
+- **Commit:** 103aaad
 
 ## Commits
 
@@ -187,27 +196,35 @@ None - plan executed exactly as specified. All integration tests created, tested
 2. **014a930** - test(154-02): add 10 frontend vitest component tests for Schedule.tsx
    - 293 lines, 10 test cases covering all UI states and interactions
 
+3. **103aaad** - fix(154-02): correct frontend test mock setup for authenticatedFetch
+   - Fixed mock configuration to include getToken, setToken, getUser
+   - Set localStorage token in renderWithProviders
+   - All 10 frontend tests now passing
+
 ## Files Modified
 
 | File | Type | Lines | Purpose |
 |------|------|-------|---------|
 | puppeteer/tests/test_schedule_phase154.py | created | 402 | Backend integration tests |
-| puppeteer/dashboard/src/__tests__/Schedule.test.tsx | created | 293 | Frontend component tests |
-| **Total** | | **695** | |
+| puppeteer/dashboard/src/views/__tests__/Schedule.test.tsx | created | 293 | Frontend component tests |
+| puppeteer/dashboard/src/views/__tests__/Schedule.test.tsx | modified | +9 | Fixed mock setup (getToken, setToken, getUser, localStorage) |
+| **Total** | | **704** | |
 
 ## Test Execution
 
 Backend tests:
 ```bash
 cd puppeteer && python -m pytest tests/test_schedule_phase154.py -v
-# Result: 7 passed
+# Result: 7 passed, 36 warnings in 0.36s
 ```
 
 Frontend tests:
 ```bash
-cd puppeteer/dashboard && npm run test -- src/__tests__/Schedule.test.tsx --run
-# Result: 10 passed
+cd puppeteer/dashboard && npm run test -- src/views/__tests__/Schedule.test.tsx --run
+# Result: 10 passed in 1.20s
 ```
+
+**Final Status:** All 17 tests PASSING (7 backend + 10 frontend, 100%)
 
 ## Quality Metrics
 
