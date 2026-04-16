@@ -9,7 +9,7 @@
 - ✅ **v10.0 — Axiom Commercial Release** — Phases 29–33 (shipped 2026-03-19)
 - ✅ **v11.0 — CE/EE Split Completion** — Phases 34–37 (shipped 2026-03-20)
 - ✅ **v11.1 — Stack Validation** — Phases 38–45 (shipped 2026-03-22)
-- ✅ **v12.0 — Operator Maturity** — Phases 46–56 (shipped 2026-03-24)
+- ✅ **v12.0 — Operator Maturity** — Phases 46–56 (shipped 2026-04-24)
 - ✅ **v13.0 — Research & Documentation Foundation** — Phases 57–60 (shipped 2026-03-24)
 - ✅ **v14.0 — CE/EE Cold-Start Validation** — Phases 61–65 (shipped 2026-03-25)
 - ✅ **v14.1 — First-User Readiness** — Phases 66–70 (shipped 2026-03-26)
@@ -188,9 +188,13 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 - [x] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation (completed 2026-04-15)
   - [x] Plan 01: Database & Pydantic Models — WorkflowStepRun ORM + Job.workflow_step_run_id FK + migration_v54.sql (Wave 1, completed 2026-04-15)
   - [x] Plan 02: Service Layer — dispatch_next_wave(), advance_workflow(), start_run(), cancel_run() with BFS + CAS + cascade logic (Wave 1, completed 2026-04-15)
-  - [ ] Plan 03: API Routes & Integration — POST /api/workflow-runs, POST /api/workflow-runs/{id}/cancel, report_result hook (Wave 2)
-  - [ ] Plan 04: Comprehensive Test Suite — 9+ pytest tests covering ENGINE-01..07 + fixtures (Wave 3)
-- [ ] **Phase 148: Gate Node Types** — IF conditionals, AND/JOIN, OR, parallel fan-out, signal wait (plans TBD)
+  - [x] Plan 03: API Routes & Integration — POST /api/workflow-runs, POST /api/workflow-runs/{id}/cancel, report_result hook (Wave 2, completed 2026-04-16)
+  - [x] Plan 04: Comprehensive Test Suite — 11+ pytest tests covering ENGINE-01..07 + workflow dispatch fixtures (Wave 3, completed 2026-04-16)
+- [x] **Phase 148: Gate Node Types** — IF conditionals, AND/JOIN, OR, parallel fan-out, signal wait (completed 2026-04-16)
+  - [x] Plan 01: GateEvaluationService + condition evaluation methods — Wave 1 (completed 2026-04-16)
+  - [x] Plan 02: Gate node dispatch integration — Wave 2 (completed 2026-04-16)
+  - [x] Plan 03: SIGNAL_WAIT blocking and wakeup — Wave 3 (completed 2026-04-16)
+  - [x] Plan 04: Comprehensive test suite (22 unit + 11 integration tests) — Wave 4 (completed 2026-04-16)
 - [ ] **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC, WORKFLOW_PARAM_* injection (plans TBD)
 - [ ] **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (plans TBD)
 - [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
@@ -242,7 +246,8 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 144. Nyquist Validation — EE Features | v22.0 | 1/1 | Complete | 2026-04-14 |
 | 145. Nyquist Validation — Cleanup Phases | v22.0 | 1/1 | Complete | 2026-04-15 |
 | 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
-| 147. WorkflowRun Execution Engine | v23.0 | Complete    | 2026-04-15 | 2026-04-15 |
+| 147. WorkflowRun Execution Engine | v23.0 | 4/4 | Complete | 2026-04-16 |
+| 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
 
 ## Archived
 
