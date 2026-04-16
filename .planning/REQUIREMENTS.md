@@ -2,7 +2,7 @@
 
 **Milestone:** v23.0
 **Status:** Active
-**Last updated:** 2026-04-15
+**Last updated:** 2026-04-16
 
 ---
 
@@ -28,12 +28,12 @@
 
 ### GATE — Conditional & Fan-out Node Types
 
-- [ ] **GATE-01**: IF gate evaluates conditions against structured output from `/tmp/axiom/result.json` using operators: `eq`, `neq`, `gt`, `lt`, `contains`, `exists`
-- [ ] **GATE-02**: IF gate routes to the first matching branch; unmatched IF gate marks step FAILED and cascades cancellation downstream
-- [ ] **GATE-03**: AND/JOIN gate releases downstream steps only when all incoming branches have completed
-- [ ] **GATE-04**: OR gate releases downstream steps when any single incoming branch completes
-- [ ] **GATE-05**: Parallel fan-out node dispatches multiple independent downstream branches concurrently
-- [ ] **GATE-06**: Signal wait node pauses workflow execution until a named signal is posted via the existing Signal mechanism
+- [x] **GATE-01**: IF gate evaluates conditions against structured output from `/tmp/axiom/result.json` using operators: `eq`, `neq`, `gt`, `lt`, `contains`, `exists`
+- [x] **GATE-02**: IF gate routes to the first matching branch; unmatched IF gate marks step FAILED and cascades cancellation downstream
+- [x] **GATE-03**: AND/JOIN gate releases downstream steps only when all incoming branches have completed
+- [x] **GATE-04**: OR gate releases downstream steps when any single incoming branch completes
+- [x] **GATE-05**: Parallel fan-out node dispatches multiple independent downstream branches concurrently
+- [x] **GATE-06**: Signal wait node pauses workflow execution until a named signal is posted via the existing Signal mechanism
 
 ### TRIGGER — Workflow Triggers
 
