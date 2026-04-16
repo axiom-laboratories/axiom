@@ -479,11 +479,13 @@ class Workflow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    schedule_cron: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)  # Cron expression; activates only if is_paused=false
 
     # Relationships
     steps: Mapped[List["WorkflowStep"]] = relationship("WorkflowStep", back_populates="workflow", cascade="all, delete-orphan")
     edges: Mapped[List["WorkflowEdge"]] = relationship("WorkflowEdge", back_populates="workflow", cascade="all, delete-orphan")
     parameters: Mapped[List["WorkflowParameter"]] = relationship("WorkflowParameter", back_populates="workflow", cascade="all, delete-orphan")
+    webhooks: Mapped[List["WorkflowWebhook"]] = relationship("WorkflowWebhook", back_populates="workflow", cascade="all, delete-orphan")
 
 
 class WorkflowStep(Base):
@@ -532,6 +534,7 @@ class WorkflowRun(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     trigger_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # MANUAL, CRON, WEBHOOK — Phase 149
     triggered_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # user ID or webhook name
+    parameters_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Resolved parameters at run creation as JSON string
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
