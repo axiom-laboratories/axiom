@@ -47,11 +47,13 @@ from .models import (
     PaginatedResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
     DependencyTreeResponse, DiscoverDependenciesResponse,
     WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowRunResponse,
+    WorkflowWebhookCreate, WorkflowWebhookResponse,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets,
     verify_client_cert, ENCRYPTION_KEY, cipher_suite, oauth2_scheme,
-    mask_pii, verify_node_secret, validate_path_within
+    mask_pii, verify_node_secret, validate_path_within,
+    hash_webhook_secret, verify_webhook_signature
 )
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -63,9 +65,10 @@ logger = logging.getLogger(__name__)
 
 from sqlalchemy.future import select
 from sqlalchemy import update, desc, func, delete
+from sqlalchemy.orm import selectinload
 from collections import defaultdict
 from cryptography import x509 as _x509
-from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert, JobTemplate, ApprovedIngredient, IngredientDependency, ApprovedOS, WorkflowStepRun
+from .db import init_db, get_db, Job, Token, Config, User, Node, NodeStats, AsyncSession, Signature, ScheduledJob, Ping, AsyncSessionLocal, RevokedCert, ExecutionRecord, Signal, Alert, JobTemplate, ApprovedIngredient, IngredientDependency, ApprovedOS, WorkflowStepRun, Workflow, WorkflowRun, WorkflowWebhook
 from .auth import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 from .services.job_service import JobService
 from .services.signature_service import SignatureService
@@ -2553,6 +2556,79 @@ async def update_workflow(
     workflow_service = WorkflowService()
     return await workflow_service.update(db, workflow_id, workflow_update)
 
+@app.patch("/api/workflows/{workflow_id}", tags=["workflows"], response_model=WorkflowResponse)
+async def patch_workflow(
+    workflow_id: str,
+    workflow_update: WorkflowUpdate,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> WorkflowResponse:
+    """
+    Partially update a Workflow definition with validation.
+
+    Validates schedule_cron against required parameters (all must have defaults).
+    Updates DAG if definition changes. Syncs APScheduler crons after save.
+
+    Returns:
+        200 OK with updated WorkflowResponse
+
+    Raises:
+        404: Workflow not found
+        422: Validation failed (e.g., schedule_cron with required params lacking defaults)
+    """
+    # Fetch workflow
+    workflow = await db.get(Workflow, workflow_id)
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # If schedule_cron is being set, validate that all required parameters have defaults
+    if workflow_update.schedule_cron is not None:
+        # Fetch parameters for this workflow
+        stmt = select(Workflow).where(Workflow.id == workflow_id).options(
+            selectinload(Workflow.parameters)
+        )
+        result = await db.execute(stmt)
+        workflow_with_params = result.scalar_one_or_none()
+
+        if workflow_with_params and workflow_with_params.parameters:
+            for param in workflow_with_params.parameters:
+                if param.default_value is None:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Cannot schedule workflow: required parameter '{param.name}' has no default value. All parameters must have defaults for cron scheduling."
+                    )
+
+    # Update fields
+    if workflow_update.name is not None:
+        workflow.name = workflow_update.name
+    if workflow_update.definition is not None:
+        workflow.definition = workflow_update.definition
+        # Validate DAG if definition changed
+        workflow_service = WorkflowService()
+        await workflow_service.validate_workflow_definition(workflow)
+    if workflow_update.schedule_cron is not None:
+        workflow.schedule_cron = workflow_update.schedule_cron
+    if workflow_update.is_paused is not None:
+        workflow.is_paused = workflow_update.is_paused
+
+    workflow.updated_at = datetime.now(UTC)
+    await db.commit()
+
+    # Audit log
+    audit(db, current_user, "update_workflow", workflow_id, {
+        "name": workflow_update.name,
+        "schedule_cron": workflow_update.schedule_cron,
+        "is_paused": workflow_update.is_paused
+    })
+
+    # Sync crons with APScheduler if schedule_cron changed
+    try:
+        await scheduler_service.sync_workflow_crons()
+    except Exception as e:
+        logger.warning(f"Error syncing workflow crons: {e}")
+
+    return await workflow_service._workflow_to_response(db, workflow)
+
 @app.delete("/api/workflows/{workflow_id}", tags=["workflows"], status_code=204)
 async def delete_workflow(
     workflow_id: str,
@@ -2606,7 +2682,7 @@ async def create_workflow_run(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Trigger a WorkflowRun.
+    Manually trigger a WorkflowRun with optional parameter overrides.
 
     Request body: {
         "workflow_id": str,
@@ -2614,20 +2690,146 @@ async def create_workflow_run(
     }
 
     Returns WorkflowRunResponse with initial step runs.
+
+    Returns:
+        201 Created with WorkflowRunResponse
+
+    Raises:
+        400: workflow_id missing
+        404: Workflow not found
+        409: Workflow is paused
+        422: Required parameters unsatisfied
+        500: Unexpected error
     """
     if not body.get("workflow_id"):
         raise HTTPException(status_code=400, detail="workflow_id required")
 
     workflow_service = WorkflowService()
-    run = await workflow_service.start_run(
-        workflow_id=body["workflow_id"],
-        parameters=body.get("parameters", {}),
-        triggered_by=current_user.username,
-        db=db
-    )
+    try:
+        run = await workflow_service.start_run(
+            workflow_id=body["workflow_id"],
+            parameters=body.get("parameters", {}),
+            trigger_type="MANUAL",
+            triggered_by=current_user.username,
+            db=db
+        )
 
-    await ws_manager.broadcast("workflow:run:created", {"run_id": run.id, "workflow_id": run.workflow_id, "status": "RUNNING"})
-    return run
+        # Audit log the manual trigger
+        audit(db, current_user, "trigger_workflow_manual", run.id, {
+            "workflow_id": body["workflow_id"],
+            "run_id": run.id,
+            "triggered_by": current_user.username
+        })
+
+        await ws_manager.broadcast("workflow:run:created", {"run_id": run.id, "workflow_id": run.workflow_id, "status": "RUNNING"})
+        return run
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error triggering workflow {body.get('workflow_id')}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to trigger workflow")
+
+@app.post("/api/workflows/{workflow_id}/webhooks", tags=["workflows"], response_model=WorkflowWebhookResponse, status_code=201)
+async def create_workflow_webhook(
+    workflow_id: str,
+    webhook_create: WorkflowWebhookCreate,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> WorkflowWebhookResponse:
+    """Create a webhook endpoint for a Workflow. Returns plaintext secret once at creation; never again."""
+    # Verify workflow exists
+    workflow = await db.get(Workflow, workflow_id)
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Generate webhook ID and plaintext secret
+    webhook_id = str(uuid.uuid4())
+    plaintext_secret = _secrets.token_urlsafe(32)  # ~256 bits of entropy
+
+    # Hash secret for storage (bcrypt)
+    secret_hash = hash_webhook_secret(plaintext_secret)
+
+    # Encrypt plaintext secret for HMAC verification at trigger time (Fernet)
+    secret_plaintext_encrypted = cipher_suite.encrypt(plaintext_secret.encode()).decode()
+
+    # Create webhook in DB
+    webhook = WorkflowWebhook(
+        id=webhook_id,
+        workflow_id=workflow_id,
+        name=webhook_create.name,
+        secret_hash=secret_hash,
+        secret_plaintext=secret_plaintext_encrypted,  # Store encrypted plaintext for HMAC verification
+        created_at=datetime.now(UTC)
+    )
+    db.add(webhook)
+    await db.commit()
+
+    # Audit log
+    audit(db, current_user, "create_webhook", webhook_id, {
+        "workflow_id": workflow_id,
+        "webhook_name": webhook_create.name
+    })
+
+    # Return response with plaintext secret (only time it's exposed)
+    response = WorkflowWebhookResponse(
+        id=webhook_id,
+        workflow_id=workflow_id,
+        name=webhook_create.name,
+        secret=plaintext_secret,  # ONLY in creation response
+        created_at=webhook.created_at
+    )
+    return response
+
+@app.get("/api/workflows/{workflow_id}/webhooks", tags=["workflows"], response_model=List[WorkflowWebhookResponse])
+async def list_workflow_webhooks(
+    workflow_id: str,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> List[WorkflowWebhookResponse]:
+    """List all webhooks for a Workflow (secret field omitted for security)."""
+    # Verify workflow exists
+    workflow = await db.get(Workflow, workflow_id)
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Fetch all webhooks for this workflow
+    stmt = select(WorkflowWebhook).where(WorkflowWebhook.workflow_id == workflow_id)
+    result = await db.execute(stmt)
+    webhooks = result.scalars().all()
+
+    # Map to response (secret=None for all list responses)
+    return [
+        WorkflowWebhookResponse(
+            id=w.id,
+            workflow_id=w.workflow_id,
+            name=w.name,
+            secret=None,  # Never expose secret in list
+            created_at=w.created_at
+        )
+        for w in webhooks
+    ]
+
+@app.delete("/api/workflows/{workflow_id}/webhooks/{webhook_id}", tags=["workflows"], status_code=204)
+async def delete_workflow_webhook(
+    workflow_id: str,
+    webhook_id: str,
+    current_user: User = Depends(require_permission("workflows:write")),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Revoke a webhook endpoint. Future trigger requests will fail with 404."""
+    # Verify webhook exists and belongs to this workflow
+    webhook = await db.get(WorkflowWebhook, webhook_id)
+    if webhook is None or webhook.workflow_id != workflow_id:
+        raise HTTPException(status_code=404, detail="Webhook not found")
+
+    # Delete webhook
+    await db.delete(webhook)
+    await db.commit()
+
+    # Audit log
+    audit(db, current_user, "delete_webhook", webhook_id, {
+        "workflow_id": workflow_id
+    })
 
 @app.post("/api/workflow-runs/{run_id}/cancel", tags=["workflows"], response_model=WorkflowRunResponse)
 async def cancel_workflow_run(
@@ -2645,6 +2847,108 @@ async def cancel_workflow_run(
 
     await ws_manager.broadcast("workflow:run:cancelled", {"run_id": run.id, "status": "CANCELLED"})
     return run
+
+@app.post("/api/webhooks/{webhook_id}/trigger", tags=["webhooks"], status_code=202)
+async def trigger_webhook(
+    webhook_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, str]:
+    """
+    Unauthenticated webhook trigger endpoint. Validates HMAC signature before running workflow.
+
+    Request body: JSON object with parameter overrides (e.g., {"env": "prod", "region": "us-east-1"})
+
+    Header: X-Hub-Signature-256: sha256=<hex> (HMAC-SHA256 of raw request body)
+
+    Returns:
+        202 Accepted with {"run_id": "<workflow_run_id>"}
+
+    Raises:
+        400: Invalid request body
+        401: Missing or invalid signature
+        404: Webhook not found
+        500: Failed to trigger workflow
+    """
+    # Read raw request body (required for HMAC verification)
+    try:
+        body_bytes = await request.body()
+    except Exception as e:
+        logger.error(f"Error reading webhook body: {e}")
+        raise HTTPException(status_code=400, detail="Invalid request body")
+
+    # Extract signature header
+    signature_header = request.headers.get("X-Hub-Signature-256", "")
+    if not signature_header:
+        logger.warning(f"Webhook {webhook_id} missing X-Hub-Signature-256 header")
+        raise HTTPException(status_code=401, detail="Missing signature header")
+
+    # Fetch webhook
+    webhook = await db.get(WorkflowWebhook, webhook_id)
+    if webhook is None:
+        # Log but don't expose webhook existence
+        logger.warning(f"Webhook trigger attempt for unknown webhook {webhook_id}")
+        raise HTTPException(status_code=404, detail="Webhook not found")
+
+    # Get plaintext secret from webhook for verification
+    # The secret_plaintext is stored Fernet-encrypted; decrypt it for HMAC verification
+    if webhook.secret_plaintext is None:
+        logger.error(f"Webhook {webhook_id} has no plaintext secret stored")
+        raise HTTPException(status_code=500, detail="Webhook misconfiguration")
+
+    try:
+        plaintext_secret = cipher_suite.decrypt(webhook.secret_plaintext.encode()).decode()
+    except Exception as e:
+        logger.error(f"Webhook {webhook_id} decryption failed: {e}")
+        raise HTTPException(status_code=500, detail="Webhook decryption failed")
+
+    # Verify signature
+    if not verify_webhook_signature(signature_header, body_bytes, plaintext_secret):
+        logger.warning(f"Webhook {webhook_id} signature verification failed")
+        raise HTTPException(status_code=401, detail="Signature verification failed")
+
+    # Parse request body as parameters dict
+    try:
+        parameters = await request.json()  # Should be JSON object
+        if not isinstance(parameters, dict):
+            parameters = {}
+    except Exception as e:
+        logger.warning(f"Webhook {webhook_id} invalid JSON body: {e}")
+        parameters = {}  # Treat as empty if JSON invalid
+
+    # Trigger workflow run
+    try:
+        workflow_service = WorkflowService()
+        run = await workflow_service.start_run(
+            workflow_id=webhook.workflow_id,
+            parameters=parameters,
+            trigger_type="WEBHOOK",
+            triggered_by=webhook.name,
+            db=db
+        )
+
+        # Audit log (no user context for unauthenticated endpoint)
+        try:
+            from sqlalchemy import text
+            await db.execute(
+                text("INSERT INTO audit_log (username, action, resource_id, detail) VALUES (:u, :a, :r, :d)"),
+                {"u": "webhook", "a": "trigger_webhook", "r": run.id, "d": json.dumps({
+                    "webhook_id": webhook_id,
+                    "workflow_id": webhook.workflow_id,
+                    "run_id": run.id
+                })}
+            )
+        except Exception:
+            # Audit table may not exist in CE mode — silently ignore
+            pass
+
+        await ws_manager.broadcast("workflow:run:created", {"run_id": run.id, "workflow_id": run.workflow_id, "status": "RUNNING"})
+        return {"run_id": run.id}  # 202 + run_id
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error triggering webhook {webhook_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to trigger workflow")
 
 # --- Installer & Doc Endpoints ---
 
