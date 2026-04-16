@@ -196,6 +196,7 @@ class WorkResponse(BaseModel):
     started_at: Optional[datetime] = None
     memory_limit: Optional[str] = None
     cpu_limit: Optional[str] = None
+    env_vars: Optional[Dict[str, str]] = None
 
 class ResultReport(BaseModel):
     result: Optional[Dict] = None

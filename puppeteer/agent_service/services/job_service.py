@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Union, Dict
 from packaging.version import Version, InvalidVersion
 from sqlalchemy import select, desc, func, delete, or_, and_
-from ..db import Job, Node, NodeStats, ExecutionRecord, AsyncSession, Config, Signal, IS_POSTGRES
+from ..db import Job, Node, NodeStats, ExecutionRecord, AsyncSession, Config, Signal, IS_POSTGRES, WorkflowRun, WorkflowStepRun
 from ..models import (
     ResultReport, JobResponse, JobCreate, WorkResponse, PollResponse,
     HeartbeatPayload
@@ -907,6 +907,23 @@ class JobService:
         encrypted_payload = json.loads(selected_job.payload)
         payload = decrypt_secrets(encrypted_payload)
 
+        # Phase 149: Populate env_vars from workflow parameters if this is a workflow job
+        env_vars = None
+        if selected_job.workflow_step_run_id:
+            try:
+                # Fetch the WorkflowStepRun to get run_id
+                step_run = await db.get(WorkflowStepRun, selected_job.workflow_step_run_id)
+                if step_run:
+                    # Fetch the WorkflowRun to get parameters_json
+                    run = await db.get(WorkflowRun, step_run.workflow_run_id)
+                    if run and run.parameters_json:
+                        parameters_dict = json.loads(run.parameters_json)
+                        # Build env_vars: WORKFLOW_PARAM_<NAME>=<value>
+                        env_vars = {f"WORKFLOW_PARAM_{k}": str(v) for k, v in parameters_dict.items()}
+            except Exception as e:
+                logger.warning(f"Failed to populate env_vars for job {selected_job.guid}: {e}")
+                env_vars = None
+
         await db.commit()
 
         work_resp = WorkResponse(
@@ -919,6 +936,7 @@ class JobService:
             started_at=selected_job.started_at,
             memory_limit=selected_job.memory_limit,
             cpu_limit=selected_job.cpu_limit,
+            env_vars=env_vars,
         )
         return PollResponse(job=work_resp, env_tag=current_env_tag)
 

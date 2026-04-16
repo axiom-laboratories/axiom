@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Optional, List, Tuple, Dict, Any
 from uuid import uuid4
 from datetime import datetime
@@ -8,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, update, and_
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 from agent_service.db import (
     Workflow, WorkflowStep, WorkflowEdge, WorkflowParameter,
@@ -751,16 +754,35 @@ class WorkflowService:
     async def start_run(
         self,
         workflow_id: str,
-        parameters: Dict[str, Any],
-        triggered_by: str,
-        db: AsyncSession
+        parameters: Dict[str, Any] = None,
+        trigger_type: str = "MANUAL",
+        triggered_by: str = None,
+        db: AsyncSession = None
     ) -> WorkflowRunResponse:
         """
-        Create and start a WorkflowRun.
-        Validates workflow exists and is not paused, creates run, dispatches first wave.
+        Create and start a WorkflowRun with parameter resolution and validation.
+
+        Args:
+            workflow_id: ID of workflow to run
+            parameters: Dict of trigger-specific parameter overrides (optional)
+            trigger_type: "MANUAL", "CRON", or "WEBHOOK" (default: MANUAL)
+            triggered_by: username, "scheduler", or webhook name (default: "unknown")
+            db: AsyncSession for database operations
+
+        Returns:
+            WorkflowRunResponse with created run details
+
+        Raises:
+            HTTPException(404): Workflow not found
+            HTTPException(409): Workflow is paused
+            HTTPException(422): Required parameters unsatisfied
         """
-        # Fetch workflow
-        workflow = await db.get(Workflow, workflow_id)
+        # Fetch workflow with eager-loaded parameters
+        stmt = select(Workflow).where(Workflow.id == workflow_id).options(
+            selectinload(Workflow.parameters)
+        )
+        result = await db.execute(stmt)
+        workflow = result.scalar_one_or_none()
         if workflow is None:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -768,18 +790,44 @@ class WorkflowService:
         if workflow.is_paused:
             raise HTTPException(status_code=409, detail="Workflow is paused")
 
-        # Create WorkflowRun
+        # Merge and validate parameters (trigger-specific override + defaults)
+        parameters = parameters or {}
+        resolved_params = {}
+
+        for param in workflow.parameters:
+            # Get trigger-specific value (if provided)
+            caller_value = parameters.get(param.name)
+            # Fall back to parameter default
+            resolved_value = caller_value if caller_value is not None else param.default_value
+
+            # Validate: if required (no default), must be provided
+            if resolved_value is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Required parameter '{param.name}' not provided and has no default"
+                )
+
+            resolved_params[param.name] = resolved_value
+
+        # Snapshot parameters to JSON
+        parameters_json = json.dumps(resolved_params) if resolved_params else None
+
+        # Create WorkflowRun with trigger metadata
         run_id = str(uuid4())
         run = WorkflowRun(
             id=run_id,
             workflow_id=workflow_id,
             status="RUNNING",
             started_at=datetime.utcnow(),
-            trigger_type="MANUAL",
-            triggered_by=triggered_by
+            trigger_type=trigger_type,
+            triggered_by=triggered_by or "unknown",
+            parameters_json=parameters_json
         )
         db.add(run)
         await db.flush()  # Ensure run.id is set before dispatch
+
+        # Log trigger info
+        logger.info(f"WorkflowRun {run_id} triggered by {triggered_by or 'unknown'} ({trigger_type})")
 
         # Dispatch first wave (root steps)
         await self.dispatch_next_wave(run_id, db)
