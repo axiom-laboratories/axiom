@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: Phase 152 (Workflow Feature Documentation)
-current_plan: Plan 03 (API Reference) — next up
+current_plan: Plan 04 (API Reference) — next up
 status: executing
-last_updated: "2026-04-16T16:37:00Z"
+last_updated: "2026-04-16T16:28:09Z"
 progress:
   total_phases: 71
   completed_phases: 69
   total_plans: 187
-  completed_plans: 197
+  completed_plans: 198
 ---
 
 # Session State
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 152 (Workflow Feature Documentation)
-**Current plan:** Plan 02 (Concepts & Architecture) — next up
+**Current plan:** Plan 04 (API Reference) — next up
 **Status:** Executing Phase 152
 
 ## Recent Completion
@@ -36,6 +36,14 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T16:28:09Z: Phase 152 Plan 03 completed — Operator & Developer Guides
+  - Wrote docs/docs/workflows/operator-guide.md: 190 lines covering status transitions (5 statuses), cascade cancellation (linear + conditional examples), gate semantics (IF_GATE, AND_JOIN, OR_GATE, PARALLEL, SIGNAL_WAIT), Phase 149 triggers/parameters, monitoring via API/dashboard, common operator tasks
+  - Wrote docs/docs/workflows/developer-guide.md: 471 lines covering BFS dispatch algorithm (pseudocode + topological guarantees), CAS guards (SELECT...FOR UPDATE atomic updates), comprehensive mermaid ERD (all 7 tables with FK relationships), cascade cancellation logic (recursion + isolation gates), lazy import pattern, testing patterns, 6 common pitfalls for contributors
+  - Both files exceed minimum line counts (operator: 190 > 90, developer: 471 > 130)
+  - MkDocs build --strict PASSED; both HTML files rendered successfully (expected warnings: placeholder screenshots, missing API anchor in Phase 152-04)
+  - All requirements met: observable behaviour, status state machine, BFS internals, CAS guards, mermaid ERD, cascade logic
+  - Commits: 6f2e4f4 (operator-guide), e98ccaa (developer-guide), 9a8c1cb (summary)
 
 - 2026-04-16T16:37:00Z: Phase 152 Plan 02 completed — Workflow Concepts & User Documentation
   - Expanded docs/docs/workflows/index.md: Overview, Quick Start, navigation table (36 lines)
