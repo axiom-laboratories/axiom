@@ -18,13 +18,13 @@
 
 ### ENGINE — Execution Engine
 
-- [ ] **ENGINE-01**: System dispatches WorkflowRun steps in topological order (BFS), releasing each step only after its dependencies complete
-- [ ] **ENGINE-02**: System overrides the 10-level job depth limit to 30 levels for workflow-instantiated jobs
-- [ ] **ENGINE-03**: System uses atomic concurrency guards (SELECT...FOR UPDATE) when processing concurrent step completions to prevent duplicate dispatch
-- [ ] **ENGINE-04**: System tracks WorkflowRun status as one of: RUNNING / COMPLETED / PARTIAL / FAILED / CANCELLED
-- [ ] **ENGINE-05**: System propagates a step's FAILED status to all downstream PENDING steps (cascade cancel)
-- [ ] **ENGINE-06**: System marks WorkflowRun as PARTIAL when failures are absorbed by FAILED-branch steps rather than causing global FAILED
-- [ ] **ENGINE-07**: User can cancel a running WorkflowRun; system actively aborts ASSIGNED/RUNNING step jobs and marks all PENDING steps CANCELLED
+- [x] **ENGINE-01**: System dispatches WorkflowRun steps in topological order (BFS), releasing each step only after its dependencies complete
+- [x] **ENGINE-02**: System overrides the 10-level job depth limit to 30 levels for workflow-instantiated jobs
+- [x] **ENGINE-03**: System uses atomic concurrency guards (SELECT...FOR UPDATE) when processing concurrent step completions to prevent duplicate dispatch
+- [x] **ENGINE-04**: System tracks WorkflowRun status as one of: RUNNING / COMPLETED / PARTIAL / FAILED / CANCELLED
+- [x] **ENGINE-05**: System propagates a step's FAILED status to all downstream PENDING steps (cascade cancel)
+- [x] **ENGINE-06**: System marks WorkflowRun as PARTIAL when failures are absorbed by FAILED-branch steps rather than causing global FAILED
+- [x] **ENGINE-07**: User can cancel a running WorkflowRun; system actively aborts ASSIGNED/RUNNING step jobs and marks all PENDING steps CANCELLED
 
 ### GATE — Conditional & Fan-out Node Types
 
@@ -37,23 +37,23 @@
 
 ### TRIGGER — Workflow Triggers
 
-- [ ] **TRIGGER-01**: User can manually trigger a WorkflowRun from the dashboard, supplying parameter values at trigger time
+- [x] **TRIGGER-01**: User can manually trigger a WorkflowRun from the dashboard, supplying parameter values at trigger time
 - [x] **TRIGGER-02**: User can schedule a Workflow on a cron expression (APScheduler); schedule auto-pauses on "Save as New"
-- [ ] **TRIGGER-03**: User can configure a webhook endpoint for a Workflow (`POST /api/webhooks/{id}/trigger`)
+- [x] **TRIGGER-03**: User can configure a webhook endpoint for a Workflow (`POST /api/webhooks/{id}/trigger`)
 - [x] **TRIGGER-04**: Webhook endpoint validates HMAC-SHA256 signature, timestamp freshness (±5 min), and nonce uniqueness (24h dedup) before triggering a run
-- [ ] **TRIGGER-05**: Webhook events failing validation (bad signature, stale timestamp, replayed nonce) are rejected HTTP 400 and audit-logged
+- [x] **TRIGGER-05**: Webhook events failing validation (bad signature, stale timestamp, replayed nonce) are rejected HTTP 400 and audit-logged
 
 ### PARAMS — Parameter Injection
 
-- [ ] **PARAMS-01**: User can define named parameters on a Workflow definition (name, type, optional default value)
+- [x] **PARAMS-01**: User can define named parameters on a Workflow definition (name, type, optional default value)
 - [x] **PARAMS-02**: System injects runtime parameter values as `WORKFLOW_PARAM_<NAME>` environment variables into each step's container; signed script content is never modified
 
 ### UI — Dashboard Interface
 
-- [ ] **UI-01**: User can view a read-only auto-layout DAG visualization of a Workflow's step graph (elkjs layered layout)
-- [ ] **UI-02**: Live step execution status is overlaid on the DAG visualization during an active WorkflowRun (colour-coded by status)
-- [ ] **UI-03**: User can view the run history for a Workflow (list of WorkflowRuns with trigger type, status, started/completed, duration)
-- [ ] **UI-04**: User can drill into a WorkflowRunStep to view its job output, logs, and `result.json` structured output
+- [x] **UI-01**: User can view a read-only auto-layout DAG visualization of a Workflow's step graph (elkjs layered layout)
+- [x] **UI-02**: Live step execution status is overlaid on the DAG visualization during an active WorkflowRun (colour-coded by status)
+- [x] **UI-03**: User can view the run history for a Workflow (list of WorkflowRuns with trigger type, status, started/completed, duration)
+- [x] **UI-04**: User can drill into a WorkflowRunStep to view its job output, logs, and `result.json` structured output
 - [ ] **UI-05**: Unified schedule view shows ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status
 - [ ] **UI-06**: User can compose a Workflow visually by dragging ScheduledJob steps onto a canvas and connecting them with directed edges
 - [ ] **UI-07**: Canvas validates the DAG in real-time: highlights cycles, warns on depth approaching 30, and exposes IF gate condition configuration inline
@@ -92,5 +92,8 @@
 | 149 | Triggers & Parameter Injection | TRIGGER-01, TRIGGER-02, TRIGGER-03, TRIGGER-04, TRIGGER-05, PARAMS-01, PARAMS-02 |
 | 150 | Dashboard Read-Only Views | UI-01, UI-02, UI-03, UI-04, UI-05 |
 | 151 | Visual DAG Editor | UI-06, UI-07 |
+| 153 | Verify Gate Node Types | GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06 (gap closure — verification) |
+| 154 | Unified Schedule View | UI-05 (gap closure — deferred from Phase 150) |
+| 155 | Visual DAG Editor | UI-06, UI-07 (gap closure — Phase 151 implementation) |
 
 **Coverage:** 32/32 requirements mapped ✓

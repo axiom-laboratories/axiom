@@ -179,7 +179,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–152) — IN PROGRESS</summary>
+<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–155) — IN PROGRESS</summary>
 
 - [x] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection
   - [x] Plan 01: Test & Schema Foundation — database schema (4 tables), test stubs (13 tests), fixtures, networkx dependency (completed 2026-04-15)
@@ -208,7 +208,13 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 06: Routing & Navigation (Wave 5) — AppRoutes.tsx, MainLayout sidebar, breadcrumbs, deep linking (completed 2026-04-16)
   - [x] Plan 07: Integration Testing (Wave 6) — Backend + frontend integration tests, E2E Playwright verification (completed 2026-04-16)
 - [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
-- [x] **Phase 152: Workflow Feature Documentation** — Developer docs (API reference, architecture, data model) and user-facing docs (how-to guides, UI walkthroughs) for all workflow features (Phases 146–150) — completed 2026-04-16
+- [x] **Phase 152: Workflow Feature Documentation**
+- [ ] **Phase 153: Verify Gate Node Types** — Run verify-work for Phase 148 to create VERIFICATION.md; tick satisfied-but-unchecked REQUIREMENTS.md checkboxes (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04)
+  - **Gap Closure:** Closes GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06
+- [ ] **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status
+  - **Gap Closure:** Closes UI-05
+- [ ] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config)
+  - **Gap Closure:** Closes UI-06, UI-07 — Developer docs (API reference, architecture, data model) and user-facing docs (how-to guides, UI walkthroughs) for all workflow features (Phases 146–150) — completed 2026-04-16
   - [x] Plan 01: Directory structure + MkDocs nav registration (Wave 1) — completed 2026-04-16
   - [x] Plan 02: Overview, Concepts, User Guide pages (Wave 2) — completed 2026-04-16
   - [x] Plan 03: Operator Guide, Developer Guide pages (Wave 3) — completed 2026-04-16
