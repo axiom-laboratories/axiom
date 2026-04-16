@@ -25,7 +25,7 @@
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
-- 🚀 **v23.0 — DAG & Workflow Orchestration** — Phases 146–151 (in progress)
+- 🚀 **v23.0 — DAG & Workflow Orchestration** — Phases 146–152 (in progress)
 
 ## Phases
 
@@ -179,7 +179,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–151) — IN PROGRESS</summary>
+<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–152) — IN PROGRESS</summary>
 
 - [x] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection
   - [x] Plan 01: Test & Schema Foundation — database schema (4 tables), test stubs (13 tests), fixtures, networkx dependency (completed 2026-04-15)
@@ -208,6 +208,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 06: Routing & Navigation (Wave 5) — AppRoutes.tsx, MainLayout sidebar, breadcrumbs, deep linking (completed 2026-04-16)
   - [x] Plan 07: Integration Testing (Wave 6) — Backend + frontend integration tests, E2E Playwright verification (completed 2026-04-16)
 - [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
+- [ ] **Phase 152: Workflow Feature Documentation** — Developer docs (API reference, architecture, data model) and user-facing docs (how-to guides, UI walkthroughs) for all workflow features (Phases 146–150) (plans TBD)
 
 Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
@@ -258,7 +259,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
 | 147. WorkflowRun Execution Engine | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
-| 149. Triggers & Parameter Injection | v23.0 | 1/3 | In Progress | 2026-04-16 |
+| 149. Triggers & Parameter Injection | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
 | 150. Dashboard Read-Only Views | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
 
 ## Archived
