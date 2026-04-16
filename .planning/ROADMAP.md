@@ -201,9 +201,9 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [ ] Plan 03+: Parameter injection, API endpoints, run history (planned)
 - 🚀 **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (7 plans planned)
   - [x] Plan 01: Test Foundation (Wave 0) — Test scaffolds for all views, hooks, utilities, components (completed 2026-04-16)
-  - [ ] Plan 02: Backend WebSocket Events (Wave 1) — workflow_run_updated/workflow_step_updated events, /api/workflows/{id}/runs endpoint
-  - [ ] Plan 03: DAG Components (Wave 2) — useLayoutedElements hook, WorkflowStepNode, DAGCanvas with dagre layout
-  - [ ] Plan 04: Main Views (Wave 3) — Workflows list, WorkflowDetail, WorkflowRunDetail pages with React Query
+  - [x] Plan 02: Backend WebSocket Events (Wave 1) — workflow_run_updated/workflow_step_updated events, /api/workflows/{id}/runs endpoint (completed 2026-04-16)
+  - [x] Plan 03: DAG Components (Wave 2) — useLayoutedElements hook, WorkflowStepNode, DAGCanvas with dagre layout (completed 2026-04-16)
+  - [x] Plan 04: Main Views (Wave 3) — Workflows list, WorkflowDetail, WorkflowRunDetail pages with React Query (completed 2026-04-16)
   - [ ] Plan 05: Step Drawer (Wave 4) — WorkflowStepDrawer component, useStepLogs hook, integration with DAGCanvas
   - [ ] Plan 06: Routing & Navigation (Wave 5) — AppRoutes.tsx, MainLayout sidebar, breadcrumbs, deep linking
   - [ ] Plan 07: Integration Testing (Wave 6) — Backend + frontend integration tests, E2E Playwright verification
@@ -258,6 +258,8 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
 | 147. WorkflowRun Execution Engine | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
+| 149. Triggers & Parameter Injection | v23.0 | 1/3 | In Progress | 2026-04-16 |
+| 150. Dashboard Read-Only Views | v23.0 | 4/7 | In Progress | 2026-04-16 |
 
 ## Archived
 

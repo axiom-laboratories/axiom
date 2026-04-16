@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v23.0
 milestone_name: "DAG & Workflow Orchestration"
 current_phase: 150-dashboard-read-only-views
-current_plan: 04
+current_plan: 05
 status: Active
-last_updated: "2026-04-16T15:22:00Z"
+last_updated: "2026-04-16T15:26:00Z"
 progress:
   total_phases: 150
   completed_phases: 149
@@ -23,11 +23,12 @@ See: .planning/PROJECT.md
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 150 (Dashboard Read-Only Views)
-**Current plan:** Plan 04 (Workflows List View) — next up
+**Current plan:** Plan 05 (Step Drawer & Logs) — next up
 **Status:** Active
 
 ## Recent Completion
 
+- ✓ **Phase 150 Plan 04** (Workflow Views Implementation) — Workflows list, WorkflowDetail, WorkflowRunDetail — completed 2026-04-16
 - ✓ **Phase 150 Plan 03** (Core DAG Rendering Infrastructure) — useLayoutedElements, WorkflowStepNode, DAGCanvas — completed 2026-04-16
 - ✓ **Phase 150 Plan 02** (WebSocket Events & Run List) — Real-time updates, pagination — completed 2026-04-16
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
