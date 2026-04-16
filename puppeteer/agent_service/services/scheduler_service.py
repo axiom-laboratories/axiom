@@ -782,5 +782,119 @@ class SchedulerService:
         await self.sync_scheduler()
         return job
 
+    async def get_unified_schedule(self, db: AsyncSession) -> 'ScheduleListResponse':
+        """
+        Returns merged list of ScheduledJob + Workflow entries with next-run times.
+        Filters: only items with active cron (ScheduledJob.is_active=true + cron set;
+                 Workflow.is_paused=false + cron set).
+        Sorted by next_run_time ascending.
+
+        Returns ScheduleListResponse with entries list and total count.
+        """
+        from datetime import datetime, timezone
+        from ..models import ScheduleEntryResponse, ScheduleListResponse
+
+        now = datetime.now(timezone.utc)
+        entries = []
+
+        # Fetch active ScheduledJobs with cron
+        result = await db.execute(
+            select(ScheduledJob).where(
+                ScheduledJob.is_active == True,
+                ScheduledJob.schedule_cron.isnot(None)
+            )
+        )
+        jobs = result.scalars().all()
+
+        # Fetch active Workflows with cron
+        result = await db.execute(
+            select(Workflow).where(
+                Workflow.is_paused == False,
+                Workflow.schedule_cron.isnot(None)
+            )
+        )
+        workflows = result.scalars().all()
+
+        # Process ScheduledJobs
+        for job in jobs:
+            try:
+                parts = job.schedule_cron.strip().split()
+                if len(parts) != 5:
+                    logger.warning(f"⚠️ ScheduledJob {job.id} has invalid cron: {job.schedule_cron}")
+                    continue
+
+                trigger = CronTrigger(
+                    minute=parts[0], hour=parts[1], day=parts[2],
+                    month=parts[3], day_of_week=parts[4],
+                    timezone=timezone.utc
+                )
+                next_fire = trigger.get_next_fire_time(None, now)
+
+                # Get last run status from most recent Job
+                last_status = None
+                status_result = await db.execute(
+                    select(Job.status)
+                    .where(Job.scheduled_job_id == job.id)
+                    .order_by(Job.created_at.desc())
+                    .limit(1)
+                )
+                last_status = status_result.scalar_one_or_none()
+
+                entries.append(
+                    ScheduleEntryResponse(
+                        id=job.id,
+                        type="JOB",
+                        name=job.name,
+                        next_run_time=next_fire,
+                        last_run_status=last_status
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Error processing ScheduledJob {job.id}: {e}")
+                continue
+
+        # Process Workflows
+        for workflow in workflows:
+            try:
+                parts = workflow.schedule_cron.strip().split()
+                if len(parts) != 5:
+                    logger.warning(f"⚠️ Workflow {workflow.id} has invalid cron: {workflow.schedule_cron}")
+                    continue
+
+                trigger = CronTrigger(
+                    minute=parts[0], hour=parts[1], day=parts[2],
+                    month=parts[3], day_of_week=parts[4],
+                    timezone=timezone.utc
+                )
+                next_fire = trigger.get_next_fire_time(None, now)
+
+                # Get last run status from most recent WorkflowRun
+                last_status = None
+                run_result = await db.execute(
+                    select(db_module.WorkflowRun.status)
+                    .where(db_module.WorkflowRun.workflow_id == workflow.id)
+                    .order_by(db_module.WorkflowRun.created_at.desc())
+                    .limit(1)
+                )
+                last_status = run_result.scalar_one_or_none()
+
+                entries.append(
+                    ScheduleEntryResponse(
+                        id=workflow.id,
+                        type="FLOW",
+                        name=workflow.name,
+                        next_run_time=next_fire,
+                        last_run_status=last_status
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Error processing Workflow {workflow.id}: {e}")
+                continue
+
+        # Sort by next_run_time ascending (None values go to end)
+        entries.sort(key=lambda e: e.next_run_time or datetime.max)
+
+        return ScheduleListResponse(entries=entries, total=len(entries))
+
 # Global Instance
 scheduler_service = SchedulerService()

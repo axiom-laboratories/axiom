@@ -1412,3 +1412,24 @@ class WorkflowRunListResponse(BaseModel):
     limit: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- Unified Schedule Models (Phase 154) ---
+
+class ScheduleEntryResponse(BaseModel):
+    """Single entry in unified schedule (ScheduledJob or Workflow with cron)."""
+    id: str
+    type: Literal["JOB", "FLOW"]
+    name: str
+    next_run_time: Optional[datetime] = None
+    last_run_status: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScheduleListResponse(BaseModel):
+    """Response for GET /api/schedule: unified list of scheduled jobs and workflows."""
+    entries: List[ScheduleEntryResponse]
+    total: int
+
+    model_config = ConfigDict(from_attributes=True)

@@ -49,6 +49,7 @@ from .models import (
     WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowRunResponse,
     WorkflowWebhookCreate, WorkflowWebhookResponse,
     WorkflowRunUpdatedEvent, WorkflowStepUpdatedEvent, WorkflowRunListResponse,
+    ScheduleListResponse,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets,
@@ -2487,6 +2488,19 @@ async def toggle_job_definition(id: str, current_user: User = Depends(require_au
 @app.get("/jobs/definitions/{id}", response_model=JobDefinitionResponse, tags=["Job Definitions"])
 async def get_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.get_job_definition(id, db)
+
+@app.get("/api/schedule", response_model=ScheduleListResponse, tags=["Schedule"])
+async def get_schedule(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_permission("jobs:read"))
+) -> ScheduleListResponse:
+    """
+    Unified schedule view: merges ScheduledJob and cron-scheduled Workflow entries.
+    Returns sorted by next_run_time ascending (soonest first).
+    Only includes active items with cron schedules.
+    """
+    return await scheduler_service.get_unified_schedule(db)
+
 
 @app.post("/api/jobs/push", response_model=JobDefinitionResponse, status_code=201, tags=["Job Definitions"])
 async def push_job_definition(
