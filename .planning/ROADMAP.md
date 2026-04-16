@@ -279,7 +279,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
-| 154. Unified Schedule View | v23.0 | 1/2 | In Progress | 2026-04-16 |
+| 154. Unified Schedule View | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
 
 ## Phase Detail Sections
 
@@ -316,7 +316,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 **Goal:** Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status.
 
-**Plans:** 2 plans planned
+**Plans:** 2/2 plans complete
 
 **Plan 01 (Wave 1):** Backend service method, API endpoint, Pydantic models, frontend Schedule.tsx, routing, sidebar navigation
 - Task 1: Backend — Pydantic models (ScheduleEntryResponse, ScheduleListResponse) + SchedulerService.get_unified_schedule() service method
