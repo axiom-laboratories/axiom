@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: Phase 152 (Workflow Feature Documentation)
-current_plan: Plan 04 (API Reference) — next up
+current_plan: Plan 05+ (Deferred — Phase 151 UI work)
 status: executing
-last_updated: "2026-04-16T16:28:09Z"
+last_updated: "2026-04-16T16:45:00Z"
 progress:
   total_phases: 71
   completed_phases: 69
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 152 (Workflow Feature Documentation)
-**Current plan:** Plan 04 (API Reference) — next up
-**Status:** Executing Phase 152
+**Current plan:** Plan 05+ (Deferred — Phase 151 UI work)
+**Status:** Phase 152 Plans 01–04 complete; Plans 05+ deferred to Phase 151
 
 ## Recent Completion
 
@@ -36,6 +36,12 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T16:45:00Z: Phase 152 Plan 04 completed — API Reference & Operational Runbook
+  - API reference: 278 lines documenting 13 workflow endpoints (CRUD, Runs, Webhooks, HMAC signing)
+  - Operational runbook: 463 lines with quick ref table, 5 troubleshooting scenarios, recovery procedures
+  - MkDocs build clean; all cross-document links validated
+  - Commits: 50945f4, 9b683d1, 054ef68, 7f07084 (SUMMARY)
 
 - 2026-04-16T16:28:09Z: Phase 152 Plan 03 completed — Operator & Developer Guides
   - Wrote docs/docs/workflows/operator-guide.md: 190 lines covering status transitions (5 statuses), cascade cancellation (linear + conditional examples), gate semantics (IF_GATE, AND_JOIN, OR_GATE, PARALLEL, SIGNAL_WAIT), Phase 149 triggers/parameters, monitoring via API/dashboard, common operator tasks
