@@ -39,51 +39,9 @@ def setup_db():
     # First, initialize the full schema via init_db (called at app startup)
     asyncio.run(init_db())
 
-    # Then, add any missing columns for schema evolution and create test admin user
-    async def add_missing_columns_and_users():
+    # Then, create test admin user
+    async def create_test_admin_user():
         async with AsyncSessionLocal() as session:
-            # List of (table_name, column_name, column_definition) tuples for columns that might be missing
-            missing_columns = [
-                ("nodes", "env_tag", "VARCHAR(32)"),
-                ("nodes", "operator_env_tag", "BOOLEAN DEFAULT 0"),
-                ("nodes", "job_memory_limit", "VARCHAR"),
-                ("nodes", "job_cpu_limit", "VARCHAR"),
-                ("nodes", "detected_cgroup_version", "VARCHAR"),
-                ("nodes", "cgroup_raw", "TEXT"),
-                ("nodes", "execution_mode", "VARCHAR"),
-                ("jobs", "job_run_id", "VARCHAR(36)"),
-                ("jobs", "env_tag", "VARCHAR(32)"),
-                ("jobs", "signature_hmac", "VARCHAR(64)"),
-                ("jobs", "runtime", "VARCHAR(32)"),
-                ("jobs", "name", "VARCHAR"),
-                ("jobs", "created_by", "VARCHAR"),
-                ("jobs", "originating_guid", "VARCHAR"),
-                ("jobs", "target_node_id", "VARCHAR"),
-                ("jobs", "dispatch_timeout_minutes", "INTEGER"),
-                ("jobs", "memory_limit", "VARCHAR"),
-                ("jobs", "cpu_limit", "VARCHAR"),
-                ("scheduled_jobs", "updated_at", "DATETIME"),
-                ("scheduled_jobs", "pushed_by", "VARCHAR"),
-                ("scheduled_jobs", "memory_limit", "VARCHAR"),
-                ("scheduled_jobs", "cpu_limit", "VARCHAR"),
-                ("scheduled_jobs", "env_tag", "VARCHAR(32)"),
-                ("scheduled_jobs", "runtime", "VARCHAR(32)"),
-                ("scheduled_jobs", "allow_overlap", "BOOLEAN DEFAULT 0"),
-                ("scheduled_jobs", "dispatch_timeout_minutes", "INTEGER"),
-            ]
-
-            for table_name, column_name, column_def in missing_columns:
-                try:
-                    # Try to add the column if it doesn't exist
-                    await session.execute(
-                        text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
-                    )
-                except Exception:
-                    # Column likely already exists; ignore error
-                    pass
-
-            await session.commit()
-
             # Ensure admin user exists for tests
             result = await session.execute(select(User).where(User.username == "admin"))
             admin = result.scalar_one_or_none()
@@ -98,7 +56,7 @@ def setup_db():
                 session.add(admin)
                 await session.commit()
 
-    asyncio.run(add_missing_columns_and_users())
+    asyncio.run(create_test_admin_user())
 
 
 @pytest.fixture

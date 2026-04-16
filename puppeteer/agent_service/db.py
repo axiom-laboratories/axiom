@@ -532,6 +532,7 @@ class WorkflowWebhook(Base):
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))  # FK to Workflow
     name: Mapped[str] = mapped_column(String)  # Human label, e.g., "github-push"
     secret_hash: Mapped[str] = mapped_column(String)  # Bcrypt hash of plaintext secret (never expose plaintext again)
+    secret_plaintext: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Fernet-encrypted plaintext for HMAC verification
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
