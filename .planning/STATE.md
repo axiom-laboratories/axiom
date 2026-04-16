@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: Phase 153 (Verify Gate Node Types)
-current_plan: Plan 04+ (Layer 2 Behavioral Trace — Optional)
-status: planning
-last_updated: "2026-04-16T18:40:47.854Z"
+current_phase: Phase 154 (Unified Schedule View)
+current_plan: Plan 01 (Schedule UI & API)
+status: complete
+last_updated: "2026-04-16T19:25:00Z"
 progress:
   total_phases: 3
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Session State
@@ -22,11 +22,13 @@ See: .planning/PROJECT.md
 ## Position
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
-**Current phase:** Phase 153 (Verify Gate Node Types)
-**Current plan:** Plan 04+ (Layer 2 Behavioral Trace — Optional)
-**Status:** Ready to plan
+**Current phase:** Phase 154 (Unified Schedule View)
+**Current plan:** Plan 01 (Schedule UI & API)
+**Status:** Complete
 
 ## Recent Completion
+
+- ✓ **Phase 154 Plan 01** (Unified Schedule View) — 6 tasks executed: backend models & service method, GET /api/schedule endpoint, Schedule.tsx frontend component, route registration, sidebar navigation, integration verification — all 6 tasks committed, SUMMARY.md created, 326 total lines added (149 backend + 177 frontend) — completed 2026-04-16T19:25:00Z
 
 - ✓ **Phase 153 Plan 03** (SIGNAL_WAIT Verification & Gate Implementation Finalization) — 3 integration tests passing, Phase 148 VERIFICATION.md created, GATE-01..06 requirements ticked — completed 2026-04-16
 - ✓ **Phase 153 Plan 02** (Gate Dispatch Integration Verification) — All 11 integration tests passing (GATE-03/04/05 verified) — completed 2026-04-16
@@ -40,6 +42,17 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T19:25:00Z: Phase 154 Plan 01 completed — Unified Schedule View (Observability)
+  - 6 implementation tasks: backend models & service method, GET /api/schedule endpoint, Schedule.tsx frontend component, route registration, sidebar navigation, integration verification
+  - Backend: ScheduleEntryResponse + ScheduleListResponse Pydantic models (ConfigDict from_attributes=True), SchedulerService.get_unified_schedule() method with APScheduler CronTrigger UTC timezone, graceful invalid-cron handling
+  - API: GET /api/schedule endpoint with jobs:read permission gate, returns merged ScheduledJob + Workflow entries sorted by next_run_time
+  - Frontend: Schedule.tsx (177 lines) with useQuery refetchInterval:30000, table rendering (Type badge, Next Run relative time, Last Run Status), row navigation (JOB→/job-definitions?edit={id}, FLOW→/workflows/{id})
+  - Navigation: /schedule route registered in AppRoutes.tsx, sidebar Schedule entry added between Workflows and History, Job Definitions label applied to existing entry
+  - Verification: Python compile checks (models.py, scheduler_service.py, main.py), npm build successful, all imports verified
+  - No deviations from plan; all tasks executed exactly as specified
+  - UI-05 requirement (Unified Schedule Page) delivered
+  - Commits: 3736e0c (backend models+service), 571c524 (Schedule.tsx), 18f8700 (AppRoutes), bead9b6 (MainLayout), c5e3212 (verification)
 
 - 2026-04-16T20:30:00Z: Phase 153 Plan 03 completed — SIGNAL_WAIT Verification & Gate Implementation Finalization
   - 3 integration tests implemented: test_signal_wait_wakeup, test_signal_wakes_blocked_run, test_signal_cancel_prevents_wakeup

@@ -54,7 +54,7 @@
 - [x] **UI-02**: Live step execution status is overlaid on the DAG visualization during an active WorkflowRun (colour-coded by status)
 - [x] **UI-03**: User can view the run history for a Workflow (list of WorkflowRuns with trigger type, status, started/completed, duration)
 - [x] **UI-04**: User can drill into a WorkflowRunStep to view its job output, logs, and `result.json` structured output
-- [ ] **UI-05**: Unified schedule view shows ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status
+- [x] **UI-05**: Unified schedule view shows ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status (Phase 154 Plan 01, completed 2026-04-16)
 - [ ] **UI-06**: User can compose a Workflow visually by dragging ScheduledJob steps onto a canvas and connecting them with directed edges
 - [ ] **UI-07**: Canvas validates the DAG in real-time: highlights cycles, warns on depth approaching 30, and exposes IF gate condition configuration inline
 

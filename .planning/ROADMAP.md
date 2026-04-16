@@ -219,8 +219,8 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - Plan 02 (Wave 2): Verify GATE-03/04/05 integration tests (AND_JOIN, OR_GATE, PARALLEL dispatch)
   - Plan 03 (Wave 3): Verify GATE-06 (SIGNAL_WAIT), full test suite validation, create VERIFICATION.md, tick requirement checkboxes
   - **Gap Closure:** Closes GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06
-- 🚀 **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status (planned 2/2 plans)
-  - [ ] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav — **planned**
+- [x] **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status (completed 2026-04-16)
+  - [x] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav (completed 2026-04-16)
   - [ ] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification — **planned**
   - **Gap Closure:** Closes UI-05
 - [ ] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config)
@@ -279,7 +279,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
-| 154. Unified Schedule View | v23.0 | 0/2 (planned) | — | — |
+| 154. Unified Schedule View | v23.0 | 1/2 | In Progress | 2026-04-16 |
 
 ## Phase Detail Sections
 
