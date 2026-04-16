@@ -259,7 +259,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 147. WorkflowRun Execution Engine | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 149. Triggers & Parameter Injection | v23.0 | 1/3 | In Progress | 2026-04-16 |
-| 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
+| 150. Dashboard Read-Only Views | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
 
 ## Archived
 
