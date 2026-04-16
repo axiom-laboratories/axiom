@@ -17,9 +17,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from httpx import AsyncClient
 
-from agent_service.db import WorkflowRun, WorkflowStep, WorkflowStepRun, Job, WorkflowEdge, Workflow
+from agent_service.db import WorkflowRun, WorkflowStep, WorkflowStepRun, Job, WorkflowEdge, Workflow, Signal, ScheduledJob, Signature, AsyncSessionLocal
 from agent_service.services.workflow_service import WorkflowService
 from agent_service.main import app
+import json
 
 
 # ============================================================================
@@ -503,3 +504,406 @@ async def test_depth_cap_at_30(async_db_session: AsyncSession, sample_3_step_lin
     for job in jobs:
         assert job.depth is not None, f"Job {job.guid} missing depth"
         assert job.depth <= 30, f"Job depth {job.depth} exceeds max of 30"
+
+
+# ============================================================================
+# GATE-06: SIGNAL_WAIT Blocking and Wakeup Tests
+# ============================================================================
+
+@pytest.mark.asyncio
+async def test_signal_wait_wakeup(async_db_session: AsyncSession):
+    """
+    GATE-06: Verify SIGNAL_WAIT blocks until signal is posted.
+
+    Given: Workflow with SIGNAL_WAIT step configured with signal_name='ready'
+    When: Trigger workflow run
+    Then: SIGNAL_WAIT step transitions PENDING→RUNNING and blocks
+          No job is created for SIGNAL_WAIT (it's not a SCRIPT node)
+    When: Signal 'ready' is posted via advance_signal_wait()
+    Then: SIGNAL_WAIT step transitions RUNNING→COMPLETED
+    """
+    from uuid import uuid4
+
+    # Create signature (required FK)
+    sig = Signature(
+        id=str(uuid4()),
+        name=f"test-sig-{uuid4().hex[:8]}",
+        public_key="-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANDiE2Zm7HK5Q=\n-----END PUBLIC KEY-----",
+        uploaded_by="admin"
+    )
+    async_db_session.add(sig)
+    await async_db_session.flush()
+
+    # Create a scheduled job (for the SCRIPT step before SIGNAL_WAIT)
+    job = ScheduledJob(
+        id=str(uuid4()),
+        name=f"test_job_{uuid4().hex[:8]}",
+        script_content="echo 'initial step'",
+        signature_id=sig.id,
+        signature_payload="Zm9vYmFyYmF6",
+        created_by="admin"
+    )
+    async_db_session.add(job)
+    await async_db_session.flush()
+
+    # Create workflow
+    workflow = Workflow(
+        id=str(uuid4()),
+        name="test_signal_workflow",
+        created_by="admin",
+        is_paused=False
+    )
+    async_db_session.add(workflow)
+    await async_db_session.flush()
+
+    # Create two steps: SCRIPT and SIGNAL_WAIT
+    script_step_id = str(uuid4())
+    signal_step_id = str(uuid4())
+
+    script_step = WorkflowStep(
+        id=script_step_id,
+        workflow_id=workflow.id,
+        scheduled_job_id=job.id,
+        node_type="SCRIPT",
+        config_json=None
+    )
+    async_db_session.add(script_step)
+
+    signal_step = WorkflowStep(
+        id=signal_step_id,
+        workflow_id=workflow.id,
+        scheduled_job_id=None,  # SIGNAL_WAIT doesn't have a job
+        node_type="SIGNAL_WAIT",
+        config_json=json.dumps({"signal_name": "ready"})
+    )
+    async_db_session.add(signal_step)
+    await async_db_session.flush()
+
+    # Create edge: SCRIPT → SIGNAL_WAIT
+    edge = WorkflowEdge(
+        id=str(uuid4()),
+        workflow_id=workflow.id,
+        from_step_id=script_step_id,
+        to_step_id=signal_step_id,
+        branch_name=None
+    )
+    async_db_session.add(edge)
+    await async_db_session.commit()
+
+    # Trigger workflow run
+    workflow_service = WorkflowService()
+    run = await workflow_service.start_run(
+        workflow_id=workflow.id,
+        parameters={},
+        triggered_by="test_user",
+        db=async_db_session
+    )
+
+    # Verify SCRIPT step is RUNNING
+    stmt = select(WorkflowStepRun).where(
+        WorkflowStepRun.workflow_run_id == run.id,
+        WorkflowStepRun.workflow_step_id == script_step_id
+    )
+    script_step_run = (await async_db_session.execute(stmt)).scalar_one()
+    assert script_step_run.status == "RUNNING", "SCRIPT step should be RUNNING (root)"
+
+    # Complete the SCRIPT step
+    script_step_run.status = "COMPLETED"
+    script_step_run.completed_at = datetime.utcnow()
+    await async_db_session.flush()
+
+    # Advance workflow (dispatch next wave with SIGNAL_WAIT)
+    await workflow_service.advance_workflow(run.id, async_db_session)
+
+    # Verify SIGNAL_WAIT step is RUNNING and blocked
+    stmt = select(WorkflowStepRun).where(
+        WorkflowStepRun.workflow_run_id == run.id,
+        WorkflowStepRun.workflow_step_id == signal_step_id
+    )
+    signal_step_run = (await async_db_session.execute(stmt)).scalar_one()
+    assert signal_step_run.status == "RUNNING", "SIGNAL_WAIT should be RUNNING (blocked, waiting for signal)"
+
+    # Verify no job was created for SIGNAL_WAIT
+    stmt = select(Job).where(Job.workflow_step_run_id == signal_step_run.id)
+    job_for_signal = (await async_db_session.execute(stmt)).scalar_one_or_none()
+    assert job_for_signal is None, "SIGNAL_WAIT should not create a job"
+
+    # Post the signal
+    await workflow_service.advance_signal_wait("ready", async_db_session)
+
+    # Verify SIGNAL_WAIT step is now COMPLETED
+    await async_db_session.refresh(signal_step_run)
+    assert signal_step_run.status == "COMPLETED", "SIGNAL_WAIT should transition to COMPLETED after signal arrives"
+    assert signal_step_run.completed_at is not None, "SIGNAL_WAIT should have a completion timestamp"
+
+
+@pytest.mark.asyncio
+async def test_signal_wakes_blocked_run(async_db_session: AsyncSession):
+    """
+    GATE-06: Verify signal wakeup triggers downstream dispatch.
+
+    Given: Workflow A→SIGNAL_WAIT→B (3 steps)
+    When: Trigger run, complete A, dispatch SIGNAL_WAIT (blocks)
+    Then: SIGNAL_WAIT is RUNNING, B is PENDING
+    When: Signal is posted
+    Then: SIGNAL_WAIT transitions to COMPLETED
+          Downstream step B transitions to RUNNING
+    """
+    from uuid import uuid4
+
+    # Create signature (required FK)
+    sig = Signature(
+        id=str(uuid4()),
+        name=f"test-sig-{uuid4().hex[:8]}",
+        public_key="-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANDiE2Zm7HK5Q=\n-----END PUBLIC KEY-----",
+        uploaded_by="admin"
+    )
+    async_db_session.add(sig)
+    await async_db_session.flush()
+
+    # Create two scheduled jobs (for A and B)
+    job_a_id = str(uuid4())
+    job_b_id = str(uuid4())
+
+    for job_id, script in [(job_a_id, "echo 'A'"), (job_b_id, "echo 'B'")]:
+        job = ScheduledJob(
+            id=job_id,
+            name=f"test_job_{uuid4().hex[:8]}",
+            script_content=script,
+            signature_id=sig.id,
+            signature_payload="Zm9vYmFyYmF6",
+            created_by="admin"
+        )
+        async_db_session.add(job)
+    await async_db_session.flush()
+
+    # Create workflow
+    workflow = Workflow(
+        id=str(uuid4()),
+        name="test_signal_downstream",
+        created_by="admin",
+        is_paused=False
+    )
+    async_db_session.add(workflow)
+    await async_db_session.flush()
+
+    # Create three steps: A, SIGNAL_WAIT, B
+    step_a_id = str(uuid4())
+    signal_step_id = str(uuid4())
+    step_b_id = str(uuid4())
+
+    for step_id, job_id, node_type, config in [
+        (step_a_id, job_a_id, "SCRIPT", None),
+        (signal_step_id, None, "SIGNAL_WAIT", json.dumps({"signal_name": "proceed"})),
+        (step_b_id, job_b_id, "SCRIPT", None)
+    ]:
+        step = WorkflowStep(
+            id=step_id,
+            workflow_id=workflow.id,
+            scheduled_job_id=job_id if node_type == "SCRIPT" else None,
+            node_type=node_type,
+            config_json=config
+        )
+        async_db_session.add(step)
+    await async_db_session.flush()
+
+    # Create edges: A→SIGNAL_WAIT, SIGNAL_WAIT→B
+    edges = [
+        WorkflowEdge(
+            id=str(uuid4()),
+            workflow_id=workflow.id,
+            from_step_id=step_a_id,
+            to_step_id=signal_step_id,
+            branch_name=None
+        ),
+        WorkflowEdge(
+            id=str(uuid4()),
+            workflow_id=workflow.id,
+            from_step_id=signal_step_id,
+            to_step_id=step_b_id,
+            branch_name=None
+        )
+    ]
+    for edge in edges:
+        async_db_session.add(edge)
+    await async_db_session.commit()
+
+    # Start workflow run
+    workflow_service = WorkflowService()
+    run = await workflow_service.start_run(
+        workflow_id=workflow.id,
+        parameters={},
+        triggered_by="test_user",
+        db=async_db_session
+    )
+
+    # Verify A is RUNNING, SIGNAL_WAIT and B are PENDING
+    stmt = select(WorkflowStepRun).where(WorkflowStepRun.workflow_run_id == run.id)
+    step_runs = {sr.workflow_step_id: sr for sr in (await async_db_session.execute(stmt)).scalars().all()}
+
+    assert step_runs[step_a_id].status == "RUNNING"
+    assert step_runs[signal_step_id].status == "PENDING"
+    assert step_runs[step_b_id].status == "PENDING"
+
+    # Complete step A
+    step_runs[step_a_id].status = "COMPLETED"
+    step_runs[step_a_id].completed_at = datetime.utcnow()
+    await async_db_session.flush()
+
+    # Dispatch next wave (SIGNAL_WAIT should become RUNNING)
+    await workflow_service.advance_workflow(run.id, async_db_session)
+
+    # Refresh step runs
+    await async_db_session.refresh(step_runs[step_a_id])
+    await async_db_session.refresh(step_runs[signal_step_id])
+    await async_db_session.refresh(step_runs[step_b_id])
+
+    assert step_runs[signal_step_id].status == "RUNNING", "SIGNAL_WAIT should be RUNNING after dispatch"
+    assert step_runs[step_b_id].status == "PENDING", "B should still be PENDING (waiting for signal)"
+
+    # Post the signal
+    await workflow_service.advance_signal_wait("proceed", async_db_session)
+
+    # Refresh step runs
+    await async_db_session.refresh(step_runs[signal_step_id])
+    await async_db_session.refresh(step_runs[step_b_id])
+
+    assert step_runs[signal_step_id].status == "COMPLETED", "SIGNAL_WAIT should be COMPLETED after signal"
+    assert step_runs[step_b_id].status == "RUNNING", "B should be RUNNING after signal wakes SIGNAL_WAIT"
+
+
+@pytest.mark.asyncio
+async def test_signal_cancel_prevents_wakeup(async_db_session: AsyncSession):
+    """
+    GATE-06: Verify cancellation prevents SIGNAL_WAIT wakeup (Pitfall 4).
+
+    Given: Workflow with SIGNAL_WAIT step
+    When: Trigger run, dispatch SIGNAL_WAIT (blocks)
+    Then: Run status is RUNNING, SIGNAL_WAIT status is RUNNING
+    When: Cancel the workflow run
+    Then: Run status becomes CANCELLED, SIGNAL_WAIT status becomes CANCELLED
+    When: Signal is posted
+    Then: SIGNAL_WAIT does NOT wake up (remains CANCELLED)
+          Advance returns without advancing workflow (cancellation guard prevents it)
+    """
+    from uuid import uuid4
+
+    # Create signature (required FK)
+    sig = Signature(
+        id=str(uuid4()),
+        name=f"test-sig-{uuid4().hex[:8]}",
+        public_key="-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANDiE2Zm7HK5Q=\n-----END PUBLIC KEY-----",
+        uploaded_by="admin"
+    )
+    async_db_session.add(sig)
+    await async_db_session.flush()
+
+    # Create a scheduled job
+    job = ScheduledJob(
+        id=str(uuid4()),
+        name=f"test_job_{uuid4().hex[:8]}",
+        script_content="echo 'initial'",
+        signature_id=sig.id,
+        signature_payload="Zm9vYmFyYmF6",
+        created_by="admin"
+    )
+    async_db_session.add(job)
+    await async_db_session.flush()
+
+    # Create workflow with SCRIPT→SIGNAL_WAIT
+    workflow = Workflow(
+        id=str(uuid4()),
+        name="test_cancel_signal",
+        created_by="admin",
+        is_paused=False
+    )
+    async_db_session.add(workflow)
+    await async_db_session.flush()
+
+    script_step_id = str(uuid4())
+    signal_step_id = str(uuid4())
+
+    script_step = WorkflowStep(
+        id=script_step_id,
+        workflow_id=workflow.id,
+        scheduled_job_id=job.id,
+        node_type="SCRIPT",
+        config_json=None
+    )
+    async_db_session.add(script_step)
+
+    signal_step = WorkflowStep(
+        id=signal_step_id,
+        workflow_id=workflow.id,
+        scheduled_job_id=None,
+        node_type="SIGNAL_WAIT",
+        config_json=json.dumps({"signal_name": "timeout"})
+    )
+    async_db_session.add(signal_step)
+    await async_db_session.flush()
+
+    edge = WorkflowEdge(
+        id=str(uuid4()),
+        workflow_id=workflow.id,
+        from_step_id=script_step_id,
+        to_step_id=signal_step_id,
+        branch_name=None
+    )
+    async_db_session.add(edge)
+    await async_db_session.commit()
+
+    # Start run
+    workflow_service = WorkflowService()
+    run = await workflow_service.start_run(
+        workflow_id=workflow.id,
+        parameters={},
+        triggered_by="test_user",
+        db=async_db_session
+    )
+
+    # Complete script step
+    stmt = select(WorkflowStepRun).where(
+        WorkflowStepRun.workflow_run_id == run.id,
+        WorkflowStepRun.workflow_step_id == script_step_id
+    )
+    script_sr = (await async_db_session.execute(stmt)).scalar_one()
+    script_sr.status = "COMPLETED"
+    script_sr.completed_at = datetime.utcnow()
+    await async_db_session.flush()
+
+    # Dispatch SIGNAL_WAIT
+    await workflow_service.advance_workflow(run.id, async_db_session)
+
+    # Get SIGNAL_WAIT step run
+    stmt = select(WorkflowStepRun).where(
+        WorkflowStepRun.workflow_run_id == run.id,
+        WorkflowStepRun.workflow_step_id == signal_step_id
+    )
+    signal_sr = (await async_db_session.execute(stmt)).scalar_one()
+    assert signal_sr.status == "RUNNING", "SIGNAL_WAIT should be RUNNING"
+
+    # Cancel the workflow run
+    await workflow_service.cancel_run(run.id, async_db_session)
+
+    # Reload run and signal_sr from DB
+    stmt = select(WorkflowRun).where(WorkflowRun.id == run.id)
+    run = (await async_db_session.execute(stmt)).scalar_one()
+
+    stmt = select(WorkflowStepRun).where(WorkflowStepRun.id == signal_sr.id)
+    signal_sr = (await async_db_session.execute(stmt)).scalar_one()
+
+    # Verify run is CANCELLED
+    assert run.status == "CANCELLED", "Run should be CANCELLED"
+
+    # Verify SIGNAL_WAIT step is CANCELLED
+    assert signal_sr.status == "CANCELLED", "SIGNAL_WAIT should be CANCELLED"
+
+    # Try to post signal
+    await workflow_service.advance_signal_wait("timeout", async_db_session)
+
+    # Reload signal_sr from DB to check if it changed
+    stmt = select(WorkflowStepRun).where(WorkflowStepRun.id == signal_sr.id)
+    signal_sr = (await async_db_session.execute(stmt)).scalar_one()
+
+    # Verify SIGNAL_WAIT is still CANCELLED (NOT woken up)
+    assert signal_sr.status == "CANCELLED", "SIGNAL_WAIT should remain CANCELLED after signal post (cancellation guard prevents wakeup)"
