@@ -12,6 +12,7 @@ import {
     ScrollText,
     Users,
     CalendarClock,
+    Calendar,
     Bot,
     Webhook,
     History as HistoryIcon,
@@ -95,8 +96,9 @@ const MainLayout = () => {
                     <NavItem to="/jobs" icon={Cpu} label="Jobs" />
                     <NavItem to="/queue" icon={ListOrdered} label="Queue" />
                     <NavItem to="/workflows" icon={Workflow} label="Workflows" />
+                    <NavItem to="/schedule" icon={Calendar} label="Schedule" />
                     <NavItem to="/history" icon={HistoryIcon} label="History" />
-                    <NavItem to="/scheduled-jobs" icon={CalendarClock} label="Scheduled Jobs" />
+                    <NavItem to="/scheduled-jobs" icon={CalendarClock} label="Job Definitions" />
 
                     <div className="pt-4 pb-1 px-3 text-2xs font-bold text-muted-foreground uppercase tracking-widest">
                         Security
