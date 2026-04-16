@@ -265,7 +265,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 149. Triggers & Parameter Injection | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
 | 150. Dashboard Read-Only Views | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
-| 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
+| 152. Workflow Feature Documentation | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
 
 ## Archived
 
