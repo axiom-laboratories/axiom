@@ -2810,6 +2810,9 @@ async def fire_signal(
     audit(db, current_user, "signal:fire", name)
     await db.commit()
     
+    # Trigger workflow advancement for SIGNAL_WAIT steps
+    await workflow_service.advance_signal_wait(name, db)
+    
     # Trigger unblocking
     await JobService.unblock_jobs_by_signal(name, db)
     

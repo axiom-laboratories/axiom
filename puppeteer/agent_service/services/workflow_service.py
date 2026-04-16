@@ -97,6 +97,24 @@ class WorkflowService:
         if not is_valid:
             raise HTTPException(status_code=422, detail=error)
 
+        # Validate SIGNAL_WAIT gate nodes
+        for step_data in steps_data:
+            if step_data.get('node_type') == 'SIGNAL_WAIT':
+                config = step_data.get('config_json', {})
+                if isinstance(config, str):
+                    try:
+                        config = json.loads(config)
+                    except json.JSONDecodeError:
+                        raise HTTPException(status_code=422, detail=f"Step {step_data['id']}: SIGNAL_WAIT config_json is not valid JSON")
+                
+                signal_name = config.get('signal_name')
+                if not signal_name or not isinstance(signal_name, str):
+                    raise HTTPException(status_code=422, detail=f"Step {step_data['id']}: SIGNAL_WAIT requires config_json with 'signal_name' (string)")
+                
+                if ' ' in signal_name or len(signal_name) > 255:
+                    raise HTTPException(status_code=422, detail=f"Step {step_data['id']}: signal_name must be non-empty, <255 chars, no whitespace")
+
+
         # Create Workflow
         workflow_id = str(uuid4())
         workflow = Workflow(
@@ -930,6 +948,49 @@ class WorkflowService:
         await db.execute(stmt)
         await db.flush()
 
+
+    async def advance_signal_wait(self, signal_name: str, db: AsyncSession) -> None:
+        """
+        Wake up any RUNNING SIGNAL_WAIT step runs waiting on the given signal.
+        Called from signal creation endpoint after signal is persisted.
+        """
+        # Find all RUNNING SIGNAL_WAIT step runs waiting on this signal_name
+        stmt = select(WorkflowStepRun).join(
+            WorkflowStep, WorkflowStepRun.workflow_step_id == WorkflowStep.id
+        ).where(
+            and_(
+                WorkflowStep.node_type == "SIGNAL_WAIT",
+                WorkflowStepRun.status == "RUNNING"
+            )
+        )
+        signal_wait_runs = (await db.execute(stmt)).scalars().all()
+        
+        # Filter to runs waiting on this specific signal_name
+        run_ids_to_advance = set()
+        for sr in signal_wait_runs:
+            step = await db.get(WorkflowStep, sr.workflow_step_id)
+            try:
+                config = json.loads(step.config_json or '{}')
+                waiting_signal = config.get('signal_name', '')
+                
+                # Match signal names (exact string comparison)
+                if waiting_signal == signal_name:
+                    # Mark SIGNAL_WAIT as COMPLETED
+                    sr.status = "COMPLETED"
+                    sr.completed_at = datetime.utcnow()
+                    run_ids_to_advance.add(sr.workflow_run_id)
+            except json.JSONDecodeError:
+                # Invalid config; skip this step
+                pass
+        
+        await db.flush()
+        
+        # Advance any affected workflow runs
+        for run_id in run_ids_to_advance:
+            await self.advance_workflow(run_id, db)
+
+
+
     async def cancel_run(
         self,
         run_id: str,
@@ -964,6 +1025,22 @@ class WorkflowService:
             .values(status="CANCELLED", completed_at=datetime.utcnow())
         )
         await db.execute(stmt)
+        
+        # Also mark any RUNNING SIGNAL_WAIT steps as CANCELLED (prevents wakeup after cancel)
+        stmt = select(WorkflowStepRun).where(
+            and_(
+                WorkflowStepRun.workflow_run_id == run_id,
+                WorkflowStepRun.status == "RUNNING"
+            )
+        )
+        running_steps = (await db.execute(stmt)).scalars().all()
+        for sr in running_steps:
+            step = await db.get(WorkflowStep, sr.workflow_step_id)
+            if step and step.node_type == "SIGNAL_WAIT":
+                sr.status = "CANCELLED"
+                sr.completed_at = datetime.utcnow()
+        
+        await db.flush()
 
         # Commit
         await db.commit()
