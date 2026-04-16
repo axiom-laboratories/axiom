@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v23.0
 milestone_name: "DAG & Workflow Orchestration"
 current_phase: 150-dashboard-read-only-views
-current_plan: 05
+current_plan: 06
 status: Active
-last_updated: "2026-04-16T15:26:00Z"
+last_updated: "2026-04-16T15:33:00Z"
 progress:
   total_phases: 150
   completed_phases: 149
@@ -23,17 +23,26 @@ See: .planning/PROJECT.md
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 150 (Dashboard Read-Only Views)
-**Current plan:** Plan 05 (Step Drawer & Logs) — next up
+**Current plan:** Plan 06 (Workflow Execution Timeline) — next up
 **Status:** Active
 
 ## Recent Completion
 
+- ✓ **Phase 150 Plan 05** (Step Drawer & Logs) — WorkflowStepDrawer, useStepLogs hook, integration — completed 2026-04-16
 - ✓ **Phase 150 Plan 04** (Workflow Views Implementation) — Workflows list, WorkflowDetail, WorkflowRunDetail — completed 2026-04-16
 - ✓ **Phase 150 Plan 03** (Core DAG Rendering Infrastructure) — useLayoutedElements, WorkflowStepNode, DAGCanvas — completed 2026-04-16
 - ✓ **Phase 150 Plan 02** (WebSocket Events & Run List) — Real-time updates, pagination — completed 2026-04-16
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T15:33:00Z: Phase 150 Plan 05 completed — Step Drawer & Logs
+  - useStepLogs hook created for log fetching via /api/executions/{job_guid}/logs
+  - WorkflowStepDrawer component (shadcn Sheet) for log inspection
+  - Drawer integrated with WorkflowRunDetail DAGCanvas via onNodeClick callback
+  - 32 total tests passing (10 WorkflowRunDetail + 15 WorkflowStepDrawer + 7 useStepLogs)
+  - Read-only interface per Phase 150 spec
+  - Commits: f541704 (WorkflowStepDrawer), fdada1b (useStepLogs), b282875 (summary)
 
 - 2026-04-16T15:22:00Z: Phase 150 Plan 03 completed — Core DAG Rendering Infrastructure
   - useLayoutedElements hook with dagre layout memoization
