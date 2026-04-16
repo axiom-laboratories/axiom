@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: Phase 154 (Unified Schedule View)
-current_plan: Plan 01 (Schedule UI & API)
+current_plan: Plan 02 (Integration Testing)
 status: complete
-last_updated: "2026-04-16T19:25:00Z"
+last_updated: "2026-04-16T20:30:00Z"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 4
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Session State
@@ -28,6 +28,8 @@ See: .planning/PROJECT.md
 
 ## Recent Completion
 
+- ✓ **Phase 154 Plan 02** (Unified Schedule View Integration Testing) — 2 tasks executed: 7 backend integration tests (test_schedule_phase154.py, 402 lines, AsyncClient + SQLite in-memory), 10 frontend component tests (Schedule.test.tsx, 293 lines, vitest + React Testing Library) — all 17 tests passing (100%) — SUMMARY.md created — completed 2026-04-16T20:30:00Z
+
 - ✓ **Phase 154 Plan 01** (Unified Schedule View) — 6 tasks executed: backend models & service method, GET /api/schedule endpoint, Schedule.tsx frontend component, route registration, sidebar navigation, integration verification — all 6 tasks committed, SUMMARY.md created, 326 total lines added (149 backend + 177 frontend) — completed 2026-04-16T19:25:00Z
 
 - ✓ **Phase 153 Plan 03** (SIGNAL_WAIT Verification & Gate Implementation Finalization) — 3 integration tests passing, Phase 148 VERIFICATION.md created, GATE-01..06 requirements ticked — completed 2026-04-16
@@ -42,6 +44,33 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T20:30:00Z: Phase 154 Plan 02 completed — Unified Schedule View Integration Testing
+  - 2 implementation tasks: backend integration tests + frontend component tests
+  - Backend: 7 pytest async tests (test_schedule_phase154.py, 402 lines)
+    - test_get_unified_schedule_merges_jobs_workflows: Verifies 4 entries (2 jobs + 2 workflows)
+    - test_get_unified_schedule_filters_inactive: Filters is_active=false and is_paused=true (2 expected)
+    - test_get_unified_schedule_filters_no_cron: Excludes entries without schedule_cron (1 expected)
+    - test_get_unified_schedule_invalid_cron_skipped: Graceful error handling for invalid cron (1 expected, no crash)
+    - test_get_unified_schedule_sorted_by_next_run: Sorted by next_run_time ascending (verified order)
+    - test_get_unified_schedule_requires_permission: Permission gating jobs:read (200 admin, 403 viewer)
+    - test_get_unified_schedule_includes_last_run_status: last_run_status from Job history (COMPLETED/None)
+  - Frontend: 10 vitest component tests (Schedule.test.tsx, 293 lines)
+    - test_schedule_renders_table_with_columns: Table headers and data rows
+    - test_schedule_displays_job_and_flow_badges: Type badges (JOB/FLOW)
+    - test_schedule_formats_next_run_time: Relative time formatting (formatDistanceToNow)
+    - test_schedule_row_click_navigates_to_job_definitions: JOB → /job-definitions?edit={id}
+    - test_schedule_row_click_navigates_to_workflows: FLOW → /workflows/{id}
+    - test_schedule_uses_refetch_interval: useQuery with refetchInterval:30000
+    - test_schedule_empty_state: "No active schedules" message
+    - test_schedule_loading_state: Skeleton loaders during loading
+    - test_schedule_error_state: Error message + retry button
+    - test_schedule_handles_null_last_run_status: "Never" for null status
+  - Test infrastructure: In-memory SQLite, AsyncClient + ASGITransport, JWT auth, cleanup fixtures
+  - All tests passing: 7/7 backend, 10/10 frontend (100%)
+  - UI-05 requirement (Unified Schedule Page) verified with comprehensive integration + component tests
+  - No deviations from plan; executed exactly as specified
+  - Commits: 89e780a (backend tests), 014a930 (frontend tests), 1c5deaf (SUMMARY.md)
 
 - 2026-04-16T19:25:00Z: Phase 154 Plan 01 completed — Unified Schedule View (Observability)
   - 6 implementation tasks: backend models & service method, GET /api/schedule endpoint, Schedule.tsx frontend component, route registration, sidebar navigation, integration verification
