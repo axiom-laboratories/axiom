@@ -49,6 +49,12 @@ nav:
       - Job Scheduling: feature-guides/job-scheduling.md
       - RBAC: feature-guides/rbac.md
       - OAuth & Authentication: feature-guides/oauth.md
+    - Workflows:
+      - Overview: workflows/index.md
+      - Concepts: workflows/concepts.md
+      - User Guide: workflows/user-guide.md
+      - Operator Guide: workflows/operator-guide.md
+      - Developer Guide: workflows/developer-guide.md
     - Reference:
       - RBAC Permission Reference: feature-guides/rbac-reference.md
     - Licensing: licensing.md
@@ -63,6 +69,7 @@ nav:
     - Node Troubleshooting: runbooks/nodes.md
     - Job Execution: runbooks/jobs.md
     - Foundry: runbooks/foundry.md
+    - Workflows: runbooks/workflows.md
     - FAQ: runbooks/faq.md
     - Node Validation: runbooks/node-validation.md
     - Package Mirror Setup: runbooks/package-mirrors.md
