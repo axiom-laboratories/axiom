@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 ## Current Position
 
 **Phase:** 149 (Triggers & Parameter Injection) — IN PROGRESS
-**Plan:** 149-03 (API Routes: Triggers & Webhooks) — COMPLETED
-**Status:** Phase 149 Plan 03 execution complete — API endpoints for manual trigger, webhook CRUD, HMAC trigger validation, cron parameter validation
-**Progress:** [██████████] 100%
+**Plan:** 149-04 (Full Test Suite) — COMPLETED
+**Status:** Phase 149 Plan 04 execution complete — All 36 tests passing (triggers, parameters, webhooks)
+**Progress:** [██████████] 100% (all Phase 149 plans complete)
 
 ## Roadmap Summary
 
@@ -43,7 +43,7 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 | 146 | Workflow data model with DAG validation | WORKFLOW-01..05 (5) | Create/list/update/delete Workflows; cycle detection; Save-as-New pauses cron | ✅ Complete |
 | 147 | WorkflowRun execution engine with atomicity | ENGINE-01..07 (7) | BFS dispatch; SELECT...FOR UPDATE guards; status machine (RUNNING/COMPLETED/PARTIAL/FAILED/CANCELLED); cascade failure | ✅ Complete |
 | 148 | Gate node types (IF, AND/JOIN, OR, parallel, signal) | GATE-01..06 (6) | IF gate result.json evaluation; AND/JOIN synchronization; OR routing; parallel fan-out; Signal wait | ✅ Complete |
-| 149 | Triggers + parameter injection | TRIGGER-01..05, PARAMS-01..02 (7) | Manual trigger with params; cron scheduling; webhook with HMAC/nonce; env var injection | 🔨 In Progress (Plan 01 ✅) |
+| 149 | Triggers + parameter injection | TRIGGER-01..05, PARAMS-01..02 (7) | Manual trigger with params; cron scheduling; webhook with HMAC/nonce; env var injection | ✅ Complete |
 | 150 | Dashboard read-only UI | UI-01..05 (5) | DAG visualization (elkjs); live status overlay (WebSocket); run history; step logs; unified schedule | Pending |
 | 151 | Visual DAG editor | UI-06..07 (2) | Canvas drag-drop; real-time validation; IF gate inline config | Pending |
 
@@ -52,7 +52,7 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 **Phase 146 (Workflow Data Model):** WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05 — ✅ Complete  
 **Phase 147 (Execution Engine):** ENGINE-01, ENGINE-02, ENGINE-03, ENGINE-04, ENGINE-05, ENGINE-06, ENGINE-07 — ✅ Complete  
 **Phase 148 (Gate Node Types):** GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06 — ✅ Complete  
-**Phase 149 (Triggers & Parameters):** TRIGGER-01 (✅), TRIGGER-02 (✅), TRIGGER-03 (✅), TRIGGER-04 (✅), TRIGGER-05 (✅), PARAMS-01 (✅), PARAMS-02 (🔨) — In Progress (Plans 1-3 complete)  
+**Phase 149 (Triggers & Parameters):** TRIGGER-01 (✅), TRIGGER-02 (✅), TRIGGER-03 (✅), TRIGGER-04 (✅), TRIGGER-05 (✅), PARAMS-01 (✅), PARAMS-02 (✅) — Complete (Plans 1-4 complete)  
 **Phase 150 (Read-Only UI):** UI-01, UI-02, UI-03, UI-04, UI-05 — Pending  
 **Phase 151 (Visual Editor):** UI-06, UI-07 — Pending  
 
@@ -164,13 +164,18 @@ Delivered: 4 plans + 4 waves of execution
 - PATCH /api/workflows/{id}: cron parameter validation (422 if required params lack defaults)
 - Requirements satisfied: TRIGGER-01 (manual trigger), TRIGGER-03 (webhook CRUD), TRIGGER-04 (HMAC validation), TRIGGER-05 (validation errors)
 
-**Requirements Progress:** 6/7 complete (TRIGGER-01, TRIGGER-02, TRIGGER-03, TRIGGER-04, TRIGGER-05, PARAMS-01); PARAMS-02 pending
+**Plan 149-04 (Wave 4) - COMPLETE:** Full Test Suite Verification
+- 36 tests across 3 test files: triggers (11), parameters (12), webhooks (14)
+- All tests passing: manual triggers, parameter merging, cron scheduling, webhook HMAC verification
+- Test isolation fixes: improved fixture usage for database cleanup
+- Requirements satisfied: All 7 requirements (TRIGGER-01 through TRIGGER-05, PARAMS-01, PARAMS-02) fully tested and verified
+
+**Requirements Progress:** 7/7 complete (TRIGGER-01, TRIGGER-02, TRIGGER-03, TRIGGER-04, TRIGGER-05, PARAMS-01, PARAMS-02)
 
 ## Next Steps
 
-1. **Phase 149 Plan 02:** Implement APScheduler integration, webhook trigger endpoint, HMAC verification, parameter injection
-2. **Phase 149 Plan 03+:** API endpoints for workflow CRUD with triggers, run history, parameter validation
-3. **Phase 150 Planning:** `/gsd:plan-phase 150` to build read-only DAG UI (visualization, live status, logs)
-4. **Phase 151 Planning:** `/gsd:plan-phase 151` to implement visual DAG editor (canvas, drag-drop)
+1. **Phase 150 Planning:** `/gsd:plan-phase 150` to build read-only DAG UI (visualization, live status, logs)
+2. **Phase 151 Planning:** `/gsd:plan-phase 151` to implement visual DAG editor (canvas, drag-drop)
 
-**Remaining work:** Phase 149 (3+ more plans), Phase 150 (3-4 plans), Phase 151 (2 plans) = ~8-10 plans to ship v23.0 complete.
+**Completed:** Phase 149 (all 4 plans, 7/7 requirements)
+**Remaining work:** Phase 150 (3-4 plans), Phase 151 (2 plans) = ~5-6 plans to ship v23.0 complete.
