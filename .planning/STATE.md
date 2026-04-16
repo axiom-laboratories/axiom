@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 ## Current Position
 
 **Phase:** 149 (Triggers & Parameter Injection) — IN PROGRESS
-**Plan:** 149-02 (Service Layer: Triggers & Parameter Injection) — COMPLETED
-**Status:** Phase 149 Plan 02 execution complete — service layer implements parameter merging, env var injection, webhook helpers, cron scheduling
+**Plan:** 149-03 (API Routes: Triggers & Webhooks) — COMPLETED
+**Status:** Phase 149 Plan 03 execution complete — API endpoints for manual trigger, webhook CRUD, HMAC trigger validation, cron parameter validation
 **Progress:** [██████████] 100%
 
 ## Roadmap Summary
@@ -52,11 +52,11 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 **Phase 146 (Workflow Data Model):** WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05 — ✅ Complete  
 **Phase 147 (Execution Engine):** ENGINE-01, ENGINE-02, ENGINE-03, ENGINE-04, ENGINE-05, ENGINE-06, ENGINE-07 — ✅ Complete  
 **Phase 148 (Gate Node Types):** GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06 — ✅ Complete  
-**Phase 149 (Triggers & Parameters):** TRIGGER-01 (✅), TRIGGER-02 (✅), TRIGGER-03 (🔨), TRIGGER-04 (🔨), TRIGGER-05 (🔨), PARAMS-01 (✅), PARAMS-02 (🔨) — In Progress  
+**Phase 149 (Triggers & Parameters):** TRIGGER-01 (✅), TRIGGER-02 (✅), TRIGGER-03 (✅), TRIGGER-04 (✅), TRIGGER-05 (✅), PARAMS-01 (✅), PARAMS-02 (🔨) — In Progress (Plans 1-3 complete)  
 **Phase 150 (Read-Only UI):** UI-01, UI-02, UI-03, UI-04, UI-05 — Pending  
 **Phase 151 (Visual Editor):** UI-06, UI-07 — Pending  
 
-**Total:** 18/32 ✓
+**Total:** 22/32 ✓
 
 ## Key Architectural Decisions
 
@@ -143,12 +143,28 @@ Delivered: 4 plans + 4 waves of execution
 **Plan 149-01 (Wave 1) - COMPLETE:** Database Schema & Pydantic Models
 - Workflow.schedule_cron: TEXT column for cron expressions (gates with is_paused)
 - WorkflowRun.trigger_type/triggered_by/parameters_json: audit trail and parameter snapshot
-- WorkflowWebhook ORM: id, workflow_id FK, name, secret_hash (bcrypt), created_at
+- WorkflowWebhook ORM: id, workflow_id FK, name, secret_hash (bcrypt), secret_plaintext (Fernet-encrypted), created_at
 - migration_v55.sql: idempotent ALTER TABLE and CREATE TABLE statements
 - Pydantic models: WorkflowCreate/Update/Response updated; WorkflowWebhookCreate/Response added
 - Requirements satisfied: TRIGGER-01 (cron gates), TRIGGER-02 (webhook table), PARAMS-01 (parameter snapshot)
 
-**Requirements Progress:** 3/7 complete (TRIGGER-01, TRIGGER-02, PARAMS-01)
+**Plan 149-02 (Wave 2) - COMPLETE:** Service Layer (Workflows, Webhooks, Cron Scheduling)
+- WorkflowService.start_run(): parameter merging, env var injection, trigger metadata
+- WorkflowService.dispatch_next_wave(): BFS dispatch with gate node handling
+- SchedulerService: APScheduler integration, cron job sync, scheduled trigger creation
+- Security helpers: hash_webhook_secret (bcrypt), verify_webhook_signature (HMAC-SHA256)
+- Requirements satisfied: TRIGGER-02 (webhook helpers), PARAMS-02 (env var injection)
+
+**Plan 149-03 (Wave 3) - COMPLETE:** API Endpoints (Triggers, Webhooks, Validation)
+- POST /api/workflow-runs: manual trigger with parameter overrides (JWT auth, 201 response)
+- POST /api/workflows/{id}/webhooks: webhook creation with plaintext secret return (201, Fernet encryption)
+- GET /api/workflows/{id}/webhooks: webhook listing (secret=None for security)
+- DELETE /api/workflows/{id}/webhooks/{webhook_id}: webhook revocation (204 response)
+- POST /api/webhooks/{webhook_id}/trigger: unauthenticated HMAC trigger (202, run_id response)
+- PATCH /api/workflows/{id}: cron parameter validation (422 if required params lack defaults)
+- Requirements satisfied: TRIGGER-01 (manual trigger), TRIGGER-03 (webhook CRUD), TRIGGER-04 (HMAC validation), TRIGGER-05 (validation errors)
+
+**Requirements Progress:** 6/7 complete (TRIGGER-01, TRIGGER-02, TRIGGER-03, TRIGGER-04, TRIGGER-05, PARAMS-01); PARAMS-02 pending
 
 ## Next Steps
 
