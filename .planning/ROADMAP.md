@@ -223,7 +223,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav (completed 2026-04-16)
   - [ ] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification — **planned**
   - **Gap Closure:** Closes UI-05
-- [ ] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config) (2 plans)
+- [x] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config) (2 plans) (completed 2026-04-16)
   - [ ] Plan 01 (Wave 0): Test Foundation — DAG validation utilities (validateDAG), component test scaffolds, hooks stubs (6 tasks, TDD test-first)
   - [ ] Plan 02 (Wave 1): Implementation & Integration — Full implementations, WorkflowDetail integration, Save/Cancel flow, cycle/depth banner display, human-verify checkpoint
   - **Gap Closure:** Closes UI-06, UI-07
@@ -282,7 +282,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
 | 154. Unified Schedule View | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
-| 155. Visual DAG Editor | v23.0 | 0/2 (planned) | 2026-04-16 | — |
+| 155. Visual DAG Editor | 2/2 | Complete   | 2026-04-16 | — |
 
 ## Phase Detail Sections
 
