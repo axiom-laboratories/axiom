@@ -6,6 +6,9 @@ import {
   Controls,
   Background,
   Panel,
+  NodeChange,
+  EdgeChange,
+  Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import WorkflowStepNode from './WorkflowStepNode';
@@ -48,6 +51,12 @@ interface DAGCanvasProps {
   direction?: 'LR' | 'TB';
   editable?: boolean; // For Phase 151: set to true to enable editing
   height?: string; // Default '500px' for list views, '600px' for detail views
+  // Edit mode handlers (optional, only used when editable=true)
+  onNodesChange?: (changes: NodeChange[]) => void;
+  onEdgesChange?: (changes: EdgeChange[]) => void;
+  onConnect?: (connection: Connection) => void;
+  onDrop?: (event: DragEvent) => void;
+  onDragOver?: (event: DragEvent) => void;
 }
 
 const DAGCanvas: React.FC<DAGCanvasProps> = ({
@@ -58,6 +67,11 @@ const DAGCanvas: React.FC<DAGCanvasProps> = ({
   direction = 'LR',
   editable = false,
   height = '500px',
+  onNodesChange,
+  onEdgesChange,
+  onConnect,
+  onDrop,
+  onDragOver,
 }) => {
   // Convert Workflow steps to ReactFlow nodes
   const nodesList: Node[] = steps.map((step) => ({
@@ -91,16 +105,38 @@ const DAGCanvas: React.FC<DAGCanvasProps> = ({
     [onNodeClick]
   );
 
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      onDragOver?.(e as any);
+    },
+    [onDragOver]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      onDrop?.(e as any);
+    },
+    [onDrop]
+  );
+
   return (
     <div
       className="w-full border border-border rounded-lg bg-card"
       style={{ height }}
+      onDragOver={editable ? handleDragOver : undefined}
+      onDrop={editable ? handleDrop : undefined}
     >
       <ReactFlow
         nodes={layoutedNodes}
         edges={layoutedEdges}
         nodeTypes={{ default: WorkflowStepNode }}
         onNodeClick={handleNodeClick}
+        onNodesChange={editable ? onNodesChange : undefined}
+        onEdgesChange={editable ? onEdgesChange : undefined}
+        onConnect={editable ? onConnect : undefined}
         nodesConnectable={editable}
         nodesDraggable={editable}
         fitView
