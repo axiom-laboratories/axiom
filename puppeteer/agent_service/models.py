@@ -1267,15 +1267,19 @@ class WorkflowCreate(BaseModel):
     steps: List[WorkflowStepCreate]
     edges: List[WorkflowEdgeCreate]
     parameters: List[WorkflowParameterCreate] = []
+    schedule_cron: Optional[str] = None  # Phase 149: Cron expression for scheduling
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class WorkflowUpdate(BaseModel):
     """Update request for a workflow (all fields optional)."""
+    name: Optional[str] = None
     steps: Optional[List[WorkflowStepCreate]] = None
     edges: Optional[List[WorkflowEdgeCreate]] = None
     parameters: Optional[List[WorkflowParameterCreate]] = None
+    schedule_cron: Optional[str] = None  # Phase 149: Can enable/disable cron scheduling
+    is_paused: Optional[bool] = None  # Phase 149: Gate for cron activation
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1288,6 +1292,7 @@ class WorkflowResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_paused: bool
+    schedule_cron: Optional[str] = None  # Phase 149: Cron expression; fires when schedule_cron IS NOT NULL AND is_paused = false
     step_count: int  # Computed
     last_run_status: Optional[str]  # Computed from workflow_runs
     steps: List[WorkflowStepResponse]
@@ -1341,9 +1346,31 @@ class WorkflowRunResponse(BaseModel):
     status: str
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    trigger_type: Optional[str] = None
-    triggered_by: Optional[str] = None
+    trigger_type: Optional[str] = None  # Phase 149: MANUAL, CRON, WEBHOOK
+    triggered_by: Optional[str] = None  # Phase 149: username, "scheduler", or webhook_name
+    parameters_json: Optional[str] = None  # Phase 149: Resolved parameters as JSON string at run creation
     created_at: datetime
     step_runs: List[WorkflowStepRunResponse] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- Workflow Webhook Models (Phase 149) ---
+
+class WorkflowWebhookCreate(BaseModel):
+    """Create request for a workflow webhook."""
+    name: str  # Human label, e.g., "github-push"
+    # secret NOT in request; generated server-side and returned only once
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowWebhookResponse(BaseModel):
+    """Response model for a workflow webhook."""
+    id: str
+    workflow_id: str
+    name: str
+    secret: Optional[str] = None  # Present ONLY in creation response (201); None in GET
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
