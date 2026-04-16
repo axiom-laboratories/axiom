@@ -223,7 +223,9 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav (completed 2026-04-16)
   - [ ] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification — **planned**
   - **Gap Closure:** Closes UI-05
-- [ ] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config)
+- [ ] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config) (2 plans)
+  - [ ] Plan 01 (Wave 0): Test Foundation — DAG validation utilities (validateDAG), component test scaffolds, hooks stubs (6 tasks, TDD test-first)
+  - [ ] Plan 02 (Wave 1): Implementation & Integration — Full implementations, WorkflowDetail integration, Save/Cancel flow, cycle/depth banner display, human-verify checkpoint
   - **Gap Closure:** Closes UI-06, UI-07
 
 Archive: `.planning/milestones/v23.0-ROADMAP.md`
@@ -280,6 +282,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
 | 154. Unified Schedule View | v23.0 | Complete    | 2026-04-16 | 2026-04-16 |
+| 155. Visual DAG Editor | v23.0 | 0/2 (planned) | 2026-04-16 | — |
 
 ## Phase Detail Sections
 
@@ -298,69 +301,3 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 - Task 1: Verify GATE-03 AND_JOIN dispatch integration
 - Task 2: Verify GATE-04 OR_GATE branch skip integration
 - Task 3: Verify GATE-05 PARALLEL fan-out integration
-
-**Plan 03 (Wave 3):** Verify GATE-06, create VERIFICATION.md, update REQUIREMENTS.md
-- Task 1: Verify GATE-06 SIGNAL_WAIT blocking and wakeup
-- Task 2: Run full workflow test suite and verify no regressions
-- Task 3: Create VERIFICATION.md for Phase 148 gate implementation
-- Task 4: Tick GATE-01..06 and re-verify ENGINE/TRIGGER/PARAMS/UI checkboxes in REQUIREMENTS.md
-
-**Success Criteria:**
-1. VERIFICATION.md exists for Phase 148 confirming all gate node types are implemented and tested
-2. GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06 marked [x] complete in REQUIREMENTS.md
-3. All 33 gate tests passing (22 unit + 11 integration)
-4. Full test suite green (60+ tests), no regressions in ENGINE/TRIGGER/PARAMS/UI
-5. Layer 2 behavioral trace planned (Docker stack verification of gate dispatch)
-
-### Phase 154: Unified Schedule View
-
-**Goal:** Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status.
-
-**Plans:** 2/2 plans complete
-
-**Plan 01 (Wave 1):** Backend service method, API endpoint, Pydantic models, frontend Schedule.tsx, routing, sidebar navigation
-- Task 1: Backend — Pydantic models (ScheduleEntryResponse, ScheduleListResponse) + SchedulerService.get_unified_schedule() service method
-- Task 2: Backend — GET /api/schedule endpoint with jobs:read permission gating
-- Task 3: Frontend — Schedule.tsx view with table, useQuery, row navigation, empty/loading/error states
-- Task 4: Frontend — Route registration in AppRoutes.tsx
-- Task 5: Frontend — Sidebar navigation: add Schedule entry, rename Scheduled Jobs → Job Definitions
-- Task 6: Integration check — TypeScript compilation, Python syntax validation
-
-**Plan 02 (Wave 2):** Integration testing
-- Task 1: Backend — 5+ pytest tests covering: merge, filtering, invalid cron, permissions, sorting, last-run status
-- Task 2: Frontend — 5+ vitest tests covering: table render, badges, navigation, refetch, empty/loading/error states
-- Task 3: Full test suite validation and verification
-
-**Success Criteria:**
-1. Unified schedule view page implemented and accessible from sidebar at /schedule
-2. ScheduledJob entries shown with JOB badge and next-run time (human-readable relative format)
-3. Workflow entries with cron schedules shown with FLOW badge and next-run time
-4. Table sorted by next_run_time ascending (soonest-firing first)
-5. Clicking row navigates to detail page: JOB → /job-definitions, FLOW → /workflows/:id
-6. Auto-refetch every 30 seconds via React Query
-7. Sidebar has Schedule entry; Scheduled Jobs renamed to Job Definitions
-8. GET /api/schedule requires jobs:read permission
-9. Only active items with cron included (active jobs + non-paused workflows)
-10. UI-05 requirement marked complete in REQUIREMENTS.md
-
-### Phase 155: Visual DAG Editor
-
-**Goal:** Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config).
-
-**Success Criteria:**
-1. ReactFlow drag-and-drop canvas renders existing workflow DAGs
-2. New steps can be dragged and connected on the canvas
-3. Cycle detection and depth warnings shown in real time
-4. IF gate condition config editable inline on the canvas
-5. UI-06 and UI-07 requirements marked complete in REQUIREMENTS.md
-
-## Archived
-
-- ✅ **v22.0 — Security Hardening** (Phases 132–145) — shipped 2026-04-15 → `.planning/milestones/v22.0-ROADMAP.md`
-- ✅ **v21.0 — API Maturity & Contract Standardization** (Phases 129–131) — shipped 2026-04-11 → `.planning/milestones/v21.0-ROADMAP.md`
-- ✅ **v20.0 — Node Capacity & Isolation Validation** (Phases 120–128) — shipped 2026-04-10 → `.planning/milestones/v20.0-ROADMAP.md`
-- ✅ **v19.0 — Foundry Improvements** (Phases 107–114, 116–119) — shipped 2026-04-05 → `.planning/milestones/v19.0-ROADMAP.md`
-- ✅ **v18.0 — First-User Experience & E2E Validation** (Phases 101–106) — shipped 2026-04-01 → `.planning/milestones/v18.0-ROADMAP.md`
-- ✅ **v16.1 — PR Merge & Backlog Closure** (Phases 92–95) — shipped 2026-03-30 → `.planning/milestones/v16.1-ROADMAP.md`
-- ✅ **v14.3 — Security Hardening + EE Licensing** (Phases 72–76) — shipped 2026-03-27 → `.planning/milestones/v14.3-ROADMAP.md`
-- ✅ **v14.2 — Docs on GitHub Pages** (Phase 71) — shipped 2026-03-26 → `.planning/milestones/v14.2-ROADMAP.md`
