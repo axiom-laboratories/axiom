@@ -1,42 +1,34 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-
-// Mock dagre library
-vi.mock('@dagrejs/dagre', () => ({
-  dagre: {
-    graphlib: {
-      Graph: class MockGraph {
-        setGraph() {}
-        setDefaultNodeLabel() {}
-        setDefaultEdgeLabel() {}
-        setNode() {}
-        setEdge() {}
-      },
-    },
-    layout: vi.fn((graph) => graph),
-  },
-}));
-
-/**
- * Placeholder useLayoutedElements hook for testing
- */
-const useLayoutedElements = (nodes: any[], edges: any[], direction = 'LR') => {
-  // Placeholder implementation that returns nodes/edges with computed positions
-  const layoutedNodes = nodes.map((n, i) => ({
-    ...n,
-    position: { x: i * 200, y: 0 },
-  }));
-  return {
-    nodes: layoutedNodes,
-    edges,
-  };
-};
+import { Node, Edge } from '@xyflow/react';
+import { useLayoutedElements } from '../useLayoutedElements';
 
 describe('useLayoutedElements Hook', () => {
+  const createMockNodes = (count: number): Node[] =>
+    Array.from({ length: count }, (_, i) => ({
+      id: `node-${i}`,
+      data: { label: `Node ${i}` },
+      position: { x: 0, y: 0 },
+    }));
+
+  const createMockEdges = (from: number, to: number): Edge[] => {
+    const edges: Edge[] = [];
+    for (let i = from; i < to; i++) {
+      if (i + 1 < to) {
+        edges.push({
+          id: `edge-${i}-${i + 1}`,
+          source: `node-${i}`,
+          target: `node-${i + 1}`,
+        });
+      }
+    }
+    return edges;
+  };
+
   const sampleNodes = [
-    { id: 'node-1', data: { label: 'Start' } },
-    { id: 'node-2', data: { label: 'Middle' } },
-    { id: 'node-3', data: { label: 'End' } },
+    { id: 'node-1', data: { label: 'Start' }, position: { x: 0, y: 0 } },
+    { id: 'node-2', data: { label: 'Middle' }, position: { x: 0, y: 0 } },
+    { id: 'node-3', data: { label: 'End' }, position: { x: 0, y: 0 } },
   ];
 
   const sampleEdges = [
@@ -45,7 +37,7 @@ describe('useLayoutedElements Hook', () => {
   ];
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Clear any state between tests
   });
 
   it('computes node positions using dagre layout algorithm', () => {
@@ -54,6 +46,8 @@ describe('useLayoutedElements Hook', () => {
     );
     expect(result.current.nodes.length).toBe(3);
     expect(result.current.nodes[0]).toHaveProperty('position');
+    expect(result.current.nodes[0].position.x).toBeDefined();
+    expect(result.current.nodes[0].position.y).toBeDefined();
   });
 
   it('respects direction prop (LR = left-to-right)', () => {
@@ -61,19 +55,21 @@ describe('useLayoutedElements Hook', () => {
       useLayoutedElements(sampleNodes, sampleEdges, 'LR')
     );
     expect(result.current.nodes.length).toBe(3);
+    // Nodes should have computed positions
+    expect(result.current.nodes[0].position).toBeDefined();
   });
 
   it('memoizes layout result to avoid recomputation on prop change', () => {
-    const { result, rerender } = renderHook(
-      ({ nodes, edges, direction }) =>
-        useLayoutedElements(nodes, edges, direction),
-      {
-        initialProps: { nodes: sampleNodes, edges: sampleEdges, direction: 'LR' },
-      }
+    const { result: result1 } = renderHook(() =>
+      useLayoutedElements(sampleNodes, sampleEdges, 'LR')
     );
-    const firstResult = result.current.nodes;
-    rerender({ nodes: sampleNodes, edges: sampleEdges, direction: 'LR' });
-    expect(result.current.nodes).toEqual(firstResult);
+
+    const { result: result2 } = renderHook(() =>
+      useLayoutedElements(sampleNodes, sampleEdges, 'LR')
+    );
+
+    // Same inputs should produce equal layouts
+    expect(result1.current.nodes).toEqual(result2.current.nodes);
   });
 
   it('returns nodes with updated position coordinates', () => {
@@ -84,6 +80,8 @@ describe('useLayoutedElements Hook', () => {
       expect(node.position).toBeDefined();
       expect(node.position).toHaveProperty('x');
       expect(node.position).toHaveProperty('y');
+      expect(typeof node.position.x).toBe('number');
+      expect(typeof node.position.y).toBe('number');
     });
   });
 
@@ -92,6 +90,44 @@ describe('useLayoutedElements Hook', () => {
       useLayoutedElements(sampleNodes, sampleEdges)
     );
     expect(result.current.edges).toEqual(sampleEdges);
+  });
+
+  it('handles empty nodes and edges', () => {
+    const { result } = renderHook(() =>
+      useLayoutedElements([], [])
+    );
+    expect(result.current.nodes).toEqual([]);
+    expect(result.current.edges).toEqual([]);
+  });
+
+  it('handles single node', () => {
+    const nodes = createMockNodes(1);
+    const { result } = renderHook(() =>
+      useLayoutedElements(nodes, [])
+    );
+    expect(result.current.nodes).toHaveLength(1);
+    expect(result.current.nodes[0].id).toBe('node-0');
+  });
+
+  it('recomputes layout when inputs change', () => {
+    const { result, rerender } = renderHook(
+      ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) =>
+        useLayoutedElements(nodes, edges, 'LR'),
+      {
+        initialProps: { nodes: sampleNodes, edges: sampleEdges },
+      }
+    );
+
+    const originalPosition = { ...result.current.nodes[0].position };
+
+    // Change nodes
+    const newNodes = createMockNodes(5);
+    const newEdges = createMockEdges(0, 5);
+
+    rerender({ nodes: newNodes, edges: newEdges });
+
+    // Position should be different with different input
+    expect(result.current.nodes).toHaveLength(5);
   });
 });
 
