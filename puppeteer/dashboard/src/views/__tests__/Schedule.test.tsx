@@ -2,13 +2,16 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import Schedule from '../Schedule';
 
 // Mock authenticatedFetch
 const mockAuthFetch = vi.fn();
 vi.mock('../../auth', () => ({
     authenticatedFetch: (...args: any[]) => mockAuthFetch(...args),
+    getToken: () => 'mock-token',
+    setToken: vi.fn(),
+    getUser: () => ({ sub: 'testuser', exp: 9999999999 }),
 }));
 
 // Mock useNavigate
@@ -26,14 +29,17 @@ const createQueryClient = () =>
         defaultOptions: { queries: { retry: false } },
     });
 
-const renderWithProviders = (ui: React.ReactElement) =>
-    render(
+const renderWithProviders = (ui: React.ReactElement) => {
+    // Set up localStorage with a mock token
+    localStorage.setItem('mop_auth_token', 'mock-token');
+    return render(
         <MemoryRouter>
             <QueryClientProvider client={createQueryClient()}>
                 {ui}
             </QueryClientProvider>
         </MemoryRouter>
     );
+};
 
 const mockScheduleData = {
     entries: [
