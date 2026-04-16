@@ -1,40 +1,39 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
+import { WorkflowDetail } from '../WorkflowDetail';
+import * as authModule from '../../auth';
 
 // Mock authenticatedFetch
 vi.mock('../../auth', () => ({
   authenticatedFetch: vi.fn(),
 }));
 
-// Mock useParams hook
+// Mock useNavigate and useParams
+const mockNavigate = vi.fn();
+const mockParams = {
+  id: 'wf-001',
+};
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useParams: vi.fn(() => ({ id: 'wf-001' })),
+    useNavigate: () => mockNavigate,
+    useParams: () => mockParams,
   };
 });
 
-// Mock useFeatures hook
-vi.mock('../../hooks/useFeatures', () => ({
-  useFeatures: vi.fn(() => ({
-    workflows: true,
-  })),
-}));
-
-// Placeholder component for testing
-const WorkflowDetail = () => {
-  return (
-    <div>
-      <h2>Workflow Detail</h2>
-      <div>DAG Canvas Placeholder</div>
-      <div>Run History List</div>
+// Mock DAGCanvas
+vi.mock('../../components/DAGCanvas', () => ({
+  default: ({ steps, edges, height }: any) => (
+    <div data-testid="dag-canvas">
+      DAG Canvas: {steps.length} steps, {edges.length} edges, height={height}
     </div>
-  );
-};
+  ),
+}));
 
 describe('WorkflowDetail View', () => {
   let queryClient: QueryClient;
@@ -45,50 +44,283 @@ describe('WorkflowDetail View', () => {
         queries: { retry: false },
       },
     });
+    mockNavigate.mockClear();
   });
 
-  it('renders DAG canvas with nodes for each step', () => {
-    render(
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
+  const renderWorkflowDetail = () => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
           <WorkflowDetail />
-        </QueryClientProvider>
-      </BrowserRouter>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
-    expect(screen.getByText('DAG Canvas Placeholder')).toBeInTheDocument();
+  };
+
+  it('renders workflow name and cron schedule', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: sampleRunHistory,
+          total: 2,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(screen.getByText('Build and Deploy')).toBeInTheDocument();
+    expect(screen.getByText('0 2 * * *')).toBeInTheDocument();
+
+    mockFetch.mockRestore();
   });
 
-  it('displays run history list below DAG canvas', () => {
-    render(
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <WorkflowDetail />
-        </QueryClientProvider>
-      </BrowserRouter>
-    );
-    expect(screen.getByText('Run History List')).toBeInTheDocument();
+  it('renders DAG canvas with steps and edges', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: sampleRunHistory,
+          total: 2,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(screen.getByTestId('dag-canvas')).toBeInTheDocument();
+
+    mockFetch.mockRestore();
   });
 
-  it('DAG shows correct node count matching workflow steps', () => {
-    render(
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <WorkflowDetail />
-        </QueryClientProvider>
-      </BrowserRouter>
-    );
-    expect(screen.getByText('Workflow Detail')).toBeInTheDocument();
+  it('DAG canvas receives correct steps and edges', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: sampleRunHistory,
+          total: 2,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    const dagCanvas = screen.getByTestId('dag-canvas');
+    expect(dagCanvas).toHaveTextContent('3 steps');
+    expect(dagCanvas).toHaveTextContent('2 edges');
+
+    mockFetch.mockRestore();
   });
 
-  it('clicking a run in the history list navigates to run detail', () => {
-    render(
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <WorkflowDetail />
-        </QueryClientProvider>
-      </BrowserRouter>
-    );
-    expect(screen.getByText('Workflow Detail')).toBeInTheDocument();
+  it('renders run history table', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: sampleRunHistory,
+          total: 2,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(screen.getByText('Run History')).toBeInTheDocument();
+    expect(screen.getByText('Started')).toBeInTheDocument();
+    expect(screen.getByText('Status')).toBeInTheDocument();
+
+    mockFetch.mockRestore();
+  });
+
+  it('displays run status with correct badge variant', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: sampleRunHistory,
+          total: 2,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(screen.getByText('COMPLETED')).toBeInTheDocument();
+    expect(screen.getByText('FAILED')).toBeInTheDocument();
+
+    mockFetch.mockRestore();
+  });
+
+  it('calculates and displays run duration', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: sampleRunHistory,
+          total: 2,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    // First run has 5 minute duration (300s)
+    expect(screen.getByText('300.0s')).toBeInTheDocument();
+
+    mockFetch.mockRestore();
+  });
+
+  it('pagination works for run history', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: sampleRunHistory,
+          total: 25,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    const nextButton = screen.getByRole('button', { name: 'Next' });
+    expect(nextButton).not.toBeDisabled();
+
+    mockFetch.mockRestore();
+  });
+
+  it('clicking a run navigates to run detail page', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: [sampleRunHistory[0]],
+          total: 1,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Find and click the COMPLETED row
+    const completedRow = screen.getByText('COMPLETED').closest('tr');
+    if (completedRow) {
+      fireEvent.click(completedRow);
+    }
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/workflows/wf-001/runs/run-001');
+
+    mockFetch.mockRestore();
+  });
+
+  it('handles error when workflow not found', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: false,
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(screen.getByText(/Error:/)).toBeInTheDocument();
+
+    mockFetch.mockRestore();
+  });
+
+  it('shows no runs message when run history is empty', async () => {
+    const mockFetch = vi
+      .spyOn(authModule, 'authenticatedFetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sampleWorkflowDetail,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          runs: [],
+          total: 0,
+          skip: 0,
+          limit: 10,
+        }),
+      } as any);
+
+    renderWorkflowDetail();
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(screen.getByText('No runs yet.')).toBeInTheDocument();
+
+    mockFetch.mockRestore();
   });
 });
 
