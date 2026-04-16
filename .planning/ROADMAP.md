@@ -213,7 +213,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 02: Overview, Concepts, User Guide pages (Wave 2, completed 2026-04-16)
   - [x] Plan 03: Operator Guide, Developer Guide pages (Wave 3, completed 2026-04-16)
   - [x] Plan 04: API Reference section, Operational Runbook (Wave 4, completed 2026-04-16)
-- [ ] **Phase 153: Verify Gate Node Types** — Run verify-work for Phase 148 to create VERIFICATION.md; tick satisfied-but-unchecked REQUIREMENTS.md checkboxes (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04)
+- [x] **Phase 153: Verify Gate Node Types** — Run verify-work for Phase 148 to create VERIFICATION.md; tick satisfied-but-unchecked REQUIREMENTS.md checkboxes (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04) (completed 2026-04-16)
   - **Plans:** 3 plans
   - Plan 01 (Wave 1): Fix SQLite test schema, verify GATE-01/02 unit tests (condition evaluation, IF_GATE routing)
   - Plan 02 (Wave 2): Verify GATE-03/04/05 integration tests (AND_JOIN, OR_GATE, PARALLEL dispatch)
@@ -276,7 +276,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 149. Triggers & Parameter Injection | v23.0 | 1/3 (in progress) | 2026-04-16 | — |
 | 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
-| 153. Verify Gate Node Types | v23.0 | 3/3 (planned) | — | — |
+| 153. Verify Gate Node Types | v23.0 | Complete    | 2026-04-16 | — |
 
 ## Phase Detail Sections
 
@@ -284,7 +284,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 **Goal:** Run verify-work for Phase 148 to produce VERIFICATION.md and close GATE-01..06 requirement gaps; tick satisfied-but-unchecked checkboxes in REQUIREMENTS.md (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04).
 
-**Plans:** 3 plans across 3 waves
+**Plans:** 3/3 plans complete
 
 **Plan 01 (Wave 1):** Fix SQLite test database schema; verify GATE-01/02 unit tests
 - Task 1: Fix SQLite test database schema for gate tests (conftest.py)
