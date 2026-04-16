@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Edit, AlertCircle } from 'lucide-react';
@@ -139,7 +139,17 @@ export function WorkflowDetail() {
     handleDrop: handleDropFromHook,
     getUnlinkedScriptNodes,
     canSave: canSaveFromHook,
+    resetToWorkflow,
   } = useWorkflowEdit(convertedNodes, convertedEdges);
+
+  // Sync hook state when workflow data first loads (useState only captures initial value on mount,
+  // but workflow is null at mount time because the API call hasn't resolved yet)
+  useEffect(() => {
+    if (workflow) {
+      resetToWorkflow(convertedNodes, convertedEdges);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflow?.id]);
 
   // Use validation hook for real-time feedback
   const { validation, hasCycle, maxDepth, depthExceeded } = useDAGValidation(nodes, edges);
@@ -324,9 +334,14 @@ export function WorkflowDetail() {
                 {workflow.name || 'Loading...'}
                 {isEditing && <span className="text-muted-foreground ml-2 text-sm">│ Editing…</span>}
               </h1>
-              <p className="text-muted-foreground mt-1">
-                {workflow.steps?.length || 0} steps · Trigger: {workflow.schedule_cron ? 'CRON' : 'MANUAL'}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-muted-foreground">
+                  {workflow.steps?.length || 0} steps · Trigger: {workflow.schedule_cron ? 'CRON' : 'MANUAL'}
+                </p>
+                {workflow.schedule_cron && (
+                  <Badge variant="outline">{workflow.schedule_cron}</Badge>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -390,17 +405,6 @@ export function WorkflowDetail() {
             </div>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{workflow.name}</span>
-                {workflow.schedule_cron && (
-                  <Badge variant="outline">{workflow.schedule_cron}</Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-
           {/* DAG Canvas with edit mode */}
           <Card>
             <CardHeader>
@@ -415,15 +419,19 @@ export function WorkflowDetail() {
                 )}
                 <div className="flex-1">
                   <DAGCanvas
-                    steps={nodes.map((n) => ({
-                      id: n.id,
-                      node_type: n.data.nodeType,
-                      scheduled_job_id: n.data.scheduled_job_id,
-                    }))}
-                    edges={edges.map((e) => ({
-                      from_step_id: e.source,
-                      to_step_id: e.target,
-                    }))}
+                    steps={isEditing
+                      ? nodes.map((n) => ({
+                          id: n.id,
+                          node_type: n.data.nodeType,
+                          scheduled_job_id: n.data.scheduled_job_id,
+                        }))
+                      : (workflow?.steps || [])}
+                    edges={isEditing
+                      ? edges.map((e) => ({
+                          from_step_id: e.source,
+                          to_step_id: e.target,
+                        }))
+                      : (workflow?.edges || [])}
                     stepRunStatus={undefined}
                     onNodeClick={handleNodeClick}
                     editable={isEditing}

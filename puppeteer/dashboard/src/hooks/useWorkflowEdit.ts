@@ -26,6 +26,7 @@ export interface UseWorkflowEditReturn {
   handleDrop: (payload: { type: string; nodeId: string; position: { x: number; y: number } }) => void;
   getUnlinkedScriptNodes: () => Node[];
   canSave: () => boolean;
+  resetToWorkflow: (nodes: Node[], edges: Edge[]) => void;
 }
 
 /**
@@ -115,6 +116,11 @@ export function useWorkflowEdit(
     return getUnlinkedScriptNodes().length === 0;
   }, [getUnlinkedScriptNodes]);
 
+  const resetToWorkflow = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, []);
+
   return {
     nodes,
     edges,
@@ -126,5 +132,6 @@ export function useWorkflowEdit(
     handleDrop,
     getUnlinkedScriptNodes,
     canSave,
+    resetToWorkflow,
   };
 }
