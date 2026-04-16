@@ -219,7 +219,9 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - Plan 02 (Wave 2): Verify GATE-03/04/05 integration tests (AND_JOIN, OR_GATE, PARALLEL dispatch)
   - Plan 03 (Wave 3): Verify GATE-06 (SIGNAL_WAIT), full test suite validation, create VERIFICATION.md, tick requirement checkboxes
   - **Gap Closure:** Closes GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06
-- [ ] **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status
+- 🚀 **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status (planned 2/2 plans)
+  - [ ] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav — **planned**
+  - [ ] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification — **planned**
   - **Gap Closure:** Closes UI-05
 - [ ] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config)
   - **Gap Closure:** Closes UI-06, UI-07
@@ -276,7 +278,8 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 149. Triggers & Parameter Injection | v23.0 | 1/3 (in progress) | 2026-04-16 | — |
 | 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
-| 153. Verify Gate Node Types | v23.0 | Complete    | 2026-04-16 | — |
+| 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
+| 154. Unified Schedule View | v23.0 | 0/2 (planned) | — | — |
 
 ## Phase Detail Sections
 
@@ -313,11 +316,32 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 **Goal:** Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status.
 
+**Plans:** 2 plans planned
+
+**Plan 01 (Wave 1):** Backend service method, API endpoint, Pydantic models, frontend Schedule.tsx, routing, sidebar navigation
+- Task 1: Backend — Pydantic models (ScheduleEntryResponse, ScheduleListResponse) + SchedulerService.get_unified_schedule() service method
+- Task 2: Backend — GET /api/schedule endpoint with jobs:read permission gating
+- Task 3: Frontend — Schedule.tsx view with table, useQuery, row navigation, empty/loading/error states
+- Task 4: Frontend — Route registration in AppRoutes.tsx
+- Task 5: Frontend — Sidebar navigation: add Schedule entry, rename Scheduled Jobs → Job Definitions
+- Task 6: Integration check — TypeScript compilation, Python syntax validation
+
+**Plan 02 (Wave 2):** Integration testing
+- Task 1: Backend — 5+ pytest tests covering: merge, filtering, invalid cron, permissions, sorting, last-run status
+- Task 2: Frontend — 5+ vitest tests covering: table render, badges, navigation, refetch, empty/loading/error states
+- Task 3: Full test suite validation and verification
+
 **Success Criteria:**
-1. Unified schedule view page implemented and accessible from sidebar
-2. ScheduledJob entries shown with JOB badge and next-run time
+1. Unified schedule view page implemented and accessible from sidebar at /schedule
+2. ScheduledJob entries shown with JOB badge and next-run time (human-readable relative format)
 3. Workflow entries with cron schedules shown with FLOW badge and next-run time
-4. UI-05 requirement marked complete in REQUIREMENTS.md
+4. Table sorted by next_run_time ascending (soonest-firing first)
+5. Clicking row navigates to detail page: JOB → /job-definitions, FLOW → /workflows/:id
+6. Auto-refetch every 30 seconds via React Query
+7. Sidebar has Schedule entry; Scheduled Jobs renamed to Job Definitions
+8. GET /api/schedule requires jobs:read permission
+9. Only active items with cron included (active jobs + non-paused workflows)
+10. UI-05 requirement marked complete in REQUIREMENTS.md
 
 ### Phase 155: Visual DAG Editor
 
