@@ -195,7 +195,10 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 02: Gate node dispatch integration — Wave 2 (completed 2026-04-16)
   - [x] Plan 03: SIGNAL_WAIT blocking and wakeup — Wave 3 (completed 2026-04-16)
   - [x] Plan 04: Comprehensive test suite (22 unit + 11 integration tests) — Wave 4 (completed 2026-04-16)
-- [ ] **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC, WORKFLOW_PARAM_* injection (plans TBD)
+- 🚀 **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC, WORKFLOW_PARAM_* injection (in progress)
+  - [x] Plan 01: Database Schema & Pydantic Models — Workflow.schedule_cron, WorkflowRun.parameters_json, WorkflowWebhook ORM + migration_v55.sql (Wave 1, completed 2026-04-16)
+  - [ ] Plan 02: APScheduler Integration & Webhook Trigger — sync_workflow_crons(), webhook endpoint with HMAC, parameter resolution (Wave 1, planned)
+  - [ ] Plan 03+: Parameter injection, API endpoints, run history (planned)
 - [ ] **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (plans TBD)
 - [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
 
