@@ -1848,6 +1848,9 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
         step_run = await db.get(WorkflowStepRun, job.workflow_step_run_id)
         if step_run:
             workflow_service = WorkflowService()
+            # NEW: Store result_json for IF gate evaluation
+            if report.result:
+                await workflow_service.store_step_result(step_run.id, report.result, db)
             await workflow_service.advance_workflow(step_run.workflow_run_id, db)
 
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": updated.get("status", "COMPLETED")})
