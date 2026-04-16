@@ -209,8 +209,8 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 07: Integration Testing (Wave 6) — Backend + frontend integration tests, E2E Playwright verification (completed 2026-04-16)
 - [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
 - [ ] **Phase 152: Workflow Feature Documentation** — Developer docs (API reference, architecture, data model) and user-facing docs (how-to guides, UI walkthroughs) for all workflow features (Phases 146–150)
-  - [ ] Plan 01: Directory structure + MkDocs nav registration (Wave 1)
-  - [ ] Plan 02: Overview, Concepts, User Guide pages (Wave 2)
+  - [x] Plan 01: Directory structure + MkDocs nav registration (Wave 1) — completed 2026-04-16
+  - [x] Plan 02: Overview, Concepts, User Guide pages (Wave 2) — completed 2026-04-16
   - [ ] Plan 03: Operator Guide, Developer Guide pages (Wave 3)
   - [ ] Plan 04: API Reference section, Operational Runbook (Wave 4)
 

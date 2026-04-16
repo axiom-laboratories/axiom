@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: Phase 152 (Workflow Feature Documentation)
-current_plan: Plan 02 (Concepts & Architecture) — next up
+current_plan: Plan 03 (API Reference) — next up
 status: executing
-last_updated: "2026-04-16T17:30:00Z"
+last_updated: "2026-04-16T16:37:00Z"
 progress:
   total_phases: 71
   completed_phases: 69
@@ -36,6 +36,14 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-16T16:37:00Z: Phase 152 Plan 02 completed — Workflow Concepts & User Documentation
+  - Expanded docs/docs/workflows/index.md: Overview, Quick Start, navigation table (36 lines)
+  - Expanded docs/docs/workflows/concepts.md: Data Model, Step Types (SCRIPT), Gate Types (IF_GATE, AND_JOIN, OR_GATE, PARALLEL, SIGNAL_WAIT), Execution Lifecycle, DAG Constraints (98 lines)
+  - Expanded docs/docs/workflows/user-guide.md: Workflows List → Detail → RunDetail walkthrough, Step Drawer, Status Meanings, Gate Types in Action, Common Tasks (162 lines)
+  - All three pages link correctly; MkDocs builds without syntax errors (expected warnings for missing screenshots/anchor are Phase 152-03/04 tasks)
+  - 296 total lines of substantive documentation created
+  - Commits: 726314c (index), 89951ba (concepts), e0a7797 (user-guide)
 
 - 2026-04-16T17:30:00Z: Phase 152 Plan 01 completed — Workflow Documentation Foundation
   - Created docs/docs/workflows/ directory with 5 stub pages (index, concepts, user-guide, operator-guide, developer-guide)
