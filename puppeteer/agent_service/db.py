@@ -490,7 +490,7 @@ class WorkflowStep(Base):
     __tablename__ = "workflow_steps"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
-    scheduled_job_id: Mapped[str] = mapped_column(ForeignKey("scheduled_jobs.id"))
+    scheduled_job_id: Mapped[Optional[str]] = mapped_column(ForeignKey("scheduled_jobs.id"), nullable=True)
     node_type: Mapped[str] = mapped_column(String)  # "SCRIPT", "IF_GATE", etc. — validated at service layer
     config_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON as string, not blob
 
@@ -546,6 +546,7 @@ class WorkflowStepRun(Base):
     status: Mapped[str] = mapped_column(String)  # PENDING/RUNNING/COMPLETED/FAILED/SKIPPED/CANCELLED
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    result_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
