@@ -23,10 +23,10 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 
 ## Current Position
 
-**Phase:** 148 (Gate Node Types) — COMPLETED
-**Plan:** 148-04 (Comprehensive Gate Node Test Suite) — COMPLETED
-**Status:** Phase 148 execution complete — all 4 plans delivered (4 waves)
-**Progress:** 3/6 phases complete (146, 147, 148); Phases 149-151 pending
+**Phase:** 149 (Triggers & Parameter Injection) — IN PROGRESS
+**Plan:** 149-01 (Database Schema & Pydantic Models) — COMPLETED
+**Status:** Phase 149 Plan 01 execution complete — database and models prepared for trigger and webhook implementation
+**Progress:** 3/6 phases complete (146, 147, 148); Phase 149 Wave 1 complete; Phases 150-151 pending
 
 ## Roadmap Summary
 
@@ -42,7 +42,7 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 | 146 | Workflow data model with DAG validation | WORKFLOW-01..05 (5) | Create/list/update/delete Workflows; cycle detection; Save-as-New pauses cron | ✅ Complete |
 | 147 | WorkflowRun execution engine with atomicity | ENGINE-01..07 (7) | BFS dispatch; SELECT...FOR UPDATE guards; status machine (RUNNING/COMPLETED/PARTIAL/FAILED/CANCELLED); cascade failure | ✅ Complete |
 | 148 | Gate node types (IF, AND/JOIN, OR, parallel, signal) | GATE-01..06 (6) | IF gate result.json evaluation; AND/JOIN synchronization; OR routing; parallel fan-out; Signal wait | ✅ Complete |
-| 149 | Triggers + parameter injection | TRIGGER-01..05, PARAMS-01..02 (7) | Manual trigger with params; cron scheduling; webhook with HMAC/nonce; env var injection | Pending |
+| 149 | Triggers + parameter injection | TRIGGER-01..05, PARAMS-01..02 (7) | Manual trigger with params; cron scheduling; webhook with HMAC/nonce; env var injection | 🔨 In Progress (Plan 01 ✅) |
 | 150 | Dashboard read-only UI | UI-01..05 (5) | DAG visualization (elkjs); live status overlay (WebSocket); run history; step logs; unified schedule | Pending |
 | 151 | Visual DAG editor | UI-06..07 (2) | Canvas drag-drop; real-time validation; IF gate inline config | Pending |
 
@@ -51,7 +51,7 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 **Phase 146 (Workflow Data Model):** WORKFLOW-01, WORKFLOW-02, WORKFLOW-03, WORKFLOW-04, WORKFLOW-05 — ✅ Complete  
 **Phase 147 (Execution Engine):** ENGINE-01, ENGINE-02, ENGINE-03, ENGINE-04, ENGINE-05, ENGINE-06, ENGINE-07 — ✅ Complete  
 **Phase 148 (Gate Node Types):** GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06 — ✅ Complete  
-**Phase 149 (Triggers & Parameters):** TRIGGER-01, TRIGGER-02, TRIGGER-03, TRIGGER-04, TRIGGER-05, PARAMS-01, PARAMS-02 — Pending  
+**Phase 149 (Triggers & Parameters):** TRIGGER-01 (✅), TRIGGER-02 (✅), TRIGGER-03 (🔨), TRIGGER-04 (🔨), TRIGGER-05 (🔨), PARAMS-01 (✅), PARAMS-02 (🔨) — In Progress  
 **Phase 150 (Read-Only UI):** UI-01, UI-02, UI-03, UI-04, UI-05 — Pending  
 **Phase 151 (Visual Editor):** UI-06, UI-07 — Pending  
 
@@ -135,10 +135,25 @@ Delivered: 4 plans + 4 waves of execution
 
 **All tests passing:** 33/33 ✓
 
+## Phase 149 Progress
+
+**Phase 149: Triggers & Parameter Injection — IN PROGRESS (2026-04-16)**
+
+**Plan 149-01 (Wave 1) - COMPLETE:** Database Schema & Pydantic Models
+- Workflow.schedule_cron: TEXT column for cron expressions (gates with is_paused)
+- WorkflowRun.trigger_type/triggered_by/parameters_json: audit trail and parameter snapshot
+- WorkflowWebhook ORM: id, workflow_id FK, name, secret_hash (bcrypt), created_at
+- migration_v55.sql: idempotent ALTER TABLE and CREATE TABLE statements
+- Pydantic models: WorkflowCreate/Update/Response updated; WorkflowWebhookCreate/Response added
+- Requirements satisfied: TRIGGER-01 (cron gates), TRIGGER-02 (webhook table), PARAMS-01 (parameter snapshot)
+
+**Requirements Progress:** 3/7 complete (TRIGGER-01, TRIGGER-02, PARAMS-01)
+
 ## Next Steps
 
-1. **Phase 149 Planning:** `/gsd:plan-phase 149` to implement triggers (manual, cron, webhook) + parameter injection
-2. **Phase 150 Planning:** `/gsd:plan-phase 150` to build read-only DAG UI (visualization, live status, logs)
-3. **Phase 151 Planning:** `/gsd:plan-phase 151` to implement visual DAG editor (canvas, drag-drop)
+1. **Phase 149 Plan 02:** Implement APScheduler integration, webhook trigger endpoint, HMAC verification, parameter injection
+2. **Phase 149 Plan 03+:** API endpoints for workflow CRUD with triggers, run history, parameter validation
+3. **Phase 150 Planning:** `/gsd:plan-phase 150` to build read-only DAG UI (visualization, live status, logs)
+4. **Phase 151 Planning:** `/gsd:plan-phase 151` to implement visual DAG editor (canvas, drag-drop)
 
-**Remaining work:** 3 phases × ~3-4 plans each = ~10-12 plans to ship v23.0 complete.
+**Remaining work:** Phase 149 (3+ more plans), Phase 150 (3-4 plans), Phase 151 (2 plans) = ~8-10 plans to ship v23.0 complete.
