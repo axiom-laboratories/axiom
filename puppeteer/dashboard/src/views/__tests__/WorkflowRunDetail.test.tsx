@@ -34,6 +34,13 @@ vi.mock('../../components/DAGCanvas', () => ({
   ),
 }));
 
+// Mock WorkflowStepDrawer
+vi.mock('../../components/WorkflowStepDrawer', () => ({
+  WorkflowStepDrawer: ({ step, isOpen, onClose }: any) => (
+    isOpen && <div data-testid="step-drawer">{step?.workflow_step_id || 'drawer'}</div>
+  ),
+}));
+
 // Mock useWebSocket
 vi.mock('../../hooks/useWebSocket', () => ({
   useWebSocket: (handler: any) => {
@@ -179,7 +186,7 @@ describe('WorkflowRunDetail View', () => {
     mockFetch.mockRestore();
   });
 
-  it('clicking a DAG node calls onNodeClick callback', async () => {
+  it('clicking a DAG node opens the step drawer', async () => {
     const mockFetch = vi.spyOn(authModule, 'authenticatedFetch').mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -198,8 +205,8 @@ describe('WorkflowRunDetail View', () => {
 
     await new Promise((r) => setTimeout(r, 50));
 
-    // After clicking, selected step should be displayed
-    expect(screen.getByText(/Selected step:/)).toBeInTheDocument();
+    // After clicking, the drawer should appear
+    expect(screen.getByTestId('step-drawer')).toBeInTheDocument();
 
     mockFetch.mockRestore();
   });
@@ -222,7 +229,8 @@ describe('WorkflowRunDetail View', () => {
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(screen.getByText(/Selected step:/)).toBeInTheDocument();
+    // After clicking, the drawer should appear
+    expect(screen.getByTestId('step-drawer')).toBeInTheDocument();
 
     mockFetch.mockRestore();
   });
