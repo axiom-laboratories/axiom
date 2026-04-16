@@ -1375,3 +1375,40 @@ class WorkflowWebhookResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- Workflow WebSocket Event Models (Phase 150) ---
+
+class WorkflowRunUpdatedEvent(BaseModel):
+    """Event emitted when a WorkflowRun transitions state."""
+    id: str  # WorkflowRun ID
+    workflow_id: str
+    status: Literal['RUNNING', 'COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED']
+    started_at: datetime
+    completed_at: Optional[datetime]
+    triggered_by: Literal['step_completed', 'cascade_cancel', 'manual_cancel', 'all_steps_done']
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowStepUpdatedEvent(BaseModel):
+    """Event emitted when a WorkflowStepRun transitions state."""
+    id: str  # WorkflowStepRun ID
+    workflow_run_id: str
+    workflow_step_id: str
+    status: Literal['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'SKIPPED', 'CANCELLED']
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    job_guid: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowRunListResponse(BaseModel):
+    """Paginated list of runs for a workflow."""
+    runs: List[WorkflowRunResponse]
+    total: int
+    skip: int
+    limit: int
+
+    model_config = ConfigDict(from_attributes=True)

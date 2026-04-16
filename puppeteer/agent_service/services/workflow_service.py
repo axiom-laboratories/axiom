@@ -19,7 +19,8 @@ from agent_service.db import (
 from agent_service.models import (
     WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowValidationError,
     WorkflowStepResponse, WorkflowEdgeResponse, WorkflowParameterResponse,
-    WorkflowRunResponse, WorkflowStepRunResponse, JobCreate
+    WorkflowRunResponse, WorkflowStepRunResponse, JobCreate,
+    WorkflowRunUpdatedEvent, WorkflowStepUpdatedEvent
 )
 
 
@@ -717,9 +718,26 @@ class WorkflowService:
         # Update WorkflowRun
         run = await db.get(WorkflowRun, run_id)
         if run:
+            old_status = run.status
             run.status = final_status
             run.completed_at = datetime.utcnow()
             await db.commit()
+
+            # Emit workflow_run_updated event if status changed
+            if old_status != final_status:
+                try:
+                    from .. import main
+                    event = WorkflowRunUpdatedEvent(
+                        id=run.id,
+                        workflow_id=run.workflow_id,
+                        status=final_status,
+                        started_at=run.started_at,
+                        completed_at=run.completed_at,
+                        triggered_by='all_steps_done'
+                    )
+                    await main.ws_manager.broadcast_workflow_run_updated(event)
+                except Exception as e:
+                    logger.error(f"Failed to broadcast workflow_run_updated event: {e}")
 
     async def _run_to_response(
         self,
@@ -747,6 +765,7 @@ class WorkflowService:
             completed_at=run.completed_at,
             trigger_type=run.trigger_type,
             triggered_by=run.triggered_by,
+            parameters_json=run.parameters_json,
             created_at=run.created_at,
             step_runs=step_runs_response
         )
@@ -795,13 +814,18 @@ class WorkflowService:
         resolved_params = {}
 
         for param in workflow.parameters:
-            # Get trigger-specific value (if provided)
-            caller_value = parameters.get(param.name)
-            # Fall back to parameter default
-            resolved_value = caller_value if caller_value is not None else param.default_value
+            # Determine whether to allow caller override (trigger-type-specific)
+            allow_caller_override = trigger_type in ("MANUAL", "WEBHOOK")
 
-            # Validate: if required (no default), must be provided
-            if resolved_value is None:
+            # Check if parameter was explicitly provided (even if None)
+            param_provided = param.name in parameters if allow_caller_override else False
+            caller_value = parameters.get(param.name) if param_provided else None
+
+            # Fall back to parameter default
+            resolved_value = caller_value if param_provided else param.default_value
+
+            # Validate: if required (no default) AND not provided, error
+            if not param_provided and param.default_value is None:
                 raise HTTPException(
                     status_code=422,
                     detail=f"Required parameter '{param.name}' not provided and has no default"
@@ -809,8 +833,14 @@ class WorkflowService:
 
             resolved_params[param.name] = resolved_value
 
-        # Snapshot parameters to JSON
-        parameters_json = json.dumps(resolved_params) if resolved_params else None
+        # Include extra caller-provided parameters not in workflow definition (for MANUAL/WEBHOOK)
+        if trigger_type in ("MANUAL", "WEBHOOK"):
+            for key, value in parameters.items():
+                if key not in resolved_params:
+                    resolved_params[key] = value
+
+        # Snapshot parameters to JSON (always create JSON, even if empty dict)
+        parameters_json = json.dumps(resolved_params)
 
         # Create WorkflowRun with trigger metadata
         run_id = str(uuid4())
@@ -1073,7 +1103,7 @@ class WorkflowService:
             .values(status="CANCELLED", completed_at=datetime.utcnow())
         )
         await db.execute(stmt)
-        
+
         # Also mark any RUNNING SIGNAL_WAIT steps as CANCELLED (prevents wakeup after cancel)
         stmt = select(WorkflowStepRun).where(
             and_(
@@ -1087,11 +1117,41 @@ class WorkflowService:
             if step and step.node_type == "SIGNAL_WAIT":
                 sr.status = "CANCELLED"
                 sr.completed_at = datetime.utcnow()
-        
+
         await db.flush()
 
         # Commit
         await db.commit()
+
+        # Phase 150: Emit workflow_run_updated and workflow_step_updated events
+        try:
+            from .. import main
+
+            # Emit run update event
+            run_event = WorkflowRunUpdatedEvent(
+                id=run.id,
+                workflow_id=run.workflow_id,
+                status=run.status,
+                started_at=run.started_at,
+                completed_at=run.completed_at,
+                triggered_by='manual_cancel'
+            )
+            await main.ws_manager.broadcast_workflow_run_updated(run_event)
+
+            # Emit step update events for all cancelled steps
+            for sr in running_steps:
+                if sr.status == "CANCELLED":
+                    step_event = WorkflowStepUpdatedEvent(
+                        id=sr.id,
+                        workflow_run_id=sr.workflow_run_id,
+                        workflow_step_id=sr.workflow_step_id,
+                        status=sr.status,
+                        started_at=sr.started_at,
+                        completed_at=sr.completed_at
+                    )
+                    await main.ws_manager.broadcast_workflow_step_updated(step_event)
+        except Exception as e:
+            logger.error(f"Failed to broadcast cancel run events: {e}")
 
         # Return response
         return await self._run_to_response(db, run)

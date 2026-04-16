@@ -48,6 +48,7 @@ from .models import (
     DependencyTreeResponse, DiscoverDependenciesResponse,
     WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowRunResponse,
     WorkflowWebhookCreate, WorkflowWebhookResponse,
+    WorkflowRunUpdatedEvent, WorkflowStepUpdatedEvent, WorkflowRunListResponse,
 )
 from .security import (
     encrypt_secrets, decrypt_secrets, mask_secrets,
@@ -819,6 +820,22 @@ class ConnectionManager:
                 dead.append(ws)
         for ws in dead:
             self._connections.remove(ws)
+
+    async def broadcast_workflow_run_updated(self, event: "WorkflowRunUpdatedEvent") -> None:
+        """Broadcast a workflow run status update to all connected clients."""
+        message = {
+            "event": "workflow_run_updated",
+            "data": event.model_dump(mode='json')
+        }
+        await self.broadcast("workflow_run_updated", message["data"])
+
+    async def broadcast_workflow_step_updated(self, event: "WorkflowStepUpdatedEvent") -> None:
+        """Broadcast a workflow step status update to all connected clients."""
+        message = {
+            "event": "workflow_step_updated",
+            "data": event.model_dump(mode='json')
+        }
+        await self.broadcast("workflow_step_updated", message["data"])
 
 ws_manager = ConnectionManager()
 
@@ -1855,6 +1872,32 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
             # NEW: Store result_json for IF gate evaluation
             if report.result:
                 await workflow_service.store_step_result(step_run.id, report.result, db)
+
+            # Phase 150: Update step_run status based on job completion
+            old_step_status = step_run.status
+            if updated.get("status") == "COMPLETED":
+                step_run.status = "COMPLETED"
+                step_run.completed_at = datetime.utcnow()
+            elif updated.get("status") in ["FAILED", "DEAD_LETTER", "SECURITY_REJECTED"]:
+                step_run.status = "FAILED"
+                step_run.completed_at = datetime.utcnow()
+
+            # Emit workflow_step_updated event if status changed
+            if old_step_status != step_run.status:
+                try:
+                    event = WorkflowStepUpdatedEvent(
+                        id=step_run.id,
+                        workflow_run_id=step_run.workflow_run_id,
+                        workflow_step_id=step_run.workflow_step_id,
+                        status=step_run.status,
+                        started_at=step_run.started_at,
+                        completed_at=step_run.completed_at,
+                        job_guid=guid
+                    )
+                    await ws_manager.broadcast_workflow_step_updated(event)
+                except Exception as e:
+                    logger.error(f"Failed to broadcast workflow_step_updated event: {e}")
+
             await workflow_service.advance_workflow(step_run.workflow_run_id, db)
 
     await ws_manager.broadcast("job:updated", {"guid": guid, "status": updated.get("status", "COMPLETED")})
@@ -2830,6 +2873,53 @@ async def delete_workflow_webhook(
     audit(db, current_user, "delete_webhook", webhook_id, {
         "workflow_id": workflow_id
     })
+
+@app.get("/api/workflows/{workflow_id}/runs", tags=["workflows"], response_model=WorkflowRunListResponse)
+async def get_workflow_runs(
+    workflow_id: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(require_permission("workflows:read")),
+    db: AsyncSession = Depends(get_db)
+) -> WorkflowRunListResponse:
+    """Get paginated list of runs for a workflow (most recent first)."""
+    # Verify workflow exists
+    workflow = await db.get(Workflow, workflow_id)
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Count total runs
+    count_stmt = select(func.count(WorkflowRun.id)).where(
+        WorkflowRun.workflow_id == workflow_id
+    )
+    count_result = await db.execute(count_stmt)
+    total = count_result.scalar() or 0
+
+    # Fetch paginated runs (order by started_at DESC, most recent first)
+    stmt = (
+        select(WorkflowRun)
+        .where(WorkflowRun.workflow_id == workflow_id)
+        .order_by(desc(WorkflowRun.started_at))
+        .offset(skip)
+        .limit(limit)
+    )
+    runs_result = await db.execute(stmt)
+    runs = runs_result.scalars().all()
+
+    # Convert to response models (with eager-loaded step runs)
+    from .services.workflow_service import WorkflowService
+    workflow_service = WorkflowService()
+    run_responses = []
+    for run in runs:
+        run_response = await workflow_service._run_to_response(db, run)
+        run_responses.append(run_response)
+
+    return WorkflowRunListResponse(
+        runs=run_responses,
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
 
 @app.post("/api/workflow-runs/{run_id}/cancel", tags=["workflows"], response_model=WorkflowRunResponse)
 async def cancel_workflow_run(
