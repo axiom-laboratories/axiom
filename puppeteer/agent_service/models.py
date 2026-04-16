@@ -1203,7 +1203,7 @@ class ApplyBundleResult(BaseModel):
 
 class WorkflowStepCreate(BaseModel):
     """Create request for a workflow step."""
-    scheduled_job_id: str
+    scheduled_job_id: Optional[str] = None  # Gate nodes have NULL scheduled_job_id
     node_type: str  # "SCRIPT", "IF_GATE", etc.
     config_json: Optional[str] = None  # JSON as string
 
@@ -1214,7 +1214,7 @@ class WorkflowStepResponse(BaseModel):
     """Response model for a workflow step."""
     id: str
     workflow_id: str
-    scheduled_job_id: str
+    scheduled_job_id: Optional[str]  # Gate nodes have NULL scheduled_job_id
     node_type: str
     config_json: Optional[str]
 
@@ -1328,6 +1328,7 @@ class WorkflowStepRunResponse(BaseModel):
     status: str
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    result_json: Optional[str] = None  # JSON-serialized output from step execution
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
