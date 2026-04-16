@@ -38,15 +38,15 @@
 ### TRIGGER — Workflow Triggers
 
 - [ ] **TRIGGER-01**: User can manually trigger a WorkflowRun from the dashboard, supplying parameter values at trigger time
-- [ ] **TRIGGER-02**: User can schedule a Workflow on a cron expression (APScheduler); schedule auto-pauses on "Save as New"
+- [x] **TRIGGER-02**: User can schedule a Workflow on a cron expression (APScheduler); schedule auto-pauses on "Save as New"
 - [ ] **TRIGGER-03**: User can configure a webhook endpoint for a Workflow (`POST /api/webhooks/{id}/trigger`)
-- [ ] **TRIGGER-04**: Webhook endpoint validates HMAC-SHA256 signature, timestamp freshness (±5 min), and nonce uniqueness (24h dedup) before triggering a run
+- [x] **TRIGGER-04**: Webhook endpoint validates HMAC-SHA256 signature, timestamp freshness (±5 min), and nonce uniqueness (24h dedup) before triggering a run
 - [ ] **TRIGGER-05**: Webhook events failing validation (bad signature, stale timestamp, replayed nonce) are rejected HTTP 400 and audit-logged
 
 ### PARAMS — Parameter Injection
 
 - [ ] **PARAMS-01**: User can define named parameters on a Workflow definition (name, type, optional default value)
-- [ ] **PARAMS-02**: System injects runtime parameter values as `WORKFLOW_PARAM_<NAME>` environment variables into each step's container; signed script content is never modified
+- [x] **PARAMS-02**: System injects runtime parameter values as `WORKFLOW_PARAM_<NAME>` environment variables into each step's container; signed script content is never modified
 
 ### UI — Dashboard Interface
 
