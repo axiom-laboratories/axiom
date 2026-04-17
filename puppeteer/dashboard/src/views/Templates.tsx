@@ -484,7 +484,7 @@ function validateRecipe(recipe: string): { valid: boolean; errors: string[] } {
     }
 
     const lines = recipe.split("\n");
-    const allowedRunPattern = /^(pip|apt-get|apk|npm|yum)\s+install\b/i;
+    const allowedRunPattern = /^(pip|apt-get|apk|npm|yum)\s+/i;
     const allowedInstructions = /^(ENV|COPY|ARG|RUN)\b/i;
 
     lines.forEach((line, idx) => {
