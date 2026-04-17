@@ -305,7 +305,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 159. Test Infrastructure Repair | v23.1 | Complete    | 2026-04-17 | — |
 | 160. Workflow CRUD Unit Tests | v23.1 | Complete    | 2026-04-17 | — |
 | 161. Compatibility Engine Route Implementation | v23.1 | Complete    | 2026-04-17 | 2026-04-17 |
-| 162. Frontend Component Fixes | v23.1 | 0/1 | Planned | — |
+| 162. Frontend Component Fixes | v23.1 | Complete    | 2026-04-17 | — |
 
 ## Phase Detail Sections
 
