@@ -15,7 +15,9 @@ def validate_injection_recipe(recipe: Optional[str]) -> tuple[bool, Optional[str
     If recipe is None or empty, returns (True, None) — optional field.
 
     Whitelist rules:
-    1. RUN commands: Only allow 'pip install', 'apt-get install', 'apk add', 'npm install', 'yum install'
+    1. RUN commands: Must NOT contain disallowed operations as the primary command
+       Disallowed: cat, curl, wget, rm, bash -c, docker (executed as commands, not packages)
+       Allowed: package manager operations (pip install, apt-get install/update, apk add, npm install, yum install)
     2. Other allowed instructions: ENV, COPY, ARG
     3. Comments and blank lines are ignored
     """
@@ -26,16 +28,27 @@ def validate_injection_recipe(recipe: Optional[str]) -> tuple[bool, Optional[str
     lines = recipe.split("\n")
     errors = []
 
-    # Regex pattern for allowed package manager RUN commands
-    # Matches: RUN pip install, RUN apt-get install, RUN apk add, RUN npm install, RUN yum install
-    allowed_run_pattern = re.compile(
-        r"^\s*RUN\s+(pip|apt-get|apk|npm|yum)\s+(install|add)\b",
-        re.IGNORECASE
-    )
+    # Patterns for disallowed primary commands
+    # These check for the command right after RUN (after whitespace)
+    # This prevents things like "RUN cat file" but allows "RUN apt-get install curl"
+    disallowed_primary_commands = [
+        re.compile(r"^\s*RUN\s+cat\b", re.IGNORECASE),
+        re.compile(r"^\s*RUN\s+curl\b", re.IGNORECASE),
+        re.compile(r"^\s*RUN\s+wget\b", re.IGNORECASE),
+        re.compile(r"^\s*RUN\s+rm\b", re.IGNORECASE),
+        re.compile(r"^\s*RUN\s+bash\s+-c\b", re.IGNORECASE),
+        re.compile(r"^\s*RUN\s+docker\b", re.IGNORECASE),
+    ]
 
     # Pattern for allowed non-RUN instructions
     allowed_instructions = re.compile(
         r"^\s*(ENV|COPY|ARG)\s+",
+        re.IGNORECASE
+    )
+
+    # Pattern to check if a RUN line contains at least one package manager
+    has_pkg_manager = re.compile(
+        r"(pip\s+install|apt-get\s+(?:install|update)|apk\s+add|npm\s+install|yum\s+install)",
         re.IGNORECASE
     )
 
@@ -48,8 +61,17 @@ def validate_injection_recipe(recipe: Optional[str]) -> tuple[bool, Optional[str
 
         # Check if it's a RUN instruction
         if stripped.upper().startswith("RUN"):
-            # Check if it matches the allowed package manager pattern
-            if not allowed_run_pattern.match(line):
+            # Check for disallowed primary commands
+            has_disallowed = any(pattern.match(line) for pattern in disallowed_primary_commands)
+            if has_disallowed:
+                errors.append(
+                    f"Line {line_num}: RUN instruction must use package managers (pip, apt-get, apk, npm, yum)"
+                )
+                continue
+
+            # Check if it contains at least one package manager operation
+            has_pkg = has_pkg_manager.search(stripped)
+            if not has_pkg:
                 errors.append(
                     f"Line {line_num}: RUN instruction must use package managers (pip, apt-get, apk, npm, yum)"
                 )
