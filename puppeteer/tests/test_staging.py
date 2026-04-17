@@ -1,8 +1,8 @@
 import pytest
 import json
 from unittest.mock import patch, AsyncMock, MagicMock
-from puppeteer.agent_service.services.staging_service import StagingService
-from puppeteer.agent_service.db import PuppetTemplate
+from agent_service.services.staging_service import StagingService
+from agent_service.db import PuppetTemplate
 
 @pytest.mark.asyncio
 async def test_run_smelt_check_success():

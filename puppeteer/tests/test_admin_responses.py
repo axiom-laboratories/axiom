@@ -276,13 +276,16 @@ async def test_update_user_response(async_client: AsyncClient, auth_headers: dic
 
 
 @pytest.mark.asyncio
-async def test_delete_user_response(async_client: AsyncClient, auth_headers: dict):
+async def test_delete_user_response(async_client: AsyncClient, auth_headers: dict, test_user_id: str):
     """Snapshot test: DELETE /admin/users/{id} deletes user.
 
     Expected: 204 No Content OR ActionResponse
     """
+    if not test_user_id:
+        pytest.skip("Could not create test user for deletion")
+
     response = await async_client.delete(
-        "/admin/users/test-user-id",
+        f"/admin/users/{test_user_id}",
         headers=auth_headers
     )
 
@@ -408,13 +411,16 @@ async def test_list_signing_keys_response(async_client: AsyncClient, auth_header
 
 
 @pytest.mark.asyncio
-async def test_delete_signing_key_response(async_client: AsyncClient, auth_headers: dict):
+async def test_delete_signing_key_response(async_client: AsyncClient, auth_headers: dict, test_signing_key_id: str):
     """Snapshot test: DELETE /account/signing-keys/{id} deletes a signing key.
 
     Expected: 204 No Content OR ActionResponse
     """
+    if not test_signing_key_id:
+        pytest.skip("Could not create test signing key for deletion")
+
     response = await async_client.delete(
-        "/account/signing-keys/test-key-id",
+        f"/account/signing-keys/{test_signing_key_id}",
         headers=auth_headers
     )
 

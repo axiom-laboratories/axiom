@@ -2,9 +2,9 @@ import pytest
 import json
 from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi import HTTPException
-from puppeteer.agent_service.main import enroll_node
-from puppeteer.agent_service.services.job_service import JobService
-from puppeteer.agent_service.db import PuppetTemplate, Node, Token
+from agent_service.main import enroll_node
+from agent_service.services.job_service import JobService
+from agent_service.db import PuppetTemplate, Node, Token
 
 @pytest.mark.asyncio
 async def test_enrollment_blocked_for_revoked_image():

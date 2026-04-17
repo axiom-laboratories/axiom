@@ -432,3 +432,43 @@ async def sample_3_step_linear_workflow(setup_db):
 # Add uuid4 and datetime to imports if not present
 from uuid import uuid4
 from datetime import datetime
+
+
+@pytest_asyncio.fixture
+async def test_user_id(setup_db):
+    """Create a test user directly in DB and return its username (PK) for deletion testing."""
+    from agent_service.db import User, AsyncSessionLocal
+    from agent_service.auth import get_password_hash
+
+    # Create a test user directly in the database
+    username = f"test-delete-user-{uuid4().hex[:8]}"
+    async with AsyncSessionLocal() as session:
+        user = User(
+            username=username,
+            password_hash=get_password_hash("test123"),
+            role="operator",
+            token_version=0,
+            must_change_password=False
+        )
+        session.add(user)
+        await session.commit()
+    return username  # User's primary key is username
+
+
+@pytest_asyncio.fixture
+async def test_signing_key_id(setup_db):
+    """Create a test signing key directly in DB and return its ID for deletion testing."""
+    from agent_service.db import UserSigningKey, AsyncSessionLocal
+
+    # Create a test signing key directly in the database
+    key_id = str(uuid4())
+    async with AsyncSessionLocal() as session:
+        key = UserSigningKey(
+            id=key_id,
+            username="admin",  # Associate with admin user (created by setup_db)
+            name=f"test-delete-key-{uuid4().hex[:8]}",
+            public_key_pem="-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANDiE2Zm7HK5Q=\n-----END PUBLIC KEY-----"
+        )
+        session.add(key)
+        await session.commit()
+    return key_id
