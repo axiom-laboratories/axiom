@@ -26,6 +26,7 @@
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
 - ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–157 (completed 2026-04-17, all phases shipped, release-ready) — Phase 158 State-of-the-Nation: GO — v23.0 CONFIRMED READY FOR PRODUCTION DEPLOYMENT
+- 🔧 **v23.1 — Test Suite Health & Compatibility Engine** — Phases 159–162 (in progress) — Fixes 13 workflow CRUD stubs, 2 collection errors, 2 compatibility engine routes, 10 frontend component failures
 
 ## Phases
 
@@ -237,6 +238,16 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 </details>
 
+<details>
+<summary>🔧 v23.1 — Test Suite Health & Compatibility Engine (Phases 159–162) — IN PROGRESS</summary>
+
+- [ ] **Phase 159: Test Infrastructure Repair** — Fix 2 collection errors (test_tools.py admin_signer import, test_intent_scanner.py intent_scanner import); fix test_admin_responses.py DELETE setup; investigate Phase 29 stubs (test_output_capture.py, test_retry_wiring.py) (v23.1)
+- [ ] **Phase 160: Workflow CRUD Unit Tests** — Implement 13 assert False stubs in test_workflow.py as real async pytest tests against the Phase 146 CRUD API (v23.1)
+- [ ] **Phase 161: Compatibility Engine Route Implementation** — Add os_family query param filter to GET /api/capability-matrix; implement POST /api/blueprints route with OS-family validation and offending_tools error field; fix test_compatibility_engine.py (v23.1)
+- [ ] **Phase 162: Frontend Component Fixes** — Fix Templates.test.tsx missing getUser mock; fix Admin.tsx EE tab conditional rendering and add missing Automation tab; fix MainLayout.tsx CE badge zinc classes; fix WorkflowDetail.tsx duration async rendering (v23.1)
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -291,6 +302,10 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
 | 157. Close Deferred Technical Debt | v23.0 | Complete    | 2026-04-17 | — |
 | 158. State of the Nation — Post v23.0 | v23.0 | Complete    | 2026-04-17 | — |
+| 159. Test Infrastructure Repair | v23.1 | 0/1 | Planned | — |
+| 160. Workflow CRUD Unit Tests | v23.1 | 0/1 | Planned | — |
+| 161. Compatibility Engine Route Implementation | v23.1 | 0/1 | Planned | — |
+| 162. Frontend Component Fixes | v23.1 | 0/1 | Planned | — |
 
 ## Phase Detail Sections
 
@@ -321,6 +336,90 @@ Plans:
 - [x] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx (12/12), WorkflowRunDetail.test.tsx (10/10), Jobs.test.tsx (14/14) with React Testing Library best practices (waitFor, scoped selectors, proper async patterns) — all 36 tests passing, zero act() warnings, zero todos (completed 2026-04-17)
 - [x] Plan 02 (Wave 1): Write backend regression tests — 4 pytest tests for MIN-6, MIN-7, MIN-8, WARN-8 gap verification (completed 2026-04-17, 4/4 tests passing)
 - [x] Plan 03 (Wave 2): Full test suite verification + VERIFICATION.md — Run complete test suite (36 frontend + 6 backend Phase 157 scope = 42 tests, 100% passing), document gap closure, gate release readiness (completed 2026-04-17, 157-VERIFICATION.md created)
+
+### Phase 159: Test Infrastructure Repair
+
+**Goal:** Eliminate 2 pytest collection errors and fix 4 broken test setups so the full backend test suite collects and reports clean. No features added — pure test health.
+
+**Scope:**
+1. `test_tools.py` — collection error: `import admin_signer` fails; `admin_signer.py` lives in `~/Development/toms_home/.agents/tools/` (sister repo). Fix: add `conftest.py` sys.path insert or create a thin wrapper in the `tests/` dir.
+2. `test_intent_scanner.py` — collection error: `import intent_scanner` fails; skill script path doesn't exist. Fix: create `scripts/intent_scanner.py` stub or skip-mark the file with a `pytest.importorskip`.
+3. `test_admin_responses.py` DELETE tests — 2 failures because dummy IDs return 404. Fix: create real user/signing-key resources in test setup, then delete them.
+4. `test_output_capture.py` + `test_retry_wiring.py` — 1 `assert False` stub each from Phase 29. Investigate what the feature is; either implement the test against the existing code or mark it with `pytest.skip` explaining why.
+
+**Requirements:** None (test infrastructure only)
+
+**Depends on:** Phase 158
+
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] Plan 01 (Wave 1): Fix collection errors + admin response setup + Phase 29 stub audit
+
+---
+
+### Phase 160: Workflow CRUD Unit Tests
+
+**Goal:** Convert all 13 `assert False` stubs in `test_workflow.py` into real passing pytest tests against the Phase 146 Workflow CRUD API. The API endpoints already exist; this is pure test implementation.
+
+**Scope:** `puppeteer/tests/test_workflow.py` — 13 tests:
+- CRUD: create (success, invalid edges, cycle detected), list, update (success, cycle, depth exceeded), delete (success, blocked by active runs)
+- Fork: fork success, fork pauses source
+- Validate: no cycle, with cycle (POST /api/workflows/validate — no save)
+
+Each test needs: async test client, DB fixtures (create Workflow with steps/edges/params), assertion on response body + error codes (`CYCLE_DETECTED`, `DEPTH_LIMIT_EXCEEDED`, `ACTIVE_RUNS_EXIST`, `INVALID_EDGE_REFERENCE`).
+
+**Requirements:** Covers WORKFLOW-01 through WORKFLOW-05 (unit test layer)
+
+**Depends on:** Phase 159
+
+**Plans:** 0/1 planned
+
+Plans:
+- [ ] Plan 01 (Wave 1): Implement 13 workflow CRUD unit tests
+
+---
+
+### Phase 161: Compatibility Engine Route Implementation
+
+**Goal:** Implement 2 missing backend routes to make `test_compatibility_engine.py` fully pass (currently 2 failing, 1 skipped).
+
+**Scope:**
+1. `GET /api/capability-matrix?os_family=DEBIAN` — add `os_family` query param filter. Currently returns all rows regardless of param.
+2. `POST /api/blueprints` — route not yet implemented. Needs: OS-family mismatch validation returning 422 with `offending_tools` field in error detail.
+3. Unblock the skipped test once `runtime_dependencies` seeding is in place.
+
+**Requirements:** Closes compatibility engine gaps from Phase 11 (never verified post-Phase 129 API changes)
+
+**Depends on:** Phase 159
+
+**Plans:** 0/1 planned
+
+Plans:
+- [ ] Plan 01 (Wave 1): Add os_family filter + POST /api/blueprints route + fix tests
+
+---
+
+### Phase 162: Frontend Component Fixes
+
+**Goal:** Fix 10 frontend test failures across 4 files. All failures are component bugs or incomplete test mocks, not aspirational tests.
+
+**Scope:**
+1. `Templates.test.tsx` (5 failures) — `vi.mock('../../auth')` missing `getUser` export. Fix: add `getUser: vi.fn().mockReturnValue({ role: 'admin' })` to the mock factory. The component calls `getUser()` on render; the mock is incomplete.
+2. `Admin.test.tsx` (3 failures) — EE tabs (Smelter Registry, BOM Explorer, Artifact Vault, Rollouts) render in CE mode. Fix: gate their rendering on `isEnterprise` in `Admin.tsx`. Separately, `Automation` tab is missing entirely — add it.
+3. `MainLayout.test.tsx` (1 failure) — CE badge renders without `zinc` Tailwind classes. Fix: apply `zinc-100`/`zinc-800` (or equivalent) in the CE badge branch in `MainLayout.tsx`.
+4. `WorkflowDetail.test.tsx` (1 failure) — "300.0s" duration not found; component shows "Loading runs...". Fix: ensure the test mock for `authenticatedFetch` resolves the run list before the assertion (add `await waitFor(...)` or return data synchronously in the mock).
+
+**Requirements:** None (test infrastructure + component correctness)
+
+**Depends on:** Phase 159 (clean baseline)
+
+**Plans:** 0/1 planned
+
+Plans:
+- [ ] Plan 01 (Wave 1): Fix Templates mock, Admin EE gates, MainLayout badge, WorkflowDetail async
+
+---
 
 ### Phase 158: State of the Nation — Post v23.0
 
