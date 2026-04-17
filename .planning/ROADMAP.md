@@ -244,7 +244,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 - [x] **Phase 159: Test Infrastructure Repair** — Fix 2 collection errors (test_tools.py admin_signer import, test_intent_scanner.py intent_scanner import); fix test_admin_responses.py DELETE setup; investigate Phase 29 stubs (test_output_capture.py, test_retry_wiring.py) (v23.1) (completed 2026-04-17)
 - [x] **Phase 160: Workflow CRUD Unit Tests** — Implement 13 assert False stubs in test_workflow.py as real async pytest tests against the Phase 146 CRUD API (v23.1) (completed 2026-04-17)
 - [x] **Phase 161: Compatibility Engine Route Implementation** — Fix test_compatibility_engine.py by importing EE route handlers directly and inspecting source code (v23.1) (completed 2026-04-17)
-- [ ] **Phase 162: Frontend Component Fixes** — Fix Templates.test.tsx missing getUser mock; fix Admin.tsx EE tab conditional rendering and add missing Automation tab; fix MainLayout.tsx CE badge zinc classes; fix WorkflowDetail.tsx duration async rendering (v23.1)
+- [x] **Phase 162: Frontend Component Fixes** — Fix Templates.test.tsx missing getUser mock; fix Admin.tsx EE tab conditional rendering and add missing Automation tab; fix MainLayout.tsx CE badge zinc classes; fix WorkflowDetail.test.tsx duration async rendering (v23.1) (completed 2026-04-17)
 
 </details>
 
@@ -417,10 +417,10 @@ Plans:
 
 **Depends on:** Phase 159 (clean baseline)
 
-**Plans:** 0/1 planned
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] Plan 01 (Wave 1): Fix Templates mock, Admin EE gates, MainLayout badge, WorkflowDetail async
+- [x] Plan 01 (Wave 1): Fix Templates mock, Admin EE gates, MainLayout badge, WorkflowDetail async — COMPLETED 2026-04-17T22:40:30Z — All 52 tests passing (5 Templates + 28 Admin + 9 MainLayout + 10 WorkflowDetail, 100% success) — 4 commits: 24d0501 (getUser mock), 92199cb (EE gates), 2feb93b (zinc classes), 741366e (async waitFor)
 
 ---
 
