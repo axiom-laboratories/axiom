@@ -1823,22 +1823,22 @@ const Admin = () => {
                     style={{ scrollbarWidth: 'none' }}
                 >
                     <TabsTrigger value="onboarding" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Onboarding</TabsTrigger>
-                    {features.foundry && (
+                    {features.foundry && isEnterprise && (
                         <TabsTrigger value="smelter" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Smelter Registry</TabsTrigger>
                     )}
-                    {features.foundry && (
+                    {features.foundry && isEnterprise && (
                         <TabsTrigger value="bom" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">BOM Explorer</TabsTrigger>
                     )}
-                    {features.foundry && (
+                    {features.foundry && isEnterprise && (
                         <TabsTrigger value="matrix" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Tools</TabsTrigger>
                     )}
-                    {features.foundry && (
+                    {features.foundry && isEnterprise && (
                         <TabsTrigger value="vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Artifact Vault</TabsTrigger>
                     )}
-                    {features.foundry && (
+                    {features.foundry && isEnterprise && (
                         <TabsTrigger value="rollouts" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Rollouts</TabsTrigger>
                     )}
-                    {features.triggers && (
+                    {(features.triggers || (features as any).automation) && isEnterprise && (
                         <TabsTrigger value="automation" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Automation</TabsTrigger>
                     )}
                     {!isEnterprise && (
@@ -2070,37 +2070,37 @@ const Admin = () => {
                     </Card>
                 </TabsContent>
 
-                {features.foundry && (
+                {features.foundry && isEnterprise && (
                     <TabsContent value="smelter">
                         <SmelterRegistryManager />
                     </TabsContent>
                 )}
 
-                {features.foundry && (
+                {features.foundry && isEnterprise && (
                     <TabsContent value="bom">
                         <BOMExplorer />
                     </TabsContent>
                 )}
 
-                {features.foundry && (
+                {features.foundry && isEnterprise && (
                     <TabsContent value="matrix">
                         <CapabilityMatrixManager />
                     </TabsContent>
                 )}
 
-                {features.foundry && (
+                {features.foundry && isEnterprise && (
                     <TabsContent value="vault">
                         <ArtifactVault />
                     </TabsContent>
                 )}
 
-                {features.foundry && (
+                {features.foundry && isEnterprise && (
                     <TabsContent value="rollouts">
                         <RolloutManager />
                     </TabsContent>
                 )}
 
-                {features.triggers && (
+                {(features.triggers || (features as any).automation) && isEnterprise && (
                     <TabsContent value="automation">
                         <TriggerManager />
                     </TabsContent>
