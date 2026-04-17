@@ -289,7 +289,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 154. Unified Schedule View | v23.0 | 2/2 | Complete | 2026-04-16 |
 | 155. Visual DAG Editor | v23.0 | 3/3 | Complete | 2026-04-17 |
 | 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
-| 157. Close Deferred Technical Debt | v23.0 | 2/3 (in progress) | In Progress | — |
+| 157. Close Deferred Technical Debt | v23.0 | Complete    | 2026-04-17 | — |
 
 ## Phase Detail Sections
 
@@ -314,7 +314,7 @@ Plans:
 
 **Depends on:** Phase 156 (state of nation report identifies gaps)
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx (12/12), WorkflowRunDetail.test.tsx (10/10), Jobs.test.tsx (14/14) with React Testing Library best practices (waitFor, scoped selectors, proper async patterns) — all 36 tests passing, zero act() warnings, zero todos (completed 2026-04-17)
