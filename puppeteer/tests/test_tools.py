@@ -6,11 +6,7 @@ from unittest.mock import patch, MagicMock
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 
-# Add tools directory to path
-tools_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.agent/tools"))
-if tools_path not in sys.path:
-    sys.path.append(tools_path)
-
+# Import admin_signer (sys.path is set up by conftest)
 import admin_signer
 from admin_signer import generate_keys, sign_content, load_signing_key
 

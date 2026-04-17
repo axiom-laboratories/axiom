@@ -4,9 +4,16 @@ Pytest configuration and shared fixtures.
 import pytest
 import pytest_asyncio
 import asyncio
+import os
+import sys
 from httpx import AsyncClient, ASGITransport
 from agent_service.main import app
 from sqlalchemy import text
+
+# Add sister repo tools to path for admin_signer imports
+tools_path = os.path.abspath(os.path.expanduser("~/Development/toms_home/.agents/tools"))
+if tools_path not in sys.path:
+    sys.path.insert(0, tools_path)
 
 
 @pytest.fixture(scope="session")
