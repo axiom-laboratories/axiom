@@ -4,13 +4,13 @@ milestone: v23.0
 milestone_name: "**Goal:** Run the state-of-the-nation skill to produce an honest, data-driven assessment of the platform after v23.0 completion — covering product completeness, test health, deployment status, known gaps, and next-milestone recommendations. Produces `.planning/STATE-OF-NATION.md`."
 current_phase: Phase 160 (Workflow CRUD Unit Tests) — COMPLETED
 current_plan: Plan 01 (Workflow CRUD Unit Tests) — COMPLETED
-status: completed
-last_updated: "2026-04-17T22:35:00.000Z"
+status: planning
+last_updated: "2026-04-17T21:27:08.392Z"
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 5
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 7
 ---
 
 # Session State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 160 (Workflow CRUD Unit Tests) — COMPLETED
 **Current plan:** Plan 01 (Workflow CRUD Unit Tests) — COMPLETED
-**Status:** All plans in Phase 160 completed
+**Status:** Ready to plan
 
 ## Recent Completion
 
