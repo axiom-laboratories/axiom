@@ -8,6 +8,67 @@ import re
 T = TypeVar("T")
 
 
+def validate_injection_recipe(recipe: Optional[str]) -> tuple[bool, Optional[str]]:
+    """
+    Validates injection_recipe against whitelist.
+    Returns (is_valid, error_message).
+    If recipe is None or empty, returns (True, None) — optional field.
+
+    Whitelist rules:
+    1. RUN commands: Only allow 'pip install', 'apt-get install', 'apk add', 'npm install', 'yum install'
+    2. Other allowed instructions: ENV, COPY, ARG
+    3. Comments and blank lines are ignored
+    """
+    # Optional field — None or empty string is valid
+    if recipe is None or recipe.strip() == "":
+        return (True, None)
+
+    lines = recipe.split("\n")
+    errors = []
+
+    # Regex pattern for allowed package manager RUN commands
+    # Matches: RUN pip install, RUN apt-get install, RUN apk add, RUN npm install, RUN yum install
+    allowed_run_pattern = re.compile(
+        r"^\s*RUN\s+(pip|apt-get|apk|npm|yum)\s+(install|add)\b",
+        re.IGNORECASE
+    )
+
+    # Pattern for allowed non-RUN instructions
+    allowed_instructions = re.compile(
+        r"^\s*(ENV|COPY|ARG)\s+",
+        re.IGNORECASE
+    )
+
+    for line_num, line in enumerate(lines, 1):
+        stripped = line.strip()
+
+        # Skip blank lines and comments
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        # Check if it's a RUN instruction
+        if stripped.upper().startswith("RUN"):
+            # Check if it matches the allowed package manager pattern
+            if not allowed_run_pattern.match(line):
+                errors.append(
+                    f"Line {line_num}: RUN instruction must use package managers (pip, apt-get, apk, npm, yum)"
+                )
+        # Check if it's an allowed instruction (ENV, COPY, ARG)
+        elif not allowed_instructions.match(line):
+            # Check if it's a Dockerfile instruction we don't recognize
+            first_word = stripped.split()[0].upper() if stripped.split() else ""
+            if first_word and not first_word.startswith("#"):
+                errors.append(
+                    f"Line {line_num}: Instruction '{first_word}' is not permitted in injection recipes"
+                )
+
+    if errors:
+        error_message = "Recipe validation failed: " + "; ".join(errors)
+        return (False, error_message)
+
+    return (True, None)
+
+
 class ActionResponse(BaseModel):
     """Standardized response model for action endpoints (acknowledge, cancel, revoke, approve, delete, update, create, enable, disable)."""
     status: Literal["acknowledged", "cancelled", "revoked", "approved", "deleted", "updated", "created", "enabled", "disabled"] = Field(
