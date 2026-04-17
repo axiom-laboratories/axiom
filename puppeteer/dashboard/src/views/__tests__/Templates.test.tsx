@@ -5,10 +5,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import Templates from '../Templates';
 
-// Mock authenticatedFetch
+// Mock authenticatedFetch and getUser
 const mockAuthFetch = vi.fn();
 vi.mock('../../auth', () => ({
     authenticatedFetch: (...args: any[]) => mockAuthFetch(...args),
+    getUser: vi.fn().mockReturnValue({ username: 'admin', role: 'admin' }),
 }));
 
 // Mock useFeatures — enable foundry so the real UI renders (not the UpgradePlaceholder)
