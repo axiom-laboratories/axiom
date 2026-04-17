@@ -49,7 +49,7 @@ class TestCapabilityMatrixValidation:
             injection_recipe="RUN pip install requests==2.28.1",
             validation_cmd="python -c 'import requests; print(requests.__version__)'",
             artifact_id="artifact-123",
-            runtime_dependencies={"python": ["requests"]},
+            runtime_dependencies=["requests", "aiohttp"],
             is_active=True
         )
         assert entry.injection_recipe == "RUN pip install requests==2.28.1"
@@ -62,7 +62,7 @@ class TestCapabilityMatrixValidation:
             injection_recipe="",
             validation_cmd="python --version",
             artifact_id="artifact-456",
-            runtime_dependencies={},
+            runtime_dependencies=[],
             is_active=True
         )
         assert entry.injection_recipe == ""
@@ -74,7 +74,7 @@ class TestCapabilityMatrixValidation:
             tool_id="system-tool",
             validation_cmd="which curl",
             artifact_id="artifact-789",
-            runtime_dependencies={},
+            runtime_dependencies=None,
             is_active=True
         )
         assert entry.injection_recipe is None
