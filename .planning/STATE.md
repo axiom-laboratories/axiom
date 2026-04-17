@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v23.0
 milestone_name: "**Goal:** Run the state-of-the-nation skill to produce an honest, data-driven assessment of the platform after v23.0 completion — covering product completeness, test health, deployment status, known gaps, and next-milestone recommendations. Produces `.planning/STATE-OF-NATION.md`."
-current_phase: Phase 164 (Adversarial Audit Remediation) — IN PROGRESS
-current_plan: Plan 04 (Frontend API Route Audit & Licence Expiry Handler) — PENDING
-status: planning
-last_updated: "2026-04-18T00:45:00.000Z"
+current_phase: Phase 164 (Adversarial Audit Remediation) — COMPLETE
+current_plan: Plan 04 (Frontend API Route Audit & Licence Expiry Handler) — COMPLETED
+status: ready-for-verification
+last_updated: "2026-04-18T01:35:00.000Z"
 progress:
   total_phases: 9
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Session State
@@ -64,6 +64,25 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-18T01:35:00Z: Phase 164 Plan 04 completed — Frontend-Backend Alignment & Recipe Validation UI
+  - 6 tasks executed: HTTP 402 handler, LicenceExpiredDialog, API route audit, recipe validation UI, test suite, regex fix
+  - Requirements met: FEBE-01 (HTTP 402 licence expiration → modal dialog with setLicenceExpiredDialogCallback callback pattern), FEBE-02 (API route prefix audit: ExecutionLogModal route fixed to /api/jobs/{guid}/executions, all frontend calls use /api/ prefix), FEBE-03 (client-side recipe validation in Templates.tsx with whitelisted package managers and instructions)
+  - Task 1-2: 402 handler in auth.ts + MainLayout dialog component (completed previous session, verified)
+  - Task 3: ExecutionLogModal.tsx route fix from /jobs/{guid}/executions to /api/jobs/{guid}/executions
+  - Task 4: validateRecipe() function in Templates.tsx with state tracking (newToolRecipeErrors, toolEditRecipeErrors) and button disabling
+  - Task 5: Comprehensive test suite (18 tests: 6 FEBE-01, 2 FEBE-02, 5 FEBE-03, 5 BRAND-01)
+  - Task 6: Fixed regex pattern from /^(pip|apt-get|apk|npm|yum)\s+install\b/i to /^(pip|apt-get|apk|npm|yum)\s+/i to support all package manager invocation styles
+  - Bug fix (Rule 1): Regex pattern overfitting (apk add vs pip install) — fixed with generalized pattern
+  - Files modified: 6 (auth.ts, MainLayout.tsx, ExecutionLogModal.tsx, Templates.tsx, Templates.test.tsx, auth.test.ts)
+  - Test results: 18/18 FEBE tests passing (100%), npm build ✓, npm lint ✓
+  - Key pattern: Global state callback for modal (lightweight, framework-agnostic)
+  - Key pattern: Real-time validation with error display in form
+  - Validation pattern: Whitelisted instructions (ENV|COPY|ARG|RUN) + whitelisted package managers (pip|apt-get|apk|npm|yum)
+  - Commits: 1cffc746 (Task 3), 7b0b0835 (Task 4), 9ddc7cbd (Task 5), 31d7d38a (Task 6)
+  - SUMMARY.md created at .planning/phases/164-adversarial-audit-remediation-fix-mtls-enforcement-rce-in-foundry-migration-framework-and-fe-be-gaps/164-04-SUMMARY.md
+  - Phase 164 fully complete (all 4 plans): 01-mTLS ✓, 02-RCE ✓, 03-Alembic ✓, 04-FEBE ✓
+  - All 4 adversarial hardening requirements closed
 
 - 2026-04-18T00:45:00Z: Phase 164 Plan 01 completed — mTLS Enforcement, Internal TLS Fix, and Public Key Externalization
   - 5 tasks executed: Application-layer mTLS verification, Route wiring, Caddy mTLS policy & internal TLS fix, Public key externalization, Integration tests
