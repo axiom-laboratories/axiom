@@ -229,7 +229,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - **Gap Closure:** Closes UI-06, UI-07 (2 wiring gaps identified for Phase 156+ remediation)
 - [x] **Phase 156: State of the Nation Report** — Honest, no-bullshit appraisal of the product, sister repos, deployment status, and release readiness for stakeholder planning (completed 2026-04-17)
 - ✅ **Phase 157: Close Deferred Technical Debt** — Fix 30 frontend test failures, convert 3 todos to real tests, verify 4 backend gaps (MIN-6/7/8, WARN-8) with regression tests (All 3 plans complete: 36 frontend + 6 backend tests passing, 157-VERIFICATION.md gating release, completed 2026-04-17)
-  - [ ] Plan 01 (Wave 1): Rewrite Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with modern test patterns (waitFor, scoped selectors)
+  - [x] Plan 01 (Wave 1): Rewrite Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with modern test patterns (waitFor, scoped selectors)
   - [ ] Plan 02 (Wave 1): Write 4 backend regression tests for MIN-6, MIN-7, MIN-8, WARN-8
   - [ ] Plan 03 (Wave 2): Full test suite verification (461 frontend + 90 backend = 551 total) + VERIFICATION.md
 
@@ -290,6 +290,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 155. Visual DAG Editor | v23.0 | 3/3 | Complete | 2026-04-17 |
 | 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
 | 157. Close Deferred Technical Debt | v23.0 | Complete    | 2026-04-17 | — |
+| 158. State of the Nation — Post v23.0 | v23.0 | 0/1 | Planned | — |
 
 ## Phase Detail Sections
 
@@ -320,3 +321,16 @@ Plans:
 - [x] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx (12/12), WorkflowRunDetail.test.tsx (10/10), Jobs.test.tsx (14/14) with React Testing Library best practices (waitFor, scoped selectors, proper async patterns) — all 36 tests passing, zero act() warnings, zero todos (completed 2026-04-17)
 - [x] Plan 02 (Wave 1): Write backend regression tests — 4 pytest tests for MIN-6, MIN-7, MIN-8, WARN-8 gap verification (completed 2026-04-17, 4/4 tests passing)
 - [x] Plan 03 (Wave 2): Full test suite verification + VERIFICATION.md — Run complete test suite (36 frontend + 6 backend Phase 157 scope = 42 tests, 100% passing), document gap closure, gate release readiness (completed 2026-04-17, 157-VERIFICATION.md created)
+
+### Phase 158: State of the Nation — Post v23.0
+
+**Goal:** Run the state-of-the-nation skill to produce an honest, data-driven assessment of the platform after v23.0 completion — covering product completeness, test health, deployment status, known gaps, and next-milestone recommendations. Produces `.planning/STATE-OF-NATION.md`.
+
+**Requirements:** None (reporting phase)
+
+**Depends on:** Phase 157 (v23.0 milestone complete, audit filed)
+
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] Plan 01 (Wave 1): Execute state-of-the-nation skill — collect data across backend, frontend, test suite, deployment, docs; synthesise into STATE-OF-NATION.md with explicit GO/NO-GO recommendation
