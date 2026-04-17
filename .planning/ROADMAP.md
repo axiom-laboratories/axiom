@@ -448,7 +448,7 @@ Plans:
 
 **Depends on:** Phase 163
 
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] Plan 01 (Wave 1): mTLS enforcement on node routes (/work/pull, /heartbeat), internal TLS fix in Caddyfile, public key env vars extraction (SEC-01, SEC-04, QUAL-02) — completed 2026-04-18
