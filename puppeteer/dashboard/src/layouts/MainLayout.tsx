@@ -144,7 +144,7 @@ const MainLayout = () => {
                         licence.status === 'expired' ? 'bg-red-500/20 text-red-400'
                         : licence.status === 'grace'  ? 'bg-amber-500/20 text-amber-400'
                         : licence.isEnterprise        ? 'bg-indigo-500/20 text-indigo-400'
-                        :                               'bg-muted text-muted-foreground'
+                        :                               'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
                     }`}>
                         {licence.isEnterprise ? 'EE' : 'CE'}
                     </span>
