@@ -263,6 +263,7 @@ toms_home/.agents/
 | `plan-release` | Reads all reports in `mop_validation/reports/` and creates a prioritized action plan |
 | `plan-product-strategy` | High-level product direction |
 | `interrogate-features` | Examines feature completeness |
+| `state-of-the-nation` | Honest, data-driven product assessment with explicit GO/NO-GO — produces `.planning/STATE-OF-NATION.md` |
 
 **Workflows** (in `.agents/workflows/`) — orchestrate multiple skills end-to-end:
 - `full_audit.md` — runs all review skills sequentially and synthesises a release plan
