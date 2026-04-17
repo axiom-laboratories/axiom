@@ -2581,7 +2581,7 @@ async def create_workflow(
 ) -> WorkflowResponse:
     """Create a new Workflow with full-graph contract."""
     workflow_service = WorkflowService()
-    return await workflow_service.create(db, workflow_create, current_user.id)
+    return await workflow_service.create(db, workflow_create, current_user.username)
 
 @app.get("/api/workflows", tags=["workflows"], response_model=list[WorkflowResponse])
 async def list_workflows(
@@ -2712,7 +2712,7 @@ async def fork_workflow(
         raise HTTPException(status_code=422, detail="new_name is required")
 
     workflow_service = WorkflowService()
-    return await workflow_service.fork(db, workflow_id, new_name, current_user.id)
+    return await workflow_service.fork(db, workflow_id, new_name, current_user.username)
 
 @app.post("/api/workflows/validate", tags=["workflows"], response_model=dict)
 async def validate_workflow(
@@ -2725,6 +2725,11 @@ async def validate_workflow(
     """
     steps_data = [s.model_dump() for s in workflow_create.steps]
     edges_data = [e.model_dump() for e in workflow_create.edges]
+
+    # Generate temporary IDs for validation (like create() does)
+    for i, step in enumerate(steps_data):
+        if "id" not in step:
+            step["id"] = f"temp_step_{i}"
 
     is_valid, error = WorkflowService.validate_dag(steps_data, edges_data)
     if is_valid:
@@ -2934,6 +2939,21 @@ async def get_workflow_runs(
         skip=skip,
         limit=limit,
     )
+
+@app.get("/api/workflows/{workflow_id}/runs/{run_id}", tags=["workflows"], response_model=WorkflowRunResponse)
+async def get_workflow_run(
+    workflow_id: str,
+    run_id: str,
+    current_user: User = Depends(require_permission("workflows:read")),
+    db: AsyncSession = Depends(get_db),
+) -> WorkflowRunResponse:
+    """Get a single WorkflowRun with all step details."""
+    run = await db.get(WorkflowRun, run_id)
+    if run is None or run.workflow_id != workflow_id:
+        raise HTTPException(status_code=404, detail="Run not found")
+    from .services.workflow_service import WorkflowService
+    return await WorkflowService()._run_to_response(db, run)
+
 
 @app.post("/api/workflow-runs/{run_id}/cancel", tags=["workflows"], response_model=WorkflowRunResponse)
 async def cancel_workflow_run(

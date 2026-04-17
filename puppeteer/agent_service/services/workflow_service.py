@@ -172,19 +172,27 @@ class WorkflowService:
     async def list(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
     ) -> List[WorkflowResponse]:
-        """List all Workflows with metadata."""
-        stmt = select(Workflow).offset(skip).limit(limit)
+        """List all Workflows with metadata (no full graph)."""
+        stmt = select(Workflow).options(
+            selectinload(Workflow.steps),
+            selectinload(Workflow.edges),
+            selectinload(Workflow.parameters)
+        ).offset(skip).limit(limit)
         result = await db.execute(stmt)
         workflows = result.scalars().all()
 
         responses = []
         for w in workflows:
-            responses.append(await self._to_response(db, w))
+            responses.append(await self._to_response(db, w, include_graph=False))
         return responses
 
     async def get(self, db: AsyncSession, workflow_id: str) -> WorkflowResponse:
         """Get a single Workflow by ID with full graph."""
-        stmt = select(Workflow).where(Workflow.id == workflow_id)
+        stmt = select(Workflow).where(Workflow.id == workflow_id).options(
+            selectinload(Workflow.steps),
+            selectinload(Workflow.edges),
+            selectinload(Workflow.parameters)
+        )
         result = await db.execute(stmt)
         workflow = result.scalar_one_or_none()
 
@@ -197,7 +205,11 @@ class WorkflowService:
         self, db: AsyncSession, workflow_id: str, update: WorkflowUpdate
     ) -> WorkflowResponse:
         """Update a Workflow (atomic delete/insert of steps/edges/parameters)."""
-        stmt = select(Workflow).where(Workflow.id == workflow_id)
+        stmt = select(Workflow).where(Workflow.id == workflow_id).options(
+            selectinload(Workflow.steps),
+            selectinload(Workflow.edges),
+            selectinload(Workflow.parameters)
+        )
         result = await db.execute(stmt)
         workflow = result.scalar_one_or_none()
 
@@ -261,7 +273,11 @@ class WorkflowService:
                 db.add(param)
 
         workflow.updated_at = datetime.utcnow()
+        await db.flush()  # Flush to make new steps/edges visible
         await db.commit()
+
+        # Expunge the old workflow object so get() fetches fresh
+        db.expunge(workflow)
         return await self.get(db, workflow_id)
 
     async def delete(self, db: AsyncSession, workflow_id: str) -> None:
@@ -300,7 +316,11 @@ class WorkflowService:
     ) -> WorkflowResponse:
         """Clone a Workflow and pause the source."""
         # Get source workflow
-        stmt = select(Workflow).where(Workflow.id == workflow_id)
+        stmt = select(Workflow).where(Workflow.id == workflow_id).options(
+            selectinload(Workflow.steps),
+            selectinload(Workflow.edges),
+            selectinload(Workflow.parameters)
+        )
         result = await db.execute(stmt)
         source = result.scalar_one_or_none()
 
@@ -373,8 +393,8 @@ class WorkflowService:
         await db.commit()
         return await self.get(db, new_workflow_id)
 
-    async def _to_response(self, db: AsyncSession, workflow: Workflow) -> WorkflowResponse:
-        """Convert Workflow ORM to WorkflowResponse with nested steps/edges/parameters."""
+    async def _to_response(self, db: AsyncSession, workflow: Workflow, include_graph: bool = True) -> WorkflowResponse:
+        """Convert Workflow ORM to WorkflowResponse with optional nested steps/edges/parameters."""
         # Get last run status
         stmt = select(WorkflowRun).where(
             WorkflowRun.workflow_id == workflow.id
@@ -382,6 +402,20 @@ class WorkflowService:
         result = await db.execute(stmt)
         last_run = result.scalar_one_or_none()
         last_run_status = last_run.status if last_run else None
+
+        # If include_graph=False, return empty lists for steps/edges/parameters (list endpoint)
+        steps = [
+            WorkflowStepResponse.model_validate(s)
+            for s in workflow.steps
+        ] if include_graph else []
+        edges = [
+            WorkflowEdgeResponse.model_validate(e)
+            for e in workflow.edges
+        ] if include_graph else []
+        parameters = [
+            WorkflowParameterResponse.model_validate(p)
+            for p in workflow.parameters
+        ] if include_graph else []
 
         return WorkflowResponse(
             id=workflow.id,
@@ -392,18 +426,9 @@ class WorkflowService:
             is_paused=workflow.is_paused,
             step_count=len(workflow.steps),
             last_run_status=last_run_status,
-            steps=[
-                WorkflowStepResponse.model_validate(s)
-                for s in workflow.steps
-            ],
-            edges=[
-                WorkflowEdgeResponse.model_validate(e)
-                for e in workflow.edges
-            ],
-            parameters=[
-                WorkflowParameterResponse.model_validate(p)
-                for p in workflow.parameters
-            ]
+            steps=steps,
+            edges=edges,
+            parameters=parameters
         )
 
     async def dispatch_next_wave(
