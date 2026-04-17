@@ -473,6 +473,44 @@ const BlueprintEmptyState = ({ type }: { type: 'RUNTIME' | 'NETWORK' }) => (
     </div>
 );
 
+/**
+ * Validates injection recipe (Dockerfile snippet) against server-side whitelist rules.
+ * Allowed instructions: ENV, COPY, ARG, and whitelisted RUN commands (pip, apt-get, apk, npm, yum).
+ */
+function validateRecipe(recipe: string): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    if (!recipe.trim()) {
+        return { valid: true, errors: [] };  // Optional field
+    }
+
+    const lines = recipe.split("\n");
+    const allowedRunPattern = /^(pip|apt-get|apk|npm|yum)\s+install\b/i;
+    const allowedInstructions = /^(ENV|COPY|ARG|RUN)\b/i;
+
+    lines.forEach((line, idx) => {
+        line = line.trim();
+        if (!line || line.startsWith("#")) return;  // Skip comments and blank lines
+
+        if (line.toUpperCase().startsWith("RUN ")) {
+            const runCmd = line.substring(4).trim();  // Extract command after "RUN "
+            if (!allowedRunPattern.test(runCmd)) {
+                errors.push(
+                    `Line ${idx + 1}: RUN instruction must use package managers (pip, apt-get, apk, npm, yum)`
+                );
+            }
+        } else if (!allowedInstructions.test(line)) {
+            errors.push(
+                `Line ${idx + 1}: Disallowed instruction. Use ENV, COPY, ARG, or whitelisted RUN.`
+            );
+        }
+    });
+
+    return {
+        valid: errors.length === 0,
+        errors,
+    };
+}
+
 const Templates = () => {
     const queryClient = useQueryClient();
     const currentUser = getUser();
@@ -500,6 +538,7 @@ const Templates = () => {
         validation_cmd: '', injection_recipe: '', runtime_dependencies: [] as string[],
         is_active: true
     });
+    const [newToolRecipeErrors, setNewToolRecipeErrors] = useState<string[]>([]);
     const [newDepInput, setNewDepInput] = useState('');
     const [editingTool, setEditingTool] = useState<ToolMatrix | null>(null);
     const [toolEditOpen, setToolEditOpen] = useState(false);
@@ -507,6 +546,7 @@ const Templates = () => {
         tool_id: '', base_os_family: 'DEBIAN' as string,
         validation_cmd: '', injection_recipe: '', runtime_dependencies: [] as string[],
     });
+    const [toolEditRecipeErrors, setToolEditRecipeErrors] = useState<string[]>([]);
     const [editDepInput, setEditDepInput] = useState('');
 
     // Approved OS state
@@ -945,7 +985,7 @@ const Templates = () => {
                             </div>
 
                             {/* Add tool dialog */}
-                            <Dialog open={showAddTool} onOpenChange={setShowAddTool}>
+                            <Dialog open={showAddTool} onOpenChange={(open) => { setShowAddTool(open); if (!open) setNewToolRecipeErrors([]); }}>
                                 <DialogContent className="max-w-lg bg-background border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Add Tool</DialogTitle>
@@ -972,10 +1012,21 @@ const Templates = () => {
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Injection Recipe (Dockerfile snippet)</Label>
-                                            <textarea className="bg-secondary border border-muted text-foreground rounded-md px-3 py-2 text-sm font-mono h-20 resize-none"
+                                            <textarea className={`bg-secondary border rounded-md px-3 py-2 text-sm font-mono h-20 resize-none text-foreground ${newToolRecipeErrors.length > 0 ? 'border-red-500/50 focus:border-red-500' : 'border-muted'}`}
                                                 value={newTool.injection_recipe}
-                                                onChange={e => setNewTool({...newTool, injection_recipe: e.target.value})}
+                                                onChange={e => {
+                                                    setNewTool({...newTool, injection_recipe: e.target.value});
+                                                    const validation = validateRecipe(e.target.value);
+                                                    setNewToolRecipeErrors(validation.errors);
+                                                }}
                                                 placeholder="RUN apt-get install -y python3" />
+                                            {newToolRecipeErrors.length > 0 && (
+                                                <div className="bg-red-500/10 border border-red-500/30 rounded-md p-2 space-y-1">
+                                                    {newToolRecipeErrors.map((err, idx) => (
+                                                        <p key={idx} className="text-xs text-red-400">{err}</p>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Runtime Dependencies (tool_ids)</Label>
@@ -1011,7 +1062,8 @@ const Templates = () => {
                                             addToolMutation.mutate(newTool);
                                             setShowAddTool(false);
                                             setNewTool({ tool_id: '', base_os_family: 'DEBIAN', validation_cmd: '', injection_recipe: '', runtime_dependencies: [], is_active: true });
-                                        }} disabled={!newTool.tool_id || !newTool.validation_cmd}>
+                                            setNewToolRecipeErrors([]);
+                                        }} disabled={!newTool.tool_id || !newTool.validation_cmd || newToolRecipeErrors.length > 0}>
                                             Add Entry
                                         </Button>
                                     </DialogFooter>
@@ -1019,7 +1071,7 @@ const Templates = () => {
                             </Dialog>
 
                             {/* Edit tool dialog */}
-                            <Dialog open={toolEditOpen} onOpenChange={(open) => { setToolEditOpen(open); if (!open) setEditingTool(null); }}>
+                            <Dialog open={toolEditOpen} onOpenChange={(open) => { setToolEditOpen(open); if (!open) { setEditingTool(null); setToolEditRecipeErrors([]); } }}>
                                 <DialogContent className="max-w-lg bg-background border-muted text-foreground">
                                     <DialogHeader>
                                         <DialogTitle>Edit Tool</DialogTitle>
@@ -1051,9 +1103,20 @@ const Templates = () => {
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Injection Recipe (Dockerfile snippet)</Label>
-                                            <Textarea className="bg-secondary border-muted font-mono h-20 resize-none"
+                                            <Textarea className={`bg-secondary font-mono h-20 resize-none ${toolEditRecipeErrors.length > 0 ? 'border-red-500/50 focus:border-red-500' : 'border-muted'}`}
                                                 value={toolEditForm.injection_recipe}
-                                                onChange={e => setToolEditForm({...toolEditForm, injection_recipe: e.target.value})} />
+                                                onChange={e => {
+                                                    setToolEditForm({...toolEditForm, injection_recipe: e.target.value});
+                                                    const validation = validateRecipe(e.target.value);
+                                                    setToolEditRecipeErrors(validation.errors);
+                                                }} />
+                                            {toolEditRecipeErrors.length > 0 && (
+                                                <div className="bg-red-500/10 border border-red-500/30 rounded-md p-2 space-y-1">
+                                                    {toolEditRecipeErrors.map((err, idx) => (
+                                                        <p key={idx} className="text-xs text-red-400">{err}</p>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="grid gap-1.5">
                                             <Label>Runtime Dependencies (tool_ids)</Label>
@@ -1085,7 +1148,7 @@ const Templates = () => {
                                     </div>
                                     <DialogFooter>
                                         <Button variant="outline" onClick={() => { setToolEditOpen(false); setEditingTool(null); }}>Cancel</Button>
-                                        <Button onClick={handleToolEditSave} disabled={editToolMutation.isPending || !toolEditForm.tool_id || !toolEditForm.validation_cmd}>
+                                        <Button onClick={handleToolEditSave} disabled={editToolMutation.isPending || !toolEditForm.tool_id || !toolEditForm.validation_cmd || toolEditRecipeErrors.length > 0}>
                                             {editToolMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
                                         </Button>
                                     </DialogFooter>
