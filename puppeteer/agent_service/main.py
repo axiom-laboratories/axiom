@@ -87,6 +87,30 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
+    # Run Alembic migrations first (if available) via subprocess
+    import subprocess as _subprocess_alembic
+    import asyncio as _asyncio_alembic
+    try:
+        # Run alembic upgrade head as subprocess (standard pattern for async FastAPI)
+        result = await _asyncio_alembic.to_thread(
+            lambda: _subprocess_alembic.run(
+                ["alembic", "upgrade", "head"],
+                cwd="/app",  # Docker working directory
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        )
+        if result.returncode == 0:
+            logger.info("Alembic migrations completed successfully")
+        else:
+            logger.warning(f"Alembic migration warning: {result.stderr}. Falling back to init_db()...")
+    except FileNotFoundError:
+        logger.debug("Alembic CLI not found, skipping migrations")
+    except Exception as e:
+        logger.warning(f"Alembic migration failed: {e}. Falling back to init_db()...")
+
+    # Fallback: ensure all tables exist (defense-in-depth pattern)
     await init_db()
 
     # Phase 124: Validate NODE_EXECUTION_MODE at startup
@@ -1820,7 +1844,7 @@ async def resubmit_job(
 
 
 @app.post("/work/pull", response_model=PollResponse, tags=["Node Agent"])
-async def pull_work(request: Request, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
+async def pull_work(request: Request, node_id: str = Depends(verify_node_secret), _: str = Depends(verify_client_cert), db: AsyncSession = Depends(get_db)):
     # LIC-04: DEGRADED_CE — return empty work, nodes stay enrolled and heartbeating
     _ls = getattr(request.app.state, "licence_state", None)
     if _ls and _ls.status == LicenceStatus.EXPIRED:
@@ -1841,7 +1865,7 @@ async def pull_work(request: Request, node_id: str = Depends(verify_node_secret)
     summary="Receive node heartbeat",
     description="Process heartbeat from node agent with health status, resource stats, and system metrics"
 )
-async def receive_heartbeat(req: Request, hb: HeartbeatPayload, node_id: str = Depends(verify_node_secret), db: AsyncSession = Depends(get_db)):
+async def receive_heartbeat(req: Request, hb: HeartbeatPayload, node_id: str = Depends(verify_node_secret), _: str = Depends(verify_client_cert), db: AsyncSession = Depends(get_db)):
     node_ip = req.client.host
     result = await JobService.receive_heartbeat(node_id, node_ip, hb, db)
     await ws_manager.broadcast("node:heartbeat", {"node_id": node_id, "status": "ONLINE", "stats": hb.stats})
