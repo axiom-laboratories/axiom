@@ -273,18 +273,25 @@ class FoundryService:
                 recipe = matrix_res.scalar_one_or_none()
                 if recipe:
                     dockerfile.append(f"# Recipe for {tool_id}")
-                    
+
+                    # NEW: Defense-in-depth validation at build time (SEC-02)
+                    if recipe.injection_recipe:
+                        from ...models import validate_injection_recipe
+                        is_valid, error_msg = validate_injection_recipe(recipe.injection_recipe)
+                        if not is_valid:
+                            raise ValueError(f"Blueprint {template.id} has invalid recipe for tool {tool_id}: {error_msg}")
+
                     # Security CAV-03: Expand {{ARTIFACT_URL}} macro if recipe is tied to an artifact
                     final_recipe = recipe.injection_recipe
                     if recipe.artifact_id:
                         # Construct internal download URL.
-                        # Since this is for Dockerfile 'curl'/'wget' during build, 
+                        # Since this is for Dockerfile 'curl'/'wget' during build,
                         # it needs to be accessible from the build container.
                         # We use the agent's internal URL or a configurable base.
                         base_url = os.getenv("AGENT_URL", "https://localhost:8001")
                         artifact_url = f"{base_url}/api/artifacts/{recipe.artifact_id}/download"
                         final_recipe = final_recipe.replace("{{ARTIFACT_URL}}", artifact_url)
-                    
+
                     dockerfile.append(final_recipe)
             
             # Baked-in Packages
