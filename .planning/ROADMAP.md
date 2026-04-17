@@ -304,7 +304,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 158. State of the Nation — Post v23.0 | v23.0 | Complete    | 2026-04-17 | — |
 | 159. Test Infrastructure Repair | v23.1 | Complete    | 2026-04-17 | — |
 | 160. Workflow CRUD Unit Tests | v23.1 | Complete    | 2026-04-17 | — |
-| 161. Compatibility Engine Route Implementation | v23.1 | 1/1 | Complete | 2026-04-17 |
+| 161. Compatibility Engine Route Implementation | v23.1 | Complete    | 2026-04-17 | 2026-04-17 |
 | 162. Frontend Component Fixes | v23.1 | 0/1 | Planned | — |
 
 ## Phase Detail Sections
@@ -396,7 +396,7 @@ Routes are already implemented in Phase 11 EE router (`agent_service.ee.routers.
 
 **Depends on:** Phase 159
 
-**Plans:** 1/1 completed
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] Plan 01 (Wave 1): Fix test_matrix_os_family_filter and test_blueprint_os_mismatch_rejected by using direct EE router import (completed 2026-04-17)
