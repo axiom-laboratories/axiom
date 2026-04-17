@@ -91,16 +91,8 @@ def test_matrix_os_family_filter():
     Current implementation ignores query params and returns all rows.
     """
     import inspect
-    from agent_service.main import app
-    # Find the route handler
-    handler = None
-    for route in app.routes:
-        if hasattr(route, "path") and route.path == "/api/capability-matrix":
-            if hasattr(route, "methods") and "GET" in route.methods:
-                handler = route.endpoint
-                break
-    assert handler is not None, "GET /api/capability-matrix route not found"
-    src = inspect.getsource(handler)
+    from agent_service.ee.routers.foundry_router import get_capability_matrix
+    src = inspect.getsource(get_capability_matrix)
     assert "os_family" in src, (
         "COMP-04 FAIL: GET /api/capability-matrix handler does not accept "
         "an `os_family` query parameter. Plan 02 must add filtering support."
@@ -123,15 +115,8 @@ def test_blueprint_os_mismatch_rejected():
     blueprint creation endpoint.
     """
     import inspect
-    from agent_service.main import app
-    handler = None
-    for route in app.routes:
-        if hasattr(route, "path") and route.path == "/api/blueprints":
-            if hasattr(route, "methods") and "POST" in route.methods:
-                handler = route.endpoint
-                break
-    assert handler is not None, "POST /api/blueprints route not found"
-    src = inspect.getsource(handler)
+    from agent_service.ee.routers.foundry_router import create_blueprint
+    src = inspect.getsource(create_blueprint)
     assert "offending_tools" in src, (
         "COMP-03 FAIL: POST /api/blueprints handler does not check for OS "
         "compatibility mismatches or return `offending_tools`. "
