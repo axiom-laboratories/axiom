@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
@@ -212,10 +212,10 @@ describe('WorkflowDetail View', () => {
 
     renderWorkflowDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
-
-    // First run has 5 minute duration (300s)
-    expect(screen.getByText('300.0s')).toBeInTheDocument();
+    // Wait for the duration to appear in the document
+    await waitFor(() => {
+      expect(screen.getByText('300.0s')).toBeInTheDocument();
+    }, { timeout: 5000 });
 
     mockFetch.mockRestore();
   });
