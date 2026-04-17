@@ -451,9 +451,9 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] Plan 01 (Wave 1): mTLS enforcement on node routes (/work/pull, /heartbeat), internal TLS fix in Caddyfile, public key env vars extraction (SEC-01, SEC-04, QUAL-02)
-- [ ] Plan 02 (Wave 1): Foundry injection whitelist validation at API layer and build time (SEC-02)
-- [ ] Plan 03 (Wave 2): Alembic initialization, baseline migration, lifespan integration, legacy SQL file cleanup (ARCH-01)
+- [x] Plan 01 (Wave 1): mTLS enforcement on node routes (/work/pull, /heartbeat), internal TLS fix in Caddyfile, public key env vars extraction (SEC-01, SEC-04, QUAL-02) — completed 2026-04-18
+- [x] Plan 02 (Wave 1): Foundry injection whitelist validation at API layer and build time (SEC-02) — completed 2026-04-18
+- [x] Plan 03 (Wave 2): Alembic initialization, baseline migration, lifespan integration, legacy SQL file cleanup (ARCH-01) — completed 2026-04-18
 - [ ] Plan 04 (Wave 3): Frontend API route audit, HTTP 402 licence expired handler, recipe validation UI (FEBE-01, FEBE-02, FEBE-03)
 
 ---

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v23.0
 milestone_name: "**Goal:** Run the state-of-the-nation skill to produce an honest, data-driven assessment of the platform after v23.0 completion — covering product completeness, test health, deployment status, known gaps, and next-milestone recommendations. Produces `.planning/STATE-OF-NATION.md`."
-current_phase: Phase 162 (Frontend Component Fixes) — IN PROGRESS
-current_plan: Plan 01 (Frontend Component Fixes) — COMPLETED
+current_phase: Phase 164 (Adversarial Audit Remediation) — IN PROGRESS
+current_plan: Plan 04 (Frontend API Route Audit & Licence Expiry Handler) — PENDING
 status: planning
-last_updated: "2026-04-17T22:24:55.957Z"
+last_updated: "2026-04-18T00:45:00.000Z"
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 16
+  completed_plans: 15
 ---
 
 # Session State
@@ -64,6 +64,22 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-18T00:45:00Z: Phase 164 Plan 01 completed — mTLS Enforcement, Internal TLS Fix, and Public Key Externalization
+  - 5 tasks executed: Application-layer mTLS verification, Route wiring, Caddy mTLS policy & internal TLS fix, Public key externalization, Integration tests
+  - Requirements met: SEC-01 (application-layer mTLS verification on /work/pull and /heartbeat with CN validation + revocation check), SEC-04 (replaced tls_insecure_skip_verify with tls_trusted_ca_certs in all 6 reverse_proxy blocks), QUAL-02 (MANIFEST_PUBLIC_KEY and LICENCE_PUBLIC_KEY extracted from hardcoded bytes to environment variables)
+  - Defense-in-depth validation: Transport layer (Caddy TLS handshake), Header layer (X-SSL-Client-CN forwarding), Application layer (CN format + node lookup + revocation check)
+  - Task 1: verify_client_cert() async function in security.py (lines 130-196) — validates CN format, looks up node, checks revocation status
+  - Task 2: Route wiring via Depends() on /work/pull and /heartbeat endpoints (main.py lines 1847, 1868)
+  - Task 3: Caddy mtls_policy snippet with client_auth block; applied to @mtls_clients matcher; all 6 reverse_proxy blocks updated
+  - Task 4: Public key loaders in ee/__init__.py and licence_service.py with RuntimeError on missing env var
+  - Task 5: Integration tests (7 tests) — CN validation (3), env var presence (2), loader functions (2), all passing
+  - Bug fix (Rule 1): Node model uses node_id column, not id — fixed security.py line 168 from Node.id == node_id to Node.node_id == node_id
+  - Files modified: 7 (security.py, main.py, Caddyfile, ee/__init__.py, licence_service.py, conftest.py, test file)
+  - Test infrastructure: conftest.py sets MANIFEST_PUBLIC_KEY and LICENCE_PUBLIC_KEY env vars before agent_service import (Phase 164 QUAL-02)
+  - Commits: e70e8556 (test fixes)
+  - SUMMARY.md created at .planning/phases/164-.../164-01-SUMMARY.md
+  - No deviations from plan except Rule 1 bug fix (Node.node_id); all tasks executed as specified
 
 - 2026-04-17T23:25:00Z: Phase 163 Plan 01 completed — Nyquist Validation Documentation
   - 5 tasks executed: Created VALIDATION.md for phases 158-162
