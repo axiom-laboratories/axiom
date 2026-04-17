@@ -290,7 +290,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 155. Visual DAG Editor | v23.0 | 3/3 | Complete | 2026-04-17 |
 | 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
 | 157. Close Deferred Technical Debt | v23.0 | Complete    | 2026-04-17 | — |
-| 158. State of the Nation — Post v23.0 | v23.0 | 0/1 | Planned | — |
+| 158. State of the Nation — Post v23.0 | v23.0 | Complete    | 2026-04-17 | — |
 
 ## Phase Detail Sections
 
@@ -330,7 +330,7 @@ Plans:
 
 **Depends on:** Phase 157 (v23.0 milestone complete, audit filed)
 
-**Plans:** 1/1 plans complete — COMPLETED 2026-04-17T20:35:00Z
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] Plan 01 (Wave 1): Execute state-of-the-nation skill — collect data across backend, frontend, test suite, deployment, docs; synthesise into STATE-OF-NATION.md with explicit GO/NO-GO recommendation — COMPLETED 2026-04-17T20:35:00Z — Data sources: gap reports (HIGH), live tests (HIGH), git log (HIGH), deployment (HIGH) — Recommendation: GO — v23.0 CONFIRMED READY FOR PRODUCTION DEPLOYMENT — STATE-OF-NATION.md generated (520+ lines, 9 sections + 5 appendices) — Commit: c6b3273
