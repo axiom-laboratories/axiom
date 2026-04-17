@@ -25,7 +25,7 @@
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
-- 🚀 **v23.0 — DAG & Workflow Orchestration** — Phases 146–155 (in progress)
+- 🚀 **v23.0 — DAG & Workflow Orchestration** — Phases 146–157 (in progress)
 
 ## Phases
 
@@ -179,7 +179,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–155) — IN PROGRESS</summary>
+<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–157) — IN PROGRESS</summary>
 
 - [x] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection
   - [x] Plan 01: Test & Schema Foundation — database schema (4 tables), test stubs (13 tests), fixtures, networkx dependency (completed 2026-04-15)
@@ -214,14 +214,13 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 03: Operator Guide, Developer Guide pages (Wave 3, completed 2026-04-16)
   - [x] Plan 04: API Reference section, Operational Runbook (Wave 4, completed 2026-04-16)
 - [x] **Phase 153: Verify Gate Node Types** — Run verify-work for Phase 148 to create VERIFICATION.md; tick satisfied-but-unchecked REQUIREMENTS.md checkboxes (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04) (completed 2026-04-16)
-  - **Plans:** 3 plans
-  - Plan 01 (Wave 1): Fix SQLite test schema, verify GATE-01/02 unit tests (condition evaluation, IF_GATE routing)
-  - Plan 02 (Wave 2): Verify GATE-03/04/05 integration tests (AND_JOIN, OR_GATE, PARALLEL dispatch)
-  - Plan 03 (Wave 3): Verify GATE-06 (SIGNAL_WAIT), full test suite validation, create VERIFICATION.md, tick requirement checkboxes
+  - [x] Plan 01 (Wave 1): Fix SQLite test schema, verify GATE-01/02 unit tests (condition evaluation, IF_GATE routing)
+  - [x] Plan 02 (Wave 2): Verify GATE-03/04/05 integration tests (AND_JOIN, OR_GATE, PARALLEL dispatch)
+  - [x] Plan 03 (Wave 3): Verify GATE-06 (SIGNAL_WAIT), full test suite validation, create VERIFICATION.md, tick requirement checkboxes
   - **Gap Closure:** Closes GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06
 - [x] **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status (completed 2026-04-16)
   - [x] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav (completed 2026-04-16)
-  - [ ] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification — **planned**
+  - [x] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification (completed 2026-04-16)
   - **Gap Closure:** Closes UI-05
 - [x] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config) (3 plans) (completed 2026-04-17)
   - [x] Plan 01 (Wave 0): Test Foundation — DAG validation utilities (validateDAG), component test scaffolds, hooks stubs (6 tasks, TDD test-first) (completed 2026-04-16)
@@ -229,6 +228,10 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 03 (Gap Closure): Close drag-drop and IF gate wiring gaps — Fix handleDrop signature mismatch and IfGateConfigDrawer open prop control (3 tasks) (completed 2026-04-17)
   - **Gap Closure:** Closes UI-06, UI-07 (2 wiring gaps identified for Phase 156+ remediation)
 - [x] **Phase 156: State of the Nation Report** — Honest, no-bullshit appraisal of the product, sister repos, deployment status, and release readiness for stakeholder planning (completed 2026-04-17)
+- 🚀 **Phase 157: Close Deferred Technical Debt** — Fix 30 frontend test failures, convert 3 todos to real tests, verify 4 backend gaps (MIN-6/7/8, WARN-8) with regression tests (3 plans)
+  - [ ] Plan 01 (Wave 1): Rewrite Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with modern test patterns (waitFor, scoped selectors)
+  - [ ] Plan 02 (Wave 1): Write 4 backend regression tests for MIN-6, MIN-7, MIN-8, WARN-8
+  - [ ] Plan 03 (Wave 2): Full test suite verification (461 frontend + 90 backend = 551 total) + VERIFICATION.md
 
 Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
@@ -283,27 +286,12 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
-| 154. Unified Schedule View | v23.0 | 1/2 | Complete | 2026-04-16 |
-| 155. Visual DAG Editor | v23.0 | Complete    | 2026-04-17 | 2026-04-16 |
-| 156. State of the Nation Report | v23.0 | Complete    | 2026-04-17 | — |
+| 154. Unified Schedule View | v23.0 | 2/2 | Complete | 2026-04-16 |
+| 155. Visual DAG Editor | v23.0 | 3/3 | Complete | 2026-04-17 |
+| 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
+| 157. Close Deferred Technical Debt | v23.0 | 0/3 (planned) | Planning | — |
 
 ## Phase Detail Sections
-
-### Phase 153: Verify Gate Node Types
-
-**Goal:** Run verify-work for Phase 148 to produce VERIFICATION.md and close GATE-01..06 requirement gaps; tick satisfied-but-unchecked checkboxes in REQUIREMENTS.md (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04).
-
-**Plans:** 3/3 plans complete
-
-**Plan 01 (Wave 1):** Fix SQLite test database schema; verify GATE-01/02 unit tests
-- Task 1: Fix SQLite test database schema for gate tests (conftest.py)
-- Task 2: Run and verify GATE-01 unit tests (condition evaluation)
-- Task 3: Run and verify GATE-02 unit tests (IF_GATE routing)
-
-**Plan 02 (Wave 2):** Verify GATE-03/04/05 dispatch integration tests
-- Task 1: Verify GATE-03 AND_JOIN dispatch integration
-- Task 2: Verify GATE-04 OR_GATE branch skip integration
-- Task 3: Verify GATE-05 PARALLEL fan-out integration
 
 ### Phase 156: State of the Nation Report
 
@@ -316,14 +304,19 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 **Plans:** 1/1 plans complete
 
 Plans:
-- [x] Plan 01 (Wave 1): Data collection + report synthesis — Honest assessment of product completeness, test health, Phase 155 blockers, deferred work, deployment status, and release readiness recommendation (planned 2026-04-16)
+- [x] Plan 01 (Wave 1): Data collection + report synthesis — Honest assessment of product completeness, test health, Phase 155 blockers, deferred work, deployment status, and release readiness recommendation (completed 2026-04-17)
 
-### Phase 157: Close deferred technical debt: fix frontend test infrastructure failures and low-priority gaps from v23.0 state-of-nation report
+### Phase 157: Close Deferred Technical Debt
 
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 156
-**Plans:** 0 plans
+**Goal:** Fix 30 frontend test failures, convert 3 `it.todo()` to real tests, verify and lock in 4 backend gaps (MIN-6, MIN-7, MIN-8, WARN-8) from v23.0 state report with regression tests. Target: 461/461 frontend + 90/90 backend = 551 total passing tests.
+
+**Requirements:** None (test infrastructure improvement, no explicit feature requirements)
+
+**Depends on:** Phase 156 (state of nation report identifies gaps)
+
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 157 to break down)
+- [ ] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with React Testing Library best practices (waitFor, scoped selectors, proper async patterns)
+- [ ] Plan 02 (Wave 1): Write backend regression tests — 4 pytest tests for MIN-6, MIN-7, MIN-8, WARN-8 gap verification
+- [ ] Plan 03 (Wave 2): Full test suite verification + VERIFICATION.md — Run complete test suite (461 frontend + 90 backend), document gap closure, gate release readiness
