@@ -284,7 +284,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
 | 154. Unified Schedule View | v23.0 | 1/2 | Complete | 2026-04-16 |
-| 155. Visual DAG Editor | v23.0 | 2/2 | Complete | 2026-04-16 |
+| 155. Visual DAG Editor | v23.0 | Complete    | 2026-04-17 | 2026-04-16 |
 | 156. State of the Nation Report | v23.0 | Complete    | 2026-04-17 | — |
 
 ## Phase Detail Sections
