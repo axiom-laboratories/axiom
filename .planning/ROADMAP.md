@@ -228,7 +228,7 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 03 (Gap Closure): Close drag-drop and IF gate wiring gaps — Fix handleDrop signature mismatch and IfGateConfigDrawer open prop control (3 tasks) (completed 2026-04-17)
   - **Gap Closure:** Closes UI-06, UI-07 (2 wiring gaps identified for Phase 156+ remediation)
 - [x] **Phase 156: State of the Nation Report** — Honest, no-bullshit appraisal of the product, sister repos, deployment status, and release readiness for stakeholder planning (completed 2026-04-17)
-- 🚀 **Phase 157: Close Deferred Technical Debt** — Fix 30 frontend test failures, convert 3 todos to real tests, verify 4 backend gaps (MIN-6/7/8, WARN-8) with regression tests (3 plans)
+- 🚀 **Phase 157: Close Deferred Technical Debt** — Fix 30 frontend test failures, convert 3 todos to real tests, verify 4 backend gaps (MIN-6/7/8, WARN-8) with regression tests (Plan 02 complete: 4/4 regression tests passing, 3 plans total)
   - [ ] Plan 01 (Wave 1): Rewrite Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with modern test patterns (waitFor, scoped selectors)
   - [ ] Plan 02 (Wave 1): Write 4 backend regression tests for MIN-6, MIN-7, MIN-8, WARN-8
   - [ ] Plan 03 (Wave 2): Full test suite verification (461 frontend + 90 backend = 551 total) + VERIFICATION.md
@@ -318,5 +318,5 @@ Plans:
 
 Plans:
 - [ ] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with React Testing Library best practices (waitFor, scoped selectors, proper async patterns)
-- [ ] Plan 02 (Wave 1): Write backend regression tests — 4 pytest tests for MIN-6, MIN-7, MIN-8, WARN-8 gap verification
+- [x] Plan 02 (Wave 1): Write backend regression tests — 4 pytest tests for MIN-6, MIN-7, MIN-8, WARN-8 gap verification (completed 2026-04-17, 4/4 tests passing)
 - [ ] Plan 03 (Wave 2): Full test suite verification + VERIFICATION.md — Run complete test suite (461 frontend + 90 backend), document gap closure, gate release readiness
