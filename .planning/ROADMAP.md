@@ -26,7 +26,8 @@
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
 - ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–157 (completed 2026-04-17, all phases shipped, release-ready) — Phase 158 State-of-the-Nation: GO — v23.0 CONFIRMED READY FOR PRODUCTION DEPLOYMENT
-- 🔧 **v23.1 — Test Suite Health & Compatibility Engine** — Phases 159–162 (in progress) — Fixes 13 workflow CRUD stubs, 2 collection errors, 2 compatibility engine routes, 10 frontend component failures
+- ✅ **v23.1 — Test Suite Health & Compatibility Engine** — Phases 159–162 (completed 2026-04-17) — Fixes 13 workflow CRUD stubs (Phase 160), 2 collection errors (Phase 159), 2 compatibility engine routes (Phase 161), 10 frontend component failures (Phase 162)
+- ✅ **v23.0 Tech Debt Closure** — Phase 163 (completed 2026-04-17) — Added VALIDATION.md for phases 158–162 (Nyquist compliance 16/16); verified MIN-6/7/8/WARN-8 backend fixes via regression tests; milestone audit updated to mark v23.0 fully Nyquist-compliant
 
 ## Phases
 
@@ -239,13 +240,13 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🔧 v23.1 — Test Suite Health & Compatibility Engine (Phases 159–162) — IN PROGRESS</summary>
+<summary>✅ v23.1 — Test Suite Health & Compatibility Engine (Phases 159–162) — COMPLETED 2026-04-17</summary>
 
 - [x] **Phase 159: Test Infrastructure Repair** — Fix 2 collection errors (test_tools.py admin_signer import, test_intent_scanner.py intent_scanner import); fix test_admin_responses.py DELETE setup; investigate Phase 29 stubs (test_output_capture.py, test_retry_wiring.py) (v23.1) (completed 2026-04-17)
 - [x] **Phase 160: Workflow CRUD Unit Tests** — Implement 13 assert False stubs in test_workflow.py as real async pytest tests against the Phase 146 CRUD API (v23.1) (completed 2026-04-17)
 - [x] **Phase 161: Compatibility Engine Route Implementation** — Fix test_compatibility_engine.py by importing EE route handlers directly and inspecting source code (v23.1) (completed 2026-04-17)
 - [x] **Phase 162: Frontend Component Fixes** — Fix Templates.test.tsx missing getUser mock; fix Admin.tsx EE tab conditional rendering and add missing Automation tab; fix MainLayout.tsx CE badge zinc classes; fix WorkflowDetail.test.tsx duration async rendering (v23.1) (completed 2026-04-17)
-- [ ] **Phase 163: v23.0 Tech Debt Closure** — Add VALIDATION.md for phases 158-162 (Nyquist compliance); verify MIN-6, MIN-7, MIN-8, WARN-8 backend fixes via regression tests; update milestone audit to mark v23.0 fully Nyquist-compliant (16/16)
+- [x] **Phase 163: v23.0 Tech Debt Closure** — Add VALIDATION.md for phases 158-162 (Nyquist compliance 16/16); verify MIN-6, MIN-7, MIN-8, WARN-8 backend fixes via regression tests; update milestone audit to mark v23.0 fully Nyquist-compliant (completed 2026-04-17)
 
 </details>
 
@@ -307,6 +308,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 160. Workflow CRUD Unit Tests | v23.1 | Complete    | 2026-04-17 | — |
 | 161. Compatibility Engine Route Implementation | v23.1 | Complete    | 2026-04-17 | 2026-04-17 |
 | 162. Frontend Component Fixes | v23.1 | Complete    | 2026-04-17 | — |
+| 163. v23.0 Tech Debt Closure | v23.0 | 1/1 | Complete | 2026-04-17 |
 
 ## Phase Detail Sections
 
@@ -437,6 +439,16 @@ Plans:
 
 Plans:
 - [x] Plan 01 (Wave 1): Execute state-of-the-nation skill — collect data across backend, frontend, test suite, deployment, docs; synthesise into STATE-OF-NATION.md with explicit GO/NO-GO recommendation — COMPLETED 2026-04-17T20:35:00Z — Data sources: gap reports (HIGH), live tests (HIGH), git log (HIGH), deployment (HIGH) — Recommendation: GO — v23.0 CONFIRMED READY FOR PRODUCTION DEPLOYMENT — STATE-OF-NATION.md generated (520+ lines, 9 sections + 5 appendices) — Commit: c6b3273
+
+### Phase 164: Adversarial audit remediation - fix mTLS enforcement, RCE in Foundry, migration framework, and FE/BE gaps
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 163
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 164 to break down)
 
 ---
 
