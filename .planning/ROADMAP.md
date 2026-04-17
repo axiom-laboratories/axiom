@@ -223,9 +223,10 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
   - [x] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav (completed 2026-04-16)
   - [ ] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification — **planned**
   - **Gap Closure:** Closes UI-05
-- [x] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config) (2 plans) (completed 2026-04-16)
+- [x] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config) (3 plans) (completed 2026-04-17)
   - [x] Plan 01 (Wave 0): Test Foundation — DAG validation utilities (validateDAG), component test scaffolds, hooks stubs (6 tasks, TDD test-first) (completed 2026-04-16)
   - [x] Plan 02 (Wave 1): Implementation & Integration — Full implementations, WorkflowDetail integration, Save/Cancel flow, cycle/depth banner display, human-verify checkpoint (completed 2026-04-16)
+  - [x] Plan 03 (Gap Closure): Close drag-drop and IF gate wiring gaps — Fix handleDrop signature mismatch and IfGateConfigDrawer open prop control (3 tasks) (completed 2026-04-17)
   - **Gap Closure:** Closes UI-06, UI-07 (2 wiring gaps identified for Phase 156+ remediation)
 - [x] **Phase 156: State of the Nation Report** — Honest, no-bullshit appraisal of the product, sister repos, deployment status, and release readiness for stakeholder planning (completed 2026-04-17)
 
