@@ -308,7 +308,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 160. Workflow CRUD Unit Tests | v23.1 | Complete    | 2026-04-17 | — |
 | 161. Compatibility Engine Route Implementation | v23.1 | Complete    | 2026-04-17 | 2026-04-17 |
 | 162. Frontend Component Fixes | v23.1 | Complete    | 2026-04-17 | — |
-| 163. v23.0 Tech Debt Closure | v23.0 | 1/1 | Complete | 2026-04-17 |
+| 163. v23.0 Tech Debt Closure | v23.0 | Complete    | 2026-04-17 | 2026-04-17 |
 
 ## Phase Detail Sections
 
@@ -466,7 +466,7 @@ Plans:
 
 **Depends on:** Phase 162
 
-**Plans:** 2/2 plans created
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] Plan 01 (Wave 1): Create VALIDATION.md for phases 158–162 — 5 retrospective compliance docs covering test frameworks, sampling rates, and per-task verification maps
