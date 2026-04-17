@@ -180,7 +180,7 @@ export function WorkflowDetail() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    handleDropFromHook(nodeType, { x, y });
+    handleDropFromHook({ type: nodeType, nodeId: `node-${Date.now()}`, position: { x, y } });
   }, [handleDropFromHook]);
 
   // Handle node click for job selector or IF gate config
@@ -459,6 +459,7 @@ export function WorkflowDetail() {
           {selectedIfGateNode && (
             <IfGateConfigDrawer
               stepId={selectedIfGateNode}
+              open={true}
               currentConfig={nodes.find((n) => n.id === selectedIfGateNode)?.data.config_json}
               onSave={handleIfGateConfigSave}
               onClose={() => setSelectedIfGateNode(null)}
