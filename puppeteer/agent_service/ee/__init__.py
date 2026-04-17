@@ -25,15 +25,27 @@ _STUB_TAG = "__ee_stub__"
 
 # ---------------------------------------------------------------------------
 # EE Wheel Manifest Verification
-# Manifest path and verification public key
+# Manifest path and verification public key — read from env var for key rotation
+# (Phase 164 QUAL-02: moved from hardcoded source to env var)
 # ---------------------------------------------------------------------------
 MANIFEST_PATH = Path("/tmp/axiom_ee.manifest.json")
 
-_MANIFEST_PUBLIC_KEY_PEM: bytes = b"""-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAu+al02k0lyKWoDLmM8gwo2YYXvkUyO1JU2gysKETKus=
------END PUBLIC KEY-----"""
+def _load_manifest_public_key() -> bytes:
+    """Load MANIFEST_PUBLIC_KEY from environment variable.
 
-_manifest_pub_key: Ed25519PublicKey = serialization.load_pem_public_key(_MANIFEST_PUBLIC_KEY_PEM)  # type: ignore[assignment]
+    Raises:
+        RuntimeError: if MANIFEST_PUBLIC_KEY environment variable is not set.
+    """
+    key_pem = os.getenv("MANIFEST_PUBLIC_KEY", "")
+    if not key_pem:
+        raise RuntimeError(
+            "MANIFEST_PUBLIC_KEY environment variable not set. "
+            "Required for EE manifest verification (Phase 164 QUAL-02)."
+        )
+    return key_pem.encode() if isinstance(key_pem, str) else key_pem
+
+MANIFEST_PUBLIC_KEY = _load_manifest_public_key()
+_manifest_pub_key: Ed25519PublicKey = serialization.load_pem_public_key(MANIFEST_PUBLIC_KEY)  # type: ignore[assignment]
 
 @dataclass
 class EEContext:

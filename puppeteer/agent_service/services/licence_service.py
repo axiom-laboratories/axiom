@@ -36,15 +36,26 @@ logger = logging.getLogger(__name__)
 BOOT_LOG_PATH = Path("secrets/boot.log")
 
 # ---------------------------------------------------------------------------
-# Hardcoded licence verification public key
-# Generated 2026-03-28 — operators cannot replace this.
-# Corresponding private key is in the private axiom-licenses repo (keep secret).
+# Licence verification public key — read from env var for key rotation
+# Generated 2026-03-28 — corresponding private key in private axiom-licenses repo
+# (Phase 164 QUAL-02: moved from hardcoded source to env var)
 # ---------------------------------------------------------------------------
-_LICENCE_PUBLIC_KEY_PEM: bytes = b"""-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEA4ceile+Eh85kcTaQuI+CZS3qlHX8f+kYYReW7x3heVk=
------END PUBLIC KEY-----"""
+def _load_licence_public_key() -> bytes:
+    """Load LICENCE_PUBLIC_KEY from environment variable.
 
-_pub_key: Ed25519PublicKey = serialization.load_pem_public_key(_LICENCE_PUBLIC_KEY_PEM)  # type: ignore[assignment]
+    Raises:
+        RuntimeError: if LICENCE_PUBLIC_KEY environment variable is not set.
+    """
+    key_pem = os.getenv("LICENCE_PUBLIC_KEY", "")
+    if not key_pem:
+        raise RuntimeError(
+            "LICENCE_PUBLIC_KEY environment variable not set. "
+            "Required for licence key verification (Phase 164 QUAL-02)."
+        )
+    return key_pem.encode() if isinstance(key_pem, str) else key_pem
+
+LICENCE_PUBLIC_KEY = _load_licence_public_key()
+_pub_key: Ed25519PublicKey = serialization.load_pem_public_key(LICENCE_PUBLIC_KEY)  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------------

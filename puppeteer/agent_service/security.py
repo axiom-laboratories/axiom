@@ -2,6 +2,7 @@ import os
 import re
 import hmac as _hmac
 import hashlib
+import logging
 from pathlib import Path
 from typing import Dict, Any
 from cryptography.fernet import Fernet
@@ -9,7 +10,9 @@ from fastapi import Header, HTTPException, Request, Depends
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from sqlalchemy.future import select
-from .db import get_db, Node, AsyncSession
+from .db import get_db, Node, AsyncSession, RevokedCert
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -124,15 +127,73 @@ def validate_path_within(base: Path, candidate: Path) -> Path:
     return resolved_candidate
 
 
-async def verify_client_cert(request: Request):
-    """Enforces mTLS: Requires a valid client certificate."""
-    # In a real proxy/Uvicorn setup, common_name is passed in header (e.g., X-SSL-Client-CN)
-    # or accessible via request.scope['client'] if SSL is terminated here.
-    # For now, we will trust X-SSL-Client-Verified: SUCCESS header from Uvicorn/Proxy
-    # OR (since we are using Uvicorn directly):
-    
-    # NOTE: Uvicorn does not expose client cert details in ASGI scope easily without quirks.
-    pass
+async def verify_client_cert(
+    request: Request,
+    x_ssl_client_cn: str = Header(...),
+    db: AsyncSession = Depends(get_db)
+) -> str:
+    """Enforces application-layer mTLS: Validates client certificate CN.
+
+    Caddy performs TLS handshake validation and forwards X-SSL-Client-CN header
+    after a successful client certificate verification. This function performs
+    defense-in-depth validation:
+
+    1. Validates X-SSL-Client-CN header is present and well-formed (CN = "node-{node_id}")
+    2. Looks up the node in the database
+    3. Extracts the certificate serial from the node's stored client certificate
+    4. Checks if the certificate serial is in the RevokedCert table (revocation defense-in-depth)
+    5. Returns the node_id for downstream use
+
+    Args:
+        request: FastAPI Request object
+        x_ssl_client_cn: Client certificate CN forwarded by Caddy (e.g., "node-abc123")
+        db: Database session for node and revocation lookups
+
+    Returns:
+        node_id (str) — the validated node identifier
+
+    Raises:
+        HTTPException(403): If header is missing, CN is malformed, node not found, or certificate is revoked
+    """
+    # Extract node_id from CN (expected format: "node-{node_id}")
+    if not x_ssl_client_cn.startswith("node-"):
+        raise HTTPException(status_code=403, detail="Invalid certificate CN format")
+
+    node_id = x_ssl_client_cn[5:]  # Strip "node-" prefix
+
+    if not node_id:
+        raise HTTPException(status_code=403, detail="Invalid certificate CN format")
+
+    # Look up the node in the database
+    result = await db.execute(select(Node).where(Node.node_id == node_id))
+    node = result.scalar_one_or_none()
+
+    if not node:
+        raise HTTPException(status_code=403, detail="Node not found")
+
+    # Extract certificate serial and check revocation status
+    if node.client_cert_pem:
+        try:
+            from cryptography.hazmat.backends import default_backend
+            from cryptography import x509
+
+            cert_bytes = node.client_cert_pem.encode() if isinstance(node.client_cert_pem, str) else node.client_cert_pem
+            cert = x509.load_pem_x509_certificate(cert_bytes, default_backend())
+            cert_serial = cert.serial_number
+
+            # Check if certificate serial is in RevokedCert table
+            revoked_result = await db.execute(
+                select(RevokedCert).where(RevokedCert.serial == cert_serial)
+            )
+            if revoked_result.scalar_one_or_none():
+                raise HTTPException(status_code=403, detail="Certificate revoked")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error validating client certificate serial for node {node_id}: {e}")
+            raise HTTPException(status_code=403, detail="Certificate validation failed")
+
+    return node_id
 
 async def verify_node_secret(
     request: Request,

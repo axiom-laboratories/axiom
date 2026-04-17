@@ -1,13 +1,37 @@
+# mTLS policy for node-facing routes (SEC-01)
+(mtls_policy) {
+    client_auth {
+        mode require_and_verify
+        trusted_ca_cert_file /etc/certs/internal-ca.crt
+    }
+    # Forward client certificate CN to application for defense-in-depth validation
+    header X-SSL-Client-CN {tls_client_subject}
+}
+
 # HTTPS — full dashboard (trusted after CA is installed)
 :443 {
     tls /etc/certs/caddy.crt /etc/certs/caddy.key
+
+    # Node-facing routes with mTLS enforcement
+    @mtls_clients {
+        path /work/pull /heartbeat
+    }
+
+    handle @mtls_clients {
+        import mtls_policy
+        reverse_proxy https://agent:8001 {
+            transport http {
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
+            }
+        }
+    }
 
     # API Proxy
     handle /api/* {
         uri strip_prefix /api
         reverse_proxy https://agent:8001 {
             transport http {
-                tls_insecure_skip_verify
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
             }
         }
     }
@@ -16,14 +40,14 @@
     handle /auth/* {
         reverse_proxy https://agent:8001 {
             transport http {
-                tls_insecure_skip_verify
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
             }
         }
     }
     handle /ws {
         reverse_proxy https://agent:8001 {
             transport http {
-                tls_insecure_skip_verify
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
             }
         }
     }
@@ -48,7 +72,7 @@
     handle /system/root-ca* {
         reverse_proxy https://agent:8001 {
             transport http {
-                tls_insecure_skip_verify
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
             }
         }
     }
@@ -58,7 +82,7 @@
         uri strip_prefix /api
         reverse_proxy https://agent:8001 {
             transport http {
-                tls_insecure_skip_verify
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
             }
         }
     }
@@ -67,14 +91,14 @@
     handle /auth/* {
         reverse_proxy https://agent:8001 {
             transport http {
-                tls_insecure_skip_verify
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
             }
         }
     }
     handle /ws {
         reverse_proxy https://agent:8001 {
             transport http {
-                tls_insecure_skip_verify
+                tls_trusted_ca_certs /etc/certs/internal-ca.crt
             }
         }
     }

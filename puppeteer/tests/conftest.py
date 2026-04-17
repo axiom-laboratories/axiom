@@ -6,9 +6,31 @@ import pytest_asyncio
 import asyncio
 import os
 import sys
+from sqlalchemy import text
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
+
+# MUST set environment variables BEFORE importing agent_service modules (Phase 164 QUAL-02)
+# Generate test Ed25519 keys if not already set
+if "MANIFEST_PUBLIC_KEY" not in os.environ:
+    _manifest_private_key = ed25519.Ed25519PrivateKey.generate()
+    _manifest_public_key = _manifest_private_key.public_key()
+    os.environ["MANIFEST_PUBLIC_KEY"] = _manifest_public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode()
+
+if "LICENCE_PUBLIC_KEY" not in os.environ:
+    _licence_private_key = ed25519.Ed25519PrivateKey.generate()
+    _licence_public_key = _licence_private_key.public_key()
+    os.environ["LICENCE_PUBLIC_KEY"] = _licence_public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode()
+
+# NOW import app and other modules
 from httpx import AsyncClient, ASGITransport
 from agent_service.main import app
-from sqlalchemy import text
 
 # Add sister repo tools to path for admin_signer imports
 tools_path = os.path.abspath(os.path.expanduser("~/Development/toms_home/.agents/tools"))

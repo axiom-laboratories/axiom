@@ -15,6 +15,9 @@
 		{
 			"name": "codebase-to-course",
 			"path": "../codebase-to-course"
+		},
+		{
+			"path": "../axiom-ee"
 		}
 	],
 	"settings": {}
