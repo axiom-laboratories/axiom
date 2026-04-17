@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
@@ -57,6 +57,7 @@ describe('WorkflowRunDetail View', () => {
         queries: { retry: false },
       },
     });
+    vi.clearAllMocks();
   });
 
   const renderWorkflowRunDetail = () => {
@@ -77,10 +78,13 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => {
+      // Use getAllByText to get the h1 element (first match)
+      const runHeaders = screen.getAllByText('Run Details');
+      expect(runHeaders.length).toBeGreaterThan(0);
+    });
 
-    expect(screen.getByText('Run Details')).toBeInTheDocument();
-    // Check for badge using test ID or closest parent if available
+    // Check for status badge
     const badges = screen.queryAllByText('RUNNING');
     expect(badges.length).toBeGreaterThan(0);
 
@@ -102,9 +106,10 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(screen.getByText('Run Details')).toBeInTheDocument();
+    await waitFor(() => {
+      const runHeaders = screen.getAllByText('Run Details');
+      expect(runHeaders.length).toBeGreaterThan(0);
+    });
 
     mockFetch.mockRestore();
   });
@@ -124,9 +129,9 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(screen.getByTestId('dag-canvas')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('dag-canvas')).toBeInTheDocument();
+    });
 
     mockFetch.mockRestore();
   });
@@ -146,9 +151,9 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(screen.getByTestId('dag-canvas')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('dag-canvas')).toBeInTheDocument();
+    });
 
     mockFetch.mockRestore();
   });
@@ -161,9 +166,10 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => {
+      expect(screen.getByText('Steps')).toBeInTheDocument();
+    });
 
-    expect(screen.getByText('Steps')).toBeInTheDocument();
     expect(screen.getByText('Step Name')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
 
@@ -178,10 +184,10 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
-
-    // Check that step-1 (COMPLETED) is rendered with times
-    expect(screen.getByText('step-1')).toBeInTheDocument();
+    await waitFor(() => {
+      // Check that step-1 (COMPLETED) is rendered with times
+      expect(screen.getByText('step-1')).toBeInTheDocument();
+    });
 
     mockFetch.mockRestore();
   });
@@ -198,15 +204,16 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => {
+      expect(screen.getByTestId('dag-canvas')).toBeInTheDocument();
+    });
 
     const dagCanvas = screen.getByTestId('dag-canvas');
     fireEvent.click(dagCanvas);
 
-    await new Promise((r) => setTimeout(r, 50));
-
-    // After clicking, the drawer should appear
-    expect(screen.getByTestId('step-drawer')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('step-drawer')).toBeInTheDocument();
+    });
 
     mockFetch.mockRestore();
   });
@@ -219,7 +226,9 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => {
+      expect(screen.getByText('step-1')).toBeInTheDocument();
+    });
 
     const stepRows = screen.getAllByText('step-1');
     const stepRow = stepRows[0].closest('tr');
@@ -227,10 +236,9 @@ describe('WorkflowRunDetail View', () => {
       fireEvent.click(stepRow);
     }
 
-    await new Promise((r) => setTimeout(r, 50));
-
-    // After clicking, the drawer should appear
-    expect(screen.getByTestId('step-drawer')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('step-drawer')).toBeInTheDocument();
+    });
 
     mockFetch.mockRestore();
   });
@@ -242,9 +250,9 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(screen.getByText(/Error:/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+    });
 
     mockFetch.mockRestore();
   });
@@ -260,9 +268,9 @@ describe('WorkflowRunDetail View', () => {
 
     renderWorkflowRunDetail();
 
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(screen.getByText('No steps in this run.')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('No steps in this run.')).toBeInTheDocument();
+    });
 
     mockFetch.mockRestore();
   });
