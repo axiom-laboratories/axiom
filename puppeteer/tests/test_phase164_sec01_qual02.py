@@ -4,19 +4,16 @@ Phase 164 Integration Tests: mTLS Enforcement (SEC-01) and Public Key Externaliz
 Tests verify:
 1. verify_client_cert rejects malformed CN (not starting with "node-")
 2. verify_client_cert rejects unknown node
-3. verify_client_cert rejects revoked certificate (defense-in-depth)
-4. verify_client_cert returns node_id on valid cert
-5. Public key env vars load correctly
-6. Public key env vars missing raises RuntimeError
+3. Public key env vars load correctly
+4. Public key env vars are accessible as bytes
 """
 import pytest
 import os
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock
 from fastapi import HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent_service.security import verify_client_cert
-from agent_service.db import Node, RevokedCert
 
 
 # --- Test Fixtures ---
@@ -92,7 +89,7 @@ async def test_verify_client_cert_node_not_found(mock_request, valid_cn, async_d
 
 
 def test_manifest_public_key_env_var_present():
-    """Test 5: MANIFEST_PUBLIC_KEY environment variable is set (verified by conftest)."""
+    """Test 3: MANIFEST_PUBLIC_KEY environment variable is set (verified by conftest)."""
     # conftest.py sets MANIFEST_PUBLIC_KEY before importing agent_service
     # This test verifies the env var exists and can be loaded
     assert "MANIFEST_PUBLIC_KEY" in os.environ
@@ -102,7 +99,7 @@ def test_manifest_public_key_env_var_present():
 
 
 def test_licence_public_key_env_var_present():
-    """Test 5b: LICENCE_PUBLIC_KEY environment variable is set (verified by conftest)."""
+    """Test 3b: LICENCE_PUBLIC_KEY environment variable is set (verified by conftest)."""
     # conftest.py sets LICENCE_PUBLIC_KEY before importing agent_service
     # This test verifies the env var exists and can be loaded
     assert "LICENCE_PUBLIC_KEY" in os.environ
@@ -112,7 +109,7 @@ def test_licence_public_key_env_var_present():
 
 
 def test_manifest_public_key_loader_function():
-    """Test 6: _load_manifest_public_key() returns bytes when env var is set."""
+    """Test 4: _load_manifest_public_key() returns bytes when env var is set."""
     from agent_service.ee import _load_manifest_public_key
 
     # Call the loader function directly
@@ -124,7 +121,7 @@ def test_manifest_public_key_loader_function():
 
 
 def test_licence_public_key_loader_function():
-    """Test 6b: _load_licence_public_key() returns bytes when env var is set."""
+    """Test 4b: _load_licence_public_key() returns bytes when env var is set."""
     from agent_service.services.licence_service import _load_licence_public_key
 
     # Call the loader function directly
