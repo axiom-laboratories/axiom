@@ -63,7 +63,7 @@ See `.planning/milestones/` for detailed archive of each milestone.
 - ✅ v10.0 Axiom Commercial Release — Phases 29–33 (shipped 2026-03-19)
 - ✅ v11.0 CE/EE Split Completion — Phases 34–37 (shipped 2026-03-20)
 - ✅ v11.1 Stack Validation — Phases 38–45 (shipped 2026-03-22)
-- ✅ v12.0 Operator Maturity — Phases 46–56 (shipped 2026-03-24)
+- ✅ v12.0 Operator Maturity — Phases 46–56 (shipped 2026-04-24)
 - ✅ v13.0 Research & Documentation Foundation — Phases 57–60 (shipped 2026-03-24)
 - ✅ v14.0 CE/EE Cold-Start Validation — Phases 61–65 (shipped 2026-03-25)
 - ✅ v14.1 First-User Readiness — Phases 66–70 (shipped 2026-03-26)
@@ -245,6 +245,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 - [x] **Phase 160: Workflow CRUD Unit Tests** — Implement 13 assert False stubs in test_workflow.py as real async pytest tests against the Phase 146 CRUD API (v23.1) (completed 2026-04-17)
 - [x] **Phase 161: Compatibility Engine Route Implementation** — Fix test_compatibility_engine.py by importing EE route handlers directly and inspecting source code (v23.1) (completed 2026-04-17)
 - [x] **Phase 162: Frontend Component Fixes** — Fix Templates.test.tsx missing getUser mock; fix Admin.tsx EE tab conditional rendering and add missing Automation tab; fix MainLayout.tsx CE badge zinc classes; fix WorkflowDetail.test.tsx duration async rendering (v23.1) (completed 2026-04-17)
+- [ ] **Phase 163: v23.0 Tech Debt Closure** — Add VALIDATION.md for phases 158-162 (Nyquist compliance); verify MIN-6, MIN-7, MIN-8, WARN-8 backend fixes via regression tests; update milestone audit to mark v23.0 fully Nyquist-compliant (16/16)
 
 </details>
 
@@ -436,3 +437,25 @@ Plans:
 
 Plans:
 - [x] Plan 01 (Wave 1): Execute state-of-the-nation skill — collect data across backend, frontend, test suite, deployment, docs; synthesise into STATE-OF-NATION.md with explicit GO/NO-GO recommendation — COMPLETED 2026-04-17T20:35:00Z — Data sources: gap reports (HIGH), live tests (HIGH), git log (HIGH), deployment (HIGH) — Recommendation: GO — v23.0 CONFIRMED READY FOR PRODUCTION DEPLOYMENT — STATE-OF-NATION.md generated (520+ lines, 9 sections + 5 appendices) — Commit: c6b3273
+
+---
+
+### Phase 163: v23.0 Tech Debt Closure
+
+**Goal:** Close the v23.0 tech debt closure phase: add VALIDATION.md for phases 158-162 (Nyquist compliance gap to achieve 16/16), verify backend fixes for MIN-6, MIN-7, MIN-8, WARN-8 via regression tests, and update milestone audit to mark v23.0 fully Nyquist-compliant.
+
+**Scope:**
+1. **Nyquist VALIDATION.md** for phases 158–162 (retrospective compliance documentation) — phase 158 is a reporting phase (manual verification), phases 159–162 document test frameworks and sampling rates
+2. **Backend regression test verification** — Run 4 existing pytest tests in `test_regression_phase157_deferred_gaps.py` (MIN-6, MIN-7, MIN-8, WARN-8) to confirm fixes remain working
+3. **Milestone audit update** — Mark v23.0-MILESTONE-AUDIT.md as fully compliant: Nyquist score 16/16, overall status "compliant"
+4. **Phase 163 VALIDATION.md** — Update frontmatter to mark Phase 163 complete and nyquist_compliant: true
+
+**Requirements:** None (tech debt closure + Nyquist compliance documentation)
+
+**Depends on:** Phase 162
+
+**Plans:** 2/2 plans created
+
+Plans:
+- [x] Plan 01 (Wave 1): Create VALIDATION.md for phases 158–162 — 5 retrospective compliance docs covering test frameworks, sampling rates, and per-task verification maps
+- [x] Plan 02 (Wave 2): Run regression tests (MIN-6, MIN-7, MIN-8, WARN-8), update v23.0-MILESTONE-AUDIT.md (score 16/16, overall compliant), update Phase 163 VALIDATION.md (nyquist_compliant: true), commit all changes
