@@ -442,13 +442,19 @@ Plans:
 
 ### Phase 164: Adversarial audit remediation - fix mTLS enforcement, RCE in Foundry, migration framework, and FE/BE gaps
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Close 6 critical and high-severity findings from the 2026-04-17 adversarial audit: mTLS enforcement on node routes (SEC-01), Foundry RCE mitigation via injection whitelist (SEC-02), Alembic migration framework adoption (ARCH-01), Caddy internal TLS fix (SEC-04), hardcoded public key extraction (QUAL-02), and frontend-backend alignment with 402 licence expired handling (FEBE-01/02/03).
+
+**Requirements**: SEC-01, SEC-02, ARCH-01, SEC-04, QUAL-02, FEBE-01, FEBE-02, FEBE-03
+
 **Depends on:** Phase 163
-**Plans:** 0 plans
+
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 164 to break down)
+- [ ] Plan 01 (Wave 1): mTLS enforcement on node routes (/work/pull, /heartbeat), internal TLS fix in Caddyfile, public key env vars extraction (SEC-01, SEC-04, QUAL-02)
+- [ ] Plan 02 (Wave 1): Foundry injection whitelist validation at API layer and build time (SEC-02)
+- [ ] Plan 03 (Wave 2): Alembic initialization, baseline migration, lifespan integration, legacy SQL file cleanup (ARCH-01)
+- [ ] Plan 04 (Wave 3): Frontend API route audit, HTTP 402 licence expired handler, recipe validation UI (FEBE-01, FEBE-02, FEBE-03)
 
 ---
 
