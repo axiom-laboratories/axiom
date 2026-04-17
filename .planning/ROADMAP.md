@@ -241,7 +241,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 <details>
 <summary>🔧 v23.1 — Test Suite Health & Compatibility Engine (Phases 159–162) — IN PROGRESS</summary>
 
-- [ ] **Phase 159: Test Infrastructure Repair** — Fix 2 collection errors (test_tools.py admin_signer import, test_intent_scanner.py intent_scanner import); fix test_admin_responses.py DELETE setup; investigate Phase 29 stubs (test_output_capture.py, test_retry_wiring.py) (v23.1)
+- [x] **Phase 159: Test Infrastructure Repair** — Fix 2 collection errors (test_tools.py admin_signer import, test_intent_scanner.py intent_scanner import); fix test_admin_responses.py DELETE setup; investigate Phase 29 stubs (test_output_capture.py, test_retry_wiring.py) (v23.1) (completed 2026-04-17)
 - [ ] **Phase 160: Workflow CRUD Unit Tests** — Implement 13 assert False stubs in test_workflow.py as real async pytest tests against the Phase 146 CRUD API (v23.1)
 - [ ] **Phase 161: Compatibility Engine Route Implementation** — Add os_family query param filter to GET /api/capability-matrix; implement POST /api/blueprints route with OS-family validation and offending_tools error field; fix test_compatibility_engine.py (v23.1)
 - [ ] **Phase 162: Frontend Component Fixes** — Fix Templates.test.tsx missing getUser mock; fix Admin.tsx EE tab conditional rendering and add missing Automation tab; fix MainLayout.tsx CE badge zinc classes; fix WorkflowDetail.tsx duration async rendering (v23.1)
@@ -302,7 +302,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
 | 157. Close Deferred Technical Debt | v23.0 | Complete    | 2026-04-17 | — |
 | 158. State of the Nation — Post v23.0 | v23.0 | Complete    | 2026-04-17 | — |
-| 159. Test Infrastructure Repair | v23.1 | 0/1 | Planned | — |
+| 159. Test Infrastructure Repair | v23.1 | Complete    | 2026-04-17 | — |
 | 160. Workflow CRUD Unit Tests | v23.1 | 0/1 | Planned | — |
 | 161. Compatibility Engine Route Implementation | v23.1 | 0/1 | Planned | — |
 | 162. Frontend Component Fixes | v23.1 | 0/1 | Planned | — |
