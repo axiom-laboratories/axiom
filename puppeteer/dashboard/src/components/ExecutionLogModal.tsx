@@ -87,7 +87,7 @@ export const ExecutionLogModal = ({
                 .catch(() => toast.error('Failed to load execution attempts'));
         } else if (jobGuid) {
             // Fetch all executions for a job (Jobs view use-case)
-            authenticatedFetch(`/jobs/${jobGuid}/executions`)
+            authenticatedFetch(`/api/jobs/${jobGuid}/executions`)
                 .then(r => r.json())
                 .then((data: { records: ExecutionRecord[] } | ExecutionRecord[]) => {
                     // Handle both envelope format (new) and bare array (defensive compat)
