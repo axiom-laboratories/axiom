@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: Phase 157 (Close Deferred Technical Debt) — IN PROGRESS
-current_plan: Plan 02 (Regression Tests) — COMPLETED
+current_plan: Plan 01 (Frontend Test Infrastructure) — COMPLETED
 status: executing
-last_updated: "2026-04-17T12:04:00Z"
+last_updated: "2026-04-17T11:15:00Z"
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Session State
@@ -23,10 +23,12 @@ See: .planning/PROJECT.md
 
 **Milestone:** v23.0 (DAG & Workflow Orchestration)
 **Current phase:** Phase 157 (Close Deferred Technical Debt) — IN PROGRESS
-**Current plan:** Plan 02 (Regression Tests) — COMPLETED
+**Current plan:** Plan 01 (Frontend Test Infrastructure) — COMPLETED
 **Status:** Executing phase 157 (frontend test fixes + regression tests + backend gap closure)
 
 ## Recent Completion
+
+- ✓ **Phase 157 Plan 01** (Frontend Test Infrastructure Fixes) — 3 tasks executed: Rewrite Workflows.test.tsx (12 tests fixed, async patterns), Rewrite WorkflowRunDetail.test.tsx (10 tests fixed, shared selector collision), Convert 3 Jobs.test.tsx todos to real tests (14 tests) — All 36 tests passing (100%) — Zero act() warnings — Commits: 09cf56d, e39feab, 67fc89b — SUMMARY.md created — completed 2026-04-17T11:15:00Z
 
 - ✓ **Phase 157 Plan 02** (Regression Tests for Deferred Backend Gaps) — 1 task executed: Write 4 regression tests to verify MIN-6 (NodeStats pruning), MIN-7 (build cleanup), MIN-8 (permission cache), WARN-8 (node ordering) — test_regression_phase157_deferred_gaps.py created with 212 lines — All 4 tests passing (0.42s) — No production code modifications — SUMMARY.md created — completed 2026-04-17T12:04:00Z
 
@@ -52,6 +54,27 @@ See: .planning/PROJECT.md
 - ✓ **Phase 150 Plan 01** (Wave 0 Foundations) — Libraries, Utilities, Test Scaffolds — completed 2026-04-16
 
 ## Session Log
+
+- 2026-04-17T11:15:00Z: Phase 157 Plan 01 completed — Frontend Test Infrastructure Fixes
+  - 3 tasks executed: test file rewrites to fix async patterns and selector collisions
+  - Task 1: Workflows.test.tsx — Fixed async race conditions and selector collisions
+    - Replaced all setTimeout(100) with await waitFor() patterns
+    - Fixed "Workflows" multiple element error using table header "Name" as load indicator
+    - Fixed pagination button queries with getAllByRole().find() pattern
+    - All 12 tests passing, zero act() warnings
+  - Task 2: WorkflowRunDetail.test.tsx — Fixed async patterns and shared selectors
+    - Replaced arbitrary setTimeout() with proper waitFor() patterns
+    - Fixed "Run Details" collision (h1 + breadcrumb) using getAllByText() instead of getByText()
+    - All 10 tests passing, zero act() warnings
+  - Task 3: Jobs.test.tsx — Converted 3 it.todo() stubs to real tests
+    - Test 1: Verify GuidedDispatchCard inputs present
+    - Test 2: Test adding target tag (chip interaction)
+    - Test 3: Verify dispatch button disabled state
+    - All 14 tests passing
+  - Test infrastructure patterns established: waitFor() for async, getByRole() + getAllByText() for scoped selectors
+  - Total: 36 tests passing (12 + 10 + 14), zero failures, zero todos, zero regressions
+  - Commits: 09cf56d (Workflows), e39feab (WorkflowRunDetail), 67fc89b (Jobs)
+  - SUMMARY.md created at .planning/phases/157-close-deferred-technical-debt-fix-frontend-test-infrastructure-failures-and-low-priority-gaps-from-v23-0-state-of-nation-report/157-01-SUMMARY.md
 
 - 2026-04-17T08:57:00Z: Phase 155 Plan 03 completed — Visual DAG Editor Gap Closure
   - 3 tasks executed: all gap closure tasks completed

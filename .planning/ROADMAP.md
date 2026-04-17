@@ -289,7 +289,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 154. Unified Schedule View | v23.0 | 2/2 | Complete | 2026-04-16 |
 | 155. Visual DAG Editor | v23.0 | 3/3 | Complete | 2026-04-17 |
 | 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
-| 157. Close Deferred Technical Debt | v23.0 | 0/3 (planned) | Planning | — |
+| 157. Close Deferred Technical Debt | v23.0 | 2/3 (in progress) | In Progress | — |
 
 ## Phase Detail Sections
 
@@ -317,6 +317,6 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with React Testing Library best practices (waitFor, scoped selectors, proper async patterns)
+- [x] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx (12/12), WorkflowRunDetail.test.tsx (10/10), Jobs.test.tsx (14/14) with React Testing Library best practices (waitFor, scoped selectors, proper async patterns) — all 36 tests passing, zero act() warnings, zero todos (completed 2026-04-17)
 - [x] Plan 02 (Wave 1): Write backend regression tests — 4 pytest tests for MIN-6, MIN-7, MIN-8, WARN-8 gap verification (completed 2026-04-17, 4/4 tests passing)
 - [ ] Plan 03 (Wave 2): Full test suite verification + VERIFICATION.md — Run complete test suite (461 frontend + 90 backend), document gap closure, gate release readiness
