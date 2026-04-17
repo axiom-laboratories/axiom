@@ -317,3 +317,13 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 Plans:
 - [x] Plan 01 (Wave 1): Data collection + report synthesis — Honest assessment of product completeness, test health, Phase 155 blockers, deferred work, deployment status, and release readiness recommendation (planned 2026-04-16)
+
+### Phase 157: Close deferred technical debt: fix frontend test infrastructure failures and low-priority gaps from v23.0 state-of-nation report
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 156
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 157 to break down)
