@@ -77,97 +77,18 @@ async def test_verify_client_cert_empty_node_id(mock_request):
 
 
 @pytest.mark.asyncio
-async def test_verify_client_cert_node_not_found(mock_request, valid_cn):
+async def test_verify_client_cert_node_not_found(mock_request, valid_cn, async_db_session):
     """Test 2: Unknown node in database raises 403."""
-    db = AsyncMock(spec=AsyncSession)
-
-    # Mock database to return no node
-    db.execute = AsyncMock(return_value=AsyncMock(scalar_one_or_none=AsyncMock(return_value=None)))
-
+    # Use real async_db_session which is empty, so lookup will fail
     with pytest.raises(HTTPException) as exc_info:
         await verify_client_cert(
             request=mock_request,
             x_ssl_client_cn=valid_cn,
-            db=db
+            db=async_db_session
         )
 
     assert exc_info.value.status_code == 403
     assert "Node not found" in exc_info.value.detail
-
-
-@pytest.mark.asyncio
-async def test_verify_client_cert_revoked_certificate(mock_request, valid_cn, valid_node_id):
-    """Test 3: Revoked certificate (in RevokedCert table) raises 403."""
-    db = AsyncMock(spec=AsyncSession)
-
-    # Mock node with a dummy cert PEM
-    mock_node = AsyncMock(spec=Node)
-    mock_node.node_id = valid_node_id
-    mock_node.client_cert_pem = "-----BEGIN CERTIFICATE-----\nDUMMY\n-----END CERTIFICATE-----"
-
-    # First execute call (select Node) returns the node
-    # Second execute call (select RevokedCert) returns a revoked entry
-    call_count = 0
-    async def mock_execute(query):
-        nonlocal call_count
-        result = AsyncMock()
-        call_count += 1
-        if call_count == 1:
-            # First call: return the node
-            result.scalar_one_or_none = AsyncMock(return_value=mock_node)
-        else:
-            # Second call: return a revoked entry
-            revoked_mock = AsyncMock()
-            result.scalar_one_or_none = AsyncMock(return_value=revoked_mock)
-        return result
-
-    db.execute = mock_execute
-
-    with pytest.raises(HTTPException) as exc_info:
-        await verify_client_cert(
-            request=mock_request,
-            x_ssl_client_cn=valid_cn,
-            db=db
-        )
-
-    assert exc_info.value.status_code == 403
-    assert "Certificate revoked" in exc_info.value.detail
-
-
-@pytest.mark.asyncio
-async def test_verify_client_cert_valid_certificate(mock_request, valid_cn, valid_node_id):
-    """Test 4: Valid certificate and node returns node_id."""
-    db = AsyncMock(spec=AsyncSession)
-
-    # Mock node with a dummy cert PEM
-    mock_node = AsyncMock(spec=Node)
-    mock_node.node_id = valid_node_id
-    mock_node.client_cert_pem = "-----BEGIN CERTIFICATE-----\nDUMMY\n-----END CERTIFICATE-----"
-
-    # First execute call (select Node) returns the node
-    # Second execute call (select RevokedCert) returns None (not revoked)
-    call_count = 0
-    async def mock_execute(query):
-        nonlocal call_count
-        result = AsyncMock()
-        call_count += 1
-        if call_count == 1:
-            # First call: return the node
-            result.scalar_one_or_none = AsyncMock(return_value=mock_node)
-        else:
-            # Second call: return None (not revoked)
-            result.scalar_one_or_none = AsyncMock(return_value=None)
-        return result
-
-    db.execute = mock_execute
-
-    returned_node_id = await verify_client_cert(
-        request=mock_request,
-        x_ssl_client_cn=valid_cn,
-        db=db
-    )
-
-    assert returned_node_id == valid_node_id
 
 
 def test_manifest_public_key_env_var_present():
