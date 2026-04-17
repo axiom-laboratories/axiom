@@ -25,6 +25,7 @@ from ...models import (
     CapabilityMatrixEntry, CapabilityMatrixUpdate,
     ImageBOMResponse, PackageIndexResponse,
     ApprovedOSCreate, ApprovedOSResponse, ApprovedOSUpdate,
+    validate_injection_recipe,
 )
 from ...services.foundry_service import foundry_service
 
@@ -525,6 +526,15 @@ async def create_capability(
     db: AsyncSession = Depends(get_db)
 ):
     """Register a new tool capability recipe."""
+    # NEW: Validate injection recipe (SEC-02)
+    if req.injection_recipe:
+        is_valid, error_msg = validate_injection_recipe(req.injection_recipe)
+        if not is_valid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Recipe validation failed: {error_msg}"
+            )
+
     new_cap = CapabilityMatrix(
         base_os_family=req.base_os_family,
         tool_id=req.tool_id,
@@ -552,6 +562,15 @@ async def update_capability(
     cap = result.scalar_one_or_none()
     if not cap:
         raise HTTPException(status_code=404, detail="Capability not found")
+
+    # NEW: Validate injection recipe if provided (SEC-02)
+    if req.injection_recipe is not None:
+        is_valid, error_msg = validate_injection_recipe(req.injection_recipe)
+        if not is_valid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Recipe validation failed: {error_msg}"
+            )
 
     if req.base_os_family is not None:
         cap.base_os_family = req.base_os_family
