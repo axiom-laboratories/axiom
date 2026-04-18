@@ -208,10 +208,10 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 <details>
 <summary>🔧 v24.0 — Security Infrastructure & Extensibility (Phases 165–168) — IN PROGRESS</summary>
 
-- [ ] **Phase 165: Dependabot CVE Remediation** — Resolve all HIGH and MODERATE security vulnerabilities flagged on v23.0 release tag
-  - [ ] Plan 01: Update cryptography >= 46.0.7 and crypto chain (python-jose, PyJWT); rebuild Docker; pytest validation
-  - [ ] Plan 02: Update npm packages to resolve HIGH/MODERATE CVEs; create .github/dependabot.yml automation
-  - [ ] Plan 03: E2E smoke tests (mop-e2e); Docker verification; final audit snapshot
+- [x] **Phase 165: Dependabot CVE Remediation** — Resolve all HIGH and MODERATE security vulnerabilities flagged on v23.0 release tag (completed 2026-04-18)
+  - [x] Plan 01: Update cryptography >= 46.0.7 and crypto chain (python-jose, PyJWT); rebuild Docker; pytest validation
+  - [x] Plan 02: Update npm packages to resolve HIGH/MODERATE CVEs; create .github/dependabot.yml automation
+  - [x] Plan 03: E2E smoke tests (mop-e2e); Docker verification; final audit snapshot
 
 - [ ] **Phase 166: Router Modularization** — Refactor main.py (89 routes) into 6 domain-specific APIRouter modules
   - [ ] Plan 01: Split routes into auth_router, jobs_router, nodes_router, workflows_router
@@ -297,7 +297,7 @@ Archive: (pending — roadmap under review)
 | 162. Frontend Component Fixes | v23.0 | 1/1 | Complete | 2026-04-17 |
 | 163. v23.0 Tech Debt Closure | v23.0 | 2/2 | Complete | 2026-04-17 |
 | 164. Adversarial Audit Remediation | v23.0 | 4/4 | Complete | 2026-04-18 |
-| 165. Dependabot CVE Remediation | v24.0 | 0/3 | Not started | — |
+| 165. Dependabot CVE Remediation | v24.0 | 3/3 | Complete | 2026-04-18 |
 | 166. Router Modularization | v24.0 | 0/4 | Not started | — |
 | 167. Vault Integration (EE) | v24.0 | 0/5 | Not started | — |
 | 168. SIEM Streaming (EE) | v24.0 | 0/5 | Not started | — |
