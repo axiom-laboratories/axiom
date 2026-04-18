@@ -540,6 +540,12 @@ from .routers.admin_router import router as admin_router
 from .routers.system_router import router as system_router
 from .routers.smelter_router import router as smelter_router
 
+# --- EE ROUTERS ---
+try:
+    from .ee.routers.vault_router import vault_router
+except ImportError:
+    vault_router = None
+
 # Include CE routers (after middleware setup, before route definitions)
 app.include_router(auth_router, tags=["Authentication"])
 app.include_router(jobs_router, tags=["Jobs", "Job Definitions", "Job Templates", "CI/CD Dispatch"])
@@ -548,6 +554,10 @@ app.include_router(workflows_router, tags=["Workflows"])
 app.include_router(admin_router, tags=["Admin", "Signatures", "Alerts & Webhooks"])
 app.include_router(system_router, tags=["System", "Health", "Schedule"])
 app.include_router(smelter_router, tags=["Foundry", "Blueprints"])
+
+# Include EE routers (if available)
+if vault_router:
+    app.include_router(vault_router, tags=["Vault Configuration"])
 
 # Serve Installer Scripts
 @app.get(
