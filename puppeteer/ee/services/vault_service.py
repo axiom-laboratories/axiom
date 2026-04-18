@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from .secrets_provider import SecretsProvider
-from ..db import VaultConfig
+from agent_service.db import VaultConfig
 from agent_service.security import cipher_suite
 
 logger = logging.getLogger(__name__)
