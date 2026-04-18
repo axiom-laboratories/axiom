@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
-current_phase: "Phase 167 (Vault Integration)"
-current_plan: "167-05 (executing)"
-status: "Phase 167 executing — Wave 2 Plan 05 (EE licence gating) complete; 4 of 5 plans done; VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, VAULT-06 in progress"
-last_updated: "2026-04-18T21:30:00Z"
+current_phase: "Phase 168 (SIEM Streaming)"
+current_plan: "none"
+status: "Phase 167 COMPLETE — all 5 plans done, 24/24 tests passing; VAULT-01–06 satisfied. Ready for Phase 168."
+last_updated: "2026-04-18T20:10:00Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 21
-  completed_plans: 11
+  completed_plans: 16
   requirements_mapped: "18/18"
 ---
 
@@ -46,7 +46,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 |-------|------|--------------|----------|--------|
 | **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | COMPLETE (3/3 plans done) ✓ |
 | **166** | Router Modularization | ARCH-01–04 | 5 | COMPLETE (6/6 plans done) ✓ |
-| **167** | Vault Integration (EE) | VAULT-01–06 | 6 | CONTEXT ready — ready for plan-phase |
+| **167** | Vault Integration (EE) | VAULT-01–06 | 6 | COMPLETE (5/5 plans done) ✓ |
 | **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
 
 ### Critical Path
