@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
-current_phase: "Phase 165 (not yet started)"
-current_plan: "—"
-status: "Roadmap drafted, awaiting approval"
-last_updated: "2026-04-18T00:00:00.000Z"
+current_phase: "Phase 165 (in progress)"
+current_plan: "165-02"
+status: "Plan 165-01 complete; 165-02 in progress"
+last_updated: "2026-04-18T22:00:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 18
-  completed_plans: 0
+  completed_plans: 1
   requirements_mapped: "18/18"
 ---
 
@@ -28,15 +28,15 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 ## Current Position
 
 **Milestone:** v24.0  
-**Current phase:** Phase 165 (not yet started)  
-**Current plan:** —  
-**Status:** Roadmap drafted, awaiting user approval
+**Current phase:** Phase 165 (in progress)  
+**Current plan:** 165-02 (npm CVE fixes + Dependabot config)  
+**Status:** Plan 165-01 (cryptography CVE remediation) complete; 165-02 executing in parallel
 
 **Progress:**
 - Phases identified: 4 (165, 166, 167, 168)
 - Requirements mapped: 18/18 (100% coverage)
 - Plans drafted: 18 (3 + 4 + 5 + 5)
-- Implementation status: 0% (ready for planning)
+- Implementation status: 5.5% (1 of 18 plans complete)
 
 ## Roadmap Summary
 
@@ -44,7 +44,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 
 | Phase | Name | Requirements | Criteria | Status |
 |-------|------|--------------|----------|--------|
-| **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | Not started |
+| **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | 165-01 complete, 165-02 in progress |
 | **166** | Router Modularization | ARCH-01–04 | 5 | Not started |
 | **167** | Vault Integration (EE) | VAULT-01–06 | 6 | Not started |
 | **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
@@ -237,4 +237,25 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ---
 
 **Roadmap created:** 2026-04-18  
-**Status:** DRAFT — awaiting user approval
+**Status:** EXECUTING — Plan 165-01 complete, 165-02 in progress
+
+## Execution Metrics
+
+**Plan 165-01 (Cryptography CVE-2026-39892 Remediation)**
+- Status: COMPLETE
+- Duration: 45 minutes (combined across sessions)
+- Tasks completed: 4/4 (100%)
+- Files modified: 3
+- Commits: 3 (eec80701, aa3c5060, 48ba8870)
+- Requirements satisfied: SEC-03 (cryptography >= 46.0.7) — SATISFIED; SEC-04 (pip-audit clean) — PARTIALLY SATISFIED (cryptography domain resolved, other CVEs deferred to 165-02)
+- Test results: 737 pytest tests pass; no regressions from cryptography update
+- Key deliverables:
+  - puppeteer/requirements.txt updated with crypto chain (cryptography>=46.0.7, python-jose[cryptography]>=3.3.0, PyJWT[crypto]>=2.8.1)
+  - Docker agent rebuilt and verified with cryptography 46.0.7
+  - pip-audit clean report generated (17 vulnerabilities in non-cryptography packages)
+  - Summary: `.planning/phases/165-dependabot-cve-remediation/165-01-SUMMARY.md`
+
+**Plan 165-02 (npm CVE fixes + Dependabot config)**
+- Status: IN PROGRESS (parallel execution)
+- Tasks: TBD
+- Expected completion: 2026-04-18 (same session)
