@@ -167,6 +167,38 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Vault service initialization failed: {_e}")
         app.state.vault_service = None
 
+    # Phase 168-03: Bootstrap SIEM config from env vars if not present
+    try:
+        from .db import SIEMConfig
+        async with AsyncSessionLocal() as _db:
+            _siem_existing_result = await _db.execute(select(SIEMConfig).limit(1))
+            _siem_existing_config = _siem_existing_result.scalars().first()
+
+            if not _siem_existing_config:
+                _siem_backend = os.getenv("SIEM_BACKEND")
+                _siem_destination = os.getenv("SIEM_DESTINATION")
+                _siem_enabled = os.getenv("SIEM_ENABLED", "false").lower() in ("true", "1")
+
+                if _siem_backend and _siem_destination:
+                    # Create bootstrap config from env vars (D-18)
+                    _siem_config = SIEMConfig(
+                        id=str(uuid.uuid4()),
+                        backend=_siem_backend,
+                        destination=_siem_destination,
+                        syslog_port=int(os.getenv("SIEM_SYSLOG_PORT", "514")),
+                        syslog_protocol=os.getenv("SIEM_SYSLOG_PROTOCOL", "UDP"),
+                        cef_device_vendor=os.getenv("SIEM_CEF_DEVICE_VENDOR", "Axiom"),
+                        cef_device_product=os.getenv("SIEM_CEF_DEVICE_PRODUCT", "MasterOfPuppets"),
+                        enabled=_siem_enabled,
+                    )
+                    _db.add(_siem_config)
+                    await _db.commit()
+                    logger.info(f"Bootstrapped SIEM config from env vars: backend={_siem_backend}")
+    except ImportError:
+        logger.debug("SIEM config not available (EE feature)")
+    except Exception as _siem_bootstrap_e:
+        logger.warning(f"Failed to bootstrap SIEM config from env vars: {_siem_bootstrap_e}")
+
     # Phase 168: Initialize SIEM service for audit log streaming
     try:
         from .ee.services.siem_service import SIEMService, set_active
