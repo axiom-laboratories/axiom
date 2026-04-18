@@ -86,6 +86,7 @@ import { useSystemHealth } from '../hooks/useSystemHealth';
 import { DependencyTreeModal } from '../components/foundry/DependencyTreeModal';
 import { MirrorConfigCard } from '../components/MirrorConfigCard';
 import { ApprovalQueuePanel } from '../components/ApprovalQueuePanel';
+import { useVaultConfig, useUpdateVaultConfig, useTestVaultConnection, useVaultStatus } from '../hooks/useVaultConfig';
 
 // --- Sub-components for Admin ---
 
@@ -1664,6 +1665,311 @@ const MirrorsTab = () => {
     );
 };
 
+interface VaultConfigPanelProps {
+  isEE: boolean;
+}
+
+function VaultConfigPanel({ isEE }: VaultConfigPanelProps) {
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testFormData, setTestFormData] = useState({
+    vault_address: '',
+    role_id: '',
+    secret_id: '',
+    mount_path: 'secret',
+    namespace: '',
+  });
+
+  const { data: config, isLoading: configLoading } = useVaultConfig();
+  const { data: status, isLoading: statusLoading } = useVaultStatus();
+  const updateMutation = useUpdateVaultConfig();
+  const testMutation = useTestVaultConnection();
+
+  const [formData, setFormData] = useState<any>({
+    vault_address: '',
+    role_id: '',
+    secret_id: '',
+    mount_path: 'secret',
+    namespace: '',
+    provider_type: 'vault',
+    enabled: false,
+  });
+
+  // Populate form when config loads
+  useEffect(() => {
+    if (config) {
+      setFormData({
+        vault_address: config.vault_address,
+        role_id: config.role_id,
+        secret_id: '',  // Never populate from response (masked)
+        mount_path: config.mount_path,
+        namespace: config.namespace || '',
+        provider_type: config.provider_type,
+        enabled: config.enabled,
+      });
+    }
+  }, [config]);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      await updateMutation.mutateAsync({
+        vault_address: formData.vault_address,
+        role_id: formData.role_id,
+        secret_id: formData.secret_id || undefined,  // Only send if provided
+        mount_path: formData.mount_path,
+        namespace: formData.namespace || undefined,
+        provider_type: formData.provider_type,
+        enabled: formData.enabled,
+      });
+    } catch (e) {
+      // Error is handled by mutation onError
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      const result = await testMutation.mutateAsync({
+        vault_address: testFormData.vault_address || formData.vault_address,
+        role_id: testFormData.role_id || formData.role_id,
+        secret_id: testFormData.secret_id,
+        mount_path: testFormData.mount_path || formData.mount_path || 'secret',
+        namespace: testFormData.namespace || formData.namespace,
+      });
+
+      if (result.success) {
+        toast.success(`Connection test passed: ${result.message}`);
+      } else {
+        toast.error(`Connection test failed: ${result.message}`);
+      }
+    } catch (e) {
+      // Error is handled by mutation onError
+    }
+  };
+
+  if (!isEE) {
+    return (
+      <div className="space-y-6">
+        <UpgradePlaceholder
+          feature="Vault Integration"
+          description="Manage HashiCorp Vault as a secrets backend. Available in Enterprise Edition."
+        />
+      </div>
+    );
+  }
+
+  if (configLoading) {
+    return <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin" /></div>;
+  }
+
+  // Status badge color
+  const getStatusColor = (st?: string) => {
+    switch (st) {
+      case 'healthy': return 'bg-emerald-500/20 text-emerald-400';
+      case 'degraded': return 'bg-amber-500/20 text-amber-400';
+      case 'disabled': return 'bg-slate-500/20 text-slate-400';
+      default: return 'bg-gray-500/20 text-gray-400';
+    }
+  };
+
+  const statusIcon = status?.status === 'healthy' ? CheckCircle2 : status?.status === 'degraded' ? AlertTriangle : ShieldAlert;
+  const StatusIcon = statusIcon;
+
+  return (
+    <div className="space-y-6">
+      {/* Status Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5" />
+            Vault Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <StatusIcon className="h-6 w-6" />
+              <div>
+                <div className="font-medium">{status?.status || 'unknown'}</div>
+                <div className="text-sm text-gray-400">{status?.vault_address || 'Not configured'}</div>
+              </div>
+            </div>
+            <Badge className={getStatusColor(status?.status)}>
+              {status?.status || 'disabled'}
+            </Badge>
+          </div>
+          {status?.renewal_failures > 0 && (
+            <div className="mt-3 text-sm text-amber-400">
+              ⚠ {status.renewal_failures} consecutive renewal failure{status.renewal_failures !== 1 ? 's' : ''}
+            </div>
+          )}
+          {status?.error_detail && (
+            <div className="mt-3 text-sm text-red-400">
+              {status.error_detail}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Configuration Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Vault Configuration</CardTitle>
+          <CardDescription>
+            AppRole credentials for Vault integration. Secret ID is encrypted at rest.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Vault Address</Label>
+            <Input
+              placeholder="https://vault.example.com:8200"
+              value={formData.vault_address}
+              onChange={(e) => handleInputChange('vault_address', e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Role ID</Label>
+              <Input
+                placeholder="AppRole Role ID"
+                value={formData.role_id}
+                onChange={(e) => handleInputChange('role_id', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Secret ID</Label>
+              <Input
+                type="password"
+                placeholder="AppRole Secret ID (masked)"
+                value={formData.secret_id}
+                onChange={(e) => handleInputChange('secret_id', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Mount Path</Label>
+              <Input
+                placeholder="secret"
+                value={formData.mount_path}
+                onChange={(e) => handleInputChange('mount_path', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Namespace (Optional)</Label>
+              <Input
+                placeholder="Vault Enterprise namespace"
+                value={formData.namespace}
+                onChange={(e) => handleInputChange('namespace', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Provider Type</Label>
+              <Select value={formData.provider_type} onValueChange={(v) => handleInputChange('provider_type', v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vault">HashiCorp Vault</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Enabled</Label>
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  checked={formData.enabled}
+                  onChange={(e) => handleInputChange('enabled', e.target.checked)}
+                  className="h-5 w-5 rounded border border-gray-600 bg-slate-800"
+                />
+                <span className="text-sm">{formData.enabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex gap-3">
+          <Button
+            onClick={handleSaveConfig}
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Configuration
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowTestDialog(true)}
+            disabled={testMutation.isPending || !formData.vault_address || !formData.role_id}
+          >
+            {testMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Test Connection
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Test Connection Dialog */}
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Test Vault Connection</DialogTitle>
+            <DialogDescription>
+              Enter credentials to test the connection. These are not saved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Vault Address</Label>
+              <Input
+                placeholder="https://vault.example.com:8200"
+                value={testFormData.vault_address}
+                onChange={(e) => setTestFormData({...testFormData, vault_address: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role ID</Label>
+              <Input
+                placeholder="AppRole Role ID"
+                value={testFormData.role_id}
+                onChange={(e) => setTestFormData({...testFormData, role_id: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Secret ID</Label>
+              <Input
+                type="password"
+                placeholder="AppRole Secret ID"
+                value={testFormData.secret_id}
+                onChange={(e) => setTestFormData({...testFormData, secret_id: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTestDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleTestConnection}
+              disabled={testMutation.isPending || !testFormData.secret_id}
+            >
+              {testMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Test
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 const Admin = () => {
     const { isEnterprise } = useLicence();
     const features = useFeatures();
@@ -1847,6 +2153,9 @@ const Admin = () => {
                     <TabsTrigger value="system-health" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">System Health</TabsTrigger>
                     <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Licence</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Data</TabsTrigger>
+                    {isEnterprise && (
+                        <TabsTrigger value="hashicorp-vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Vault</TabsTrigger>
+                    )}
                     {features.foundry && (
                         <>
                             <TabsTrigger value="mirrors" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Mirrors</TabsTrigger>
@@ -2168,6 +2477,12 @@ const Admin = () => {
                         </div>
                     </div>
                 </TabsContent>
+
+                {isEnterprise && (
+                    <TabsContent value="hashicorp-vault" className="space-y-6">
+                        <VaultConfigPanel isEE={isEnterprise} />
+                    </TabsContent>
+                )}
 
                 <TabsContent value="mirrors" className="space-y-6">
                     <MirrorsTab />
