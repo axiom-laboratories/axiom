@@ -474,7 +474,7 @@ async def ce_user_token(db_session):
     yield token
 
     async with AsyncSessionLocal() as session:
-        await session.execute(text(f"DELETE FROM users WHERE username = '{username}'"))
+        await session.execute(text("DELETE FROM users WHERE username = :u").bindparams(u=username))
         await session.commit()
 
 
@@ -524,5 +524,5 @@ async def ee_user_token(db_session, async_client):
         app.state.licence_state = original_state
 
     async with AsyncSessionLocal() as session:
-        await session.execute(text(f"DELETE FROM users WHERE username = '{username}'"))
+        await session.execute(text("DELETE FROM users WHERE username = :u").bindparams(u=username))
         await session.commit()
