@@ -151,6 +151,8 @@ def audit(db: AsyncSession, user, action: str, resource_id: str = None, detail: 
 
     Intentionally sync so callers don't need await. The DB write is scheduled as
     a background task on the running event loop so the coroutine is properly awaited.
+    Also enqueues to SIEM service if enabled (fire-and-forget, never blocks).
+    Per Phase 168 — D-03, D-09.
     """
     import asyncio
 
@@ -170,4 +172,22 @@ def audit(db: AsyncSession, user, action: str, resource_id: str = None, detail: 
         if loop.is_running():
             loop.create_task(_insert())
     except Exception:
+        pass
+
+    # Fire-and-forget SIEM enqueue (Phase 168 — D-03, D-09)
+    try:
+        from ee.services.siem_service import get_siem_service
+
+        siem = get_siem_service()
+        if siem:
+            event = {
+                "username": user.username,
+                "action": action,
+                "resource_id": resource_id,
+                "detail": detail,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            siem.enqueue(event)
+    except Exception:
+        # Never block audit path due to SIEM errors (D-03)
         pass
