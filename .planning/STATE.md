@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
-current_phase: "Phase 165 (in progress)"
-current_plan: "165-02"
-status: "Plan 165-01 complete; 165-02 in progress"
-last_updated: "2026-04-18T22:00:00.000Z"
+current_phase: "Phase 165 (complete)"
+current_plan: "166-01"
+status: "Phase 165 (3/3 plans complete); Ready for Phase 166 (Router Modularization)"
+last_updated: "2026-04-18T15:15:00Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 18
-  completed_plans: 1
+  completed_plans: 3
   requirements_mapped: "18/18"
 ---
 
@@ -28,15 +28,15 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 ## Current Position
 
 **Milestone:** v24.0  
-**Current phase:** Phase 165 (in progress)  
-**Current plan:** 165-02 (npm CVE fixes + Dependabot config)  
-**Status:** Plan 165-01 (cryptography CVE remediation) complete; 165-02 executing in parallel
+**Current phase:** Phase 165 (COMPLETE)  
+**Next phase:** Phase 166 (Router Modularization)  
+**Status:** All Phase 165 plans complete (165-01, 165-02, 165-03); Requirements SEC-03 and SEC-04 satisfied
 
 **Progress:**
 - Phases identified: 4 (165, 166, 167, 168)
 - Requirements mapped: 18/18 (100% coverage)
 - Plans drafted: 18 (3 + 4 + 5 + 5)
-- Implementation status: 5.5% (1 of 18 plans complete)
+- Implementation status: 16.7% (3 of 18 plans complete)
 
 ## Roadmap Summary
 
@@ -44,7 +44,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 
 | Phase | Name | Requirements | Criteria | Status |
 |-------|------|--------------|----------|--------|
-| **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | 165-01 complete, 165-02 in progress |
+| **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | COMPLETE (3/3 plans done) ✓ |
 | **166** | Router Modularization | ARCH-01–04 | 5 | Not started |
 | **167** | Vault Integration (EE) | VAULT-01–06 | 6 | Not started |
 | **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
@@ -237,7 +237,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ---
 
 **Roadmap created:** 2026-04-18  
-**Status:** EXECUTING — Plan 165-01 complete, 165-02 in progress
+**Status:** EXECUTING — Phase 165 complete (3/3 plans done); ready for Phase 166
 
 ## Execution Metrics
 
@@ -256,6 +256,48 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/165-dependabot-cve-remediation/165-01-SUMMARY.md`
 
 **Plan 165-02 (npm CVE fixes + Dependabot config)**
-- Status: IN PROGRESS (parallel execution)
-- Tasks: TBD
-- Expected completion: 2026-04-18 (same session)
+- Status: COMPLETE
+- Duration: 30 minutes
+- Tasks completed: 2/2 (100%)
+- Files modified: 2
+- Commits: 2 (0c4c20e1, 827cbb15)
+- Requirements satisfied: SEC-04 (npm audit clean) — SATISFIED
+- Test results: npm audit shows 0 vulnerabilities; all dependencies updated
+- Key deliverables:
+  - puppeteer/dashboard/package.json updated with npm security patches
+  - puppeteer/dashboard/node_modules rebuilt and verified clean
+  - npm-audit-clean report generated (0 vulnerabilities)
+  - Dependabot configuration added to repository
+  - Summary: `.planning/phases/165-dependabot-cve-remediation/165-02-SUMMARY.md`
+
+**Plan 165-03 (E2E verification testing)**
+- Status: COMPLETE
+- Duration: 45 minutes
+- Tasks completed: 3/3 (100%)
+- Files modified: 2
+- Commits: 2 (f8116f80, 8478c62, 44811a56)
+- Requirements satisfied: SEC-03 (cryptography >= 46.0.7) — VERIFIED; SEC-04 (zero app CVEs) — VERIFIED
+- Test results: E2E API smoke tests pass; pip-audit shows 0 app vulnerabilities; npm audit shows 0 vulnerabilities
+- Key deliverables:
+  - Fixed ResponseValidationError on GET /jobs (response_model mismatch)
+  - Fixed e2e_runner.py HTTP protocol and API format issues
+  - Verified cryptography 46.0.7 in Docker agent container
+  - Generated final pip-audit snapshot (0 application CVEs, only pip tool vulns)
+  - Generated final npm-audit snapshot (0 vulnerabilities, 656 dependencies clean)
+  - Summary: `.planning/phases/165-dependabot-cve-remediation/165-03-SUMMARY.md`
+  - All Phase 165 success criteria satisfied
+
+**Phase 165 Summary**
+- Status: COMPLETE (3/3 plans done)
+- Total duration: ~2 hours
+- Total files modified: 7
+- Total commits: 7
+- Requirements satisfied:
+  - SEC-03: Platform ships with cryptography >= 46.0.7 ✓
+  - SEC-04: All HIGH/MODERATE CVEs resolved ✓
+- All 5 phase success criteria met:
+  1. cryptography >= 46.0.7 installed and all tests pass ✓
+  2. All HIGH/MODERATE Dependabot alerts resolved ✓
+  3. Full backend pytest suite passes (737 tests, no regressions) ✓
+  4. Full frontend vitest suite passes (all tests, 0 vulnerabilities) ✓
+  5. Docker image builds without security-flagged vulnerabilities ✓
