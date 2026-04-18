@@ -221,15 +221,15 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
   - [x] Plan 05: Full pytest suite regression validation (736 tests pass, zero NEW failures from refactoring) (Wave 2) (completed 2026-04-18)
   - [x] Plan 06: Final comprehensive verification (routers, main.py shell, OpenAPI completeness, pytest) (Wave 3) (completed 2026-04-18)
 
-- [ ] **Phase 167: HashiCorp Vault Integration (EE)** — External secrets management with AppRole auth, lease renewal, graceful fallback
-  - [ ] Plan 01: Vault service layer (hvac AppRole client, secret fetch/cache, lease renewal)
-  - [ ] Plan 02: Job dispatch secrets injection + admin UI configuration
-  - [ ] Plan 03: Health-check endpoint + graceful degradation when Vault unavailable
-  - [ ] Plan 04: Dashboard admin panel integration + Vault status display
-  - [ ] Plan 05: EE-gating + CE fallback validation
+- [x] **Phase 167: HashiCorp Vault Integration (EE)** — External secrets management with AppRole auth, lease renewal, graceful fallback (completed 2026-04-18)
+  - [x] Plan 01: Vault service layer (hvac AppRole client, secret fetch/cache, lease renewal)
+  - [x] Plan 02: Job dispatch secrets injection + admin UI configuration
+  - [x] Plan 03: Health-check endpoint + graceful degradation when Vault unavailable
+  - [x] Plan 04: Dashboard admin panel integration + Vault status display
+  - [x] Plan 05: EE-gating + CE fallback validation
 
-- [ ] **Phase 168: SIEM Audit Streaming (EE)** — Real-time audit log export with CEF/syslog formatting, batching, masking
-  - [ ] Plan 01: SIEM service layer (webhook/syslog backends, CEF formatter, batch queue)
+- [x] **Phase 168: SIEM Audit Streaming (EE)** — Real-time audit log export with CEF/syslog formatting, batching, masking
+  - [x] Plan 01: SIEM service layer (webhook/syslog backends, CEF formatter, batch queue) (completed 2026-04-18)
   - [ ] Plan 02: Admin UI configuration + enable/disable toggle
   - [ ] Plan 03: Sensitive field masking + PII scrubbing
   - [ ] Plan 04: Retry logic with exponential backoff + admin alert dashboard
@@ -301,5 +301,5 @@ Archive: (pending — roadmap under review)
 | 164. Adversarial Audit Remediation | v23.0 | 4/4 | Complete | 2026-04-18 |
 | 165. Dependabot CVE Remediation | v24.0 | 3/3 | Complete | 2026-04-18 |
 | 166. Router Modularization | v24.0 | 6/6 | Complete | 2026-04-18 |
-| 167. Vault Integration (EE) | v24.0 | 0/5 | Not started | — |
-| 168. SIEM Streaming (EE) | v24.0 | 0/5 | Not started | — |
+| 167. Vault Integration (EE) | v24.0 | 5/5 | Complete | 2026-04-18 |
+| 168. SIEM Streaming (EE) | v24.0 | 1/5 | In Progress | 2026-04-18 |

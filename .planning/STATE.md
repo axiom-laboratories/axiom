@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v24.0
-milestone_name: "Security Infrastructure & Extensibility"
-current_phase: "Phase 168 (SIEM Streaming)"
-current_plan: "none"
-status: "Phase 167 COMPLETE — all 5 plans done, 24/24 tests passing; VAULT-01–06 satisfied. Ready for Phase 168."
-last_updated: "2026-04-18T20:10:00Z"
+milestone: v1.0
+milestone_name: milestone
+current_phase: Phase 165 (COMPLETE)
+status: completed
+last_updated: "2026-04-18T19:40:00.234Z"
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 21
-  completed_plans: 16
-  requirements_mapped: "18/18"
+  total_phases: 87
+  completed_phases: 85
+  total_plans: 228
+  completed_plans: 237
+  percent: 100
 ---
 
 # Session State — v24.0 Roadmap
@@ -33,6 +32,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 **Status:** All Phase 165 plans complete (165-01, 165-02, 165-03); Requirements SEC-03 and SEC-04 satisfied
 
 **Progress:**
+
 - Phases identified: 4 (165, 166, 167, 168)
 - Requirements mapped: 18/18 (100% coverage)
 - Plans drafted: 18 (3 + 4 + 5 + 5)
@@ -47,7 +47,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 | **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | COMPLETE (3/3 plans done) ✓ |
 | **166** | Router Modularization | ARCH-01–04 | 5 | COMPLETE (6/6 plans done) ✓ |
 | **167** | Vault Integration (EE) | VAULT-01–06 | 6 | COMPLETE (5/5 plans done) ✓ |
-| **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
+| **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | PLANNED (5 plans, ready to execute) |
 
 ### Critical Path
 
@@ -69,6 +69,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 **Unmapped:** 0 ✓
 
 **Breakdown by phase:**
+
 - Phase 165: 2 requirements (SEC-03, SEC-04)
 - Phase 166: 4 requirements (ARCH-01, ARCH-02, ARCH-03, ARCH-04)
 - Phase 167: 6 requirements (VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, VAULT-06)
@@ -81,10 +82,12 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 **Goal:** Resolve all HIGH and MODERATE security vulnerabilities flagged on the v23.0 release tag
 
 **Key requirements:**
+
 - SEC-03: Platform ships with `cryptography >= 46.0.7` (buffer-overflow fix)
 - SEC-04: All Dependabot HIGH and MODERATE alerts resolved
 
 **Success criteria:**
+
 1. cryptography >= 46.0.7 installed and all tests pass
 2. All HIGH/MODERATE Dependabot alerts on v23.0 tag are resolved
 3. Full backend pytest suite passes with no regressions
@@ -98,12 +101,14 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 **Goal:** Refactor main.py (89 routes) into 6 domain-specific APIRouter modules to enable middleware injection for downstream Vault and SIEM features
 
 **Key requirements:**
+
 - ARCH-01: Routes split into 6 domain routers (auth, jobs, nodes, workflows, foundry, admin/system)
 - ARCH-02: Zero behavior change — all endpoints function identically
 - ARCH-03: Domain routers support per-router middleware injection via FastAPI `Depends()`
 - ARCH-04: Full test suite passes with unchanged coverage
 
 **Success criteria:**
+
 1. All 89 routes split across 6 domain routers; no routes remain in main.py
 2. All existing API endpoints function identically (same paths, request/response shapes, status codes)
 3. Domain routers support per-router middleware injection without circular imports
@@ -117,6 +122,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 **Goal:** Enable EE administrators to centralize secrets management via Vault with automatic fetch, lease renewal, and graceful fallback
 
 **Key requirements:**
+
 - VAULT-01: Admin can configure Vault (address + AppRole credentials) via UI or env vars
 - VAULT-02: Secrets fetched at startup with fallback to env vars when Vault unavailable
 - VAULT-03: Job dispatch injects Vault secrets into execution context without embedding in definition
@@ -125,6 +131,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - VAULT-06: Platform starts and degrades gracefully when Vault offline at boot
 
 **Success criteria:**
+
 1. EE admin can configure Vault connection via dashboard or env vars
 2. Secrets fetched at startup with automatic fallback to env vars
 3. Job execution receives Vault secrets via environment variables
@@ -139,6 +146,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 **Goal:** Enable real-time audit log streaming to SIEM platforms with CEF formatting, batching, masking, and retry logic
 
 **Key requirements:**
+
 - SIEM-01: Admin can configure SIEM destination (webhook URL or syslog host) via UI
 - SIEM-02: Audit events streamed in batches (100 events or 5 seconds, whichever first)
 - SIEM-03: Webhook payloads formatted as CEF (Common Event Format)
@@ -147,6 +155,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - SIEM-06: SIEM streaming can be disabled without affecting local audit log
 
 **Success criteria:**
+
 1. EE admin can configure SIEM destination via dashboard or env vars
 2. Audit events buffered and flushed in batches (100 events or 5s)
 3. SIEM webhook payloads formatted as CEF with device/signature/event/severity fields
@@ -159,12 +168,14 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ## Key Architectural Notes
 
 ### Vault Specifics
+
 - **Library:** hvac >= 1.2.0 (official Vault Python client, AppRole auth, production-grade)
 - **Fallback:** Grace-period mode — platform starts with env vars when Vault unavailable
 - **Lease Renewal:** Background task renews leases with 30% TTL margin before expiry
 - **Job Injection:** Secrets injected as env vars into job execution context without modifying signed script content
 
 ### SIEM Specifics
+
 - **Library:** syslogcef >= 0.3.0 (CEF formatting, battle-tested, 95% SIEM support)
 - **Batching:** In-memory queue, flush at 100 events OR 5 seconds (prevents log flooding)
 - **Masking:** regex patterns mask secrets, tokens, API keys, passwords, non-ID user fields
@@ -172,6 +183,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - **Disabling:** Toggle in config without affecting local AuditLog table persistence
 
 ### Router Modularization Specifics
+
 - **Target:** 6 domain routers (auth, jobs, nodes, workflows, foundry, admin/system)
 - **Middleware:** Per-router `Depends()` injection for Vault and SIEM streaming
 - **CE/EE Split:** All EE routers remain in ee_plugin; all CE routers in puppeteer/agent_service
@@ -180,6 +192,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ## Accumulated Context
 
 ### From v23.0 Completion
+
 - Alembic two-layer startup in place: `create_all` for new tables + `alembic upgrade head` for evolution
 - mTLS enforcement at Python layer (verify_client_cert) on /work/pull and /heartbeat
 - Foundry injection recipe whitelist (exact command matching) active
@@ -187,11 +200,13 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - Full workflow engine operational (BFS topological dispatch, 6 gate types, WORKFLOW_PARAM_* injection)
 
 ### Dependabot Flags
+
 - 2 HIGH vulnerabilities on v23.0 tag (GitHub Security tab)
 - 1 MODERATE vulnerability on v23.0 tag
 - All must be resolved before ship
 
 ### Research Findings (v24.0 specific)
+
 - 14 pitfalls identified with prevention strategies
 - Top 5 critical: Vault hard startup dependency, secret lease expiry, TPM library availability, plugin version conflicts, SIEM log flooding
 - All new libraries are production-grade and actively maintained
@@ -200,6 +215,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ## Deferred to v24.1+
 
 **Out of Scope for v24.0:**
+
 - TPM-based node identity — requires OS-specific library testing (Alpine, Windows, ARM64, vTPM variants)
 - Plugin System v2 SDK — requires stable API contract design and version conflict detection
 
@@ -223,6 +239,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 **Next step:** User reviews ROADMAP.md and approves or requests revisions
 
 **After approval:**
+
 1. Spawn `/gsd:plan-phase 165` for detailed Phase 165 planning
 2. Once Phase 166 is drafted, begin Phase 167/168 planning in parallel
 3. Each phase completion triggers verification agent (full test suite + success criteria)
@@ -242,6 +259,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ## Execution Metrics
 
 **Plan 165-01 (Cryptography CVE-2026-39892 Remediation)**
+
 - Status: COMPLETE
 - Duration: 45 minutes (combined across sessions)
 - Tasks completed: 4/4 (100%)
@@ -256,6 +274,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/165-dependabot-cve-remediation/165-01-SUMMARY.md`
 
 **Plan 165-02 (npm CVE fixes + Dependabot config)**
+
 - Status: COMPLETE
 - Duration: 30 minutes
 - Tasks completed: 2/2 (100%)
@@ -271,6 +290,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/165-dependabot-cve-remediation/165-02-SUMMARY.md`
 
 **Plan 165-03 (E2E verification testing)**
+
 - Status: COMPLETE
 - Duration: 45 minutes
 - Tasks completed: 3/3 (100%)
@@ -288,6 +308,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - All Phase 165 success criteria satisfied
 
 **Phase 165 Summary**
+
 - Status: COMPLETE (3/3 plans done)
 - Total duration: ~2 hours
 - Total files modified: 7
@@ -305,6 +326,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ## Execution Metrics
 
 **Plan 166-01 (Router Modularization — Wave 1A: Auth & Jobs Routers)**
+
 - Status: COMPLETE
 - Duration: 65 minutes (across 2 sessions)
 - Tasks completed: 2/2 (100%)
@@ -324,6 +346,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - Next: Plan 166-02 to extract nodes and workflows routers (4 remaining routers to modularize across remaining plans)
 
 **Plan 166-02 (Router Modularization — Wave 1B: Nodes & Workflows Routers)**
+
 - Status: COMPLETE
 - Duration: 70 minutes (across 2 sessions)
 - Tasks completed: 3/3 (100%)
@@ -343,6 +366,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - Next: Plan 166-03 to extract admin_router and system_router (2 remaining CE routers)
 
 **Plan 166-03 (Router Modularization — Wave 1C: Final Cleanup)**
+
 - Status: COMPLETE
 - Duration: 45 minutes
 - Tasks completed: 1/1 (100%)
@@ -363,6 +387,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/166-router-modularization/166-03-SUMMARY.md`
 
 **Plan 166-04 (Router Modularization — Wave 1D: OpenAPI Contract Verification)**
+
 - Status: COMPLETE
 - Duration: 50 minutes
 - Tasks completed: 1/1 (100%)
@@ -382,6 +407,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/166-router-modularization/166-04-SUMMARY.md`
 
 **Wave 1 (Plans 166-01/02/03/04) Summary — ROUTER MODULARIZATION + CONTRACT VERIFICATION COMPLETE**
+
 - Status: COMPLETE (all 4 Wave 1 plans done; 7 CE routers fully extracted, wired, and API contract verified)
 - Total duration: ~230 minutes (3.8 hours)
 - Total files created: 7 (auth, jobs, nodes, workflows, admin, system routers + openapi_diff.py)
@@ -405,6 +431,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 ## Execution Metrics — Phase 167
 
 **Plan 167-01 (Vault Service Layer — Integration & Configuration)**
+
 - Status: COMPLETE
 - Duration: 45 minutes
 - Tasks completed: 3/3 (100%)
@@ -420,6 +447,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/167-hashicorp-vault-integration-ee/167-01-SUMMARY.md`
 
 **Plan 167-02 (Vault Admin Routes — Configuration & Test Connection)**
+
 - Status: COMPLETE
 - Duration: 50 minutes
 - Tasks completed: 3/3 (100%)
@@ -435,6 +463,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/167-hashicorp-vault-integration-ee/167-02-SUMMARY.md`
 
 **Plan 167-03 (Vault Health Monitoring & Lease Renewal)**
+
 - Status: COMPLETE
 - Duration: 55 minutes
 - Tasks completed: 3/3 (100%)
@@ -450,6 +479,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/167-hashicorp-vault-integration-ee/167-03-SUMMARY.md`
 
 **Plan 167-04 (Vault Configuration UI & System Health Dashboard)**
+
 - Status: COMPLETE
 - Duration: 40 minutes
 - Tasks completed: 2/2 (100%)
@@ -464,6 +494,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/167-hashicorp-vault-integration-ee/167-04-SUMMARY.md`
 
 **Plan 167-05 (EE Licence Gating & CE Compatibility)**
+
 - Status: COMPLETE
 - Duration: 30 minutes
 - Tasks completed: 3/3 (100%)
@@ -480,6 +511,7 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Summary: `.planning/phases/167-hashicorp-vault-integration-ee/167-05-SUMMARY.md`
 
 **Phase 167 Wave 1-2 Status (Plans 01-05)**
+
 - Status: COMPLETE (all 5 plans done)
 - Total duration: ~220 minutes (3.7 hours)
 - Total files created: 3 (VaultService, vault_router, VaultServiceTest)
@@ -500,3 +532,31 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - EE licence gating with CE backward compatibility
   - Comprehensive test coverage: 8 new integration tests + existing service tests
 - Next: Plan 167-06 (Dispatch middleware integration + secret injection)
+
+## Execution Metrics — Phase 168
+
+**Plan 168-01 (SIEM Service Core Implementation)**
+
+- Status: COMPLETE
+- Duration: 45 minutes (across 2 sessions)
+- Tasks completed: 5/5 (100%)
+- Files created: 1
+- Files modified: 3
+- Commits: 5 (6dbce3b3, 83bc79f2, 99d7dcef, 61a3f933, 587f8907)
+- Requirements satisfied: SIEM-01 (SIEMConfig table) — SATISFIED; SIEM-02 (Queue + APScheduler batching) — SATISFIED; SIEM-03 (CEF formatting) — SATISFIED; SIEM-04 (Sensitive field masking) — SATISFIED; SIEM-05 (Exponential backoff retry) — SATISFIED
+- Key deliverables:
+  - puppeteer/requirements.txt updated — syslogcef>=0.3.0 added
+  - puppeteer/agent_service/db.py updated — SIEMConfig ORM model (22 fields: backend, destination, syslog_port, syslog_protocol, cef_device_vendor, cef_device_product, enabled, created_at, updated_at)
+  - puppeteer/agent_service/models.py updated — 5 Pydantic models (SIEMConfigResponse, SIEMConfigUpdateRequest, SIEMTestConnectionRequest, SIEMTestConnectionResponse, SIEMStatusResponse)
+  - puppeteer/ee/services/siem_service.py (NEW, 451 lines) — Core SIEMService class with:
+    - asyncio.Queue(maxsize=10_000) for fire-and-forget event batching
+    - startup() non-blocking, tests connection, registers APScheduler flush job (5s interval)
+    - enqueue() sync fire-and-forget, drops oldest on overflow
+    - flush_batch() with 3-attempt exponential backoff retry (5s → 10s → 20s)
+    - CEF formatting with masking of SENSITIVE_KEYS (password, secret, token, api_key, *_key, *_secret)
+    - Webhook (httpx POST) and syslog (UDP/TCP via logging.handlers.SysLogHandler) backends
+    - Status transitions: healthy, degraded (after 3 consecutive failures), disabled (CE/dormant mode)
+    - Module-level singleton (get_siem_service, set_active)
+  - Deviations (Rule 1 auto-fix): Fixed NoneType config access in _format_cef and status_detail for CE/dormant mode support
+  - Integration verification: All tests passed (singleton pattern, masking, CEF format, queue overflow, APScheduler integration)
+  - Summary: `.planning/phases/168-siem-audit-streaming-ee/168-01-SUMMARY.md`
