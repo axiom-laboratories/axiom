@@ -734,6 +734,10 @@ class SystemHealthResponse(BaseModel):
         default=None,
         description="Vault status (healthy/degraded/disabled); None if not configured"
     )
+    siem: Optional[Literal["healthy", "degraded", "disabled"]] = Field(
+        default=None,
+        description="SIEM status (healthy/degraded/disabled); None if not configured"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 

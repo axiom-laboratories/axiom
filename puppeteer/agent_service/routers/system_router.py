@@ -67,10 +67,21 @@ async def system_health(request: Request):
     if vault_service is not None:
         vault_status = await vault_service.status()
 
+    # Add SIEM status if configured (Phase 168)
+    siem_status = None
+    try:
+        from ..ee.services.siem_service import get_siem_service
+        siem = get_siem_service()
+        if siem is not None:
+            siem_status = await siem.status()
+    except ImportError:
+        pass
+
     return {
         "status": "healthy",
         "mirrors_available": mirrors_available,
-        "vault": vault_status
+        "vault": vault_status,
+        "siem": siem_status
     }
 
 
