@@ -1599,3 +1599,75 @@ class ScheduleListResponse(BaseModel):
     total: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- SIEM Integration Models (Phase 168) ---
+
+class SIEMConfigResponse(BaseModel):
+    """Response for GET /admin/siem/config. No masking needed (no secrets stored)."""
+    backend: str
+    destination: str
+    syslog_port: int
+    syslog_protocol: str
+    cef_device_vendor: str
+    cef_device_product: str
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @staticmethod
+    def from_siem_config(config: "SIEMConfig") -> "SIEMConfigResponse":
+        """Convert DB SIEMConfig to response."""
+        return SIEMConfigResponse(
+            backend=config.backend,
+            destination=config.destination,
+            syslog_port=config.syslog_port,
+            syslog_protocol=config.syslog_protocol,
+            cef_device_vendor=config.cef_device_vendor,
+            cef_device_product=config.cef_device_product,
+            enabled=config.enabled,
+            created_at=config.created_at,
+            updated_at=config.updated_at,
+        )
+
+
+class SIEMConfigUpdateRequest(BaseModel):
+    """Request body for PATCH /admin/siem/config. All fields optional."""
+    backend: Optional[str] = None
+    destination: Optional[str] = None
+    syslog_port: Optional[int] = None
+    syslog_protocol: Optional[str] = None
+    cef_device_vendor: Optional[str] = None
+    cef_device_product: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class SIEMTestConnectionRequest(BaseModel):
+    """Request body for POST /admin/siem/test-connection."""
+    backend: str  # "webhook" or "syslog"
+    destination: str  # URL or host
+    syslog_port: Optional[int] = 514
+    syslog_protocol: Optional[str] = "UDP"
+
+
+class SIEMTestConnectionResponse(BaseModel):
+    """Response for POST /admin/siem/test-connection."""
+    success: bool
+    status: Literal["healthy", "degraded", "disabled"]
+    error_detail: Optional[str] = None
+    message: str
+
+
+class SIEMStatusResponse(BaseModel):
+    """Response for GET /admin/siem/status. Detailed connection status."""
+    status: Literal["healthy", "degraded", "disabled"]
+    backend: Optional[str] = None
+    destination: Optional[str] = None
+    last_checked_at: Optional[datetime] = None
+    error_detail: Optional[str] = None
+    consecutive_failures: int = 0
+    dropped_events: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
