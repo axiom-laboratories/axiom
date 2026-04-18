@@ -140,6 +140,7 @@ async def acknowledge_alert(
     alert = await AlertService.acknowledge_alert(db, alert_id, current_user.username)
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
+    audit(db, current_user, "alert:acknowledge", str(alert_id))
     await db.commit()
     return {"status": "acknowledged", "resource_type": "alert", "resource_id": alert_id}
 

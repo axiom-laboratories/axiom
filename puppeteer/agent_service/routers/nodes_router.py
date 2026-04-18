@@ -102,6 +102,7 @@ async def report_result(guid: str, report: ResultReport, req: Request, node_id: 
         # Extract run_id from workflow_step_run_id by querying the step run
         step_run = await db.get(WorkflowStepRun, job.workflow_step_run_id)
         if step_run:
+            from ..services.workflow_service import WorkflowService
             workflow_service = WorkflowService()
             # NEW: Store result_json for IF gate evaluation
             if report.result:
