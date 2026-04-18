@@ -230,8 +230,12 @@ class SIEMService:
         # Build CEF header and extensions
         # CEF:0|Vendor|Product|Version|SignatureID|Name|Severity|[Extensions]
         cef_version = "0"
-        device_vendor = self.config.cef_device_vendor or "Axiom"
-        device_product = self.config.cef_device_product or "MasterOfPuppets"
+        device_vendor = (
+            self.config.cef_device_vendor if self.config else None
+        ) or "Axiom"
+        device_product = (
+            self.config.cef_device_product if self.config else None
+        ) or "MasterOfPuppets"
         device_version = "24.0"
         action = event.get("action", "unknown")
         signature_id = f"audit.{action}"
@@ -433,6 +437,8 @@ class SIEMService:
             "error_detail": self._last_error,
             "consecutive_failures": self._consecutive_failures,
             "dropped_events": self._dropped_events_count,
+            "syslog_port": self.config.syslog_port if self.config else None,
+            "syslog_protocol": self.config.syslog_protocol if self.config else None,
         }
 
 
