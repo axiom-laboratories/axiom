@@ -154,15 +154,16 @@ async def test_format_cef_all_keyword_variants(mock_siem_config, mock_db, mock_s
 
 @pytest.mark.asyncio
 async def test_status_transitions_to_degraded_after_3_failures(mock_siem_config, mock_db, mock_scheduler):
-    """Test service transitions to DEGRADED after 3 consecutive batch failures."""
+    """Test flush_batch() transitions status to DEGRADED on the final failed attempt."""
     siem = SIEMService(mock_siem_config, mock_db, mock_scheduler)
     siem._status = "healthy"
-    siem._consecutive_failures = 2
+    siem._consecutive_failures = 2  # one more failure will reach the threshold
 
-    # Third failure triggers DEGRADED
-    siem._consecutive_failures += 1
-    if siem._consecutive_failures >= 3:
-        siem._status = "degraded"
+    siem._deliver = AsyncMock(side_effect=Exception("SIEM unreachable"))
+
+    batch = [{"username": "alice", "action": "test", "resource_id": "r1", "detail": {}}]
+    # attempt=3 is the final attempt (next_attempt=4 >= max_attempts=4), so no retry is scheduled
+    await siem.flush_batch(batch, attempt=3)
 
     assert siem._status == "degraded"
     assert siem._consecutive_failures == 3
@@ -170,14 +171,15 @@ async def test_status_transitions_to_degraded_after_3_failures(mock_siem_config,
 
 @pytest.mark.asyncio
 async def test_status_resets_on_successful_delivery(mock_siem_config, mock_db, mock_scheduler):
-    """Test consecutive_failures resets to 0 on successful delivery."""
+    """Test flush_batch() resets consecutive_failures and status to healthy on success."""
     siem = SIEMService(mock_siem_config, mock_db, mock_scheduler)
     siem._consecutive_failures = 3
     siem._status = "degraded"
 
-    # Successful delivery resets
-    siem._consecutive_failures = 0
-    siem._status = "healthy"
+    siem._deliver = AsyncMock(return_value=None)
+
+    batch = [{"username": "alice", "action": "test", "resource_id": "r1", "detail": {}}]
+    await siem.flush_batch(batch)
 
     assert siem._consecutive_failures == 0
     assert siem._status == "healthy"
