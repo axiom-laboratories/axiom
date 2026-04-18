@@ -457,12 +457,10 @@ async def ce_user_token(db_session):
     from agent_service.auth import get_password_hash
     from sqlalchemy import text
 
+    username = f"ce_test_{uuid4().hex[:8]}"
     async with AsyncSessionLocal() as session:
-        await session.execute(text("DELETE FROM users WHERE username = 'ce_test_user'"))
-        await session.commit()
-
         user = User(
-            username="ce_test_user",
+            username=username,
             password_hash=get_password_hash("testpass123"),
             role="admin",
             must_change_password=False,
@@ -471,9 +469,13 @@ async def ce_user_token(db_session):
         session.add(user)
         await session.commit()
 
-        # Create token for CE user (no EE key in token or licence state)
         token = create_access_token({"sub": user.username, "tv": user.token_version})
-        return token
+
+    yield token
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text(f"DELETE FROM users WHERE username = '{username}'"))
+        await session.commit()
 
 
 @pytest.fixture
@@ -485,12 +487,10 @@ async def ee_user_token(db_session, async_client):
     from agent_service.services.licence_service import LicenceState, LicenceStatus
     from sqlalchemy import text
 
+    username = f"ee_test_{uuid4().hex[:8]}"
     async with AsyncSessionLocal() as session:
-        await session.execute(text("DELETE FROM users WHERE username = 'ee_test_user'"))
-        await session.commit()
-
         user = User(
-            username="ee_test_user",
+            username=username,
             password_hash=get_password_hash("testpass123"),
             role="admin",
             must_change_password=False,
@@ -499,7 +499,6 @@ async def ee_user_token(db_session, async_client):
         session.add(user)
         await session.commit()
 
-        # Create token for EE user
         token = create_access_token({"sub": user.username, "tv": user.token_version})
 
         # Mock the licence state to be VALID (EE active) for this test
@@ -523,3 +522,7 @@ async def ee_user_token(db_session, async_client):
 
         # Always restore original licence state (including None for CE startup)
         app.state.licence_state = original_state
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text(f"DELETE FROM users WHERE username = '{username}'"))
+        await session.commit()
