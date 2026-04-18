@@ -25,7 +25,8 @@ import {
     ChevronLeft,
     ChevronRight,
     GitBranch,
-    RefreshCw
+    RefreshCw,
+    Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -73,6 +74,8 @@ import {
     AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 import { authenticatedFetch, getUser } from '../auth';
 import { useLicence } from '../hooks/useLicence';
 import { useFeatures } from '../hooks/useFeatures';
@@ -1665,8 +1668,353 @@ const MirrorsTab = () => {
     );
 };
 
+interface SIEMConfigResponse {
+  backend: string;
+  destination: string;
+  syslog_port: number;
+  syslog_protocol: string;
+  cef_device_vendor: string;
+  cef_device_product: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface VaultConfigPanelProps {
   isEE: boolean;
+}
+
+// SIEM Configuration Tab Component
+function SIEMTab() {
+  const [config, setConfig] = useState<SIEMConfigResponse | null>(null);
+  const [status, setStatus] = useState<"healthy" | "degraded" | "disabled">("disabled");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+
+  // Form state with proper typing
+  type FormDataType = {
+    backend: "webhook" | "syslog";
+    destination: string;
+    syslog_port: number;
+    syslog_protocol: "UDP" | "TCP";
+    cef_device_vendor: string;
+    cef_device_product: string;
+    enabled: boolean;
+  };
+
+  const [formData, setFormData] = useState<FormDataType>({
+    backend: "webhook",
+    destination: "",
+    syslog_port: 514,
+    syslog_protocol: "UDP",
+    cef_device_vendor: "Axiom",
+    cef_device_product: "MasterOfPuppets",
+    enabled: false,
+  });
+
+  // Fetch config and status on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const [configRes, statusRes] = await Promise.all([
+          authenticatedFetch("/admin/siem/config"),
+          authenticatedFetch("/admin/siem/status"),
+        ]);
+
+        if (configRes.ok) {
+          const data = await configRes.json();
+          setConfig(data);
+          setFormData(data);
+        }
+
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          setStatus(statusData.status);
+        }
+      } catch (err) {
+        setError(`Failed to load SIEM config: ${(err as Error).message}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setError(null);
+    try {
+      const res = await authenticatedFetch("/admin/siem/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          backend: formData.backend,
+          destination: formData.destination,
+          syslog_port: formData.syslog_port,
+          syslog_protocol: formData.syslog_protocol,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("✓ Connection successful");
+      } else {
+        setError(data.error_detail || data.message || "Connection test failed");
+      }
+    } catch (err) {
+      setError(`Test failed: ${(err as Error).message}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await authenticatedFetch("/admin/siem/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        setError(errData.detail || "Failed to save SIEM config");
+      } else {
+        const updated = await res.json();
+        setConfig(updated);
+        setMode("view");
+        toast.success("SIEM configuration saved");
+      }
+    } catch (err) {
+      setError(`Save failed: ${(err as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const statusIcon = status === "healthy" ? (
+    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+  ) : status === "degraded" ? (
+    <AlertTriangle className="w-4 h-4 text-amber-500" />
+  ) : (
+    <AlertCircle className="w-4 h-4 text-muted-foreground" />
+  );
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          {statusIcon}
+          <CardTitle>SIEM Integration</CardTitle>
+        </div>
+        {mode === "view" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMode("edit")}
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-600 flex gap-2">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div>{error}</div>
+          </div>
+        )}
+
+        {loading ? (
+          <Skeleton className="h-96" />
+        ) : (
+          <>
+            {mode === "view" ? (
+              // View mode
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-mono">{status}</span>
+                </div>
+                {config && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Backend</span>
+                      <span className="font-mono">{config.backend}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Destination</span>
+                      <span className="font-mono truncate">{config.destination}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Enabled</span>
+                      <span className="font-mono">{config.enabled ? "Yes" : "No"}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              // Edit mode
+              <div className="space-y-4">
+                {/* Backend selector */}
+                <div>
+                  <Label htmlFor="backend">Backend</Label>
+                  <Select
+                    value={formData.backend}
+                    onValueChange={(val) =>
+                      setFormData({ ...formData, backend: val as "webhook" | "syslog" })
+                    }
+                  >
+                    <SelectTrigger id="backend">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="webhook">Webhook (HTTP POST)</SelectItem>
+                      <SelectItem value="syslog">Syslog (UDP/TCP)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Destination / URL */}
+                <div>
+                  <Label htmlFor="destination">
+                    {formData.backend === "webhook" ? "Webhook URL" : "Syslog Host"}
+                  </Label>
+                  <Input
+                    id="destination"
+                    placeholder={
+                      formData.backend === "webhook"
+                        ? "https://siem.example.com/events"
+                        : "siem.example.com"
+                    }
+                    value={formData.destination}
+                    onChange={(e) =>
+                      setFormData({ ...formData, destination: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Syslog port (conditional) */}
+                {formData.backend === "syslog" && (
+                  <div>
+                    <Label htmlFor="port">Syslog Port</Label>
+                    <Input
+                      id="port"
+                      type="number"
+                      value={formData.syslog_port}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          syslog_port: parseInt(e.target.value, 10) || 514,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {/* Syslog protocol (conditional) */}
+                {formData.backend === "syslog" && (
+                  <div>
+                    <Label htmlFor="protocol">Protocol</Label>
+                    <Select
+                      value={formData.syslog_protocol}
+                      onValueChange={(val) =>
+                        setFormData({
+                          ...formData,
+                          syslog_protocol: val as "UDP" | "TCP",
+                        })
+                      }
+                    >
+                      <SelectTrigger id="protocol">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="UDP">UDP (fire-and-forget)</SelectItem>
+                        <SelectItem value="TCP">TCP (connection-oriented)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* CEF Vendor */}
+                <div>
+                  <Label htmlFor="vendor">CEF Device Vendor</Label>
+                  <Input
+                    id="vendor"
+                    placeholder="Axiom"
+                    value={formData.cef_device_vendor}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cef_device_vendor: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* CEF Product */}
+                <div>
+                  <Label htmlFor="product">CEF Device Product</Label>
+                  <Input
+                    id="product"
+                    placeholder="MasterOfPuppets"
+                    value={formData.cef_device_product}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cef_device_product: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Enabled toggle */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="enabled"
+                    checked={formData.enabled}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, enabled: checked === true })
+                    }
+                  />
+                  <Label htmlFor="enabled" className="cursor-pointer">
+                    Enable SIEM integration
+                  </Label>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={handleTestConnection}
+                    disabled={testing || !formData.destination}
+                    variant="outline"
+                  >
+                    {testing ? "Testing..." : "Test Connection"}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setMode("view");
+                      setError(null);
+                    }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function VaultConfigPanel({ isEE }: VaultConfigPanelProps) {
@@ -2156,6 +2504,9 @@ const Admin = () => {
                     {isEnterprise && (
                         <TabsTrigger value="hashicorp-vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Vault</TabsTrigger>
                     )}
+                    {isEnterprise && (
+                        <TabsTrigger value="siem" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">SIEM</TabsTrigger>
+                    )}
                     {features.foundry && (
                         <>
                             <TabsTrigger value="mirrors" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Mirrors</TabsTrigger>
@@ -2481,6 +2832,12 @@ const Admin = () => {
                 {isEnterprise && (
                     <TabsContent value="hashicorp-vault" className="space-y-6">
                         <VaultConfigPanel isEE={isEnterprise} />
+                    </TabsContent>
+                )}
+
+                {isEnterprise && (
+                    <TabsContent value="siem" className="space-y-6">
+                        <SIEMTab />
                     </TabsContent>
                 )}
 
