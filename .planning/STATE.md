@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
-current_phase: "Phase 165 (complete)"
-current_plan: "166-01"
-status: "Phase 165 (3/3 plans complete); Ready for Phase 166 (Router Modularization)"
-last_updated: "2026-04-18T15:15:00Z"
+current_phase: "Phase 166 (in progress)"
+current_plan: "166-02"
+status: "Phase 166 Plan 166-01 complete (2 routers extracted and integrated); 5 plans remain in phase"
+last_updated: "2026-04-18T16:05:00Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 18
-  completed_plans: 3
+  total_plans: 21
+  completed_plans: 4
   requirements_mapped: "18/18"
 ---
 
@@ -45,7 +45,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 | Phase | Name | Requirements | Criteria | Status |
 |-------|------|--------------|----------|--------|
 | **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | COMPLETE (3/3 plans done) ✓ |
-| **166** | Router Modularization | ARCH-01–04 | 5 | Not started |
+| **166** | Router Modularization | ARCH-01–04 | 5 | In progress (1/6 plans done) |
 | **167** | Vault Integration (EE) | VAULT-01–06 | 6 | Not started |
 | **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
 
@@ -301,3 +301,24 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   3. Full backend pytest suite passes (737 tests, no regressions) ✓
   4. Full frontend vitest suite passes (all tests, 0 vulnerabilities) ✓
   5. Docker image builds without security-flagged vulnerabilities ✓
+
+## Execution Metrics
+
+**Plan 166-01 (Router Modularization — Wave 1A: Auth & Jobs Routers)**
+- Status: COMPLETE
+- Duration: 65 minutes (across 2 sessions)
+- Tasks completed: 2/2 (100%)
+- Files created: 2
+- Files modified: 1
+- Commits: 2 (32d782b9, 7f4adebc)
+- Requirements satisfied: ARCH-01 (routes split) — SATISFIED; ARCH-02 (zero behavior change) — SATISFIED
+- Key deliverables:
+  - puppeteer/agent_service/routers/auth_router.py (321 lines) — 8 authentication handlers extracted from main.py lines 881–1130
+  - puppeteer/agent_service/routers/jobs_router.py (942 lines) — ~35 job-related handlers extracted (templates, dispatch, definitions, CRUD)
+  - puppeteer/agent_service/main.py modified — Both routers imported and wired via app.include_router() calls
+  - All relative imports validated: from ..db, ..deps, ..models, ..services
+  - WebSocket broadcast pattern preserved: scoped imports inside handlers only (no circular imports)
+  - Audit logging before db.commit() pattern preserved in all mutation handlers
+  - Permission checks via Depends(require_permission(...)) preserved exactly as original
+  - Summary: `.planning/phases/166-router-modularization/166-01-SUMMARY.md`
+- Next: Plan 166-02 to extract nodes and workflows routers (4 remaining routers to modularize across remaining plans)
