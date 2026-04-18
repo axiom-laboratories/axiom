@@ -263,10 +263,21 @@ class SIEMService:
             s = s.replace("\r", "\\r")
             return s
 
+        def _escape_cef_header_field(v: str) -> str:
+            # CEF spec: escape \ → \\ and | → \| in header fields
+            s = v.replace("\\", "\\\\")
+            s = s.replace("|", "\\|")
+            return s
+
         # Format CEF header and extensions
         cef_header = (
-            f"CEF:{cef_version}|{device_vendor}|{device_product}|{device_version}|"
-            f"{signature_id}|{name}|{severity}"
+            f"CEF:{cef_version}"
+            f"|{_escape_cef_header_field(device_vendor)}"
+            f"|{_escape_cef_header_field(device_product)}"
+            f"|{device_version}"
+            f"|{_escape_cef_header_field(signature_id)}"
+            f"|{_escape_cef_header_field(name)}"
+            f"|{severity}"
         )
         cef_extensions = " ".join(
             [f"{k}={_escape_cef_extension_value(v)}" for k, v in extensions.items()]
