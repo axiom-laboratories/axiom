@@ -1,225 +1,166 @@
-# Project Research Summary
+# Research Summary: Axiom v24.0 — Security Infrastructure & Extensibility
 
-**Project:** Master of Puppets Axiom — Integrated Hardening Initiative (Container Security + EE Licensing + Foundry/Smelter + DAG Workflows)  
-**Domain:** Enterprise container orchestration platform with security hardening, software supply chain integrity, multi-ecosystem package management, and workflow automation  
-**Researched:** 2026-04-01 to 2026-04-15  
-**Confidence:** HIGH (direct codebase inspection, established standards, production-validated patterns)
-
----
+**Project:** Axiom (Master of Puppets)
+**Domain:** Orchestration platform with security hardening + extensibility
+**Researched:** 2026-04-18
+**Milestone:** v24.0
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-Master of Puppets Axiom is entering a major evolution: transitioning from a single-job dispatch platform to a comprehensive enterprise automation system with four interconnected hardening workstreams. This research synthesizes findings across **Container Security Hardening** (eliminate privilege escalation via non-root execution + capability dropping), **EE Licence Protection** (software supply chain integrity via signed wheels + clock-rollback detection), **Foundry/Smelter Improvements** (multi-ecosystem package management with transitive dependency resolution + CVE scanning), and **DAG/Workflow Orchestration** (complex multi-step jobs with conditional branching + webhook triggers).
+v24.0 introduces **five interconnected features** that strengthen Axiom for enterprise deployments: external secrets management via HashiCorp Vault, hardware-backed node identity via TPM 2.0, third-party plugin SDK, real-time SIEM audit streaming, and router modularization. These features are optional/additive (zero breaking changes) and segment into clear tiers:
 
-The recommended approach is **phased rollout with clear infrastructure gates**: Core infrastructure work (container hardening, wheel signing, workflow DAG model) happens in early phases, followed by ecosystem expansion (APT/APK/npm/NuGet mirrors) and operator UX refinement. This ordering avoids five critical pitfalls identified in the research: **race conditions in concurrent step completion, partial failure states breaking cascade logic, depth limit bypasses enabling DoS, webhook replay attacks, and backward compatibility gaps** with existing scheduled jobs.
+**Tier 1 (Recommended v24.0 ship):** Router refactoring (prerequisite), Vault integration (low-risk enterprise table stake), SIEM audit streaming (compliance requirement)
 
-**Key strategic insight:** All work leverages existing infrastructure (Python stdlib, cryptography v46, Docker socket, APScheduler) with **zero new third-party dependencies required** for container hardening and EE licensing features. The stack is mature, battle-tested in production systems, and requires only targeted additions for Foundry ecosystem expansion (pip-tools, verdict sidecars). **Critical risk mitigation:** The workflow engine introduces five concurrency and security hazards that must be mitigated atomically in Phase 3 — no feature can ship without explicit guards for concurrent completion, output validation, and replay protection.
+**Tier 2 (Defer to v24.1/v25.0):** TPM identity (OS library fragmentation), Plugin SDK v2 (version conflict hazards, API stability required)
 
----
+**Critical insight:** All five features depend on modular router architecture. Router refactoring must execute first. Vault + SIEM are low-risk, high-value enterprise foundations; ship together. TPM and Plugin SDK are strategic differentiators with higher complexity; defer unless critical enterprise blockers exist.
+
+Research identifies **14 distinct pitfalls** across features with explicit prevention strategies. Top 5 critical: (1) Vault hard startup dependency, (2) secret lease expiry during long jobs, (3) TPM library availability across OS variants, (4) plugin version conflicts, (5) SIEM log flooding. The team must prioritize Vault grace-period fallback and router circular-import prevention as blocking gates.
 
 ## Key Findings
 
 ### Recommended Stack
 
-**Container Hardening & EE Licensing use ONLY existing dependencies.**
+**New Libraries (All Optional):**
 
-**Core production technologies (no changes):**
-- Python 3.12 stdlib (hmac, hashlib, importlib.metadata, json, pathlib, zipfile) — all required for HMAC boot log integrity, wheel signature verification, entry point validation, and secure file operations
-- cryptography v46.0.5 (existing) — Ed25519 operations verified working for licence JWTs; identical APIs used for wheel manifest verification
-- PyJWT v2.7.0+ (existing) — EdDSA support (RFC 8037) for licence tokens
-- Docker Compose v3.7+ (existing) — cap_drop, cap_add, security_opt, deploy.resources directives supported since 2019
-- Standard Linux userland (addgroup/useradd/usermod) — no packages needed
+| Library | Version | Purpose | Why Recommended | Confidence |
+|---------|---------|---------|-----------------|-----------|
+| **hvac** | >= 1.2.0 | Vault API client | Official, AppRole auth, production-grade, 95KB footprint | HIGH |
+| **tpm2-pytss** | >= 0.5.0 | TPM 2.0 bindings | Official TSS, stable, no Python alternatives | MEDIUM-HIGH |
+| **tpm2-tools** | >= 5.4 | TPM CLI tools | System package; variable OS availability | MEDIUM |
+| **syslogcef** | >= 0.3.0 | CEF/LEEF formatting | Production-grade, edge-case handling, 95% SIEM support | HIGH |
+| **rfc5424-logging-handler** | >= 1.4.3 | RFC 5424 syslog | Official RFC 5424, cross-platform | HIGH |
+| **graypy** | >= 2.2.0 | Graylog GELF handler | Battle-tested, community standard (optional) | HIGH |
+| **importlib.metadata** | stdlib | Plugin discovery | Built-in Python 3.11+, no external dependency | HIGH |
 
-**Foundry/Smelter ecosystem expansion (new packages — optional features only):**
-- pip-tools ≥7.4 — deterministic transitive dep resolution via `pip-compile`
-- bandit ≥1.8 — Python script security scanning (subprocess mode)
-- react-d3-tree@3.6.6 (frontend) — interactive dep-tree viewer (React 19 compatible)
-- Mirror sidecars: pypiserver (existing), Caddy (existing), nginx:alpine, Verdaccio:6 (npm), BaGetter (NuGet), miniconda3 (Conda), registry:2 (OCI)
+**Router Modularization:** No new libraries; uses FastAPI's built-in `APIRouter` + `Depends()`.
 
-**Confidence: HIGH.** All components documented in official sources; proven in production systems.
+**Security Fixes:** `cryptography >= 46.0.7` (buffer overflow CVE) + all HIGH-priority Dependabot findings.
 
----
+**Installation Strategy:** All new libraries optional in wheel; skipped at runtime if not configured. CE deployments functional without Vault, TPM, SIEM libraries.
 
 ### Expected Features
 
-**Must Have (Table Stakes):**
+**Tier 1 (Ship v24.0 — Low Risk, High Value):**
+- **Vault Integration** — External secrets, AppRole auth, no hardcoded env vars (enterprise table stake)
+- **SIEM Audit Streaming** — Webhook/syslog/CEF export to Splunk, Elastic, QRadar (compliance requirement)
+- **Router Refactoring** — 89 routes → 6 domain routers; improves maintainability, testability, enables middleware injection
 
-*Container Security:*
-- Non-root user execution (appuser:appuser, UID 1000)
-- Linux capability dropping (cap_drop: ALL)
-- No-new-privileges enforcement (setuid/setgid prevention)
-- Resource limits (memory + CPU per service)
-- Hardened Dockerfile base images (Alpine/Debian)
-- Docker socket mount (remove privileged: true)
-- Podman compatibility (two-runtime support)
-- Read-only root filesystem support
+**Tier 2 (Defer v24.1+ — Higher Complexity):**
+- **TPM-Based Node Identity** — Hardware attestation enrollment (differentiator; deferred: OS support matrix needed, PCR baseline management complex)
+- **Plugin System v2 SDK** — Third-party extensibility via entry_points (strategic; deferred: version conflicts, API stability required)
 
-*EE Licensing:*
-- Signed wheel manifest verification (PEP 427 Ed25519 signature)
-- HMAC boot log clock-rollback detection (keyed on ENCRYPTION_KEY)
-- Per-node licence seat management (HTTP 402 on enrollment limit)
-- Entry point whitelist validation (prevent plugin hijacking)
+**Anti-Features (Do NOT build):**
+- Vault agent sidecar (unnecessary complexity)
+- Per-job TPM attestation (TPM too slow for high frequency)
+- Plugin hot-reload (memory leak/dangling reference risk)
+- Untrusted plugin sandboxing (Python unfixable; plugins = trusted code)
 
-*Foundry/Smelter:*
-- Transitive dependency resolution (full dep tree visibility)
-- Multi-ecosystem package management (APT, APK, npm, NuGet, Conda, OCI)
-- CVE scan of transitive deps (pre-build vulnerability discovery)
-
-*Workflows:*
-- DAG/workflow orchestration (multi-step jobs with conditional branching)
-- Graceful EE→CE fallback (license expiry → DEGRADED_CE, no crash)
-- Workflow versioning + pause/resume (prevent ghost execution from cron)
-
-**Should Have (Competitive Differentiators):**
-
-- Entry point whitelist (zero-trust plugin loading)
-- Offline licence generation (air-gapped issuers)
-- Script analyzer (static AST/regex import detection + bundle recommendations)
-- Curated bundles (Data Science, Web Scraping, Infrastructure, Monitoring)
-- Webhook replay protection (nonce tracking + timestamp validation)
-- IF gate sandboxing (restrict to single-field comparisons, no eval)
-
-**Defer (v20+):**
-- Conda full channel sync (HIGH storage footprint; defer unless data science is explicit ICP)
-- Custom seccomp profiles (host-level config; defer to ops docs)
-- Advanced IF gate logic (AND/OR/nested conditions; v19 ships single-field only)
-- Workflow execution analytics + critical path tracing
-
----
+**MVP Recommendation:** Build Vault + SIEM + Router refactoring in v24.0. Defer TPM + Plugin SDK to v24.1+.
 
 ### Architecture Approach
 
-The architecture is a **layered, modular extension** of existing services. Core patterns remain unchanged; new components follow established patterns (throwaway containers for resource-heavy operations, async semaphores for concurrency control, DB tables via EEBase for EE features).
+All features are **additive, non-breaking extensions** of existing patterns:
 
-**New service components:**
+1. **Vault** — Secrets injected into job context; optional Fernet fallback
+2. **TPM** — Augments existing mTLS (not replacement); optional attestation layer
+3. **Plugin SDK** — Extends EE plugin model (entry_points); public-facing with versioning
+4. **SIEM Streaming** — Async middleware above AuditLog table; optional export
+5. **Router Modularization** — **Prerequisite blocker** for Vault + SIEM (enables injectable middleware, dependency injection)
 
-1. **resolver_service.py** — Spawns throwaway Docker containers per ecosystem to resolve full transitive dependency trees. Uses same Docker socket + asyncio pattern as existing Foundry builds. Gated by `_resolve_semaphore = asyncio.Semaphore(3)`.
+**Critical Constraint:** Router refactoring must precede Vault + SIEM because monolithic main.py (89 routes) doesn't support injectable middleware cleanly.
 
-2. **script_analyzer_service.py** — In-process synchronous Python AST/regex analysis to extract package imports from job scripts. Returns matched ingredients + bundle suggestions. <50ms latency; no async overhead.
+**New Components:**
+- **Services:** vault_service.py, siem_service.py, tpm_service.py, plugin_registry.py
+- **DB Tables:** VaultSecret, AuditLogDelivery, NodeAttestation
+- **Routers:** auth_router.py, jobs_router.py, nodes_router.py, workflows_router.py, foundry_router.py, admin_router.py, system_router.py
+- **Models:** VaultConfig, SIEMConfig, PluginBase, PluginRegistry
 
-3. **wheel_service.py** — Verifies signed wheels (ZIP format per PEP 427). Validates Ed25519 signature on RECORD manifest. Checks file hashes. Called before `pip install` in EE plugin bootstrap.
+**CE/EE Boundary:** Preserved via optional feature flags. Vault/SIEM candidate CE features; TPM/Plugin SDK may be EE-only (TBD in phase planning).
 
-4. **workflow_service.py** — CRUD for Workflow + WorkflowStep models. DAG validation (depth limit 12, cycle detection, resource reservation). Dispatches workflow as job sequence with IF gates + transitive failure propagation.
+### Critical Pitfalls (Top 5)
 
-**Extended service components:**
+1. **Vault Hard Startup Dependency** — If Vault unavailable at bootstrap, platform crashes. Mitigation: grace-period fallback, optional mode, health-check endpoint, secret caching. **Phase gate: Required before shipping Vault.**
 
-- **foundry_service.py** — Injects multi-ecosystem package manager configs (pip.conf, apt sources.list, npm .npmrc, conda condarc, nuget.config). Appends `USER appuser` to generated Dockerfiles.
+2. **Secret Lease Expiry During Long-Running Jobs** — Jobs longer than secret TTL fail mid-execution. Mitigation: lease TTL validation at dispatch, active renewal (30% margin), per-job AppRole tokens. **Phase gate: Lease renewal background task required.**
 
-- **mirror_service.py** — Ecosystem dispatch table replaces OS-family-based routing. Each `_mirror_<eco>()` uses throwaway containers. Separate named volumes per ecosystem.
+3. **TPM Library Availability Across OS Variants** — tpm2-tools not available on Alpine ARM64, vTPM fragile in VMs. Mitigation: OS support matrix (Debian/Ubuntu stable, Alpine amd64 only, Windows TBD), graceful fallback.
 
-- **job_service.py** — BFS cascade refactored to atomic SELECT...FOR UPDATE + single background sweep task (100ms interval). Validates result.json before unblocking dependents.
+4. **Plugin Version Conflicts** — Two plugins requiring different lib versions cause pip failure or runtime mismatch. Mitigation: Plugin API versioning, dependency conflict detection at startup, version pinning.
 
-**DB tables (EE — created via EEBase):**
-- `ingredient_dependencies` (parent_id, dep_name, version, ecosystem, depth, auto_approved, mirror_status)
-- `curated_bundles` (name, description, category, is_builtin)
-- `curated_bundle_items` (bundle_id, ingredient_name, version_constraint, ecosystem)
+5. **SIEM Log Flooding** — Unbuffered streaming at >500 jobs/min overwhelms SIEM; data loss. Mitigation: batch + flush (100 events or 5s), in-memory queue, compression, at-least-once delivery. **Phase gate: Batching from day 1.**
 
----
-
-### Critical Pitfalls
-
-1. **Race Condition in Concurrent Step Completion** — Multiple independent jobs completing simultaneously causes BFS unblock engine to process them serially without atomic guards, resulting in double-execution or orphaned jobs. **Mitigation:** SELECT...FOR UPDATE transaction locks, idempotent guard (last_unblock_attempt_at), single background sweep task, concurrent completion test suite.
-
-2. **PARTIAL Failures Break Cascade Logic** — Jobs complete successfully but output validation fails. IF gate reads corrupted result.json, routes to wrong step silently. **Mitigation:** Add VALIDATION_FAILED status (terminal, non-COMPLETED), validate result.json atomically at completion, transitive failure isolation via failed_upstream_guid.
-
-3. **Depth Limit Bypass via Conditional Unblocking** — Depth check only at creation; conditional dependencies not checked. Attacker bypasses limit, creates exponential cascade on single failure. **Mitigation:** Transitive depth check on all depends_on, batch unblock with backoff, circuit breaker at 1000 unblocks per event.
-
-4. **Webhook Replay Attacks → State Corruption** — Same webhook fires multiple times (network retry, operator error). All jobs unblock 4x, re-execute, corrupt state. **Mitigation:** Nonce tracking (24h TTL), timestamp validation (±300s), X-Webhook-Signature + X-Webhook-Timestamp + X-Webhook-Nonce headers, database-backed idempotency.
-
-5. **Structured Output Injection via IF Gates** — IF gate reads result.json to decide routing. User-controlled output can inject malicious JSON, manipulate control flow. **Mitigation:** JSON schema validation, restrict to single-field comparisons, sandbox expression language (no eval), sign result.json with node key, verify signature.
-
----
+Additional pitfalls: Secret rotation breaks embedded-secret jobs, Fernet migration path incomplete, router circular imports, test fixture fragmentation, CE/EE boundary drift, SIEM PII leakage.
 
 ## Implications for Roadmap
 
-Based on combined research, **12-phase phased rollout with clear infrastructure gates:**
+### Suggested Phase Execution
 
-### Phase 1: Container Security Hardening
-**Delivers:** Non-root execution, cap_drop, no-new-privileges, resource limits, read-only filesystem support, Docker socket mount, Podman variant.  
-**Effort:** 5-7 days | **Research flag:** None (CIS/NIST standards)
+**Phase 1: Dependabot Fixes**
+- Fix HIGH/MODERATE CVEs before feature work begins
+- Delivers: Patched `cryptography` + security-critical packages; all tests pass
 
-### Phase 2: Wheel Signing + Boot Log HMAC  
-**Delivers:** wheel_service.py, HMAC boot log, entry point whitelist, per-node licence seats, audit logging.  
-**Effort:** 4-5 days | **Research flag:** None (PEP 427 standard)
+**Phase 2: Router Modularization — BLOCKER**
+- Prerequisite for Vault + SIEM middleware injection
+- Delivers: 89 routes → 6 domain routers; zero behavior change; all tests pass
+- Pitfalls addressed: Circular imports, test fragmentation, CE/EE drift
 
-### Phase 3: Workflow DAG Model (Core) — WITH CONCURRENCY SAFEGUARDS
-**Delivers:** Workflow + WorkflowStep models, atomic BFS cascade (SELECT...FOR UPDATE), VALIDATION_FAILED status, depth validation, background sweep task, result.json atomicity, pause/resume API, feature flag.  
-**Effort:** 7-9 days | **Research flag: REQUIRES RESEARCH PHASE** (atomicity design, deadlock analysis, concurrent completion test matrix)
+**Phase 3: Vault Integration**
+- Enterprise table stake; low risk; foundational for job secrets
+- Delivers: Startup-time secret fetch; env-var fallback; health-check endpoint; lease renewal background task
+- Pitfalls addressed: Vault hard startup, lease expiry, secret rotation, Fernet migration
 
-### Phase 4: Result Validation + IF Gates — WITH INJECTION HARDENING
-**Delivers:** Single-field IF gates, JSON schema validation, sandboxed expression language, result.json signing + verification, missing file defaults, IF gate logging.  
-**Effort:** 5-6 days | **Research flag:** MEDIUM (Jinja2 vs Lua performance trade-offs)
+**Phase 4: SIEM Streaming**
+- Compliance requirement; low risk; pairs with Vault as enterprise foundation
+- Delivers: Webhook/syslog/CEF streaming; batching (100 events or 5s); PII masking; retry logic
+- Pitfalls addressed: SIEM log flooding, SIEM PII leakage
 
-### Phase 5: DB Schema Additions + Foundry Extensions
-**Delivers:** approved_ingredients.ecosystem column (migration), IngredientDependency table, CuratedBundle + CuratedBundleItem tables.  
-**Effort:** 2-3 days | **Research flag:** None (standard SQLAlchemy)
+**Phase 5: TPM Identity (Optional — v24.1)**
+- Differentiator; medium-high complexity; defer if schedule constrained
+- Delivers: TPM 2.0 enrollment (identity only); full attestation in v25
 
-### Phase 6: Resolver Service + Mirror Dispatch
-**Delivers:** ResolverService, throwaway containers per ecosystem, IngredientDependency population, auto-mirror + CVE scan, dep-tree endpoints.  
-**Effort:** 6-8 days | **Research flag:** None (documented CLI tools)
-
-### Phase 7: Mirror Ecosystem Backends + Sidecars
-**Delivers:** _mirror_apt/apk/npm/conda/nuget implementations, new sidecars (nginx, Verdaccio, BaGetter), mirror URL config, semaphore limits.  
-**Effort:** 8-10 days | **Research flag:** None (standard mirror patterns)
-
-### Phase 8: Script Analyzer + Bundle CRUD
-**Delivers:** ScriptAnalyzerService, import_to_pypi.json mapping, analyze-script endpoint, CuratedBundle CRUD, seeded starter packs, frontend "Analyze" button.  
-**Effort:** 4-5 days | **Research flag:** None (AST + regex standard)
-
-### Phase 9: CVE Scan Extension + Transitive Include
-**Delivers:** Extended scan_vulnerabilities() with IngredientDependency rows.  
-**Effort:** 2-3 days | **Research flag:** None (pip-audit standard)
-
-### Phase 10: Webhook Support + Nonce Tracking
-**Delivers:** WebhookNonce table, POST /api/webhooks endpoint, header validation (Signature/Timestamp/Nonce), signal emission, audit logging.  
-**Effort:** 4-5 days | **Research flag:** None (standard webhook patterns)
-
-### Phase 11: EE CRUD Completeness (Edit Blueprint, Tool Recipe, Approved OS)
-**Delivers:** PUT /api/blueprints/{id} with version + HTTP 409, PATCH capability-matrix, Approved OS CRUD, runtime dep confirmation modal, frontend edit UI.  
-**Effort:** 3-4 days | **Research flag:** None (standard CRUD)
-
-### Phase 12: Backward Compatibility Testing + APScheduler Pause/Resume
-**Delivers:** Feature flag ENABLE_WORKFLOW_ENGINE, dual-path tests, startup sanity check, APScheduler pause/resume API, workflow status column, migration guide.  
-**Effort:** 4-5 days | **Research flag:** None (feature flags standard)
+**Phase 6: Plugin System v2 (Optional — v24.1+)**
+- Strategic differentiator; high complexity; defer if schedule constrained
+- Delivers: Entry-point plugin discovery; versioned API contract; read-only data API; capability gating
 
 ### Phase Ordering Rationale
 
-**Tier 1 (Sequential):** Phases 1-2-5 (foundation; prerequisites for all downstream)  
-**Tier 2 (Parallel infrastructure):** Phases 3, 6-7 (critical-path + ecosystem)  
-**Tier 3 (Parallel features):** Phases 4, 8-11 (depends on Phase 3 or 6, orthogonal otherwise)  
-**Tier 4 (Validation):** Phase 12 (final gate before workflow launch)
+1. **Router refactoring first:** All downstream features depend on modular structure
+2. **Vault + SIEM together:** Both enterprise foundational, low risk, depend on router refactoring
+3. **TPM deferred:** Requires OS-specific validation; PCR baseline management complex
+4. **Plugin SDK deferred:** Requires stable API contract; rushing risks breaking plugin ecosystem early
 
----
+### Research Flags
+
+**Phases needing deeper research during planning:**
+- **TPM:** OS library availability matrix (Alpine, Windows, ARM64, vTPM) — allocate 1d research before implementation
+- **Plugin SDK:** Plugin versioning semantics — requires design session
+
+**Standard patterns (skip research-phase):** Dependabot, Router, Vault, SIEM
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| **Stack** | HIGH | Python stdlib stable (3.8+). cryptography v46 current + backward compatible. Docker Compose v3.7+ production standard (2019+). |
-| **Features** | HIGH | Container hardening mandated (NIST/CIS/OWASP). EE patterns from existing codebase v14.3+. Wheel signing follows PEP 427. DAG patterns established (Airflow, Temporal, AWS Step Functions). |
-| **Architecture** | HIGH | Direct codebase inspection. Resolver + mirrors follow existing throwaway container pattern. Atomicity (SELECT...FOR UPDATE) standard in distributed systems. Modular + testable. |
-| **Pitfalls** | HIGH | Race conditions well-documented; SELECT...FOR UPDATE is standard mitigation. Webhook replay attacks extensively documented (Svix, Hookbin, Cloudflare). Output injection follows LLM prompt injection threat model. Backward compatibility gaps common in migrations. |
+| **Stack (Libraries)** | HIGH | All chosen libraries production-grade, actively maintained |
+| **Features (Tier 1)** | HIGH | Vault + SIEM + Router are industry-standard patterns; enterprise expects all three |
+| **Features (Tier 2)** | MEDIUM | TPM requires OS-specific testing; Plugin SDK requires careful API design |
+| **Architecture** | MEDIUM | Patterns established; CE/EE boundary and job secrets flow are Axiom-specific |
+| **Pitfalls** | HIGH | 14 pitfalls identified with explicit prevention strategies and phase assignments |
+| **Overall** | MEDIUM-HIGH | Tier 1 is low-risk, high-value; Tier 2 defer if time-constrained |
 
-**Overall: HIGH**
+### Open Gaps
 
----
+1. **Vault licensing & CE/EE boundary** — CE-native or EE-only?
+2. **TPM OS support matrix** — Windows + vTPM + ARM64 status unclear
+3. **Plugin SDK API stability** — Versioning contract decision required
+4. **SIEM format support** — CEF only, or add Splunk HEC native?
+5. **Secret lifecycle documentation** — When embed secrets vs use env vars?
 
 ## Sources
 
-- Python stdlib documentation (hmac, hashlib, importlib.metadata, json, pathlib, zipfile)
-- cryptography library v46.0.5 Ed25519 API (cryptography.io)
-- PEP 427 — Wheel Binary Package Format
-- Docker Security Documentation (docs.docker.com)
-- OWASP Docker Security Cheat Sheet
-- NIST SP 800-190: Container Security
-- Webhook Security Best Practices (Svix, hooklistener.com, webhooks.fyi)
-- Apache Airflow Troubleshooting & Pitfalls
-- Temporal Workflow Orchestration (temporal.io)
-- AWS Step Functions: State Machine Design
-- Direct codebase inspection: foundry_service.py, mirror_service.py, smelter_service.py, job_service.py, db.py, ee/models/
-
----
-
-*Research completed: 2026-04-15*  
-*Synthesized from STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md*  
-*Ready for roadmap creation: YES*
+- `.planning/research/STACK-v24.md` — Library selection, versions, rationale
+- `.planning/research/FEATURES-v24.0.md` — Feature landscape, tiers, anti-features, MVP recommendation
+- `.planning/research/ARCHITECTURE-v24.md` — Integration patterns, new components, CE/EE preservation
+- `.planning/research/PITFALLS-v24.0.md` — 14 pitfalls with prevention strategies, phase gates, recovery costs
