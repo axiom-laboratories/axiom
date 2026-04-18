@@ -237,7 +237,8 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 - [x] **Phase 169: PR Review Fix — EE Licence Guard and Import Correctness (MEDIUM)** — Fix three MEDIUM issues from PR #24 review: add /api/admin/vault and /api/admin/siem to LicenceExpiryGuard.EE_PREFIXES; replace absolute imports in siem_router.py with relative imports; add test_service.shutdown() in try/finally to prevent APScheduler job leaks from test-connection calls ✓ COMPLETE
 
-- [ ] **Phase 170: PR Review Fix — Code Hygiene and Resource Safety (LOW)** — Fix four LOW issues from PR #24 review: replace deprecated asyncio.get_event_loop() with get_running_loop() in deps.py; expose public renewal_failures property on VaultService; move residual routes (retention, verification-key, docs, job-definitions alias) from main.py to appropriate routers; snapshot VaultService config into frozen dataclass to prevent DetachedInstanceError on reinit
+- [ ] **Phase 170: PR Review Fix — Code Hygiene and Resource Safety (LOW)** — Fix four LOW issues from PR #24 review (planned 2026-04-18)
+  - [ ] Plan 01: asyncio.get_running_loop() (D-01) + renewal_failures property (D-02) + route migrations (D-03–07) + VaultConfigSnapshot (D-08–11) (Wave 1)
 
 Archive: (pending — roadmap under review)
 
