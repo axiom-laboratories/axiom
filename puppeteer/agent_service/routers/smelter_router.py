@@ -20,8 +20,7 @@ from ..models import (
     DiscoverDependenciesRequest, DiscoverDependenciesResponse,
     ApprovedIngredientResponse
 )
-from ..auth import get_current_user
-from ..security import require_permission
+from ..deps import require_permission
 from ..services.smelter_service import SmelterService
 from ..services.resolver_service import ResolverService
 from ..services.mirror_service import ProvisioningService
