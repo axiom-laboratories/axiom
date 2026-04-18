@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
-current_phase: "Phase 166 (Router Modularization)"
-current_plan: "166-05 (pytest regression testing - pending)"
-status: "Phase 166 Wave 1D complete (Plans 166-01/02/03/04) — all 7 CE routers extracted, wired, and API contract verified (105 endpoints); OpenAPI schema extraction tool created; 3 duplicate handler groups removed and fixed"
-last_updated: "2026-04-18T17:45:00Z"
+current_phase: "Phase 167 (Vault Integration)"
+current_plan: "167-01 (pending start)"
+status: "Phase 166 COMPLETE (Plans 166-01/02/03/04/05) — all 7 CE routers extracted, wired, API contract verified (105 endpoints), pytest regression testing complete (736 tests pass); zero NEW failures from refactoring; ARCH-01 through ARCH-04 requirements satisfied"
+last_updated: "2026-04-18T15:49:38Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 21
-  completed_plans: 9
+  completed_plans: 10
   requirements_mapped: "18/18"
 ---
 
@@ -45,7 +45,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 | Phase | Name | Requirements | Criteria | Status |
 |-------|------|--------------|----------|--------|
 | **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | COMPLETE (3/3 plans done) ✓ |
-| **166** | Router Modularization | ARCH-01–04 | 5 | In progress (1/6 plans done) |
+| **166** | Router Modularization | ARCH-01–04 | 5 | COMPLETE (5/5 plans done) ✓ |
 | **167** | Vault Integration (EE) | VAULT-01–06 | 6 | Not started |
 | **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
 

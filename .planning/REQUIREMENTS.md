@@ -14,10 +14,10 @@ Requirements for milestone v24.0 — Security Infrastructure & Extensibility.
 
 ### Architecture — Router Modularization
 
-- [ ] **ARCH-01**: Backend routes are split into 6 domain APIRouter modules (auth, jobs, nodes, workflows, foundry, admin/system)
-- [ ] **ARCH-02**: All existing API endpoints function identically after the refactor (zero behavior change, same paths/responses)
-- [ ] **ARCH-03**: Domain routers support per-domain middleware injection via FastAPI `Depends()`
-- [ ] **ARCH-04**: Full backend test suite passes with unchanged coverage after the refactor
+- [x] **ARCH-01**: Backend routes are split into 7 domain APIRouter modules (auth, jobs, nodes, workflows, admin, system, smelter)
+- [x] **ARCH-02**: All existing API endpoints function identically after the refactor (zero behavior change, same paths/responses)
+- [x] **ARCH-03**: Domain routers support per-domain middleware injection via FastAPI `Depends()`
+- [x] **ARCH-04**: Full backend test suite passes with unchanged coverage after the refactor
 
 ### Vault Integration (EE)
 
@@ -67,12 +67,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-03 | 165 | Pending |
-| SEC-04 | 165 | Pending |
-| ARCH-01 | 166 | Pending |
-| ARCH-02 | 166 | Pending |
-| ARCH-03 | 166 | Pending |
-| ARCH-04 | 166 | Pending |
+| SEC-03 | 165 | Complete |
+| SEC-04 | 165 | Complete |
+| ARCH-01 | 166 | Complete |
+| ARCH-02 | 166 | Complete |
+| ARCH-03 | 166 | Complete |
+| ARCH-04 | 166 | Complete |
 | VAULT-01 | 167 | Pending |
 | VAULT-02 | 167 | Pending |
 | VAULT-03 | 167 | Pending |
