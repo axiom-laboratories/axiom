@@ -560,3 +560,27 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Deviations (Rule 1 auto-fix): Fixed NoneType config access in _format_cef and status_detail for CE/dormant mode support
   - Integration verification: All tests passed (singleton pattern, masking, CEF format, queue overflow, APScheduler integration)
   - Summary: `.planning/phases/168-siem-audit-streaming-ee/168-01-SUMMARY.md`
+
+**Plan 168-02 (SIEM EE Gating & Admin Routes)**
+
+- Status: COMPLETE
+- Duration: 30 minutes (single session)
+- Tasks completed: 5/5 (100%)
+- Files created: 2
+- Files modified: 4
+- Commits: 5 (1fdc0e4b, 3be6b274, 7fe9a5b8, 3ef1b7cb, 1adbc773)
+- Requirements satisfied: SIEM-06 (CE/EE gating) — SATISFIED; SIEM-01 (Admin config UI prep) — SATISFIED
+- Key deliverables:
+  - puppeteer/agent_service/ee/interfaces/siem.py (NEW) — CE stub router returning 402 Unavailable for /admin/siem/* endpoints
+  - puppeteer/agent_service/ee/routers/siem_router.py (NEW, 197 lines) — EE admin routes:
+    - GET /admin/siem/config — retrieve current SIEM configuration
+    - PATCH /admin/siem/config — update config with hot-reload of service singleton
+    - POST /admin/siem/test-connection — test connectivity with temp config
+    - GET /admin/siem/status — retrieve service status, failure tracking, event drop counters
+  - puppeteer/agent_service/ee/__init__.py updated — register CE stub router in _mount_ce_stubs()
+  - puppeteer/agent_service/main.py updated — conditional siem_router import + registration; SIEM service initialization in startup block; graceful shutdown with queue drain
+  - puppeteer/agent_service/models.py updated — add optional siem field to SystemHealthResponse
+  - puppeteer/agent_service/routers/system_router.py updated — fetch SIEM status in system_health endpoint
+  - Deviations: None — plan executed exactly as written
+  - Integration verification: All 5 admin endpoints functional; CE stub returns 402; hot-reload works; shutdown drains queue
+  - Summary: `.planning/phases/168-siem-audit-streaming-ee/168-02-SUMMARY.md`
