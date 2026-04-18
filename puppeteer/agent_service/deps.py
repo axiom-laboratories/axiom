@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.future import select
 
@@ -89,6 +89,33 @@ def _invalidate_perm_cache(role: str | None = None) -> None:
         _perm_cache.pop(role, None)
     else:
         _perm_cache.clear()
+
+
+def require_ee():
+    """Dependency factory that enforces EE licence requirement.
+    Raises HTTP 403 if EE is not active (CE mode or expired licence).
+    Phase 167 - EE gating for Vault integration.
+
+    Usage in route:
+        async def some_route(current_user = Depends(require_ee()), request: Request = None):
+    """
+    async def _check(current_user = Depends(get_current_user), request: Request = None) -> User:
+        # Check if EE licence is active via app state
+        if request is None:
+            raise HTTPException(
+                status_code=403,
+                detail="EE licence required for this feature"
+            )
+
+        licence_state = getattr(request.app.state, 'licence_state', None)
+        if licence_state is None or not licence_state.is_ee_active:
+            raise HTTPException(
+                status_code=403,
+                detail="EE licence required for this feature"
+            )
+
+        return current_user
+    return _check
 
 
 def require_permission(perm: str):

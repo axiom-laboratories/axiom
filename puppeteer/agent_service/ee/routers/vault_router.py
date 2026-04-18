@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...db import get_db, VaultConfig, User
-from ...deps import require_permission, audit
+from ...deps import require_permission, audit, require_ee
 from ...models import VaultConfigResponse, VaultConfigUpdateRequest, VaultTestConnectionRequest, VaultTestConnectionResponse, VaultStatusResponse
 from ...security import cipher_suite
 
@@ -20,7 +20,7 @@ vault_router = APIRouter()
 
 @vault_router.get("/admin/vault/config", response_model=VaultConfigResponse, tags=["Vault Configuration"])
 async def get_vault_config(
-    current_user: User = Depends(require_permission("admin:write")),
+    current_user: User = Depends(require_ee()),
     db: AsyncSession = Depends(get_db)
 ):
     """Get current Vault configuration. Masks secret_id for security."""
@@ -37,7 +37,7 @@ async def get_vault_config(
 async def update_vault_config(
     req: VaultConfigUpdateRequest,
     request: Request,
-    current_user: User = Depends(require_permission("admin:write")),
+    current_user: User = Depends(require_ee()),
     db: AsyncSession = Depends(get_db)
 ):
     """Update Vault configuration and reinitialize service."""
@@ -97,7 +97,7 @@ async def update_vault_config(
 @vault_router.post("/admin/vault/test-connection", response_model=VaultTestConnectionResponse, tags=["Vault Configuration"])
 async def test_vault_connection(
     req: VaultTestConnectionRequest,
-    current_user: User = Depends(require_permission("admin:write")),
+    current_user: User = Depends(require_ee()),
     db: AsyncSession = Depends(get_db)
 ):
     """Test connection to Vault without persisting configuration."""
@@ -164,7 +164,7 @@ async def test_vault_connection(
 
 @vault_router.get("/admin/vault/status", response_model=VaultStatusResponse, tags=["Vault Configuration"])
 async def get_vault_status(
-    current_user: User = Depends(require_permission("admin:write")),
+    current_user: User = Depends(require_ee()),
     db: AsyncSession = Depends(get_db),
     request: Request = None
 ):

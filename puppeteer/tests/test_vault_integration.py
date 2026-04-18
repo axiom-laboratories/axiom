@@ -317,3 +317,197 @@ class TestVaultServiceStatus:
         # Simulate recovery (manual set, not automatic per D-10)
         service._status = "healthy"
         assert await service.status() == "healthy"
+
+
+# ========== EE-GATING TESTS (Phase 167-05) ==========
+
+@pytest.mark.asyncio
+async def test_ce_user_403_vault_config(async_client, db_session, ce_user_token):
+    """CE users get 403 on GET /admin/vault/config."""
+    response = await async_client.get(
+        "/admin/vault/config",
+        headers={"Authorization": f"Bearer {ce_user_token}"}
+    )
+    assert response.status_code == 403
+    detail = response.json().get("detail", "").lower()
+    assert "ee" in detail or "upgrade" in detail or "licence" in detail
+
+
+@pytest.mark.asyncio
+async def test_ce_user_403_vault_config_update(async_client, db_session, ce_user_token):
+    """CE users get 403 on PATCH /admin/vault/config."""
+    response = await async_client.patch(
+        "/admin/vault/config",
+        json={
+            "vault_address": "https://vault.example.com:8200",
+            "role_id": "test_role",
+            "secret_id": "test_secret",
+            "enabled": True,
+        },
+        headers={"Authorization": f"Bearer {ce_user_token}"}
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_ce_user_403_vault_test_connection(async_client, db_session, ce_user_token):
+    """CE users get 403 on POST /admin/vault/test-connection."""
+    response = await async_client.post(
+        "/admin/vault/test-connection",
+        json={
+            "vault_address": "https://vault.example.com:8200",
+            "role_id": "test_role",
+            "secret_id": "test_secret",
+        },
+        headers={"Authorization": f"Bearer {ce_user_token}"}
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_ce_user_403_vault_status(async_client, db_session, ce_user_token):
+    """CE users get 403 on GET /admin/vault/status."""
+    response = await async_client.get(
+        "/admin/vault/status",
+        headers={"Authorization": f"Bearer {ce_user_token}"}
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_ee_user_can_access_vault_config(async_client, db_session, ee_user_token):
+    """EE users with valid licence can access GET /admin/vault/config."""
+    response = await async_client.get(
+        "/admin/vault/config",
+        headers={"Authorization": f"Bearer {ee_user_token}"}
+    )
+    # May be 404 if no config exists, but NOT 403
+    assert response.status_code in [200, 404]
+    assert response.status_code != 403
+
+
+@pytest.mark.asyncio
+async def test_ce_user_dispatch_without_vault_unaffected(async_client, db_session, ce_user_token):
+    """CE users can dispatch jobs without vault_secrets (normal dispatch flow unaffected)."""
+    response = await async_client.post(
+        "/jobs",
+        json={
+            "task_type": "script",
+            "payload": {"content": "echo hello"},
+            "use_vault_secrets": False,
+            "vault_secrets": [],
+        },
+        headers={"Authorization": f"Bearer {ce_user_token}"}
+    )
+
+    # Should succeed (not blocked by Vault gating)
+    assert response.status_code in [200, 201]
+    assert "guid" in response.json()
+
+
+@pytest.mark.asyncio
+async def test_startup_no_ee_no_vault_clean(db_session):
+    """Platform starts cleanly with no EE licence and no Vault config."""
+    from agent_service.db import VaultConfig
+
+    # Verify Vault config doesn't exist
+    stmt = select(VaultConfig)
+    result = await db_session.execute(stmt)
+    config = result.scalar_one_or_none()
+    assert config is None  # No config
+
+
+@pytest.mark.asyncio
+async def test_dormant_vault_no_dispatch_impact(async_client, db_session, ce_user_token):
+    """Jobs dispatch normally when Vault is dormant (not configured)."""
+    # Verify no VaultConfig exists
+    from agent_service.db import VaultConfig
+    stmt = select(VaultConfig)
+    result = await db_session.execute(stmt)
+    config = result.scalar_one_or_none()
+    assert config is None
+
+    # Dispatch a normal job (no vault_secrets)
+    response = await async_client.post(
+        "/jobs",
+        json={
+            "task_type": "script",
+            "payload": {"content": "echo hello"},
+        },
+        headers={"Authorization": f"Bearer {ce_user_token}"}
+    )
+
+    # Should succeed
+    assert response.status_code in [200, 201]
+    assert "guid" in response.json()
+
+
+# ========== FIXTURES FOR CE/EE TOKENS ==========
+
+@pytest.fixture
+async def ce_user_token(db_session):
+    """Create a CE-only user token (no EE licence)."""
+    from agent_service.auth import create_access_token
+    from agent_service.db import User, AsyncSessionLocal
+    from agent_service.auth import get_password_hash
+
+    async with AsyncSessionLocal() as session:
+        user = User(
+            username="ce_test_user",
+            password_hash=get_password_hash("testpass123"),
+            role="admin",
+            must_change_password=False,
+            token_version=0
+        )
+        session.add(user)
+        await session.commit()
+
+        # Create token for CE user (no EE key in token or licence state)
+        token = create_access_token({"sub": user.username, "tv": user.token_version})
+        return token
+
+
+@pytest.fixture
+async def ee_user_token(db_session, async_client):
+    """Create an EE user token (with valid EE licence) via mocked licence state."""
+    from agent_service.auth import create_access_token
+    from agent_service.db import User, AsyncSessionLocal
+    from agent_service.auth import get_password_hash
+    from agent_service.services.licence_service import LicenceState, LicenceStatus
+
+    async with AsyncSessionLocal() as session:
+        user = User(
+            username="ee_test_user",
+            password_hash=get_password_hash("testpass123"),
+            role="admin",
+            must_change_password=False,
+            token_version=0
+        )
+        session.add(user)
+        await session.commit()
+
+        # Create token for EE user
+        token = create_access_token({"sub": user.username, "tv": user.token_version})
+
+        # Mock the licence state to be VALID (EE active) for this test
+        # This simulates an EE licence being present
+        ee_state = LicenceState(
+            status=LicenceStatus.VALID,
+            tier="ee",
+            customer_id="test-customer",
+            node_limit=100,
+            grace_days=30,
+            days_until_expiry=365,
+            features=["vault"],
+            is_ee_active=True
+        )
+        # Store the original state to restore later
+        from agent_service.main import app
+        original_state = getattr(app.state, 'licence_state', None)
+        app.state.licence_state = ee_state
+
+        yield token
+
+        # Restore original licence state
+        if original_state:
+            app.state.licence_state = original_state
