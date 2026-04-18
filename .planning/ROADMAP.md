@@ -26,7 +26,7 @@
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
 - ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–164 (shipped 2026-04-18)
-- 🔧 **v24.0 — Security Infrastructure & Extensibility** — Phases 165–168 (in progress)
+- 🔧 **v24.0 — Security Infrastructure & Extensibility** — Phases 165–170 (in progress)
 
 ## Phases
 
@@ -234,6 +234,10 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
   - [ ] Plan 03: Sensitive field masking + PII scrubbing
   - [ ] Plan 04: Retry logic with exponential backoff + admin alert dashboard
   - [ ] Plan 05: EE-gating + integration testing with mock SIEM destination
+
+- [ ] **Phase 169: PR Review Fix — EE Licence Guard and Import Correctness (MEDIUM)** — Fix three MEDIUM issues from PR #24 review: add /api/admin/vault and /api/admin/siem to LicenceExpiryGuard.EE_PREFIXES; replace absolute imports in siem_router.py with relative imports; add test_service.shutdown() in try/finally to prevent APScheduler job leaks from test-connection calls
+
+- [ ] **Phase 170: PR Review Fix — Code Hygiene and Resource Safety (LOW)** — Fix four LOW issues from PR #24 review: replace deprecated asyncio.get_event_loop() with get_running_loop() in deps.py; expose public renewal_failures property on VaultService; move residual routes (retention, verification-key, docs, job-definitions alias) from main.py to appropriate routers; snapshot VaultService config into frozen dataclass to prevent DetachedInstanceError on reinit
 
 Archive: (pending — roadmap under review)
 

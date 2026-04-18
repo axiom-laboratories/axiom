@@ -189,6 +189,11 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - **CE/EE Split:** All EE routers remain in ee_plugin; all CE routers in puppeteer/agent_service
 - **Circular Imports:** Careful import ordering required; may need base contracts module
 
+## Roadmap Evolution
+
+- Phase 169 added (2026-04-18): PR Review Fix — EE Licence Guard and Import Correctness (MEDIUM) — fixes EE_PREFIXES gap, siem_router.py relative imports, and test_service shutdown leak
+- Phase 170 added (2026-04-18): PR Review Fix — Code Hygiene and Resource Safety (LOW) — fixes deprecated get_event_loop(), vault private attribute access, residual routes in main.py, VaultService config snapshot
+
 ## Accumulated Context
 
 ### From v23.0 Completion
