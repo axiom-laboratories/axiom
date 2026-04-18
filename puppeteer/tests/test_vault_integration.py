@@ -521,6 +521,5 @@ async def ee_user_token(db_session, async_client):
 
         yield token
 
-        # Restore original licence state
-        if original_state:
-            app.state.licence_state = original_state
+        # Always restore original licence state (including None for CE startup)
+        app.state.licence_state = original_state
