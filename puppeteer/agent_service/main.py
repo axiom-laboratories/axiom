@@ -44,7 +44,7 @@ from .models import (
     JobTemplateCreate, JobTemplateUpdate, JobTemplateResponse, RetentionConfigUpdate,
     LicenceReloadRequest, LicenceReloadResponse,
     SIGNING_FIELDS,
-    PaginatedResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
+    PaginatedResponse, PaginatedJobResponse, ActionResponse, JobCountResponse, JobStatsResponse, DispatchDiagnosisResponse, BulkDispatchDiagnosisResponse,
     DependencyTreeResponse, DiscoverDependenciesResponse,
     WorkflowCreate, WorkflowResponse, WorkflowUpdate, WorkflowRunResponse,
     WorkflowWebhookCreate, WorkflowWebhookResponse,
@@ -1257,7 +1257,7 @@ async def get_licence_status(request: Request, current_user: User = Depends(requ
 
 @app.get(
     "/jobs",
-    response_model=PaginatedResponse[JobResponse],
+    response_model=PaginatedJobResponse,
     tags=["Jobs"],
     summary="List all jobs",
     description="Retrieve a paginated list of all jobs with optional filtering by status, runtime, tags, and other criteria."
