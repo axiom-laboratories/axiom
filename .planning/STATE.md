@@ -4,8 +4,8 @@ milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
 current_phase: "Phase 167 (Vault Integration)"
 current_plan: "167-01 (pending start)"
-status: "Phase 166 COMPLETE (Plans 166-01 through 166-06) — all 7 CE routers extracted, wired, API contract verified (105 endpoints), pytest regression testing complete (736 tests pass), final verification complete; zero NEW failures from refactoring; ARCH-01 through ARCH-04 requirements VERIFIED"
-last_updated: "2026-04-18T17:15:00Z"
+status: "Phase 167 discuss complete — 167-CONTEXT.md written; 4 implementation decisions locked (EE gating, server-side secret injection, DB-backed config, boot-clean fallback); ready for plan-phase"
+last_updated: "2026-04-18T18:30:00Z"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -46,7 +46,7 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SU
 |-------|------|--------------|----------|--------|
 | **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | COMPLETE (3/3 plans done) ✓ |
 | **166** | Router Modularization | ARCH-01–04 | 5 | COMPLETE (6/6 plans done) ✓ |
-| **167** | Vault Integration (EE) | VAULT-01–06 | 6 | Not started |
+| **167** | Vault Integration (EE) | VAULT-01–06 | 6 | CONTEXT ready — ready for plan-phase |
 | **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
 
 ### Critical Path
