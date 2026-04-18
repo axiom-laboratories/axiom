@@ -1,0 +1,45 @@
+version: 2
+updates:
+  # Pip security updates (backend)
+  - package-ecosystem: "pip"
+    directory: "/puppeteer"
+    schedule:
+      interval: "weekly"
+    groups:
+      security-updates:
+        patterns:
+          - "*"
+        dependency-type: "all"
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 5
+
+  # NPM security updates (frontend)
+  - package-ecosystem: "npm"
+    directory: "/puppeteer/dashboard"
+    schedule:
+      interval: "weekly"
+    groups:
+      security-updates:
+        patterns:
+          - "*"
+        dependency-type: "all"
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions security updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      security-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 3
