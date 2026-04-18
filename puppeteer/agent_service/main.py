@@ -203,7 +203,6 @@ async def lifespan(app: FastAPI):
     try:
         from .ee.services.siem_service import SIEMService, set_active
         from .db import SIEMConfig
-        from .services.scheduler_service import scheduler_service
         async with AsyncSessionLocal() as _db:
             _siem_result = await _db.execute(select(SIEMConfig).limit(1))
             _siem_config = _siem_result.scalars().first()
