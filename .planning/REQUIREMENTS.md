@@ -67,30 +67,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-03 | — | Pending |
-| SEC-04 | — | Pending |
-| ARCH-01 | — | Pending |
-| ARCH-02 | — | Pending |
-| ARCH-03 | — | Pending |
-| ARCH-04 | — | Pending |
-| VAULT-01 | — | Pending |
-| VAULT-02 | — | Pending |
-| VAULT-03 | — | Pending |
-| VAULT-04 | — | Pending |
-| VAULT-05 | — | Pending |
-| VAULT-06 | — | Pending |
-| SIEM-01 | — | Pending |
-| SIEM-02 | — | Pending |
-| SIEM-03 | — | Pending |
-| SIEM-04 | — | Pending |
-| SIEM-05 | — | Pending |
-| SIEM-06 | — | Pending |
+| SEC-03 | 165 | Pending |
+| SEC-04 | 165 | Pending |
+| ARCH-01 | 166 | Pending |
+| ARCH-02 | 166 | Pending |
+| ARCH-03 | 166 | Pending |
+| ARCH-04 | 166 | Pending |
+| VAULT-01 | 167 | Pending |
+| VAULT-02 | 167 | Pending |
+| VAULT-03 | 167 | Pending |
+| VAULT-04 | 167 | Pending |
+| VAULT-05 | 167 | Pending |
+| VAULT-06 | 167 | Pending |
+| SIEM-01 | 168 | Pending |
+| SIEM-02 | 168 | Pending |
+| SIEM-03 | 168 | Pending |
+| SIEM-04 | 168 | Pending |
+| SIEM-05 | 168 | Pending |
+| SIEM-06 | 168 | Pending |
 
 **Coverage:**
 - v24.0 requirements: 18 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-18*
-*Last updated: 2026-04-18 after initial definition*
+*Last updated: 2026-04-18 after roadmap creation*

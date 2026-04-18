@@ -26,6 +26,7 @@
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
 - ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–164 (shipped 2026-04-18)
+- 🔧 **v24.0 — Security Infrastructure & Extensibility** — Phases 165–168 (in progress)
 
 ## Phases
 
@@ -204,6 +205,38 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 </details>
 
+<details>
+<summary>🔧 v24.0 — Security Infrastructure & Extensibility (Phases 165–168) — IN PROGRESS</summary>
+
+- [ ] **Phase 165: Dependabot CVE Remediation** — Resolve all HIGH and MODERATE security vulnerabilities flagged on v23.0 release tag
+  - [ ] Plan 01: Update cryptography to >= 46.0.7 and resolve all Dependabot HIGH/MODERATE alerts
+  - [ ] Plan 02: Backend pytest suite validation (full coverage baseline)
+  - [ ] Plan 03: Frontend vitest suite validation + Docker image security scan
+
+- [ ] **Phase 166: Router Modularization** — Refactor main.py (89 routes) into 6 domain-specific APIRouter modules
+  - [ ] Plan 01: Split routes into auth_router, jobs_router, nodes_router, workflows_router
+  - [ ] Plan 02: Create foundry_router, admin_router, system_router with middleware injection support
+  - [ ] Plan 03: Verify behavior equivalence (all 89 routes function identically)
+  - [ ] Plan 04: Full pytest suite validation with unchanged coverage
+
+- [ ] **Phase 167: HashiCorp Vault Integration (EE)** — External secrets management with AppRole auth, lease renewal, graceful fallback
+  - [ ] Plan 01: Vault service layer (hvac AppRole client, secret fetch/cache, lease renewal)
+  - [ ] Plan 02: Job dispatch secrets injection + admin UI configuration
+  - [ ] Plan 03: Health-check endpoint + graceful degradation when Vault unavailable
+  - [ ] Plan 04: Dashboard admin panel integration + Vault status display
+  - [ ] Plan 05: EE-gating + CE fallback validation
+
+- [ ] **Phase 168: SIEM Audit Streaming (EE)** — Real-time audit log export with CEF/syslog formatting, batching, masking
+  - [ ] Plan 01: SIEM service layer (webhook/syslog backends, CEF formatter, batch queue)
+  - [ ] Plan 02: Admin UI configuration + enable/disable toggle
+  - [ ] Plan 03: Sensitive field masking + PII scrubbing
+  - [ ] Plan 04: Retry logic with exponential backoff + admin alert dashboard
+  - [ ] Plan 05: EE-gating + integration testing with mock SIEM destination
+
+Archive: (pending — roadmap under review)
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -264,4 +297,8 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 162. Frontend Component Fixes | v23.0 | 1/1 | Complete | 2026-04-17 |
 | 163. v23.0 Tech Debt Closure | v23.0 | 2/2 | Complete | 2026-04-17 |
 | 164. Adversarial Audit Remediation | v23.0 | 4/4 | Complete | 2026-04-18 |
+| 165. Dependabot CVE Remediation | v24.0 | 0/3 | Not started | — |
+| 166. Router Modularization | v24.0 | 0/4 | Not started | — |
+| 167. Vault Integration (EE) | v24.0 | 0/5 | Not started | — |
+| 168. SIEM Streaming (EE) | v24.0 | 0/5 | Not started | — |
 

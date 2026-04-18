@@ -2,44 +2,239 @@
 gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
-current_phase: Not started
-current_plan: —
-status: Defining requirements
+current_phase: "Phase 165 (not yet started)"
+current_plan: "—"
+status: "Roadmap drafted, awaiting approval"
 last_updated: "2026-04-18T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
-  total_plans: 0
+  total_plans: 18
   completed_plans: 0
+  requirements_mapped: "18/18"
 ---
 
-# Session State
+# Session State — v24.0 Roadmap
 
 ## Project Reference
 
-See: .planning/PROJECT.md
+**Core Value:** Secure, pull-based job orchestration across heterogeneous node fleets — with mTLS identity, Ed25519-signed execution, and container-isolated runtime
 
-## Position
+**Milestone:** v24.0 — Security Infrastructure & Extensibility  
+**Target:** Harden the platform's infrastructure foundation by resolving known vulnerabilities, modularizing the backend, introducing external secrets management (Vault), and enabling SIEM audit log streaming
 
-**Milestone:** v24.0 (Security Infrastructure & Extensibility)
-**Current phase:** Not started (defining requirements)
-**Current plan:** —
-**Status:** Defining requirements
+See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/research/SUMMARY.md`
 
-## Last Activity
+## Current Position
 
-- 2026-04-18 — Milestone v24.0 started
+**Milestone:** v24.0  
+**Current phase:** Phase 165 (not yet started)  
+**Current plan:** —  
+**Status:** Roadmap drafted, awaiting user approval
+
+**Progress:**
+- Phases identified: 4 (165, 166, 167, 168)
+- Requirements mapped: 18/18 (100% coverage)
+- Plans drafted: 18 (3 + 4 + 5 + 5)
+- Implementation status: 0% (ready for planning)
+
+## Roadmap Summary
+
+### Phase Structure
+
+| Phase | Name | Requirements | Criteria | Status |
+|-------|------|--------------|----------|--------|
+| **165** | Dependabot CVE Remediation | SEC-03, SEC-04 | 5 | Not started |
+| **166** | Router Modularization | ARCH-01–04 | 5 | Not started |
+| **167** | Vault Integration (EE) | VAULT-01–06 | 6 | Not started |
+| **168** | SIEM Streaming (EE) | SIEM-01–06 | 6 | Not started |
+
+### Critical Path
+
+```
+Phase 165 (Dependabot CVE fixes) — Fast (security patches)
+    ↓
+Phase 166 (Router Modularization) — Blocker for Vault + SIEM
+    ↙                                              ↘
+Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
+   Can run in parallel
+```
+
+**Key blocker:** Phase 166 must complete before Phase 167 and 168 — both downstream features require router modularization to support injectable middleware.
+
+## Requirements Coverage
+
+**Total v24.0 requirements:** 18  
+**Mapped to phases:** 18  
+**Unmapped:** 0 ✓
+
+**Breakdown by phase:**
+- Phase 165: 2 requirements (SEC-03, SEC-04)
+- Phase 166: 4 requirements (ARCH-01, ARCH-02, ARCH-03, ARCH-04)
+- Phase 167: 6 requirements (VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, VAULT-06)
+- Phase 168: 6 requirements (SIEM-01, SIEM-02, SIEM-03, SIEM-04, SIEM-05, SIEM-06)
+
+## Phase Details
+
+### Phase 165: Dependabot CVE Remediation
+
+**Goal:** Resolve all HIGH and MODERATE security vulnerabilities flagged on the v23.0 release tag
+
+**Key requirements:**
+- SEC-03: Platform ships with `cryptography >= 46.0.7` (buffer-overflow fix)
+- SEC-04: All Dependabot HIGH and MODERATE alerts resolved
+
+**Success criteria:**
+1. cryptography >= 46.0.7 installed and all tests pass
+2. All HIGH/MODERATE Dependabot alerts on v23.0 tag are resolved
+3. Full backend pytest suite passes with no regressions
+4. Full frontend vitest suite passes with no regressions
+5. Docker image builds without security-flagged vulnerabilities
+
+**Plans:** 3 (updates + backend tests + frontend tests)
+
+### Phase 166: Router Modularization
+
+**Goal:** Refactor main.py (89 routes) into 6 domain-specific APIRouter modules to enable middleware injection for downstream Vault and SIEM features
+
+**Key requirements:**
+- ARCH-01: Routes split into 6 domain routers (auth, jobs, nodes, workflows, foundry, admin/system)
+- ARCH-02: Zero behavior change — all endpoints function identically
+- ARCH-03: Domain routers support per-router middleware injection via FastAPI `Depends()`
+- ARCH-04: Full test suite passes with unchanged coverage
+
+**Success criteria:**
+1. All 89 routes split across 6 domain routers; no routes remain in main.py
+2. All existing API endpoints function identically (same paths, request/response shapes, status codes)
+3. Domain routers support per-router middleware injection without circular imports
+4. Full pytest suite (89 route tests + 40 service-layer tests) passes with baseline coverage
+5. CE/EE router boundaries preserved — all EE routers in ee_plugin, all CE routers in puppeteer/agent_service
+
+**Plans:** 4 (route splits + middleware + verification + testing)
+
+### Phase 167: HashiCorp Vault Integration (EE)
+
+**Goal:** Enable EE administrators to centralize secrets management via Vault with automatic fetch, lease renewal, and graceful fallback
+
+**Key requirements:**
+- VAULT-01: Admin can configure Vault (address + AppRole credentials) via UI or env vars
+- VAULT-02: Secrets fetched at startup with fallback to env vars when Vault unavailable
+- VAULT-03: Job dispatch injects Vault secrets into execution context without embedding in definition
+- VAULT-04: Active secret lease renewal during long-running jobs (30% TTL margin)
+- VAULT-05: Admin dashboard shows Vault connectivity status (healthy / degraded / disabled)
+- VAULT-06: Platform starts and degrades gracefully when Vault offline at boot
+
+**Success criteria:**
+1. EE admin can configure Vault connection via dashboard or env vars
+2. Secrets fetched at startup with automatic fallback to env vars
+3. Job execution receives Vault secrets via environment variables
+4. Background lease renewal prevents mid-job secret expiry
+5. Dashboard System Health card shows Vault connectivity status
+6. Platform starts successfully even when Vault is unreachable at boot
+
+**Plans:** 5 (service layer + dispatch injection + UI + health check + fallback validation)
+
+### Phase 168: SIEM Audit Streaming (EE)
+
+**Goal:** Enable real-time audit log streaming to SIEM platforms with CEF formatting, batching, masking, and retry logic
+
+**Key requirements:**
+- SIEM-01: Admin can configure SIEM destination (webhook URL or syslog host) via UI
+- SIEM-02: Audit events streamed in batches (100 events or 5 seconds, whichever first)
+- SIEM-03: Webhook payloads formatted as CEF (Common Event Format)
+- SIEM-04: Sensitive fields masked before transmission to SIEM
+- SIEM-05: Failed deliveries retried with exponential backoff + admin alert
+- SIEM-06: SIEM streaming can be disabled without affecting local audit log
+
+**Success criteria:**
+1. EE admin can configure SIEM destination via dashboard or env vars
+2. Audit events buffered and flushed in batches (100 events or 5s)
+3. SIEM webhook payloads formatted as CEF with device/signature/event/severity fields
+4. Secrets, tokens, API keys, passwords, and non-ID user fields masked before transmission
+5. Failed webhook deliveries retried with exponential backoff; exhausted retries trigger admin alert
+6. SIEM streaming can be disabled via config toggle without affecting local audit log
+
+**Plans:** 5 (service layer + middleware + admin UI + retry logic + testing)
+
+## Key Architectural Notes
+
+### Vault Specifics
+- **Library:** hvac >= 1.2.0 (official Vault Python client, AppRole auth, production-grade)
+- **Fallback:** Grace-period mode — platform starts with env vars when Vault unavailable
+- **Lease Renewal:** Background task renews leases with 30% TTL margin before expiry
+- **Job Injection:** Secrets injected as env vars into job execution context without modifying signed script content
+
+### SIEM Specifics
+- **Library:** syslogcef >= 0.3.0 (CEF formatting, battle-tested, 95% SIEM support)
+- **Batching:** In-memory queue, flush at 100 events OR 5 seconds (prevents log flooding)
+- **Masking:** regex patterns mask secrets, tokens, API keys, passwords, non-ID user fields
+- **Retry:** Exponential backoff (2s → 4s → 8s → 16s) with admin dashboard alert on exhaustion
+- **Disabling:** Toggle in config without affecting local AuditLog table persistence
+
+### Router Modularization Specifics
+- **Target:** 6 domain routers (auth, jobs, nodes, workflows, foundry, admin/system)
+- **Middleware:** Per-router `Depends()` injection for Vault and SIEM streaming
+- **CE/EE Split:** All EE routers remain in ee_plugin; all CE routers in puppeteer/agent_service
+- **Circular Imports:** Careful import ordering required; may need base contracts module
 
 ## Accumulated Context
 
-### Roadmap Evolution (v23.0 carry-forward)
-- Phase 156 added: State of the Nation Report
-- Phase 157 added: Close deferred technical debt: fix frontend test infrastructure failures and low-priority gaps from v23.0 state-of-nation report
-- Phase 164 added: Adversarial audit remediation - fix mTLS enforcement, RCE in Foundry, migration framework, and FE/BE gaps
-
-### Key Technical Notes (from v23.0)
-- Alembic two-layer startup in place: `create_all` for new tables + `alembic upgrade head` for schema evolution
-- mTLS enforcement at Python layer (verify_client_cert() in security.py) on /work/pull and /heartbeat
-- Foundry injection recipe whitelist (exact command matching) active at API + build time
+### From v23.0 Completion
+- Alembic two-layer startup in place: `create_all` for new tables + `alembic upgrade head` for evolution
+- mTLS enforcement at Python layer (verify_client_cert) on /work/pull and /heartbeat
+- Foundry injection recipe whitelist (exact command matching) active
 - Public keys (MANIFEST_PUBLIC_KEY, LICENCE_PUBLIC_KEY) externalized to env vars
-- Dependabot: 3 vulnerabilities flagged on v23.0 tag push (2 high, 1 moderate) — see GitHub Security tab
+- Full workflow engine operational (BFS topological dispatch, 6 gate types, WORKFLOW_PARAM_* injection)
+
+### Dependabot Flags
+- 2 HIGH vulnerabilities on v23.0 tag (GitHub Security tab)
+- 1 MODERATE vulnerability on v23.0 tag
+- All must be resolved before ship
+
+### Research Findings (v24.0 specific)
+- 14 pitfalls identified with prevention strategies
+- Top 5 critical: Vault hard startup dependency, secret lease expiry, TPM library availability, plugin version conflicts, SIEM log flooding
+- All new libraries are production-grade and actively maintained
+- Router refactoring is critical blocker for Vault and SIEM
+
+## Deferred to v24.1+
+
+**Out of Scope for v24.0:**
+- TPM-based node identity — requires OS-specific library testing (Alpine, Windows, ARM64, vTPM variants)
+- Plugin System v2 SDK — requires stable API contract design and version conflict detection
+
+## Open Questions / TBD
+
+1. **CE vs EE boundary for Vault and SIEM** — Should both be EE-only or CE-native with EE-advanced features?
+2. **Vault licensing model** — Will Vault licensing affect deployment topology?
+3. **SIEM format extensibility** — CEF only, or should we prepare for Splunk HEC native format in future?
+
+## Notes for Planning
+
+- **Phase 165:** Fast (1–2 days) — security patches are high-priority but straightforward
+- **Phase 166:** Longest (3–4 days) — modularization requires careful attention to avoid circular imports
+- **Phase 167 & 168:** Can run in parallel after Phase 166 (2–3 days each)
+- **Total estimate:** 8–10 days of Claude-directed work
+
+**Granularity setting:** "fine" — allows natural 4-phase clustering (not over-compressed)
+
+## Workflow
+
+**Next step:** User reviews ROADMAP.md and approves or requests revisions
+
+**After approval:**
+1. Spawn `/gsd:plan-phase 165` for detailed Phase 165 planning
+2. Once Phase 166 is drafted, begin Phase 167/168 planning in parallel
+3. Each phase completion triggers verification agent (full test suite + success criteria)
+
+## Files
+
+- `.planning/ROADMAP.md` — Full phase details, success criteria, progress table
+- `.planning/REQUIREMENTS.md` — Traceability table (requirements → phases), updated
+- `.planning/research/SUMMARY.md` — Research findings and recommendations
+- `.planning/STATE.md` — This file
+
+---
+
+**Roadmap created:** 2026-04-18  
+**Status:** DRAFT — awaiting user approval
