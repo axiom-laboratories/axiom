@@ -37,8 +37,20 @@ Add HashiCorp Vault as an optional external secrets backend, gated behind the EE
 - **D-11:** Vault configuration form lives in the existing `Admin.tsx` view (new "Vault" section/tab). Fields: address, role_id, secret_id (masked), mount_path, namespace, enabled toggle, test-connection button. The health status indicator (`healthy` / `degraded` / `disabled`) appears in the Vault section header.
 - **D-12:** Job dispatch: `use_vault_secrets` boolean flag on `JobDispatchRequest` (default `false`, backward-compat). `vault_secrets: list[str]` field lists secret names to resolve. Both fields are optional — omitting them means no Vault interaction, existing behaviour unchanged.
 
+### SecretsProvider Abstraction
+- **D-13:** Phase 167 introduces a `SecretsProvider` protocol as the canonical interface for all secrets backends. HashiCorp Vault is implementation #1. The protocol is defined in `ee/` alongside the Vault implementation:
+  ```python
+  class SecretsProvider(Protocol):
+      async def resolve(self, names: list[str]) -> dict[str, str]: ...
+      async def status(self) -> Literal["healthy", "degraded", "disabled"]: ...
+      async def renew(self) -> None: ...
+  ```
+- **D-14:** The dispatch layer (`job_service.py`) calls `secrets_provider.resolve(names)` — it is never coupled to Vault directly. This means adding a future backend requires zero changes to dispatch logic.
+- **D-15:** The active provider is selected from `VaultConfig` (type field: `"vault"` for now). Future phases add `"azure_keyvault"`, `"aws_secretsmanager"`, `"gcp_secretmanager"` as additional options. The DB config row and admin UI field for provider type are added in Phase 167 even though only `"vault"` is implemented — this avoids a migration later.
+- **D-16:** Additional configurable provider implementations (Azure KV, AWS SM, GCP SM, 1Password) are explicitly deferred to a later EE phase. Phase 167 ships the abstraction + Vault only.
+
 ### Upstream Compatibility
-- **D-13:** `hvac >= 1.2.0` is the only new Python dependency. It speaks the standard Vault HTTP API. Both HashiCorp Vault (all editions) and OpenBao (the MPL-2.0 community fork) are compatible — no code changes needed to support either. Users choose their Vault server independently.
+- **D-17:** `hvac >= 1.2.0` is the only new Python dependency. It speaks the standard Vault HTTP API. Both HashiCorp Vault (all editions) and OpenBao (the MPL-2.0 community fork) are compatible — no code changes needed to support either. Users choose their Vault server independently.
 
 ### Claude's Discretion
 - Exact Alembic migration SQL for `vault_config` table
@@ -110,10 +122,11 @@ Add HashiCorp Vault as an optional external secrets backend, gated behind the EE
 <deferred>
 ## Deferred Ideas
 
-- **OpenBao as explicit first-class backend** — hvac works with OpenBao already; a dedicated OpenBao configuration option (separate endpoint prefix, different default mount) could be a follow-up if users request it
+- **Additional SecretsProvider backends** — deferred to a follow-on EE phase. Planned backends: Azure Key Vault (`azure-keyvault-secrets` + `azure-identity`, MIT), AWS Secrets Manager (`boto3`, Apache 2.0), GCP Secret Manager (`google-cloud-secret-manager`, Apache 2.0), 1Password Secrets Automation (`onepassword-sdk-python`, Apache 2.0). All ~1–1.5 days LOE each once the abstraction from D-13 is in place. Phase 167 adds the `provider_type` field to `VaultConfig` to avoid a migration later.
+- **OpenBao as explicit first-class backend** — hvac works with OpenBao already; a named option in the provider type dropdown could be a follow-up if users request it
 - **Per-job-definition Vault path overrides** — current design uses global mount_path; path-per-job would require schema changes beyond this phase
-- **Vault token auth method** — AppRole is the only auth method in scope. Token-based or Kubernetes auth could be added later as an option within the EE plugin
-- **Secret rotation webhooks** — Vault can notify on secret rotation; proactive cache invalidation would require a webhook receiver, out of scope for this phase
+- **Vault token / Kubernetes auth methods** — AppRole is the only auth method in scope for Phase 167
+- **Secret rotation webhooks** — proactive cache invalidation via Vault notifications; requires a webhook receiver, out of scope for this phase
 - **Offsite Dashboard over WireGuard** (pre-existing idea, unrelated to Vault)
 
 </deferred>
