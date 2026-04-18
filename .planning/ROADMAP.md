@@ -209,9 +209,9 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 <summary>🔧 v24.0 — Security Infrastructure & Extensibility (Phases 165–168) — IN PROGRESS</summary>
 
 - [ ] **Phase 165: Dependabot CVE Remediation** — Resolve all HIGH and MODERATE security vulnerabilities flagged on v23.0 release tag
-  - [ ] Plan 01: Update cryptography to >= 46.0.7 and resolve all Dependabot HIGH/MODERATE alerts
-  - [ ] Plan 02: Backend pytest suite validation (full coverage baseline)
-  - [ ] Plan 03: Frontend vitest suite validation + Docker image security scan
+  - [ ] Plan 01: Update cryptography >= 46.0.7 and crypto chain (python-jose, PyJWT); rebuild Docker; pytest validation
+  - [ ] Plan 02: Update npm packages to resolve HIGH/MODERATE CVEs; create .github/dependabot.yml automation
+  - [ ] Plan 03: E2E smoke tests (mop-e2e); Docker verification; final audit snapshot
 
 - [ ] **Phase 166: Router Modularization** — Refactor main.py (89 routes) into 6 domain-specific APIRouter modules
   - [ ] Plan 01: Split routes into auth_router, jobs_router, nodes_router, workflows_router
