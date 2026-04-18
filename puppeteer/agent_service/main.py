@@ -220,11 +220,14 @@ async def lifespan(app: FastAPI):
                 logger.info("SIEM service disabled or not configured")
     except ImportError:
         logger.debug("SIEM service not available (EE feature)")
-        set_active(None)
         app.state.siem_service = None
     except Exception as _e:
         logger.warning(f"SIEM service initialization failed: {_e}")
-        set_active(None)
+        try:
+            from .ee.services.siem_service import set_active as _set_active_fallback
+            _set_active_fallback(None)
+        except Exception:
+            pass
         app.state.siem_service = None
 
     # Pre-warm permission cache — DEBT-03
