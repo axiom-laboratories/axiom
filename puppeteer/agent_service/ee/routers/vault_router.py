@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...db import get_db, VaultConfig, User
 from ...deps import require_permission, audit
-from ...models import VaultConfigResponse, VaultConfigUpdateRequest, VaultTestConnectionRequest, VaultTestConnectionResponse
+from ...models import VaultConfigResponse, VaultConfigUpdateRequest, VaultTestConnectionRequest, VaultTestConnectionResponse, VaultStatusResponse
 from ...security import cipher_suite
 
 logger = logging.getLogger(__name__)
@@ -160,3 +160,36 @@ async def test_vault_connection(
             error_detail=error_msg,
             message=f"Connection test failed: {error_msg}"
         )
+
+
+@vault_router.get("/admin/vault/status", response_model=VaultStatusResponse, tags=["Vault Configuration"])
+async def get_vault_status(
+    current_user: User = Depends(require_permission("admin:write")),
+    db: AsyncSession = Depends(get_db),
+    request: Request = None
+):
+    """Get current Vault health status with renewal failure tracking."""
+    # Fetch vault config
+    result = await db.execute(select(VaultConfig).where(VaultConfig.enabled == True).limit(1))
+    vault_config = result.scalar_one_or_none()
+
+    if not vault_config:
+        raise HTTPException(status_code=404, detail="No Vault configuration found")
+
+    # Get vault_service from app state
+    vault_service = getattr(request.app.state, 'vault_service', None)
+
+    if not vault_service:
+        raise HTTPException(status_code=503, detail="Vault service not initialized")
+
+    # Get current status and renewal failure count
+    status = await vault_service.status()
+    renewal_failures = vault_service._consecutive_renewal_failures
+
+    return VaultStatusResponse(
+        status=status,
+        vault_address=vault_config.vault_address,
+        last_checked_at=getattr(vault_service, '_last_status_check', None),
+        error_detail=getattr(vault_service, '_last_error', None),
+        renewal_failures=renewal_failures
+    )
