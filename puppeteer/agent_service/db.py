@@ -105,6 +105,27 @@ class ScheduledJob(Base):
     allow_overlap: Mapped[bool] = mapped_column(Boolean, default=False)  # SRCH-08: default safe — no concurrent runs
     dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
 
+
+class VaultConfig(Base):
+    """Vault integration configuration (EE only). Per D-05.
+
+    Stored in DB for runtime editability without restart.
+    secret_id is Fernet-encrypted at rest (same cipher as ENCRYPTION_KEY).
+    Env var bootstrap (VAULT_ADDRESS, VAULT_ROLE_ID, VAULT_SECRET_ID) seeds this on first boot.
+    """
+    __tablename__ = "vault_config"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    vault_address: Mapped[str] = mapped_column(String(512), nullable=False)
+    role_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    secret_id: Mapped[str] = mapped_column(Text, nullable=False)  # Fernet-encrypted at rest
+    mount_path: Mapped[str] = mapped_column(String(255), default="secret", nullable=False)
+    namespace: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Vault Enterprise
+    provider_type: Mapped[str] = mapped_column(String(32), default="vault", nullable=False)  # D-15: future extensibility
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class Token(Base):
     __tablename__ = "tokens"
     token: Mapped[str] = mapped_column(String, primary_key=True)
