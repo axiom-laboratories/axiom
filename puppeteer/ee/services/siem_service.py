@@ -146,73 +146,65 @@ class SIEMService:
         if batch:
             await self.flush_batch(batch)
 
-    async def flush_batch(self, batch: list[dict]) -> None:
+    async def flush_batch(self, batch: list[dict], attempt: int = 0) -> None:
         """Format batch to CEF and deliver with retry (D-13, D-14).
 
-        Attempts delivery with exponential backoff:
-        - Attempt 1: immediate
-        - Attempt 2: retry after 5s
-        - Attempt 3: retry after 10s
-        - Attempt 4: retry after 20s
-        After 3 consecutive failures, transitions to DEGRADED status.
+        Single attempt per call. On failure, schedules the next retry via APScheduler
+        with escalating backoff (5s → 10s → 20s). The attempt counter is passed to
+        each scheduled retry so backoff escalates correctly across calls.
+
+        Attempt 0: immediate (called by _flush_periodically or lifespan shutdown)
+        Attempt 1: retry after 5s
+        Attempt 2: retry after 10s
+        Attempt 3 (final): retry after 20s → on failure, transitions to DEGRADED
         """
         if not batch:
             return
 
-        cef_lines = []
-        for event in batch:
-            cef_line = self._format_cef(event)
-            cef_lines.append(cef_line)
+        max_attempts = 4  # attempts 0-3
+        backoff_delays = [5, 10, 20]  # delay before attempt 1, 2, 3
 
+        cef_lines = [self._format_cef(event) for event in batch]
         payload = "\n".join(cef_lines)
 
-        # Attempt delivery with exponential backoff retry (D-13)
-        max_attempts = 3
-        backoff_delays = [5, 10, 20]  # seconds
+        try:
+            await self._deliver(payload)
+            self._consecutive_failures = 0
+            self._status = "healthy"
+            self._last_checked_at = datetime.utcnow()
+            logger.debug(f"SIEM batch delivered: {len(batch)} events (attempt {attempt})")
+            return
+        except Exception as e:
+            self._last_error = str(e)
+            self._consecutive_failures += 1
+            self._last_checked_at = datetime.utcnow()
 
-        for attempt in range(max_attempts):
-            try:
-                await self._deliver(payload)
-                self._consecutive_failures = 0
-                self._status = "healthy"
-                self._last_checked_at = datetime.utcnow()
-                logger.debug(f"SIEM batch delivered: {len(batch)} events")
-                return
-            except Exception as e:
-                self._last_error = str(e)
-                self._consecutive_failures += 1
-                self._last_checked_at = datetime.utcnow()
-
-                if attempt < max_attempts - 1:
-                    # Schedule retry with backoff delay and stop the current call.
-                    # The scheduled job will call flush_batch again with the same batch.
-                    delay = backoff_delays[attempt]
-                    job_id = f"siem_retry_{uuid4()}_{attempt + 1}"
-                    self.scheduler.add_job(
-                        self.flush_batch,
-                        "date",
-                        run_date=datetime.utcnow() + timedelta(seconds=delay),
-                        args=[batch],
-                        id=job_id,
-                        replace_existing=False,
-                    )
-                    logger.warning(
-                        f"SIEM delivery failed (attempt {attempt + 1}/{max_attempts}), "
-                        f"retrying in {delay}s: {e}"
-                    )
-                    return  # Let the scheduled retry handle next attempt
-                else:
-                    # Final attempt failed
+            next_attempt = attempt + 1
+            if next_attempt < max_attempts:
+                delay = backoff_delays[attempt]  # 5s, 10s, 20s for attempts 0→1, 1→2, 2→3
+                job_id = f"siem_retry_{uuid4()}_{next_attempt}"
+                self.scheduler.add_job(
+                    self.flush_batch,
+                    "date",
+                    run_date=datetime.utcnow() + timedelta(seconds=delay),
+                    args=[batch, next_attempt],
+                    id=job_id,
+                    replace_existing=False,
+                )
+                logger.warning(
+                    f"SIEM delivery failed (attempt {attempt}/{max_attempts - 1}), "
+                    f"retrying in {delay}s: {e}"
+                )
+            else:
+                logger.error(
+                    f"SIEM delivery failed after {max_attempts} attempts; "
+                    f"dropping batch of {len(batch)} events: {e}"
+                )
+                if self._consecutive_failures >= 3:
+                    self._status = "degraded"
                     logger.error(
-                        f"SIEM delivery failed after {max_attempts} attempts; "
-                        f"dropping batch of {len(batch)} events: {e}"
+                        "SIEM transitioned to DEGRADED after 3 consecutive batch failures"
                     )
-                    if self._consecutive_failures >= 3:
-                        # Transition to DEGRADED after 3 consecutive batch failures (D-14)
-                        self._status = "degraded"
-                        logger.error(
-                            "SIEM transitioned to DEGRADED after 3 consecutive batch failures"
-                        )
 
     def _format_cef(self, event: dict) -> str:
         """Format audit event to CEF with field masking (D-11, D-12).
