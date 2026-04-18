@@ -141,6 +141,8 @@ class JobCreate(BaseModel):
     memory_limit: Optional[str] = None  # e.g., "512m", "1g", "1Gi"
     cpu_limit: Optional[str] = None     # e.g., "2", "0.5"
     target_node_id: Optional[str] = None  # Explicit node targeting
+    use_vault_secrets: bool = False  # Whether to resolve secrets from Vault (D-12)
+    vault_secrets: List[str] = Field(default_factory=list)  # List of secret names to resolve (D-12)
 
     @field_validator("env_tag", mode="before")
     @classmethod
@@ -180,6 +182,70 @@ class JobCreate(BaseModel):
         if not re.match(r'^\d+(\.\d+)?$', v_str):
             raise ValueError(f"Invalid CPU format: {v}. Use format like '2', '0.5'")
         return v_str
+
+
+class VaultConfigResponse(BaseModel):
+    """Response for GET /admin/vault/config. Masks secret_id for security (T-167-03)."""
+    vault_address: str
+    role_id: str
+    secret_id_masked: str = Field(description="First 8 chars of secret_id")
+    mount_path: str
+    namespace: Optional[str] = None
+    provider_type: str
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @staticmethod
+    def from_vault_config(config: "VaultConfig") -> "VaultConfigResponse":
+        """Convert DB VaultConfig to response, masking secret_id (T-167-03)."""
+        masked = (config.secret_id[:8] + "...") if config.secret_id else "***"
+        return VaultConfigResponse(
+            vault_address=config.vault_address,
+            role_id=config.role_id,
+            secret_id_masked=masked,
+            mount_path=config.mount_path,
+            namespace=config.namespace,
+            provider_type=config.provider_type,
+            enabled=config.enabled,
+            created_at=config.created_at,
+            updated_at=config.updated_at,
+        )
+
+
+class VaultConfigUpdateRequest(BaseModel):
+    """Request body for PATCH /admin/vault/config. All fields optional (T-167-02)."""
+    vault_address: Optional[str] = None
+    role_id: Optional[str] = None
+    secret_id: Optional[str] = None  # Only updated if provided; not returned in responses
+    mount_path: Optional[str] = None
+    namespace: Optional[str] = None
+    provider_type: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class VaultTestConnectionRequest(BaseModel):
+    """Request body for POST /admin/vault/test-connection."""
+    vault_address: str
+    role_id: str
+    secret_id: str
+    mount_path: str = "secret"
+    namespace: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VaultTestConnectionResponse(BaseModel):
+    """Response for POST /admin/vault/test-connection."""
+    success: bool
+    status: Literal["healthy", "degraded", "disabled"]
+    error_detail: Optional[str] = None
+    message: str
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class RegisterRequest(BaseModel):
     client_secret: str
