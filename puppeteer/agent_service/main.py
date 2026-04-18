@@ -546,6 +546,11 @@ try:
 except ImportError:
     vault_router = None
 
+try:
+    from .ee.routers.siem_router import router as siem_router
+except ImportError:
+    siem_router = None
+
 # Include CE routers (after middleware setup, before route definitions)
 app.include_router(auth_router, tags=["Authentication"])
 app.include_router(jobs_router, tags=["Jobs", "Job Definitions", "Job Templates", "CI/CD Dispatch"])
@@ -558,6 +563,9 @@ app.include_router(smelter_router, tags=["Foundry", "Blueprints"])
 # Include EE routers (if available)
 if vault_router:
     app.include_router(vault_router, tags=["Vault Configuration"])
+
+if siem_router:
+    app.include_router(siem_router, tags=["SIEM Configuration"])
 
 # Serve Installer Scripts
 @app.get(
