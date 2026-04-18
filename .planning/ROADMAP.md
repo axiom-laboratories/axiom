@@ -214,8 +214,8 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
   - [x] Plan 03: E2E smoke tests (mop-e2e); Docker verification; final audit snapshot
 
 - [ ] **Phase 166: Router Modularization** — Refactor main.py (89 routes) into 6 domain-specific APIRouter modules (6 plans)
-  - [ ] Plan 01: Extract auth_router and jobs_router; wire both into main.py (Wave 1)
-  - [ ] Plan 02: Extract nodes_router and workflows_router; wire all 4 routers; verify pytest (Wave 1)
+  - [x] Plan 01: Extract auth_router and jobs_router; wire both into main.py (Wave 1) (completed 2026-04-18)
+  - [x] Plan 02: Extract nodes_router and workflows_router; wire all 4 routers; verify pytest (Wave 1) (completed 2026-04-18)
   - [ ] Plan 03: Extract admin_router and system_router; wire all 7 routers; remove all routes from main.py; verify pytest (Wave 2)
   - [ ] Plan 04: Create openapi_diff.py Wave 0 artifact; verify OpenAPI schema (89 routes, zero behavior change) (Wave 2)
   - [ ] Plan 05: Full pytest suite regression validation (737+ tests, unchanged coverage) (Wave 2)

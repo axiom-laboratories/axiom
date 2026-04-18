@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: "Security Infrastructure & Extensibility"
 current_phase: "Phase 166 (in progress)"
-current_plan: "166-02"
-status: "Phase 166 Plan 166-01 complete (2 routers extracted and integrated); 5 plans remain in phase"
-last_updated: "2026-04-18T16:05:00Z"
+current_plan: "166-03"
+status: "Phase 166 Plan 166-02 complete (4 routers extracted and integrated); 4 plans remain in phase"
+last_updated: "2026-04-18T16:10:00Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 21
-  completed_plans: 4
+  completed_plans: 5
   requirements_mapped: "18/18"
 ---
 
@@ -322,3 +322,22 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
   - Permission checks via Depends(require_permission(...)) preserved exactly as original
   - Summary: `.planning/phases/166-router-modularization/166-01-SUMMARY.md`
 - Next: Plan 166-02 to extract nodes and workflows routers (4 remaining routers to modularize across remaining plans)
+
+**Plan 166-02 (Router Modularization — Wave 1B: Nodes & Workflows Routers)**
+- Status: COMPLETE
+- Duration: 70 minutes (across 2 sessions)
+- Tasks completed: 3/3 (100%)
+- Files created: 2
+- Files modified: 2
+- Commits: 1 (039437e0)
+- Requirements satisfied: ARCH-01 (routes split) — SATISFIED; ARCH-02 (zero behavior change) — SATISFIED
+- Key deliverables:
+  - puppeteer/agent_service/routers/nodes_router.py (394 lines) — 3 unauthenticated agent endpoints (mTLS) + 10 authenticated management endpoints extracted from main.py
+  - puppeteer/agent_service/routers/workflows_router.py (625 lines) — 16 workflow endpoints (CRUD, execution, webhooks, triggers) extracted from main.py
+  - puppeteer/agent_service/main.py modified — Both routers imported and wired via app.include_router() calls (lines 518-523)
+  - puppeteer/agent_service/services/licence_service.py fixed — absolute import → relative (from agent_service.security → from ..security)
+  - All routers follow consistent pattern: APIRouter() without prefix, relative imports, scoped WebSocket imports, audit before commit
+  - App startup verified: import test passes in Docker (✓ All routers registered, ✓ App startup successful)
+  - Test suite: 741 passed (no regressions from router extraction; 49 pre-existing failures unrelated)
+  - Summary: `.planning/phases/166-router-modularization/166-02-SUMMARY.md`
+- Next: Plan 166-03 to extract foundry_router and admin_router (2 remaining routers)
