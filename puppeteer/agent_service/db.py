@@ -4,8 +4,14 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint, ForeignKey, Index
 from datetime import datetime
 import json
+import logging
 from typing import Optional, List
 from uuid import uuid4
+
+logger = logging.getLogger(__name__)
+
+# Import cipher_suite for Vault secret encryption (D-05)
+from .security import cipher_suite
 
 # Database URL (Default to Postgres, fallback to SQLite for local dev if needed)
 # In Docker, this will be: postgresql+asyncpg://user:pass@db/dbname
@@ -64,6 +70,8 @@ class Job(Base):
     cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)     # e.g., "2", "0.5"
     workflow_step_run_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # FK to workflow_step_runs.id (Phase 147)
     depth: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Nesting depth for ENGINE-02 override
+    use_vault_secrets: Mapped[bool] = mapped_column(Boolean, default=False)  # Phase 167-02: Vault secret resolution enabled
+    vault_secrets: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Phase 167-02: JSON list of secret names
 
     __table_args__ = (
         Index("ix_jobs_status_created_at", "status", "created_at"),
@@ -592,9 +600,59 @@ class WorkflowStepRun(Base):
     workflow_step: Mapped["WorkflowStep"] = relationship("WorkflowStep")
 
 
+async def _bootstrap_vault_config():
+    """Bootstrap VaultConfig from env vars if table is empty (D-05).
+
+    Env vars: VAULT_ADDRESS, VAULT_ROLE_ID, VAULT_SECRET_ID
+    Only creates row if:
+    1. Table exists (metadata.create_all already ran)
+    2. No VaultConfig row exists yet
+    3. All three env vars are set
+
+    Idempotent: running multiple times creates only one row.
+    """
+    from sqlalchemy import func
+
+    vault_addr = os.getenv("VAULT_ADDRESS")
+    vault_role_id = os.getenv("VAULT_ROLE_ID")
+    vault_secret_id = os.getenv("VAULT_SECRET_ID")
+
+    # If any env var missing, skip bootstrap (not configured)
+    if not all([vault_addr, vault_role_id, vault_secret_id]):
+        return
+
+    async with AsyncSessionLocal() as session:
+        # Check if VaultConfig row already exists
+        stmt = select(func.count(VaultConfig.id))
+        result = await session.execute(stmt)
+        count = result.scalar() or 0
+
+        if count > 0:
+            logger.debug("VaultConfig already seeded; skipping env var bootstrap")
+            return
+
+        # Create new VaultConfig row with encrypted secret_id
+        config = VaultConfig(
+            id=str(uuid4()),
+            vault_address=vault_addr,
+            role_id=vault_role_id,
+            secret_id=cipher_suite.encrypt(vault_secret_id.encode()).decode(),  # Fernet encrypt before storing
+            mount_path="secret",  # Default per D-05
+            namespace=os.getenv("VAULT_NAMESPACE"),  # Optional
+            provider_type="vault",
+            enabled=True  # Auto-enable if env vars present
+        )
+        session.add(config)
+        await session.commit()
+        logger.info("VaultConfig seeded from env vars (VAULT_ADDRESS, VAULT_ROLE_ID, VAULT_SECRET_ID)")
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Bootstrap VaultConfig from env vars if needed
+    await _bootstrap_vault_config()
 
     # Seed default mirror config entries if they don't exist
     async with AsyncSessionLocal() as session:

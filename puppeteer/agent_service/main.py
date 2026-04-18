@@ -147,6 +147,26 @@ async def lifespan(app: FastAPI):
         ctx = EEContext()
         _mount_ce_stubs(app)
         app.state.ee = ctx
+
+    # Phase 167-02: Initialize Vault service for secret resolution
+    try:
+        from .ee.services.vault_service import VaultService
+        from .db import VaultConfig
+        async with AsyncSessionLocal() as _db:
+            _vc_result = await _db.execute(select(VaultConfig).where(VaultConfig.enabled == True).limit(1))
+            _vault_config = _vc_result.scalar_one_or_none()
+            # VaultService initialized with config (None if not enabled) and db session
+            app.state.vault_service = VaultService(_vault_config, _db)
+            await app.state.vault_service.startup()
+            _status = await app.state.vault_service.status()
+            logger.info(f"Vault service initialized: status={_status}")
+    except ImportError:
+        logger.debug("Vault service not available (EE feature)")
+        app.state.vault_service = None
+    except Exception as _e:
+        logger.warning(f"Vault service initialization failed: {_e}")
+        app.state.vault_service = None
+
     # Pre-warm permission cache — DEBT-03
     # Avoids per-request DB queries in require_permission() after startup.
     try:
