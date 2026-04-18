@@ -77,6 +77,16 @@ class SIEMService:
             logger.info("SIEM not configured; running in dormant mode")
             return
 
+        # Always register the flush job so the service can recover if the destination
+        # becomes reachable after startup (degraded → healthy on next successful delivery).
+        self.scheduler.add_job(
+            self._flush_periodically,
+            "interval",
+            seconds=5,
+            id="__siem_flush__",
+            replace_existing=True,
+        )
+
         try:
             # Test destination reachability
             await self._test_connection()
@@ -84,15 +94,6 @@ class SIEMService:
             self._last_checked_at = datetime.utcnow()
             logger.info(
                 f"SIEM connection healthy: {self.config.backend} → {self.config.destination}"
-            )
-
-            # Register periodic flush job with APScheduler (D-09)
-            self.scheduler.add_job(
-                self._flush_periodically,
-                "interval",
-                seconds=5,
-                id="__siem_flush__",
-                replace_existing=True,
             )
         except Exception as e:
             self._status = "degraded"
@@ -183,7 +184,8 @@ class SIEMService:
                 self._last_checked_at = datetime.utcnow()
 
                 if attempt < max_attempts - 1:
-                    # Schedule retry with backoff delay
+                    # Schedule retry with backoff delay and stop the current call.
+                    # The scheduled job will call flush_batch again with the same batch.
                     delay = backoff_delays[attempt]
                     job_id = f"siem_retry_{uuid4()}_{attempt + 1}"
                     self.scheduler.add_job(
@@ -198,6 +200,7 @@ class SIEMService:
                         f"SIEM delivery failed (attempt {attempt + 1}/{max_attempts}), "
                         f"retrying in {delay}s: {e}"
                     )
+                    return  # Let the scheduled retry handle next attempt
                 else:
                     # Final attempt failed
                     logger.error(
@@ -259,12 +262,23 @@ class SIEMService:
             "cs2": event.get("resource_id", "—"),
         }
 
+        def _escape_cef_extension_value(v) -> str:
+            # CEF spec: escape \ → \\, = → \=, newline → \n in extension values
+            s = str(v)
+            s = s.replace("\\", "\\\\")
+            s = s.replace("=", "\\=")
+            s = s.replace("\n", "\\n")
+            s = s.replace("\r", "\\r")
+            return s
+
         # Format CEF header and extensions
         cef_header = (
             f"CEF:{cef_version}|{device_vendor}|{device_product}|{device_version}|"
             f"{signature_id}|{name}|{severity}"
         )
-        cef_extensions = " ".join([f"{k}={v}" for k, v in extensions.items()])
+        cef_extensions = " ".join(
+            [f"{k}={_escape_cef_extension_value(v)}" for k, v in extensions.items()]
+        )
         return f"{cef_header}|{cef_extensions}"
 
     def _map_severity(self, action: str) -> int:
