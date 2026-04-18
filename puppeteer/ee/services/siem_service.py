@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import socket
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional, Literal
 from uuid import uuid4
@@ -19,6 +20,22 @@ from sqlalchemy.future import select
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from agent_service.db import SIEMConfig
+
+
+@dataclass(frozen=True)
+class _SIEMConfigSnapshot:
+    """Immutable snapshot of SIEMConfig values taken at service construction time.
+
+    Avoids DetachedInstanceError when the ORM session that loaded the config
+    is closed or committed while the long-lived singleton still holds a reference.
+    """
+    backend: str
+    destination: str
+    syslog_port: int
+    syslog_protocol: str
+    cef_device_vendor: str
+    cef_device_product: str
+    enabled: bool
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +75,20 @@ class SIEMService:
             db: AsyncSession for DB operations
             scheduler: APScheduler AsyncIOScheduler instance for batch flush and retry jobs
         """
-        self.config = config
+        # Snapshot config values into a plain dataclass to prevent DetachedInstanceError
+        # when the SQLAlchemy session that loaded the ORM object closes after startup.
+        self.config: Optional[_SIEMConfigSnapshot] = (
+            _SIEMConfigSnapshot(
+                backend=config.backend,
+                destination=config.destination,
+                syslog_port=config.syslog_port,
+                syslog_protocol=config.syslog_protocol,
+                cef_device_vendor=config.cef_device_vendor,
+                cef_device_product=config.cef_device_product,
+                enabled=config.enabled,
+            )
+            if config else None
+        )
         self.db = db
         self.scheduler = scheduler
         self.queue: asyncio.Queue = asyncio.Queue(maxsize=10_000)

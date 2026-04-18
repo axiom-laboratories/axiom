@@ -40,7 +40,8 @@ async def test_siem_service_initialization(mock_siem_config, mock_db, mock_sched
     """Test SIEMService initializes with correct queue and status."""
     siem = SIEMService(mock_siem_config, mock_db, mock_scheduler)
 
-    assert siem.config == mock_siem_config
+    assert siem.config.backend == mock_siem_config.backend
+    assert siem.config.destination == mock_siem_config.destination
     assert siem.queue.maxsize == 10000
     assert siem._consecutive_failures == 0
     assert siem._dropped_events_count == 0
