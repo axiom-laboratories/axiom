@@ -26,7 +26,7 @@ import jwt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey  # noqa: F401
 
-from agent_service.security import ENCRYPTION_KEY
+from ..security import ENCRYPTION_KEY
 
 logger = logging.getLogger(__name__)
 
