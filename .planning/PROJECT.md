@@ -12,11 +12,23 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
+## Current Milestone: v24.0 Security Infrastructure & Extensibility
+
+**Goal:** Harden the platform's infrastructure foundation by resolving known vulnerabilities, modularizing the backend into domain routers, introducing external secrets management (HashiCorp Vault), hardware-backed node identity (TPM), a plugin SDK architecture, and SIEM-compatible audit log streaming.
+
+**Target features:**
+- Dependabot vulnerability remediation (2 high, 1 moderate — flagged on v23.0 tag push)
+- Refactor `main.py` into domain-specific routers (maintainability + testability)
+- External Secrets Provider — HashiCorp Vault integration
+- Hardware-Backed Identity — TPM-based node identity for hostile environments
+- Plugin System v2 — SDK-based architecture for third-party extensibility
+- Audit Log Streaming — SIEM integration (syslog / webhook export)
+
 ## Current State
 
 **Latest shipped:** v23.0 DAG & Workflow Orchestration (2026-04-18)
 **Previous:** v22.0 Security Hardening (2026-04-15)
-**Next milestone:** v24.0 (TBD — see `.planning/STATE-OF-NATION.md` for recommendations)
+**Current milestone:** v24.0 Security Infrastructure & Extensibility (in progress)
 
 ## Requirements
 
@@ -600,4 +612,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike), UX-04/05/06/07 (operator UX polish, deferred from v19.0 to v20.0).
 
 ---
-*Last updated: 2026-04-18 after v23.0 milestone — DAG & Workflow Orchestration*
+*Last updated: 2026-04-18 after v24.0 milestone start — Security Infrastructure & Extensibility*
