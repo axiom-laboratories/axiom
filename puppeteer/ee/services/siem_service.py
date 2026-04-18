@@ -348,6 +348,9 @@ class SIEMService:
             handler = logging.handlers.SysLogHandler(
                 address=(host, port), socktype=socktype
             )
+            # Override default formatter so the raw CEF string is sent without
+            # the "INFO:siem:" prefix that the default formatter would prepend.
+            handler.setFormatter(logging.Formatter("%(message)s"))
 
             # Send each CEF line as a syslog message
             for line in payload.split("\n"):
