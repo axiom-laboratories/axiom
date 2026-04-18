@@ -494,3 +494,15 @@ async def test_signing_key_id(setup_db):
         session.add(key)
         await session.commit()
     return key_id
+
+
+@pytest_asyncio.fixture
+async def db_session(setup_db):
+    """Create a fresh AsyncSession for Vault integration testing."""
+    from agent_service.db import AsyncSessionLocal, Base, engine
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with AsyncSessionLocal() as session:
+        yield session
