@@ -82,8 +82,8 @@ async def update_config(
     # Hot-reload: reinitialize singleton so config takes effect without restart (SIEM-01)
     # Without this, changes only apply after a process restart.
     try:
-        from ee.services.siem_service import SIEMService, set_active, get_siem_service
-        from agent_service.services.scheduler_service import scheduler_service
+        from ..services.siem_service import SIEMService, set_active, get_siem_service
+        from ...services.scheduler_service import scheduler_service
 
         old = get_siem_service()
         if old:
@@ -109,9 +109,9 @@ async def test_connection(
 ):
     """Test connectivity to the configured SIEM destination."""
     try:
-        from ee.services.siem_service import SIEMService, get_siem_service
-        from agent_service.db import AsyncSessionLocal
-        from agent_service.services.scheduler_service import scheduler_service
+        from ..services.siem_service import SIEMService, get_siem_service
+        from ...db import AsyncSessionLocal
+        from ...services.scheduler_service import scheduler_service
 
         # Create temporary test config
         test_config = SIEMConfig(
@@ -128,8 +128,11 @@ async def test_connection(
         # Create test service and attempt connection
         async with AsyncSessionLocal() as test_db:
             test_service = SIEMService(test_config, test_db, scheduler_service.scheduler)
-            await test_service.startup()
-            status = await test_service.status()
+            try:
+                await test_service.startup()
+                status = await test_service.status()
+            finally:
+                await test_service.shutdown()
 
         # Audit the test attempt
         audit(db, current_user, "siem:test_connection", req.destination, {
@@ -179,7 +182,7 @@ async def get_status(
     request: Request = None,
 ):
     """Retrieve SIEM service status."""
-    from ee.services.siem_service import get_siem_service
+    from ..services.siem_service import get_siem_service
 
     siem = get_siem_service()
     if not siem:

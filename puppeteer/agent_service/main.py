@@ -582,6 +582,8 @@ class LicenceExpiryGuard(BaseHTTPMiddleware):
         "/api/smelter",
         "/api/executions",
         "/api/admin/bundles",
+        "/api/admin/vault",
+        "/api/admin/siem",
     )
 
     async def dispatch(self, request: Request, call_next):
