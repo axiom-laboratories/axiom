@@ -167,6 +167,34 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Vault service initialization failed: {_e}")
         app.state.vault_service = None
 
+    # Phase 168: Initialize SIEM service for audit log streaming
+    try:
+        from .ee.services.siem_service import SIEMService, set_active
+        from .db import SIEMConfig
+        from .services.scheduler_service import scheduler_service
+        async with AsyncSessionLocal() as _db:
+            _siem_result = await _db.execute(select(SIEMConfig).limit(1))
+            _siem_config = _siem_result.scalars().first()
+            if _siem_config and _siem_config.enabled:
+                _siem_service = SIEMService(_siem_config, _db, scheduler_service.scheduler)
+                await _siem_service.startup()
+                set_active(_siem_service)
+                app.state.siem_service = _siem_service
+                _siem_status = await _siem_service.status()
+                logger.info(f"SIEM service initialized: status={_siem_status}")
+            else:
+                set_active(None)
+                app.state.siem_service = None
+                logger.info("SIEM service disabled or not configured")
+    except ImportError:
+        logger.debug("SIEM service not available (EE feature)")
+        set_active(None)
+        app.state.siem_service = None
+    except Exception as _e:
+        logger.warning(f"SIEM service initialization failed: {_e}")
+        set_active(None)
+        app.state.siem_service = None
+
     # Pre-warm permission cache — DEBT-03
     # Avoids per-request DB queries in require_permission() after startup.
     try:
@@ -462,6 +490,26 @@ async def lifespan(app: FastAPI):
 
     yield
     # Shutdown logic
+
+    # Phase 168: Shutdown SIEM service with graceful queue drain
+    try:
+        siem = getattr(app.state, 'siem_service', None)
+        if siem:
+            # Optional drain: flush remaining queue on graceful shutdown.
+            # D-08 accepts event loss on crash, but a clean shutdown can save the last ~5s of events.
+            remaining = []
+            while not siem.queue.empty():
+                try:
+                    remaining.append(siem.queue.get_nowait())
+                except Exception:
+                    break
+            if remaining:
+                await siem.flush_batch(remaining)
+            await siem.shutdown()
+            logger.info("SIEM service shutdown complete")
+    except Exception as _e:
+        logger.error(f"Error shutting down SIEM service: {_e}")
+
     scheduler_service.scheduler.shutdown()
 
 app = FastAPI(
