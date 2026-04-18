@@ -364,6 +364,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ### Active — Future Milestones (v24.0+)
 
+- [ ] **SECURITY**: Resolve 3 Dependabot vulnerabilities on main (2 high, 1 moderate) — flagged on v23.0 tag push 2026-04-18. Check GitHub Security tab for details.
 - [ ] Workflow execution analytics + critical path tracing (v24.0+)
 - [ ] Rerun from failure point — restart WorkflowRun from first failed step (v24.0+)
 - [ ] Cross-workflow dependencies — workflows calling other workflows (v24.0+)
