@@ -1,0 +1,451 @@
+"""Real-time audit log streaming to SIEM platforms (webhook/syslog) with CEF formatting.
+
+Implements Phase 168 SIEM Audit Streaming (EE).
+Non-blocking startup; graceful degradation; best-effort delivery (local audit_log is canonical).
+Module-level singleton via get_siem_service() / set_active().
+"""
+
+import asyncio
+import json
+import logging
+import socket
+from datetime import datetime, timedelta
+from typing import Optional, Literal
+from uuid import uuid4
+
+import httpx
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from agent_service.db import SIEMConfig
+
+logger = logging.getLogger(__name__)
+
+# Sensitive field keys that must be masked before transmission (D-11, D-12)
+SENSITIVE_KEYS = {
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "secret_id",
+    "role_id",
+    "encryption_key",
+    "access_token",
+    "refresh_token",
+}
+
+
+class SIEMService:
+    """Real-time audit log streaming to SIEM platforms (webhook/syslog) with CEF formatting.
+
+    Non-blocking startup; graceful degradation; best-effort delivery (local audit_log is canonical).
+    Batches events (100 events or 5s, whichever first) before transmission.
+    Masks sensitive fields at format time (never modifies audit_log DB).
+    Retries failed deliveries with exponential backoff (5s → 10s → 20s, max 3 attempts).
+    """
+
+    def __init__(
+        self,
+        config: Optional[SIEMConfig],
+        db: AsyncSession,
+        scheduler: AsyncIOScheduler,
+    ):
+        """Initialize SIEM service.
+
+        Args:
+            config: SIEMConfig DB model (None in CE or dormant mode)
+            db: AsyncSession for DB operations
+            scheduler: APScheduler AsyncIOScheduler instance for batch flush and retry jobs
+        """
+        self.config = config
+        self.db = db
+        self.scheduler = scheduler
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=10_000)
+        self._status: Literal["healthy", "degraded", "disabled"] = (
+            "disabled" if not config or not config.enabled else "unknown"
+        )
+        self._consecutive_failures = 0
+        self._dropped_events_count = 0
+        self._last_error: Optional[str] = None
+        self._last_checked_at: Optional[datetime] = None
+
+    async def startup(self) -> None:
+        """Initialize SIEM connection (non-blocking). Sets status DEGRADED if fails (D-07)."""
+        if not self.config or not self.config.enabled:
+            self._status = "disabled"
+            logger.info("SIEM not configured; running in dormant mode")
+            return
+
+        try:
+            # Test destination reachability
+            await self._test_connection()
+            self._status = "healthy"
+            self._last_checked_at = datetime.utcnow()
+            logger.info(
+                f"SIEM connection healthy: {self.config.backend} → {self.config.destination}"
+            )
+
+            # Register periodic flush job with APScheduler (D-09)
+            self.scheduler.add_job(
+                self._flush_periodically,
+                "interval",
+                seconds=5,
+                id="__siem_flush__",
+                replace_existing=True,
+            )
+        except Exception as e:
+            self._status = "degraded"
+            self._last_error = str(e)
+            self._last_checked_at = datetime.utcnow()
+            logger.warning(f"SIEM unavailable at startup; running degraded: {e}")
+
+    def enqueue(self, event: dict) -> None:
+        """Queue an audit event (fire-and-forget, non-blocking, D-03, D-09).
+
+        If queue is full, drops oldest event and logs warning.
+        Never blocks or raises exceptions that propagate to caller.
+        """
+        try:
+            self.queue.put_nowait(event)
+        except asyncio.QueueFull:
+            # Drop oldest event on overflow (D-10)
+            try:
+                self.queue.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+            try:
+                self.queue.put_nowait(event)
+                self._dropped_events_count += 1
+                logger.warning(
+                    "siem_queue_overflow",
+                    extra={"dropped_total": self._dropped_events_count},
+                )
+            except asyncio.QueueFull:
+                # Queue still full after dropping oldest; give up
+                pass
+        except Exception:
+            # Never propagate exceptions from enqueue to caller
+            pass
+
+    async def _flush_periodically(self) -> None:
+        """APScheduler job: flush batch if queue has events (D-09).
+
+        Reads up to 100 events from queue and calls flush_batch().
+        Runs every 5 seconds (registered in startup()).
+        """
+        batch = []
+        while len(batch) < 100:  # Max 100 events per flush (D-09)
+            try:
+                event = self.queue.get_nowait()
+                batch.append(event)
+            except asyncio.QueueEmpty:
+                break
+
+        if batch:
+            await self.flush_batch(batch)
+
+    async def flush_batch(self, batch: list[dict]) -> None:
+        """Format batch to CEF and deliver with retry (D-13, D-14).
+
+        Attempts delivery with exponential backoff:
+        - Attempt 1: immediate
+        - Attempt 2: retry after 5s
+        - Attempt 3: retry after 10s
+        - Attempt 4: retry after 20s
+        After 3 consecutive failures, transitions to DEGRADED status.
+        """
+        if not batch:
+            return
+
+        cef_lines = []
+        for event in batch:
+            cef_line = self._format_cef(event)
+            cef_lines.append(cef_line)
+
+        payload = "\n".join(cef_lines)
+
+        # Attempt delivery with exponential backoff retry (D-13)
+        max_attempts = 3
+        backoff_delays = [5, 10, 20]  # seconds
+
+        for attempt in range(max_attempts):
+            try:
+                await self._deliver(payload)
+                self._consecutive_failures = 0
+                self._status = "healthy"
+                self._last_checked_at = datetime.utcnow()
+                logger.debug(f"SIEM batch delivered: {len(batch)} events")
+                return
+            except Exception as e:
+                self._last_error = str(e)
+                self._consecutive_failures += 1
+                self._last_checked_at = datetime.utcnow()
+
+                if attempt < max_attempts - 1:
+                    # Schedule retry with backoff delay
+                    delay = backoff_delays[attempt]
+                    job_id = f"siem_retry_{uuid4()}_{attempt + 1}"
+                    self.scheduler.add_job(
+                        self.flush_batch,
+                        "date",
+                        run_date=datetime.utcnow() + timedelta(seconds=delay),
+                        args=[batch],
+                        id=job_id,
+                        replace_existing=False,
+                    )
+                    logger.warning(
+                        f"SIEM delivery failed (attempt {attempt + 1}/{max_attempts}), "
+                        f"retrying in {delay}s: {e}"
+                    )
+                else:
+                    # Final attempt failed
+                    logger.error(
+                        f"SIEM delivery failed after {max_attempts} attempts; "
+                        f"dropping batch of {len(batch)} events: {e}"
+                    )
+                    if self._consecutive_failures >= 3:
+                        # Transition to DEGRADED after 3 consecutive batch failures (D-14)
+                        self._status = "degraded"
+                        logger.error(
+                            "SIEM transitioned to DEGRADED after 3 consecutive batch failures"
+                        )
+
+    def _format_cef(self, event: dict) -> str:
+        """Format audit event to CEF with field masking (D-11, D-12).
+
+        Masks sensitive fields (password, secret, token, api_key, *_key, *_secret).
+        Masking happens at format time only; never modifies the stored audit_log.
+        """
+        # Mask sensitive fields in detail (D-11, D-12)
+        detail = event.get("detail") or {}
+        masked_detail = {}
+        for key, value in detail.items():
+            key_lower = key.lower()
+            if key_lower in SENSITIVE_KEYS or key_lower.endswith(("_key", "_secret")):
+                masked_detail[key] = "***"
+            else:
+                masked_detail[key] = value
+
+        # Build CEF header and extensions
+        # CEF:0|Vendor|Product|Version|SignatureID|Name|Severity|[Extensions]
+        cef_version = "0"
+        device_vendor = self.config.cef_device_vendor or "Axiom"
+        device_product = self.config.cef_device_product or "MasterOfPuppets"
+        device_version = "24.0"
+        action = event.get("action", "unknown")
+        signature_id = f"audit.{action}"
+        name = f"Audit: {action}"
+        severity = self._map_severity(action)
+
+        # Extensions (ArcSight/CEF extension dictionary)
+        event_timestamp = event.get("timestamp", datetime.utcnow())
+        if isinstance(event_timestamp, datetime):
+            timestamp_ms = int(event_timestamp.timestamp() * 1000)
+        else:
+            timestamp_ms = int(datetime.fromisoformat(event_timestamp).timestamp() * 1000)
+
+        extensions = {
+            "rt": timestamp_ms,
+            "msg": json.dumps(masked_detail),
+            "duser": event.get("username", "unknown"),
+            "cs1Label": "audit_action",
+            "cs1": action,
+            "cs2Label": "resource_id",
+            "cs2": event.get("resource_id", "—"),
+        }
+
+        # Format CEF header and extensions
+        cef_header = (
+            f"CEF:{cef_version}|{device_vendor}|{device_product}|{device_version}|"
+            f"{signature_id}|{name}|{severity}"
+        )
+        cef_extensions = " ".join([f"{k}={v}" for k, v in extensions.items()])
+        return f"{cef_header}|{cef_extensions}"
+
+    def _map_severity(self, action: str) -> int:
+        """Map audit action to CEF severity (1-10).
+
+        Severity scale:
+        1=Unknown, 2=Very Low, 3=Low, 4=Medium, 5=High, 6=Very High,
+        7=High, 8=Critical, 9-10=Emergency
+        """
+        severity_map = {
+            "login": 5,
+            "login_failure": 6,
+            "user_create": 5,
+            "user_delete": 7,
+            "config_change": 6,
+            "job_execute": 4,
+            "job_failure": 7,
+            "permission_grant": 6,
+            "permission_revoke": 6,
+            "vault:config_update": 6,
+            "siem:config_update": 6,
+        }
+        return severity_map.get(action, 4)  # Default: Medium
+
+    async def _deliver(self, payload: str) -> None:
+        """Deliver CEF payload via webhook or syslog.
+
+        Webhook: POST to destination URL with Content-Type: application/cef
+        Syslog: Send via UDP or TCP to destination:port
+        """
+        if not self.config:
+            raise Exception("SIEM not configured")
+
+        if self.config.backend == "webhook":
+            await self._deliver_webhook(payload)
+        elif self.config.backend == "syslog":
+            await self._deliver_syslog(payload)
+        else:
+            raise Exception(f"Unknown SIEM backend: {self.config.backend}")
+
+    async def _deliver_webhook(self, payload: str) -> None:
+        """Deliver payload to webhook URL."""
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                self.config.destination,
+                content=payload,
+                headers={"Content-Type": "application/cef"},
+            )
+            response.raise_for_status()
+
+    async def _deliver_syslog(self, payload: str) -> None:
+        """Deliver payload to syslog server via UDP or TCP."""
+
+        def _sync_send():
+            # Parse destination (host:port or just host)
+            destination = self.config.destination
+            if ":" in destination:
+                host, port_str = destination.rsplit(":", 1)
+                try:
+                    port = int(port_str)
+                except ValueError:
+                    port = self.config.syslog_port
+            else:
+                host = destination
+                port = self.config.syslog_port
+
+            protocol = self.config.syslog_protocol.upper()
+            socktype = (
+                socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
+            )
+
+            # Use logging.handlers.SysLogHandler for syslog delivery
+            import logging.handlers
+
+            handler = logging.handlers.SysLogHandler(
+                address=(host, port), socktype=socktype
+            )
+
+            # Send each CEF line as a syslog message
+            for line in payload.split("\n"):
+                if line.strip():
+                    record = logging.makeRecord(
+                        name="siem",
+                        level=logging.INFO,
+                        pathname="",
+                        lineno=0,
+                        msg=line,
+                        args=(),
+                        exc_info=None,
+                    )
+                    handler.emit(record)
+
+            handler.close()
+
+        # Run sync syslog send in thread pool to avoid blocking event loop
+        await asyncio.to_thread(_sync_send)
+
+    async def _test_connection(self) -> None:
+        """Test destination reachability (webhook or syslog)."""
+        if not self.config:
+            raise Exception("SIEM not configured")
+
+        if self.config.backend == "webhook":
+            await self._test_webhook_connection()
+        elif self.config.backend == "syslog":
+            await self._test_syslog_connection()
+        else:
+            raise Exception(f"Unknown SIEM backend: {self.config.backend}")
+
+    async def _test_webhook_connection(self) -> None:
+        """Test webhook destination reachability."""
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                self.config.destination,
+                content="CEF:0|Axiom|MasterOfPuppets|24.0|test|Test Connection|5|msg=Test CEF event",
+                headers={"Content-Type": "application/cef"},
+            )
+            response.raise_for_status()
+
+    async def _test_syslog_connection(self) -> None:
+        """Test syslog destination reachability."""
+
+        def _sync_test():
+            # Parse destination (host:port or just host)
+            destination = self.config.destination
+            if ":" in destination:
+                host, port_str = destination.rsplit(":", 1)
+                try:
+                    port = int(port_str)
+                except ValueError:
+                    port = self.config.syslog_port
+            else:
+                host = destination
+                port = self.config.syslog_port
+
+            protocol = self.config.syslog_protocol.upper()
+            socktype = (
+                socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
+            )
+
+            # Create socket and test connection
+            sock = socket.socket(socket.AF_INET, socktype)
+            try:
+                if protocol == "TCP":
+                    sock.connect((host, port))
+                    sock.close()
+                else:
+                    # UDP: just create socket and close (no connect needed)
+                    sock.close()
+            except Exception as e:
+                raise Exception(f"Syslog connection failed: {e}")
+
+        await asyncio.to_thread(_sync_test)
+
+    async def status(self) -> Literal["healthy", "degraded", "disabled"]:
+        """Return current SIEM status."""
+        return self._status
+
+    def status_detail(self) -> dict:
+        """Return detailed status for admin UI."""
+        return {
+            "status": self._status,
+            "backend": self.config.backend if self.config else None,
+            "destination": self.config.destination if self.config else None,
+            "last_checked_at": (
+                self._last_checked_at.isoformat()
+                if self._last_checked_at
+                else None
+            ),
+            "error_detail": self._last_error,
+            "consecutive_failures": self._consecutive_failures,
+            "dropped_events": self._dropped_events_count,
+        }
+
+
+# Module-level singleton (D-04)
+_siem_service: Optional[SIEMService] = None
+
+
+def get_siem_service() -> Optional[SIEMService]:
+    """Get active SIEM service (None in CE/dormant mode)."""
+    return _siem_service
+
+
+def set_active(service: SIEMService) -> None:
+    """Set active SIEM service (called from main.py lifespan)."""
+    global _siem_service
+    _siem_service = service
