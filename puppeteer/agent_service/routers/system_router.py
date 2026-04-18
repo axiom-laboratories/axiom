@@ -60,9 +60,17 @@ async def health_check(request: Request):
 @router.get("/system/health", response_model=SystemHealthResponse, tags=["System"])
 async def system_health(request: Request):
     mirrors_available = getattr(request.app.state, "mirrors_available", True)
+
+    # Add Vault status if configured
+    vault_status = None
+    vault_service = getattr(request.app.state, "vault_service", None)
+    if vault_service is not None:
+        vault_status = await vault_service.status()
+
     return {
         "status": "healthy",
-        "mirrors_available": mirrors_available
+        "mirrors_available": mirrors_available,
+        "vault": vault_status
     }
 
 
