@@ -10,9 +10,6 @@ from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
-# Import cipher_suite for Vault secret encryption (D-05)
-from .security import cipher_suite
-
 # Database URL (Default to Postgres, fallback to SQLite for local dev if needed)
 # In Docker, this will be: postgresql+asyncpg://user:pass@db/dbname
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./jobs.db")
@@ -130,6 +127,26 @@ class VaultConfig(Base):
     mount_path: Mapped[str] = mapped_column(String(255), default="secret", nullable=False)
     namespace: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Vault Enterprise
     provider_type: Mapped[str] = mapped_column(String(32), default="vault", nullable=False)  # D-15: future extensibility
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SIEMConfig(Base):
+    """SIEM integration configuration (EE only, Phase 168).
+
+    Stores webhook URL or syslog host:port, backend type, protocol (UDP/TCP),
+    and optional CEF device vendor/product for branding.
+    Env var bootstrap: SIEM_BACKEND, SIEM_DESTINATION, SIEM_ENABLED, SIEM_SYSLOG_PORT, SIEM_SYSLOG_PROTOCOL.
+    """
+    __tablename__ = "siem_config"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    backend: Mapped[str] = mapped_column(String(32), nullable=False)  # "webhook" or "syslog"
+    destination: Mapped[str] = mapped_column(String(512), nullable=False)  # webhook URL or syslog host
+    syslog_port: Mapped[int] = mapped_column(Integer, default=514, nullable=False)
+    syslog_protocol: Mapped[str] = mapped_column(String(16), default="UDP", nullable=False)  # "UDP" or "TCP"
+    cef_device_vendor: Mapped[str] = mapped_column(String(255), default="Axiom", nullable=False)
+    cef_device_product: Mapped[str] = mapped_column(String(255), default="MasterOfPuppets", nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -611,7 +628,8 @@ async def _bootstrap_vault_config():
 
     Idempotent: running multiple times creates only one row.
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, select
+    from .security import cipher_suite
 
     vault_addr = os.getenv("VAULT_ADDRESS")
     vault_role_id = os.getenv("VAULT_ROLE_ID")
