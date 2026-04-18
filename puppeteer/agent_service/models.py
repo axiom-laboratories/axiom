@@ -730,6 +730,23 @@ class SystemHealthResponse(BaseModel):
     """Response model for GET /system/health."""
     status: str = Field(description="Overall health status (healthy/degraded/unhealthy)")
     mirrors_available: bool = Field(description="Whether package mirrors are available")
+    vault: Optional[Literal["healthy", "degraded", "disabled"]] = Field(
+        default=None,
+        description="Vault status (healthy/degraded/disabled); None if not configured"
+    )
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VaultStatusResponse(BaseModel):
+    """Response for GET /admin/vault/status. Detailed connection info."""
+    status: Literal["healthy", "degraded", "disabled"]
+    vault_address: str
+    last_checked_at: Optional[datetime] = None
+    error_detail: Optional[str] = None
+    renewal_failures: int = Field(
+        description="Current count of consecutive renewal failures (0-3)"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
