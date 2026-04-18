@@ -511,6 +511,14 @@ from .deps import (
     audit,
 )
 
+# --- CE ROUTERS ---
+from .routers.auth_router import router as auth_router
+from .routers.jobs_router import router as jobs_router
+
+# Include CE routers (after middleware setup, before route definitions)
+app.include_router(auth_router, tags=["Authentication"])
+app.include_router(jobs_router, tags=["Jobs", "Job Definitions", "Job Templates", "CI/CD Dispatch"])
+
 # --- ALERTS ---
 
 @app.get("/api/alerts", response_model=List[AlertResponse], tags=["Alerts & Webhooks"])
