@@ -17,6 +17,7 @@ slowapi
 websockets
 packaging
 PyJWT[crypto]>=2.8.1
+hvac>=1.2.0
 pip-audit
 pip-tools>=7.0
 docker>=7.0.0
