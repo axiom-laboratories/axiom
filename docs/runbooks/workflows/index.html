@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/runbooks/faq/">
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/runbooks/workflows/">
       
       
-        <link rel="prev" href="../workflows/">
+        <link rel="prev" href="../foundry/">
       
       
-        <link rel="next" href="../node-validation/">
+        <link rel="next" href="../faq/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>FAQ - Axiom</title>
+        <title>Workflows - Axiom</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#faq" class="md-skip">
+        <a href="#workflow-operations-runbook" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              FAQ
+              Workflows
             
           </span>
         </div>
@@ -1473,34 +1473,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../workflows/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Workflows
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -1520,7 +1492,7 @@
   <span class="md-ellipsis">
     
   
-    FAQ
+    Workflows
   
 
     
@@ -1538,7 +1510,7 @@
   <span class="md-ellipsis">
     
   
-    FAQ
+    Workflows
   
 
     
@@ -1572,14 +1544,25 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Quick Reference">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-operator-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Operator Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Operator Tasks">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#blueprint-packages-are-not-installed-during-foundry-builds" class="md-nav__link">
+  <a href="#checking-if-a-workflow-is-stuck" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Blueprint packages are not installed during Foundry builds
+        Checking if a workflow is stuck
       
     </span>
   </a>
@@ -1587,10 +1570,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#node-container-fails-to-run-jobs-runtimeerror-no-container-runtime-found" class="md-nav__link">
+  <a href="#viewing-a-failed-steps-output" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node container fails to run jobs — RuntimeError: No container runtime found
+        Viewing a failed step's output
       
     </span>
   </a>
@@ -1598,10 +1581,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#node-fails-to-enroll-token-payload-missing-t-or-ca" class="md-nav__link">
+  <a href="#understanding-partial-status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node fails to enroll — Token payload missing 't' or 'ca'
+        Understanding PARTIAL status
       
     </span>
   </a>
@@ -1609,10 +1592,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changing-admin_password-in-env-has-no-effect" class="md-nav__link">
+  <a href="#monitoring-cron-schedules-phase-149" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Changing ADMIN_PASSWORD in .env has no effect
+        Monitoring cron schedules (Phase 149)
       
     </span>
   </a>
@@ -1620,65 +1603,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#how-do-i-reset-a-node-identity-without-re-enrolling" class="md-nav__link">
+  <a href="#testing-a-webhook-trigger" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How do I reset a node identity without re-enrolling?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#my-scheduled-job-does-not-run-at-the-expected-local-time" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        My scheduled job does not run at the expected local time
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#can-i-submit-jobs-without-ed25519-signing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Can I submit jobs without Ed25519 signing?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-does-my-node-appear-multiple-times-in-the-nodes-view" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why does my node appear multiple times in the Nodes view?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-is-my-foundry-template-stuck-in-staging-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why is my Foundry template stuck in STAGING status?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-does-my-node-keep-showing-tampered-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why does my node keep showing TAMPERED status?
+        Testing a webhook trigger
       
     </span>
   </a>
@@ -1690,10 +1618,182 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#symptom-workflow-never-progresses-stuck-in-running" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Workflow never progresses (stuck in RUNNING)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-workflow-marked-failed-when-expected-partial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Workflow marked FAILED when expected PARTIAL
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-webhook-events-rejected-400-bad-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Webhook events rejected (400 Bad Request)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-parameters-not-injected-into-step-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Parameters not injected into step jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-if-gate-took-wrong-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: IF gate took wrong branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery Procedures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recovery Procedures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#restarting-a-failed-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restarting a failed workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clearing-stuck-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clearing stuck steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resetting-a-webhook-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resetting a webhook secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2183,14 +2283,25 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Quick Reference">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-operator-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Operator Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Operator Tasks">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#blueprint-packages-are-not-installed-during-foundry-builds" class="md-nav__link">
+  <a href="#checking-if-a-workflow-is-stuck" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Blueprint packages are not installed during Foundry builds
+        Checking if a workflow is stuck
       
     </span>
   </a>
@@ -2198,10 +2309,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#node-container-fails-to-run-jobs-runtimeerror-no-container-runtime-found" class="md-nav__link">
+  <a href="#viewing-a-failed-steps-output" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node container fails to run jobs — RuntimeError: No container runtime found
+        Viewing a failed step's output
       
     </span>
   </a>
@@ -2209,10 +2320,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#node-fails-to-enroll-token-payload-missing-t-or-ca" class="md-nav__link">
+  <a href="#understanding-partial-status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node fails to enroll — Token payload missing 't' or 'ca'
+        Understanding PARTIAL status
       
     </span>
   </a>
@@ -2220,10 +2331,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changing-admin_password-in-env-has-no-effect" class="md-nav__link">
+  <a href="#monitoring-cron-schedules-phase-149" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Changing ADMIN_PASSWORD in .env has no effect
+        Monitoring cron schedules (Phase 149)
       
     </span>
   </a>
@@ -2231,65 +2342,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#how-do-i-reset-a-node-identity-without-re-enrolling" class="md-nav__link">
+  <a href="#testing-a-webhook-trigger" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How do I reset a node identity without re-enrolling?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#my-scheduled-job-does-not-run-at-the-expected-local-time" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        My scheduled job does not run at the expected local time
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#can-i-submit-jobs-without-ed25519-signing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Can I submit jobs without Ed25519 signing?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-does-my-node-appear-multiple-times-in-the-nodes-view" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why does my node appear multiple times in the Nodes view?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-is-my-foundry-template-stuck-in-staging-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why is my Foundry template stuck in STAGING status?
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#why-does-my-node-keep-showing-tampered-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why does my node keep showing TAMPERED status?
+        Testing a webhook trigger
       
     </span>
   </a>
@@ -2298,6 +2354,150 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#symptom-workflow-never-progresses-stuck-in-running" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Workflow never progresses (stuck in RUNNING)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-workflow-marked-failed-when-expected-partial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Workflow marked FAILED when expected PARTIAL
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-webhook-events-rejected-400-bad-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Webhook events rejected (400 Bad Request)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-parameters-not-injected-into-step-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: Parameters not injected into step jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptom-if-gate-took-wrong-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptom: IF gate took wrong branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery Procedures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recovery Procedures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#restarting-a-failed-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restarting a failed workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clearing-stuck-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clearing stuck steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resetting-a-webhook-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resetting a webhook secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2318,131 +2518,428 @@
 
 
 
-<h1 id="faq">FAQ</h1>
-<p>This is the single searchable reference for known misconfigurations and operator how-to questions. If you do not know which component owns your problem, start here — each entry links to the deeper guide once you have identified the cause.</p>
-<hr />
+<h1 id="workflow-operations-runbook">Workflow Operations Runbook</h1>
+<p>This runbook covers common workflow operations and troubleshooting. Use it when a workflow is stuck, fails unexpectedly, or behaves incorrectly — match the status or symptom you observe to the section below and follow the recovery steps.</p>
 <h2 id="quick-reference">Quick Reference</h2>
 <table>
 <thead>
 <tr>
-<th>Question</th>
-<th>Section</th>
+<th>Task</th>
+<th>Endpoint / Dashboard Path</th>
+<th>Command</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Blueprint packages are not installed during Foundry builds</td>
-<td><a href="#blueprint-packages-are-not-installed-during-foundry-builds">Blueprint packages not installed</a></td>
+<td>List all workflows</td>
+<td>GET /api/workflows</td>
+<td><code>curl -H "Authorization: Bearer $TOKEN" https://api.example.com/api/workflows</code></td>
 </tr>
 <tr>
-<td>Node container fails to run jobs — RuntimeError: No container runtime found</td>
-<td><a href="#node-container-fails-to-run-jobs-runtimeerror-no-container-runtime-found">RuntimeError: No container runtime found</a></td>
+<td>Trigger a workflow manually</td>
+<td>POST /api/workflow-runs</td>
+<td>Dashboard: Workflows → select workflow → Trigger Run button</td>
 </tr>
 <tr>
-<td>Node fails to enroll — Token payload missing 't' or 'ca'</td>
-<td><a href="#node-fails-to-enroll-token-payload-missing-t-or-ca">JOIN_TOKEN enrollment failure</a></td>
+<td>View workflow run status</td>
+<td>GET /api/workflows/{id}/runs/{run_id}</td>
+<td>Dashboard: Workflows → select workflow → click run</td>
 </tr>
 <tr>
-<td>Changing ADMIN_PASSWORD in .env has no effect</td>
-<td><a href="#changing-admin_password-in-env-has-no-effect">ADMIN_PASSWORD has no effect</a></td>
+<td>Cancel a running workflow run</td>
+<td>DELETE /api/workflows/{id}/runs/{run_id}</td>
+<td>Dashboard: WorkflowRunDetail → Cancel button</td>
 </tr>
 <tr>
-<td>How do I reset a node identity without re-enrolling?</td>
-<td><a href="#how-do-i-reset-a-node-identity-without-re-enrolling">Reset node identity</a></td>
+<td>View step logs and output</td>
+<td>GET /api/executions/{job_guid}/logs</td>
+<td>Dashboard: WorkflowRunDetail → click step → open drawer</td>
 </tr>
 <tr>
-<td>My scheduled job does not run at the expected local time</td>
-<td><a href="#my-scheduled-job-does-not-run-at-the-expected-local-time">Scheduled job UTC timezone</a></td>
+<td>Create a webhook trigger</td>
+<td>POST /api/workflows/{id}/webhooks</td>
+<td>API only (Phase 151 UI coming)</td>
 </tr>
 <tr>
-<td>Can I submit jobs without Ed25519 signing?</td>
-<td><a href="#can-i-submit-jobs-without-ed25519-signing">Ed25519 signing bypass</a></td>
+<td>Test webhook trigger</td>
+<td>POST /api/webhooks/{webhook_id}/trigger</td>
+<td>Use Python example from API docs</td>
 </tr>
 <tr>
-<td>Why does my node appear multiple times in the Nodes view?</td>
-<td><a href="#why-does-my-node-appear-multiple-times-in-the-nodes-view">Duplicate node entries</a></td>
-</tr>
-<tr>
-<td>Why is my Foundry template stuck in STAGING status?</td>
-<td><a href="#why-is-my-foundry-template-stuck-in-staging-status">Template stuck in STAGING</a></td>
-</tr>
-<tr>
-<td>Why does my node keep showing TAMPERED status?</td>
-<td><a href="#why-does-my-node-keep-showing-tampered-status">TAMPERED status</a></td>
+<td>Monitor live updates</td>
+<td>WebSocket /ws?token={jwt}</td>
+<td>Dashboard auto-connects; subscribe to <code>workflow_run_updated</code> events</td>
 </tr>
 </tbody>
 </table>
-<hr />
-<h3 id="blueprint-packages-are-not-installed-during-foundry-builds">Blueprint packages are not installed during Foundry builds</h3>
-<p>Blueprint package lists must be structured as a dict with a <code>"python"</code> key — not a plain list. The Foundry service calls <code>packages.get("python", [])</code> internally. A plain list returns an empty result, silently skipping all package installations. The Docker build succeeds, but the node image has none of the expected packages installed.</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Correct</span>
-<span class="p">{</span><span class="nt">&quot;python&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;requests&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;numpy&quot;</span><span class="p">]}</span>
+<h2 id="common-operator-tasks">Common Operator Tasks</h2>
+<h3 id="checking-if-a-workflow-is-stuck">Checking if a workflow is stuck</h3>
+<p>A workflow run may appear stuck if it remains in <code>RUNNING</code> status for an unusually long time without progressing through steps.</p>
+<p><strong>Steps to check:</strong></p>
+<ol>
+<li>Open the <strong>Workflows</strong> view in the dashboard and click on the workflow to view its run history.</li>
+<li>Click the relevant run to open <strong>WorkflowRunDetail</strong>.</li>
+<li>Check the <code>status</code> field and <code>started_at</code> timestamp. If the run has been in <code>RUNNING</code> for &gt; 1 hour with no recent step completion, it may be stuck.</li>
+<li>Click on individual steps in the DAG to check their status and logs.</li>
+<li>Look for a step with status <code>RUNNING</code> or <code>ASSIGNED</code> that hasn't progressed in &gt; 30 minutes.</li>
+</ol>
+<p><strong>Solution:</strong></p>
+<p>If you identify a hung step, cancel the entire workflow run:</p>
+<div class="highlight"><pre><span></span><code>DELETE /api/workflows/{workflow_id}/runs/{run_id}
+</code></pre></div>
+<p>Or via the dashboard: <strong>WorkflowRunDetail → Cancel button</strong>. This aborts all <code>ASSIGNED</code> and <code>RUNNING</code> steps, marks <code>PENDING</code> steps as <code>CANCELLED</code>, and sets the workflow status to <code>CANCELLED</code>.</p>
+<p><strong>Investigate the cause:</strong></p>
+<ul>
+<li>Open the hung step's logs (click step → open drawer) to see the last output.</li>
+<li>Check if the step's job definition is valid and the referenced job exists.</li>
+<li>Verify that the node assigned to the job was <code>Online</code> at the time.</li>
+</ul>
+<h3 id="viewing-a-failed-steps-output">Viewing a failed step's output</h3>
+<p>When a workflow run completes with status <code>FAILED</code> or <code>PARTIAL</code>, identify which step failed and inspect its logs.</p>
+<p><strong>Steps:</strong></p>
+<ol>
+<li>Open <strong>WorkflowRunDetail</strong> for the failed run.</li>
+<li>The DAG canvas shows each step with a status badge (green = <code>COMPLETED</code>, red = <code>FAILED</code>, orange = <code>RUNNING</code>, etc.).</li>
+<li>Click on the red (failed) step to open the <strong>Step Drawer</strong>.</li>
+<li>The drawer shows:</li>
+<li><code>job_guid</code>: UUID of the underlying job execution</li>
+<li><code>status</code>: the step's final status</li>
+<li><code>result_json</code>: output from the step's job</li>
+<li><code>error_message</code>: (if failed) the error that caused failure</li>
+<li><strong>Logs</strong> tab: raw stdout/stderr from the job</li>
+<li>Review the logs and result to identify the root cause.</li>
+</ol>
+<h3 id="understanding-partial-status">Understanding PARTIAL status</h3>
+<p><code>PARTIAL</code> status is not an error — it is expected when an <code>IF_GATE</code> isolates a failure, allowing downstream branches to run independently.</p>
+<p><strong>Example scenario:</strong></p>
+<div class="highlight"><pre><span></span><code>Step A (SCRIPT) → [IF_GATE] → Step B (failure handler)
+                ↓
+            Step C (normal handler)
 
-<span class="c1">// Wrong — silently skips all packages</span>
-<span class="p">[</span><span class="s2">&quot;requests&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;numpy&quot;</span><span class="p">]</span>
+If Step A fails:
+- IF_GATE evaluates the failure condition and routes to Step B
+- Step B (failure handler) executes successfully
+- Step C is marked CANCELLED (not executed)
+- Workflow status: PARTIAL (not FAILED)
 </code></pre></div>
-<p>See <a href="../../feature-guides/foundry/#blueprints">Foundry → Blueprints</a> for the full blueprint format reference.</p>
-<hr />
-<h3 id="node-container-fails-to-run-jobs-runtimeerror-no-container-runtime-found">Node container fails to run jobs — RuntimeError: No container runtime found</h3>
-<p>When an Axiom Node runs inside a Docker container (for example, a Foundry-built image deployed via Docker Compose), container runtime support is required. For Docker-in-Docker scenarios, mount the host Docker socket into the node container and use <code>EXECUTION_MODE=docker</code> or <code>EXECUTION_MODE=auto</code>. This allows the node to create ephemeral containers for job execution while staying isolated from the host.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># In node-compose.yaml environment section</span>
-<span class="nt">EXECUTION_MODE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker</span><span class="w">  </span><span class="c1"># or &#39;auto&#39;</span>
-<span class="nt">volumes</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span><span class="w">  </span><span class="c1"># Mount host Docker socket</span>
+<p>In this case, <code>PARTIAL</code> means "the workflow ran, but not all paths were taken due to gate isolation."</p>
+<p><strong>To verify:</strong></p>
+<ol>
+<li>Open <strong>WorkflowRunDetail</strong> and examine the DAG.</li>
+<li>Look for <code>IF_GATE</code> nodes with colored edges. A blue edge represents the "taken" branch; grayed edges represent branches not executed.</li>
+<li>Check the gate's config to confirm the condition logic.</li>
+</ol>
+<h3 id="monitoring-cron-schedules-phase-149">Monitoring cron schedules (Phase 149)</h3>
+<p>Workflows can be scheduled to run automatically via cron expression.</p>
+<p><strong>Check the schedule:</strong></p>
+<ol>
+<li>Open <strong>Workflows</strong> list and look for the <code>schedule_cron</code> field.</li>
+<li>The next run time is computed from the current time and the cron expression.</li>
+<li>Each scheduled run will trigger automatically at the specified time.</li>
+</ol>
+<p><strong>Verify a cron ran:</strong></p>
+<p>Check the workflow's run history:</p>
+<div class="highlight"><pre><span></span><code>GET /api/workflows/{workflow_id}/runs
 </code></pre></div>
-<p>As of v20.0, <code>EXECUTION_MODE=direct</code> is no longer supported. All job code executes in ephemeral containers for security isolation. If the node image was built by Foundry and the build itself is the problem, see <a href="../foundry/#build-failures">Foundry Troubleshooting → Build Failures</a>.</p>
+<p>Look for runs with <code>trigger_type: "CRON"</code> and a recent <code>created_at</code> timestamp. If a scheduled time has passed but no cron-triggered run appears, check the orchestrator logs for scheduler errors.</p>
+<h3 id="testing-a-webhook-trigger">Testing a webhook trigger</h3>
+<p>Webhooks allow external systems to trigger workflow runs via HTTP POST with HMAC-SHA256 signature validation.</p>
+<p><strong>Steps:</strong></p>
+<ol>
+<li>
+<p>Create a webhook endpoint:
+   <div class="highlight"><pre><span></span><code>POST /api/workflows/{workflow_id}/webhooks
+</code></pre></div>
+   Response includes <code>webhook_id</code> and <code>secret</code> (revealed once only).</p>
+</li>
+<li>
+<p>Use the Python example from the <strong>API Reference</strong> to send a signed webhook trigger:
+   <div class="highlight"><pre><span></span><code>POST /api/webhooks/{webhook_id}/trigger
+</code></pre></div>
+   with headers: <code>X-Webhook-Signature</code>, <code>X-Webhook-Timestamp</code>, <code>X-Webhook-Nonce</code></p>
+</li>
+<li>
+<p>Verify the run was created:
+   <div class="highlight"><pre><span></span><code>GET /api/workflows/{workflow_id}/runs
+</code></pre></div>
+   Look for a new run with <code>trigger_type: "WEBHOOK"</code>.</p>
+</li>
+<li>
+<p>Monitor the run's progress in <strong>WorkflowRunDetail</strong>.</p>
+</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="symptom-workflow-never-progresses-stuck-in-running">Symptom: Workflow never progresses (stuck in RUNNING)</h3>
+<p>A workflow run remains in <code>RUNNING</code> status for an extended period without stepping through any new step nodes.</p>
+<p><strong>Likely cause:</strong></p>
+<p>A step is hung waiting for its underlying job to complete. The node executing the job may have crashed, gone offline, or is blocked on I/O.</p>
+<p><strong>Debug steps:</strong></p>
+<ol>
+<li>
+<p>Fetch the run details:
+   <div class="highlight"><pre><span></span><code>GET /api/workflows/{workflow_id}/runs/{run_id}
+</code></pre></div></p>
+</li>
+<li>
+<p>Examine the <code>steps</code> array and look for a step with status <code>RUNNING</code> or <code>ASSIGNED</code>.</p>
+</li>
+<li>
+<p>Check the node status:</p>
+</li>
+<li>Open the <strong>Nodes</strong> view in the dashboard.</li>
+<li>Find the node that was assigned to this step.</li>
+<li>
+<p>Confirm the node is <code>Online</code>.</p>
+</li>
+<li>
+<p>View the step's logs:</p>
+</li>
+<li>Open <strong>WorkflowRunDetail</strong> in the dashboard.</li>
+<li>Click the hung step in the DAG.</li>
+<li>Open the <strong>Step Drawer</strong> and check the <strong>Logs</strong> tab.</li>
+</ol>
+<p><strong>Fix:</strong></p>
+<p>Cancel the entire run:</p>
+<div class="highlight"><pre><span></span><code>DELETE /api/workflows/{workflow_id}/runs/{run_id}
+</code></pre></div>
+<p>Then investigate the root cause:
+- Check node container logs: <code>docker logs &lt;node-container&gt;</code>
+- Verify the job definition referenced by the step is valid.
+- Confirm network connectivity between the node and orchestrator.</p>
 <hr />
-<h3 id="node-fails-to-enroll-token-payload-missing-t-or-ca">Node fails to enroll — Token payload missing 't' or 'ca'</h3>
-<p>The <code>JOIN_TOKEN</code> is a base64-encoded JSON object — it is not a plain string or a JWT. It contains exactly two keys: <code>t</code> (the actual token) and <code>ca</code> (the Root CA PEM). A single trailing newline, a space, or a URL-encoding artefact in the value will corrupt the base64 decode and trigger the <code>Token payload missing 't' or 'ca'</code> error, aborting enrollment.</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// JOIN_TOKEN decodes to this structure (never construct manually):</span>
-<span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;t&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;actual_token_string&gt;&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;ca&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n&quot;</span>
+<h3 id="symptom-workflow-marked-failed-when-expected-partial">Symptom: Workflow marked FAILED when expected PARTIAL</h3>
+<p>A workflow run ended with status <code>FAILED</code> when you expected <code>PARTIAL</code> (an IF gate isolating a failure branch).</p>
+<p><strong>Likely cause:</strong></p>
+<ul>
+<li>The IF gate's failure branch is not properly configured.</li>
+<li>Step edges are missing or incorrect, so the gate can't route to the failure handler.</li>
+<li>Gate condition logic is evaluating incorrectly.</li>
+</ul>
+<p><strong>Debug steps:</strong></p>
+<ol>
+<li>Open <strong>WorkflowRunDetail</strong> and visually inspect the DAG.</li>
+<li>Identify the failed step (red badge).</li>
+<li>Trace the edges from that step forward. Does the DAG show a path to an IF gate?</li>
+<li>Click the IF gate node and check its <code>config_json</code>:</li>
+<li>Is the <code>conditions</code> array non-empty?</li>
+<li>Do the <code>path</code> and <code>value</code> fields match the failed step's output structure?</li>
+<li>Check the failed step's <code>result_json</code> to confirm the condition would match.</li>
+</ol>
+<p><strong>Fix:</strong></p>
+<ul>
+<li>If the gate has no failure branch configured, update the workflow to add edges from the gate to a failure handler step.</li>
+<li>If the condition logic is wrong, update the <code>config_json</code> to match your step's output structure.</li>
+<li>Test by manually triggering the workflow again.</li>
+</ul>
+<hr />
+<h3 id="symptom-webhook-events-rejected-400-bad-request">Symptom: Webhook events rejected (400 Bad Request)</h3>
+<p>Webhook trigger requests return HTTP 400 with an error message indicating signature verification failure.</p>
+<p><strong>Likely cause:</strong></p>
+<ul>
+<li>X-Webhook-Signature header does not match HMAC-SHA256(secret, payload + timestamp)</li>
+<li>X-Webhook-Timestamp is too old (outside ±5 minute tolerance)</li>
+<li>X-Webhook-Nonce was already used recently (within 24-hour replay window)</li>
+</ul>
+<p><strong>Debug steps:</strong></p>
+<ol>
+<li>Verify the webhook secret is correct (from the webhook creation response).</li>
+<li>Check your signature computation:
+   <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">hashlib</span>
+
+<span class="n">secret</span> <span class="o">=</span> <span class="s2">&quot;whsec_ABC...&quot;</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="s1">&#39;{&quot;parameters&quot;: {...}}&#39;</span>
+<span class="n">timestamp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">payload</span> <span class="o">+</span> <span class="n">timestamp</span>
+
+<span class="c1"># Compute signature</span>
+<span class="n">sig</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">secret</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">message</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected header: X-Webhook-Signature: </span><span class="si">{</span><span class="n">sig</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></li>
+<li>Verify the timestamp is recent (within 5 minutes of server time).</li>
+<li>Ensure the nonce is unique and has not been used in the past 24 hours.</li>
+</ol>
+<p><strong>Fix:</strong></p>
+<ul>
+<li>Re-compute the signature with the correct secret and fresh timestamp.</li>
+<li>If the secret was lost, delete the webhook and create a new one:
+  <div class="highlight"><pre><span></span><code>DELETE /api/workflows/{workflow_id}/webhooks/{webhook_id}
+POST /api/workflows/{workflow_id}/webhooks
+</code></pre></div></li>
+<li>Test the corrected request.</li>
+</ul>
+<hr />
+<h3 id="symptom-parameters-not-injected-into-step-jobs">Symptom: Parameters not injected into step jobs</h3>
+<p>Step jobs are not receiving expected workflow parameter values (e.g., <code>WORKFLOW_PARAM_target_environment</code>).</p>
+<p><strong>Likely cause:</strong></p>
+<ul>
+<li>The workflow definition does not include a <code>parameters</code> array, so parameters are not defined.</li>
+<li>The manual trigger request did not include <code>parameters</code> dict in the body.</li>
+<li>The step job's script is not looking for <code>WORKFLOW_PARAM_*</code> environment variables.</li>
+</ul>
+<p><strong>Debug steps:</strong></p>
+<ol>
+<li>
+<p>Check the workflow definition:
+   <div class="highlight"><pre><span></span><code>GET /api/workflows/{workflow_id}
+</code></pre></div>
+   Look for a <code>definition.parameters</code> array. If empty, no parameters are defined.</p>
+</li>
+<li>
+<p>Check the manual trigger request body:
+   <div class="highlight"><pre><span></span><code>POST /api/workflow-runs
+{
+  &quot;workflow_id&quot;: &quot;...&quot;,
+  &quot;parameters&quot;: { &quot;target_environment&quot;: &quot;staging&quot; }
+}
+</code></pre></div>
+   Ensure the <code>parameters</code> dict includes all expected keys.</p>
+</li>
+<li>
+<p>Check the step job's script to confirm it reads from <code>WORKFLOW_PARAM_*</code> environment variables:
+   <div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span><span class="nv">$WORKFLOW_PARAM_target_environment</span>
+</code></pre></div></p>
+</li>
+</ol>
+<p><strong>Fix:</strong></p>
+<ul>
+<li>If parameters are not defined, update the workflow:
+  <div class="highlight"><pre><span></span><code>PATCH /api/workflows/{workflow_id}
+{
+  &quot;definition&quot;: {
+    ...
+    &quot;parameters&quot;: [
+      { &quot;name&quot;: &quot;target_environment&quot;, &quot;type&quot;: &quot;string&quot;, &quot;default_value&quot;: &quot;production&quot; }
+    ]
+  }
+}
+</code></pre></div></li>
+<li>When triggering, ensure the parameters dict is passed:
+  <div class="highlight"><pre><span></span><code>POST /api/workflow-runs
+{
+  &quot;workflow_id&quot;: &quot;...&quot;,
+  &quot;parameters&quot;: { &quot;target_environment&quot;: &quot;staging&quot; }
+}
+</code></pre></div></li>
+<li>Update the step job script to read from the environment variables.</li>
+</ul>
+<hr />
+<h3 id="symptom-if-gate-took-wrong-branch">Symptom: IF gate took wrong branch</h3>
+<p>An IF gate evaluated a condition and took the wrong branch (executed the failure handler when it should have executed the success handler, or vice versa).</p>
+<p><strong>Likely cause:</strong></p>
+<ul>
+<li>Condition logic error: the <code>path</code>, <code>operator</code>, or <code>value</code> fields don't match the upstream step's actual output.</li>
+<li>Result structure mismatch: the upstream step's output doesn't contain the expected field.</li>
+<li>Operator precedence or logic error in compound conditions.</li>
+</ul>
+<p><strong>Debug steps:</strong></p>
+<ol>
+<li>
+<p>Open <strong>WorkflowRunDetail</strong> and click the IF gate to inspect its <code>config_json</code>:
+   <div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;conditions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;equals&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PASS&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Click the upstream step (the one that feeds into this gate) and open the <strong>Step Drawer</strong>.</p>
+</li>
+<li>
+<p>Check the step's <code>result_json</code>. Does it contain a <code>status</code> field? Is it equal to <code>"PASS"</code>?</p>
+</li>
+<li>
+<p>If the path is nested (e.g., <code>"data.status"</code>), confirm the output has that structure.</p>
+</li>
+</ol>
+<p><strong>Fix:</strong></p>
+<p>Update the gate's condition to match the upstream step's actual output:</p>
+<div class="highlight"><pre><span></span><code>PATCH /api/workflows/{workflow_id}
+{
+  &quot;definition&quot;: {
+    ...
+    &quot;steps&quot;: [
+      ...
+      {
+        &quot;step_id&quot;: &quot;2&quot;,
+        &quot;node_type&quot;: &quot;IF_GATE&quot;,
+        &quot;config&quot;: {
+          &quot;conditions&quot;: [
+            {
+              &quot;path&quot;: &quot;actual_field_name&quot;,
+              &quot;operator&quot;: &quot;equals&quot;,
+              &quot;value&quot;: &quot;expected_value&quot;
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 </code></pre></div>
-<p>Copy the token exactly as displayed in <strong>Admin → Nodes → Generate Join Token</strong>. Do not add quotes, newlines, or spaces. When setting it in a compose file, use a single-line value without shell quoting that would introduce escape sequences.</p>
-<p>See <a href="../../security/mtls/#the-join_token">mTLS &amp; Certificates → The JOIN_TOKEN</a> for the full enrollment flow.</p>
-<hr />
-<h3 id="changing-admin_password-in-env-has-no-effect">Changing ADMIN_PASSWORD in .env has no effect</h3>
-<p>The <code>ADMIN_PASSWORD</code> environment variable is read only once — when the orchestrator starts for the first time and the <code>admin</code> user does not yet exist in the database. Once the admin account has been created, the env var is ignored on every subsequent start. The database password is the source of truth for all existing deployments.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Orchestrator startup logic (simplified):</span>
-<span class="c1"># Only seeds if admin user does not exist</span>
+<p>Test the updated workflow by triggering it manually.</p>
+<h2 id="recovery-procedures">Recovery Procedures</h2>
+<h3 id="restarting-a-failed-workflow">Restarting a failed workflow</h3>
+<p>A workflow run failed and you want to re-execute it.</p>
+<p><strong>Current approach:</strong></p>
+<p>Manually trigger a new run via:</p>
+<div class="highlight"><pre><span></span><code>POST /api/workflow-runs
+{
+  &quot;workflow_id&quot;: &quot;workflow-123&quot;,
+  &quot;parameters&quot;: { ... }
+}
 </code></pre></div>
-<p>To change the admin password after first run, use <strong>Admin → Users → admin → Reset Password</strong> in the dashboard.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Do not drop the database to reset the admin password. Dropping the database destroys all nodes, jobs, job definitions, templates, and audit history. Use the dashboard Reset Password flow instead.</p>
-</div>
-<hr />
-<h3 id="how-do-i-reset-a-node-identity-without-re-enrolling">How do I reset a node identity without re-enrolling?</h3>
-<p>You cannot reset a node's identity without re-enrolling. The node identity is cryptographically bound to its client certificate — the certificate serial number is what the orchestrator uses to identify the node across restarts. To assign a fresh identity: stop the node container, delete <code>secrets/node-*.crt</code> and <code>secrets/node-*.key</code> from the secrets volume, and restart with a valid <code>JOIN_TOKEN</code>. The orchestrator registers it as a new node entry. The old Offline entry can be removed from <strong>Nodes → [node] → Delete</strong>.</p>
-<p>See <a href="../../security/mtls/#certificate-rotation">mTLS &amp; Certificates → Certificate Rotation</a> for the full procedure.</p>
-<hr />
-<h3 id="my-scheduled-job-does-not-run-at-the-expected-local-time">My scheduled job does not run at the expected local time</h3>
-<p>APScheduler (the orchestrator's scheduling engine) evaluates all cron expressions in UTC. There is no per-job timezone configuration — all jobs use the same UTC clock. A cron expression like <code>0 9 * * *</code> fires at 09:00 UTC regardless of the orchestrator server's local timezone or the operator's timezone.</p>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>Use a UTC cron calculator to convert your intended local time before entering it in the cron field. For example: 09:00 BST (UTC+1) = <code>0 8 * * *</code>. 09:00 AEST (UTC+10) = <code>0 23 * * *</code> (previous day UTC).</p>
-</div>
-<p>See <a href="../../feature-guides/job-scheduling/">Job Scheduling</a> for cron expression syntax and examples.</p>
-<hr />
-<h3 id="can-i-submit-jobs-without-ed25519-signing">Can I submit jobs without Ed25519 signing?</h3>
-<p>No. Signature verification is enforced at the node before any script is executed — it is not configurable. A job submitted without a valid Ed25519 signature is immediately rejected with status <code>SECURITY_REJECTED</code>. The node must cryptographically confirm that the script was produced by an authorised operator holding a registered private key before running it.</p>
-<div class="admonition danger">
-<p class="admonition-title">Danger</p>
-<p>There is no configuration flag, environment variable, or API option to disable signature verification. This is a security invariant — disabling it would allow any actor with API access to execute arbitrary code on nodes.</p>
-</div>
-<p>See <a href="../../feature-guides/axiom-push/#ed25519-key-setup">axiom-push CLI → Ed25519 Key Setup</a> for how to generate a signing keypair and register the public key.</p>
-<hr />
-<h3 id="why-does-my-node-appear-multiple-times-in-the-nodes-view">Why does my node appear multiple times in the Nodes view?</h3>
-<p>Duplicate entries occur when the <code>secrets/</code> volume is recreated or the <code>node-*.crt</code> and <code>node-*.key</code> files inside it are deleted. On the next restart, the node generates a new UUID, creates fresh credentials, and enrolls as a new node — creating a second database entry. The original entry remains in the dashboard with an Offline status. To clean up, delete the Offline duplicate from <strong>Nodes → [node] → Delete</strong>. No operational data is lost by removing a stale Offline entry.</p>
-<hr />
-<h3 id="why-is-my-foundry-template-stuck-in-staging-status">Why is my Foundry template stuck in STAGING status?</h3>
-<p>A template in STAGING status means the Docker build completed successfully, but the post-build Smelt-Check smoke test (<code>python --version &amp;&amp; pip --version</code>) failed inside the built image. The Python environment is not functional. Check orchestrator logs for <code>❌ Smelt-Check FAILED for &lt;template_name&gt;</code>, identify the cause — usually a mismatch between the base image OS family and the package manager (Alpine vs Debian) — fix the blueprint, and trigger a rebuild.</p>
-<p>See <a href="../foundry/#smelt-check-failures">Foundry Troubleshooting → Smelt-Check Failures</a> for full recovery steps.</p>
-<hr />
-<h3 id="why-does-my-node-keep-showing-tampered-status">Why does my node keep showing TAMPERED status?</h3>
-<p>The zero-trust capability guard detected that the node reported a capability that is not present in its registered <code>expected_capabilities</code>. This happens when a tool is installed inside a running container after the template was built, when capability detection logic changes between node restarts, or when a node is redeployed from a different template than the one it was originally enrolled against. To investigate: run <code>docker exec &lt;node_container&gt; &lt;capability_check_command&gt;</code> to inspect the actual capabilities reported. To clear the flag: <strong>Nodes → [node] → Clear Tamper</strong>. If the additional capability is legitimate, rebuild the template to include it so future deployments pass the capability check without triggering TAMPERED.</p>
+<p>Or via the dashboard: <strong>Workflows → select workflow → Trigger Run button</strong></p>
+<p><strong>Planned (Phase 151+):</strong></p>
+<p>Future versions will support "rerun from failure point" — restarting from the first failed step rather than from the beginning.</p>
+<h3 id="clearing-stuck-steps">Clearing stuck steps</h3>
+<p>If a workflow run is stuck with ASSIGNED or RUNNING steps that won't progress, cancel the entire run:</p>
+<div class="highlight"><pre><span></span><code>DELETE /api/workflows/{workflow_id}/runs/{run_id}
+</code></pre></div>
+<p>This:
+- Aborts all <code>ASSIGNED</code> and <code>RUNNING</code> steps
+- Marks all <code>PENDING</code> steps as <code>CANCELLED</code>
+- Sets the workflow status to <code>CANCELLED</code></p>
+<p>Once cancelled, you can trigger a fresh run via <strong>Trigger Run</strong> button.</p>
+<h3 id="resetting-a-webhook-secret">Resetting a webhook secret</h3>
+<p>Webhook secrets are revealed only once during creation. If the secret is lost, delete and recreate the webhook:</p>
+<div class="highlight"><pre><span></span><code>DELETE /api/workflows/{workflow_id}/webhooks/{webhook_id}
+POST /api/workflows/{workflow_id}/webhooks
+</code></pre></div>
+<p>The new webhook will have a different <code>webhook_id</code> and <code>secret</code>. Update your external system to use the new secret.</p>
+<h2 id="monitoring-best-practices">Monitoring Best Practices</h2>
+<p><strong>Real-time monitoring:</strong></p>
+<p>Use the dashboard <strong>Workflows</strong> view for real-time updates:
+- Workflows list shows all defined workflows with cron schedule (if any).
+- Click a workflow to see its recent run history.
+- Click a run to open <strong>WorkflowRunDetail</strong> with live DAG status overlay.</p>
+<p><strong>WebSocket events:</strong></p>
+<p>For programmatic monitoring, subscribe to WebSocket events:</p>
+<div class="highlight"><pre><span></span><code>WebSocket /ws?token={jwt}
+</code></pre></div>
+<p>Listen for events:
+- <code>workflow_run_updated</code> — fired when a run's overall status changes
+- <code>workflow_step_updated</code> — fired when a step completes</p>
+<p><strong>Polling:</strong></p>
+<p>For systems without WebSocket support, poll the API:</p>
+<div class="highlight"><pre><span></span><code>GET /api/workflows/{workflow_id}/runs?limit=20
+</code></pre></div>
+<p>Poll every 10–30 seconds to check for new runs or status updates.</p>
+<p><strong>Alerting:</strong></p>
+<p>Set up alerts on:
+- Workflows with status <code>FAILED</code> (requires investigation)
+- Workflows with status <code>RUNNING</code> &gt; 1 hour old (potential hang)
+- Cron-scheduled workflows not running at expected times (scheduler issue)</p>
+<h2 id="see-also">See Also</h2>
+<ul>
+<li><a href="../../api-reference/#workflows">Workflows API Reference</a></li>
+<li><a href="../../workflows/concepts/">Workflow Concepts</a></li>
+<li><a href="../../workflows/user-guide/">Workflow User Guide</a></li>
+</ul>
 
 
 

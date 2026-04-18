@@ -8,31 +8,31 @@
       
       
       
-        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/feature-guides/rbac-reference/">
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/workflows/">
       
       
-        <link rel="prev" href="../../workflows/developer-guide/">
+        <link rel="prev" href="../feature-guides/oauth/">
       
       
-        <link rel="next" href="../../licensing/">
+        <link rel="next" href="concepts/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
     
     
       
-        <title>RBAC Permission Reference - Axiom</title>
+        <title>Overview - Axiom</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -46,14 +46,14 @@
         
         
         
-        <link rel="stylesheet" href="../../assets/external/fonts.googleapis.com/css.49ea35f2.css">
+        <link rel="stylesheet" href="../assets/external/fonts.googleapis.com/css.49ea35f2.css">
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
     
-      <link rel="stylesheet" href="../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#rbac-permission-reference" class="md-skip">
+        <a href="#workflow-documentation" class="md-skip">
           Skip to content
         </a>
       
@@ -92,9 +92,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Axiom" class="md-header__button md-logo" aria-label="Axiom" data-md-component="logo">
+    <a href=".." title="Axiom" class="md-header__button md-logo" aria-label="Axiom" data-md-component="logo">
       
-  <img src="../../assets/logo.svg" alt="logo">
+  <img src="../assets/logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              RBAC Permission Reference
+              Overview
             
           </span>
         </div>
@@ -189,9 +189,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Axiom" class="md-nav__button md-logo" aria-label="Axiom" data-md-component="logo">
+    <a href=".." title="Axiom" class="md-nav__button md-logo" aria-label="Axiom" data-md-component="logo">
       
-  <img src="../../assets/logo.svg" alt="logo">
+  <img src="../assets/logo.svg" alt="logo">
 
     </a>
     Axiom
@@ -206,7 +206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -280,7 +280,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/prerequisites/" class="md-nav__link">
+      <a href="../getting-started/prerequisites/" class="md-nav__link">
         
   
   
@@ -308,7 +308,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/install/" class="md-nav__link">
+      <a href="../getting-started/install/" class="md-nav__link">
         
   
   
@@ -336,7 +336,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/docker-deployment/" class="md-nav__link">
+      <a href="../getting-started/docker-deployment/" class="md-nav__link">
         
   
   
@@ -364,7 +364,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/deployment-guide/" class="md-nav__link">
+      <a href="../getting-started/deployment-guide/" class="md-nav__link">
         
   
   
@@ -392,7 +392,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/enroll-node/" class="md-nav__link">
+      <a href="../getting-started/enroll-node/" class="md-nav__link">
         
   
   
@@ -420,7 +420,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/first-job/" class="md-nav__link">
+      <a href="../getting-started/first-job/" class="md-nav__link">
         
   
   
@@ -551,7 +551,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../axiom-push/" class="md-nav__link">
+      <a href="../feature-guides/axiom-push/" class="md-nav__link">
         
   
   
@@ -634,7 +634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../jobs/" class="md-nav__link">
+      <a href="../feature-guides/jobs/" class="md-nav__link">
         
   
   
@@ -662,7 +662,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../nodes/" class="md-nav__link">
+      <a href="../feature-guides/nodes/" class="md-nav__link">
         
   
   
@@ -690,7 +690,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../foundry/" class="md-nav__link">
+      <a href="../feature-guides/foundry/" class="md-nav__link">
         
   
   
@@ -718,7 +718,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../job-scheduling/" class="md-nav__link">
+      <a href="../feature-guides/job-scheduling/" class="md-nav__link">
         
   
   
@@ -746,7 +746,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rbac/" class="md-nav__link">
+      <a href="../feature-guides/rbac/" class="md-nav__link">
         
   
   
@@ -774,7 +774,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../oauth/" class="md-nav__link">
+      <a href="../feature-guides/oauth/" class="md-nav__link">
         
   
   
@@ -782,201 +782,6 @@
     
   
     OAuth & Authentication
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Workflows
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Workflows
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../workflows/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../workflows/concepts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Concepts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../workflows/user-guide/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    User Guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../workflows/operator-guide/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Operator Guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../workflows/developer-guide/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Developer Guide
   
 
     
@@ -1015,17 +820,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Reference
+    Workflows
   
 
     
@@ -1036,12 +841,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Reference
+    Workflows
   
 
           </label>
@@ -1070,7 +875,7 @@
   <span class="md-ellipsis">
     
   
-    RBAC Permission Reference
+    Overview
   
 
     
@@ -1088,7 +893,7 @@
   <span class="md-ellipsis">
     
   
-    RBAC Permission Reference
+    Overview
   
 
     
@@ -1114,10 +919,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#default-role-assignments" class="md-nav__link">
+  <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default Role Assignments
+        Quick Start
       
     </span>
   </a>
@@ -1125,10 +930,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#admin-role" class="md-nav__link">
+  <a href="#pages-in-this-section" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Admin Role
+        Pages in This Section
       
     </span>
   </a>
@@ -1136,10 +941,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#custom-permissions" class="md-nav__link">
+  <a href="#related-topics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Custom Permissions
+        Related Topics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next Steps
       
     </span>
   </a>
@@ -1150,6 +966,201 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="operator-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="developer-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-guides/rbac-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC Permission Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1170,7 +1181,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../licensing/" class="md-nav__link">
+      <a href="../licensing/" class="md-nav__link">
         
   
   
@@ -1252,7 +1263,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../security/" class="md-nav__link">
+      <a href="../security/" class="md-nav__link">
         
   
   
@@ -1280,7 +1291,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../security/mtls/" class="md-nav__link">
+      <a href="../security/mtls/" class="md-nav__link">
         
   
   
@@ -1308,7 +1319,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../security/rbac-hardening/" class="md-nav__link">
+      <a href="../security/rbac-hardening/" class="md-nav__link">
         
   
   
@@ -1336,7 +1347,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../security/audit-log/" class="md-nav__link">
+      <a href="../security/audit-log/" class="md-nav__link">
         
   
   
@@ -1364,7 +1375,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../security/air-gap/" class="md-nav__link">
+      <a href="../security/air-gap/" class="md-nav__link">
         
   
   
@@ -1446,7 +1457,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/" class="md-nav__link">
+      <a href="../runbooks/" class="md-nav__link">
         
   
   
@@ -1474,7 +1485,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/nodes/" class="md-nav__link">
+      <a href="../runbooks/nodes/" class="md-nav__link">
         
   
   
@@ -1502,7 +1513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/jobs/" class="md-nav__link">
+      <a href="../runbooks/jobs/" class="md-nav__link">
         
   
   
@@ -1530,7 +1541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/foundry/" class="md-nav__link">
+      <a href="../runbooks/foundry/" class="md-nav__link">
         
   
   
@@ -1558,7 +1569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/workflows/" class="md-nav__link">
+      <a href="../runbooks/workflows/" class="md-nav__link">
         
   
   
@@ -1586,7 +1597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/faq/" class="md-nav__link">
+      <a href="../runbooks/faq/" class="md-nav__link">
         
   
   
@@ -1614,7 +1625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/node-validation/" class="md-nav__link">
+      <a href="../runbooks/node-validation/" class="md-nav__link">
         
   
   
@@ -1642,7 +1653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/package-mirrors/" class="md-nav__link">
+      <a href="../runbooks/package-mirrors/" class="md-nav__link">
         
   
   
@@ -1670,7 +1681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../runbooks/upgrade/" class="md-nav__link">
+      <a href="../runbooks/upgrade/" class="md-nav__link">
         
   
   
@@ -1752,7 +1763,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer/architecture/" class="md-nav__link">
+      <a href="../developer/architecture/" class="md-nav__link">
         
   
   
@@ -1780,7 +1791,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer/setup-deployment/" class="md-nav__link">
+      <a href="../developer/setup-deployment/" class="md-nav__link">
         
   
   
@@ -1808,7 +1819,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer/contributing/" class="md-nav__link">
+      <a href="../developer/contributing/" class="md-nav__link">
         
   
   
@@ -1890,7 +1901,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api-reference/" class="md-nav__link">
+      <a href="../api-reference/" class="md-nav__link">
         
   
   
@@ -1972,7 +1983,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-ref/" class="md-nav__link">
+      <a href="../quick-ref/" class="md-nav__link">
         
   
   
@@ -2000,7 +2011,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-ref/course.html" class="md-nav__link">
+      <a href="../quick-ref/course.html" class="md-nav__link">
         
   
   
@@ -2028,7 +2039,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quick-ref/operator-guide.html" class="md-nav__link">
+      <a href="../quick-ref/operator-guide.html" class="md-nav__link">
         
   
   
@@ -2083,10 +2094,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#default-role-assignments" class="md-nav__link">
+  <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default Role Assignments
+        Quick Start
       
     </span>
   </a>
@@ -2094,10 +2105,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#admin-role" class="md-nav__link">
+  <a href="#pages-in-this-section" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Admin Role
+        Pages in This Section
       
     </span>
   </a>
@@ -2105,10 +2116,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#custom-permissions" class="md-nav__link">
+  <a href="#related-topics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Custom Permissions
+        Related Topics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next Steps
       
     </span>
   </a>
@@ -2132,151 +2154,56 @@
 
 
 
-<h1 id="rbac-permission-reference">RBAC Permission Reference</h1>
-<p>Complete reference for all permissions in Axiom, with default role assignments.</p>
-<hr />
-<div class="admonition enterprise">
-<p class="admonition-title">Enterprise</p>
-</div>
-<h2 id="default-role-assignments">Default Role Assignments</h2>
-<p>These are the default permissions assigned at first startup. Permissions can be customised per role through the dashboard — see the <a href="../rbac/">RBAC guide</a>.</p>
+<h1 id="workflow-documentation">Workflow Documentation</h1>
+<p>Workflows enable you to compose ScheduledJobs into directed acyclic graphs (DAGs) with conditional branching, parallel fan-out, and signal waits. This section documents the full lifecycle, from concepts through monitoring and operations.</p>
+<h2 id="quick-start">Quick Start</h2>
+<p>Workflows are JSON-defined DAGs composed of two types of nodes:</p>
+<ul>
+<li><strong>Steps</strong> execute ScheduledJobs and produce output (<code>result.json</code>)</li>
+<li><strong>Gates</strong> control flow: branching on conditions (IF_GATE), merging branches (AND_JOIN, OR_GATE), parallel fan-out (PARALLEL), or pausing for signals (SIGNAL_WAIT)</li>
+</ul>
+<p>All workflows follow the workflow lifecycle: RUNNING → COMPLETED, PARTIAL, FAILED, or CANCELLED. Conditional gates isolate failures, allowing downstream steps to continue even if earlier branches fail.</p>
+<p>For detailed step and gate types, see <a href="concepts/">Concepts</a>. For dashboard monitoring examples, see <a href="user-guide/">User Guide</a>.</p>
+<h2 id="pages-in-this-section">Pages in This Section</h2>
 <table>
 <thead>
 <tr>
-<th>Permission</th>
+<th>Page</th>
 <th>Description</th>
-<th style="text-align: center;">admin</th>
-<th style="text-align: center;">operator</th>
-<th style="text-align: center;">viewer</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>jobs:read</code></td>
-<td>View job queue and results</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
+<td><a href="concepts/">Concepts</a></td>
+<td>Step types, gate types, DAG model, execution lifecycle</td>
 </tr>
 <tr>
-<td><code>jobs:write</code></td>
-<td>Submit, cancel, and retry jobs</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
+<td><a href="user-guide/">User Guide</a></td>
+<td>Dashboard monitoring: viewing workflows, runs, and step logs</td>
 </tr>
 <tr>
-<td><code>nodes:read</code></td>
-<td>View node status and stats</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
+<td><a href="operator-guide/">Operator Guide</a></td>
+<td>Observable behaviour, status transitions, monitoring via API</td>
 </tr>
 <tr>
-<td><code>nodes:write</code></td>
-<td>Enroll, revoke, and delete nodes</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>definitions:read</code></td>
-<td>View scheduled job definitions</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-</tr>
-<tr>
-<td><code>definitions:write</code></td>
-<td>Create, edit, and delete job definitions</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>foundry:read</code></td>
-<td>View templates and blueprints</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-</tr>
-<tr>
-<td><code>foundry:write</code></td>
-<td>Create, build, and delete templates/blueprints</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>signatures:read</code></td>
-<td>View signing keys</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-</tr>
-<tr>
-<td><code>signatures:write</code></td>
-<td>Upload and delete signing keys</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>tokens:write</code></td>
-<td>Issue device flow tokens</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>alerts:read</code></td>
-<td>View alerts</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-</tr>
-<tr>
-<td><code>alerts:write</code></td>
-<td>Acknowledge and manage alerts</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>webhooks:read</code></td>
-<td>View webhook configurations</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>webhooks:write</code></td>
-<td>Create and delete webhooks</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>users:write</code></td>
-<td>Manage users, roles, and permissions</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
+<td><a href="developer-guide/">Developer Guide</a></td>
+<td>Internals: BFS dispatch, CAS guards, cascade cancellation, ERD</td>
 </tr>
 </tbody>
 </table>
-<p>The <code>admin</code> role bypasses all permission checks regardless of this table. <code>users:write</code> is the only permission not granted to <code>operator</code> by default; it governs user management and role configuration.</p>
-<hr />
-<h2 id="admin-role">Admin Role</h2>
-<p>Admin is not a permission set — it is an unconditional bypass. Any user with role <code>admin</code> can perform any action without a permission check. The table above does not constrain admin behaviour. Audit log entries for admin actions are recorded normally.</p>
-<hr />
-<h2 id="custom-permissions">Custom Permissions</h2>
-<p>Any permission can be granted to or revoked from any non-admin role via the dashboard (<strong>Admin</strong> → <strong>Role Permissions</strong>) or the API (<code>POST /admin/roles/{role}/permissions</code>, <code>DELETE /admin/roles/{role}/permissions/{permission}</code>). Changes take effect immediately for all new requests.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Granting <code>users:write</code> to the <code>operator</code> role effectively gives every operator full control over user management, including the ability to create admin accounts. Treat <code>users:write</code> as an admin-tier permission.</p>
-</div>
-<p>For guidance on least-privilege configuration, see the <a href="../../security/rbac-hardening/">RBAC Hardening guide</a>.</p>
+<h2 id="related-topics">Related Topics</h2>
+<ul>
+<li><strong><a href="../feature-guides/jobs/">Jobs</a></strong> — ScheduledJobs are the unit of execution within workflow steps</li>
+<li><strong><a href="../runbooks/jobs/">Scheduling</a></strong> — APScheduler integration for cron-based workflow triggers</li>
+<li><strong><a href="../api-reference/#workflows">API Reference</a></strong> — Full REST API endpoint documentation</li>
+</ul>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li>New to workflows? Start with <a href="concepts/">Concepts</a> to understand step and gate types</li>
+<li>Using the dashboard? Check <a href="user-guide/">User Guide</a> for walkthroughs of each view</li>
+<li>Operating workflows at scale? See <a href="operator-guide/">Operator Guide</a> for monitoring and troubleshooting</li>
+<li>Contributing to the workflow engine? Read <a href="developer-guide/">Developer Guide</a> for internals and concurrency patterns</li>
+</ul>
 
 
 
@@ -2326,10 +2253,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

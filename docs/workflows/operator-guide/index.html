@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/getting-started/deployment-guide/">
+        <link rel="canonical" href="https://axiom-laboratories.github.io/axiom/docs/workflows/operator-guide/">
       
       
-        <link rel="prev" href="../docker-deployment/">
+        <link rel="prev" href="../user-guide/">
       
       
-        <link rel="next" href="../enroll-node/">
+        <link rel="next" href="../developer-guide/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Production Deployment Guide - Axiom</title>
+        <title>Operator Guide - Axiom</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#production-deployment-guide" class="md-skip">
+        <a href="#workflow-operator-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Production Deployment Guide
+              Operator Guide
             
           </span>
         </div>
@@ -230,20 +230,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -264,7 +262,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -282,7 +280,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../prerequisites/" class="md-nav__link">
+      <a href="../../getting-started/prerequisites/" class="md-nav__link">
         
   
   
@@ -310,7 +308,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../install/" class="md-nav__link">
+      <a href="../../getting-started/install/" class="md-nav__link">
         
   
   
@@ -338,7 +336,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../docker-deployment/" class="md-nav__link">
+      <a href="../../getting-started/docker-deployment/" class="md-nav__link">
         
   
   
@@ -363,37 +361,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Production Deployment Guide
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../getting-started/deployment-guide/" class="md-nav__link">
         
   
   
@@ -409,198 +380,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#understanding-the-recovery-profile" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Understanding the Recovery Profile
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#host-infrastructure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Host Infrastructure
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Host Infrastructure">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hypervisor-layer-ha" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Hypervisor-Layer HA
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#docker-restart-policy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Docker Restart Policy
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#data-durability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Data Durability
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Data Durability">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-1-nightly-pg_dump-minimum-viable" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option 1 — Nightly pg_dump (Minimum Viable)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-2-postgresql-streaming-replication" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option 2 — PostgreSQL Streaming Replication
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#deployment-configuration-comparison" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deployment Configuration Comparison
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#air-gap-deployments" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Air-Gap Deployments
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pre-deployment-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pre-Deployment Checklist
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pre-Deployment Checklist">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#host-infrastructure_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Host Infrastructure
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#data-durability_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Data Durability
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#node-fleet-behaviour" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Node Fleet Behaviour
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#related-guides" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Related Guides
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -613,7 +392,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../enroll-node/" class="md-nav__link">
+      <a href="../../getting-started/enroll-node/" class="md-nav__link">
         
   
   
@@ -641,7 +420,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../first-job/" class="md-nav__link">
+      <a href="../../getting-started/first-job/" class="md-nav__link">
         
   
   
@@ -673,18 +452,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -705,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1026,18 +807,20 @@
                 
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
@@ -1058,7 +841,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1076,7 +859,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../workflows/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -1104,7 +887,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../workflows/concepts/" class="md-nav__link">
+      <a href="../concepts/" class="md-nav__link">
         
   
   
@@ -1132,7 +915,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../workflows/user-guide/" class="md-nav__link">
+      <a href="../user-guide/" class="md-nav__link">
         
   
   
@@ -1157,10 +940,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../workflows/operator-guide/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operator Guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1176,6 +986,376 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#workflow-execution-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Execution Status
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workflow Execution Status">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#understanding-status-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding Status Transitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cascade-cancellation-failure-propagation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cascade Cancellation (Failure Propagation)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cascade Cancellation (Failure Propagation)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linear-pipeline-no-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linear Pipeline (No Gates)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeline-with-if-gate-conditional-branching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline with IF Gate (Conditional Branching)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-rules-for-cascade-cancellation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Rules for Cascade Cancellation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gate-execution-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate Execution Semantics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gate Execution Semantics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#if_gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IF_GATE
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#and_join" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AND_JOIN
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#or_gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OR_GATE
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parallel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PARALLEL
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal_wait" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SIGNAL_WAIT
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-149-features-triggers-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 149 Features: Triggers &amp; Parameters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 149 Features: Triggers &amp; Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Triggers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter Injection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-via-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring via Dashboard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Monitoring via Dashboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflows-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflows List
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflow-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Detail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflow-run-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Run Detail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-via-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring via API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Monitoring via API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rest-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST Endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#websocket-real-time-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocket Real-Time Updates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-operator-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Operator Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Operator Tasks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#viewing-current-execution-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Viewing Current Execution Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cancelling-a-running-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cancelling a Running Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#re-triggering-a-failed-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Re-triggering a Failed Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debugging-a-failed-vs-partial-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debugging a FAILED vs PARTIAL Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checking-webhook-signature-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking Webhook Signature Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1188,7 +1368,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../workflows/developer-guide/" class="md-nav__link">
+      <a href="../developer-guide/" class="md-nav__link">
         
   
   
@@ -2220,44 +2400,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#understanding-the-recovery-profile" class="md-nav__link">
+  <a href="#workflow-execution-status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Understanding the Recovery Profile
+        Workflow Execution Status
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#host-infrastructure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Host Infrastructure
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Host Infrastructure">
+    <nav class="md-nav" aria-label="Workflow Execution Status">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#hypervisor-layer-ha" class="md-nav__link">
+  <a href="#understanding-status-transitions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Hypervisor-Layer HA
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#docker-restart-policy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Docker Restart Policy
+        Understanding Status Transitions
       
     </span>
   </a>
@@ -2270,22 +2428,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#data-durability" class="md-nav__link">
+  <a href="#cascade-cancellation-failure-propagation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Data Durability
+        Cascade Cancellation (Failure Propagation)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Data Durability">
+    <nav class="md-nav" aria-label="Cascade Cancellation (Failure Propagation)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#option-1-nightly-pg_dump-minimum-viable" class="md-nav__link">
+  <a href="#linear-pipeline-no-gates" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Option 1 — Nightly pg_dump (Minimum Viable)
+        Linear Pipeline (No Gates)
       
     </span>
   </a>
@@ -2293,10 +2451,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#option-2-postgresql-streaming-replication" class="md-nav__link">
+  <a href="#pipeline-with-if-gate-conditional-branching" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Option 2 — PostgreSQL Streaming Replication
+        Pipeline with IF Gate (Conditional Branching)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-rules-for-cascade-cancellation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Rules for Cascade Cancellation
       
     </span>
   </a>
@@ -2309,44 +2478,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#deployment-configuration-comparison" class="md-nav__link">
+  <a href="#gate-execution-semantics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deployment Configuration Comparison
+        Gate Execution Semantics
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#air-gap-deployments" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Air-Gap Deployments
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pre-deployment-checklist" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pre-Deployment Checklist
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pre-Deployment Checklist">
+    <nav class="md-nav" aria-label="Gate Execution Semantics">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#host-infrastructure_1" class="md-nav__link">
+  <a href="#if_gate" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Host Infrastructure
+        IF_GATE
       
     </span>
   </a>
@@ -2354,10 +2501,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#data-durability_1" class="md-nav__link">
+  <a href="#and_join" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Data Durability
+        AND_JOIN
       
     </span>
   </a>
@@ -2365,10 +2512,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#node-fleet-behaviour" class="md-nav__link">
+  <a href="#or_gate" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node Fleet Behaviour
+        OR_GATE
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parallel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PARALLEL
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal_wait" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SIGNAL_WAIT
       
     </span>
   </a>
@@ -2381,13 +2550,202 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#related-guides" class="md-nav__link">
+  <a href="#phase-149-features-triggers-parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Related Guides
+        Phase 149 Features: Triggers &amp; Parameters
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Phase 149 Features: Triggers &amp; Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Triggers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter Injection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-via-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring via Dashboard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Monitoring via Dashboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflows-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflows List
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflow-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Detail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflow-run-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow Run Detail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-via-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring via API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Monitoring via API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rest-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST Endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#websocket-real-time-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocket Real-Time Updates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-operator-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Operator Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common Operator Tasks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#viewing-current-execution-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Viewing Current Execution Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cancelling-a-running-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cancelling a Running Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#re-triggering-a-failed-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Re-triggering a Failed Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debugging-a-failed-vs-partial-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debugging a FAILED vs PARTIAL Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checking-webhook-signature-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking Webhook Signature Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2408,214 +2766,169 @@
 
 
 
-<h1 id="production-deployment-guide">Production Deployment Guide</h1>
-<p>This guide covers infrastructure recommendations for Axiom EE deployments in local and air-gapped environments. It is aimed at BPO infrastructure teams, deployment engineers, and technical stakeholders preparing for a production rollout.</p>
-<div class="admonition note">
-<p class="admonition-title">Scope</p>
-<p>These recommendations apply to <strong>local and air-gapped deployments</strong> — the target model for Axiom EE. Cloud-native HA patterns (load balancers, replica sets, automatic failover) are not the relevant frame here and are not covered.</p>
-</div>
-<hr />
-<h2 id="understanding-the-recovery-profile">Understanding the Recovery Profile</h2>
-<p>Axiom EE's control plane runs as a single orchestrator process. For local deployments, the meaningful risks are:</p>
-<ul>
-<li><strong>Recovery time</strong> — how long is the outage if the host VM goes down?</li>
-<li><strong>Data durability</strong> — how much job state is lost if the host is unrecoverable?</li>
-<li><strong>Fleet behaviour</strong> — do nodes recover automatically when the orchestrator returns?</li>
-</ul>
-<p>Axiom's pull model directly addresses the third question. Nodes continuously retry their poll against the orchestrator. When the orchestrator returns — whether after a process crash or a full host restart — <strong>the entire fleet resumes without any manual intervention or reconnection</strong>. There is no push channel to re-establish.</p>
-<div class="admonition tip">
-<p class="admonition-title">Practical analogy</p>
-<p>An orchestrator outage is operationally similar to a cron server rebooting: jobs do not fire during the downtime, and they resume when the server is back. BPO ops teams already know how to manage this risk. The recommendations below ensure that recovery is fast and data loss is bounded.</p>
-</div>
-<hr />
-<h2 id="host-infrastructure">Host Infrastructure</h2>
-<h3 id="hypervisor-layer-ha">Hypervisor-Layer HA</h3>
-<div class="admonition tip">
-<p class="admonition-title">Strong recommendation</p>
-<p>Deploy the Axiom EE orchestrator on a VM or host with managed uptime. If the host runs on a hypervisor platform with live migration or HA configured at the hypervisor layer, the recovery window for a host failure is measured in <strong>seconds to minutes</strong> — not hours. This is the single most impactful infrastructure decision for EE deployments.</p>
-</div>
-<p>Most enterprise BPO environments already run virtualisation infrastructure with HA policies. The orchestrator VM should be covered by whatever HA or live-migration policy applies to business-critical VMs in that environment.</p>
+<h1 id="workflow-operator-guide">Workflow Operator Guide</h1>
+<p>Learn how to operate and monitor workflows in Axiom at runtime.</p>
+<p>This guide explains observable workflow behaviour, status transitions, how cancellation propagates, and how to monitor workflows via API and dashboard. For system architecture and internals, see the Developer Guide.</p>
+<h2 id="workflow-execution-status">Workflow Execution Status</h2>
+<p>Workflows transition through five main states during execution:</p>
 <table>
 <thead>
 <tr>
-<th>Platform</th>
-<th>HA behaviour</th>
+<th>Status</th>
+<th>When Set</th>
+<th>Behavior</th>
+<th>Transitions To</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>VMware vSphere HA</td>
-<td>VM restarts automatically on another host within the cluster on host failure. Recovery typically 1–3 minutes.</td>
+<td><strong>RUNNING</strong></td>
+<td>On first step dispatch</td>
+<td>At least one step is PENDING, ASSIGNED, or RUNNING; execution actively progressing</td>
+<td>COMPLETED, PARTIAL, FAILED, CANCELLED</td>
 </tr>
 <tr>
-<td>Microsoft Hyper-V</td>
-<td>Failover Clustering provides automatic VM restart on host failure. Live Migration enables near-zero-downtime planned maintenance.</td>
+<td><strong>COMPLETED</strong></td>
+<td>When last step reports success</td>
+<td>All steps succeeded; all gates passed without failures; entire DAG reached terminal state</td>
+<td>(terminal)</td>
 </tr>
 <tr>
-<td>Proxmox VE</td>
-<td>HA Manager restarts VMs on surviving cluster nodes. Suitable for smaller BPO deployments.</td>
+<td><strong>PARTIAL</strong></td>
+<td>During final status consolidation</td>
+<td>Some branches failed but failures were isolated by IF gates; main execution path completed normally</td>
+<td>(terminal)</td>
 </tr>
 <tr>
-<td>Nutanix AHV</td>
-<td>Built-in HA with automatic VM restart across the cluster. No additional configuration required.</td>
+<td><strong>FAILED</strong></td>
+<td>When a non-isolated step fails</td>
+<td>A critical step failed with no IF gate to absorb the failure; all downstream steps cascaded as CANCELLED</td>
+<td>(terminal)</td>
 </tr>
 <tr>
-<td>Bare metal (no hypervisor)</td>
-<td>Recovery depends on manual intervention. Not recommended for production EE deployments. If unavoidable, pair with a hardware watchdog and a documented runbook.</td>
+<td><strong>CANCELLED</strong></td>
+<td>User explicitly cancelled via API/dashboard</td>
+<td>Workflow execution aborted; ASSIGNED/RUNNING steps are terminated; PENDING steps marked CANCELLED</td>
+<td>(terminal)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="docker-restart-policy">Docker Restart Policy</h3>
-<p>Regardless of hypervisor configuration, set Docker restart policies that handle process-level crashes without host intervention.</p>
-<div class="admonition tip">
-<p class="admonition-title">Strong recommendation</p>
-<p>Set <code>restart: unless-stopped</code> on all Axiom services. A process crash (OOM kill, unhandled exception) results in an automatic container restart — typically within seconds.</p>
-</div>
-<div class="highlight"><pre><span></span><code><span class="c1"># compose.server.yaml — recommended restart policy for all EE services</span>
-<span class="nt">services</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">agent</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
-<span class="w">  </span><span class="nt">db</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
-<span class="w">  </span><span class="nt">caddy</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unless-stopped</span>
-</code></pre></div>
-<p>With <code>unless-stopped</code>, the service restarts automatically on any crash but stays stopped if explicitly halted (e.g. <code>docker compose stop</code>) — the correct behaviour for production.</p>
-<hr />
-<h2 id="data-durability">Data Durability</h2>
-<p>All meaningful state in an Axiom EE deployment lives in PostgreSQL: job history, audit log, node certificates, signing keys, RBAC configuration, and execution records. Protecting the database is the data durability strategy.</p>
-<h3 id="option-1-nightly-pg_dump-minimum-viable">Option 1 — Nightly pg_dump (Minimum Viable)</h3>
-<div class="admonition tip">
-<p class="admonition-title">Strong recommendation — minimum viable data durability</p>
-<p>A nightly <code>pg_dump</code> exported to a separate host provides the minimum acceptable data durability for a production EE deployment. In a catastrophic host failure, recovery means: restore the VM (or provision a new one), restore from backup, restart the stack. RPO is up to 24 hours; RTO depends on VM provisioning time.</p>
-</div>
-<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
-<span class="c1"># /etc/cron.d/axiom-backup — run as root or docker user</span>
+<h3 id="understanding-status-transitions">Understanding Status Transitions</h3>
+<p><strong>COMPLETED:</strong> All steps succeeded normally. Every branch through the DAG completed successfully. No failures, no conditional branches taken to failure paths.</p>
+<p><strong>PARTIAL:</strong> An IF gate took a failure branch, isolating the failure. The upstream step failed, but the IF gate handled it by routing to a failure-handling branch (e.g., a Rollback or Cleanup step). Downstream steps after the gate continue normally. This is <strong>expected and normal</strong> for conditional workflows.</p>
+<p><strong>FAILED:</strong> A step failed without isolation by a gate. All downstream steps were automatically cancelled by the cascade mechanism. Operators should investigate FAILED runs immediately — this indicates an unexpected error in the pipeline.</p>
+<p><strong>PARTIAL is not a bug.</strong> It's the intended outcome when conditional logic is properly set up.</p>
+<h2 id="cascade-cancellation-failure-propagation">Cascade Cancellation (Failure Propagation)</h2>
+<p>When a step fails, the system automatically cancels all downstream PENDING steps unless the failure is isolated by a gate.</p>
+<h3 id="linear-pipeline-no-gates">Linear Pipeline (No Gates)</h3>
+<div class="highlight"><pre><span></span><code>A (success) → B (success) → C (success)
+Workflow status: COMPLETED
 
-<span class="nv">BACKUP_HOST</span><span class="o">=</span>backup.internal
-<span class="nv">BACKUP_PATH</span><span class="o">=</span>/backups/axiom
-<span class="nv">TIMESTAMP</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d_%H%M%S<span class="k">)</span>
-<span class="nv">CONTAINER</span><span class="o">=</span>axiom-postgres
+A (FAILED) → B (CANCELLED) → C (CANCELLED)
+Workflow status: FAILED
+</code></pre></div>
+<p>When A fails, B and C are immediately marked CANCELLED because A's failure has no isolation gate to contain it.</p>
+<h3 id="pipeline-with-if-gate-conditional-branching">Pipeline with IF Gate (Conditional Branching)</h3>
+<div class="highlight"><pre><span></span><code>A (success) → IF Gate → [Success Branch] → B (success) → C (success)
+                        └─ [Failure Branch] → Rollback (success)
+Workflow status: PARTIAL
 
-<span class="c1"># Dump inside the container, stream to backup host via SSH</span>
-docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span><span class="nv">$CONTAINER</span><span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>axiom<span class="w"> </span>axiom_db<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="p">|</span><span class="w"> </span>gzip<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="p">|</span><span class="w"> </span>ssh<span class="w"> </span>axiom-backup@<span class="nv">$BACKUP_HOST</span><span class="w"> </span><span class="se">\</span>
-<span class="w">      </span><span class="s2">&quot;cat &gt; </span><span class="nv">$BACKUP_PATH</span><span class="s2">/axiom_</span><span class="si">${</span><span class="nv">TIMESTAMP</span><span class="si">}</span><span class="s2">.sql.gz&quot;</span>
-
-<span class="c1"># Retain 14 days of backups</span>
-ssh<span class="w"> </span>axiom-backup@<span class="nv">$BACKUP_HOST</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;find </span><span class="nv">$BACKUP_PATH</span><span class="s2"> -name &#39;*.sql.gz&#39; -mtime +14 -delete&quot;</span>
+A (FAILED) → IF Gate (takes failure branch) → Rollback (success) → C (success)
+Workflow status: PARTIAL
 </code></pre></div>
-<p>Before going to production, confirm:</p>
+<p>When A fails, the IF Gate evaluates its condition against A's failure result. The gate routes to the failure branch (Rollback runs instead of B). Since the gate absorbed the failure, B is NOT cascaded as CANCELLED; instead, execution continues with C after Rollback completes.</p>
+<h3 id="key-rules-for-cascade-cancellation">Key Rules for Cascade Cancellation</h3>
 <ul>
-<li>[ ] Backup destination is on a <strong>separate physical host</strong> or network-attached storage — not a local mount on the same VM</li>
-<li>[ ] A test restore has been performed and the recovery time documented</li>
-<li>[ ] Backup success/failure is monitored and alerted — silent backup failure is the most common real-world failure mode</li>
-<li>[ ] Backup files are encrypted at rest if the destination host is in a shared environment</li>
+<li><strong>Isolation gates</strong> (IF_GATE with a failure branch, AND_JOIN, OR_GATE) <strong>break cascade chains</strong>. A failure absorbed by these gates does not propagate downstream.</li>
+<li><strong>Linear steps</strong> without isolation gates form <strong>cascade chains</strong>. A single failure cancels everything downstream.</li>
+<li>To monitor cascade behaviour: View the DAG in the dashboard; crossed-out steps (CANCELLED status) indicate failed dependencies.</li>
 </ul>
-<h3 id="option-2-postgresql-streaming-replication">Option 2 — PostgreSQL Streaming Replication</h3>
-<div class="admonition tip">
-<p class="admonition-title">Recommended for high-volume or compliance-sensitive deployments</p>
-<p>A PostgreSQL streaming read replica on a second host reduces RPO to seconds (the replication lag) and provides a warm standby that can be promoted to primary on host failure.</p>
-</div>
-<p><strong>Primary host configuration:</strong></p>
-<div class="highlight"><pre><span></span><code><span class="c1"># postgresql.conf</span>
-<span class="na">wal_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">replica</span>
-<span class="na">max_wal_senders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">3</span>
-<span class="na">wal_keep_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">256MB</span><span class="w">    </span><span class="c1"># retain WAL for replica catchup</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code># pg_hba.conf — allow replication user from replica host
-host  replication  axiom_replica  &lt;REPLICA_IP&gt;/32  scram-sha-256
-</code></pre></div>
-<p><strong>Initial replica sync:</strong></p>
-<div class="highlight"><pre><span></span><code>pg_basebackup<span class="w"> </span>-h<span class="w"> </span>&lt;PRIMARY_IP&gt;<span class="w"> </span>-U<span class="w"> </span>axiom_replica<span class="w"> </span>-D<span class="w"> </span>/var/lib/postgresql/data<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-P<span class="w"> </span>-Xs<span class="w"> </span>-R
-
-<span class="c1"># The -R flag writes standby.signal and primary_conninfo automatically.</span>
-<span class="c1"># Start postgres on the replica — it will begin streaming replication.</span>
-</code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">Promotion requires manual intervention</p>
-<p>If the primary host fails, promoting the replica requires manual steps: remove <code>standby.signal</code>, adjust <code>primary_conninfo</code>, restart. <strong>Document this runbook before you need it.</strong></p>
-</div>
-<p>Key points:</p>
+<h2 id="gate-execution-semantics">Gate Execution Semantics</h2>
+<p>Gates do not execute jobs; they control flow topology. Each gate type has specific semantics:</p>
+<h3 id="if_gate">IF_GATE</h3>
+<p>Evaluates conditions against the <code>result.json</code> from the upstream step. If <strong>ALL</strong> conditions match, execution takes the primary branch. If any condition fails, execution takes the failure branch (if defined). Routes to exactly one branch — never both.</p>
+<p><strong>Use when:</strong> You need conditional logic based on a previous step's output. Example: "If data quality check passes, load to production; otherwise, load to staging."</p>
+<h3 id="and_join">AND_JOIN</h3>
+<p>Waits for <strong>ALL</strong> incoming branches to complete before releasing downstream steps. If any incoming branch fails or is cancelled, the AND_JOIN marks itself FAILED (unless isolated by another gate above it). Propagates failure from any branch.</p>
+<p><strong>Use when:</strong> Multiple parallel branches must all succeed before proceeding. Example: "Wait for all parallel data exports to complete, then consolidate results."</p>
+<h3 id="or_gate">OR_GATE</h3>
+<p>Releases downstream steps as soon as <strong>ANY</strong> incoming branch completes. Other branches are automatically marked SKIPPED (not needed). No waiting for other branches.</p>
+<p><strong>Use when:</strong> Only one of multiple branches is needed, and execution should proceed as soon as one succeeds. Example: "Try endpoint A; if it fails, try endpoint B. Use whichever succeeds first."</p>
+<h3 id="parallel">PARALLEL</h3>
+<p>Fans out to multiple independent downstream branches; all execute <strong>concurrently</strong>. Releases all downstream children simultaneously. Not a synchronization point — just a topology fan-out.</p>
+<p><strong>Use when:</strong> Multiple independent tasks should run in parallel. Example: "Download files from three cloud providers in parallel, each to its own branch."</p>
+<h3 id="signal_wait">SIGNAL_WAIT</h3>
+<p>Pauses execution until an external signal (named) is posted via the Signal mechanism. When the signal arrives, execution continues to the next step.</p>
+<p><strong>Use when:</strong> Workflow must wait for an external approval or event. Example: "Execute deployment preview, pause for human approval via signal, then run full deployment."</p>
+<h2 id="phase-149-features-triggers-parameters">Phase 149 Features: Triggers &amp; Parameters</h2>
+<h3 id="workflow-triggers">Workflow Triggers</h3>
+<p>Workflows can be triggered in three ways:</p>
 <ul>
-<li>The read replica carries a full copy of all Axiom state — apply the same access controls as the primary</li>
-<li>The replica can serve read-only queries for audit log access without load on the primary — useful for BPO audit workflows</li>
-<li>If the client environment has a DBA team, streaming replication is a standard operation they will already be familiar with</li>
+<li><strong>MANUAL:</strong> User clicks 'Trigger Run' on the dashboard (Phase 151, UI shipping soon). API: <code>POST /api/workflows/{id}/runs</code></li>
+<li><strong>CRON:</strong> Scheduled via cron expression defined on the workflow. APScheduler manages the schedule; runs execute automatically at the configured times.</li>
+<li><strong>WEBHOOK:</strong> External system POSTs to <code>/api/webhooks/{webhook_id}/trigger</code>. Signature must be valid: HMAC-SHA256, timestamp within ±5 minutes, nonce not seen in the last 24 hours.</li>
 </ul>
-<hr />
-<h2 id="deployment-configuration-comparison">Deployment Configuration Comparison</h2>
-<table>
-<thead>
-<tr>
-<th>Configuration</th>
-<th>RPO</th>
-<th>RTO</th>
-<th>Complexity</th>
-<th>Recommended for</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>pg_dump nightly + managed VM</td>
-<td>Up to 24h</td>
-<td>Minutes (VM recovery)</td>
-<td>Low</td>
-<td>Most EE deployments</td>
-</tr>
-<tr>
-<td>pg_dump nightly + bare metal</td>
-<td>Up to 24h</td>
-<td>Hours (manual recovery)</td>
-<td>Low</td>
-<td>Not recommended for production</td>
-</tr>
-<tr>
-<td>Streaming replica + managed VM</td>
-<td>Seconds (lag-dependent)</td>
-<td>Minutes (manual promotion)</td>
-<td>Medium</td>
-<td>High-volume or compliance-sensitive</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="air-gap-deployments">Air-Gap Deployments</h2>
-<p>Axiom EE is designed to operate in network-isolated environments. The documentation site, Foundry image builds, and node execution runtime can all run without outbound internet access after initial setup.</p>
-<p>For a full from-scratch setup guide, see <a href="../../runbooks/package-mirrors/">Package Mirror Runbooks</a> — covering devpi (PyPI), apt-cacher-ng (APT), and BaGet (NuGet/PowerShell) mirror configuration. For a full overview of what is already offline-capable and what requires substitution, see <a href="../../security/air-gap/">Air-Gap Operation</a>.</p>
-<hr />
-<h2 id="pre-deployment-checklist">Pre-Deployment Checklist</h2>
-<h3 id="host-infrastructure_1">Host Infrastructure</h3>
+<h3 id="parameter-injection">Parameter Injection</h3>
+<p>Workflows can define named parameters (string, integer) with optional defaults. At dispatch time, parameters are resolved from WorkflowParameter rows and injected as <code>WORKFLOW_PARAM_&lt;NAME&gt;</code> environment variables.</p>
 <ul>
-<li>[ ] Orchestrator VM is deployed on managed hypervisor infrastructure with HA or live-migration policy</li>
-<li>[ ] VM is covered by existing business-critical uptime SLA</li>
-<li>[ ] Docker restart policies set to <code>unless-stopped</code> for all Axiom services</li>
-<li>[ ] Expected recovery time for host restart documented and agreed with client</li>
+<li><strong>Each step's job sees the same parameter values</strong> — scripts are immutable; parameters are injected at runtime via env vars.</li>
+<li><strong>Example:</strong> Workflow parameter <code>target_env</code> → each step's job receives env var <code>WORKFLOW_PARAM_target_env=production</code>.</li>
+<li><strong>Source of truth:</strong> Parameter values are stored in the <code>parameters_json</code> field of WorkflowRun for audit trail.</li>
 </ul>
-<h3 id="data-durability_1">Data Durability</h3>
+<h2 id="monitoring-via-dashboard">Monitoring via Dashboard</h2>
+<h3 id="workflows-list">Workflows List</h3>
+<p>The <strong>Workflows</strong> view shows all defined workflows with metadata:
+- Workflow name and status of the last run
+- Last run timestamp (when it completed)
+- Next scheduled run (if cron is configured)
+- Click any row to navigate to the WorkflowDetail view</p>
+<h3 id="workflow-detail">Workflow Detail</h3>
+<p>The <strong>WorkflowDetail</strong> view shows the workflow definition and execution history:
+- Visual DAG showing steps and connections (read-only)
+- Run history: paginated list of all runs, sorted by recency
+- Click any run to drill into the WorkflowRunDetail overlay</p>
+<h3 id="workflow-run-detail">Workflow Run Detail</h3>
+<p>The <strong>WorkflowRunDetail</strong> overlay (on top of the DAG) shows live execution status:
+- <strong>DAG with status colors:</strong> Steps are coloured RUNNING (blue), COMPLETED (green), FAILED (red), CANCELLED (grey), SKIPPED (faded)
+- <strong>Step log drawer:</strong> Click any step to see logs (from the underlying job) and the step's result.json
+- <strong>Real-time updates:</strong> WebSocket broadcasts status changes; no page refresh needed
+- <strong>Status badge:</strong> Shows the run's overall status (RUNNING, COMPLETED, PARTIAL, FAILED, CANCELLED)</p>
+<h2 id="monitoring-via-api">Monitoring via API</h2>
+<h3 id="rest-endpoints">REST Endpoints</h3>
 <ul>
-<li>[ ] Nightly <code>pg_dump</code> configured and tested — restore procedure documented</li>
-<li>[ ] Backup destination is on a separate host from the orchestrator</li>
-<li>[ ] Backup success monitored and alerted</li>
-<li>[ ] Backup retention period agreed with client (minimum 14 days recommended)</li>
-<li>[ ] If streaming replication required: replica provisioned, tested, and promotion runbook documented</li>
+<li><strong><code>GET /api/workflows</code></strong> — List all workflows (paginated)</li>
+<li><strong><code>GET /api/workflows/{id}</code></strong> — Get workflow details (steps, edges, parameters)</li>
+<li><strong><code>GET /api/workflows/{id}/runs</code></strong> — List runs for a workflow (paginated)</li>
+<li><strong><code>GET /api/workflows/{id}/runs/{run_id}</code></strong> — Get run status and all step statuses</li>
+<li><strong><code>GET /api/executions/{job_guid}/logs</code></strong> — Get logs for a specific job (step run)</li>
 </ul>
-<h3 id="node-fleet-behaviour">Node Fleet Behaviour</h3>
+<h3 id="websocket-real-time-updates">WebSocket Real-Time Updates</h3>
+<p>Connect to <code>/ws?token=&lt;jwt&gt;</code> and listen for:
+- <strong><code>workflow_run_updated</code></strong> — Emitted when a run transitions status (RUNNING→COMPLETED, etc.)
+- <strong><code>workflow_step_updated</code></strong> — Emitted when a step transitions status (PENDING→RUNNING, RUNNING→COMPLETED, etc.)</p>
+<p>Polling alternative: Call <code>GET /api/workflows/{id}/runs/{run_id}</code> every 5-10 seconds for status updates.</p>
+<h2 id="common-operator-tasks">Common Operator Tasks</h2>
+<h3 id="viewing-current-execution-status">Viewing Current Execution Status</h3>
+<p><strong>Dashboard:</strong> Workflows → click a workflow → click a run → live DAG shows status colours
+<strong>API:</strong> <code>GET /api/workflows/{id}/runs/{run_id}</code> returns full run + step statuses</p>
+<h3 id="cancelling-a-running-workflow">Cancelling a Running Workflow</h3>
+<p><strong>Dashboard:</strong> Workflows → click a run → Cancel button
+<strong>API:</strong> <code>DELETE /api/workflows/{id}/runs/{run_id}</code></p>
+<p>Cascades CANCELLED status to all PENDING/RUNNING steps.</p>
+<h3 id="re-triggering-a-failed-workflow">Re-triggering a Failed Workflow</h3>
+<p>Currently: Manual re-trigger from dashboard (Phase 151 UI). No automatic retry yet.
+<strong>API:</strong> <code>POST /api/workflows/{id}/runs</code> with optional parameter overrides</p>
+<h3 id="debugging-a-failed-vs-partial-status">Debugging a FAILED vs PARTIAL Status</h3>
 <ul>
-<li>[ ] Client team understands pull-model recovery: nodes resume automatically when orchestrator returns</li>
-<li>[ ] Node poll interval configured appropriately for acceptable job-start latency during recovery</li>
-<li>[ ] Fleet recovery tested: orchestrator restarted, nodes confirmed to resume without intervention</li>
+<li><strong>PARTIAL = expected.</strong> At least one branch took a failure path (controlled by IF gate). The workflow executed correctly.</li>
+<li><strong>FAILED = unexpected.</strong> A non-isolated step failed; downstream steps cascaded. Check the DAG to see which step failed; click it in the log drawer to view error details.</li>
 </ul>
-<hr />
-<h2 id="related-guides">Related Guides</h2>
-<ul>
-<li><a href="../docker-deployment/">Running with Docker</a> — stack startup, secret generation, production checklist</li>
-<li><a href="../../security/air-gap/">Air-Gap Operation</a> — what is already offline-capable and what requires substitution</li>
-<li><a href="../../runbooks/package-mirrors/">Package Mirror Runbooks</a> — devpi, apt-cacher-ng, and BaGet mirror setup for air-gapped environments</li>
-<li><a href="../../runbooks/nodes/">Node Troubleshooting</a> — diagnosing node connectivity and enrollment issues</li>
-</ul>
+<h3 id="checking-webhook-signature-issues">Checking Webhook Signature Issues</h3>
+<p>If webhook events are rejected (400 Bad Request):
+1. Verify HMAC-SHA256 signature: <code>HMAC-SHA256(secret, payload + timestamp)</code> matches the <code>X-Signature</code> header
+2. Check timestamp freshness: Event timestamp must be within ±5 minutes of current time
+3. Check nonce uniqueness: Event nonce must not have been seen in the last 24 hours (deduplication prevents replay attacks)</p>
+<p>Contact support if signature generation is unclear — most webhook providers (AWS, GitHub, etc.) have standard HMAC libraries.</p>
 
 
 
