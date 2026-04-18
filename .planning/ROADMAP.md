@@ -213,13 +213,13 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
   - [x] Plan 02: Update npm packages to resolve HIGH/MODERATE CVEs; create .github/dependabot.yml automation
   - [x] Plan 03: E2E smoke tests (mop-e2e); Docker verification; final audit snapshot
 
-- [ ] **Phase 166: Router Modularization** — Refactor main.py (89 routes) into 6 domain-specific APIRouter modules (6 plans)
+- [x] **Phase 166: Router Modularization** — Refactor main.py (3,828 lines) into 6 domain-specific APIRouter modules; 105 routes across 85 paths; zero NEW test failures (6 plans, completed 2026-04-18)
   - [x] Plan 01: Extract auth_router and jobs_router; wire both into main.py (Wave 1) (completed 2026-04-18)
   - [x] Plan 02: Extract nodes_router and workflows_router; wire all 4 routers; verify pytest (Wave 1) (completed 2026-04-18)
-  - [ ] Plan 03: Extract admin_router and system_router; wire all 7 routers; remove all routes from main.py; verify pytest (Wave 2)
-  - [ ] Plan 04: Create openapi_diff.py Wave 0 artifact; verify OpenAPI schema (89 routes, zero behavior change) (Wave 2)
-  - [ ] Plan 05: Full pytest suite regression validation (737+ tests, unchanged coverage) (Wave 2)
-  - [ ] Plan 06: Final comprehensive verification (routers, main.py shell, OpenAPI completeness, pytest) (Wave 3)
+  - [x] Plan 03: Extract admin_router and system_router; wire all 7 routers; remove duplicate routes from main.py; verify pytest (Wave 2) (completed 2026-04-18)
+  - [x] Plan 04: Create openapi_diff.py; verify OpenAPI schema (105 routes, zero operation ID conflicts, zero behavior change); remove remaining duplicate handlers (Wave 2) (completed 2026-04-18)
+  - [x] Plan 05: Full pytest suite regression validation (736 tests pass, zero NEW failures from refactoring) (Wave 2) (completed 2026-04-18)
+  - [x] Plan 06: Final comprehensive verification (routers, main.py shell, OpenAPI completeness, pytest) (Wave 3) (completed 2026-04-18)
 
 - [ ] **Phase 167: HashiCorp Vault Integration (EE)** — External secrets management with AppRole auth, lease renewal, graceful fallback
   - [ ] Plan 01: Vault service layer (hvac AppRole client, secret fetch/cache, lease renewal)
@@ -300,6 +300,6 @@ Archive: (pending — roadmap under review)
 | 163. v23.0 Tech Debt Closure | v23.0 | 2/2 | Complete | 2026-04-17 |
 | 164. Adversarial Audit Remediation | v23.0 | 4/4 | Complete | 2026-04-18 |
 | 165. Dependabot CVE Remediation | v24.0 | 3/3 | Complete | 2026-04-18 |
-| 166. Router Modularization | v24.0 | 0/6 | Planning Complete | 2026-04-18 |
+| 166. Router Modularization | v24.0 | 6/6 | Complete | 2026-04-18 |
 | 167. Vault Integration (EE) | v24.0 | 0/5 | Not started | — |
 | 168. SIEM Streaming (EE) | v24.0 | 0/5 | Not started | — |
