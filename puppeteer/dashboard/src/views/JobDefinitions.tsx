@@ -180,9 +180,9 @@ const JobDefinitions = () => {
     const loadData = async () => {
         try {
             const [defRes, execRes, sigRes] = await Promise.all([
-                authenticatedFetch('/jobs/definitions'),
-                authenticatedFetch('/jobs'),
-                authenticatedFetch('/signatures')
+                authenticatedFetch('/api/jobs/definitions'),
+                authenticatedFetch('/api/jobs'),
+                authenticatedFetch('/api/signatures')
             ]);
 
             if (defRes.ok) { const d = await defRes.json(); setDefinitions(Array.isArray(d) ? d : (d.items ?? [])); }
@@ -197,7 +197,7 @@ const JobDefinitions = () => {
 
     const handleDelete = async (id: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/definitions/${id}`, { method: 'DELETE' });
+            const res = await authenticatedFetch(`/api/jobs/definitions/${id}`, { method: 'DELETE' });
             if (res.ok) loadData();
         } catch (e) {
             console.error(e);
@@ -206,7 +206,7 @@ const JobDefinitions = () => {
 
     const handleToggle = async (id: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/definitions/${id}/toggle`, { method: 'PATCH' });
+            const res = await authenticatedFetch(`/api/jobs/definitions/${id}/toggle`, { method: 'PATCH' });
             if (res.ok) loadData();
         } catch (e) {
             console.error(e);
@@ -215,7 +215,7 @@ const JobDefinitions = () => {
 
     const handleEdit = async (id: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/definitions/${id}`);
+            const res = await authenticatedFetch(`/api/jobs/definitions/${id}`);
             if (!res.ok) {
                 const err = await res.json();
                 toast.error(err.detail || 'Failed to load job definition');
@@ -259,7 +259,7 @@ const JobDefinitions = () => {
             return;
         }
         try {
-            const res = await authenticatedFetch('/jobs/definitions', {
+            const res = await authenticatedFetch('/api/jobs/definitions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(buildPayload())
@@ -281,7 +281,7 @@ const JobDefinitions = () => {
     const handleUpdate = async (id: string, overrides?: Record<string, unknown>) => {
         try {
             const payload = overrides ? { ...buildPayload(), ...overrides } : buildPayload();
-            const res = await authenticatedFetch(`/jobs/definitions/${id}`, {
+            const res = await authenticatedFetch(`/api/jobs/definitions/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -302,7 +302,7 @@ const JobDefinitions = () => {
 
     const handleResign = async (id: string, signatureId: string, signature: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/definitions/${id}`, {
+            const res = await authenticatedFetch(`/api/jobs/definitions/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ signature_id: signatureId, signature }),
@@ -321,7 +321,7 @@ const JobDefinitions = () => {
 
     const handlePublish = async (id: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/definitions/${id}`, {
+            const res = await authenticatedFetch(`/api/jobs/definitions/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'ACTIVE' })

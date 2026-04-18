@@ -1,5 +1,69 @@
 # Retrospective
 
+## Milestone: v23.0 — DAG & Workflow Orchestration
+
+**Shipped:** 2026-04-18
+**Phases:** 19 (146–164) | **Plans:** 49
+**Duration:** 3 days (2026-04-15 → 2026-04-18) | **Commits:** 26
+
+### What Was Built
+
+**Workflow Data Model & CRUD (Phases 146–148):**
+- `Workflow`, `WorkflowStep`, `WorkflowEdge`, `WorkflowRun`, `WorkflowRunStep` SQLAlchemy models; full CRUD API with server-side DAG re-validation on every update
+- DAG validation via networkx: cycle detection, topological sort, 30-level depth limit; cycle error returns node IDs for UI highlighting
+- Workflow delete blocked when active WorkflowRuns exist; "Save as New" auto-pauses existing cron schedule to prevent ghost execution
+
+**Execution Engine (Phases 149–152):**
+- BFS topological dispatch releases steps level-by-level; only steps with all predecessors completed are eligible for dispatch
+- `SELECT…FOR UPDATE` atomic concurrency guard in `advance_workflow()` prevents duplicate step dispatch under concurrent completions
+- WorkflowRun lifecycle: RUNNING → COMPLETED / PARTIAL / FAILED / CANCELLED; cascading cancellation aborts all ASSIGNED/RUNNING downstream jobs when a step fails
+- PARTIAL status correctly absorbed when FAILED-branch steps consume the failure without propagating it
+
+**Gate Nodes (Phases 153–154):**
+- IF gate evaluates conditions against `/tmp/axiom/result.json` with 6 operators (eq, neq, gt, lt, contains, exists); first matching branch wins; unmatched cascades FAILED
+- AND/JOIN gate: all incoming branches must complete; OR gate: first completing branch releases downstream; PARALLEL fan-out dispatches multiple independent branches concurrently; SIGNAL_WAIT pauses until named signal posted
+
+**Triggers & Parameters (Phases 155–157):**
+- Manual trigger from dashboard with parameter values at trigger time; cron schedule via APScheduler
+- Webhook endpoint (`POST /api/webhooks/{id}/trigger`) with HMAC-SHA256 signature, timestamp freshness (±5 min), and 24h nonce dedup via Redis-backed or DB-backed dedup table
+- WORKFLOW_PARAM_* env var injection into each step's container — signed script content never modified post-signing
+
+**Dashboard UI (Phases 158–163):**
+- Read-only auto-layout DAG visualization using elkjs layered layout; live step status overlay during active WorkflowRun (colour-coded: PENDING/RUNNING/COMPLETED/FAILED/CANCELLED)
+- WorkflowRun history list with trigger type, status, started/completed, duration; step drill-down with job output, logs, and result.json structured output
+- Unified schedule view endpoint: single API call returns heterogeneous schedule entries with JOB and FLOW badges; frontend renders both types uniformly
+- Visual Workflow composer: drag ScheduledJob steps onto ReactFlow canvas, connect with directed edges; real-time cycle highlighting; depth warning at 25+ steps; inline IF gate condition config panel
+
+**Adversarial Audit Remediation (Phase 164):**
+- mTLS enforcement hardened: client cert validation via `ssl.SSLSocket.getpeercert()` at Python layer (not just TLS handshake) with CRL table check
+- Foundry injection recipe whitelist: exact command matching against approved package manager invocations; validated at API layer and at Dockerfile generation time
+- Alembic two-layer startup: `create_all` for fresh installs, `alembic upgrade head` for existing deployments; 48 legacy SQL migration files archived
+- Caddy internal TLS: agent container now reachable via HTTPS from other services; fixes internal service-to-service communication
+- Public keys externalized to environment variables — no hardcoded cryptographic material in source; frontend-backend gaps (auth.ts 402 handler, /api/ prefix audit, recipe validation UI) closed
+
+### What Worked
+
+- **BFS over DFS for dispatch** — wave-level parallelism is natural: all steps at depth N can run concurrently without risk of deadlock; the design came out of a single planning session and held throughout
+- **networkx for DAG validation** — battle-tested graph library meant zero custom graph code; `find_cycle()` returns the exact cycle edge for UI highlighting; `topological_sort()` gives dispatch order directly
+- **ReactFlow for the visual editor** — first-class React integration meant drag, handles, and edge routing just worked; the main integration work was mapping Axiom step types to ReactFlow node types
+- **`/tmp/axiom/result.json` contract for IF gates** — simple filesystem contract; node writes structured output, orchestrator reads it after job completes; no server-side involvement in condition evaluation; scripts can produce this output trivially
+- **Phase 164 adversarial audit as a dedicated phase** — treating the security audit as a standard GSD phase (with PLAN, RESEARCH, SUMMARY) gave it the same rigour as a feature phase; all 7 items closed with tests
+
+### What Was Inefficient
+
+- **Three separate v23.0 milestone entries in ROADMAP.md** — the milestone had been created in three chunks (v23.0 core, v23.1, v23.0 Tech Debt Closure); collapsing these into a single shipped entry at milestone close required non-trivial ROADMAP.md surgery. Pattern: create one milestone entry per milestone from the start; avoid suffixed variants (v23.1) mid-milestone
+- **Phase 149 progress table stuck at "1/3 in progress"** — stale ROADMAP.md progress table entry survived through the full milestone and was only caught by the milestone audit. Pattern: update progress table atomically when SUMMARY.md is written
+- **TRIGGER-01..05 requirements split across phases 155–157** — the trigger phases were small; could have been collapsed into 1–2 phases without loss of quality. Pattern: phases under 2 plans are candidates for consolidation at planning time
+
+### Patterns Established
+
+- **`/tmp/axiom/result.json` as the IF gate output contract** — scripts write structured JSON there; gate evaluates it post-completion; no changes to the signing model required
+- **WORKFLOW_PARAM_* env var injection pattern** — the only safe way to pass runtime values into Ed25519-signed scripts is via environment; this pattern should be extended to any future dynamic input channel
+- **Two-layer Alembic startup** — `create_all` first (idempotent for fresh installs), then `alembic upgrade head` (handles schema evolution); never replace `create_all` outright or fresh installs will fail with no migration history
+- **Adversarial audit as a milestone-closing phase** — Phase 164 model: run a structured audit of the milestone's security surface as the final phase before closure; produces concrete PLAN tasks, not just a report
+
+---
+
 ## Milestone: v22.0 — Security Hardening
 
 **Shipped:** 2026-04-15

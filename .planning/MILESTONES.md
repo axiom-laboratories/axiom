@@ -1,5 +1,14 @@
 # Milestones
 
+## v23.0 DAG & Workflow Orchestration (Shipped: 2026-04-18)
+
+**Phases completed:** 9 phases, 15 plans, 45 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
 ## v22.0 Security Hardening (Shipped: 2026-04-15)
 
 **Phases completed:** 14 phases (132–145), 165 plans, 195 tasks

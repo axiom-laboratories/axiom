@@ -33,18 +33,26 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { getUser, logout, setToken } from '../auth';
+import { getUser, logout, setToken, setLicenceExpiredDialogCallback } from '../auth';
 import { useFeatures } from '../hooks/useFeatures';
 import { useLicence } from '../hooks/useLicence';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { authenticatedFetch } from '../auth';
+import { useEffect } from 'react';
 
 const MainLayout = () => {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [licenceExpiredOpen, setLicenceExpiredOpen] = useState(false);
     const features = useFeatures();
     const licence = useLicence();
+
+    // Register the callback for 402 handler
+    useEffect(() => {
+        setLicenceExpiredDialogCallback(setLicenceExpiredOpen);
+    }, []);
 
     const NavItem = ({ to, icon: Icon, label }: { to: string, icon: React.ComponentType<{ className?: string }>, label: string }) => (
         <NavLink
@@ -340,6 +348,24 @@ const MainLayout = () => {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={licenceExpiredOpen} onOpenChange={setLicenceExpiredOpen}>
+                <AlertDialogContent className="sm:max-w-md">
+                    <AlertDialogTitle className="text-foreground">Licence Expired</AlertDialogTitle>
+                    <AlertDialogDescription className="text-muted-foreground">
+                        Your enterprise licence has expired. Please contact support to renew your licence and restore full functionality.
+                    </AlertDialogDescription>
+                    <AlertDialogAction
+                        onClick={() => {
+                            setLicenceExpiredOpen(false);
+                            window.location.href = '/';
+                        }}
+                        className="bg-primary hover:bg-primary/90 text-white font-semibold"
+                    >
+                        OK
+                    </AlertDialogAction>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

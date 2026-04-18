@@ -218,7 +218,7 @@ const JobDetailPanel = ({
     useEffect(() => {
         if (!open || !job) { setExecutions(null); setNodeHealth(null); return; }
         setExecLoading(true);
-        authenticatedFetch(`/jobs/${job.guid}/executions`)
+        authenticatedFetch(`/api/jobs/${job.guid}/executions`)
             .then(r => r.json())
             .then(data => {
                 setExecutions(data.records ?? []);
@@ -234,7 +234,7 @@ const JobDetailPanel = ({
             return;
         }
         setDiagnosisLoading(true);
-        authenticatedFetch(`/jobs/${job.guid}/dispatch-diagnosis`)
+        authenticatedFetch(`/api/jobs/${job.guid}/dispatch-diagnosis`)
             .then(r => r.ok ? r.json() : null)
             .then(data => setDiagnosis(data))
             .catch(() => {})
@@ -244,7 +244,7 @@ const JobDetailPanel = ({
     useWebSocket((event) => {
         if ((event === 'node:updated' || event === 'node:heartbeat' || event === 'job:updated')
             && open && job?.status === 'PENDING' && job?.guid) {
-            authenticatedFetch(`/jobs/${job.guid}/dispatch-diagnosis`)
+            authenticatedFetch(`/api/jobs/${job.guid}/dispatch-diagnosis`)
                 .then(r => r.ok ? r.json() : null)
                 .then(data => data && setDiagnosis(data))
                 .catch(() => {});
@@ -991,7 +991,7 @@ const Jobs = () => {
                     };
                     setGuidedInitialValues(initialValues);
                     // Clear the query param
-                    navigate('/jobs', { replace: true });
+                    navigate('/api/jobs', { replace: true });
                     setTimeout(() => {
                         guidedCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }, 100);
@@ -1028,7 +1028,7 @@ const Jobs = () => {
         setExporting(true);
         try {
             const params = buildFilterParams(filters);
-            const res = await authenticatedFetch(`/jobs/export?${params}`);
+            const res = await authenticatedFetch(`/api/jobs/export?${params}`);
             if (!res.ok) { toast.error('Export failed'); return; }
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -1072,7 +1072,7 @@ const Jobs = () => {
 
     const handleResubmit = async (guid: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/${guid}/resubmit`, { method: 'POST' });
+            const res = await authenticatedFetch(`/api/jobs/${guid}/resubmit`, { method: 'POST' });
             if (!res.ok) { toast.error('Resubmit failed'); return; }
             const newJob = await res.json();
             closeDetail();
@@ -1105,7 +1105,7 @@ const Jobs = () => {
 
     const cancelJob = async (guid: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/${guid}/cancel`, { method: 'PATCH' });
+            const res = await authenticatedFetch(`/api/jobs/${guid}/cancel`, { method: 'PATCH' });
             if (res.ok) {
                 toast.success('Job cancelled');
                 fetchJobs({ reset: true });
@@ -1188,7 +1188,7 @@ const Jobs = () => {
 
     const handleRetry = async (guid: string) => {
         try {
-            const res = await authenticatedFetch(`/jobs/${guid}/retry`, { method: 'POST' });
+            const res = await authenticatedFetch(`/api/jobs/${guid}/retry`, { method: 'POST' });
             if (res.ok) {
                 toast.success('Job re-queued for retry');
                 fetchJobs({ reset: true });

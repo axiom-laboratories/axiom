@@ -23,7 +23,7 @@ const AddNodeModal = ({ open, onOpenChange }: AddNodeModalProps) => {
             setLoading(true);
             const genToken = async () => {
                 try {
-                    const res = await authenticatedFetch('/admin/generate-token', {
+                    const res = await authenticatedFetch('/api/admin/generate-token', {
                         method: 'POST'
                     });
                     if (res.ok) {

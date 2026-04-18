@@ -87,23 +87,23 @@ const Account = () => {
   // Queries
   const { data: profile, isLoading: profileLoading } = useQuery<UserProfile>({
     queryKey: ['me'],
-    queryFn: () => authenticatedFetch('/auth/me').then((r) => r.json()),
+    queryFn: () => authenticatedFetch('/api/auth/me').then((r) => r.json()),
   });
 
   const { data: signingKeys, isLoading: keysLoading } = useQuery<SigningKey[]>({
     queryKey: ['my-signing-keys'],
-    queryFn: () => authenticatedFetch('/auth/me/signing-keys').then((r) => r.json()),
+    queryFn: () => authenticatedFetch('/api/auth/me/signing-keys').then((r) => r.json()),
   });
 
   const { data: apiKeys, isLoading: apiKeysLoading } = useQuery<ApiKey[]>({
     queryKey: ['my-api-keys'],
-    queryFn: () => authenticatedFetch('/auth/me/api-keys').then((r) => r.json()),
+    queryFn: () => authenticatedFetch('/api/auth/me/api-keys').then((r) => r.json()),
   });
 
   // Mutations
   const updatePasswordMutation = useMutation({
     mutationFn: (data: any) =>
-      authenticatedFetch('/auth/me', {
+      authenticatedFetch('/api/auth/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -126,7 +126,7 @@ const Account = () => {
 
   const uploadKeyMutation = useMutation({
     mutationFn: (data: { name: string; public_key_pem: string }) =>
-      authenticatedFetch('/auth/me/signing-keys', {
+      authenticatedFetch('/api/auth/me/signing-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -140,7 +140,7 @@ const Account = () => {
 
   const generateKeyPairMutation = useMutation({
     mutationFn: (data: { name: string }) =>
-      authenticatedFetch('/auth/me/signing-keys', {
+      authenticatedFetch('/api/auth/me/signing-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -154,7 +154,7 @@ const Account = () => {
 
   const deleteKeyMutation = useMutation({
     mutationFn: (id: string) =>
-      authenticatedFetch(`/auth/me/signing-keys/${id}`, { method: 'DELETE' }),
+      authenticatedFetch(`/api/auth/me/signing-keys/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-signing-keys'] });
       toast.success('Signing key deleted');
@@ -163,7 +163,7 @@ const Account = () => {
 
   const generateApiKeyMutation = useMutation({
     mutationFn: (data: { name: string; expires_in_days?: number }) =>
-      authenticatedFetch('/auth/me/api-keys', {
+      authenticatedFetch('/api/auth/me/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -177,7 +177,7 @@ const Account = () => {
 
   const revokeApiKeyMutation = useMutation({
     mutationFn: (id: string) =>
-      authenticatedFetch(`/auth/me/api-keys/${id}`, { method: 'DELETE' }),
+      authenticatedFetch(`/api/auth/me/api-keys/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-api-keys'] });
       toast.success('API key revoked');

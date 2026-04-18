@@ -23,8 +23,8 @@ const Dashboard = () => {
     const loadData = async () => {
         try {
             const [nodesRes, jobsRes, statsRes] = await Promise.all([
-                authenticatedFetch('/nodes'),
-                authenticatedFetch('/jobs'),
+                authenticatedFetch('/api/nodes'),
+                authenticatedFetch('/api/jobs'),
                 authenticatedFetch('/api/jobs/stats')
             ]);
 

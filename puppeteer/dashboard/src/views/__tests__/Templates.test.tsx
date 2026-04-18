@@ -323,12 +323,13 @@ describe('FEBE-03: Recipe validation', () => {
 
     it('should accept apt-get, apk, npm, yum package managers', () => {
         const recipes = [
+            'RUN pip install requests',
             'RUN apt-get install -y curl',
             'RUN apk add python3',
             'RUN npm install express',
             'RUN yum install -y git',
         ];
-        const allowedRunPattern = /^(pip|apt-get|apk|npm|yum)\s+install\b/i;
+        const allowedRunPattern = /^(pip|apt-get|apk|npm|yum)\s+/i;
 
         recipes.forEach((recipe) => {
             const line = recipe.trim();

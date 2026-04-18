@@ -114,7 +114,7 @@ const Signatures = () => {
     const { data: signatures = [], isLoading } = useQuery<Signature[]>({
         queryKey: ['signatures'],
         queryFn: async () => {
-            const res = await authenticatedFetch('/signatures');
+            const res = await authenticatedFetch('/api/signatures');
             if (!res.ok) throw new Error("Failed to fetch signatures");
             return await res.json();
         }
@@ -124,7 +124,7 @@ const Signatures = () => {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            const res = await authenticatedFetch(`/signatures/${id}`, { method: 'DELETE' });
+            const res = await authenticatedFetch(`/api/signatures/${id}`, { method: 'DELETE' });
             if (!res.ok) {
                 const err = await res.json();
                 throw new Error(err.detail || "Delete failed");
@@ -142,7 +142,7 @@ const Signatures = () => {
 
     const uploadMutation = useMutation({
         mutationFn: async (data: typeof formData) => {
-            const res = await authenticatedFetch('/signatures', {
+            const res = await authenticatedFetch('/api/signatures', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

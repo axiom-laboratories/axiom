@@ -25,9 +25,7 @@
 - ✅ **v20.0 — Node Capacity & Isolation Validation** — Phases 120–128 (shipped 2026-04-10)
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
-- ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–157 (completed 2026-04-17, all phases shipped, release-ready) — Phase 158 State-of-the-Nation: GO — v23.0 CONFIRMED READY FOR PRODUCTION DEPLOYMENT
-- ✅ **v23.1 — Test Suite Health & Compatibility Engine** — Phases 159–162 (completed 2026-04-17) — Fixes 13 workflow CRUD stubs (Phase 160), 2 collection errors (Phase 159), 2 compatibility engine routes (Phase 161), 10 frontend component failures (Phase 162)
-- ✅ **v23.0 Tech Debt Closure** — Phase 163 (completed 2026-04-17) — Added VALIDATION.md for phases 158–162 (Nyquist compliance 16/16); verified MIN-6/7/8/WARN-8 backend fixes via regression tests; milestone audit updated to mark v23.0 fully Nyquist-compliant
+- ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–164 (shipped 2026-04-18)
 
 ## Phases
 
@@ -181,72 +179,28 @@ Archive: `.planning/milestones/v22.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🚀 v23.0 — DAG & Workflow Orchestration (Phases 146–157) — IN PROGRESS</summary>
+<summary>✅ v23.0 — DAG & Workflow Orchestration (Phases 146–164) — SHIPPED 2026-04-18</summary>
 
-- [x] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection
-  - [x] Plan 01: Test & Schema Foundation — database schema (4 tables), test stubs (13 tests), fixtures, networkx dependency (completed 2026-04-15)
-  - [x] Plan 02: ORM Models & Service Layer — Workflow/Step/Edge/Parameter models, workflow_service with validation (completed 2026-04-15)
-  - [x] Plan 03: API Routes — CRUD endpoints, fork, validation, structured error responses (completed 2026-04-15)
-- [x] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation (completed 2026-04-15)
-  - [x] Plan 01: Database & Pydantic Models — WorkflowStepRun ORM + Job.workflow_step_run_id FK + migration_v54.sql (Wave 1, completed 2026-04-15)
-  - [x] Plan 02: Service Layer — dispatch_next_wave(), advance_workflow(), start_run(), cancel_run() with BFS + CAS + cascade logic (Wave 1, completed 2026-04-15)
-  - [x] Plan 03: API Routes & Integration — POST /api/workflow-runs, POST /api/workflow-runs/{id}/cancel, report_result hook (Wave 2, completed 2026-04-16)
-  - [x] Plan 04: Comprehensive Test Suite — 11+ pytest tests covering ENGINE-01..07 + workflow dispatch fixtures (Wave 3, completed 2026-04-16)
+- [x] **Phase 146: Workflow Data Model** — Database schema, CRUD API, DAG validation, cycle detection (completed 2026-04-15)
+- [x] **Phase 147: WorkflowRun Execution Engine** — BFS dispatch, atomic concurrency guards, status state machine, cascade cancellation (completed 2026-04-16)
 - [x] **Phase 148: Gate Node Types** — IF conditionals, AND/JOIN, OR, parallel fan-out, signal wait (completed 2026-04-16)
-  - [x] Plan 01: GateEvaluationService + condition evaluation methods — Wave 1 (completed 2026-04-16)
-  - [x] Plan 02: Gate node dispatch integration — Wave 2 (completed 2026-04-16)
-  - [x] Plan 03: SIGNAL_WAIT blocking and wakeup — Wave 3 (completed 2026-04-16)
-  - [x] Plan 04: Comprehensive test suite (22 unit + 11 integration tests) — Wave 4 (completed 2026-04-16)
-- 🚀 **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC, WORKFLOW_PARAM_* injection (in progress)
-  - [x] Plan 01: Database Schema & Pydantic Models — Workflow.schedule_cron, WorkflowRun.parameters_json, WorkflowWebhook ORM + migration_v55.sql (Wave 1, completed 2026-04-16)
-  - [ ] Plan 02: APScheduler Integration & Webhook Trigger — sync_workflow_crons(), webhook endpoint with HMAC, parameter resolution (Wave 1, planned)
-  - [ ] Plan 03+: Parameter injection, API endpoints, run history (planned)
-- ✅ **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (7 plans completed)
-  - [x] Plan 01: Test Foundation (Wave 0) — Test scaffolds for all views, hooks, utilities, components (completed 2026-04-16)
-  - [x] Plan 02: Backend WebSocket Events (Wave 1) — workflow_run_updated/workflow_step_updated events, /api/workflows/{id}/runs endpoint (completed 2026-04-16)
-  - [x] Plan 03: DAG Components (Wave 2) — useLayoutedElements hook, WorkflowStepNode, DAGCanvas with dagre layout (completed 2026-04-16)
-  - [x] Plan 04: Main Views (Wave 3) — Workflows list, WorkflowDetail, WorkflowRunDetail pages with React Query (completed 2026-04-16)
-  - [x] Plan 05: Step Drawer (Wave 4) — WorkflowStepDrawer component, useStepLogs hook, integration with DAGCanvas (completed 2026-04-16)
-  - [x] Plan 06: Routing & Navigation (Wave 5) — AppRoutes.tsx, MainLayout sidebar, breadcrumbs, deep linking (completed 2026-04-16)
-  - [x] Plan 07: Integration Testing (Wave 6) — Backend + frontend integration tests, E2E Playwright verification (completed 2026-04-16)
-- [ ] **Phase 151: Visual DAG Editor** — Drag-and-drop canvas, real-time validation, IF gate inline configuration (plans TBD)
-- [x] **Phase 152: Workflow Feature Documentation** — Overview, concepts, user guide, operator guide, developer guide, API reference, runbook (4 plans completed 2026-04-16)
-  - [x] Plan 01: Directory structure + MkDocs nav registration (Wave 1, completed 2026-04-16)
-  - [x] Plan 02: Overview, Concepts, User Guide pages (Wave 2, completed 2026-04-16)
-  - [x] Plan 03: Operator Guide, Developer Guide pages (Wave 3, completed 2026-04-16)
-  - [x] Plan 04: API Reference section, Operational Runbook (Wave 4, completed 2026-04-16)
-- [x] **Phase 153: Verify Gate Node Types** — Run verify-work for Phase 148 to create VERIFICATION.md; tick satisfied-but-unchecked REQUIREMENTS.md checkboxes (ENGINE-01..07, TRIGGER-01/03/05, PARAMS-01, UI-01..04) (completed 2026-04-16)
-  - [x] Plan 01 (Wave 1): Fix SQLite test schema, verify GATE-01/02 unit tests (condition evaluation, IF_GATE routing)
-  - [x] Plan 02 (Wave 2): Verify GATE-03/04/05 integration tests (AND_JOIN, OR_GATE, PARALLEL dispatch)
-  - [x] Plan 03 (Wave 3): Verify GATE-06 (SIGNAL_WAIT), full test suite validation, create VERIFICATION.md, tick requirement checkboxes
-  - **Gap Closure:** Closes GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06
-- [x] **Phase 154: Unified Schedule View** — Implement UI-05: unified schedule page showing ScheduledJob (JOB badge) and Workflow (FLOW badge) entries together with next-run time and last-run status (completed 2026-04-16)
-  - [x] Plan 01 (Wave 1): Backend service method + API endpoint + Pydantic models; Frontend Schedule.tsx view + routing + sidebar nav (completed 2026-04-16)
-  - [x] Plan 02 (Wave 2): Integration testing (pytest + vitest) + verification (completed 2026-04-16)
-  - **Gap Closure:** Closes UI-05
-- [x] **Phase 155: Visual DAG Editor** — Implement Phase 151 scope: ReactFlow drag-and-drop canvas for composing Workflows; real-time DAG validation (cycle detection, depth warnings, inline IF gate condition config) (3 plans) (completed 2026-04-17)
-  - [x] Plan 01 (Wave 0): Test Foundation — DAG validation utilities (validateDAG), component test scaffolds, hooks stubs (6 tasks, TDD test-first) (completed 2026-04-16)
-  - [x] Plan 02 (Wave 1): Implementation & Integration — Full implementations, WorkflowDetail integration, Save/Cancel flow, cycle/depth banner display, human-verify checkpoint (completed 2026-04-16)
-  - [x] Plan 03 (Gap Closure): Close drag-drop and IF gate wiring gaps — Fix handleDrop signature mismatch and IfGateConfigDrawer open prop control (3 tasks) (completed 2026-04-17)
-  - **Gap Closure:** Closes UI-06, UI-07 (2 wiring gaps identified for Phase 156+ remediation)
-- [x] **Phase 156: State of the Nation Report** — Honest, no-bullshit appraisal of the product, sister repos, deployment status, and release readiness for stakeholder planning (completed 2026-04-17)
-- ✅ **Phase 157: Close Deferred Technical Debt** — Fix 30 frontend test failures, convert 3 todos to real tests, verify 4 backend gaps (MIN-6/7/8, WARN-8) with regression tests (All 3 plans complete: 36 frontend + 6 backend tests passing, 157-VERIFICATION.md gating release, completed 2026-04-17)
-  - [x] Plan 01 (Wave 1): Rewrite Workflows.test.tsx, WorkflowRunDetail.test.tsx, Jobs.test.tsx with modern test patterns (waitFor, scoped selectors)
-  - [ ] Plan 02 (Wave 1): Write 4 backend regression tests for MIN-6, MIN-7, MIN-8, WARN-8
-  - [ ] Plan 03 (Wave 2): Full test suite verification (461 frontend + 90 backend = 551 total) + VERIFICATION.md
+- [x] **Phase 149: Triggers & Parameter Injection** — Manual trigger, cron scheduling, webhook HMAC-SHA256, WORKFLOW_PARAM_* injection (completed 2026-04-16)
+- [x] **Phase 150: Dashboard Read-Only Views** — DAG visualization, live status overlay, run history, step logs (7 plans, completed 2026-04-16)
+- [x] **Phase 152: Workflow Feature Documentation** — Overview, concepts, user guide, operator guide, developer guide, API reference, runbook (completed 2026-04-16)
+- [x] **Phase 153: Verify Gate Node Types** — VERIFICATION.md for Phase 148; gap closure for GATE-01..06 (completed 2026-04-16)
+- [x] **Phase 154: Unified Schedule View** — UI-05: JOB + FLOW badge schedule list with next-run time and last-run status (completed 2026-04-16)
+- [x] **Phase 155: Visual DAG Editor** — ReactFlow drag-and-drop canvas; real-time cycle/depth validation; inline IF gate config (completed 2026-04-17)
+- [x] **Phase 156: State of the Nation Report** — GO verdict: v23.0 confirmed production-ready (completed 2026-04-17)
+- [x] **Phase 157: Close Deferred Technical Debt** — 36 frontend + 6 backend regression tests; MIN-6/7/8, WARN-8 verified (completed 2026-04-17)
+- [x] **Phase 158: State of the Nation — Post v23.0** — STATE-OF-NATION.md (520+ lines, 9 sections); GO recommendation confirmed (completed 2026-04-17)
+- [x] **Phase 159: Test Infrastructure Repair** — 2 collection errors fixed; test_admin_responses.py setup fixed; Phase 29 stubs audited (completed 2026-04-17)
+- [x] **Phase 160: Workflow CRUD Unit Tests** — 13 assert-False stubs replaced with real async pytest tests (completed 2026-04-17)
+- [x] **Phase 161: Compatibility Engine Route Implementation** — EE router direct import pattern; test_compatibility_engine.py fixed (completed 2026-04-17)
+- [x] **Phase 162: Frontend Component Fixes** — Templates getUser mock; Admin EE gates; MainLayout zinc badge; WorkflowDetail async (completed 2026-04-17)
+- [x] **Phase 163: v23.0 Tech Debt Closure** — VALIDATION.md for phases 158–162; Nyquist 16/16; milestone audit fully compliant (completed 2026-04-17)
+- [x] **Phase 164: Adversarial Audit Remediation** — mTLS enforcement (SEC-01), Foundry RCE whitelist (SEC-02), Alembic migration framework (ARCH-01), Caddy internal TLS (SEC-04), public key externalization (QUAL-02), frontend-backend alignment (FEBE-01/02/03) (completed 2026-04-18)
 
 Archive: `.planning/milestones/v23.0-ROADMAP.md`
-
-</details>
-
-<details>
-<summary>✅ v23.1 — Test Suite Health & Compatibility Engine (Phases 159–162) — COMPLETED 2026-04-17</summary>
-
-- [x] **Phase 159: Test Infrastructure Repair** — Fix 2 collection errors (test_tools.py admin_signer import, test_intent_scanner.py intent_scanner import); fix test_admin_responses.py DELETE setup; investigate Phase 29 stubs (test_output_capture.py, test_retry_wiring.py) (v23.1) (completed 2026-04-17)
-- [x] **Phase 160: Workflow CRUD Unit Tests** — Implement 13 assert False stubs in test_workflow.py as real async pytest tests against the Phase 146 CRUD API (v23.1) (completed 2026-04-17)
-- [x] **Phase 161: Compatibility Engine Route Implementation** — Fix test_compatibility_engine.py by importing EE route handlers directly and inspecting source code (v23.1) (completed 2026-04-17)
-- [x] **Phase 162: Frontend Component Fixes** — Fix Templates.test.tsx missing getUser mock; fix Admin.tsx EE tab conditional rendering and add missing Automation tab; fix MainLayout.tsx CE badge zinc classes; fix WorkflowDetail.test.tsx duration async rendering (v23.1) (completed 2026-04-17)
-- [x] **Phase 163: v23.0 Tech Debt Closure** — Add VALIDATION.md for phases 158-162 (Nyquist compliance 16/16); verify MIN-6, MIN-7, MIN-8, WARN-8 backend fixes via regression tests; update milestone audit to mark v23.0 fully Nyquist-compliant (completed 2026-04-17)
 
 </details>
 
@@ -295,185 +249,19 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 146. Workflow Data Model | v23.0 | 3/3 | Complete | 2026-04-15 |
 | 147. WorkflowRun Execution Engine | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 148. Gate Node Types | v23.0 | 4/4 | Complete | 2026-04-16 |
-| 149. Triggers & Parameter Injection | v23.0 | 1/3 (in progress) | 2026-04-16 | — |
+| 149. Triggers & Parameter Injection | v23.0 | 3/3 | Complete | 2026-04-16 |
 | 150. Dashboard Read-Only Views | v23.0 | 7/7 | Complete | 2026-04-16 |
 | 152. Workflow Feature Documentation | v23.0 | 4/4 | Complete | 2026-04-16 |
 | 153. Verify Gate Node Types | v23.0 | 3/3 | Complete | 2026-04-16 |
 | 154. Unified Schedule View | v23.0 | 2/2 | Complete | 2026-04-16 |
 | 155. Visual DAG Editor | v23.0 | 3/3 | Complete | 2026-04-17 |
 | 156. State of the Nation Report | v23.0 | 1/1 | Complete | 2026-04-17 |
-| 157. Close Deferred Technical Debt | v23.0 | Complete    | 2026-04-17 | — |
-| 158. State of the Nation — Post v23.0 | v23.0 | Complete    | 2026-04-17 | — |
-| 159. Test Infrastructure Repair | v23.1 | Complete    | 2026-04-17 | — |
-| 160. Workflow CRUD Unit Tests | v23.1 | Complete    | 2026-04-17 | — |
-| 161. Compatibility Engine Route Implementation | v23.1 | Complete    | 2026-04-17 | 2026-04-17 |
-| 162. Frontend Component Fixes | v23.1 | Complete    | 2026-04-17 | — |
-| 163. v23.0 Tech Debt Closure | v23.0 | Complete    | 2026-04-17 | 2026-04-17 |
+| 157. Close Deferred Technical Debt | v23.0 | 3/3 | Complete | 2026-04-17 |
+| 158. State of the Nation — Post v23.0 | v23.0 | 1/1 | Complete | 2026-04-17 |
+| 159. Test Infrastructure Repair | v23.0 | 1/1 | Complete | 2026-04-17 |
+| 160. Workflow CRUD Unit Tests | v23.0 | 1/1 | Complete | 2026-04-17 |
+| 161. Compatibility Engine Route Implementation | v23.0 | 1/1 | Complete | 2026-04-17 |
+| 162. Frontend Component Fixes | v23.0 | 1/1 | Complete | 2026-04-17 |
+| 163. v23.0 Tech Debt Closure | v23.0 | 2/2 | Complete | 2026-04-17 |
+| 164. Adversarial Audit Remediation | v23.0 | 4/4 | Complete | 2026-04-18 |
 
-## Phase Detail Sections
-
-### Phase 156: State of the Nation Report
-
-**Goal:** Produce an honest, no-bullshit appraisal of the product, sister repos, deployment status, and release readiness — to inform stakeholder conversations and next-phase planning.
-
-**Requirements:** None (reporting phase, no explicit requirements)
-
-**Depends on:** Phase 155
-
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): Data collection + report synthesis — Honest assessment of product completeness, test health, Phase 155 blockers, deferred work, deployment status, and release readiness recommendation (completed 2026-04-17)
-
-### Phase 157: Close Deferred Technical Debt
-
-**Goal:** Fix 30 frontend test failures, convert 3 `it.todo()` to real tests, verify and lock in 4 backend gaps (MIN-6, MIN-7, MIN-8, WARN-8) from v23.0 state report with regression tests. Target: 461/461 frontend + 90/90 backend = 551 total passing tests.
-
-**Requirements:** None (test infrastructure improvement, no explicit feature requirements)
-
-**Depends on:** Phase 156 (state of nation report identifies gaps)
-
-**Plans:** 3/3 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): Rewrite frontend test files — Workflows.test.tsx (12/12), WorkflowRunDetail.test.tsx (10/10), Jobs.test.tsx (14/14) with React Testing Library best practices (waitFor, scoped selectors, proper async patterns) — all 36 tests passing, zero act() warnings, zero todos (completed 2026-04-17)
-- [x] Plan 02 (Wave 1): Write backend regression tests — 4 pytest tests for MIN-6, MIN-7, MIN-8, WARN-8 gap verification (completed 2026-04-17, 4/4 tests passing)
-- [x] Plan 03 (Wave 2): Full test suite verification + VERIFICATION.md — Run complete test suite (36 frontend + 6 backend Phase 157 scope = 42 tests, 100% passing), document gap closure, gate release readiness (completed 2026-04-17, 157-VERIFICATION.md created)
-
-### Phase 159: Test Infrastructure Repair
-
-**Goal:** Eliminate 2 pytest collection errors and fix 4 broken test setups so the full backend test suite collects and reports clean. No features added — pure test health.
-
-**Scope:**
-1. `test_tools.py` — collection error: `import admin_signer` fails; `admin_signer.py` lives in `~/Development/toms_home/.agents/tools/` (sister repo). Fix: add `conftest.py` sys.path insert or create a thin wrapper in the `tests/` dir.
-2. `test_intent_scanner.py` — collection error: `import intent_scanner` fails; skill script path doesn't exist. Fix: create `scripts/intent_scanner.py` stub or skip-mark the file with a `pytest.importorskip`.
-3. `test_admin_responses.py` DELETE tests — 2 failures because dummy IDs return 404. Fix: create real user/signing-key resources in test setup, then delete them.
-4. `test_output_capture.py` + `test_retry_wiring.py` — 1 `assert False` stub each from Phase 29. Investigate what the feature is; either implement the test against the existing code or mark it with `pytest.skip` explaining why.
-
-**Requirements:** None (test infrastructure only)
-
-**Depends on:** Phase 158
-
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): Fix collection errors + admin response setup + Phase 29 stub audit
-
----
-
-### Phase 160: Workflow CRUD Unit Tests
-
-**Goal:** Convert all 13 `assert False` stubs in `test_workflow.py` into real passing pytest tests against the Phase 146 Workflow CRUD API. The API endpoints already exist; this is pure test implementation.
-
-**Scope:** `puppeteer/tests/test_workflow.py` — 13 tests:
-- CRUD: create (success, invalid edges, cycle detected), list, update (success, cycle, depth exceeded), delete (success, blocked by active runs)
-- Fork: fork success, fork pauses source
-- Validate: no cycle, with cycle (POST /api/workflows/validate — no save)
-
-Each test needs: async test client, DB fixtures (create Workflow with steps/edges/params), assertion on response body + error codes (`CYCLE_DETECTED`, `DEPTH_LIMIT_EXCEEDED`, `ACTIVE_RUNS_EXIST`, `INVALID_EDGE_REFERENCE`).
-
-**Requirements:** Covers WORKFLOW-01 through WORKFLOW-05 (unit test layer)
-
-**Depends on:** Phase 159
-
-**Plans:** 1/1 plans complete
-
-Plans:
-- [ ] Plan 01 (Wave 1): Implement 13 workflow CRUD unit tests
-
----
-
-### Phase 161: Compatibility Engine Route Implementation
-
-**Goal:** Fix test_compatibility_engine.py by accessing EE router handlers directly instead of relying on app.routes registration.
-
-**Scope:**
-Routes are already implemented in Phase 11 EE router (`agent_service.ee.routers.foundry_router`), but tests couldn't access them via app.routes since CE mode doesn't register EE routes.
-
-**Solution:**
-1. Import `get_capability_matrix` directly from EE router and inspect source to verify "os_family" parameter
-2. Import `create_blueprint` directly from EE router and inspect source to verify "offending_tools" field
-3. All 4 target tests now pass; 1 skipped test remains skipped (requires runtime_dependencies seeding in future plan)
-
-**Requirements:** None (test verification only)
-
-**Depends on:** Phase 159
-
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): Fix test_matrix_os_family_filter and test_blueprint_os_mismatch_rejected by using direct EE router import (completed 2026-04-17)
-
----
-
-### Phase 162: Frontend Component Fixes
-
-**Goal:** Fix 10 frontend test failures across 4 files. All failures are component bugs or incomplete test mocks, not aspirational tests.
-
-**Scope:**
-1. `Templates.test.tsx` (5 failures) — `vi.mock('../../auth')` missing `getUser` export. Fix: add `getUser: vi.fn().mockReturnValue({ role: 'admin' })` to the mock factory. The component calls `getUser()` on render; the mock is incomplete.
-2. `Admin.test.tsx` (3 failures) — EE tabs (Smelter Registry, BOM Explorer, Artifact Vault, Rollouts) render in CE mode. Fix: gate their rendering on `isEnterprise` in `Admin.tsx`. Separately, `Automation` tab is missing entirely — add it.
-3. `MainLayout.test.tsx` (1 failure) — CE badge renders without `zinc` Tailwind classes. Fix: apply `zinc-100`/`zinc-800` (or equivalent) in the CE badge branch in `MainLayout.tsx`.
-4. `WorkflowDetail.test.tsx` (1 failure) — "300.0s" duration not found; component shows "Loading runs...". Fix: ensure the test mock for `authenticatedFetch` resolves the run list before the assertion (add `await waitFor(...)` or return data synchronously in the mock).
-
-**Requirements:** None (test infrastructure + component correctness)
-
-**Depends on:** Phase 159 (clean baseline)
-
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): Fix Templates mock, Admin EE gates, MainLayout badge, WorkflowDetail async — COMPLETED 2026-04-17T22:40:30Z — All 52 tests passing (5 Templates + 28 Admin + 9 MainLayout + 10 WorkflowDetail, 100% success) — 4 commits: 24d0501 (getUser mock), 92199cb (EE gates), 2feb93b (zinc classes), 741366e (async waitFor)
-
----
-
-### Phase 158: State of the Nation — Post v23.0
-
-**Goal:** Run the state-of-the-nation skill to produce an honest, data-driven assessment of the platform after v23.0 completion — covering product completeness, test health, deployment status, known gaps, and next-milestone recommendations. Produces `.planning/STATE-OF-NATION.md`.
-
-**Requirements:** None (reporting phase)
-
-**Depends on:** Phase 157 (v23.0 milestone complete, audit filed)
-
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): Execute state-of-the-nation skill — collect data across backend, frontend, test suite, deployment, docs; synthesise into STATE-OF-NATION.md with explicit GO/NO-GO recommendation — COMPLETED 2026-04-17T20:35:00Z — Data sources: gap reports (HIGH), live tests (HIGH), git log (HIGH), deployment (HIGH) — Recommendation: GO — v23.0 CONFIRMED READY FOR PRODUCTION DEPLOYMENT — STATE-OF-NATION.md generated (520+ lines, 9 sections + 5 appendices) — Commit: c6b3273
-
-### Phase 164: Adversarial audit remediation - fix mTLS enforcement, RCE in Foundry, migration framework, and FE/BE gaps
-
-**Goal:** Close 6 critical and high-severity findings from the 2026-04-17 adversarial audit: mTLS enforcement on node routes (SEC-01), Foundry RCE mitigation via injection whitelist (SEC-02), Alembic migration framework adoption (ARCH-01), Caddy internal TLS fix (SEC-04), hardcoded public key extraction (QUAL-02), and frontend-backend alignment with 402 licence expired handling (FEBE-01/02/03).
-
-**Requirements**: SEC-01, SEC-02, ARCH-01, SEC-04, QUAL-02, FEBE-01, FEBE-02, FEBE-03
-
-**Depends on:** Phase 163
-
-**Plans:** 4/4 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): mTLS enforcement on node routes (/work/pull, /heartbeat), internal TLS fix in Caddyfile, public key env vars extraction (SEC-01, SEC-04, QUAL-02) — completed 2026-04-18
-- [x] Plan 02 (Wave 1): Foundry injection whitelist validation at API layer and build time (SEC-02) — completed 2026-04-18
-- [x] Plan 03 (Wave 2): Alembic initialization, baseline migration, lifespan integration, legacy SQL file cleanup (ARCH-01) — completed 2026-04-18
-- [ ] Plan 04 (Wave 3): Frontend API route audit, HTTP 402 licence expired handler, recipe validation UI (FEBE-01, FEBE-02, FEBE-03)
-
----
-
-### Phase 163: v23.0 Tech Debt Closure
-
-**Goal:** Close the v23.0 tech debt closure phase: add VALIDATION.md for phases 158-162 (Nyquist compliance gap to achieve 16/16), verify backend fixes for MIN-6, MIN-7, MIN-8, WARN-8 via regression tests, and update milestone audit to mark v23.0 fully Nyquist-compliant.
-
-**Scope:**
-1. **Nyquist VALIDATION.md** for phases 158–162 (retrospective compliance documentation) — phase 158 is a reporting phase (manual verification), phases 159–162 document test frameworks and sampling rates
-2. **Backend regression test verification** — Run 4 existing pytest tests in `test_regression_phase157_deferred_gaps.py` (MIN-6, MIN-7, MIN-8, WARN-8) to confirm fixes remain working
-3. **Milestone audit update** — Mark v23.0-MILESTONE-AUDIT.md as fully compliant: Nyquist score 16/16, overall status "compliant"
-4. **Phase 163 VALIDATION.md** — Update frontmatter to mark Phase 163 complete and nyquist_compliant: true
-
-**Requirements:** None (tech debt closure + Nyquist compliance documentation)
-
-**Depends on:** Phase 162
-
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] Plan 01 (Wave 1): Create VALIDATION.md for phases 158–162 — 5 retrospective compliance docs covering test frameworks, sampling rates, and per-task verification maps
-- [x] Plan 02 (Wave 2): Run regression tests (MIN-6, MIN-7, MIN-8, WARN-8), update v23.0-MILESTONE-AUDIT.md (score 16/16, overall compliant), update Phase 163 VALIDATION.md (nyquist_compliant: true), commit all changes

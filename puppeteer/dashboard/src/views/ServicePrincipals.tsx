@@ -108,7 +108,7 @@ const ServicePrincipals: React.FC = () => {
     const { data: servicePrincipals, isLoading } = useQuery<ServicePrincipal[]>({
         queryKey: ['service-principals'],
         queryFn: async () => {
-            const res = await authenticatedFetch('/admin/service-principals');
+            const res = await authenticatedFetch('/api/admin/service-principals');
             if (!res.ok) throw new Error('Failed to fetch service principals');
             return res.json();
         },
@@ -118,7 +118,7 @@ const ServicePrincipals: React.FC = () => {
     // Mutations
     const createMutation = useMutation({
         mutationFn: async (data: any) => {
-            const res = await authenticatedFetch('/admin/service-principals', {
+            const res = await authenticatedFetch('/api/admin/service-principals', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -150,7 +150,7 @@ const ServicePrincipals: React.FC = () => {
 
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }: { id: string; data: any }) => {
-            const res = await authenticatedFetch(`/admin/service-principals/${id}`, {
+            const res = await authenticatedFetch(`/api/admin/service-principals/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -168,7 +168,7 @@ const ServicePrincipals: React.FC = () => {
 
     const rotateMutation = useMutation({
         mutationFn: async (id: string) => {
-            const res = await authenticatedFetch(`/admin/service-principals/${id}/rotate-secret`, {
+            const res = await authenticatedFetch(`/api/admin/service-principals/${id}/rotate-secret`, {
                 method: 'POST'
             });
             if (!res.ok) throw new Error('Failed to rotate secret');
@@ -184,7 +184,7 @@ const ServicePrincipals: React.FC = () => {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            const res = await authenticatedFetch(`/admin/service-principals/${id}`, {
+            const res = await authenticatedFetch(`/api/admin/service-principals/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) {

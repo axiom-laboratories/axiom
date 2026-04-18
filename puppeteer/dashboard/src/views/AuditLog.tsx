@@ -43,7 +43,7 @@ const AuditLog = () => {
         queryKey: ['audit-log', page],
         queryFn: async () => {
             try {
-                const res = await authenticatedFetch(`/admin/audit-log?limit=${PAGE_SIZE}&skip=${page * PAGE_SIZE}`);
+                const res = await authenticatedFetch(`/api/admin/audit-log?limit=${PAGE_SIZE}&skip=${page * PAGE_SIZE}`);
                 if (!res.ok) throw new Error('Failed to fetch audit log');
                 return await res.json();
             } catch (e) {

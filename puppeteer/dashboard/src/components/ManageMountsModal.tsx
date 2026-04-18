@@ -38,7 +38,7 @@ const ManageMountsModal = ({ open, onOpenChange }: ManageMountsModalProps) => {
     const fetchMounts = async () => {
         setLoading(true);
         try {
-            const res = await authenticatedFetch('/config/mounts');
+            const res = await authenticatedFetch('/api/config/mounts');
             if (res.ok) {
                 const data = await res.json();
                 setMounts(data);
@@ -73,7 +73,7 @@ const ManageMountsModal = ({ open, onOpenChange }: ManageMountsModalProps) => {
 
         setSaving(true);
         try {
-            const res = await authenticatedFetch('/config/mounts', {
+            const res = await authenticatedFetch('/api/config/mounts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mounts })

@@ -101,7 +101,7 @@ interface PaginatedNodeResponse {
 }
 
 const fetchNodes = async (page: number): Promise<PaginatedNodeResponse> => {
-    const res = await authenticatedFetch(`/nodes?page=${page}&page_size=${PAGE_SIZE}`);
+    const res = await authenticatedFetch(`/api/nodes?page=${page}&page_size=${PAGE_SIZE}`);
     if (!res.ok) throw new Error('Failed to fetch nodes');
     const data = await res.json();
     // Handle both paginated envelope and legacy bare array (backwards compat)
@@ -250,7 +250,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
     const deleteNode = async () => {
         setDeleting(true);
         try {
-            const res = await authenticatedFetch(`/nodes/${node.node_id}`, { method: 'DELETE' });
+            const res = await authenticatedFetch(`/api/nodes/${node.node_id}`, { method: 'DELETE' });
             if (res.ok) {
                 toast.success(`Node ${node.hostname} removed from mesh`);
                 queryClient.invalidateQueries({ queryKey: ['nodes'] });
@@ -268,7 +268,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
     const revokeNode = async () => {
         setRevoking(true);
         try {
-            const res = await authenticatedFetch(`/nodes/${node.node_id}/revoke`, { method: 'POST' });
+            const res = await authenticatedFetch(`/api/nodes/${node.node_id}/revoke`, { method: 'POST' });
             if (res.ok) {
                 toast.success(`Node ${node.hostname} access revoked`);
                 queryClient.invalidateQueries({ queryKey: ['nodes'] });
@@ -286,7 +286,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
     const reinstateNode = async () => {
         setRevoking(true);
         try {
-            const res = await authenticatedFetch(`/nodes/${node.node_id}/reinstate`, { method: 'POST' });
+            const res = await authenticatedFetch(`/api/nodes/${node.node_id}/reinstate`, { method: 'POST' });
             if (res.ok) {
                 toast.success(`Node ${node.hostname} access reinstated`);
                 queryClient.invalidateQueries({ queryKey: ['nodes'] });
@@ -321,7 +321,7 @@ const NodeCard = ({ node, onUpgrade }: { node: Node; onUpgrade: (node: Node) => 
         setSaving(true);
         try {
             const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
-            const res = await authenticatedFetch(`/nodes/${node.node_id}`, {
+            const res = await authenticatedFetch(`/api/nodes/${node.node_id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -632,14 +632,14 @@ const Nodes = () => {
         setNodeDetail(null);
         setNodeDetailLoading(true);
         try {
-            const res = await authenticatedFetch(`/nodes/${node.node_id}/detail`);
+            const res = await authenticatedFetch(`/api/nodes/${node.node_id}/detail`);
             if (res.ok) setNodeDetail(await res.json());
         } catch { /* non-critical */ }
         finally { setNodeDetailLoading(false); }
     };
 
     const handleDrain = async (nodeId: string) => {
-        const res = await authenticatedFetch(`/nodes/${nodeId}/drain`, { method: 'PATCH' });
+        const res = await authenticatedFetch(`/api/nodes/${nodeId}/drain`, { method: 'PATCH' });
         if (res.ok) {
             toast.success('Node set to DRAINING');
             setNodeDrawerOpen(false);
@@ -651,7 +651,7 @@ const Nodes = () => {
     };
 
     const handleUndrain = async (nodeId: string) => {
-        const res = await authenticatedFetch(`/nodes/${nodeId}/undrain`, { method: 'PATCH' });
+        const res = await authenticatedFetch(`/api/nodes/${nodeId}/undrain`, { method: 'PATCH' });
         if (res.ok) {
             toast.success('Node returned to ONLINE');
             setNodeDrawerOpen(false);

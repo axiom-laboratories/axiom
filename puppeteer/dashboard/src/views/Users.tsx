@@ -48,13 +48,13 @@ interface UserRecord {
 }
 
 const fetchUsers = async (): Promise<UserRecord[]> => {
-    const res = await authenticatedFetch('/admin/users');
+    const res = await authenticatedFetch('/api/admin/users');
     if (!res.ok) throw new Error('Failed to fetch users');
     return res.json();
 };
 
 const fetchRolePermissions = async (role: string): Promise<string[]> => {
-    const res = await authenticatedFetch(`/admin/roles/${role}/permissions`);
+    const res = await authenticatedFetch(`/api/admin/roles/${role}/permissions`);
     if (!res.ok) return [];
     const data = await res.json();
     return data.map((p: { permission: string }) => p.permission);
@@ -74,7 +74,7 @@ const RolePanel = ({ role }: { role: string }) => {
 
     const grant = useMutation({
         mutationFn: (permission: string) =>
-            authenticatedFetch(`/admin/roles/${role}/permissions`, {
+            authenticatedFetch(`/api/admin/roles/${role}/permissions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ permission }),
@@ -84,7 +84,7 @@ const RolePanel = ({ role }: { role: string }) => {
 
     const revoke = useMutation({
         mutationFn: (permission: string) =>
-            authenticatedFetch(`/admin/roles/${role}/permissions/${permission}`, { method: 'DELETE' }),
+            authenticatedFetch(`/api/admin/roles/${role}/permissions/${permission}`, { method: 'DELETE' }),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['role-perms', role] }),
     });
 
@@ -163,7 +163,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
 
     const updateRole = useMutation({
         mutationFn: (role: string) =>
-            authenticatedFetch(`/admin/users/${user.username}`, {
+            authenticatedFetch(`/api/admin/users/${user.username}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ role }),
@@ -177,7 +177,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
     });
 
     const deleteUser = useMutation({
-        mutationFn: () => authenticatedFetch(`/admin/users/${user.username}`, { method: 'DELETE' }),
+        mutationFn: () => authenticatedFetch(`/api/admin/users/${user.username}`, { method: 'DELETE' }),
         onSuccess: () => {
             toast.success(`User ${user.username} deleted`);
             qc.invalidateQueries({ queryKey: ['users'] });
@@ -188,7 +188,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
 
     const resetPassword = useMutation({
         mutationFn: () =>
-            authenticatedFetch(`/admin/users/${user.username}/reset-password`, {
+            authenticatedFetch(`/api/admin/users/${user.username}/reset-password`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password: resetPw }),
@@ -206,7 +206,7 @@ const UserRow = ({ user }: { user: UserRecord }) => {
 
     const forceChange = useMutation({
         mutationFn: (enabled: boolean) =>
-            authenticatedFetch(`/admin/users/${user.username}/force-password-change`, {
+            authenticatedFetch(`/api/admin/users/${user.username}/force-password-change`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled }),
@@ -367,7 +367,7 @@ const Users = () => {
 
     const createUser = useMutation({
         mutationFn: () =>
-            authenticatedFetch('/admin/users', {
+            authenticatedFetch('/api/admin/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: newUsername, password: newPassword, role: newRole }),

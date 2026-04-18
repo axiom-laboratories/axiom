@@ -4,6 +4,21 @@ const API_URL = import.meta.env.VITE_API_URL || '/api'; // Use /api as default p
 
 const TOKEN_KEY = 'mop_auth_token';
 
+// Licence expired dialog state (managed globally; dialog renders in MainLayout)
+let licenceExpiredDialogOpen = false;
+let licenceExpiredDialogCallback: ((open: boolean) => void) | null = null;
+
+export function setLicenceExpiredDialogCallback(callback: (open: boolean) => void) {
+    licenceExpiredDialogCallback = callback;
+}
+
+export function showLicenceExpiredDialog() {
+    licenceExpiredDialogOpen = true;
+    if (licenceExpiredDialogCallback) {
+        licenceExpiredDialogCallback(true);
+    }
+}
+
 export interface LoginResponse {
     access_token: string;
     token_type: string;
@@ -91,6 +106,14 @@ export const authenticatedFetch = async (endpoint: string, options: RequestInit 
     const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
 
     const res = await fetch(url, { ...options, headers });
+
+    // Handle 402 Licence Expired
+    if (res.status === 402) {
+        showLicenceExpiredDialog();
+        throw new Error("Licence expired");
+    }
+
+    // Handle 401 Unauthorized
     if (res.status === 401) {
         logout();
     }

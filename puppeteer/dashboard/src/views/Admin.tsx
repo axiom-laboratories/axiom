@@ -325,7 +325,7 @@ const TriggerManager = () => {
     const { data: jobDefs = [] } = useQuery({
         queryKey: ['job-definitions'],
         queryFn: async () => {
-            const res = await authenticatedFetch('/job-definitions');
+            const res = await authenticatedFetch('/api/jobs/definitions');
             return res.json();
         }
     });
@@ -710,7 +710,7 @@ const RolloutManager = () => {
     const { data: nodes = [] } = useQuery({
         queryKey: ['nodes'],
         queryFn: async () => {
-            const res = await authenticatedFetch('/nodes');
+            const res = await authenticatedFetch('/api/nodes');
             return res.json();
         }
     });
@@ -1677,7 +1677,7 @@ const Admin = () => {
     const { data: nodes = [] } = useQuery({
         queryKey: ['nodes'],
         queryFn: async () => {
-            const res = await authenticatedFetch('/nodes');
+            const res = await authenticatedFetch('/api/nodes');
             if (!res.ok) throw new Error('Failed to fetch nodes');
             const data = await res.json();
             // Handle both paginated and bare array responses
@@ -1756,7 +1756,7 @@ const Admin = () => {
     const generateToken = async () => {
         try {
             setIsGenerating(true);
-            const res = await authenticatedFetch('/admin/generate-token', { method: 'POST' });
+            const res = await authenticatedFetch('/api/admin/generate-token', { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
                 setJoinToken(data.token);
@@ -1774,7 +1774,7 @@ const Admin = () => {
     const uploadKey = async () => {
         try {
             setIsUploading(true);
-            const res = await authenticatedFetch('/admin/upload-key', {
+            const res = await authenticatedFetch('/api/admin/upload-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key_content: pubKey })

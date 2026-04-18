@@ -63,7 +63,7 @@ const Webhooks = () => {
     const { data: webhooks = [], isLoading } = useQuery<WebhookData[]>({
         queryKey: ['webhooks'],
         queryFn: async () => {
-            const res = await authenticatedFetch('/webhooks');
+            const res = await authenticatedFetch('/api/webhooks');
             if (!res.ok) throw new Error("Failed to fetch webhooks");
             return await res.json();
         }
@@ -71,7 +71,7 @@ const Webhooks = () => {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
-            const res = await authenticatedFetch(`/webhooks/${id}`, { method: 'DELETE' });
+            const res = await authenticatedFetch(`/api/webhooks/${id}`, { method: 'DELETE' });
             if (!res.ok) {
                 const err = await res.json();
                 throw new Error(err.detail || "Delete failed");
@@ -89,7 +89,7 @@ const Webhooks = () => {
 
     const createMutation = useMutation({
         mutationFn: async (data: typeof formData) => {
-            const res = await authenticatedFetch('/webhooks', {
+            const res = await authenticatedFetch('/api/webhooks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

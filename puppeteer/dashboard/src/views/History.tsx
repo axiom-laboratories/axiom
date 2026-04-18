@@ -38,7 +38,7 @@ const History = () => {
     const { data: definitions } = useQuery({
         queryKey: ['definitions-for-filter'],
         queryFn: async () => {
-            const res = await authenticatedFetch('/jobs/definitions');
+            const res = await authenticatedFetch('/api/jobs/definitions');
             return res.json() as Promise<Array<{ id: string; name: string }>>;
         }
     });

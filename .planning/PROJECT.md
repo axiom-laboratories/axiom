@@ -12,23 +12,11 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v23.0 DAG & Workflow Orchestration
-
-**Goal:** Compose ScheduledJob steps into named Workflow templates, trigger them manually, on cron, or via webhook, and track each run through a WorkflowRun entity with step-level status and a visual DAG canvas.
-
-**Target features:**
-- WorkflowRun execution engine with atomic BFS dispatch and PARTIAL/FAILED/CANCELLED state machine
-- 6 node types: Script step, IF gate (result.json conditions), AND/JOIN, OR, Parallel fan-out, Signal wait
-- Three trigger modes: manual, cron (APScheduler), webhook (HMAC-SHA256 + nonce replay protection)
-- WORKFLOW_PARAM_* environment variable injection for signed scripts
-- Visual drag-and-drop DAG canvas (ReactFlow + elkjs) with live run status overlay
-- Unified schedule view combining ScheduledJob (JOB) and Workflow (FLOW) entries
-
 ## Current State
 
-**Latest shipped:** v22.0 Security Hardening (2026-04-15)
-**Previous:** v21.0 API Maturity & Contract Standardization (2026-04-11)
-**Current milestone:** v23.0 DAG & Workflow Orchestration (in progress)
+**Latest shipped:** v23.0 DAG & Workflow Orchestration (2026-04-18)
+**Previous:** v22.0 Security Hardening (2026-04-15)
+**Next milestone:** v24.0 (TBD — see `.planning/STATE-OF-NATION.md` for recommendations)
 
 ## Requirements
 
@@ -333,10 +321,54 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ **EE-05**: `sign_wheels.py` CLI generates signed wheel manifests at release time (Ed25519 key + SHA256 per wheel) — v22.0
 - ✓ **EE-06**: EE startup enforces `ENCRYPTION_KEY` presence with hard `RuntimeError` if absent (no dev-fallback in production) — v22.0
 
-### Active — Future Milestones
+### Validated — v23.0 DAG & Workflow Orchestration
 
-- [ ] Job dependencies — job B runs only after job A succeeds (linear then DAG)
-- [ ] Conditional triggers — run job based on outcome of previous job or external signal
+- ✓ **WORKFLOW-01**: Named Workflow composed of ScheduledJob steps connected by directed dependency edges — v23.0
+- ✓ **WORKFLOW-02**: Workflow list with step count, trigger config, and last-run status — v23.0
+- ✓ **WORKFLOW-03**: Workflow update with server-side DAG re-validation (cycle detection, depth check) — v23.0
+- ✓ **WORKFLOW-04**: Workflow delete blocked when active WorkflowRuns exist — v23.0
+- ✓ **WORKFLOW-05**: "Save as New" auto-pauses existing cron schedule to prevent ghost execution — v23.0
+- ✓ **ENGINE-01**: BFS topological dispatch — steps released only after all dependencies complete — v23.0
+- ✓ **ENGINE-02**: Workflow-instantiated jobs use 30-level depth limit (overrides 10-level default) — v23.0
+- ✓ **ENGINE-03**: SELECT…FOR UPDATE atomic concurrency guard prevents duplicate step dispatch — v23.0
+- ✓ **ENGINE-04**: WorkflowRun status: RUNNING / COMPLETED / PARTIAL / FAILED / CANCELLED — v23.0
+- ✓ **ENGINE-05**: Step FAILED cascades cancellation to all downstream PENDING steps — v23.0
+- ✓ **ENGINE-06**: PARTIAL status when failures are absorbed by FAILED-branch steps — v23.0
+- ✓ **ENGINE-07**: Cancel WorkflowRun actively aborts ASSIGNED/RUNNING jobs; PENDING steps marked CANCELLED — v23.0
+- ✓ **GATE-01**: IF gate evaluates conditions against `/tmp/axiom/result.json` with operators: eq, neq, gt, lt, contains, exists — v23.0
+- ✓ **GATE-02**: IF gate routes to first matching branch; unmatched IF gate marks step FAILED and cascades — v23.0
+- ✓ **GATE-03**: AND/JOIN gate releases downstream steps only when all incoming branches complete — v23.0
+- ✓ **GATE-04**: OR gate releases downstream steps when any single incoming branch completes — v23.0
+- ✓ **GATE-05**: PARALLEL fan-out node dispatches multiple independent downstream branches concurrently — v23.0
+- ✓ **GATE-06**: SIGNAL_WAIT node pauses execution until a named signal is posted — v23.0
+- ✓ **TRIGGER-01**: Manual WorkflowRun trigger from dashboard with parameter values at trigger time — v23.0
+- ✓ **TRIGGER-02**: Cron schedule on APScheduler; auto-pauses on "Save as New" — v23.0
+- ✓ **TRIGGER-03**: Webhook endpoint (`POST /api/webhooks/{id}/trigger`) for workflow triggering — v23.0
+- ✓ **TRIGGER-04**: Webhook validates HMAC-SHA256 signature, timestamp freshness (±5 min), and nonce uniqueness (24h dedup) — v23.0
+- ✓ **TRIGGER-05**: Invalid webhook events (bad signature, stale timestamp, replayed nonce) rejected HTTP 400 and audit-logged — v23.0
+- ✓ **PARAMS-01**: Named parameters on Workflow definition (name, type, optional default value) — v23.0
+- ✓ **PARAMS-02**: Runtime parameter values injected as `WORKFLOW_PARAM_<NAME>` env vars into each step's container — v23.0
+- ✓ **UI-01**: Read-only auto-layout DAG visualization (elkjs layered layout) — v23.0
+- ✓ **UI-02**: Live step execution status overlaid on DAG during active WorkflowRun (colour-coded by status) — v23.0
+- ✓ **UI-03**: WorkflowRun history list (trigger type, status, started/completed, duration) — v23.0
+- ✓ **UI-04**: WorkflowRunStep drill-down with job output, logs, and result.json structured output — v23.0
+- ✓ **UI-05**: Unified schedule view with ScheduledJob (JOB badge) and Workflow (FLOW badge) entries — v23.0
+- ✓ **UI-06**: Visual Workflow composer — drag ScheduledJob steps onto canvas and connect with directed edges — v23.0
+- ✓ **UI-07**: Real-time DAG validation — cycle highlighting, depth warning approaching 30, inline IF gate condition config — v23.0
+- ✓ **SEC-01**: mTLS enforcement on node-facing endpoints (/work/pull, /heartbeat) — client cert required — v23.0 (Phase 164)
+- ✓ **SEC-02**: Foundry injection recipe whitelist — RCE mitigation; validated at API layer and build time — v23.0 (Phase 164)
+- ✓ **SEC-04**: Caddy internal TLS fix — agent container reachable via HTTPS internally — v23.0 (Phase 164)
+- ✓ **ARCH-01**: Alembic migration framework — replaces 48 legacy SQL migration files; two-layer startup (create_all + alembic) — v23.0 (Phase 164)
+- ✓ **QUAL-02**: Public key externalized to environment variables — no hardcoded keys in source — v23.0 (Phase 164)
+- ✓ **FEBE-01/02/03**: Frontend-backend alignment — auth.ts 402 handler, /api/ prefix audit, recipe validation UI — v23.0 (Phase 164)
+
+### Active — Future Milestones (v24.0+)
+
+- [ ] Workflow execution analytics + critical path tracing (v24.0+)
+- [ ] Rerun from failure point — restart WorkflowRun from first failed step (v24.0+)
+- [ ] Cross-workflow dependencies — workflows calling other workflows (v24.0+)
+- [ ] Advanced IF gate logic — AND/OR nested conditions in a single gate (v24.0+)
+- [ ] WORKFLOW_PARAM_* injection accessible to downstream IF gate condition context (v24.0+)
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
 - [ ] DIST-02: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current use)
 - [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
@@ -354,7 +386,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), API contract fully typed with unified signature path (v21.0), and container security posture fully hardened with layered EE licence protection (v22.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod). Frontend is React/Vite with light/dark theming. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~34,000 LOC Python backend. v22.0 shipped 2026-04-15.
+Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), API contract fully typed with unified signature path (v21.0), container security posture fully hardened with layered EE licence protection (v22.0), and full DAG workflow orchestration operational (v23.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod) with Alembic migration framework. Frontend is React/Vite with light/dark theming and ReactFlow visual DAG editor. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~64,000+ LOC (Python + TypeScript). v23.0 shipped 2026-04-18.
 
 All 89 API routes have explicit `response_model` declarations. The full dispatch pipeline is covered by service-layer integration tests and a live E2E orchestration script. All server-side job signing flows through `SignatureService.countersign_for_node()` — no unsigned jobs can be created or scheduled.
 
@@ -375,7 +407,7 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 ## Constraints
 
 - **Security**: mTLS + signed code + container isolation are non-negotiable architectural constants. Trade-offs may be documented for operator opt-in but never silently defaulted.
-- **Tech stack**: FastAPI (Python) backend, React/TypeScript frontend, SQLAlchemy ORM. No migrations framework — `create_all` at startup, manual ALTER for existing DBs.
+- **Tech stack**: FastAPI (Python) backend, React/TypeScript frontend, SQLAlchemy ORM. Alembic migration framework (added v23.0 Phase 164) — two-layer startup: `create_all` for new tables, Alembic for schema evolution. Legacy SQL migration files (migration_v*.sql) archived.
 - **Execution model**: Pull-only. Orchestrator never initiates connections to nodes. Nodes are stateless between polls.
 - **Compatibility**: SQLite for dev/homelab, Postgres for production. New features must work on both.
 
@@ -425,6 +457,17 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | Two-stage Dockerfile for docs (builder + nginx) | mkdocs serve is not production-safe (GitHub issue #1825) | ✓ Good |
 | Caddy `handle /docs/*` + nginx `alias` | `handle_path` strips prefix → silently breaks all CSS/JS asset resolution | ✓ Good |
 | `countersign_for_node()` as static method in SignatureService | Centralizes all signing paths; static avoids instance coupling; raises ValueError on missing key rather than silently skipping | ✓ Good |
+| BFS topological dispatch for WorkflowRun (not DFS) | BFS naturally produces level-by-level wave execution; concurrent wave steps can run in parallel without deadlock risk | ✓ Good |
+| networkx for DAG validation (cycle detection, depth) | Battle-tested graph library; cycle detection via `find_cycle()`; topological sort via `topological_sort()`; no custom graph code | ✓ Good |
+| ReactFlow for visual DAG editor (not D3 or custom SVG) | First-class React integration; built-in drag-and-drop, node handles, edge routing; active community | ✓ Good |
+| `result.json` at `/tmp/axiom/result.json` as IF gate input | Node-side contract — scripts write structured output there; no server involvement in condition evaluation; gate runs on stored data | ✓ Good |
+| Webhook HMAC-SHA256 + timestamp + nonce dedup (24h) | Prevents replay attacks (nonce), stale delivery (timestamp), and signature forgery (HMAC); mirrors industry standard webhook security | ✓ Good |
+| WORKFLOW_PARAM_* env var injection (not script modification) | Ed25519-signed script content must never be modified post-signing; env vars are the only safe injection channel | ✓ Good |
+| Alembic two-layer startup (create_all + alembic upgrade head) | `create_all` handles fresh installs with no migration history; Alembic handles existing deployments; eliminates 48 manual SQL files | ✓ Good |
+| SELECT…FOR UPDATE in advance_workflow() concurrent guard | Prevents duplicate step dispatch under concurrent step completions; PostgreSQL-native; SQLite falls back to unguarded path (single-process) | ✓ Good |
+| mTLS client cert validation via `ssl.SSLSocket.getpeercert()` on node routes | Validates at Python layer not just TLS handshake; allows CRL checking against `RevokedCert` table; prevents cert-bypass via plain HTTP | ✓ Good |
+| Foundry injection recipe whitelist (exact command matching) | RCE via arbitrary shell injection in recipe strings; whitelist allows only known-safe package manager invocations; validated at API + build time | ✓ Good |
+| Unified schedule view (JOB + FLOW badges) in single endpoint | Single API call returns heterogeneous schedule entries; frontend renders both types uniformly; avoids two separate polling loops | ✓ Good |
 | Hard-fail (HTTP 500) on missing signing key | Silent fallback was a security gap — operators must configure signing before jobs run; fail-fast surfaces misconfiguration immediately | ✓ Good |
 | HMAC stamping for scheduled jobs at dispatch time (not definition time) | Dispatch-time stamp covers the actual execution context (node_id, guid); definition-time stamp would be stale on retry | ✓ Good |
 | `PaginatedResponse[T]` as Pydantic v2 Generic over per-domain types | Single reusable contract; Generic[T] avoids type explosion across 20+ list endpoints; OpenAPI inlines correctly | ✓ Good |
@@ -484,6 +527,10 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `cap_drop: ALL` on all 7 services (not per-service tuning initially) | Uniform policy is auditable and least-surprise; service-specific `cap_add` only where operationally required (Caddy: NET_BIND_SERVICE) | ✓ Good |
 | `/proc/1/status` over `ps -o uid=` for UID verification in tests | `ps` flags differ between Alpine and Debian; `/proc/1/status` is universally available on all Linux containers | ✓ Good |
 | Node fixture `pytest.skip()` when node not running (not `xfail`) | Compose environments vary (server compose excludes node); skip is the correct semantic — the test is inapplicable, not expected to fail | ✓ Good |
+
+## Previous State — v23.0 Complete (2026-04-18)
+
+Axiom v23.0 delivered DAG & Workflow Orchestration — 19 phases (146–164), 49 plans, all 32/32 requirements satisfied plus 7 adversarial audit items (Phase 164). The full workflow engine is operational: BFS topological dispatch releases steps level-by-level with SELECT…FOR UPDATE concurrency guard; 6 gate node types (IF, AND/JOIN, OR, PARALLEL fan-out, SIGNAL_WAIT) enable complex conditional branching; WORKFLOW_PARAM_* env var injection passes runtime parameters without modifying signed scripts; WorkflowRun lifecycle tracks RUNNING / COMPLETED / PARTIAL / FAILED / CANCELLED with cascading cancellation on step failure. Webhook triggers validated with HMAC-SHA256 + timestamp freshness + 24h nonce dedup. Visual DAG editor built on ReactFlow with real-time cycle detection, depth warnings, and inline IF gate condition config. Unified schedule view serves ScheduledJob (JOB badge) and Workflow (FLOW badge) entries from a single endpoint. Phase 164 adversarial audit closed: mTLS client cert validation hardened at Python layer, Foundry injection recipe whitelist eliminates RCE vector, Alembic two-layer startup replaces 48 legacy SQL migration files, Caddy internal TLS fixed, public key externalized from source. 26 commits, ~30,000 LOC added.
 
 ## Previous State — v22.0 Complete (2026-04-15)
 
@@ -552,4 +599,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike), UX-04/05/06/07 (operator UX polish, deferred from v19.0 to v20.0).
 
 ---
-*Last updated: 2026-04-05 after v19.0 milestone — Foundry Improvements*
+*Last updated: 2026-04-18 after v23.0 milestone — DAG & Workflow Orchestration*

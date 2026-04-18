@@ -97,7 +97,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
 
     // Fetch key IDs on mount
     useEffect(() => {
-        authenticatedFetch('/signatures')
+        authenticatedFetch('/api/signatures')
             .then(r => r.ok ? r.json() : { items: [], results: [] })
             .then(data => {
                 const items: any[] = Array.isArray(data)
@@ -279,7 +279,7 @@ const GuidedDispatchCard = ({ nodes, onJobCreated, initialValues }: GuidedDispat
         setIsSubmitting(true);
         try {
             const body = advancedMode ? JSON.parse(advancedJson) : generatedPayload;
-            const res = await authenticatedFetch('/jobs', {
+            const res = await authenticatedFetch('/api/jobs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
