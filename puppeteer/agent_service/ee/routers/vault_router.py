@@ -102,7 +102,7 @@ async def test_vault_connection(
 ):
     """Test connection to Vault without persisting configuration."""
     try:
-        from ..services.vault_service import VaultService, VaultError
+        from ee.services.vault_service import VaultService, VaultError
         from ...db import AsyncSessionLocal
 
         # Create temporary test config
@@ -189,7 +189,7 @@ async def get_vault_status(
     return VaultStatusResponse(
         status=status,
         vault_address=vault_config.vault_address,
-        last_checked_at=getattr(vault_service, '_last_status_check', None),
+        last_checked_at=getattr(vault_service, '_last_checked_at', None),
         error_detail=getattr(vault_service, '_last_error', None),
         renewal_failures=renewal_failures
     )

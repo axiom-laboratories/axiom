@@ -201,7 +201,7 @@ class VaultConfigResponse(BaseModel):
     @staticmethod
     def from_vault_config(config: "VaultConfig") -> "VaultConfigResponse":
         """Convert DB VaultConfig to response, masking secret_id (T-167-03)."""
-        masked = (config.secret_id[:8] + "...") if config.secret_id else "***"
+        masked = "***" if config.secret_id else ""
         return VaultConfigResponse(
             vault_address=config.vault_address,
             role_id=config.role_id,
