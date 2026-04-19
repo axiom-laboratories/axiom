@@ -67,7 +67,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # YAML injection prevention: regex pattern to detect unsafe characters
-_YAML_UNSAFE = re.compile(r'[\n\r"\x00-\x1f:{}\[\]#&*!|>\'%@`]')
+# Prevents newlines (inject arbitrary YAML nodes), control chars, and quotes (break string context)
+# Also blocks YAML structural chars that could inject object/list definitions
+_YAML_UNSAFE = re.compile(r'[\n\r"\x00-\x1f{}\[\]#&*!|>\'%@`]')
 
 def _validate_compose_param(name: str, value: str) -> str:
     """Reject values containing YAML structural characters or control chars.
