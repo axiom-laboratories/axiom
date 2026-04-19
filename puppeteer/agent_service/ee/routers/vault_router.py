@@ -3,15 +3,17 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
+import uuid
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import update
 
 from ...db import get_db, VaultConfig, User
 from ...deps import require_permission, audit, require_ee
-from ...models import VaultConfigResponse, VaultConfigUpdateRequest, VaultTestConnectionRequest, VaultTestConnectionResponse, VaultStatusResponse
+from ...models import VaultConfigResponse, VaultConfigUpdateRequest, VaultConfigCreateRequest, VaultTestConnectionRequest, VaultTestConnectionResponse, VaultStatusResponse
 from ...security import cipher_suite
 from ee.services.vault_service import VaultConfigSnapshot
 
@@ -204,3 +206,208 @@ async def get_vault_status(
         error_detail=getattr(vault_service, '_last_error', None),
         renewal_failures=renewal_failures
     )
+
+
+# Multi-provider CRUD endpoints (Phase 171-03)
+
+@vault_router.get("/admin/vault/configs", response_model=List[dict], tags=["Vault Configuration"])
+async def list_vault_configs(
+    current_user: User = Depends(require_ee()),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all Vault provider configurations (enabled/disabled).
+
+    Returns id, provider_type, enabled status, address, and masked secret_id.
+    """
+    result = await db.execute(select(VaultConfig))
+    configs = result.scalars().all()
+    return [
+        {
+            "id": str(c.id),
+            "provider_type": c.provider_type,
+            "enabled": c.enabled,
+            "vault_address": c.vault_address,
+            "secret_id": f"****{c.secret_id[-4:]}" if c.secret_id else "****"
+        }
+        for c in configs
+    ]
+
+
+@vault_router.post("/admin/vault/config", response_model=dict, tags=["Vault Configuration"])
+async def create_vault_config(
+    req: VaultConfigCreateRequest,
+    current_user: User = Depends(require_ee()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new Vault provider configuration.
+
+    Creates config without auto-enabling. Returns created config with masked secret_id.
+    """
+    vault_config = VaultConfig(
+        provider_type=req.provider_type,
+        vault_address=req.vault_address,
+        role_id=req.role_id,
+        secret_id=cipher_suite.encrypt(req.secret_id.encode()).decode(),
+        namespace=req.namespace,
+        mount_path=req.mount_path or "secret",
+        enabled=False
+    )
+    db.add(vault_config)
+    await db.commit()
+
+    # Audit the creation
+    audit(db, current_user, "vault:config_create", vault_config.id, {
+        "provider_type": req.provider_type,
+        "vault_address": req.vault_address,
+    })
+    await db.commit()
+
+    return {
+        "id": str(vault_config.id),
+        "provider_type": vault_config.provider_type,
+        "enabled": vault_config.enabled,
+        "vault_address": vault_config.vault_address,
+        "secret_id": f"****{vault_config.secret_id[-4:]}" if vault_config.secret_id else "****"
+    }
+
+
+@vault_router.patch("/admin/vault/config/{config_id}", response_model=dict, tags=["Vault Configuration"])
+async def update_vault_config_by_id(
+    config_id: str,
+    req: VaultConfigUpdateRequest,
+    request: Request,
+    current_user: User = Depends(require_ee()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a specific Vault configuration by ID.
+
+    All fields optional. If config is enabled, triggers re-initialization.
+    """
+    result = await db.execute(select(VaultConfig).where(VaultConfig.id == uuid.UUID(config_id)))
+    vault_config = result.scalars().first()
+    if not vault_config:
+        raise HTTPException(status_code=404, detail="Config not found")
+
+    # Update fields (only non-None values)
+    if req.vault_address is not None:
+        vault_config.vault_address = req.vault_address
+    if req.role_id is not None:
+        vault_config.role_id = req.role_id
+    if req.secret_id is not None:
+        vault_config.secret_id = cipher_suite.encrypt(req.secret_id.encode()).decode()
+    if req.namespace is not None:
+        vault_config.namespace = req.namespace
+    if req.mount_path is not None:
+        vault_config.mount_path = req.mount_path
+    if req.provider_type is not None:
+        vault_config.provider_type = req.provider_type
+
+    # Audit the update
+    audit(db, current_user, "vault:config_update_by_id", vault_config.id, {
+        "vault_address": req.vault_address,
+        "role_id": req.role_id is not None,
+        "secret_id_updated": req.secret_id is not None,
+        "mount_path": req.mount_path,
+        "namespace": req.namespace,
+        "provider_type": req.provider_type,
+    })
+
+    await db.commit()
+
+    # If config is enabled, reinitialize service
+    if vault_config.enabled:
+        try:
+            vault_service = getattr(request.app.state, 'vault_service', None)
+            if vault_service:
+                vault_service.config = VaultConfigSnapshot.from_orm(vault_config)
+                await vault_service.startup()
+                logger.info(f"Vault service reinitialized after config update: {config_id}")
+        except Exception as e:
+            logger.warning(f"Failed to reinitialize Vault service after update: {e}")
+
+    return {
+        "id": str(vault_config.id),
+        "provider_type": vault_config.provider_type,
+        "enabled": vault_config.enabled,
+        "vault_address": vault_config.vault_address,
+        "secret_id": f"****{vault_config.secret_id[-4:]}" if vault_config.secret_id else "****"
+    }
+
+
+@vault_router.delete("/admin/vault/config/{config_id}", tags=["Vault Configuration"])
+async def delete_vault_config(
+    config_id: str,
+    current_user: User = Depends(require_ee()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a Vault configuration by ID.
+
+    Cannot delete currently enabled config (returns 409).
+    """
+    result = await db.execute(select(VaultConfig).where(VaultConfig.id == uuid.UUID(config_id)))
+    vault_config = result.scalars().first()
+    if not vault_config:
+        raise HTTPException(status_code=404, detail="Config not found")
+
+    if vault_config.enabled:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete currently enabled Vault config. Disable or switch to another config first."
+        )
+
+    # Audit the deletion
+    audit(db, current_user, "vault:config_delete", vault_config.id, {
+        "provider_type": vault_config.provider_type,
+    })
+
+    await db.delete(vault_config)
+    await db.commit()
+    return {"detail": "Config deleted"}
+
+
+@vault_router.post("/admin/vault/config/{config_id}/enable", response_model=dict, tags=["Vault Configuration"])
+async def enable_vault_config(
+    config_id: str,
+    request: Request,
+    current_user: User = Depends(require_ee()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Enable this Vault configuration and disable all others.
+
+    Switches to this config as active provider. Disables all other configs.
+    Triggers vault_service.startup() for initialization.
+    """
+    result = await db.execute(select(VaultConfig).where(VaultConfig.id == uuid.UUID(config_id)))
+    vault_config = result.scalars().first()
+    if not vault_config:
+        raise HTTPException(status_code=404, detail="Config not found")
+
+    # Disable all others
+    await db.execute(update(VaultConfig).where(VaultConfig.id != vault_config.id).values(enabled=False))
+    vault_config.enabled = True
+    await db.commit()
+
+    # Audit the enable action
+    audit(db, current_user, "vault:config_enable", vault_config.id, {
+        "provider_type": vault_config.provider_type,
+        "vault_address": vault_config.vault_address,
+    })
+    await db.commit()
+
+    # Reinitialize service with new config
+    try:
+        vault_service = getattr(request.app.state, 'vault_service', None)
+        if vault_service:
+            vault_service.config = VaultConfigSnapshot.from_orm(vault_config)
+            await vault_service.startup()
+            logger.info(f"Vault service switched to config {config_id}")
+    except Exception as e:
+        logger.warning(f"Failed to reinitialize Vault service: {e}")
+
+    return {
+        "id": str(vault_config.id),
+        "provider_type": vault_config.provider_type,
+        "enabled": vault_config.enabled,
+        "vault_address": vault_config.vault_address,
+        "secret_id": f"****{vault_config.secret_id[-4:]}" if vault_config.secret_id else "****"
+    }

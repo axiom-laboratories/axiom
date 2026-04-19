@@ -226,6 +226,16 @@ class VaultConfigUpdateRequest(BaseModel):
     enabled: Optional[bool] = None
 
 
+class VaultConfigCreateRequest(BaseModel):
+    """Request body for POST /admin/vault/config (create new provider config)."""
+    provider_type: str
+    vault_address: str
+    role_id: str
+    secret_id: str
+    namespace: Optional[str] = None
+    mount_path: Optional[str] = None
+
+
 class VaultTestConnectionRequest(BaseModel):
     """Request body for POST /admin/vault/test-connection."""
     vault_address: str
