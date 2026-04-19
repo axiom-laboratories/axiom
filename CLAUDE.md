@@ -158,8 +158,10 @@ JWT includes a `tv` (token version) field. Any password change increments `User.
 
 - **Local dev**: SQLite (`jobs.db`) — set by default if `DATABASE_URL` env var is absent
 - **Production**: PostgreSQL 15 via `DATABASE_URL=postgresql+asyncpg://...`
-- Schema is managed by `Base.metadata.create_all` at startup — **no Alembic**
-- Adding new columns to existing deployed DBs requires manual `ALTER TABLE` or the migration SQL files in `puppeteer/migration*.sql`
+- Schema is managed by **Alembic** (`puppeteer/agent_service/migrations/`). `Base.metadata.create_all` still runs at startup as a safety net but Alembic is the source of truth.
+- Baseline migration: `001_baseline_schema.py`. All future schema changes get a new numbered migration (`002_...`, `003_...`).
+- Legacy `migration_*.sql` files were removed in Phase 164-03 — do not create new `.sql` migration files.
+- Run migrations: `cd puppeteer && alembic upgrade head`
 
 ### Security Model
 
