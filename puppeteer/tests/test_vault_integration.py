@@ -305,8 +305,8 @@ class TestVaultServiceStatus:
 
         service = VaultService(vault_config, db_session)
 
-        # Initial unknown state becomes healthy on startup
-        assert service._status == "unknown"
+        # Initial state is degraded (pending startup) — "unknown" is not a valid Literal value
+        assert service._status == "degraded"
 
         # Startup sets status
         with patch.object(service, '_connect', new_callable=AsyncMock):

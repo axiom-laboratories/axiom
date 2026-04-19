@@ -79,6 +79,7 @@ async def update_vault_config(
 
     db.add(vault_config)
     await db.commit()
+    await db.refresh(vault_config)
 
     # Reinitialize vault_service with new config (convert to frozen snapshot per D-05)
     try:

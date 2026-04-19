@@ -69,7 +69,7 @@ class VaultService(SecretsProvider):
         self.db = db
         self._client: Optional[hvac.Client] = None
         self._status: Literal["healthy", "degraded", "disabled"] = \
-            "disabled" if not config or not config.enabled else "unknown"
+            "disabled" if not config or not config.enabled else "degraded"
         self._consecutive_renewal_failures = 0
         self._last_error: Optional[str] = None
         self._last_checked_at: Optional[datetime] = None
