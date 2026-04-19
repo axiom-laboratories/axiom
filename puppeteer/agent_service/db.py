@@ -675,6 +675,7 @@ async def init_db():
     # Seed default mirror config entries if they don't exist
     async with AsyncSessionLocal() as session:
         await seed_mirror_config(session)
+        await seed_permissions(session)
 
 
 async def seed_mirror_config(session: AsyncSession):
@@ -703,6 +704,54 @@ async def seed_mirror_config(session: AsyncSession):
         existing = result.scalar_one_or_none()
         if not existing:
             session.add(Config(key=key, value=default_value))
+
+    await session.commit()
+
+
+async def seed_permissions(session: AsyncSession):
+    """Seed RolePermission table with default permissions for built-in roles (Phase 171).
+
+    Permissions seeded:
+    - operator role: nodes:read, system:read, system:write, jobs:write, nodes:write, foundry:write, signatures:write, users:write
+    - viewer role: nodes:read, system:read, jobs:read
+
+    Idempotent: only adds permissions that don't already exist (checked via UniqueConstraint).
+    """
+    from sqlalchemy import select
+
+    # Define default permissions for each role
+    role_permissions = {
+        "operator": [
+            "nodes:read",
+            "system:read",
+            "system:write",
+            "jobs:read",
+            "jobs:write",
+            "nodes:write",
+            "foundry:write",
+            "signatures:write",
+            "users:write"
+        ],
+        "viewer": [
+            "nodes:read",
+            "system:read",
+            "jobs:read"
+        ]
+    }
+
+    # Seed permissions for each role
+    for role, permissions in role_permissions.items():
+        for permission in permissions:
+            # Check if permission already exists for this role
+            result = await session.execute(
+                select(RolePermission).where(
+                    RolePermission.role == role,
+                    RolePermission.permission == permission
+                )
+            )
+            existing = result.scalar_one_or_none()
+            if not existing:
+                session.add(RolePermission(role=role, permission=permission))
 
     await session.commit()
 
