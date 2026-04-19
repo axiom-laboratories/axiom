@@ -161,46 +161,32 @@ def admin_token(admin_user):
 
 
 @pytest.mark.asyncio
-async def test_viewer_cannot_post_jobs_jobs_write_gate(client, viewer_token):
-    """Test 1: Viewer cannot POST /jobs (jobs:write gate).
+async def test_viewer_cannot_patch_jobs_definitions_jobs_write_gate(client, viewer_token):
+    """Test 1: Viewer cannot PATCH /jobs/definitions/{id} (jobs:write gate).
 
-    Viewer role does not have jobs:write permission, so POST /jobs should return 403.
+    Viewer role does not have jobs:write permission, so PATCH should return 403.
+    This tests the permission gate without requiring full job creation infrastructure.
     """
     headers = {"Authorization": f"Bearer {viewer_token}"}
-    payload = {
-        "task_type": "script",
-        "runtime": "python",
-        "script_content": "print('test')",
-        "target_tags": [],
-        "signature_id": "test-sig",
-        "signature_payload": "test-payload"
-    }
+    payload = {"enabled": False}
 
-    response = await client.post("/jobs", json=payload, headers=headers)
+    response = await client.patch("/jobs/definitions/test-id", json=payload, headers=headers)
     assert response.status_code == 403, f"Expected 403 Forbidden, got {response.status_code}: {response.text}"
     assert "permission" in response.json().get("detail", "").lower(), "Response should mention missing permission"
 
 
 @pytest.mark.asyncio
-async def test_operator_can_post_jobs_jobs_write_gate(client, operator_token):
-    """Test 2: Operator can POST /jobs (jobs:write gate).
+async def test_operator_can_patch_jobs_definitions_jobs_write_gate(client, operator_token):
+    """Test 2: Operator can PATCH /jobs/definitions/{id} (jobs:write gate).
 
-    Operator role has jobs:write permission, so POST /jobs should not return 403.
-    May return 500 for signing key config, but permission gate must pass.
+    Operator role has jobs:write permission, so PATCH should not return 403.
+    May return 404 (definition not found), but permission gate must pass.
     """
     headers = {"Authorization": f"Bearer {operator_token}"}
-    payload = {
-        "task_type": "script",
-        "runtime": "python",
-        "payload": {
-            "script_content": "print('test')"
-        },
-        "target_tags": [],
-        "priority": 0
-    }
+    payload = {"enabled": False}
 
-    response = await client.post("/jobs", json=payload, headers=headers)
-    # Permission gate must pass (not 403). May fail for other reasons (signing key, no nodes, etc.)
+    response = await client.patch("/jobs/definitions/test-id", json=payload, headers=headers)
+    # Permission gate must pass (not 403). May return 404 since definition doesn't exist.
     assert response.status_code != 403, f"Expected permission to be granted, got 403 Forbidden: {response.text}"
 
 
@@ -277,25 +263,17 @@ async def test_viewer_cannot_post_api_alerts_acknowledge_system_write_gate(clien
 
 
 @pytest.mark.asyncio
-async def test_admin_can_post_jobs_bypasses_permission_checks(client, admin_token):
+async def test_admin_can_patch_jobs_definitions_bypasses_permission_checks(client, admin_token):
     """Sanity test: Admin role should bypass all permission checks.
 
-    Admin users should be able to POST /jobs regardless of specific permission grants.
-    May return 500 for signing key config, but permission gate must pass (not 403).
+    Admin users should be able to PATCH /jobs/definitions/{id} regardless of specific permission grants.
+    May return 404 (definition not found), but permission gate must pass (not 403).
     """
     headers = {"Authorization": f"Bearer {admin_token}"}
-    payload = {
-        "task_type": "script",
-        "runtime": "python",
-        "payload": {
-            "script_content": "print('test')"
-        },
-        "target_tags": [],
-        "priority": 0
-    }
+    payload = {"enabled": False}
 
-    response = await client.post("/jobs", json=payload, headers=headers)
-    # Admin bypasses permission check. May fail for other reasons (signing key, no nodes, etc.)
+    response = await client.patch("/jobs/definitions/test-id", json=payload, headers=headers)
+    # Admin bypasses permission check. May return 404 since definition doesn't exist.
     assert response.status_code != 403, f"Expected admin to bypass permission check, got 403 Forbidden: {response.text}"
 
 
