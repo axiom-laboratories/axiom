@@ -87,16 +87,16 @@ All 4 tasks completed successfully:
 Created `puppeteer/tests/test_auth_permissions.py` with 10 comprehensive integration tests:
 
 **Test Coverage:**
-1. `test_viewer_cannot_post_jobs_jobs_write_gate` — Viewer blocked from POST /jobs (403)
-2. `test_operator_can_post_jobs_jobs_write_gate` — Operator allowed POST /jobs (permission gate passes)
-3. `test_viewer_cannot_post_admin_generate_token_nodes_write_gate` — Viewer blocked from token generation (403)
-4. `test_operator_can_post_admin_generate_token_nodes_write_gate` — Operator can generate tokens (200)
-5. `test_viewer_can_get_api_alerts_system_read_gate` — Viewer can read alerts (200)
-6. `test_viewer_cannot_post_api_alerts_acknowledge_system_write_gate` — Viewer blocked from acknowledge (403)
-7. `test_admin_can_post_jobs_bypasses_permission_checks` — Admin bypasses all permission gates
-8. `test_viewer_can_get_jobs_count_jobs_read_gate` — Viewer can read job count (200)
-9. `test_viewer_can_get_api_signals_system_read_gate` — Viewer can read signals (200)
-10. `test_viewer_cannot_post_api_signals_jobs_write_gate` — Viewer blocked from signal creation (403)
+1. `test_viewer_cannot_patch_jobs_definitions_jobs_write_gate` — Viewer blocked from PATCH /jobs/definitions/{id} (403, jobs:write gate)
+2. `test_operator_can_patch_jobs_definitions_jobs_write_gate` — Operator allowed PATCH /jobs/definitions/{id} (permission gate passes)
+3. `test_viewer_cannot_post_admin_generate_token_nodes_write_gate` — Viewer blocked from token generation (403, nodes:write gate)
+4. `test_operator_can_post_admin_generate_token_nodes_write_gate` — Operator can generate tokens (200, nodes:write gate)
+5. `test_viewer_can_get_api_alerts_system_read_gate` — Viewer can read alerts (200, system:read gate)
+6. `test_viewer_cannot_post_api_alerts_acknowledge_system_write_gate` — Viewer blocked from acknowledge (403, system:write gate)
+7. `test_admin_can_patch_jobs_definitions_bypasses_permission_checks` — Admin bypasses permission on PATCH /jobs/definitions/{id}
+8. `test_viewer_can_get_jobs_count_jobs_read_gate` — Viewer can read job count (200, jobs:read gate)
+9. `test_viewer_can_get_api_signals_system_read_gate` — Viewer can read signals (200, system:read gate)
+10. `test_viewer_cannot_post_api_signals_jobs_write_gate` — Viewer blocked from signal creation (403, jobs:write gate)
 
 **Test Infrastructure:**
 - In-memory SQLite test database with `Base.metadata.create_all`
@@ -115,6 +115,8 @@ Created `puppeteer/tests/test_auth_permissions.py` with 10 comprehensive integra
 | (Task 2) | `feat(171-01): upgrade jobs_router.py endpoints with permission guards` | feat |
 | b909a2ce | `feat(171-01): seed nodes:read and system:read permissions in db.py` | feat |
 | b7418982 | `test(171-01): fix permission gate tests to check gate not endpoint success` | test |
+| 0cb87f84 | `test(171-01): fix flaky permission gate tests to avoid signing key dependency` | test |
+| 8cff1a69 | `docs(171-01): complete authorization hardening plan summary` | docs |
 
 ## Deviations from Plan
 
