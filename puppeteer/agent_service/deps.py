@@ -168,10 +168,10 @@ def audit(db: AsyncSession, user, action: str, resource_id: str = None, detail: 
             pass
 
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(_insert())
-    except Exception:
+        loop = asyncio.get_running_loop()
+        loop.create_task(_insert())
+    except RuntimeError:
+        # Called outside async context
         pass
 
     # Fire-and-forget SIEM enqueue (Phase 168 — D-03, D-09)
