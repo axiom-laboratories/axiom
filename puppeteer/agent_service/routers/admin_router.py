@@ -50,7 +50,7 @@ router = APIRouter()
 @router.post("/signatures", response_model=SignatureResponse, tags=["Signatures"])
 async def upload_signature(
     sig: SignatureCreate,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("signatures:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Upload an Ed25519 public key for job script signing."""
@@ -59,7 +59,7 @@ async def upload_signature(
 
 @router.get("/signatures", response_model=List[SignatureResponse], tags=["Signatures"])
 async def list_signatures(
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("signatures:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """List all registered signature keys."""
@@ -92,7 +92,7 @@ async def get_signature(
 )
 async def delete_signature(
     id: str,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("signatures:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Delete a signature key."""
@@ -117,7 +117,7 @@ async def list_alerts(
     skip: int = 0,
     limit: int = 50,
     unacknowledged_only: bool = False,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("system:read")),
     db: AsyncSession = Depends(get_db)
 ):
     """List system alerts with optional filtering."""
@@ -133,7 +133,7 @@ async def list_alerts(
 )
 async def acknowledge_alert(
     alert_id: int,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("system:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Mark an alert as acknowledged."""
@@ -156,7 +156,7 @@ async def acknowledge_alert(
 )
 async def generate_token(
     request: Request,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("nodes:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Generate an enrollment token for node enrollment."""
@@ -187,7 +187,7 @@ async def generate_token(
 )
 async def upload_public_key(
     req: UploadKeyRequest,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("signatures:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Upload or update the signing public key."""
@@ -263,7 +263,7 @@ async def get_network_mounts(
     try:
         data = json.loads(row.value)
         return [NetworkMount(**m) for m in data]
-    except:
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         return []
 
 
@@ -276,7 +276,7 @@ async def get_network_mounts(
 )
 async def set_network_mounts(
     mounts: List[NetworkMount],
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("system:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Update network mount configuration."""
@@ -309,7 +309,7 @@ async def set_network_mounts(
 async def fire_signal(
     name: str,
     req: Optional[SignalFire] = None,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("jobs:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Fire a named signal to unblock dependent jobs."""
@@ -350,7 +350,7 @@ async def fire_signal(
     description="List all currently active signals"
 )
 async def list_signals(
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("system:read")),
     db: AsyncSession = Depends(get_db)
 ):
     """List all currently active signals."""
@@ -376,7 +376,7 @@ async def list_signals(
 )
 async def clear_signal(
     name: str,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("jobs:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Clear a signal from the system."""

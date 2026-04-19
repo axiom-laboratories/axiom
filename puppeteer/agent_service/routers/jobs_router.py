@@ -148,7 +148,7 @@ async def list_jobs(
     summary="Get job count",
     description="Get total count of jobs, optionally filtered by status."
 )
-async def count_jobs(status: Optional[str] = None, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def count_jobs(status: Optional[str] = None, current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     query = select(func.count()).select_from(Job).where(Job.task_type != 'system_heartbeat')
     if status and status.upper() != 'ALL':
         query = query.where(Job.status == status.upper())
@@ -211,7 +211,7 @@ async def export_jobs(
 
 
 @router.post("/jobs", response_model=JobResponse, tags=["Jobs"])
-async def create_job(job_req: JobCreate, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def create_job(job_req: JobCreate, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     try:
         # SRCH-03: stamp submitter username so Jobs view can filter by creator
         job_req = job_req.model_copy(update={"created_by": current_user.username})
@@ -305,7 +305,7 @@ async def get_job(guid: str, current_user: User = Depends(require_permission("jo
     summary="Cancel a job",
     description="Cancel a PENDING or ASSIGNED job, transitioning it to CANCELLED status."
 )
-async def cancel_job(guid: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def cancel_job(guid: str, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Job).where(Job.guid == guid))
     job = result.scalar_one_or_none()
     if not job:
@@ -328,7 +328,7 @@ async def cancel_job(guid: str, current_user: User = Depends(require_auth), db: 
     summary="Get dispatch diagnosis",
     description="Get diagnostic information explaining why a PENDING job has not yet been dispatched to a node."
 )
-async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     """Returns structured explanation for why a PENDING job has not yet dispatched."""
     result = await JobService.get_dispatch_diagnosis(guid, db)
     if result.get("reason") == "not_found":
@@ -345,7 +345,7 @@ async def get_dispatch_diagnosis(guid: str, current_user: User = Depends(require
 )
 async def bulk_dispatch_diagnosis(
     req: BulkDiagnosisRequest,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("jobs:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Returns dispatch diagnosis for multiple jobs in one call (Phase 88 — DIAG-01)."""
@@ -364,7 +364,7 @@ async def bulk_dispatch_diagnosis(
 )
 async def retry_job(
     guid: str,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("jobs:write")),
     db: AsyncSession = Depends(get_db)
 ):
     """Resets a FAILED or DEAD_LETTER job to PENDING."""
@@ -535,7 +535,7 @@ async def resubmit_job(
 async def dispatch_job(
     req: DispatchRequest,
     request,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("jobs:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """CI/CD dispatch endpoint. Creates a job from a job definition and returns a poll URL.
@@ -613,7 +613,7 @@ async def dispatch_job(
 @router.get("/api/dispatch/{job_guid}/status", response_model=DispatchStatusResponse, tags=["CI/CD Dispatch"])
 async def get_dispatch_status(
     job_guid: str,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("jobs:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """CI/CD poll endpoint. Returns structured status for a dispatched job.
@@ -652,12 +652,12 @@ async def get_dispatch_status(
 # ===== Job Definitions =====
 
 @router.post("/jobs/definitions", response_model=JobDefinitionResponse, tags=["Job Definitions"])
-async def create_job_definition(def_req: JobDefinitionCreate, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def create_job_definition(def_req: JobDefinitionCreate, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.create_job_definition(def_req, current_user, db)
 
 
 @router.get("/jobs/definitions", response_model=List[JobDefinitionResponse], tags=["Job Definitions"])
-async def list_job_definitions(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def list_job_definitions(current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.list_job_definitions(db)
 
 
@@ -668,13 +668,13 @@ async def list_job_definitions(current_user: User = Depends(require_auth), db: A
     summary="List job definitions (alias)",
     description="Alias for GET /jobs/definitions - returns list of all scheduled job definitions"
 )
-async def dashboard_job_definitions(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def dashboard_job_definitions(current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     """Dashboard expects /job-definitions instead of /jobs/definitions"""
     return await scheduler_service.list_job_definitions(db)
 
 
 @router.delete("/jobs/definitions/{id}", response_model=ActionResponse, tags=["Job Definitions"])
-async def delete_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def delete_job_definition(id: str, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == id))
     job_def = result.scalar_one_or_none()
     if not job_def:
@@ -689,7 +689,7 @@ async def delete_job_definition(id: str, current_user: User = Depends(require_au
 
 
 @router.patch("/jobs/definitions/{id}/toggle", response_model=ActionResponse, tags=["Job Definitions"])
-async def toggle_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def toggle_job_definition(id: str, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == id))
     job_def = result.scalar_one_or_none()
     if not job_def:
@@ -701,7 +701,7 @@ async def toggle_job_definition(id: str, current_user: User = Depends(require_au
 
 
 @router.get("/jobs/definitions/{id}", response_model=JobDefinitionResponse, tags=["Job Definitions"])
-async def get_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def get_job_definition(id: str, current_user: User = Depends(require_permission("jobs:read")), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.get_job_definition(id, db)
 
 
@@ -721,7 +721,7 @@ async def get_schedule(
 @router.post("/api/jobs/push", response_model=JobDefinitionResponse, status_code=201, tags=["Job Definitions"])
 async def push_job_definition(
     req: JobPushRequest,
-    current_user: User = Depends(require_auth),
+    current_user: User = Depends(require_permission("jobs:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """RFC-compliant push endpoint: creates DRAFT or updates existing job with dual JWT+Ed25519 verification."""
@@ -785,7 +785,7 @@ async def push_job_definition(
 
 
 @router.patch("/jobs/definitions/{id}", response_model=JobDefinitionResponse, tags=["Job Definitions"])
-async def update_job_definition(id: str, update_req: JobDefinitionUpdate, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+async def update_job_definition(id: str, update_req: JobDefinitionUpdate, current_user: User = Depends(require_permission("jobs:write")), db: AsyncSession = Depends(get_db)):
     return await scheduler_service.update_job_definition(id, update_req, current_user, db)
 
 
