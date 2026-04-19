@@ -2,6 +2,31 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Developer Profile (auto-generated 2026-04-19)
+
+| Dimension | Rating | Confidence |
+|-----------|--------|------------|
+| Communication Style | conversational | HIGH |
+| Decision Speed | deliberate-informed | HIGH |
+| Explanation Depth | concise | MEDIUM |
+| Debugging Approach | diagnostic | MEDIUM |
+| UX Philosophy | function-first | MEDIUM |
+| Vendor Philosophy | pragmatic-fast | MEDIUM |
+| Frustration Triggers | instruction-adherence | LOW |
+| Learning Style | guided | MEDIUM |
+
+**Key instructions for Claude:**
+- Match conversational tone; mix imperatives with questions that invite input
+- Offer Gemini second-opinion recommendations for significant architectural decisions
+- Keep explanations concise — focus on what changed and why, skip basics
+- Debug diagnostically: share root cause, help form hypotheses collaboratively
+- Prioritize function over polish; treat docs/UI as deliverables not afterthoughts
+- Suggest pragmatic tool choices based on LOE, not exhaustive comparison
+- Respect explicit scope boundaries; follow instructions precisely
+- Explain concepts conversationally with concrete examples rather than linking to docs
+
+Full profile: `~/.claude/get-shit-done/USER-PROFILE.md` · Refresh: `/gsd-profile-user --refresh`
+
 ## Workflow Rules
 
 - Always run discuss-phase before plan-phase to ensure CONTEXT.md exists. Never attempt plan-phase without first checking for the phase's CONTEXT.md file.
