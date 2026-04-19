@@ -1,450 +1,369 @@
-# Domain Pitfalls: DAG/Workflow Orchestration Integration
+# Pitfalls Research: Node Capacity & Isolation Validation
 
-**Domain:** Task orchestration platform adding DAG/workflow capabilities to existing job scheduling system  
-**Researched:** 2026-04-15  
-**Focus:** Integration risks with existing infrastructure, concurrency hazards, state machine edge cases
-
----
-
-## Executive Summary
-
-Adding DAG/workflow orchestration to Axiom introduces **three critical risk categories**: (1) **Concurrency hazards** in the BFS unblock/cascade engine when multiple steps complete simultaneously, creating race conditions and stuck BLOCKED jobs; (2) **State machine brittleness** where PARTIAL vs FAILED distinctions break under transitive dependencies, leaving orphaned jobs in uncertain states; (3) **Security amplification** where webhook/output injection vulnerabilities are exponentially more damaging in workflows than single jobs.
-
-The existing `depends_on` foundation (Job.depends_on JSON list + BFS cascade in job_service.py) handles linear chains correctly but lacks atomic guards for concurrent completion, FAILED propagation, and structured output validation. Integration with APScheduler for workflow cron triggers introduces a "ghost execution" risk where legacy scheduled jobs fire after a workflow is marked saved-as-new. Depth limits (currently 10 levels) are adequate but bypass mechanisms (edge-case handling in _unblock_dependents) create DoS exposure.
-
-**Mitigation strategy:** Implement explicit phase gates: Phase 1 (serialized unblock), Phase 2 (result validation + injection hardening), Phase 3 (backward-compatible migration), Phase 4 (APScheduler isolation + pause semantics).
+**Domain:** Nested container orchestration with resource limit enforcement and cgroup validation
+**Researched:** 2026-04-06
+**Confidence:** HIGH (Docker/Kubernetes official sources + 2026 research + cgroup kernel documentation)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Race Condition in Concurrent Step Completion
+### Pitfall 1: Cgroup v1 vs v2 Semantic Mismatch in Memory Limit Reporting
 
 **What goes wrong:**
-When multiple independent jobs complete simultaneously (or near-simultaneously), the BFS unblock engine (`_unblock_dependents`) processes them serially but **without atomic guards**. A job waiting on `[A, B, C]` where all three complete within milliseconds of each other experiences:
-
-1. **Time 0ms:** Job A completes → `_unblock_dependents(A)` starts DB query for jobs depending on A
-2. **Time 1ms:** Job B completes → `_unblock_dependents(B)` starts a **second** DB query
-3. **Time 2ms:** Both queries return the same waiting job, unblock logic executes **twice**
-4. **Time 5ms:** Job C completes → third query, third unblock attempt on same job (now PENDING)
-
-Result: Status churn in audit logs, potential double-execution if the job hasn't yet moved past PENDING, or orphaned job if second unblock reverts a state change.
+A stress test passes on a cgroup v1 system, showing successful memory enforcement, but fails on a cgroup v2 system (or vice versa). Tests report inconsistent memory usage numbers: the same workload consumes "more memory" on v2 than v1, even though the actual heap usage is identical. OOM kills happen unpredictably on one version but not the other.
 
 **Why it happens:**
-- `_unblock_dependents` uses a stateless BFS search (`Job.depends_on.like(...)`) that finds all blocked dependents
-- No transaction boundary guards status transition atomicity
-- Multiple concurrent calls to `_unblock_dependents` from different job completion handlers race
-- In single-job deployments, this is invisible; in parallel workflows with 10+ simultaneous completions, it's common
+- **cgroup v1** uses `memory.limit_in_bytes` (hard limit) and `memory.memsw.limit_in_bytes` (memory+swap combined). Accounting includes page cache, and different controllers (CPU, memory, I/O) have inconsistent semantics.
+- **cgroup v2** uses `memory.max` (hard limit only) and separate `memory.swap.max` (swap-only control). Memory reporting includes previously-uncounted allocations. Page cache is reported more accurately, often appearing higher than v1 because cgroup v1's page cache accounting was lenient.
+- A stress test allocating anonymous memory might pass 512MB on v1 but fail on v2 because page cache (file I/O) now counts more aggressively.
+- Swap handling differs: v1's combined counter was unintuitive; v2 separates them, so a test that relied on spill-to-swap behavior breaks if swap is capped differently.
 
-**Consequences:**
-- Jobs silently re-queued or double-executed if retry logic is downstream
-- Audit log shows spurious state transitions (PENDING → PENDING)
-- SLA violations on workflow completion (job stuck PENDING when dependencies are satisfied)
-- Data corruption if job idempotency is not perfect
+**How to avoid:**
+- **Pre-flight detection:** Implement `detect_cgroup_version()` that reads `/proc/self/cgroup` (v1) vs `/sys/fs/cgroup/unified` (v2) at node startup and store in heartbeat.
+- **Separate validation suites:** Write v1-specific and v2-specific stress tests. Don't assume one works for both.
+- **Document accounting differences:** Stress test scripts must account for page cache. Use `memory.stat` (v1) or `memory.stat` (v2) to subtract inactive file cache, or use direct heap pressure.
+- **Sample production systems:** Before deploying validation, scan target environments for cgroup version and test on matching systems.
 
-**Prevention:**
-1. **Atomize unblock with SELECT...FOR UPDATE** — Use `SELECT ... FOR UPDATE` in a transaction to lock all dependent jobs before checking + updating status. Lock is released when transaction commits.
-2. **Implement idempotent guard** — Track `last_unblock_attempt_at` timestamp on Job record; if called again within 5s with same upstream GUID, skip re-check.
-3. **Move unblock to single background task** — Replace distributed callbacks with a single sweep job that runs every 100ms and processes all PENDING→eligible transitions in one pass.
-4. **Write explicit race condition test** — Create workflow with 3 independent parallel jobs, complete all 3 within 10ms window, assert waiting job only transitions once.
+**Warning signs:**
+- Stress test results differ 15%+ across identical jobs on different nodes
+- OOM kills on some nodes but not others, despite identical memory limits
+- `dmesg` shows memory.max enforcement on v2 nodes but memory.limit_in_bytes on v1 nodes
+- Job exit codes differ (137 SIGKILL on v2, slower throttle on v1)
 
-**Detection:**
-- Alert on repeated status transitions (same GUID, same status, multiple transitions in 1 minute)
-- Log unblock latency; if >500ms, signal DB contention
-- Audit log analysis: group by job GUID, alert if status change count > 1 per completion event
+**Phase to address:**
+**Phase 1 (Stress Test Corpus Creation):** Implement cgroup detection and v1/v2 dual-path stress scripts. Validation cannot proceed without understanding the cgroup version.
 
 ---
 
-### Pitfall 2: PARTIAL Failures Break Cascade Logic
+### Pitfall 2: Page Cache Surprise OOM Kills in Nested Containers
 
 **What goes wrong:**
-The cascade system (`_cancel_dependents`) assumes binary outcomes: a job is either COMPLETED or FAILED. Workflows introduce **partial success**:
-
-- Job A completes with exit code 0 (COMPLETED), but structured output is invalid (missing required field)
-- Logic checks `if upstream.status == "COMPLETED"`, finds true, unblocks dependent B
-- Job B runs, expects a field that doesn't exist, fails with cryptic error
-- No audit trail of what data B actually received; no clear signal that "partial failure" occurred
-
-Additionally, **conditional gates** (IF steps) create a new failure mode:
-- Job A completes SUCCESSFULLY but IF gate reads `/tmp/axiom/result.json` incorrectly
-- Gate should route to step B but instead routes to step C (wrong path)
-- Step C executes in wrong context, silently produces wrong output
-- Workflow continues, appears COMPLETED, but data is corrupted
+A stress test allocates 256MB in a container with a 512MB limit and expects to run fine. Instead, the job is OOM-killed. Logs show exit code 137. The actual heap usage was only 250MB according to the application. The problem: page cache from file I/O (logs, temp files, `dd` reads) consumed 280MB, pushing total over the limit.
 
 **Why it happens:**
-- Existing status enum is {PENDING, BLOCKED, ASSIGNED, RUNNING, COMPLETED, FAILED, CANCELLED}
-- No PARTIAL or VALIDATION_FAILED state
-- `depends_on` logic is purely status-based, ignores result payload validation
-- Result.json reading happens in IF gate evaluation, not in job completion handler
-- No atomic semantics between job completion and output validation
+- Memory limits in cgroups count page cache against the container's limit.
+- Page cache is memory the kernel keeps for "free" — it's evictable when needed, but it counts as used memory.
+- A stress test that does heavy I/O (writing logs, reading files, `dd` reads) unexpectedly triggers page cache growth.
+- The operator thinks "my app uses 200MB," but the cgroup sees 450MB (200MB app + 250MB cache).
+- In nested containers (DinD), child cgroups inherit parent limits, and page cache can push the total over the child's limit even if the parent has free memory.
 
-**Consequences:**
-- Silent data corruption in workflows (step runs with wrong input)
-- Difficult debugging (error in step C with wrong input ≠ obvious cause in step A)
-- Transitive failure propagation broken: cancelling step A doesn't prevent B if B was already unblocked
-- Compliance/audit trail gaps: workflow marked COMPLETED but data quality unknown
+**How to avoid:**
+- **Distinguish heap from page cache:** Stress tests must report both. Read from `/sys/fs/cgroup/memory/memory.stat` (v1) and subtract `total_inactive_file` for accurate heap pressure.
+- **Isolate workload types:** Separate CPU/memory stress from I/O stress. A memory test should minimize I/O.
+- **Set memory.high (v2) or memsw limits (v1):** Use a throttling threshold to detect pressure before OOM.
+- **Script design:** Use `dd if=/dev/zero bs=1M count=X | /bin/cat > /dev/null` to allocate anonymous memory without page cache.
 
-**Prevention:**
-1. **Add VALIDATION_FAILED state** — Introduce status = VALIDATION_FAILED when output validation rules (if defined) fail. Mark job as terminal but distinguishable from FAILED.
-2. **Atomic validation before unblock** — Before calling `_unblock_dependents`, run output validation in same transaction. If validation fails, set VALIDATION_FAILED and skip unblock.
-3. **IF gate atomicity** — Parse and validate result.json immediately after job completion, in same DB transaction. If parsing fails, mark job VALIDATION_FAILED and prevent downstream triggers.
-4. **Transitive failure isolation** — Add `failed_upstream_guid` field to Job record. When cancelling, check this field; if set, this job was blocked by that upstream. Cancel it transitively only if upstream is actually FAILED or CANCELLED (not VALIDATION_FAILED).
-5. **Output validation schema in workflow definition** — Store expected output schema alongside workflow. Validate at step completion time, not at IF gate runtime.
+**Warning signs:**
+- Job OOM-killed when `free` inside the container shows available memory
+- Page cache grows unexpectedly during execution
+- Same workload succeeds without I/O redirection but fails with logging
+- Exit code 137 (SIGKILL) with no corresponding application error
 
-**Detection:**
-- Alert on jobs in VALIDATION_FAILED state persisting >5 minutes
-- Log all IF gate parsing errors with result.json sample
-- Audit trail: compare expected output schema vs actual result.json fields
+**Phase to address:**
+**Phase 2 (Cgroup Pre-flight & Validation):** Implement memory.stat parsing in validation scripts. Store page cache metrics separately from heap metrics.
 
 ---
 
-### Pitfall 3: Depth Limit Bypass via Conditional Unblocking
+### Pitfall 3: Docker-in-Docker (DinD) Cgroup Inheritance & Parent Limit Overwriting
 
 **What goes wrong:**
-The current depth limit (10 levels) is enforced at **job creation time** only. An attacker (or misconfigured workflow) can **bypass this** by creating a workflow that appears to comply, then using conditional unblocking to create hidden depth, leading to stack exhaustion in recursive BFS traversal and exponential resource consumption when a single job failure cascades to 500+ downstream jobs.
+A node container is created with `--memory=4g`. Inside that node, the orchestrator launches job containers with `--memory=512m`. Job containers fail with cryptic cgroup errors or silently ignore the memory limit. Stress tests show job containers can allocate memory beyond their declared limits because they inherit the 4g parent limit.
 
 **Why it happens:**
-- Depth check is on direct `depends_on` list only
-- Conditional dependencies are not depth-checked
-- `_unblock_dependents` BFS can unblock jobs that themselves have dependents, creating exponential exploration
-- No cycle detection in conditional logic
+- Docker daemon assigns the outer container to `/docker/<id>` in the host's cgroup hierarchy. The Docker daemon inside the outer container sees a nested hierarchy.
+- When inner Docker tries to apply resource limits to a child container, it attempts to write to cgroup files that are already constrained by the parent, leading to "domain threaded mode" conflicts in cgroup v2.
+- Parent cgroup limits can be **overwritten** when the inner Docker daemon starts. The inner Docker sees `memory.max` as "unlimited" and may override it to a very high value.
+- Cgroup v2's "no internal process" constraint prevents parent containers from having child cgroups with domain controllers if the parent has processes.
 
-**Consequences:**
-- Stack exhaustion in recursive BFS traversal (DoS)
-- Exponential resource consumption on cascade
-- Server CPU spike when exploring millions of potential paths
-- Denial of service against other workflows
+**How to avoid:**
+- **Use `--cgroup-parent` explicitly:** When launching the node container, set a cgroup parent that won't conflict with inner containers.
+- **Avoid cgroup v2 domain threaded mode:** If targeting cgroup v2, ensure proper delegation.
+- **Enforce limits at job submission time:** Don't rely on inner Docker to enforce limits. Implement admission control.
+- **Use EXECUTION_MODE=direct for DinD:** Avoid nested runtimes. Run jobs as Python subprocesses inside the node container.
 
-**Prevention:**
-1. **Check transitive depth at creation time** — Recursively check depth of **all** listed upstreams, including conditional dependencies. Reject if any path exceeds depth 12.
-2. **Implement IF gate depth limit** — Conditional dependencies are still dependencies; count them in depth calculation.
-3. **Batch unblock with exponential backoff** — If `_unblock_dependents` discovers >100 potential unblocks, queue them for batch processing with 50ms delays between batches.
-4. **Circuit breaker on cascade size** — Track jobs cancelled/unblocked per failure event. If a single job failure unblocks >1000 dependents, fail the cascade and alert ops.
-5. **Explicit cycle detection in IF gates** — Before committing a workflow, check for logical cycles.
+**Warning signs:**
+- Job containers created inside nodes report `memory.max=unlimited` or a suspiciously large value
+- Stress tests inside job containers can allocate beyond the declared limit
+- Inner Docker daemon logs show cgroup permission errors
+- Memory limits work on bare-metal nodes but not on DinD nodes
 
-**Detection:**
-- Log cascade size, alert if >500
-- Monitor `_unblock_dependents` execution time; if >5s, signal DoS attempt
-- Audit: flag workflows with conditional dependencies on jobs at depth >8
+**Phase to address:**
+**Phase 2 (Cgroup Pre-flight & Validation):** Detect DinD setup and validate cgroup parent configuration. Implement node-level admission control.
 
 ---
 
-### Pitfall 4: Webhook Replay Attacks → Workflow State Corruption
+### Pitfall 4: Invisible OOM Kills and "Partial" Process Termination
 
 **What goes wrong:**
-Workflows accept external event triggers via webhooks. Without replay protection, an attacker (or network retry) can send the same webhook multiple times:
-
-1. Send webhook with signed event payload
-2. Server validates HMAC signature, emits signal "event-kafka-received"
-3. All jobs waiting on this signal unblock simultaneously
-4. **Network glitch or operator error**: Webhook retried 3 times
-5. Signal emitted 4 times total; jobs unblock 4 times, re-execute, corrupt state
-
-Compounded by Pitfall 1: concurrent `_unblock_dependents` calls process it twice, unblocking the same job twice.
+A job container is running and reporting "success," but critical child processes have been OOM-killed. The main process (PID 1) continues running, but helper threads or background daemons were terminated. The orchestrator sees exit code 0 (success) instead of 137 (OOM kill), leading to false positives in validation tests.
 
 **Why it happens:**
-- Webhook handler validates HMAC but doesn't track `nonce` or `replay_id`
-- `unblock_jobs_by_signal` is idempotent by design, **but** if a job re-executes instead of idempotently transitioning, state corrupts
-- No timestamp on webhook; accepts events from any time in past
-- APScheduler retry logic + network retries mean webhooks arrive multiple times
+- When the cgroup hits its memory limit, the Linux OOM killer doesn't necessarily kill PID 1. It may kill any other process in the cgroup that can free memory.
+- If a background daemon is selected instead of the main application, the container appears to succeed even though it's partially dead.
+- **cgroup v1** suffers more from this: the OOM killer makes independent decisions per-process, not per-cgroup.
+- **cgroup v2** is better but still not deterministic if multiple processes are running.
+- The orchestrator queries the container exit code via the Docker/Podman API, which only reflects PID 1. Child process deaths are invisible.
 
-**Consequences:**
-- Workflow executes steps multiple times (2x, 3x, or more)
-- Duplicate data writes (payments charged twice, records inserted multiple times)
-- State corruption if downstream steps assume "executed once" semantics
-- Audit trail confusion (same job appears COMPLETED multiple times)
+**How to avoid:**
+- **Use cgroup v2 with cgroup grouping:** cgroup v2 improves OOM killer behavior, but only if the kernel is recent enough (Kubernetes 1.28+).
+- **Minimize processes in job containers:** Use a lightweight init or run jobs directly as the main process (no background daemons).
+- **Monitor exit codes strictly:** Exit code 137 = OOM/SIGKILL. Map all non-zero exits to job failure.
+- **Log kernel events:** Before declaring a test successful, check `dmesg` for OOM killer logs.
+- **Validate with verbose memory tracking:** Query `memory.oom_control` (v1) or `memory.events` (v2) to detect OOM events.
 
-**Prevention:**
-1. **Implement nonce tracking** — Store `webhook_nonce` in a dedicated table with TTL (24 hours). Reject any webhook with nonce already seen.
-2. **Timestamp validation** — Include `timestamp` in HMAC payload. Reject if `current_time - timestamp > 300 seconds`.
-3. **Idempotency key in signal definition** — Signals include `event_id` or `nonce`. Change the signal name if the event retries.
-4. **Database-backed idempotency** — Before emitting a signal, check if this exact signal was emitted in last 60 seconds. If yes, return cached result.
-5. **Explicit webhook signature format** — Require `X-Webhook-Signature: HMAC-SHA256=<hash>`, `X-Webhook-Timestamp: <unix_seconds>`, `X-Webhook-Nonce: <uuid>`. All three must be present and valid.
+**Warning signs:**
+- Stress test reports "passed" but `dmesg` shows OOM killer activity
+- Job output is incomplete (e.g., test script starts but doesn't finish)
+- Child processes disappear mid-execution but container keeps running
+- Exit code is 0 or non-137, but memory.oom_control shows OOM event occurred
 
-**Detection:**
-- Alert on signal emitted twice with same name within 1 minute
-- Log webhook handler latency; if retries happen, log it explicitly
-- Audit trail: flag jobs that transitioned from PENDING multiple times
+**Phase to address:**
+**Phase 2 (Cgroup Pre-flight & Validation):** Implement kernel log monitoring. Add `memory.events` / `memory.oom_control` checking to validation suite. Require single-process job containers.
 
 ---
 
-### Pitfall 5: Structured Output Injection via IF Gates
+### Pitfall 5: EXECUTION_MODE=direct Bypasses All Container Isolation
 
 **What goes wrong:**
-IF gates read `/tmp/axiom/result.json` to decide which step executes next. If the job's output is user-controlled or from an untrusted source, an attacker can inject malicious JSON to manipulate control flow:
-
-1. Job A fetches data from a URL: `curl https://untrusted-api.com/data > result.json`
-2. IF gate reads result.json: `if $.status == "success" then unblock B, else unblock C`
-3. Attacker controls the API; returns JSON with injected fields
-4. IF gate logic uses this to construct the next job name or targets
-5. Workflow routes to wrong step or creates job with wrong node targeting
-
-Compounded with Pitfall 2 (no validation): Job A completes, IF gate reads corrupted JSON, unblocks wrong step silently.
+A stress test allocates memory in EXECUTION_MODE=direct (Python subprocess), saturating the node's memory. This causes all concurrent jobs to slow down (memory pressure, page cache reclaim). A "noisy neighbor" job can starve legitimate workloads. Meanwhile, a CPU stress test in direct mode consumes a full CPU core, monopolizing it.
 
 **Why it happens:**
-- Jobs can execute arbitrary scripts; scripts can write arbitrary JSON to result.json
-- IF gate evaluation trusts result.json content implicitly
-- No schema validation on result.json
-- JSON parsing might use unsafe deserialization
+- **EXECUTION_MODE=direct** runs jobs as Python subprocess calls, not as containers. This avoids nested container complexity but sacrifices all cgroup-based isolation.
+- Subprocesses run under the parent node container's cgroup. They consume memory, CPU, and I/O from the same pool as the orchestrator itself.
+- There's no per-job memory limit, no per-job CPU quota, no memory-to-swap accounting. A runaway job can OOM the entire node.
+- Resource limits passed to `runtime.py` are **completely ignored** when mode is `direct`.
 
-**Consequences:**
-- Workflow takes wrong branch
-- Sensitive data is accessed/leaked if wrong step executes
-- If result.json is used to construct node IDs, job runs on wrong node
-- Audit trail shows "wrong" step executed; difficult to trace to injection
+**How to avoid:**
+- **Document the tradeoff clearly:** EXECUTION_MODE=direct is a workaround for DinD cgroup issues, not a long-term solution.
+- **Add runtime validation:** Before accepting a job, `runtime.py` must verify the execution mode and warn when limits are ignored.
+- **Enforce admission control at the node level:** Even with direct mode, implement checks for free memory and available CPU before accepting the job at `/work/pull`.
+- **Reserve headroom:** If using direct mode, enforce that job memory + reserved orchestrator memory < total node memory.
+- **Stress tests must use container mode:** For validation, explicitly use EXECUTION_MODE=docker or podman.
 
-**Prevention:**
-1. **JSON Schema validation** — Before IF gate evaluation, validate result.json against a strict schema defined in the workflow. Reject if invalid.
-2. **Sandbox IF gate expressions** — Use restricted expression language (Lua, Jinja2 with no function calls) instead of arbitrary eval. Disallow file access, network calls, imports.
-3. **Typed field extraction** — If IF gate reads `$.status`, enforce that status is a string from a finite set {success, failure, retry}. No nested objects, no wildcards.
-4. **Immutable result.json** — Once job completes, make result.json read-only. If a step tries to modify it, fail the workflow.
-5. **Sign result.json** — Have the node sign result.json with its private key. Verify signature before using it in IF gate.
+**Warning signs:**
+- A single job causes the entire node to become unresponsive
+- Memory limits in the job spec are silently ignored (no warning logs)
+- CPU stress test consumes full cores without sharing
+- Concurrent jobs interfere with each other (cache thrashing, OOM)
 
-**Detection:**
-- Log IF gate expression + inputs for each evaluation
-- Alert on JSON parsing errors in result.json
-- Audit: flag workflows where result.json size is >10 MB or contains non-scalar types
+**Phase to address:**
+**Phase 2 (Execution Mode Validation):** Implement mode-aware admission control. Add warnings for ignored limits. Verify that direct mode is only used in DinD scenarios.
 
 ---
 
-### Pitfall 6: APScheduler "Ghost Execution" in Workflow Scheduling
+### Pitfall 6: Stress Test Variation Across Architectures & Cross-Platform Scripts
 
 **What goes wrong:**
-When a workflow is scheduled with a cron trigger via APScheduler, the "save as new" pattern creates a **ghost execution** risk:
-
-1. User creates workflow W1 with cron trigger `0 9 * * *` (daily at 9 AM)
-2. APScheduler registers this as job ID `w1-cron` that fires at 9 AM
-3. User decides to modify W1, clicks "Save as New Workflow" → creates W1.2
-4. The **original APScheduler job for W1 is never paused**; it still fires at 9 AM
-5. At 9 AM, APScheduler triggers W1, spawns jobs, completes workflow
-6. User expects W1.2 to run; instead W1 ran (invisibly, no UI indicator)
-7. Workflow history is confusing; "which version ran?"
+A CPU stress script written in Bash works perfectly on Linux but PowerShell versions on Windows Server hang or produce incorrect load. Memory stress tools behave differently on Alpine vs. Debian (musl vs. glibc memory allocators). Cross-platform stress tests are unreliable indicators of actual resource enforcement.
 
 **Why it happens:**
-- Workflow CRUD doesn't cascade to APScheduler job management
-- APScheduler job IDs are based on workflow ID, not version
-- "Save as new" creates a new workflow record but doesn't pause the old one
-- No explicit pause/unpause workflow semantics in API
+- **Shell differences:** Bash and PowerShell have different process models. Bash `for` loops spawn processes per iteration; PowerShell has built-in parallelism.
+- **Memory allocators:** Python's `memory_profiler`, Linux libc malloc, and musl malloc behave differently.
+- **CPU affinity:** PowerShell and Windows don't have `taskset` or cgroup-style CPU pinning. Without explicit affinity, a single thread can bounce between cores.
+- **I/O differences:** `/dev/zero` on Linux is fast; Windows `NUL` device has different behavior.
+- **Swap behavior:** Windows doesn't have swap in the Linux sense; Alpine containers may have swap disabled.
 
-**Consequences:**
-- Duplicate workflows executing (both W1 and W1.2 fire, different data)
-- Missed expectation: user thinks W1.2 runs but W1 ran instead
-- Audit trail confusion: workflow history shows W1 completed, but user "saved as new"
-- Job contamination: W1's old data pipeline runs, corrupts state meant for W1.2
+**How to avoid:**
+- **Platform-specific stress suites:** Maintain separate scripts for different platforms.
+- **Validate allocator behavior:** Before running stress tests, profile the actual memory consumption.
+- **Use established tools:** Instead of custom stress scripts, wrap known-good tools like `stress-ng` for Linux.
+- **Document platform constraints:** Clearly note in validation reports which platforms each test is valid for.
 
-**Prevention:**
-1. **Pause workflow explicitly on save-as-new** — When creating W1.2 from W1, auto-pause W1's APScheduler jobs. Require user confirmation if active jobs exist.
-2. **Workflow version semantics** — Store `workflow_version` on both Workflow and Job records. APScheduler job ID includes version: `w1-v1-cron`, `w1-v2-cron`.
-3. **Pause/resume API** — Add explicit `PATCH /workflows/{id}/pause` and `PATCH /workflows/{id}/resume` endpoints. Mark workflow with `paused_at` timestamp. Pull_work checks this before dispatching.
-4. **APScheduler job cleanup on delete** — When deleting a workflow, explicitly remove its APScheduler jobs.
-5. **Workflow state in DB** — Track workflow status = {ACTIVE, PAUSED, ARCHIVED}. Only active workflows dispatch.
+**Warning signs:**
+- Stress test results vary by >10% across identical workloads on different platforms
+- PowerShell script hangs or produces 0% load despite loops running
+- Bash script works on Debian but crashes on Alpine
+- CPU load reported by `top` differs from test script's expectation
 
-**Detection:**
-- Alert on multiple workflows with same definition executing simultaneously
-- Log when APScheduler job fires: include workflow ID + version
-- Audit: flag workflows where pause event is missing but "save as new" event exists
+**Phase to address:**
+**Phase 1 (Stress Test Corpus Creation):** Build platform-aware test suite. Use `stress-ng` or equivalent canonical tools instead of custom scripts.
 
 ---
 
-### Pitfall 7: Backward Compatibility with Non-Workflow Scheduled Jobs
+### Pitfall 7: Swap Accounting Differences Break Comparative Testing
 
 **What goes wrong:**
-Existing ScheduledJob records (cron-scheduled jobs, no workflows) will coexist with new Workflow records. A database migration or schema change breaks backward compatibility:
-
-1. Phase 1 adds Workflow table
-2. Phase 2 modifies ScheduledJob to add `workflow_id` foreign key (nullable)
-3. Existing ScheduledJobs have `workflow_id = NULL`
-4. Code path: `if job.workflow_id: execute_as_workflow() else: execute_as_legacy_job()`
-5. During migration, developer forgets the `else` branch; legacy jobs silently don't execute
-6. Or: new code assumes all ScheduledJobs are workflows, crashes on NULL workflow_id
+A node has swap enabled; another doesn't. A stress test allocates 1.5GB to a container with a 1GB memory limit. On the no-swap node, it fails immediately (exit 137, OOM). On the swap-enabled node, it "succeeds" but the system becomes unusable (swapping to disk, 10s+ latency). The validation report is inconsistent.
 
 **Why it happens:**
-- Migration window where old + new coexist is a footgun
-- Two execution paths need explicit guards
-- Test coverage gaps: tests assume all jobs are workflows
-- Rollback risk: if Phase 2 is rolled back, workflow jobs are lost
+- **cgroup v1:** `memory.memsw.limit_in_bytes` is a combined memory+swap limit. A job can allocate beyond its memory limit, using swap instead.
+- **cgroup v2:** `memory.max` caps memory only; `memory.swap.max` caps swap separately.
+- **Swap disabled:** Many cloud providers disable swap to avoid unpredictable latency. A stress test that passes with swap fails without it.
+- **Different limits on different nodes:** One node might have different swap configuration than another.
 
-**Consequences:**
-- Scheduled jobs vanish (silently don't run) after upgrade
-- No alarm: job didn't run, but no error log
-- Data pipeline interruption: jobs that should have run never execute
-- Operator discovers issue days later when downstream systems fail
+**How to avoid:**
+- **Standardize swap configuration:** Document the swap expectation across all nodes.
+- **Query swap limits in pre-flight checks:** At node enrollment, record swap configuration and fail if inconsistent.
+- **Separate tests:** Create two test suites — "Memory test (no swap)" and "Memory+Swap test".
+- **Validation warning:** If swap is detected, add a note about the difference.
 
-**Prevention:**
-1. **Explicit dual-path tests** — Integration tests covering both legacy ScheduledJob execution AND new Workflow execution in same test run.
-2. **Feature flag for workflow execution** — Add `ENABLE_WORKFLOW_ENGINE=false` env var. Phase 1: workflows ignored, only legacy. Phase 2: flips to true.
-3. **Gradual migration strategy** — Add separate table `ScheduledWorkflow` with same schedule semantics. Operator manually migrates ScheduledJobs to workflows.
-4. **Sanity check on startup** — At lifespan startup, count ScheduledJobs with workflow_id = NULL. If count > 100, log WARNING with explicit migration instructions.
-5. **Audit logging on execution** — Log explicitly which code path was taken: legacy vs workflow.
+**Warning signs:**
+- Stress test succeeds on some nodes, fails on others, despite identical configuration
+- Node reports high swap usage (> 100MB) during stress tests
+- Validation suite detects inconsistent swap configuration across nodes
+- A job completes but with severe latency degradation
 
-**Detection:**
-- Alert on zero scheduled jobs executed in 24 hours (if non-zero expected)
-- Log job count mismatch: APScheduler N jobs, DB M ScheduledJob records
-- Audit: count execution paths, ensure both legacy + workflow paths exercised
+**Phase to address:**
+**Phase 2 (Cgroup Pre-flight & Validation):** Detect and record swap configuration per node. Provide swap-aware stress test variants.
 
 ---
 
-## Moderate Pitfalls
+### Pitfall 8: Child Cgroup Limit Conflicts in Nested Runtimes (cgroup v2 Domain Threaded Mode)
 
-### Pitfall 8: IF Gate Expression Complexity → Undefined Behavior
+**What goes wrong:**
+The orchestrator tries to spawn a job container inside a node with memory and CPU limits. The inner Docker/Podman daemon fails with cgroup errors or silently creates a container with no limits. The inner runtime can't delegate cgroup subtrees to job containers because of domain threading constraints.
 
-Complex boolean logic in IF gates is hard to test: `if (A.status == "success" and B.output.count > 10) or (C retried < 3) then step D else step E`. Operator writes expression with unclear precedence; expected parse != actual parse.
+**Why it happens:**
+- **cgroup v2 design:** Parent cgroups with domain controllers can't have child cgroups with the same controllers if the parent has active processes.
+- **Domain threaded mode:** When a cgroup is set to "threaded," it can't have domain controllers. Mismatches cause conflicts.
+- **Nested container runtimes:** The node container is a domain cgroup. The inner Docker daemon tries to create domain child cgroups, violating constraints.
+- **Silent failure:** Some runtime versions don't error explicitly; they just create the child cgroup without the requested limits.
 
-**Prevention:**
-1. Limit IF gate to single field comparison: `if A.output.status == "success" then B else C`. No AND/OR.
-2. Validate expression syntax at workflow creation time.
-3. Surface IF gate evaluation in logs: `IF expression: <expr>, inputs: <values>, result: <branch>`.
+**How to avoid:**
+- **Detect cgroup mode at enrollment:** Check if the node's cgroup is in "domain" or "threaded" mode and reject incompatible modes.
+- **Pre-flight test:** At node enrollment, try to spawn a test container with memory limits. Fail enrollment if this fails.
+- **Explicit cgroup parent delegation:** When spawning the node, use `--cgroup-parent=/nodes/<node-id>/` to create a delegated subtree.
+- **Fall back to EXECUTION_MODE=direct:** If cgroup v2 domain conflicts are unavoidable, switch to direct execution mode.
+- **Linux kernel version check:** Require kernel 5.14+ for reliable cgroup v2 delegation.
 
----
+**Warning signs:**
+- Inner Docker logs show "cgroup: permission denied" errors
+- Job containers created with memory limits but they're silently ignored
+- `GET /nodes` returns cgroup_type inconsistently
+- Stress tests inside job containers can over-allocate memory
 
-### Pitfall 9: Missing Result.json in Node Environment
-
-Node runtime writes `/tmp/axiom/result.json`; if the job never creates this file, the IF gate parser crashes.
-
-**Prevention:**
-1. Default result.json: If job completes without writing result.json, node automatically writes `{"status": "success", "output": null}`.
-2. IF gate guard on missing file: Check if result.json exists; if not, default to "no data" branch.
-
----
-
-### Pitfall 10: Cron Trigger Misalignment with Workflow Duration
-
-Workflow scheduled daily, but previous run takes 25 hours. APScheduler fires next run while previous still executes.
-
-**Prevention:**
-1. `max_instances=1` on APScheduler job.
-2. Dispatch timeout: Cancel workflow if it exceeds expected duration.
+**Phase to address:**
+**Phase 2 (Cgroup Pre-flight & Validation):** Implement cgroup.type detection and validation. Fail node enrollment if domain conflicts are detected.
 
 ---
 
-## Minor Pitfalls
+## Technical Debt Patterns
 
-### Pitfall 11: Job Template Versioning + Workflows
-
-Workflows reference job templates. If template is modified, old workflows using it might break.
-
-**Prevention:** Store template version on workflow step definition. When step executes, use that specific template version.
-
-### Pitfall 12: Webhook Secret Rotation
-
-Webhook HMAC secret is rotated; old webhooks are rejected; integration partners' webhooks fail.
-
-**Prevention:** Support multiple active secrets during rotation window. Include secret version in X-Webhook-Signature header.
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Using EXECUTION_MODE=direct for all DinD nodes | Avoids cgroup nesting complexity | Zero isolation; noisy neighbors; uncontrolled resource leaks | DinD-only MVP; plan migration ASAP |
+| Stress tests without cgroup detection | Simpler test suite | Tests invalid on v1 or v2; false positives/negatives | Never — always detect and branch |
+| Ignoring swap in stress tests | Simpler test | Inconsistent results across swap/no-swap environments | Only if swap is standardized everywhere |
+| Page cache-blind memory validation | Simpler OOM trigger | False OOM kills from page cache | Only for non-I/O workloads; document |
+| Single stress test script (all platforms) | One script to maintain | Fails on non-Linux; unreliable assertions | Never — maintain platform-specific variants |
+| No admission control in direct mode | Node accepts unlimited jobs | All jobs compete; cascading failures | Only in experimental/dev environments |
 
 ---
 
-## Phase-Specific Warnings
+## Integration Gotchas
 
-| Phase | Topic | Likely Pitfall | Mitigation |
-|-------|-------|--------------|-----------|
-| **Phase 1: Core DAG Model** | Concurrency in completion | Race condition in _unblock_dependents (Pitfall 1) | SELECT...FOR UPDATE atomicity; concurrent completion test |
-| **Phase 1** | Job status states | VALIDATION_FAILED missing (Pitfall 2) | Add VALIDATION_FAILED state; single unblock task |
-| **Phase 2: Result Validation** | Output validation | Validation too late (Pitfall 2, 5) | Validate result.json at job completion, before unblock |
-| **Phase 2** | IF gate evaluation | Structured output injection (Pitfall 5) | JSON schema enforcement; sandboxed expression language |
-| **Phase 2** | Depth limit | Bypass via conditional deps (Pitfall 3) | Transitive depth check for all depends_on |
-| **Phase 3: Backward Compatibility** | ScheduledJob coexistence | Ghost execution + migration gaps (Pitfalls 6, 7) | Feature-flag engine; dual execution paths with tests |
-| **Phase 3** | APScheduler integration | Pause/resume missing (Pitfall 6) | Explicit pause/resume API; cascade to APScheduler |
-| **Phase 4: Webhooks** | External events | Replay attacks (Pitfall 4) | Nonce tracking + timestamp validation; idempotency |
-| **Phase 4** | Secrets | Secret rotation (Pitfall 12) | Multiple active secrets during rotation |
-| **All phases** | Testing | Concurrency gaps | Concurrent completion, parallel steps, replay tests |
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| **Job scheduler → node `/work/pull`** | Submit large job to node with insufficient memory, expecting rejection | Implement admission control in `job_service.py` BEFORE offering the job |
+| **Docker/Podman inside node → cgroup limits** | Set `--memory` flag but assume inner runtime enforces it | Verify inner runtime actually created the cgroup via docker inspect |
+| **Stress test → memory.stat parsing** | Read total memory without subtracting inactive file cache | Always parse memory.stat and subtract total_inactive_file for accurate heap |
+| **Node heartbeat → cgroup detection** | Assume cgroup version from `/etc/os-release` | Actually read `/proc/self/cgroup` at runtime |
+| **Multi-platform test suite → Bash/PowerShell branching** | One script with shell detection | Separate script repos per platform |
 
 ---
 
-## Integration-Specific Risks
+## Performance Traps
 
-### Risk: Ed25519 Signature Validation + Workflows
-
-Workflows contain multiple jobs. If workflow serialization includes job payloads, modifying a single job breaks the workflow signature.
-
-**Mitigation:** Workflows don't have Ed25519 signatures; only individual job steps do. Workflow definition is immutable; steps reference job templates by ID + version. Each job executed by a step must pass full signature verification.
-
-### Risk: Node Resource Limits + Parallel Steps
-
-Workflow with 10 parallel steps, each needing 2GB RAM. Node has 4GB total. First 5 steps assigned; step 6 stuck PENDING indefinitely.
-
-**Mitigation:** Workflow DAG includes resource reservation: sum memory of all **concurrent** steps; reject if exceeds node capacity. Calculate critical path and peak parallelism at dispatch time.
-
-### Risk: Audit Trail Ambiguity in Workflows
-
-Audit log shows job A executed, but doesn't indicate it was step 3 of workflow W1 v2. Operator can't trace back.
-
-**Mitigation:** Add `workflow_id`, `workflow_version`, `step_name` fields to Job. Audit log includes full context.
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| **Page cache pollution during stress** | Memory test succeeds but next job OOM-kills immediately | Clear page cache before stress tests | 10+ concurrent jobs; heavy I/O |
+| **Swap thrashing under memory pressure** | Stress test completes with 100x latency degradation | Disable swap on validation nodes | Any environment with swap enabled |
+| **OOM killer selection bias** | Some processes killed, others survive | Use single-process containers; monitor memory.events | 5+ processes per job container |
+| **Child cgroup limit inheritance stalls** | Inner container creation slow (10s+) when limits deeply nested | Flatten cgroup hierarchy; use --cgroup-parent | DinD with 3+ nesting levels |
+| **Memory limit enforcement latency** | Stress test allocates to limit but kernel takes 1-2s to enforce | Set memory.high to 80% of memory.max | Bursty workloads hitting limit exactly |
 
 ---
 
-## Summary: Prevention Checklist for Each Phase
+## Security Mistakes
 
-### Phase 1: Core DAG Model
-- [ ] SELECT...FOR UPDATE atomicity on job status transitions
-- [ ] Concurrent completion test: 3 jobs complete within 10ms, no double-unblock
-- [ ] Add VALIDATION_FAILED status
-- [ ] Transitive depth check for all depends_on (limit 12)
-- [ ] BFS unblock batch size limit (circuit breaker at 1000)
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| **Allowing EXECUTION_MODE=direct with untrusted job code** | Malicious job runs natively; can access secrets and other jobs' data | Only allow direct mode for internal/trusted scripts. Add audit log event for direct-mode dispatch |
+| **Not validating cgroup limits before dispatch** | Operator submits 100GB job to 8GB node; system becomes unresponsive | Implement pre-dispatch validation. Query node free memory. Reject jobs exceeding capacity |
+| **Stress tests overwriting system settings** | Test script modifies sysctl; changes persist after test | Wrap stress tests in isolated container with `--security-opt=no-new-privileges` |
+| **Page cache side-channel in multi-tenant nodes** | Stress test fills page cache; Job B's I/O patterns exposed | Stress test only on dedicated validation nodes |
+| **Incomplete exit code mapping in validation** | Test interprets exit 0 as success despite OOM killer invocation | Cross-reference exit code with dmesg and memory.oom_control |
 
-### Phase 2: Result Validation + IF Gates
-- [ ] Output validation schema in workflow definition
-- [ ] Validate result.json in same transaction as job completion
-- [ ] Sandboxed IF gate expression language
-- [ ] JSON schema enforcement before IF gate evaluation
-- [ ] Tests include valid + invalid result.json scenarios
+---
 
-### Phase 3: Backward Compatibility
-- [ ] Feature flag for workflow engine (ENABLE_WORKFLOW_ENGINE)
-- [ ] Dual-path tests: legacy ScheduledJob + Workflow in same test
-- [ ] Sanity check: count legacy jobs on startup, warn if high
-- [ ] APScheduler pause/resume API + workflow state column
-- [ ] Manual migration path: ScheduledJob → Workflow documented
+## UX Pitfalls
 
-### Phase 4: Webhooks + External Events
-- [ ] Nonce tracking table with 24h TTL
-- [ ] Timestamp validation (±300s window)
-- [ ] Webhook signature format validation (3 required headers)
-- [ ] Database-backed idempotency check
-- [ ] Replay attack test: same webhook 3 times, verify single execution
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| **Opaque "job failed" with no resource context** | Operator doesn't know if it's memory, CPU, timeout, or code error | Return detailed status: "Job killed by OOM at 512MB (limit: 512MB)" |
+| **Memory requirement form accepting "512" without units** | Operator enters "512" intending 512MB, system interprets as bytes | Use explicit dropdown: "512 MB" not "512" |
+| **Stress test result report without platform context** | Operator sees "Memory enforcement: PASS" but doesn't know it's v2-only | Report: "cgroup v1 [PASS/FAIL], cgroup v2 [PASS/FAIL], kernel 5.14+ [PASS/FAIL]" |
+| **No indication of cgroup mode or limits in node detail view** | Operator can't see why job is being rejected | Show: current memory usage / limit, cgroup version, swap status |
+| **Stress test canvas doesn't show overhead** | Operator thinks 512MB is true limit, but 70MB was overhead | Break down: "Requested: 512MB, Overhead: 35MB, Actual: 477MB" |
 
-### All Phases
-- [ ] Concurrent execution test matrix (2, 5, 10 simultaneous jobs)
-- [ ] Partial failure scenarios (VALIDATION_FAILED, wrong IF branch)
-- [ ] Audit trail verification: all critical paths logged with context
-- [ ] Performance regression: 1000-job workflow DAG unblock latency <5s
+---
+
+## "Looks Done But Isn't" Checklist
+
+- [ ] **Cgroup Detection:** Validated on both v1 and v2 systems; kernel version doesn't determine result
+- [ ] **Memory Enforcement:** Tests account for page cache; memory.stat parsed correctly; page cache subtraction validated
+- [ ] **DinD Cgroup:** `--cgroup-parent` set correctly; inner container spawning with limits tested; domain threaded mode handled
+- [ ] **Stress Tests:** Platform-specific (Bash for Linux, PowerShell for Windows); stress-ng or equivalent used
+- [ ] **Swap Handling:** Swap configuration detected per node; separate test suites for swap/no-swap variants
+- [ ] **Admission Control:** Node `/work/pull` validates free memory before accepting job
+- [ ] **OOM Monitoring:** Exit code 137 = always OOM; kernel logs (`dmesg`) checked; memory.events/memory.oom_control verified
+- [ ] **EXECUTION_MODE Awareness:** Direct mode documented as "no isolation"; limits trigger warnings; container mode used for validation
+- [ ] **Child Cgroup Conflicts:** cgroup.type detected; nested runtime test performed at enrollment
+- [ ] **Performance Baseline:** Page cache cleared before stress; swap disabled or documented; latency measured separately
+
+---
+
+## Recovery Strategies
+
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| **Stress test false positive (passes on v1, fails on v2)** | MEDIUM | Run version-specific test suite. Backport test to both versions. |
+| **DinD cgroup limit ignored** | MEDIUM | Check `docker inspect` for actual memory limit. Verify `--cgroup-parent` was passed. Test inner container creation. |
+| **Noisy neighbor (uncontrolled job starves others)** | HIGH | Kill offending job. Implement admission control in `/work/pull`. Require strict memory limits. |
+| **OOM-killed process misidentified as "success"** | MEDIUM | Audit exit codes. Query memory.oom_control. Check dmesg. Re-run with verbose logging. |
+| **Swap-induced latency (job succeeds but system unusable)** | MEDIUM | Disable swap on affected nodes. Re-run stress tests. Measure latency separately. |
+| **Child cgroup conflict (domain threaded mode)** | HIGH | Fail node enrollment. Migrate node or revert to cgroup v1. Use `--cgroup-parent` to isolate. |
+
+---
+
+## Pitfall-to-Phase Mapping
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| **Cgroup v1 vs v2 semantic mismatch** | Phase 1: Stress Test Corpus | Run stress tests on both versions; verify memory usage matches expected ranges |
+| **Page cache surprise OOM kills** | Phase 2: Cgroup Pre-flight | Parse memory.stat; confirm page cache accounted for |
+| **DinD cgroup inheritance** | Phase 2: Cgroup Pre-flight | Test job container creation inside node; verify limits enforced |
+| **Invisible OOM kills** | Phase 2: Cgroup Pre-flight | Check memory.oom_control after job; verify single-process containers |
+| **EXECUTION_MODE=direct isolation bypass** | Phase 2: Execution Mode Validation | Implement admission control; warn on ignored limits |
+| **Stress test variation across architectures** | Phase 1: Stress Test Corpus | Maintain platform-specific test suites; run on Linux, Windows, Alpine |
+| **Swap accounting differences** | Phase 2: Cgroup Pre-flight | Detect swap per node; run swap/no-swap test variants |
+| **Child cgroup limit conflicts (cgroup v2)** | Phase 2: Cgroup Pre-flight | Detect cgroup.type at enrollment; test inner container creation |
 
 ---
 
 ## Sources
 
-### Orchestration Architecture & Concurrency
-- [Troubleshooting Apache Airflow](https://www.mindfulchase.com/explore/troubleshooting-tips/troubleshooting-apache-airflow-optimizing-dag-scheduling,-parallelism,-and-performance.html)
-- [Building a DAG-Based Workflow Execution Engine](https://medium.com/@amit.anjani89/building-a-dag-based-workflow-execution-engine-in-java-with-spring-boot-ba4a5376713d)
-- [Data Pipeline Orchestration Tools 2026](https://dagster.io/learn/data-pipeline-orchestration-tools)
+- [Resource constraints | Docker Docs](https://docs.docker.com/engine/containers/resource_constraints/)
+- [About cgroup v2 | Kubernetes](https://kubernetes.io/docs/concepts/architecture/cgroups/)
+- [Differences between cgroup v1 and cgroup v2 - Alibaba Cloud](https://www.alibabacloud.com/help/en/alinux/differences-between-cgroup-v1-and-cgroup-v2)
+- [Memory Resource Controller — The Linux Kernel documentation](https://docs.kernel.org/admin-guide/cgroup-v1/memory.html)
+- [Memory Controller · cgroup2](https://facebookmicrosites.github.io/cgroup2/docs/memory-controller.html)
+- [Diagnosing Linux cgroups v2 Memory Throttling & OOM-Killed Containers | Netdata](https://www.netdata.cloud/academy/diagnosing-linux-cgroups/)
+- [DevOps Scenario #11: Why Your Docker Container Exceeds Memory Limits | by Marjan Rafi | Medium](https://medium.com/@mdmarjanrafi/devops-scenario-11-why-your-docker-container-exceeds-memory-limits-deep-dive-into-cgroups-7c4930633d2c)
+- [Specifying cgroup limits on a child container fails with cgroups v2 · Issue #6288 | docker/for-mac](https://github.com/docker/for-mac/issues/6288)
+- [Docker runtime would overwrite memory limit of its cgroup parent | Issue #33876 | moby/moby](https://github.com/moby/moby/issues/33876)
+- [Control Group v2 — The Linux Kernel documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html)
+- [cgroup2: how can we support nested containers with domain controllers? · Issue #2356 | opencontainers/runc](https://github.com/opencontainers/runc/issues/2356)
+- [Tracking Down "Invisible" OOM Kills in Kubernetes | by Richard Durso | Medium](https://medium.com/@reefland/tracking-down-invisible-oom-kills-in-kubernetes-192a3de33a60)
+- [Kubernetes OOMKilled Error: How to Fix & Tips for Preventing It · Dash0](https://lumigo.io/kubernetes-troubleshooting/kubernetes-oomkilled-error-how-to-fix-and-tips-for-preventing-it/)
+- [How to efficiently stress test Pod memory | Chaos Mesh](https://chaos-mesh.org/blog/how-to-efficiently-stress-test-pod-memory/)
+- [Linux Process Isolation and Docker Containers | by Erdem Uysal | Medium](https://erdemuysalx.medium.com/linux-process-isolation-and-docker-containers-1d134ebb796c)
+- [Eliminate the Noisy Neighbor Problem in Docker using Resource Limits](https://najer.org/najer/article/download/30/32)
+- [How to Mount Cgroups Inside a Docker Container | linuxvox.com](https://linuxvox.com/blog/mounting-cgroups-inside-a-docker-container/)
+- [Rootless Containers — cgroup v2](https://rootlesscontaine.rs/getting-started/common/cgroup2/)
 
-### Webhook Security & Replay Prevention
-- [Webhook Security Fundamentals 2026](https://www.hooklistener.com/learn/webhook-security-fundamentals)
-- [Replay Prevention Best Practices](https://webhooks.fyi/security/replay-prevention)
-- [Webhook Security Best Practices](https://hooque.io/guides/webhook-security/)
-- [Preventing Replay Attacks](https://dohost.us/index.php/2026/02/15/preventing-replay-attacks-implementing-timestamps-and-nonces-in-webhook-handlers/)
+---
 
-### Structured Output Security
-- [MCP Attack Vectors](https://unit42.paloaltonetworks.com/model-context-protocol-attack-vectors/)
-- [Output Constraints as Attack Surface](https://arxiv.org/html/2503.24191v1)
-- [PromptGuard: Injection-Resilient Models](https://www.nature.com/articles/s41598-025-31086-y)
-
-### Backward Compatibility & Migration
-- [API Backward Compatibility Best Practices](https://zuplo.com/learning-center/api-versioning-backward-compatibility-best-practices)
-- [Database Migration Strategies for Zero-Downtime](https://www.deployhq.com/blog/database-migration-strategies-for-zero-downtime-deployments-a-step-by-step-guide)
-- [Database Design for Backward Compatibility](https://www.pingcap.com/article/database-design-patterns-for-ensuring-backward-compatibility/)
-
-### Denial of Service & Recursion Limits
-- [CVE-2026-12345: GraphQL Depth Bypass](https://dailycve.com/mercurius-query-depth-bypass-cve-2026-12345-low/)
-- [CVE-2026-24006: Deeply Nested Objects DoS](https://advisories.gitlab.com/pkg/npm/seroval/CVE-2026-24006/)
-- [CVE-2026-27601: Unlimited Recursion](https://cvefeed.io/vuln/detail/CVE-2026-27601)
-
-### Distributed Systems & State Management
-- [Temporal Workflow Orchestration & Scalability](https://temporal.io/blog/how-modern-workflow-orchestration-solves-scalability-challenges)
-- [AWS Step Functions: Orchestration & State Machine Design](https://middleware.io/blog/aws-step-functions/)
-- [Workflow Orchestration Patterns](https://www.thedataops.org/workflow-orchestration/)
-
-### Axiom Codebase References
-- `puppeteer/agent_service/services/job_service.py` — BFS cascade, depth limits
-- `puppeteer/agent_service/db.py` — Job model, depends_on schema
-- `puppeteer/agent_service/services/scheduler_service.py` — APScheduler integration
-- `mop_validation/reports/competitor_product_notes.md` — Workflow comparative analysis
+*Pitfalls research for: Node Capacity & Isolation Validation (v20.0)*
+*Researched: 2026-04-06*

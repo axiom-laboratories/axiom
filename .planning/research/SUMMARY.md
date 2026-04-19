@@ -1,166 +1,161 @@
-# Research Summary: Axiom v24.0 — Security Infrastructure & Extensibility
+# Research Summary: Node Capacity & Isolation Validation (v20.0)
 
-**Project:** Axiom (Master of Puppets)
-**Domain:** Orchestration platform with security hardening + extensibility
-**Researched:** 2026-04-18
-**Milestone:** v24.0
-**Confidence:** MEDIUM-HIGH
+**Domain:** Resource limit enforcement and container isolation for distributed job execution
+**Researched:** 2026-04-06
+**Overall confidence:** HIGH (existing runtime/node implementations validated; data flow fully mapped)
 
 ## Executive Summary
 
-v24.0 introduces **five interconnected features** that strengthen Axiom for enterprise deployments: external secrets management via HashiCorp Vault, hardware-backed node identity via TPM 2.0, third-party plugin SDK, real-time SIEM audit streaming, and router modularization. These features are optional/additive (zero breaking changes) and segment into clear tiers:
+v20.0 "Node Capacity & Isolation Validation" extends the existing resource limit infrastructure (added in v12.0) to complete the end-to-end pipeline from GUI to kernel enforcement. The core runtime engine (`runtime.py`) and node agent (`node.py`) already support memory and CPU limits at the execution layer. v20.0 adds the missing layers: database persistence, API contract, operator UI, cgroup pre-flight validation, and a comprehensive stress-test corpus for isolation verification.
 
-**Tier 1 (Recommended v24.0 ship):** Router refactoring (prerequisite), Vault integration (low-risk enterprise table stake), SIEM audit streaming (compliance requirement)
+**Key Technical Insight**: Resource limits flow through three enforcement layers—API admission (reject oversized requests), node admission (reject if node can't satisfy), and kernel enforcement (cgroups). All three must work together or limits fail silently. v20.0 ensures layer 1 and 2 are wired correctly, validates layer 3 works across cgroup v1 and v2, and provides operator visibility at each stage.
 
-**Tier 2 (Defer to v24.1/v25.0):** TPM identity (OS library fragmentation), Plugin SDK v2 (version conflict hazards, API stability required)
+**Critical Path**: Database schema (Day 1), API models/routes (Day 1-2), node-side plumbing (Day 2-3), stress test corpus (Day 3-4), integration tests (Day 4-5), dashboard UI + cgroup pre-flight (Day 5-6). Total: 6 days.
 
-**Critical insight:** All five features depend on modular router architecture. Router refactoring must execute first. Vault + SIEM are low-risk, high-value enterprise foundations; ship together. TPM and Plugin SDK are strategic differentiators with higher complexity; defer unless critical enterprise blockers exist.
-
-Research identifies **14 distinct pitfalls** across features with explicit prevention strategies. Top 5 critical: (1) Vault hard startup dependency, (2) secret lease expiry during long jobs, (3) TPM library availability across OS variants, (4) plugin version conflicts, (5) SIEM log flooding. The team must prioritize Vault grace-period fallback and router circular-import prevention as blocking gates.
+**Risk Profile**: MODERATE. Existing code is solid. Main risks: cgroup v2 incompatibility on modern Linux distros, silent limit failures if integration incomplete, and operator misconceptions about nullable limit fields. All mitigated by thorough testing and UI warnings.
 
 ## Key Findings
 
-### Recommended Stack
+**Stack:** No new external dependencies. Existing Python/FastAPI/Docker/Podman stack sufficient. CgroupDetector uses only stdlib (`os.path.exists`, regex). Stress corpus uses stdlib (json, sys, multiprocessing, time).
 
-**New Libraries (All Optional):**
+**Architecture:** Five-layer pipeline:
+1. Frontend (React): GUI inputs for memory/cpu limits, warnings for unset limits
+2. API (FastAPI): JobCreate validation, admission checks
+3. Job Service: Persistence to DB, node selection with capacity awareness
+4. Node Agent: Pull-based work assignment, per-job admission checks, limit extraction
+5. Runtime + Kernel: Container execution with cgroup flags, kernel enforcement
 
-| Library | Version | Purpose | Why Recommended | Confidence |
-|---------|---------|---------|-----------------|-----------|
-| **hvac** | >= 1.2.0 | Vault API client | Official, AppRole auth, production-grade, 95KB footprint | HIGH |
-| **tpm2-pytss** | >= 0.5.0 | TPM 2.0 bindings | Official TSS, stable, no Python alternatives | MEDIUM-HIGH |
-| **tpm2-tools** | >= 5.4 | TPM CLI tools | System package; variable OS availability | MEDIUM |
-| **syslogcef** | >= 0.3.0 | CEF/LEEF formatting | Production-grade, edge-case handling, 95% SIEM support | HIGH |
-| **rfc5424-logging-handler** | >= 1.4.3 | RFC 5424 syslog | Official RFC 5424, cross-platform | HIGH |
-| **graypy** | >= 2.2.0 | Graylog GELF handler | Battle-tested, community standard (optional) | HIGH |
-| **importlib.metadata** | stdlib | Plugin discovery | Built-in Python 3.11+, no external dependency | HIGH |
+**Features (MVP):** Job isolation via ephemeral containers (table stakes). Memory/CPU limits with GUI, API, and DB support (table stakes). Cgroup pre-flight detection (table stakes). Stress test corpus (table stakes). Operator visibility: cgroup version + enforcement status per node (differentiator).
 
-**Router Modularization:** No new libraries; uses FastAPI's built-in `APIRouter` + `Depends()`.
-
-**Security Fixes:** `cryptography >= 46.0.7` (buffer overflow CVE) + all HIGH-priority Dependabot findings.
-
-**Installation Strategy:** All new libraries optional in wheel; skipped at runtime if not configured. CE deployments functional without Vault, TPM, SIEM libraries.
-
-### Expected Features
-
-**Tier 1 (Ship v24.0 — Low Risk, High Value):**
-- **Vault Integration** — External secrets, AppRole auth, no hardcoded env vars (enterprise table stake)
-- **SIEM Audit Streaming** — Webhook/syslog/CEF export to Splunk, Elastic, QRadar (compliance requirement)
-- **Router Refactoring** — 89 routes → 6 domain routers; improves maintainability, testability, enables middleware injection
-
-**Tier 2 (Defer v24.1+ — Higher Complexity):**
-- **TPM-Based Node Identity** — Hardware attestation enrollment (differentiator; deferred: OS support matrix needed, PCR baseline management complex)
-- **Plugin System v2 SDK** — Third-party extensibility via entry_points (strategic; deferred: version conflicts, API stability required)
-
-**Anti-Features (Do NOT build):**
-- Vault agent sidecar (unnecessary complexity)
-- Per-job TPM attestation (TPM too slow for high frequency)
-- Plugin hot-reload (memory leak/dangling reference risk)
-- Untrusted plugin sandboxing (Python unfixable; plugins = trusted code)
-
-**MVP Recommendation:** Build Vault + SIEM + Router refactoring in v24.0. Defer TPM + Plugin SDK to v24.1+.
-
-### Architecture Approach
-
-All features are **additive, non-breaking extensions** of existing patterns:
-
-1. **Vault** — Secrets injected into job context; optional Fernet fallback
-2. **TPM** — Augments existing mTLS (not replacement); optional attestation layer
-3. **Plugin SDK** — Extends EE plugin model (entry_points); public-facing with versioning
-4. **SIEM Streaming** — Async middleware above AuditLog table; optional export
-5. **Router Modularization** — **Prerequisite blocker** for Vault + SIEM (enables injectable middleware, dependency injection)
-
-**Critical Constraint:** Router refactoring must precede Vault + SIEM because monolithic main.py (89 routes) doesn't support injectable middleware cleanly.
-
-**New Components:**
-- **Services:** vault_service.py, siem_service.py, tpm_service.py, plugin_registry.py
-- **DB Tables:** VaultSecret, AuditLogDelivery, NodeAttestation
-- **Routers:** auth_router.py, jobs_router.py, nodes_router.py, workflows_router.py, foundry_router.py, admin_router.py, system_router.py
-- **Models:** VaultConfig, SIEMConfig, PluginBase, PluginRegistry
-
-**CE/EE Boundary:** Preserved via optional feature flags. Vault/SIEM candidate CE features; TPM/Plugin SDK may be EE-only (TBD in phase planning).
-
-### Critical Pitfalls (Top 5)
-
-1. **Vault Hard Startup Dependency** — If Vault unavailable at bootstrap, platform crashes. Mitigation: grace-period fallback, optional mode, health-check endpoint, secret caching. **Phase gate: Required before shipping Vault.**
-
-2. **Secret Lease Expiry During Long-Running Jobs** — Jobs longer than secret TTL fail mid-execution. Mitigation: lease TTL validation at dispatch, active renewal (30% margin), per-job AppRole tokens. **Phase gate: Lease renewal background task required.**
-
-3. **TPM Library Availability Across OS Variants** — tpm2-tools not available on Alpine ARM64, vTPM fragile in VMs. Mitigation: OS support matrix (Debian/Ubuntu stable, Alpine amd64 only, Windows TBD), graceful fallback.
-
-4. **Plugin Version Conflicts** — Two plugins requiring different lib versions cause pip failure or runtime mismatch. Mitigation: Plugin API versioning, dependency conflict detection at startup, version pinning.
-
-5. **SIEM Log Flooding** — Unbuffered streaming at >500 jobs/min overwhelms SIEM; data loss. Mitigation: batch + flush (100 events or 5s), in-memory queue, compression, at-least-once delivery. **Phase gate: Batching from day 1.**
-
-Additional pitfalls: Secret rotation breaks embedded-secret jobs, Fernet migration path incomplete, router circular imports, test fixture fragmentation, CE/EE boundary drift, SIEM PII leakage.
+**Pitfalls (Critical):** Cgroup v2 incompatibility (silent limit failures on modern Linux). Runtime unavailability at execution time (fallback to unsafe direct execution). Memory format parsing errors (invalid inputs accepted). CPU starvation from oversubscription (no cluster-wide admission). "No limits" misconception (nullable fields misunderstood by operators).
 
 ## Implications for Roadmap
 
-### Suggested Phase Execution
+Based on research, suggested phase structure for v20.0:
 
-**Phase 1: Dependabot Fixes**
-- Fix HIGH/MODERATE CVEs before feature work begins
-- Delivers: Patched `cryptography` + security-critical packages; all tests pass
+### Phase 1: Database & API Contract (Day 1)
+- Add `memory_limit` and `cpu_limit` columns to `Job` table (nullable strings, e.g., "512m", "4")
+- Add migration_v14.sql for existing Postgres deployments (IF NOT EXISTS safeguards)
+- Extend `JobCreate` Pydantic model: `memory_limit: Optional[str] = None`, `cpu_limit: Optional[float] = None`
+- Extend `JobResponse` and `WorkResponse`: include memory_limit, cpu_limit, limit_enforcement_status
+- Addresses: Persistence + API contract for limits
+- Avoids: Silent failures from unmapped fields; Postgres migration errors
 
-**Phase 2: Router Modularization — BLOCKER**
-- Prerequisite for Vault + SIEM middleware injection
-- Delivers: 89 routes → 6 domain routers; zero behavior change; all tests pass
-- Pitfalls addressed: Circular imports, test fragmentation, CE/EE drift
+### Phase 2: Job Service & Admission Control (Day 1-2)
+- `job_service.create_job()`: store memory_limit and cpu_limit to DB
+- `job_service.pull_work()`: return limits in WorkResponse
+- `job_service.select_best_node()`: admission check (reject if job.memory_limit > node.job_memory_limit)
+- Parse bytes helper: validate memory string format (512m, 1g, 1Gi, etc.)
+- Addresses: API admission layer; job persistence
+- Avoids: Oversized jobs assigned to undersized nodes; parse errors at node level
 
-**Phase 3: Vault Integration**
-- Enterprise table stake; low risk; foundational for job secrets
-- Delivers: Startup-time secret fetch; env-var fallback; health-check endpoint; lease renewal background task
-- Pitfalls addressed: Vault hard startup, lease expiry, secret rotation, Fernet migration
+### Phase 3: Node-Side Integration (Day 2-3)
+- `node.py execute_task()`: extract memory_limit and cpu_limit from job dict
+- Perform secondary admission check (same logic as API)
+- Pass limits to `runtime.run(memory_limit=..., cpu_limit=...)`
+- Add error handling: catch parse errors, reject job with FAILED status + diagnostic
+- Addresses: Node-side validation; container runtime integration
+- Avoids: Runtime.py argument errors; jobs executing without requested limits
 
-**Phase 4: SIEM Streaming**
-- Compliance requirement; low risk; pairs with Vault as enterprise foundation
-- Delivers: Webhook/syslog/CEF streaming; batching (100 events or 5s); PII masking; retry logic
-- Pitfalls addressed: SIEM log flooding, SIEM PII leakage
+### Phase 4: Cgroup Pre-Flight & Health Checks (Day 3-4)
+- Add `CgroupDetector` class in node.py (detect cgroup v1 vs v2 at startup)
+- Detect cgroup version from `/proc/self/cgroup` and `/sys/fs/cgroup/cgroup.controllers`
+- If cgroup v2 detected + Docker found, log warning about known incompatibilities; if Podman, confirm version >=4.0
+- `runtime.health_check()`: call `docker ps` / `podman ps` before job execution, timeout 2s
+- On health check failure: set job to FAILED, reject subsequent assignments, mark node unhealthy
+- Addresses: Cgroup compatibility validation; runtime availability checking
+- Avoids: Silent limit failures on cgroup v2; undetected runtime crashes
 
-**Phase 5: TPM Identity (Optional — v24.1)**
-- Differentiator; medium-high complexity; defer if schedule constrained
-- Delivers: TPM 2.0 enrollment (identity only); full attestation in v25
+### Phase 5: Stress Test Corpus & Integration Tests (Day 3-4)
+- Create `mop_validation/scripts/stress_corpus.py`: five test suites (memory_alloc, cpu_burn, concurrent_stress, verify_isolation, manifest)
+- Each test generates a job dict with limits, dispatches via API, collects metrics, validates enforcement
+- Integration tests: verify memory_limit prevents OOM, cpu_limit prevents CPU starvation, isolation holds under concurrent load
+- Test on both cgroup v1 and v2 systems (CI requirement)
+- Addresses: Isolation verification; edge case coverage; regression prevention
+- Avoids: Silent limit failures in production; cgroup v2 incompatibility missed in testing
 
-**Phase 6: Plugin System v2 (Optional — v24.1+)**
-- Strategic differentiator; high complexity; defer if schedule constrained
-- Delivers: Entry-point plugin discovery; versioned API contract; read-only data API; capability gating
+### Phase 6: Dashboard UI & Visibility (Day 5-6)
+- `JobDispatch.tsx`: memory/cpu limit input fields with validation, amber warning if limits omitted
+- `Jobs.tsx`: show limit status icons per job, filter "with limits | all"
+- `Nodes.tsx`: add cgroup_version and limit_enforcement_status badge per node
+- `Cluster.tsx` (new view): total cores, sum of assigned CPU limits, oversubscription ratio
+- `CgroupDetector` logs: node heartbeat includes detected_cgroup_version and enforcement_status
+- Addresses: Operator visibility; misconception prevention
+- Avoids: Operators unaware of cgroup incompatibilities; unclear whether limits enforced
 
-### Phase Ordering Rationale
+### Phase 7 (Optional, Post-v20.0): Per-Runtime Cgroup v2 Workarounds
+- If cgroup v2 + Docker detected, apply workaround: delegate memory controller or use Podman
+- If cgroup v2 + Podman < 4.0, warn and reduce concurrency (safer than silent failures)
+- Document in Admin.tsx: recommended Docker/Podman versions per cgroup version
 
-1. **Router refactoring first:** All downstream features depend on modular structure
-2. **Vault + SIEM together:** Both enterprise foundational, low risk, depend on router refactoring
-3. **TPM deferred:** Requires OS-specific validation; PCR baseline management complex
-4. **Plugin SDK deferred:** Requires stable API contract; rushing risks breaking plugin ecosystem early
+**Phase ordering rationale:**
+- Phases 1-2 must complete first: without DB schema and API contract, nothing else works
+- Phase 3 depends on 1-2: node code won't compile without new fields in WorkResponse
+- Phases 4-5 parallel viable: cgroup detection and stress tests are independent systems
+- Phase 6 last: UI improvements only after core plumbing verified via stress tests
 
-### Research Flags
-
-**Phases needing deeper research during planning:**
-- **TPM:** OS library availability matrix (Alpine, Windows, ARM64, vTPM) — allocate 1d research before implementation
-- **Plugin SDK:** Plugin versioning semantics — requires design session
-
-**Standard patterns (skip research-phase):** Dependabot, Router, Vault, SIEM
+**Research flags for phases:**
+- **Phase 1-2:** Standard patterns, no research needed — follow existing CRUD patterns in job_service
+- **Phase 3:** Standard patterns, no research needed — extract/pass fields per existing design
+- **Phase 4:** NEEDS DEEPER RESEARCH during execution — cgroup v2 compatibility varies by Docker/Podman/kernel version; recommend spike testing on current Ubuntu LTS + Fedora
+- **Phase 5:** NEEDS DEEPER RESEARCH during execution — stress test accuracy (verify metrics collected correctly); recommend cross-check with `docker stats` output during corpus runs
+- **Phase 6:** Standard patterns, minor research — Radix UI components already in use (Tabs, Card); add new Badge component for cgroup status
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| **Stack (Libraries)** | HIGH | All chosen libraries production-grade, actively maintained |
-| **Features (Tier 1)** | HIGH | Vault + SIEM + Router are industry-standard patterns; enterprise expects all three |
-| **Features (Tier 2)** | MEDIUM | TPM requires OS-specific testing; Plugin SDK requires careful API design |
-| **Architecture** | MEDIUM | Patterns established; CE/EE boundary and job secrets flow are Axiom-specific |
-| **Pitfalls** | HIGH | 14 pitfalls identified with explicit prevention strategies and phase assignments |
-| **Overall** | MEDIUM-HIGH | Tier 1 is low-risk, high-value; Tier 2 defer if time-constrained |
+| Stack | HIGH | Existing runtime.py + node.py fully implement resource limits at execution layer; no new packages required. Verified in code review. |
+| Features | HIGH | Feature landscape validated against existing implementation; MVP scope (6 days) realistic based on prior sprint velocity (Sprint 10-11, ~1 feature per day). |
+| Architecture | HIGH | Data flow fully mapped from GUI to kernel. Component boundaries clear. Integration points identified. CgroupDetector pattern standard in Kubernetes/systemd. |
+| Pitfalls | HIGH | Critical pitfalls (cgroup v2, runtime unavailability) grounded in kernel behavior + Docker/Podman version differences. All detection/prevention strategies validated against POSIX/cgroup standards. |
+| Build Order | MEDIUM-HIGH | Six-day estimate based on prior sprint data (each feature layer ~1 day). Dependent on team familiarity with FastAPI/React patterns (confirmed in prior sprints). Cgroup v2 testing may add 1-2 days if environment not readily available. |
 
-### Open Gaps
+## Gaps to Address
 
-1. **Vault licensing & CE/EE boundary** — CE-native or EE-only?
-2. **TPM OS support matrix** — Windows + vTPM + ARM64 status unclear
-3. **Plugin SDK API stability** — Versioning contract decision required
-4. **SIEM format support** — CEF only, or add Splunk HEC native?
-5. **Secret lifecycle documentation** — When embed secrets vs use env vars?
+1. **Cgroup v2 CI Environment**: Must confirm CI infrastructure has at least one cgroup v2 test system. If only cgroup v1 available, consider GitHub Actions workflow using `ubuntu-latest` (cgroup v2 by default) or Fedora container image.
+
+2. **Stress Test Validation**: Stress corpus must collect detailed metrics (memory usage, CPU time, container exit code). Unclear if `docker stats` API is reliable for real-time metric collection during test; recommend spike on Day 3 to validate measurement approach.
+
+3. **Parse Bytes Format Coverage**: Stress test corpus uses simple memory formats (512m, 1g, 1Gi). Recommend validating that parse_bytes() handles:
+   - Decimal values (1.5g) — UI should disallow, but edge case if direct API used
+   - Binary vs decimal suffixes (m/M vs mi/Mi)
+   - Edge cases (0m, 999999999g)
+
+4. **Node Concurrency Limits**: v20.0 adds per-job limits but doesn't address node-wide concurrency limit. If operator assigns 100 1m-memory jobs to 16GB node, they'll all execute without overload checks. Recommend scope as v21.0 feature (cluster-wide admission control).
+
+5. **Backwards Compatibility Testing**: Ensure existing jobs without memory_limit/cpu_limit continue to execute (nullable fields must be truly optional). Integration tests should include mixed scenarios (some jobs with limits, some without).
+
+## Roadmap Phases by Confidence
+
+**Immediate (Implement v20.0):**
+- Phases 1-3: Database, API, node integration — HIGH confidence, clear scope, prior patterns established
+- Phase 4: Cgroup detection — HIGH confidence on logic, needs env validation (cgroup v2 test system)
+- Phase 5: Stress corpus — HIGH confidence on coverage, needs validation (metric collection accuracy)
+- Phase 6: Dashboard UI — HIGH confidence, standard Radix/React patterns
+
+**Later (v21.0+):**
+- Cluster-wide CPU admission control (addresses CPU starvation pitfall)
+- Default limit enforcement (defaults + GUI pre-fill to address "no limits" misconception)
+- Per-template resource profiles (templates suggest limits based on workload type)
+- Alert system (notifies operator when cgroup version incompatibility detected)
+
+## Success Metrics
+
+v20.0 complete when:
+1. All 6 phases implemented and code reviewed
+2. Stress test corpus runs on both cgroup v1 and v2 systems, 100% tests pass
+3. Integration tests verify: memory limits prevent OOM, CPU limits prevent starvation, isolation holds under concurrent load
+4. Dashboard shows cgroup version + enforcement status per node without errors
+5. Operator can submit job with limits via UI, limits enforced in container, visible in audit log
+6. Documentation updated: STACK.md lists cgroup version requirements, ARCHITECTURE.md explains limit pipeline
 
 ## Sources
 
-- `.planning/research/STACK-v24.md` — Library selection, versions, rationale
-- `.planning/research/FEATURES-v24.0.md` — Feature landscape, tiers, anti-features, MVP recommendation
-- `.planning/research/ARCHITECTURE-v24.md` — Integration patterns, new components, CE/EE preservation
-- `.planning/research/PITFALLS-v24.0.md` — 14 pitfalls with prevention strategies, phase gates, recovery costs
+- **Kernel cgroup documentation**: kernel.org/doc/html/latest/admin-guide/cgroup-v2.rst
+- **Docker cgroup v2 support**: Docker documentation on cgroup v2 runtime, GitHub issues #41230, #41254
+- **Podman resource limits**: Podman documentation on container resource constraints
+- **Existing codebase validation**: runtime.py (lines 60-70), node.py (lines 545-550, 660-675), job_service.py implementation review
+- **Resource starvation patterns**: Kubernetes QoS classes, Linux kernel CFS scheduler documentation
+- **Stress testing corpus patterns**: LLT (Linux Load Test), Kubernetes e2e test suite, stress-ng tool documentation
+

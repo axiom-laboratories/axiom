@@ -13,7 +13,7 @@ from ...db import get_db, VaultConfig, User
 from ...deps import require_permission, audit, require_ee
 from ...models import VaultConfigResponse, VaultConfigUpdateRequest, VaultTestConnectionRequest, VaultTestConnectionResponse, VaultStatusResponse
 from ...security import cipher_suite
-from ..services.vault_service import VaultConfigSnapshot
+from ee.services.vault_service import VaultConfigSnapshot
 
 logger = logging.getLogger(__name__)
 vault_router = APIRouter()

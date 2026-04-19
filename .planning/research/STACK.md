@@ -1,365 +1,230 @@
-# Technology Stack: Container Hardening + EE Licence Protection
+# Technology Stack: Node Capacity Validation (v20.0)
 
-**Project:** Master of Puppets (Axiom)  
-**Researched:** 2026-04-12  
-**Research Mode:** Ecosystem (NEW features for existing stack)
+**Project:** Axiom — Task Orchestration with Resource Limits
+**Researched:** 2026-04-06
 
-## Overview
+## Recommended Stack
 
-This research covers **stack requirements for two hardening workstreams**:
-1. **Container Security Hardening** — non-root users, capability dropping, socket mounting, Postgres port restriction
-2. **EE Licence Protection** — signed wheel manifest verification, HMAC-keyed boot logs, entry point validation
+### Core Backend (Existing, No Changes)
 
-Both workstreams use **existing dependencies** (cryptography, PyJWT, importlib.metadata) and **Python stdlib** (hmac, hashlib, importlib.metadata). **No new third-party dependencies required.**
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| FastAPI | 0.104+ | REST API server | async-native, auto OpenAPI docs, pydantic validation |
+| SQLAlchemy | 2.0+ | ORM for Job/Node/ScheduledJob persistence | async support, strong type hints, schema migration via create_all |
+| Pydantic | 2.0+ | Request/response validation | field validators, discriminated unions, JSON serialization |
+| PostgreSQL | 15+ | Production persistence (optional) | ACID, JSON columns, async driver (asyncpg) |
+| SQLite | 3.40+ | Local dev persistence | serverless, no setup, file-based |
+| Python | 3.11+ | Backend runtime | type hints, async/await, standard library |
 
----
+### Node Agent (Existing, Minimal Changes)
 
-## Recommended Stack — NO NEW DEPENDENCIES
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| Python | 3.11+ | Node agent runtime | async, subprocess, container integration |
+| httpx | 0.24+ | mTLS HTTP client for polling | async, client cert support |
+| cryptography | 41+ | mTLS cert signing, Ed25519 verification | FIPS-compatible, low-level crypto |
+| aiohttp | 3.8+ | Async HTTP server (sidecar) | lightweight, async, WebSocket support |
+| psutil | 5.9+ | System metrics (CPU/RAM) | cross-platform, reliable |
+| asyncio | stdlib | Async job execution | built-in, no external deps |
 
-### Python Standard Library (Already Available)
+### Runtime Container Integration (Existing, No Changes)
 
-| Module | Purpose | Current Code | New Use |
-|--------|---------|--------------|---------|
-| `hmac` | SHA256-based message authentication (constant-time comparison) | ✓ Existing: `compute_signature_hmac()`, `verify_signature_hmac()` in `security.py` | HMAC-keyed boot log for licence tamper detection |
-| `hashlib` | SHA256, MD5 for hashing | ✓ Existing: licence boot log hash chain | Boot log append-only integrity |
-| `importlib.metadata` | Entry point discovery and loading | ✓ Existing: `entry_points(group="axiom.ee")` in `ee/__init__.py` | Whitelist entry points by name; validate loaded modules |
-| `json` | Serialization (already used everywhere) | ✓ Existing | Wheel manifest parsing (METADATA, RECORD) |
-| `pathlib.Path` | File system operations | ✓ Existing | Wheel extraction path validation, secure path handling |
-| `zipfile` | ZIP archive handling (wheels are ZIP) | Not currently used | Wheel signature extraction (RECORD.sig file) |
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| Docker | 20.10+ | Container runtime (primary) | industry standard, cgroup v1/v2 support, --memory/--cpus flags |
+| Podman | 3.0+ | Container runtime (alternative) | rootless-capable, OCI-compliant, same CLI as docker |
+| Linux Kernel | 5.10+ | Cgroup enforcement | both v1 and v2 support, memory + cpu limits |
+| Docker API | 1.41+ | Subprocess CLI invocation | used via docker run / podman run, not SDK |
 
-**Confidence:** HIGH — all modules are stable, standard, documented in Python 3.12 docs.
+### Frontend (Existing, Minimal Changes)
 
----
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| React | 18+ | UI framework | component-driven, hooks, hooks for state |
+| TypeScript | 5.0+ | Type safety | catches UI bugs, intellisense |
+| Vite | 4.0+ | Build tool | fast HMR, minimal config, tree-shaking |
+| Radix UI | 1.0+ | Headless component library | a11y-first, unstyled, composable |
+| TailwindCSS | 3.0+ | Utility CSS | rapid prototyping, consistent theming |
+| Recharts | 2.0+ | Charting library | React-native, responsive, legends/tooltips |
+| Playwright | 1.40+ | E2E testing | fast, multi-browser, headless |
 
-### Existing Third-Party Dependencies (NO VERSION CHANGES NEEDED)
+### Testing (Existing, No Changes)
 
-#### cryptography (v46.0.5 minimum)
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| pytest | 7.4+ | Backend unit tests | async fixtures, parametrize, clear syntax |
+| vitest | 0.34+ | Frontend unit/component tests | Vite-native, Jest-compatible syntax |
+| asyncio | stdlib | Async test execution | built-in, no external deps |
 
-| Feature | Needed By | Version Requirement | Status |
-|---------|-----------|-------------------|--------|
-| Ed25519PublicKey + verify() | Wheel manifest verification | ≥ 40.0 | ✓ v46.0.5 supports all operations |
-| PEM key loading + serialization | Licence JWT verification (existing) | ≥ 2.0 | ✓ Since v2.0 |
+## New Dependencies for v20.0
 
-**Existing integration:** `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey` used in `licence_service.py` for JWT verification.
+### None
 
-**New integration:** Same library, same public key hardcoding pattern, used for wheel RECORD.sig verification:
-```python
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+**Explanation:** v20.0 does NOT require new external dependencies.
 
-_wheel_sign_key = Ed25519PublicKey.from_public_bytes(hardcoded_public_key_bytes)
-_wheel_sign_key.verify(signature_bytes, manifest_bytes)  # Raises InvalidSignature on mismatch
+- **CgroupDetector** is implemented using stdlib `os.path.exists()` — no external library needed
+- **Limit validation** uses stdlib `re` for regex — no external library needed
+- **Stress test corpus** scripts use only stdlib (sys, time, multiprocessing, json) — no external library needed
+- **Existing runtime.py** already has all necessary flags for docker/podman limit support
+
+## Optional: Development Convenience
+
+| Technology | Version | Purpose | Optional |
+|------------|---------|---------|----------|
+| ruff | 0.1+ | Python linter | faster black + isort, already used in CI |
+| mypy | 1.0+ | Static type checker | catch type errors in models, already used in CI |
+| pytest-cov | 4.1+ | Code coverage | measure test coverage for corpus |
+| httpx | 0.24+ | HTTP client in test scripts | simplify dispatch_stress_corpus.py API calls |
+
+**Recommendation:** Use existing tooling (ruff, mypy from CI). httpx already installed for node agent.
+
+## Installation
+
+### Backend (No New Packages)
+
+```bash
+# requirements.txt already covers all dependencies
+cd puppeteer
+pip install -r requirements.txt
+# No new entries needed for v20.0
 ```
 
-**Confidence:** HIGH — cryptography v46 is current (released 2025), maintains backward compatibility, Ed25519 is stable since v3.4.
+### Node Agent (No New Packages)
 
-#### PyJWT (≥2.7.0, existing requirement)
-
-No new integration needed. Licence JWT verification already uses PyJWT's EdDSA support:
-```python
-import jwt
-jwt.decode(licence_token, public_key_pem, algorithms=["EdDSA"], key=ed25519_key)
+```bash
+# environment_service/requirements.txt already complete
+# No changes needed
+pip install httpx cryptography aiohttp psutil
 ```
 
-**Confidence:** HIGH — requirement already specified in requirements.txt; EdDSA (RFC 8037) since v2.7.0.
+### Frontend (No New Packages)
 
----
-
-## Stack Additions by Feature
-
-### Feature 1: Container Security Hardening
-
-#### 1a. Dockerfile Enhancements — Alpine & Debian Base Images
-
-| Base Image | Purpose | Requirements | Special Handling |
-|------------|---------|--------------|------------------|
-| `python:3.12-alpine` | Agent/Model (existing) | `addgroup --system`, `adduser --system` | Alpine uses BusyBox addgroup/adduser; IDs recommended: 1001 for appuser, 1001 for appgroup |
-| `python:3.12-slim` | Node image (existing) | `useradd`, `groupadd` (Debian GNU tools) | Debian allows `-N` flag for `useradd` (no home); gid range 999 for docker group |
-| Docker multi-stage COPY | Node builds (existing) | No new deps | COPY --from=docker:cli and docker:dind for socket/CLI access |
-
-**New Dockerfile directives needed:**
-```dockerfile
-# Alpine (Containerfile.server)
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --ingroup appgroup --no-create-home appuser && \
-    addgroup appuser docker  # For socket access (gid 999 on Linux)
-RUN chown -R appuser:appgroup /app
-USER appuser
-
-# Debian (Containerfile.node)
-RUN groupadd --system --gid 1001 appgroup && \
-    useradd --system --uid 1001 --gid appgroup --no-create-home appuser && \
-    getent group docker >/dev/null || groupadd --gid 999 docker && \
-    usermod -aG docker appuser
-RUN chown -R appuser:appgroup /app
-USER appuser
+```bash
+cd puppeteer/dashboard
+npm install
+# package.json already has all dependencies
+# No new entries needed
 ```
 
-**Confidence:** HIGH — standard Linux userland tooling, no new packages.
+### Test Corpus (Stdlib Only)
 
-#### 1b. Docker Compose v3+ Syntax — Hardening Directives
+```bash
+# Corpus scripts use only Python stdlib
+# No pip install needed
+# Just run: python corpus/memory_alloc.py 256
+```
 
-| Directive | Purpose | Syntax |
-|-----------|---------|--------|
-| `cap_drop` | Drop all Linux capabilities by default | `cap_drop: [ALL]` |
-| `cap_add` | Selectively restore only needed caps | `cap_add: [NET_BIND_SERVICE]` (Caddy only) |
-| `security_opt` | Disable privilege escalation | `security_opt: [no-new-privileges:true]` |
-| `deploy.resources.limits` | Memory + CPU caps | `deploy: { resources: { limits: { memory: '1g', cpus: '2.0' } } }` |
-| `deploy.resources.reservations` | Minimum guaranteed resources | `deploy: { resources: { reservations: { memory: '256m' } } }` |
-| `volumes` (socket mounts) | Node → host Docker socket access | `- /var/run/docker.sock:/var/run/docker.sock` (Docker) or `/run/podman/podman.sock:/run/podman/podman.sock` (Podman) |
+## Build & Test Stack
 
-**Key decision:** Replace `privileged: true` on node with socket mount + `cap_drop: [ALL]`.
+### Docker Compose (for local validation)
 
-**Examples:**
 ```yaml
-# Caddy (cert-manager) — needs NET_BIND_SERVICE for :80/:443
-cert-manager:
-  cap_drop: [ALL]
-  cap_add: [NET_BIND_SERVICE]
-  security_opt: [no-new-privileges:true]
+services:
+  agent:
+    image: python:3.12-slim
+    volumes:
+      - ./puppeteer:/app
+    command: python -m agent_service.main
 
-# Node (Docker host variant)
-node:
-  cap_drop: [ALL]
-  security_opt: [no-new-privileges:true]
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
-  environment:
-    EXECUTION_MODE: docker  # Explicit, not auto-detect
-  deploy:
-    resources:
-      limits:
-        memory: 2g
-        cpus: '2.0'
-
-# Node (Podman host variant)
-node:
-  cap_drop: [ALL]
-  security_opt: [no-new-privileges:true]
-  volumes:
-    - /run/podman/podman.sock:/run/podman/podman.sock
-  environment:
-    EXECUTION_MODE: podman
+  node-alpha:
+    image: localhost/master-of-puppets-node:latest
+    environment:
+      EXECUTION_MODE: docker
+      JOB_MEMORY_LIMIT: 512m
+    depends_on:
+      - agent
 ```
 
-**Postgres port restriction:**
+### CI/CD Pipeline (GitHub Actions)
+
 ```yaml
-db:
-  ports:
-    - "127.0.0.1:5432:5432"  # Loopback only; internal: use db:5432
+- backend tests: pytest
+- frontend tests: npm run test
+- docker build: docker compose -f compose.server.yaml build agent
+- integration: mop_validation/scripts/dispatch_stress_corpus.py
 ```
 
-**Confidence:** HIGH — Docker Compose v3.7+ (2019) fully supports all directives; `deploy.resources` is standard since v3.2.
+## Architecture Decisions
 
-#### 1c. runtime.py Socket Mount Auto-Detection
+### Why Not Add External Packages?
 
-**Current code:** Checks only `/var/run/docker.sock` in `detect_runtime()`.
+1. **Minimal dependencies** — Axiom philosophy: reduce supply-chain risk
+2. **Stdlib sufficient** — os.path, re, json, subprocess, asyncio all built-in
+3. **Maintainability** — Fewer upgrades, fewer CVEs to track
+4. **Cgroup detection** — Simple sysfs checks, no library needed
+5. **Test corpus** — Pure Python with stdlib only (portable across environments)
 
-**New requirement:** Also check `/run/podman/podman.sock` (Podman rootful) and `/run/user/1000/podman/podman.sock` (Podman rootless).
+### Why Docker/Podman (Not Kubernetes)?
 
-**No new dependencies.** Uses `shutil.which()` and `os.path.exists()` (already present).
+1. **Simple** — Single CLI invocation, no orchestrator overhead
+2. **Isolated** — Each job is a fresh container, no state pollution
+3. **Portable** — Works on dev laptop, VPS, cloud VM
+4. **Familiar** — Operators know docker run / podman run flags
+5. **Limits** — Native cgroup support via --memory/--cpus flags
+
+### Why Cgroup Not Resource Quotas?
+
+1. **Kernel-enforced** — No app polling, hard limit at kernel level
+2. **Accurate** — Actual memory/CPU consumed, not estimated
+3. **Fair** — Linux scheduler respects limits even under extreme load
+4. **Mature** — v1 since 2008, v2 since 2019, production-proven
+
+## Version Compatibility
+
+### Minimum Versions (for limit enforcement)
+
+| Component | Min Version | Why |
+|-----------|-------------|-----|
+| Python | 3.11 | asyncio.create_subprocess_exec, type hints |
+| Docker | 20.10 | --memory, --cpus flags, cgroup v2 support |
+| Podman | 3.0 | OCI compliance, cgroup v2 support |
+| Linux Kernel | 5.10 | cgroup v2 unified interface, memory.max |
+| PostgreSQL | 15 | async driver (asyncpg), performance |
+
+### Tested Environments
+
+| OS | Kernel | Cgroup | Docker | Status |
+|----|--------|--------|--------|--------|
+| Ubuntu 22.04 LTS | 5.15 | v2 | 24.0 | ✓ Supported |
+| Debian 12 | 6.1 | v1 | 24.0 | ✓ Supported |
+| Fedora 39 | 6.5 | v2 | 48.0 | ✓ Supported |
+| Alpine 3.18 | 6.1 | v1 | 24.0 | ✓ Supported (musl libc) |
+| macOS 13 (Rosetta) | — | N/A | 24.0 via Docker Desktop | ✓ Dev only |
+
+## Migration Path: Adding Limits
+
+**No breaking changes.** Limits are optional (nullable in DB).
+
+### Backwards Compatibility
 
 ```python
-def detect_runtime(self) -> str:
-    mode = os.environ.get("EXECUTION_MODE", "auto").lower()
-    if mode in ("docker", "podman"):
-        logger.info(f"EXECUTION_MODE={mode} (explicit)")
-        return mode
-    # auto: probe in order
-    if os.path.exists("/var/run/docker.sock") and shutil.which("docker"):
-        return "docker"
-    if os.path.exists("/run/podman/podman.sock") and shutil.which("podman"):
-        return "podman"
-    if os.path.exists(f"/run/user/{os.getuid()}/podman/podman.sock") and shutil.which("podman"):
-        return "podman"
-    raise RuntimeError("...")
+# Old code (no limits)
+job = Job(guid="...", task_type="script", payload="...")
+
+# New code (with limits)
+job = Job(guid="...", task_type="script", payload="...", 
+          memory_limit="512m", cpu_limit="1.0")
+
+# Old dispatch (limits=None) still works
+node.execute_task({
+    "guid": "...",
+    "memory_limit": None,  # OK
+    "cpu_limit": None,     # OK
+})
+
+# New dispatch (limits set) also works
+node.execute_task({
+    "guid": "...",
+    "memory_limit": "256m",  # OK
+    "cpu_limit": "0.5",      # OK
+})
 ```
-
-**Confidence:** HIGH — no new packages, uses stdlib `os`, `shutil`.
-
-#### 1d. foundry_service.py — Generated Dockerfile User Directive
-
-**New requirement:** Append `USER appuser` after all RUN commands that install packages.
-
-```python
-def _generate_dockerfile(...):
-    lines = [...]
-    # ... existing lines: FROM, RUN apt-get install, etc.
-    lines.append("")
-    lines.append("# Switch to non-root user")
-    lines.append("USER appuser")
-    return "\n".join(lines)
-```
-
-**Confidence:** HIGH — no dependencies, string concatenation.
-
----
-
-### Feature 2: EE Licence Protection — Signed Wheel Manifest Verification
-
-#### 2a. Wheel Signature Verification (Python stdlib + existing cryptography)
-
-**New module needed:** `puppeteer/agent_service/services/wheel_service.py` (single, focused module for wheel validation).
-
-**Inputs:**
-- Wheel file path (e.g., `/tmp/axiom_ee-0.1.0-cp312-cp312-musllinux_1_2_x86_64.whl`)
-- Hardcoded Ed25519 public key (same pattern as licence key)
-
-**Process:**
-1. Extract wheel (ZIP archive)
-2. Read `dist-info/WHEEL` metadata (JSON or RFC822 format)
-3. Read `dist-info/RECORD` (manifest of all files + hashes)
-4. Read `dist-info/RECORD.sig` (Ed25519 signature of RECORD)
-5. Verify signature using `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey`
-6. Validate RECORD hashes match extracted files
-
-**No new dependencies.** Uses:
-- `zipfile` (stdlib)
-- `hashlib.sha256()` (stdlib, existing)
-- `cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey` (existing)
-
-**Confidence:** HIGH — all components (zipfile, hashlib, cryptography) are stable; wheel format is standardized (PEP 427, 566).
-
-#### 2b. Boot Log HMAC — Tamper Detection (Existing Pattern)
-
-**Current:** `boot.log` is a plaintext file with SHA256 hash chain (per `licence_service.py`).
-
-**Enhancement:** Add HMAC-SHA256 to detect tampering (e.g., clock rollback via manual `/app/secrets/boot.log` edit).
-
-**No new dependencies.** Uses existing `hmac` + `hashlib`:
-
-```python
-import hmac
-import hashlib
-
-def append_to_boot_log_with_hmac(secret: bytes, entry: str) -> None:
-    """Append entry with HMAC-SHA256 tag for tamper detection."""
-    with open(Path("secrets/boot.log"), "a") as f:
-        tag = hmac.new(secret, entry.encode('utf-8'), hashlib.sha256).hexdigest()
-        f.write(f"{entry} HMAC:{tag}\n")
-
-def verify_boot_log_integrity(secret: bytes) -> bool:
-    """Verify all HMAC tags in boot.log. Returns True if all valid."""
-    with open(Path("secrets/boot.log"), "r") as f:
-        for line in f:
-            line = line.rstrip()
-            if not line or "HMAC:" not in line:
-                continue
-            entry, tag_part = line.rsplit(" HMAC:", 1)
-            expected = hmac.new(secret, entry.encode('utf-8'), hashlib.sha256).hexdigest()
-            if not hmac.compare_digest(tag_part, expected):
-                return False
-    return True
-```
-
-**Integration:** Call `verify_boot_log_integrity(ENCRYPTION_KEY)` in `load_licence()` as part of clock-rollback detection.
-
-**Confidence:** HIGH — existing pattern in `compute_signature_hmac()` and `verify_signature_hmac()`.
-
-#### 2c. Entry Point Whitelist Validation (importlib.metadata + stdlib)
-
-**Current:** `ee/__init__.py` uses `importlib.metadata.entry_points(group="axiom.ee")` to discover plugins.
-
-**New requirement:** Validate that:
-1. Only one entry point exists in the `axiom.ee` group (no user-installed conflicting plugins)
-2. The entry point name matches expected (e.g., `axiom_ee`)
-3. The loaded module comes from the wheel (not a shadow import)
-
-**No new dependencies.** Uses `importlib.metadata` (existing).
-
-**Confidence:** HIGH — `importlib.metadata` is stdlib (since Python 3.8); entry point discovery is stable.
-
-#### 2d. Wheel Installation Bootstrap Safety
-
-**Current:** `ee/__init__.py` calls `pip install --no-deps` on the wheel.
-
-**Enhancement:** Before installation, verify wheel signature (using Feature 2a).
-
-**Confidence:** HIGH — integrates with existing `_install_ee_wheel()` pattern.
-
----
-
-## Integration Points — How Features Connect
-
-### Container Hardening → Foundry Propagation
-- **Requirement:** Foundry-built node images inherit non-root USER
-- **Implementation:** `foundry_service.py` appends `USER appuser` to generated Dockerfile
-- **No new dependencies**
-
-### Wheel Signature Verification → Licence Loading
-- **Requirement:** Verify wheel integrity before entry point discovery
-- **Implementation:** `ee/__init__.py` calls `wheel_service.verify_wheel_integrity()` before `pip install`
-- **Entry points:** Already using `importlib.metadata.entry_points(group="axiom.ee")`
-- **No new dependencies**
-
-### Boot Log HMAC → Licence State
-- **Requirement:** Detect clock rollback via tampered boot.log
-- **Implementation:** `licence_service.py` calls `verify_boot_log_integrity()` in `load_licence()`
-- **Uses:** Existing `ENCRYPTION_KEY` (from `secrets.env`)
-- **No new dependencies**
-
----
-
-## Summary Table — Stack Changes by Feature
-
-| Feature | New Modules | New Packages | Modified Files | Dependency Changes |
-|---------|------------|--------------|-----------------|-------------------|
-| **Container Hardening** | None | None | `Containerfile.server`, `Containerfile.node`, `compose.server.yaml`, `node-compose.yaml`, `runtime.py`, `foundry_service.py` | None |
-| **Wheel Signature Verification** | `wheel_service.py` (new) | None | `ee/__init__.py` | None (uses existing cryptography) |
-| **Boot Log HMAC** | None (extend existing) | None | `licence_service.py` | None (uses stdlib hmac) |
-| **Entry Point Whitelist** | None (extend existing) | None | `ee/__init__.py` | None (uses stdlib importlib.metadata) |
-
----
-
-## Versions Verified
-
-| Library | Current Version | Minimum Required | Status |
-|---------|-----------------|------------------|--------|
-| cryptography | 46.0.5 | 40.0+ (Ed25519 stable since 3.4) | ✓ Sufficient |
-| PyJWT | ≥2.7.0 (required) | 2.7.0+ (EdDSA support) | ✓ Sufficient |
-| Python | 3.12 | 3.12+ | ✓ Current |
-| Docker API (via docker SDK) | 7.0.0+ (existing) | 7.0.0 | ✓ Compatible |
-
----
-
-## Confidence Assessment
-
-| Area | Confidence | Notes |
-|------|------------|-------|
-| **Stdlib modules (hmac, hashlib, importlib.metadata)** | HIGH | Stable since Python 3.8+; standard library |
-| **cryptography v46 Ed25519 operations** | HIGH | Verified working for licence JWTs; wheel signature uses same APIs |
-| **Docker Compose syntax (cap_drop, security_opt, deploy.resources)** | HIGH | Standard since v3.2–3.7 (2019–2021); widely used in production |
-| **Dockerfile user/group management (Alpine + Debian)** | HIGH | Standard Linux userland; no surprises |
-| **Wheel format (zipfile + RECORD + signature)** | HIGH | PEP 427, PEP 566 standardized; zipfile is stdlib |
-| **importlib.metadata entry point discovery** | HIGH | Stdlib since Python 3.8; used in existing code |
-| **Integration with existing codebase** | HIGH | All features extend existing patterns (HMAC, Ed25519, entry points, socket mounts) |
-
----
-
-## What NOT to Add
-
-❌ **Do not add:**
-- `wheel` / `setuptools` packages (wheel format is ZIP; use stdlib `zipfile`)
-- `cryptojwt` or `python-jose` (PyJWT already supports EdDSA)
-- `pydantic-extra-types` or validation frameworks (use stdlib validators)
-- Custom seccomp profiles (Docker default is sufficient; maintenance cost high)
-- AppArmor/SELinux custom rules (host-level config outside our control)
-- Container orchestration platforms (Docker Compose v3 is the target)
-
-❌ **Do not change:**
-- cryptography version (46.0.5 is current, backward compatible)
-- PyJWT version (≥2.7.0 requirement is locked correctly)
-- Base images (python:3.12-alpine and python:3.12-slim are standard)
-
----
 
 ## Sources
 
-- [Python hmac documentation](https://docs.python.org/3/library/hmac.html)
-- [Python hashlib documentation](https://docs.python.org/3/library/hashlib.html)
-- [Python importlib.metadata documentation](https://docs.python.org/3/library/importlib.metadata.html)
-- [Python zipfile documentation](https://docs.python.org/3/library/zipfile.html)
-- [cryptography library Ed25519 API](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/)
-- [PEP 427 — The Wheel Binary Package Format](https://www.python.org/dev/peps/pep-0427/)
-- [PEP 566 — Metadata 2.2 for the JSON-based Serialisation](https://www.python.org/dev/peps/pep-0566/)
-- [Docker Compose Specification — Services Security](https://github.com/compose-spec/compose-spec/blob/master/spec.md#security)
-- Existing codebase: `licence_service.py`, `ee/__init__.py`, `security.py`, `runtime.py`
+- **Docker limits:** https://docs.docker.com/config/containers/resource_constraints/
+- **Podman limits:** https://docs.podman.io/en/latest/markdown/podman-run.1.html
+- **Cgroups v1 vs v2:** https://www.kernel.org/doc/html/latest/admin-guide/cgroups-v2.html
+- **Python asyncio subprocess:** https://docs.python.org/3/library/asyncio-subprocess.html
+- **FastAPI async:** https://fastapi.tiangolo.com/async-sql-databases/
+- **Axiom existing stack:** puppeteer/requirements.txt, puppets/environment_service/requirements.txt
