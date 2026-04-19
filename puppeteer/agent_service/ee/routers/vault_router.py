@@ -176,7 +176,7 @@ async def test_vault_connection(
 async def get_vault_status(
     current_user: User = Depends(require_ee()),
     db: AsyncSession = Depends(get_db),
-    request: Request = None
+    request: Request = None,  # FastAPI injects; None guard below
 ):
     """Get current Vault health status with renewal failure tracking."""
     # Fetch vault config

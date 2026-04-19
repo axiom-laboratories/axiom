@@ -71,7 +71,12 @@ async def get_current_user_optional(
         return None
 
     result = await db.execute(select(User).where(User.username == username))
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+    if user is None:
+        return None
+    if payload.get("tv", 0) != user.token_version:
+        return None
+    return user
 
 
 # ---------------------------------------------------------------------------

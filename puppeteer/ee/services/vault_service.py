@@ -108,6 +108,7 @@ class VaultService(SecretsProvider):
         def _sync_login():
             client = hvac.Client(
                 url=self.config.vault_address,
+                namespace=self.config.namespace or None,
                 verify=True  # Always verify TLS in production
             )
             client.auth.approle.login(
