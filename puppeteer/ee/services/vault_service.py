@@ -151,7 +151,9 @@ class VaultService(SecretsProvider):
                     resolved[name] = json.dumps(secret_data)
 
             return resolved
-        except Exception as e:
+        except (hvac.exceptions.VaultError, hvac.exceptions.InvalidRequest,
+                hvac.exceptions.Forbidden, hvac.exceptions.InternalServerError,
+                ConnectionError, TimeoutError, OSError) as e:
             self._status = "degraded"
             self._last_error = str(e)
             raise VaultError(f"Secret resolution failed: {e}")
@@ -162,6 +164,18 @@ class VaultService(SecretsProvider):
 
     async def renew(self) -> None:
         """Renew Vault token lease. Called by background task (D-10)."""
+        # Auto re-auth if stuck in degraded state
+        if self._status == "degraded" and self.config is not None:
+            try:
+                await self._connect()
+                self._status = "healthy"
+                self._consecutive_renewal_failures = 0
+                logger.info("Vault re-authentication succeeded — status restored to healthy")
+            except Exception as e:
+                self._consecutive_renewal_failures += 1
+                logger.warning("Vault re-authentication attempt failed: %s", e)
+                return  # keep _status = "degraded", don't attempt normal renew
+
         if self._status == "disabled":
             return  # No-op if not configured
 
