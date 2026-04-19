@@ -469,6 +469,14 @@ class SIEMService:
 
         await asyncio.to_thread(_sync_test)
 
+    async def shutdown(self) -> None:
+        """Gracefully stop background scheduler jobs for this service instance."""
+        for job_id in ("__siem_flush__",):
+            try:
+                self.scheduler.remove_job(job_id)
+            except Exception:
+                pass
+
     async def status(self) -> Literal["healthy", "degraded", "disabled"]:
         """Return current SIEM status."""
         return self._status

@@ -9,8 +9,8 @@ Requirements for milestone v24.0 — Security Infrastructure & Extensibility.
 
 ### Security — CVE Remediation
 
-- [ ] **SEC-03**: Axiom ships with `cryptography >= 46.0.7`, resolving the HIGH buffer-overflow CVE flagged on the v23.0 tag
-- [ ] **SEC-04**: All Dependabot HIGH and MODERATE alerts on the v23.0 tag are resolved and tests pass
+- [x] **SEC-03**: Axiom ships with `cryptography >= 46.0.7`, resolving the HIGH buffer-overflow CVE flagged on the v23.0 tag
+- [x] **SEC-04**: All Dependabot HIGH and MODERATE alerts on the v23.0 tag are resolved and tests pass
 
 ### Architecture — Router Modularization
 
@@ -21,21 +21,21 @@ Requirements for milestone v24.0 — Security Infrastructure & Extensibility.
 
 ### Vault Integration (EE)
 
-- [ ] **VAULT-01**: EE administrator can configure Vault connection (address + AppRole credentials) via admin UI or env vars
-- [ ] **VAULT-02**: Platform fetches secrets from Vault at startup with automatic fallback to env vars when Vault is unreachable
-- [ ] **VAULT-03**: Job dispatch injects Vault-sourced secrets into the execution context without embedding them in the job definition
-- [ ] **VAULT-04**: Platform actively renews secret leases before expiry during long-running jobs
-- [ ] **VAULT-05**: Admin dashboard shows Vault connectivity status (healthy / degraded / disabled)
-- [ ] **VAULT-06**: Platform starts successfully and degrades gracefully when Vault is offline at boot
+- [x] **VAULT-01**: EE administrator can configure Vault connection (address + AppRole credentials) via admin UI or env vars
+- [x] **VAULT-02**: Platform fetches secrets from Vault at startup with automatic fallback to env vars when Vault is unreachable
+- [x] **VAULT-03**: Job dispatch injects Vault-sourced secrets into the execution context without embedding them in the job definition
+- [x] **VAULT-04**: Platform actively renews secret leases before expiry during long-running jobs
+- [x] **VAULT-05**: Admin dashboard shows Vault connectivity status (healthy / degraded / disabled)
+- [x] **VAULT-06**: Platform starts successfully and degrades gracefully when Vault is offline at boot
 
 ### SIEM Audit Streaming (EE)
 
-- [ ] **SIEM-01**: EE administrator can configure a SIEM destination (webhook URL or syslog host + format) via admin UI
-- [ ] **SIEM-02**: Audit events are streamed in batches (flush at 100 events or every 5 seconds, whichever comes first)
-- [ ] **SIEM-03**: SIEM webhook payloads are formatted as CEF
-- [ ] **SIEM-04**: Sensitive fields (secrets, tokens, passwords) are masked before transmission to the SIEM
-- [ ] **SIEM-05**: Failed webhook deliveries are retried with exponential backoff and surface an admin alert
-- [ ] **SIEM-06**: SIEM streaming can be disabled without affecting the local audit log
+- [x] **SIEM-01**: EE administrator can configure a SIEM destination (webhook URL or syslog host + format) via admin UI
+- [x] **SIEM-02**: Audit events are streamed in batches (flush at 100 events or every 5 seconds, whichever comes first)
+- [x] **SIEM-03**: SIEM webhook payloads are formatted as CEF
+- [x] **SIEM-04**: Sensitive fields (secrets, tokens, passwords) are masked before transmission to the SIEM
+- [x] **SIEM-05**: Failed webhook deliveries are retried with exponential backoff and surface an admin alert
+- [x] **SIEM-06**: SIEM streaming can be disabled without affecting the local audit log
 
 ## Future Requirements
 
@@ -73,18 +73,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARCH-02 | 166 | Complete |
 | ARCH-03 | 166 | Complete |
 | ARCH-04 | 166 | Complete |
-| VAULT-01 | 167 | Pending |
-| VAULT-02 | 167 | Pending |
-| VAULT-03 | 167 | Pending |
-| VAULT-04 | 167 | Pending |
-| VAULT-05 | 167 | Pending |
-| VAULT-06 | 167 | Pending |
-| SIEM-01 | 168 | Pending |
-| SIEM-02 | 168 | Pending |
-| SIEM-03 | 168 | Pending |
-| SIEM-04 | 168 | Pending |
-| SIEM-05 | 168 | Pending |
-| SIEM-06 | 168 | Pending |
+| VAULT-01 | 167 | Complete |
+| VAULT-02 | 167 | Complete |
+| VAULT-03 | 167 | Complete |
+| VAULT-04 | 167 | Complete |
+| VAULT-05 | 167 | Complete |
+| VAULT-06 | 167 | Complete |
+| SIEM-01 | 168 | Complete |
+| SIEM-02 | 168 | Complete |
+| SIEM-03 | 168 | Complete |
+| SIEM-04 | 168 | Complete |
+| SIEM-05 | 168 | Complete |
+| SIEM-06 | 168 | Complete |
 
 **Coverage:**
 - v24.0 requirements: 18 total

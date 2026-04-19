@@ -2,6 +2,13 @@
 phase: 168
 plan: 05
 subsystem: SIEM Audit Streaming (EE)
+requirements-completed:
+  - SIEM-01
+  - SIEM-02
+  - SIEM-03
+  - SIEM-04
+  - SIEM-05
+  - SIEM-06
 tags:
   - testing
   - siem

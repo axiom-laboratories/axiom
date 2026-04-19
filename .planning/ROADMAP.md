@@ -26,7 +26,7 @@
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
 - ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–164 (shipped 2026-04-18)
-- 🔧 **v24.0 — Security Infrastructure & Extensibility** — Phases 165–170 (in progress)
+- ✅ **v24.0 — Security Infrastructure & Extensibility** — Phases 165–171 (shipped 2026-04-19)
 
 ## Phases
 

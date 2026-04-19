@@ -82,7 +82,7 @@ async def update_config(
     # Hot-reload: reinitialize singleton so config takes effect without restart (SIEM-01)
     # Without this, changes only apply after a process restart.
     try:
-        from ..services.siem_service import SIEMService, set_active, get_siem_service
+        from ee.services.siem_service import SIEMService, set_active, get_siem_service
         from ...services.scheduler_service import scheduler_service
 
         old = get_siem_service()
@@ -109,7 +109,7 @@ async def test_connection(
 ):
     """Test connectivity to the configured SIEM destination."""
     try:
-        from ..services.siem_service import SIEMService, get_siem_service
+        from ee.services.siem_service import SIEMService, get_siem_service
         from ...db import AsyncSessionLocal
         from ...services.scheduler_service import scheduler_service
 
@@ -182,18 +182,19 @@ async def get_status(
     request: Request = None,
 ):
     """Retrieve SIEM service status."""
-    from ..services.siem_service import get_siem_service
+    from ee.services.siem_service import get_siem_service
 
     siem = get_siem_service()
     if not siem:
         return SIEMStatusResponse(status="disabled")
 
+    detail = siem.status_detail()
     return SIEMStatusResponse(
-        status=await siem.status(),
-        backend=siem.config.backend if siem.config else None,
-        destination=siem.config.destination if siem.config else None,
-        last_checked_at=siem.last_checked_at,
-        error_detail=siem.last_error if siem.consecutive_failures > 0 else None,
-        consecutive_failures=siem.consecutive_failures,
-        dropped_events=siem.dropped_events,
+        status=detail["status"],
+        backend=detail["backend"],
+        destination=detail["destination"],
+        last_checked_at=detail["last_checked_at"],
+        error_detail=detail["error_detail"] if detail["consecutive_failures"] > 0 else None,
+        consecutive_failures=detail["consecutive_failures"],
+        dropped_events=detail["dropped_events"],
     )
