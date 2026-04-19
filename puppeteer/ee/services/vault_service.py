@@ -9,7 +9,7 @@ import asyncio
 import logging
 import json
 from typing import Optional, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -84,12 +84,12 @@ class VaultService(SecretsProvider):
         try:
             await self._connect()
             self._status = "healthy"
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
             logger.info(f"Vault connection established: {self.config.vault_address}")
         except Exception as e:
             self._status = "degraded"
             self._last_error = str(e)
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
             logger.warning(f"Vault unavailable at startup; running in degraded mode: {e}")
 
     @property
@@ -174,11 +174,11 @@ class VaultService(SecretsProvider):
 
             await asyncio.to_thread(_sync_renew)
             self._consecutive_renewal_failures = 0
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
         except Exception as e:
             self._consecutive_renewal_failures += 1
             self._last_error = str(e)
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
             logger.warning(f"Lease renewal failed (attempt {self._consecutive_renewal_failures}): {e}")
 
             if self._consecutive_renewal_failures >= 3:
