@@ -26,6 +26,7 @@ router = APIRouter()
 @router.get("/admin/siem/config", response_model=SIEMConfigResponse, tags=["SIEM Configuration"])
 async def get_config(
     current_user: User = Depends(require_ee()),
+    _perm: User = Depends(require_permission("system:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Get current SIEM configuration."""
@@ -41,6 +42,7 @@ async def update_config(
     req: SIEMConfigUpdateRequest,
     request: Request,
     current_user: User = Depends(require_ee()),
+    _perm: User = Depends(require_permission("system:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Update SIEM configuration. Reinitialize service if enabled changed."""
@@ -105,6 +107,7 @@ async def update_config(
 async def test_connection(
     req: SIEMTestConnectionRequest,
     current_user: User = Depends(require_ee()),
+    _perm: User = Depends(require_permission("system:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Test connectivity to the configured SIEM destination."""
@@ -179,6 +182,7 @@ async def test_connection(
 @router.get("/admin/siem/status", response_model=SIEMStatusResponse, tags=["SIEM Configuration"])
 async def get_status(
     current_user: User = Depends(require_ee()),
+    _perm: User = Depends(require_permission("system:read")),
 ):
     """Retrieve SIEM service status."""
     from ee.services.siem_service import get_siem_service
