@@ -67,15 +67,15 @@ async def update_config(
     if req.enabled is not None:
         config.enabled = req.enabled
 
-    # Audit the update
+    # Audit using final config values (not req — PATCH fields may be partial)
     audit(db, current_user, "siem:config_update", config.id, {
-        "backend": req.backend,
-        "destination_updated": req.destination is not None,
-        "syslog_port": req.syslog_port,
-        "syslog_protocol": req.syslog_protocol,
-        "cef_device_vendor": req.cef_device_vendor,
-        "cef_device_product": req.cef_device_product,
-        "enabled": req.enabled,
+        "backend": config.backend,
+        "destination": config.destination,
+        "syslog_port": config.syslog_port,
+        "syslog_protocol": config.syslog_protocol,
+        "cef_device_vendor": config.cef_device_vendor,
+        "cef_device_product": config.cef_device_product,
+        "enabled": config.enabled,
     })
 
     await db.commit()
