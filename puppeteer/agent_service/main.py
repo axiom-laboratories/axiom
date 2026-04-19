@@ -14,6 +14,7 @@ from pathlib import Path
 import uuid
 import json
 import os
+import re
 import shutil
 import subprocess
 import socket
@@ -64,6 +65,21 @@ from slowapi.errors import RateLimitExceeded
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# YAML injection prevention: regex pattern to detect unsafe characters
+_YAML_UNSAFE = re.compile(r'[\n\r"\x00-\x1f:{}\[\]#&*!|>\'%@`]')
+
+def _validate_compose_param(name: str, value: str) -> str:
+    """Reject values containing YAML structural characters or control chars.
+
+    Prevents YAML injection attacks via newlines in query parameters.
+    """
+    if value and _YAML_UNSAFE.search(value):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Query parameter '{name}' contains characters that are not allowed"
+        )
+    return value
 
 from sqlalchemy.future import select
 from sqlalchemy import update, desc, func, delete
@@ -278,7 +294,7 @@ async def lifespan(app: FastAPI):
                 import secrets as _secrets
                 admin_password = _secrets.token_urlsafe(16)
                 force_change = True
-                logger.warning("Admin bootstrapped with auto-generated password: %s", admin_password)
+                logger.warning("Admin bootstrapped with auto-generated password (see secrets.env)")
                 logger.warning("You will be prompted to change it on first login.")
             else:
                 skip_force = os.getenv("ADMIN_SKIP_FORCE_CHANGE", "").strip().lower() == "true"
@@ -668,6 +684,14 @@ if siem_router:
 )
 async def get_node_compose(token: str, mounts: Optional[str] = None, tags: Optional[str] = None, execution_mode: Optional[str] = None):
     """Dynamic Compose File generator for Nodes."""
+    # Validate query parameters to prevent YAML injection
+    if tags:
+        tags = _validate_compose_param("tags", tags)
+    if mounts:
+        mounts = _validate_compose_param("mounts", mounts)
+    if execution_mode:
+        execution_mode = _validate_compose_param("execution_mode", execution_mode)
+
     effective_tags = tags if tags else "general,linux,arm64"
     # Allow caller or server default to set EXECUTION_MODE for the node container.
     # Defaults to "auto" (Docker/Podman detection).
