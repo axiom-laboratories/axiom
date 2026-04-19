@@ -10,6 +10,7 @@ import logging
 import json
 from typing import Optional, Literal
 from datetime import datetime
+from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -18,6 +19,35 @@ from agent_service.db import VaultConfig
 from agent_service.security import cipher_suite
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class VaultConfigSnapshot:
+    """Immutable snapshot of VaultConfig values taken at service construction time.
+
+    Avoids DetachedInstanceError when the ORM session that loaded the config
+    is closed or committed while the long-lived singleton still holds a reference.
+    """
+    enabled: bool
+    vault_address: str
+    role_id: str
+    secret_id: str
+    mount_path: str
+    namespace: Optional[str]
+    provider_type: str
+
+    @classmethod
+    def from_orm(cls, vc: "VaultConfig") -> "VaultConfigSnapshot":
+        """Convert VaultConfig ORM object to snapshot."""
+        return cls(
+            enabled=vc.enabled,
+            vault_address=vc.vault_address,
+            role_id=vc.role_id,
+            secret_id=vc.secret_id,
+            mount_path=vc.mount_path,
+            namespace=vc.namespace,
+            provider_type=vc.provider_type,
+        )
 
 
 class VaultError(Exception):
@@ -33,7 +63,9 @@ class VaultService(SecretsProvider):
     """
 
     def __init__(self, config: Optional[VaultConfig], db: AsyncSession):
-        self.config = config
+        self.config: Optional[VaultConfigSnapshot] = (
+            VaultConfigSnapshot.from_orm(config) if config else None
+        )
         self.db = db
         self._client: Optional[hvac.Client] = None
         self._status: Literal["healthy", "degraded", "disabled"] = \
@@ -59,6 +91,11 @@ class VaultService(SecretsProvider):
             self._last_error = str(e)
             self._last_checked_at = datetime.utcnow()
             logger.warning(f"Vault unavailable at startup; running in degraded mode: {e}")
+
+    @property
+    def renewal_failures(self) -> int:
+        """Return count of consecutive lease renewal failures."""
+        return self._consecutive_renewal_failures
 
     async def _connect(self) -> None:
         """Establish Vault connection via AppRole auth."""
