@@ -20,11 +20,11 @@ import logging
 import uuid
 import json
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..db import (
     get_db, AsyncSession, User, Signature, Alert, Signal, Token, Config,
-    ScheduledJob
+    ScheduledJob, ExecutionRecord
 )
 from ..deps import (
     get_current_user, get_current_user_optional, require_auth,
@@ -33,7 +33,7 @@ from ..deps import (
 from ..models import (
     SignatureCreate, SignatureResponse, AlertResponse, SignalResponse,
     SignalFire, ActionResponse, EnrollmentTokenResponse, UploadKeyRequest,
-    LicenceReloadResponse, LicenceReloadRequest, NetworkMount
+    LicenceReloadResponse, LicenceReloadRequest, NetworkMount, RetentionConfigUpdate
 )
 from ..services.signature_service import SignatureService
 from ..services.alert_service import AlertService
@@ -388,6 +388,65 @@ async def clear_signal(
     await db.delete(sig)
     await db.commit()
     return {"status": "cleared"}
+
+
+# --- Retention Config (SRCH-08) ---
+
+@router.get(
+    "/api/admin/retention",
+    response_model=dict,
+    tags=["Admin"],
+    summary="Get retention configuration",
+    description="Get current execution retention settings and counts of eligible/pinned records"
+)
+async def get_retention_config(
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current execution retention config and live record counts."""
+    res = await db.execute(select(Config.value).where(Config.key == "execution_retention_days"))
+    val = res.scalar_one_or_none()
+    retention_days = int(val) if val else 14
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    eligible = await db.scalar(
+        select(sqlfunc.count(ExecutionRecord.id)).where(
+            ExecutionRecord.completed_at < cutoff,
+            ExecutionRecord.pinned.is_(False),
+        )
+    )
+    pinned_count = await db.scalar(
+        select(sqlfunc.count(ExecutionRecord.id)).where(
+            ExecutionRecord.pinned.is_(True)
+        )
+    )
+    return {
+        "retention_days": retention_days,
+        "eligible_count": eligible or 0,
+        "pinned_count": pinned_count or 0,
+    }
+
+
+@router.patch(
+    "/api/admin/retention",
+    response_model=dict,
+    tags=["Admin"],
+    summary="Update retention configuration",
+    description="Update the execution record retention period in days"
+)
+async def update_retention_config(
+    body: RetentionConfigUpdate,
+    current_user: User = Depends(require_permission("users:write")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update execution retention period in days."""
+    existing = await db.execute(select(Config).where(Config.key == "execution_retention_days"))
+    row = existing.scalar_one_or_none()
+    if row:
+        row.value = str(body.retention_days)
+    else:
+        db.add(Config(key="execution_retention_days", value=str(body.retention_days)))
+    await db.commit()
+    return {"retention_days": body.retention_days}
 
 
 # --- License Management (from main.py) ---

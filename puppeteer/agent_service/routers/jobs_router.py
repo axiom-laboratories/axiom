@@ -661,6 +661,18 @@ async def list_job_definitions(current_user: User = Depends(require_auth), db: A
     return await scheduler_service.list_job_definitions(db)
 
 
+@router.get(
+    "/job-definitions",
+    response_model=List[JobDefinitionResponse],
+    tags=["Job Definitions"],
+    summary="List job definitions (alias)",
+    description="Alias for GET /jobs/definitions - returns list of all scheduled job definitions"
+)
+async def dashboard_job_definitions(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
+    """Dashboard expects /job-definitions instead of /jobs/definitions"""
+    return await scheduler_service.list_job_definitions(db)
+
+
 @router.delete("/jobs/definitions/{id}", response_model=ActionResponse, tags=["Job Definitions"])
 async def delete_job_definition(id: str, current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob).where(ScheduledJob.id == id))

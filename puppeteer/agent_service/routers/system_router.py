@@ -19,7 +19,9 @@ from sqlalchemy import func as sqlfunc
 from typing import Optional, List
 import logging
 import json
+import os
 from datetime import datetime
+from pathlib import Path
 
 from ..db import (
     get_db, AsyncSession, AsyncSessionLocal, User, Config, RevokedCert, ScheduledJob, Job
@@ -241,6 +243,88 @@ async def get_crl(db: AsyncSession = Depends(get_db)):
     serials = [r.serial_number for r in revoked]
     crl_pem = pki_service.ca_authority.generate_crl(serials)
     return Response(content=crl_pem, media_type="application/x-pem-file")
+
+
+# --- Verification Key & Documentation ---
+
+@router.get(
+    "/verification-key",
+    response_class=Response,
+    tags=["System"],
+    summary="Get Ed25519 verification public key",
+    description="Returns the PEM-encoded Ed25519 public key used to verify signed job scripts"
+)
+async def get_verification_key():
+    """Serves the Public Verification Key for Code Signing."""
+    key_path = "/app/secrets/verification.key"
+    if not os.path.exists(key_path):
+        if os.path.exists("secrets/verification.key"):
+            key_path = "secrets/verification.key"
+        else:
+            raise HTTPException(status_code=404, detail="Verification Key not configured on Server")
+
+    with open(key_path, "r") as f:
+        return Response(content=f.read(), media_type="text/plain")
+
+
+@router.get(
+    "/api/docs",
+    response_model=list,
+    tags=["System"],
+    summary="List available documentation files",
+    description="Get list of available markdown documentation files"
+)
+async def list_docs(current_user: User = Depends(require_auth)):
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    docs_dir = os.path.join(base_dir, "docs")
+    if not os.path.exists(docs_dir):
+        docs_dir = os.path.join(base_dir, "../docs")
+
+    if not os.path.exists(docs_dir):
+        return []
+
+    files = []
+    for f in os.listdir(docs_dir):
+        if f.endswith(".md"):
+            title = f
+            try:
+                with open(os.path.join(docs_dir, f), "r") as md_file:
+                    first_line = md_file.readline().strip()
+                    if first_line.startswith("#"):
+                        title = first_line.lstrip("# ").strip()
+            except:
+                pass
+            files.append({"filename": f, "title": title})
+    return files
+
+
+@router.get(
+    "/api/docs/{filename}",
+    response_model=dict,
+    tags=["System"],
+    summary="Get documentation file content",
+    description="Retrieve the full content of a markdown documentation file"
+)
+async def get_doc_content(filename: str, current_user: User = Depends(require_auth)):
+    from ..security import validate_path_within
+
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    docs_dir = os.path.join(base_dir, "docs")
+    if not os.path.exists(docs_dir):
+        docs_dir = os.path.join(base_dir, "../docs")
+
+    if not docs_dir:
+        raise HTTPException(status_code=404, detail="Docs directory not found")
+
+    # SEC-03: use validate_path_within to block path traversal (raises HTTP 400 on escape)
+    safe_path = validate_path_within(Path(docs_dir), Path(docs_dir) / filename)
+
+    if not safe_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    with open(safe_path, "r") as f:
+        content = f.read()
+    return {"content": content}
 
 
 # --- WebSocket Live Feed ---

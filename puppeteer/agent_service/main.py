@@ -704,25 +704,6 @@ if not os.path.exists("installer"):
 app.mount("/installer", StaticFiles(directory="installer"), name="installer")
 
 @app.get(
-    "/verification-key",
-    response_class=Response,
-    tags=["System"],
-    summary="Get Ed25519 verification public key",
-    description="Returns the PEM-encoded Ed25519 public key used to verify signed job scripts"
-)
-async def get_verification_key():
-    """Serves the Public Verification Key for Code Signing."""
-    key_path = "/app/secrets/verification.key"
-    if not os.path.exists(key_path):
-        if os.path.exists("secrets/verification.key"):
-            key_path = "secrets/verification.key"
-        else:
-            raise HTTPException(status_code=404, detail="Verification Key not configured on Server")
-    
-    with open(key_path, "r") as f:
-        return Response(content=f.read(), media_type="text/plain")
-
-@app.get(
     "/installer",
     response_class=Response,
     tags=["System"],
@@ -972,17 +953,6 @@ class ConnectionManager:
 
 ws_manager = ConnectionManager()
 
-@app.get(
-    "/job-definitions",
-    response_model=List[JobDefinitionResponse],
-    tags=["Job Definitions"],
-    summary="List job definitions (alias)",
-    description="Alias for GET /jobs/definitions - returns list of all scheduled job definitions"
-)
-async def dashboard_job_definitions(current_user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    """Dashboard expects /job-definitions instead of /jobs/definitions"""
-    return await scheduler_service.list_job_definitions(db)
-
 # --- Installer & Doc Endpoints ---
 
 @app.get(
@@ -1003,62 +973,6 @@ async def get_installer():
         content = f.read()
     return Response(content=content, media_type="text/plain", headers={"Content-Disposition": "attachment; filename=install_node.ps1"})
 
-@app.get(
-    "/api/docs",
-    response_model=list,
-    tags=["System"],
-    summary="List available documentation files",
-    description="Get list of available markdown documentation files"
-)
-async def list_docs(current_user: User = Depends(require_auth)):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    docs_dir = os.path.join(base_dir, "docs")
-    if not os.path.exists(docs_dir):
-        docs_dir = os.path.join(base_dir, "../docs")
-            
-    if not os.path.exists(docs_dir):
-        return []
-
-    files = []
-    for f in os.listdir(docs_dir):
-        if f.endswith(".md"):
-            title = f
-            try:
-                with open(os.path.join(docs_dir, f), "r") as md_file:
-                    first_line = md_file.readline().strip()
-                    if first_line.startswith("#"):
-                        title = first_line.lstrip("# ").strip()
-            except:
-                pass
-            files.append({"filename": f, "title": title})
-    return files
-
-@app.get(
-    "/api/docs/{filename}",
-    response_model=dict,
-    tags=["System"],
-    summary="Get documentation file content",
-    description="Retrieve the full content of a markdown documentation file"
-)
-async def get_doc_content(filename: str, current_user: User = Depends(require_auth)):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    docs_dir = os.path.join(base_dir, "docs")
-    if not os.path.exists(docs_dir):
-        docs_dir = os.path.join(base_dir, "../docs")
-
-    if not docs_dir:
-        raise HTTPException(status_code=404, detail="Docs directory not found")
-
-    # SEC-03: use validate_path_within to block path traversal (raises HTTP 400 on escape)
-    safe_path = validate_path_within(Path(docs_dir), Path(docs_dir) / filename)
-
-    if not safe_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-
-    with open(safe_path, "r") as f:
-        content = f.read()
-    return {"content": content}
-
 # --- Job Templates (SRCH-06, SRCH-07) ---
 # NOTE: All job template routes are implemented in routers/jobs_router.py
 # They are wired into the app via app.include_router(jobs_router, tags=["Jobs", ...])
@@ -1068,62 +982,8 @@ EXEC_CSV_HEADERS = ["job_guid", "node_id", "status", "exit_code",
 
 
 # --- Retention Config (SRCH-08) ---
-
-@app.get(
-    "/api/admin/retention",
-    response_model=dict,
-    tags=["Admin"],
-    summary="Get retention configuration",
-    description="Get current execution retention settings and counts of eligible/pinned records"
-)
-async def get_retention_config(
-    current_user: User = Depends(require_permission("users:write")),
-    db: AsyncSession = Depends(get_db),
-):
-    """Get current execution retention config and live record counts."""
-    res = await db.execute(select(Config.value).where(Config.key == "execution_retention_days"))
-    val = res.scalar_one_or_none()
-    retention_days = int(val) if val else 14
-    cutoff = datetime.utcnow() - timedelta(days=retention_days)
-    eligible = await db.scalar(
-        select(func.count(ExecutionRecord.id)).where(
-            ExecutionRecord.completed_at < cutoff,
-            ExecutionRecord.pinned.is_(False),
-        )
-    )
-    pinned_count = await db.scalar(
-        select(func.count(ExecutionRecord.id)).where(
-            ExecutionRecord.pinned.is_(True)
-        )
-    )
-    return {
-        "retention_days": retention_days,
-        "eligible_count": eligible or 0,
-        "pinned_count": pinned_count or 0,
-    }
-
-
-@app.patch(
-    "/api/admin/retention",
-    response_model=dict,
-    tags=["Admin"],
-    summary="Update retention configuration",
-    description="Update the execution record retention period in days"
-)
-async def update_retention_config(
-    body: RetentionConfigUpdate,
-    current_user: User = Depends(require_permission("users:write")),
-    db: AsyncSession = Depends(get_db),
-):
-    """Update execution retention period in days."""
-    existing = await db.execute(select(Config).where(Config.key == "execution_retention_days"))
-    row = existing.scalar_one_or_none()
-    if row:
-        row.value = str(body.retention_days)
-    else:
-        db.add(Config(key="execution_retention_days", value=str(body.retention_days)))
-    await db.commit()
-    return {"retention_days": body.retention_days}
+# NOTE: Retention routes are implemented in routers/admin_router.py
+# They are wired into the app via app.include_router(admin_router, tags=["Admin", ...])
 
 
 # --- Smelter: Transitive CVE Scanning & Dependency Tree (Phase 110) ---

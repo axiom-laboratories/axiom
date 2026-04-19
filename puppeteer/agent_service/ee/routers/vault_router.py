@@ -13,6 +13,7 @@ from ...db import get_db, VaultConfig, User
 from ...deps import require_permission, audit, require_ee
 from ...models import VaultConfigResponse, VaultConfigUpdateRequest, VaultTestConnectionRequest, VaultTestConnectionResponse, VaultStatusResponse
 from ...security import cipher_suite
+from ..services.vault_service import VaultConfigSnapshot
 
 logger = logging.getLogger(__name__)
 vault_router = APIRouter()
@@ -79,11 +80,11 @@ async def update_vault_config(
     db.add(vault_config)
     await db.commit()
 
-    # Reinitialize vault_service with new config
+    # Reinitialize vault_service with new config (convert to frozen snapshot per D-05)
     try:
         vault_service = getattr(request.app.state, 'vault_service', None)
         if vault_service:
-            vault_service.config = vault_config
+            vault_service.config = VaultConfigSnapshot.from_orm(vault_config)
             await vault_service.startup()
             _status = await vault_service.status()
             logger.info(f"Vault service reinitialized after config update: status={_status}")
@@ -105,8 +106,8 @@ async def test_vault_connection(
         from ee.services.vault_service import VaultService, VaultError
         from ...db import AsyncSessionLocal
 
-        # Create temporary test config
-        test_config = VaultConfig(
+        # Create temporary test config (as frozen snapshot per D-05)
+        test_config_obj = VaultConfig(
             id="test-connection",
             vault_address=req.vault_address,
             role_id=req.role_id,
@@ -115,6 +116,15 @@ async def test_vault_connection(
             namespace=req.namespace,
             provider_type="vault",
             enabled=True,
+        )
+        test_config = VaultConfigSnapshot(
+            enabled=test_config_obj.enabled,
+            vault_address=test_config_obj.vault_address,
+            role_id=test_config_obj.role_id,
+            secret_id=test_config_obj.secret_id,
+            mount_path=test_config_obj.mount_path,
+            namespace=test_config_obj.namespace,
+            provider_type=test_config_obj.provider_type,
         )
 
         # Create test service and attempt connection
