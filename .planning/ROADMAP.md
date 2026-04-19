@@ -316,4 +316,4 @@ Archive: (pending — roadmap under review)
 | 168. SIEM Streaming (EE) | v24.0 | 5/5 | Complete | 2026-04-18 |
 | 169. PR Review Fix — EE Licence Guard and Import Correctness | v24.0 | 1/1 | Complete | 2026-04-19 |
 | 170. PR Review Fix — Code Hygiene and Resource Safety | v24.0 | 1/1 | Complete | 2026-04-19 |
-| 171. Security Hardening — Authorization, Credential Safety, and Vault Recovery | v24.0 | 0/4 | In Progress | — |
+| 171. Security Hardening — Authorization, Credential Safety, and Vault Recovery | v24.0 | 4/4 | Complete | 2026-04-19 |
