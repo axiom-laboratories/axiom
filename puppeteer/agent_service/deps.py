@@ -85,16 +85,6 @@ async def get_current_user_optional(
 # the EE routes return 402 stubs.
 # ---------------------------------------------------------------------------
 
-_perm_cache: dict[str, set[str]] = {}
-
-
-def _invalidate_perm_cache(role: str | None = None) -> None:
-    """Clear cached permissions for a role (or all roles)."""
-    if role:
-        _perm_cache.pop(role, None)
-    else:
-        _perm_cache.clear()
-
 
 def require_ee():
     """Dependency factory that enforces EE licence requirement.
@@ -125,26 +115,28 @@ def require_ee():
 
 def require_permission(perm: str):
     """Dependency factory that enforces a named permission via DB-backed RBAC.
-    Used by EE routers only — CE routes use require_auth instead."""
+    Used by EE routers only — CE routes use require_auth instead.
+
+    Queries DB on every request (no caching) to fix multi-worker race conditions.
+    """
     async def _check(current_user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
         # EE tables (RolePermission) must exist for this to work.
         # In CE mode this code path is never reached.
         if getattr(current_user, 'role', None) == "admin":
             return current_user
-        from .db import Base
-        RolePermission = Base.metadata.tables.get("role_permissions")
-        if RolePermission is None:
+        from .db import Base, RolePermission
+        if Base.metadata.tables.get("role_permissions") is None:
             # CE mode — no RBAC table, just authenticate
             return current_user
-        if getattr(current_user, 'role', 'viewer') not in _perm_cache:
-            from sqlalchemy import select as sa_select, text
-            result = await db.execute(
-                sa_select(text("permission")).select_from(text("role_permissions")).where(
-                    text(f"role = :role")
-                ), {"role": current_user.role}
+
+        # Always query DB on every request (no cache)
+        result = await db.execute(
+            select(RolePermission).where(
+                RolePermission.role == current_user.role,
+                RolePermission.permission == perm
             )
-            _perm_cache[current_user.role] = {row[0] for row in result.all()}
-        if perm not in _perm_cache.get(getattr(current_user, 'role', 'viewer'), set()):
+        )
+        if not result.scalars().first():
             raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
         return current_user
     return _check

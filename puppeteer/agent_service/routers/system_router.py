@@ -362,4 +362,6 @@ async def websocket_endpoint(ws: WebSocket, token: Optional[str] = None):
             if data == "ping":
                 await ws.send_text("pong")
     except WebSocketDisconnect:
+        pass
+    finally:
         ws_manager.disconnect(ws)
