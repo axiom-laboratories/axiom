@@ -108,6 +108,7 @@ async def test_connection(
     db: AsyncSession = Depends(get_db),
 ):
     """Test connectivity to the configured SIEM destination."""
+    status = "disabled"
     try:
         from ee.services.siem_service import SIEMService, get_siem_service
         from ...db import AsyncSessionLocal
@@ -178,8 +179,6 @@ async def test_connection(
 @router.get("/admin/siem/status", response_model=SIEMStatusResponse, tags=["SIEM Configuration"])
 async def get_status(
     current_user: User = Depends(require_ee()),
-    db: AsyncSession = Depends(get_db),
-    request: Request = None,
 ):
     """Retrieve SIEM service status."""
     from ee.services.siem_service import get_siem_service
