@@ -206,7 +206,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🔧 v24.0 — Security Infrastructure & Extensibility (Phases 165–168) — IN PROGRESS</summary>
+<summary>🔧 v24.0 — Security Infrastructure & Extensibility (Phases 165–168) — COMPLETE</summary>
 
 - [x] **Phase 165: Dependabot CVE Remediation** — Resolve all HIGH and MODERATE security vulnerabilities flagged on v23.0 release tag (completed 2026-04-18)
   - [x] Plan 01: Update cryptography >= 46.0.7 and crypto chain (python-jose, PyJWT); rebuild Docker; pytest validation
@@ -228,12 +228,12 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
   - [x] Plan 04: Dashboard admin panel integration + Vault status display
   - [x] Plan 05: EE-gating + CE fallback validation
 
-- [x] **Phase 168: SIEM Audit Streaming (EE)** — Real-time audit log export with CEF/syslog formatting, batching, masking
+- [x] **Phase 168: SIEM Audit Streaming (EE)** — Real-time audit log export with CEF/syslog formatting, batching, masking ✓ COMPLETE
   - [x] Plan 01: SIEM service layer (webhook/syslog backends, CEF formatter, batch queue) (completed 2026-04-18)
-  - [ ] Plan 02: Admin UI configuration + enable/disable toggle
-  - [ ] Plan 03: Sensitive field masking + PII scrubbing
-  - [ ] Plan 04: Retry logic with exponential backoff + admin alert dashboard
-  - [ ] Plan 05: EE-gating + integration testing with mock SIEM destination
+  - [x] Plan 02: EE gating + admin routes + lifespan wiring (completed 2026-04-18)
+  - [x] Plan 03: Audit integration + env-var bootstrap (completed 2026-04-18)
+  - [x] Plan 04: Admin Dashboard UI — SIEM configuration tab (completed 2026-04-18)
+  - [x] Plan 05: Integration test suite (completed 2026-04-18)
 
 - [x] **Phase 169: PR Review Fix — EE Licence Guard and Import Correctness (MEDIUM)** — Fix three MEDIUM issues from PR #24 review: add /api/admin/vault and /api/admin/siem to LicenceExpiryGuard.EE_PREFIXES; replace absolute imports in siem_router.py with relative imports; add test_service.shutdown() in try/finally to prevent APScheduler job leaks from test-connection calls ✓ COMPLETE
 
@@ -307,4 +307,4 @@ Archive: (pending — roadmap under review)
 | 165. Dependabot CVE Remediation | v24.0 | 3/3 | Complete | 2026-04-18 |
 | 166. Router Modularization | v24.0 | 6/6 | Complete | 2026-04-18 |
 | 167. Vault Integration (EE) | v24.0 | 5/5 | Complete | 2026-04-18 |
-| 168. SIEM Streaming (EE) | v24.0 | 1/5 | In Progress | 2026-04-18 |
+| 168. SIEM Streaming (EE) | v24.0 | 5/5 | Complete | 2026-04-18 |
