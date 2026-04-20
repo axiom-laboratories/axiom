@@ -10,7 +10,8 @@ import json
 import logging
 import socket
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse, urlunparse
 from typing import Optional, Literal
 from uuid import uuid4
 
@@ -69,6 +70,52 @@ def _mask_sensitive(obj: object) -> object:
     if isinstance(obj, list):
         return [_mask_sensitive(item) for item in obj]
     return obj
+
+
+def _parse_syslog_destination(destination: str, default_port: int) -> tuple[str, int]:
+    """Parse syslog destination into (host, port), handling IPv4, hostname, and IPv6.
+
+    Accepted formats:
+      hostname:514  →  ("hostname", 514)
+      1.2.3.4:514   →  ("1.2.3.4", 514)
+      [::1]:514     →  ("::1", 514)   # bracketed IPv6 with port
+      ::1           →  ("::1", default_port)  # bare IPv6, no port
+      hostname      →  ("hostname", default_port)
+    """
+    # Bracketed IPv6: [::1]:514 or [::1]
+    if destination.startswith("["):
+        bracket_end = destination.find("]")
+        if bracket_end != -1:
+            host = destination[1:bracket_end]
+            remainder = destination[bracket_end + 1:]
+            if remainder.startswith(":"):
+                try:
+                    return host, int(remainder[1:])
+                except ValueError:
+                    pass
+            return host, default_port
+    # Bare IPv6 (multiple colons, no brackets) — no port extractable
+    if destination.count(":") > 1:
+        return destination, default_port
+    # hostname:port or IPv4:port
+    if ":" in destination:
+        host, port_str = destination.rsplit(":", 1)
+        try:
+            return host, int(port_str)
+        except ValueError:
+            return host, default_port
+    return destination, default_port
+
+
+def _redact_destination(destination: str) -> str:
+    """Redact query parameters from webhook URLs to avoid leaking embedded tokens."""
+    try:
+        parsed = urlparse(destination)
+        if parsed.scheme in ("http", "https") and parsed.query:
+            return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "***", ""))
+    except Exception:
+        pass
+    return destination
 
 
 class SIEMService:
@@ -140,14 +187,14 @@ class SIEMService:
             # Test destination reachability
             await self._test_connection()
             self._status = "healthy"
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
             logger.info(
                 f"SIEM connection healthy: {self.config.backend} → {self.config.destination}"
             )
         except Exception as e:
             self._status = "degraded"
             self._last_error = str(e)
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
             logger.warning(f"SIEM unavailable at startup; running degraded: {e}")
 
     def enqueue(self, event: dict) -> None:
@@ -222,13 +269,13 @@ class SIEMService:
             await self._deliver(payload)
             self._consecutive_failures = 0
             self._status = "healthy"
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
             logger.debug(f"SIEM batch delivered: {len(batch)} events (attempt {attempt})")
             return
         except Exception as e:
             self._last_error = str(e)
             self._consecutive_failures += 1
-            self._last_checked_at = datetime.utcnow()
+            self._last_checked_at = datetime.now(timezone.utc)
 
             next_attempt = attempt + 1
             if next_attempt < max_attempts:
@@ -237,7 +284,7 @@ class SIEMService:
                 self.scheduler.add_job(
                     self.flush_batch,
                     "date",
-                    run_date=datetime.utcnow() + timedelta(seconds=delay),
+                    run_date=datetime.now(timezone.utc) + timedelta(seconds=delay),
                     args=[batch, next_attempt],
                     id=job_id,
                     replace_existing=False,
@@ -283,7 +330,7 @@ class SIEMService:
         severity = self._map_severity(action)
 
         # Extensions (ArcSight/CEF extension dictionary)
-        event_timestamp = event.get("timestamp", datetime.utcnow())
+        event_timestamp = event.get("timestamp", datetime.now(timezone.utc))
         if isinstance(event_timestamp, datetime):
             timestamp_ms = int(event_timestamp.timestamp() * 1000)
         else:
@@ -400,18 +447,9 @@ class SIEMService:
         """Deliver payload to syslog server via UDP or TCP."""
 
         def _sync_send():
-            # Parse destination (host:port or just host)
-            destination = self.config.destination
-            if ":" in destination:
-                host, port_str = destination.rsplit(":", 1)
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    port = self.config.syslog_port
-            else:
-                host = destination
-                port = self.config.syslog_port
-
+            host, port = _parse_syslog_destination(
+                self.config.destination, self.config.syslog_port
+            )
             protocol = self.config.syslog_protocol.upper()
             socktype = (
                 socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
@@ -472,18 +510,9 @@ class SIEMService:
         """Test syslog destination reachability."""
 
         def _sync_test():
-            # Parse destination (host:port or just host)
-            destination = self.config.destination
-            if ":" in destination:
-                host, port_str = destination.rsplit(":", 1)
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    port = self.config.syslog_port
-            else:
-                host = destination
-                port = self.config.syslog_port
-
+            host, port = _parse_syslog_destination(
+                self.config.destination, self.config.syslog_port
+            )
             protocol = self.config.syslog_protocol.upper()
             socktype = (
                 socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
@@ -526,7 +555,7 @@ class SIEMService:
         return {
             "status": self._status,
             "backend": self.config.backend if self.config else None,
-            "destination": self.config.destination if self.config else None,
+            "destination": _redact_destination(self.config.destination) if self.config else None,
             "last_checked_at": (
                 self._last_checked_at.isoformat()
                 if self._last_checked_at
