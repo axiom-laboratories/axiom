@@ -16,7 +16,12 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 **Latest shipped:** v24.0 Security Infrastructure & Extensibility (2026-04-19)
 **Previous:** v23.0 DAG & Workflow Orchestration (2026-04-18)
-**Current milestone:** v25.0 (planning)
+**Current milestone:** v25.0 — EE Validation & Infrastructure (planning)
+
+**v25.0 Goals:**
+1. **EE behavioural validation** — confirm CE/EE segregation, licence gating (VALID/GRACE/EXPIRED/CE state machine), feature flags, wheel security chain, and boot-log enforcement all behave as specified under adversarial conditions
+2. **Migrate `mop_validation`** to the `axiom` GitHub organisation as a private repo (consolidate all Axiom tooling under one org)
+3. **Licence repo architecture** — structured comparison of issued-licence storage options (current separate Git repo vs DB vs hybrid) with a concrete recommendation
 
 ## Requirements
 
@@ -383,13 +388,19 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ **SIEM-05**: Failed webhook deliveries retried with exponential backoff (5s → 10s → 20s); status degrades at 3 failures — v24.0 (Phase 168)
 - ✓ **SIEM-06**: SIEM streaming disabled/enabled without affecting local audit log; hot-reload config — v24.0 (Phase 168)
 
-### Active — Future Milestones (v25.0+)
+### Active — v25.0 (Current Milestone)
 
-- [ ] Workflow execution analytics + critical path tracing (v25.0+)
-- [ ] Rerun from failure point — restart WorkflowRun from first failed step (v25.0+)
-- [ ] Cross-workflow dependencies — workflows calling other workflows (v25.0+)
-- [ ] Advanced IF gate logic — AND/OR nested conditions in a single gate (v25.0+)
-- [ ] WORKFLOW_PARAM_* injection accessible to downstream IF gate condition context (v25.0+)
+- [ ] EE behavioural validation — CE/EE segregation, licence gating, feature flags, wheel security chain (v25.0)
+- [ ] Migrate `mop_validation` to `axiom` GitHub org as private repo (v25.0)
+- [ ] Licence repo architecture analysis — comparison of Git repo vs DB vs hybrid, with recommendation (v25.0)
+
+### Active — Future Milestones (v26.0+)
+
+- [ ] Workflow execution analytics + critical path tracing (v26.0+)
+- [ ] Rerun from failure point — restart WorkflowRun from first failed step (v26.0+)
+- [ ] Cross-workflow dependencies — workflows calling other workflows (v26.0+)
+- [ ] Advanced IF gate logic — AND/OR nested conditions in a single gate (v26.0+)
+- [ ] WORKFLOW_PARAM_* injection accessible to downstream IF gate condition context (v26.0+)
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
 - [ ] DIST-02: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current use)
 - [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
@@ -630,4 +641,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike), UX-04/05/06/07 (operator UX polish, deferred from v19.0 to v20.0).
 
 ---
-*Last updated: 2026-04-19 after v24.0 milestone complete — Security Infrastructure & Extensibility*
+*Last updated: 2026-04-20 after v25.0 milestone planning began — EE Validation & Infrastructure*

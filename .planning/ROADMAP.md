@@ -27,6 +27,7 @@
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
 - ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–164 (shipped 2026-04-18)
 - ✅ **v24.0 — Security Infrastructure & Extensibility** — Phases 165–172 (shipped 2026-04-20)
+- 🚧 **v25.0 — EE Validation & Infrastructure** — Phases 173–175 (in progress)
 
 ## Phases
 
@@ -256,7 +257,71 @@ Archive: `.planning/milestones/v24.0-ROADMAP.md`
 
 ## Active Phases
 
-_No active phases — start a new milestone with `/gsd-new-milestone`._
+### 🚧 v25.0 — EE Validation & Infrastructure (Phases 173–175)
+
+**Milestone Goal:** Confirm CE/EE segregation, licence gating, wheel security chain, and boot log enforcement all hold under adversarial conditions; consolidate Axiom tooling repos; produce a concrete licence storage architecture recommendation.
+
+---
+
+### Phase 173: EE Behavioural Validation Test Suite
+**Goal**: Build a comprehensive automated test suite in `mop_validation` covering all 13 CE/EE behavioural scenarios plus automated coverage assertion — zero manual-only steps.
+**Depends on**: Nothing
+**Requirements**: VAL-01, VAL-02, VAL-03, VAL-04, VAL-05, VAL-06, VAL-07, VAL-08, VAL-09, VAL-10, VAL-11, VAL-12, VAL-13, VAL-14
+**Success Criteria** (what must be TRUE):
+  1. CE-only fixture: exactly 15 tables present, no EE schema, all feature flags false, 7 stub routes return 402
+  2. EE fixture: 41 tables (15 CE + 26 EE) with valid licence; all EE flags true; `GET /api/licence` returns `status=VALID`
+  3. Licence state machine: GRACE banner visible, EXPIRED triggers DEGRADED_CE (pull_work empty, not 402), absent/tampered licence → CE mode + no crash
+  4. Wheel security chain: tampered SHA256 manifest raises `RuntimeError`; non-whitelisted entry point raises `RuntimeError`; EE does not load in either case
+  5. Boot log HMAC: clock-rollback raises `RuntimeError` on EE; CE emits warning only
+  6. Node limit: enrollment returns 402 when `active_nodes ≥ node_limit`; existing enrolled nodes continue
+  7. All 14 VAL requirements covered by automated pytest tests; `pytest mop_validation/tests/` passes with zero skips
+
+Plans:
+- [ ] 173-01: Test fixtures + CE validation (VAL-01, VAL-02, VAL-03) — shared pytest fixtures for CE-only and EE installs; table count assertion; feature flag endpoint; stub route sweep
+- [ ] 173-02: Licence state machine tests (VAL-04 through VAL-09) — valid, GRACE, EXPIRED, absent, tampered-signature scenarios
+- [ ] 173-03: Wheel + boot log security tests (VAL-10, VAL-11, VAL-13) — bad SHA256 manifest, non-whitelisted entry point, clock-rollback HMAC
+- [ ] 173-04: Node limit test + coverage assertion (VAL-12, VAL-14) — enrollment 402 at capacity; assert all VAL scenarios covered
+
+---
+
+### Phase 174: mop_validation Repo Migration
+**Goal**: Transfer `mop_validation` to the `axiom` GitHub organisation as a private repo; update all references so tooling, scripts, and CI continue to work without modification.
+**Depends on**: Phase 173 (tests exist and pass before moving the repo)
+**Requirements**: MIG-01, MIG-02, MIG-03, MIG-04
+**Success Criteria** (what must be TRUE):
+  1. `mop_validation` is accessible at `github.com/axiom/mop_validation` (private repo)
+  2. All scripts in `mop_validation/scripts/` execute correctly from the new remote
+  3. Local git remote `origin` points to `github.com/axiom/mop_validation`
+  4. `CLAUDE.md` and `GEMINI.md` in `master_of_puppets` updated to reference the new org URL
+
+Plans:
+- [ ] 174-01: GitHub org transfer — initiate repo transfer to `axiom` org; verify clone, push, and all scripts work from new URL
+- [ ] 174-02: Reference updates — update local git remote; update `CLAUDE.md` and `GEMINI.md` sister repo section
+
+---
+
+### Phase 175: Licence Architecture Analysis
+**Goal**: Produce a structured, evidence-based comparison of three issued-licence storage approaches and deliver a concrete recommendation with rationale — not just a comparison table.
+**Depends on**: Nothing (purely analytical; can run in parallel with 173/174)
+**Requirements**: LIC-01, LIC-02, LIC-03
+**Success Criteria** (what must be TRUE):
+  1. Comparison covers all three options (current Git repo, DB-embedded, hybrid DB+Git) across all six dimensions (security, auditability, air-gap compatibility, operational complexity, CI/CD integration, recovery from data loss)
+  2. "Why this over the others" rationale section is present with a single concrete recommendation
+  3. If recommendation differs from current Git repo approach, a migration path is documented with effort estimate
+  4. Delivered as `.planning/LIC-ANALYSIS.md`
+
+Plans:
+- [ ] 175-01: Research + comparison + recommendation — investigate `axiom-licences` repo structure; survey three options; write `LIC-ANALYSIS.md` with table, rationale, and (if needed) migration path
+
+---
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 173. EE Behavioural Validation | 0/4 | Not started | - |
+| 174. mop_validation Repo Migration | 0/2 | Not started | - |
+| 175. Licence Architecture Analysis | 0/1 | Not started | - |
 
 ## Progress
 
