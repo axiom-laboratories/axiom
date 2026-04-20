@@ -679,3 +679,25 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - Regression gate: PASS (no new failures introduced)
 - Verification: PASS (all 3 acceptance criteria confirmed)
 - Summary: `.planning/phases/169-pr-review-fix-ee-licence-guard-and-import-correctness/169-01-SUMMARY.md`
+
+---
+
+## Deferred Items (Acknowledged — 2026-04-19)
+
+Open items acknowledged during v24.0 milestone close. All predate v24.0 and are not blockers for milestone completion.
+
+### Verification Gaps
+
+| Phase | File | Status | Note |
+|-------|------|--------|------|
+| 12 | `12-VERIFICATION.md` | human_needed | Pre-v24.0 phase; requires manual verification |
+| 19 | `19-VERIFICATION.md` | human_needed | Pre-v24.0 phase; requires manual verification |
+| 159 | `159-VERIFICATION.md` | gaps_found | Pre-v24.0 phase; gaps remain open |
+| 167 | `167-VERIFICATION.md` | gaps_found | Superseded by `167-REVERIFICATION.md` (status: passed); original stale |
+
+### Open TODOs
+
+| File | Area | Note |
+|------|------|------|
+| `2026-04-11-dag-workflow-milestone-review.md` | api | Pre-v24.0 milestone planning item |
+| `2026-04-11-investigate-hosted-licence-server-vps.md` | api | Pre-v24.0 infrastructure investigation |

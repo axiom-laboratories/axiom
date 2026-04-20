@@ -1,5 +1,24 @@
 # Milestones
 
+## v24.0 Security Infrastructure & Extensibility (Shipped: 2026-04-19)
+
+**Phases completed:** 7 phases (165–171), 25 plans
+**Stats:** ~135 commits | ~20,000 LOC added | 2 days (2026-04-18 → 2026-04-19)
+**Requirements:** 18/18 satisfied (100%) — SEC-03/04, ARCH-01/04, VAULT-01/06, SIEM-01/06
+**Audit:** `.planning/milestones/v24.0-MILESTONE-AUDIT.md` — PASSED
+
+**Key accomplishments:**
+- Phase 165 — CVE remediation: `cryptography` bumped to ≥ 46.0.7 (HIGH buffer-overflow CVE); all Dependabot HIGH/MODERATE alerts on v23.0 tag resolved; `.github/dependabot.yml` automation added
+- Phase 166 — Router modularization: `main.py` (3,828 lines) split into 9 domain APIRouters (auth, jobs, nodes, workflows, admin, system, smelter + 2 EE: vault, siem); 105 routes migrated; zero behavior change; zero new test failures across 736-test suite
+- Phase 167 — HashiCorp Vault EE integration: AppRole auth, secret injection at job dispatch, 5-minute lease renewal via APScheduler, graceful fallback when Vault offline, admin dashboard status display; all 6 VAULT requirements satisfied
+- Phase 168 — SIEM audit streaming EE: CEF-formatted webhook + syslog backends, asyncio.Queue batching (100-event / 5s flush), sensitive field masking at format time, exponential backoff retry (5s→10s→20s), hot-reload config via singleton swap; 37 tests passing; all 6 SIEM requirements satisfied
+- Phase 169/170 — PR review remediations: LicenceExpiryGuard EE_PREFIXES wired for vault + siem; correct relative imports in EE routers; route migrations from main.py; VaultConfigSnapshot immutability; WebSocket resource safety
+- Phase 171 — Security hardening: granular `require_permission()` guards on all sensitive admin_router + jobs_router endpoints; ADMIN_PASSWORD scrubbed from startup logs; YAML injection vector closed in compose-file generation; Vault re-auth recovery for stuck degraded state; per-request permission DB check (cache removed)
+
+**Delivered:** Production-grade security layer: external secrets management (Vault EE), real-time audit streaming (SIEM EE), hardened authorization (granular permissions on all sensitive routes), and a clean modular router architecture replacing the monolithic main.py.
+
+---
+
 ## v23.0 DAG & Workflow Orchestration (Shipped: 2026-04-18)
 
 **Phases completed:** 9 phases, 15 plans, 45 tasks

@@ -206,7 +206,7 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 </details>
 
 <details>
-<summary>🔧 v24.0 — Security Infrastructure & Extensibility (Phases 165–171) — IN PROGRESS</summary>
+<summary>✅ v24.0 — Security Infrastructure & Extensibility (Phases 165–171) — SHIPPED 2026-04-19</summary>
 
 - [x] **Phase 165: Dependabot CVE Remediation** — Resolve all HIGH and MODERATE security vulnerabilities flagged on v23.0 release tag (completed 2026-04-18)
   - [x] Plan 01: Update cryptography >= 46.0.7 and crypto chain (python-jose, PyJWT); rebuild Docker; pytest validation
@@ -240,13 +240,13 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 - [x] **Phase 170: PR Review Fix — Code Hygiene and Resource Safety (LOW)** — Fix four LOW issues from PR #24 review ✓ COMPLETE
   - [x] Plan 01: asyncio.get_running_loop() (D-01) + renewal_failures property (D-02) + route migrations (D-03–07) + VaultConfigSnapshot (D-08–11) (Wave 1)
 
-- [ ] **Phase 171: Security Hardening — Authorization, Credential Safety, and Vault Recovery** — Close authorization permission gaps in EE routers, remove credential logging, fix YAML injection vector, narrow Vault exception handling, and add re-auth recovery for stuck degraded state
-  - [ ] Plan 01: Authorization hardening — replace require_auth with require_permission on sensitive admin_router and jobs_router endpoints (token generation, bulk operations)
-  - [ ] Plan 02: Credential safety — scrub ADMIN_PASSWORD from startup log output; fix YAML injection in compose-file generation endpoint
-  - [ ] Plan 03: Vault service hardening — narrow exception catch in resolve(); add re-authentication recovery path when token expires (stuck degraded state); fix vault_router enabled-only filter blocking disabled-config CRUD
-  - [ ] Plan 04: Deps hardening — fix perm cache multi-worker race condition (per-request DB check or Redis-backed cache); add try/finally to WebSocket handler in system_router.py to prevent resource leak
+- [x] **Phase 171: Security Hardening — Authorization, Credential Safety, and Vault Recovery** ✓ COMPLETE
+  - [x] Plan 01: Authorization hardening — replace require_auth with require_permission on sensitive admin_router and jobs_router endpoints (token generation, bulk operations)
+  - [x] Plan 02: Credential safety — scrub ADMIN_PASSWORD from startup log output; fix YAML injection in compose-file generation endpoint
+  - [x] Plan 03: Vault service hardening — narrow exception catch in resolve(); add re-authentication recovery path when token expires (stuck degraded state); fix vault_router enabled-only filter blocking disabled-config CRUD
+  - [x] Plan 04: Deps hardening — fix perm cache multi-worker race condition (per-request DB check or Redis-backed cache); add try/finally to WebSocket handler in system_router.py to prevent resource leak
 
-Archive: (pending — roadmap under review)
+Archive: `.planning/milestones/v24.0-ROADMAP.md`
 
 </details>
 

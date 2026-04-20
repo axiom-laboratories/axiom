@@ -12,23 +12,11 @@ Targets homelab and enterprise internal deployments where nodes may be shared or
 
 Jobs run reliably — on the right node, when scheduled, with their output captured — without any step in the chain weakening the security model.
 
-## Current Milestone: v24.0 Security Infrastructure & Extensibility
-
-**Goal:** Harden the platform's infrastructure foundation by resolving known vulnerabilities, modularizing the backend into domain routers, introducing external secrets management (HashiCorp Vault), hardware-backed node identity (TPM), a plugin SDK architecture, and SIEM-compatible audit log streaming.
-
-**Target features:**
-- Dependabot vulnerability remediation (2 high, 1 moderate — flagged on v23.0 tag push)
-- Refactor `main.py` into domain-specific routers (maintainability + testability)
-- External Secrets Provider — HashiCorp Vault integration
-- Hardware-Backed Identity — TPM-based node identity for hostile environments
-- Plugin System v2 — SDK-based architecture for third-party extensibility
-- Audit Log Streaming — SIEM integration (syslog / webhook export)
-
 ## Current State
 
-**Latest shipped:** v23.0 DAG & Workflow Orchestration (2026-04-18)
-**Previous:** v22.0 Security Hardening (2026-04-15)
-**Current milestone:** v24.0 Security Infrastructure & Extensibility (in progress)
+**Latest shipped:** v24.0 Security Infrastructure & Extensibility (2026-04-19)
+**Previous:** v23.0 DAG & Workflow Orchestration (2026-04-18)
+**Current milestone:** v25.0 (planning)
 
 ## Requirements
 
@@ -374,14 +362,34 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ **QUAL-02**: Public key externalized to environment variables — no hardcoded keys in source — v23.0 (Phase 164)
 - ✓ **FEBE-01/02/03**: Frontend-backend alignment — auth.ts 402 handler, /api/ prefix audit, recipe validation UI — v23.0 (Phase 164)
 
-### Active — Future Milestones (v24.0+)
+### Validated — v24.0 Security Infrastructure & Extensibility
 
-- [ ] **SECURITY**: Resolve 3 Dependabot vulnerabilities on main (2 high, 1 moderate) — flagged on v23.0 tag push 2026-04-18. Check GitHub Security tab for details.
-- [ ] Workflow execution analytics + critical path tracing (v24.0+)
-- [ ] Rerun from failure point — restart WorkflowRun from first failed step (v24.0+)
-- [ ] Cross-workflow dependencies — workflows calling other workflows (v24.0+)
-- [ ] Advanced IF gate logic — AND/OR nested conditions in a single gate (v24.0+)
-- [ ] WORKFLOW_PARAM_* injection accessible to downstream IF gate condition context (v24.0+)
+- ✓ **SEC-03**: Cryptography CVE-2026-39892 resolved; pip-audit clean — v24.0 (Phase 165)
+- ✓ **SEC-04**: 8 npm HIGH/MODERATE CVEs resolved; npm audit clean — v24.0 (Phase 165)
+- ✓ **ARCH-01**: `auth_router.py` + `jobs_router.py` extracted from `main.py` (1,200+ lines) — v24.0 (Phase 166)
+- ✓ **ARCH-02**: `nodes_router.py` + `workflows_router.py` extracted from `main.py` — v24.0 (Phase 166)
+- ✓ **ARCH-03**: `admin_router.py` + `system_router.py` + `smelter_router.py` extracted from `main.py` — v24.0 (Phase 166)
+- ✓ **ARCH-04**: EE `vault_router.py` + `siem_router.py` extracted; CE stubs return 402 — v24.0 (Phase 166)
+- ✓ **VAULT-01**: HashiCorp Vault AppRole authentication with dynamic secret injection into job containers — v24.0 (Phase 167)
+- ✓ **VAULT-02**: Vault lease renewal via APScheduler 5-minute background job — v24.0 (Phase 167)
+- ✓ **VAULT-03**: Vault health status surfaced in `GET /system/health` alongside SIEM — v24.0 (Phase 167)
+- ✓ **VAULT-04**: Graceful fallback when Vault unavailable — jobs run with static secrets, warnings logged — v24.0 (Phase 167)
+- ✓ **VAULT-05**: EE admin UI for Vault configuration (address, AppRole credentials, namespace, mount path) — v24.0 (Phase 167)
+- ✓ **VAULT-06**: Vault secrets injected as environment variables (`VAULT_SECRET_*`) into job execution containers — v24.0 (Phase 167)
+- ✓ **SIEM-01**: EE admin can configure SIEM destination (webhook/syslog) via Admin UI — v24.0 (Phase 168)
+- ✓ **SIEM-02**: Audit events batched at 100 events or 5s intervals, whichever first — v24.0 (Phase 168)
+- ✓ **SIEM-03**: SIEM webhook payloads formatted as CEF (Common Event Format) with ArcSight extensions — v24.0 (Phase 168)
+- ✓ **SIEM-04**: Sensitive fields (password, token, api_key, *_secret) masked before SIEM transmission — v24.0 (Phase 168)
+- ✓ **SIEM-05**: Failed webhook deliveries retried with exponential backoff (5s → 10s → 20s); status degrades at 3 failures — v24.0 (Phase 168)
+- ✓ **SIEM-06**: SIEM streaming disabled/enabled without affecting local audit log; hot-reload config — v24.0 (Phase 168)
+
+### Active — Future Milestones (v25.0+)
+
+- [ ] Workflow execution analytics + critical path tracing (v25.0+)
+- [ ] Rerun from failure point — restart WorkflowRun from first failed step (v25.0+)
+- [ ] Cross-workflow dependencies — workflows calling other workflows (v25.0+)
+- [ ] Advanced IF gate logic — AND/OR nested conditions in a single gate (v25.0+)
+- [ ] WORKFLOW_PARAM_* injection accessible to downstream IF gate condition context (v25.0+)
 - [ ] SLSA provenance — Ed25519-signed build provenance, resource limits, --secret credentials (deferred from v7.0)
 - [ ] DIST-02: `axiom-ce` image on Docker Hub (deferred from v11.0 — GHCR covers current use)
 - [ ] EE-08: Full `axiom-ee` stub wheel publication to PyPI (deferred from v11.0)
@@ -399,7 +407,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), API contract fully typed with unified signature path (v21.0), container security posture fully hardened with layered EE licence protection (v22.0), and full DAG workflow orchestration operational (v23.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod) with Alembic migration framework. Frontend is React/Vite with light/dark theming and ReactFlow visual DAG editor. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~64,000+ LOC (Python + TypeScript). v23.0 shipped 2026-04-18.
+Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), API contract fully typed with unified signature path (v21.0), container security posture fully hardened with layered EE licence protection (v22.0), full DAG workflow orchestration operational (v23.0), and security infrastructure extended with Vault integration + SIEM streaming (v24.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod) with Alembic migration framework. Frontend is React/Vite with light/dark theming and ReactFlow visual DAG editor. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~85,000+ LOC (Python + TypeScript). v24.0 shipped 2026-04-19.
 
 All 89 API routes have explicit `response_model` declarations. The full dispatch pipeline is covered by service-layer integration tests and a live E2E orchestration script. All server-side job signing flows through `SignatureService.countersign_for_node()` — no unsigned jobs can be created or scheduled.
 
@@ -540,6 +548,16 @@ The security model is zero-trust by default. Any feature that requires relaxing 
 | `cap_drop: ALL` on all 7 services (not per-service tuning initially) | Uniform policy is auditable and least-surprise; service-specific `cap_add` only where operationally required (Caddy: NET_BIND_SERVICE) | ✓ Good |
 | `/proc/1/status` over `ps -o uid=` for UID verification in tests | `ps` flags differ between Alpine and Debian; `/proc/1/status` is universally available on all Linux containers | ✓ Good |
 | Node fixture `pytest.skip()` when node not running (not `xfail`) | Compose environments vary (server compose excludes node); skip is the correct semantic — the test is inapplicable, not expected to fail | ✓ Good |
+| 9 CE domain routers + 2 EE routers extracted from `main.py` (v24.0) | `main.py` at 3,828 lines was a maintainability and testability liability; domain routing enables isolated test suites per subsystem | ✓ Good |
+| EE router absolute imports (`from ee.services.*`, not relative) | Relative import paths across `agent_service/ee/routers/` → `ee/services/` cross a package boundary; absolute imports avoid `ModuleNotFoundError` at runtime | ✓ Good |
+| HashiCorp Vault over built-in secrets manager for EE (v24.0) | Vault is the industry standard for dynamic secret injection; avoids reinventing rotation, audit, and lease management; air-gap-safe with local Vault | ✓ Good |
+| SIEM via CEF webhooks + syslog (not custom protocol) (v24.0) | CEF is the de-facto SIEM interop format; webhook + syslog covers 95% of SIEM platforms; avoids vendor-specific SDK dependencies | ✓ Good |
+| SIEM hot-reload config via singleton swap (no process restart) (v24.0) | Operator changes SIEM destination without downtime; old service shuts down gracefully before new one starts | ✓ Good |
+| Per-request permission DB check, no cache (v24.0 Phase 171) | Permission cache introduced TOCTOU race where revoked permissions remained active until cache TTL; per-request check is correct-by-construction | ✓ Good |
+
+## Previous State — v24.0 Complete (2026-04-19)
+
+Axiom v24.0 delivered Security Infrastructure & Extensibility — 7 phases (165–171), 25 plans, all 18/18 requirements satisfied. CVE remediation (Phase 165): cryptography CVE-2026-39892 patched, 8 npm HIGH/MODERATE CVEs resolved, pip-audit and npm audit clean. Router modularization (Phase 166): `main.py` (3,828 lines) decomposed into 9 domain routers (7 CE + 2 EE), 105 routes migrated, 736 tests pass with zero behaviour change. HashiCorp Vault EE integration (Phase 167): AppRole auth, dynamic secret injection as `VAULT_SECRET_*` env vars into job containers, APScheduler lease renewal, `/system/health` Vault field, graceful fallback to static secrets when Vault unavailable, EE admin UI. SIEM audit streaming EE (Phase 168): CEF-formatted webhook + syslog delivery, asyncio.Queue batching (100 events / 5s), sensitive field masking, exponential backoff retry (5s → 10s → 20s), hot-reload config, `/system/health` SIEM field. PR review phases (169–170) closed import path bugs, APScheduler resource leaks, ORM snapshot safety, asyncio deprecations. Security hardening (Phase 171): granular permission gates on admin/job routes, credential safety (no plaintext in logs/responses), YAML injection prevention, Vault exception narrowing, permission cache race condition eliminated (per-request DB check), WebSocket resource leak fixed. 135 commits, ~20,000 LOC added.
 
 ## Previous State — v23.0 Complete (2026-04-18)
 
@@ -612,4 +630,4 @@ On the documentation side: `.env.example` is now a complete operator reference w
 **Known deferred:** EE-08 (PyPI stub wheel), DIST-02 (Docker Hub CE publish), Phase 16 SLSA provenance, job dependencies/DAG, SSO implementation (design complete, v14.0+ candidate), swarming implementation (deferred pending further spike), UX-04/05/06/07 (operator UX polish, deferred from v19.0 to v20.0).
 
 ---
-*Last updated: 2026-04-18 after v24.0 milestone start — Security Infrastructure & Extensibility*
+*Last updated: 2026-04-19 after v24.0 milestone complete — Security Infrastructure & Extensibility*
