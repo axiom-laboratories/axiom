@@ -41,15 +41,14 @@ logger = logging.getLogger(__name__)
 
 # Sensitive field keys that must be masked before transmission (D-11, D-12)
 SENSITIVE_KEYS = {
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "secret_id",
-    "role_id",
-    "encryption_key",
-    "access_token",
-    "refresh_token",
+    "password", "secret", "token", "api_key", "secret_id", "role_id",
+    "encryption_key", "access_token", "refresh_token",
+    # MEDIUM-01: Additional variants to catch (D-11, D-12)
+    "jwt", "jwt_token",
+    "connection_string",
+    "tls_cert", "client_cert",
+    "webhook_auth", "webhook_secret",
+    "private_key", "signing_key",
 }
 
 
