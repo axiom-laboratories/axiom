@@ -332,9 +332,13 @@ class SIEMService:
         # Extensions (ArcSight/CEF extension dictionary)
         event_timestamp = event.get("timestamp", datetime.now(timezone.utc))
         if isinstance(event_timestamp, datetime):
-            timestamp_ms = int(event_timestamp.timestamp() * 1000)
+            dt = event_timestamp
         else:
-            timestamp_ms = int(datetime.fromisoformat(event_timestamp).timestamp() * 1000)
+            dt = datetime.fromisoformat(str(event_timestamp))
+        # Treat naive datetimes as UTC (audit events are always recorded in UTC)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        timestamp_ms = int(dt.timestamp() * 1000)
 
         extensions = {
             "rt": timestamp_ms,
@@ -518,15 +522,17 @@ class SIEMService:
                 socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
             )
 
-            # Create socket and test connection
-            sock = socket.socket(socket.AF_INET, socktype)
+            # Resolve address family so IPv6 destinations work correctly
+            try:
+                addrinfos = socket.getaddrinfo(host, port, 0, socktype)
+            except socket.gaierror as e:
+                raise Exception(f"Syslog DNS resolution failed: {e}")
+            af, socktype_resolved, _, _, sockaddr = addrinfos[0]
+            sock = socket.socket(af, socktype_resolved)
             try:
                 if protocol == "TCP":
-                    sock.connect((host, port))
-                    sock.close()
-                else:
-                    # UDP: just create socket and close (no connect needed)
-                    sock.close()
+                    sock.connect(sockaddr)
+                sock.close()
             except Exception as e:
                 raise Exception(f"Syslog connection failed: {e}")
 
