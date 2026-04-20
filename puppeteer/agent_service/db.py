@@ -524,13 +524,13 @@ class Workflow(EE_Base):
     __tablename__ = "workflows"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String)
-    created_by: Mapped[str] = mapped_column(ForeignKey("users.username"))
+    created_by: Mapped[str] = mapped_column(String)  # username — no FK (cross-base: users is CE)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_paused: Mapped[bool] = mapped_column(Boolean, default=False)
     schedule_cron: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)  # Cron expression; activates only if is_paused=false
 
-    # Relationships
+    # Relationships (all within EE_Base)
     steps: Mapped[List["WorkflowStep"]] = relationship("WorkflowStep", back_populates="workflow", cascade="all, delete-orphan")
     edges: Mapped[List["WorkflowEdge"]] = relationship("WorkflowEdge", back_populates="workflow", cascade="all, delete-orphan")
     parameters: Mapped[List["WorkflowParameter"]] = relationship("WorkflowParameter", back_populates="workflow", cascade="all, delete-orphan")
@@ -541,13 +541,12 @@ class WorkflowStep(EE_Base):
     __tablename__ = "workflow_steps"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
-    scheduled_job_id: Mapped[Optional[str]] = mapped_column(ForeignKey("scheduled_jobs.id"), nullable=True)
+    scheduled_job_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # no FK — cross-base: scheduled_jobs is CE
     node_type: Mapped[str] = mapped_column(String)  # "SCRIPT", "IF_GATE", etc. — validated at service layer
     config_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON as string, not blob
 
-    # Relationships
+    # Relationships (within EE_Base)
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="steps")
-    scheduled_job: Mapped["ScheduledJob"] = relationship("ScheduledJob")
 
 
 class WorkflowEdge(EE_Base):
