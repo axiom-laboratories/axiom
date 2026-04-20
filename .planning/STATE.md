@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v24.0
 milestone_name: Security Infrastructure & Extensibility
-current_phase: Phase 171 (COMPLETE — all 4 plans done)
+current_phase: Phase 172 (COMPLETE — 1/1 plan done)
 status: complete
-last_updated: "2026-04-19T17:30:00.000Z"
+last_updated: "2026-04-20T11:45:00.000Z"
 progress:
   total_phases: 87
-  completed_phases: 86
+  completed_phases: 87
   total_plans: 228
-  completed_plans: 238
+  completed_plans: 239
   percent: 100
 ---
 
@@ -681,6 +681,48 @@ Phase 167 (Vault, EE)                    Phase 168 (SIEM, EE)
 - Summary: `.planning/phases/169-pr-review-fix-ee-licence-guard-and-import-correctness/169-01-SUMMARY.md`
 
 ---
+
+## Execution Metrics — Phase 172
+
+**Plan 172-01 (PR Review Fix — Critical CE/EE Isolation Issues)**
+
+- Status: COMPLETE
+- Duration: 45 minutes
+- Tasks completed: 5/5 (100%)
+- Files created: 0
+- Files modified: 4
+- Commits: 3 (151136bd, 1dd42e56, b0209879)
+- Requirements satisfied: CRITICAL-01 (ghost import removed) — SATISFIED; CRITICAL-02 (EE/CE isolation via separate DeclarativeBase) — SATISFIED
+- Key deliverables:
+  - puppeteer/agent_service/main.py — Removed 12-line ghost perm-cache pre-warm block (lines 250-261)
+  - puppeteer/agent_service/db.py — Created EE_Base DeclarativeBase; migrated 26 EE models (Blueprint, PuppetTemplate, CapabilityMatrix, ApprovedOS, ApprovedIngredient, ImageBOM, PackageIndex, Trigger, AuditLog, RolePermission, UserSigningKey, UserApiKey, ServicePrincipal, ScriptAnalysisRequest, Workflow, WorkflowStep, WorkflowEdge, WorkflowParameter, WorkflowWebhook, WorkflowRun, WorkflowStepRun, JobTemplate, ScheduledFireLog, IngredientDependency, CuratedBundle, CuratedBundleItem); updated init_db() for conditional EE table creation
+  - puppeteer/agent_service/migrations/env.py — Updated target_metadata to track both Base.metadata and EE_Base.metadata for complete Alembic migration generation
+  - puppeteer/agent_service/deps.py — Fixed require_permission() to check both Base.metadata and EE_Base.metadata for role_permissions table (Rule 1 auto-fix)
+- Test results: All CE smoke tests pass (test_ce_features_all_false, test_ce_stub_routers_return_402, test_ce_table_count); all RBAC tests pass (test_operator_with_permission_allowed, test_viewer_without_permission_denied, test_require_permission_queries_db_on_every_request, test_admin_bypasses_permission_check)
+- Table inventory: 15 CE tables on Base; 26 EE tables on EE_Base; total 41
+- Deviations: 1 (Rule 1 auto-fix: require_permission() metadata check after model migration)
+- Summary: `.planning/phases/172-pr-review-fix-critical-ce-ee-isolation/172-01-SUMMARY.md`
+
+**Phase 172 Status (Plan 01)**
+
+- Status: COMPLETE (all 1 plan done)
+- Total duration: ~45 minutes
+- Total files created: 0
+- Total files modified: 4
+- Total commits: 3 (151136bd, 1dd42e56, b0209879)
+- Requirements satisfied:
+  - CRITICAL-01: Ghost perm-cache import block removed from main.py ✓
+  - CRITICAL-02: EE/CE model isolation enforced via separate DeclarativeBase ✓
+- Key achievements:
+  - CE/EE model boundary now explicit at SQLAlchemy layer (Base vs EE_Base)
+  - CE deployments guaranteed to instantiate exactly 15 tables only (no EE schema leakage)
+  - Alembic tracks all 41 models for complete schema versioning
+  - RBAC enforcement (require_permission) works in both CE and EE modes
+  - All tests passing; zero regressions
+- Critical fixes applied:
+  - Removed dead code block (ghost perm-cache pre-warm)
+  - Fixed require_permission() metadata check to work with migrated RolePermission table
+- All PR review issues resolved; ready for merge to main
 
 ## Deferred Items (Acknowledged — 2026-04-19)
 
