@@ -165,6 +165,7 @@ class SIEMService:
         self._dropped_events_count = 0
         self._last_error: Optional[str] = None
         self._last_checked_at: Optional[datetime] = None
+        self._retry_job_ids: set[str] = set()
 
     async def startup(self) -> None:
         """Initialize SIEM connection (non-blocking). Sets status DEGRADED if fails (D-07)."""
@@ -280,6 +281,7 @@ class SIEMService:
             if next_attempt < max_attempts:
                 delay = backoff_delays[attempt]  # 5s, 10s, 20s for attempts 0→1, 1→2, 2→3
                 job_id = f"siem_retry_{uuid4()}_{next_attempt}"
+                self._retry_job_ids.add(job_id)
                 self.scheduler.add_job(
                     self.flush_batch,
                     "date",
@@ -517,11 +519,12 @@ class SIEMService:
 
     async def shutdown(self) -> None:
         """Gracefully stop background scheduler jobs for this service instance."""
-        for job_id in ("__siem_flush__",):
+        for job_id in ("__siem_flush__", *self._retry_job_ids):
             try:
                 self.scheduler.remove_job(job_id)
             except Exception:
                 pass
+        self._retry_job_ids.clear()
 
     async def status(self) -> Literal["healthy", "degraded", "disabled"]:
         """Return current SIEM status."""
