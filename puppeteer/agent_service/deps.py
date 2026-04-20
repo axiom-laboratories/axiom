@@ -124,8 +124,10 @@ def require_permission(perm: str):
         # In CE mode this code path is never reached.
         if getattr(current_user, 'role', None) == "admin":
             return current_user
-        from .db import Base, RolePermission
-        if Base.metadata.tables.get("role_permissions") is None:
+        from .db import Base, EE_Base, RolePermission
+        # RolePermission is on EE_Base; check both Base and EE_Base for the table
+        if (Base.metadata.tables.get("role_permissions") is None and
+            EE_Base.metadata.tables.get("role_permissions") is None):
             # CE mode — no RBAC table, just authenticate
             return current_user
 
