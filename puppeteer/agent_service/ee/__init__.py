@@ -71,6 +71,7 @@ def _mount_ce_stubs(app: Any) -> None:
     from .interfaces.executions import execution_stub_router
     from .interfaces.analyzer import analyzer_stub_router
     from .interfaces.bundles import bundles_stub_router
+    from .interfaces.siem import router as siem_stub_router
 
     # Snapshot route count before mounting stubs
     pre_count = len(app.routes)
@@ -84,6 +85,7 @@ def _mount_ce_stubs(app: Any) -> None:
     app.include_router(execution_stub_router)
     app.include_router(analyzer_stub_router)
     app.include_router(bundles_stub_router)
+    app.include_router(siem_stub_router)
 
     # Tag every route added by stub routers
     for route in app.routes[pre_count:]:

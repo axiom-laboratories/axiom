@@ -924,7 +924,45 @@ class JobService:
                 logger.warning(f"Failed to populate env_vars for job {selected_job.guid}: {e}")
                 env_vars = None
 
+        # Phase 167-02: Resolve Vault secrets if enabled on job
+        vault_secrets_resolved = {}
+        if getattr(selected_job, 'use_vault_secrets', False) and getattr(selected_job, 'vault_secrets', None):
+            try:
+                vault_secret_names = json.loads(selected_job.vault_secrets) if isinstance(selected_job.vault_secrets, str) else selected_job.vault_secrets
+                if vault_secret_names:
+                    # Get vault_service from app state
+                    from ..main import app
+                    vault_service = getattr(app.state, 'vault_service', None)
+                    if not vault_service:
+                        raise HTTPException(status_code=422, detail="Vault service not available")
+
+                    # Check vault status before resolution
+                    vault_status = await vault_service.status()
+                    if vault_status != "healthy":
+                        raise HTTPException(
+                            status_code=422,
+                            detail=f"Vault unavailable for secret resolution (status: {vault_status})"
+                        )
+
+                    # Resolve secrets from Vault
+                    vault_secrets_resolved = await vault_service.resolve(vault_secret_names)
+            except HTTPException:
+                raise  # Re-raise HTTP exceptions
+            except Exception as e:
+                logger.error(f"Vault secret resolution failed for job {selected_job.guid}: {e}")
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Secret resolution failed: {str(e)}"
+                )
+
         await db.commit()
+
+        # Phase 167-02: Inject resolved Vault secrets into env_vars as VAULT_SECRET_<NAME>=<value>
+        if vault_secrets_resolved:
+            if env_vars is None:
+                env_vars = {}
+            for secret_name, secret_value in vault_secrets_resolved.items():
+                env_vars[f"VAULT_SECRET_{secret_name}"] = secret_value
 
         work_resp = WorkResponse(
             guid=selected_job.guid,

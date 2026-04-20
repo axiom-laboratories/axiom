@@ -25,7 +25,8 @@ import {
     ChevronLeft,
     ChevronRight,
     GitBranch,
-    RefreshCw
+    RefreshCw,
+    Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -73,6 +74,8 @@ import {
     AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 import { authenticatedFetch, getUser } from '../auth';
 import { useLicence } from '../hooks/useLicence';
 import { useFeatures } from '../hooks/useFeatures';
@@ -86,6 +89,7 @@ import { useSystemHealth } from '../hooks/useSystemHealth';
 import { DependencyTreeModal } from '../components/foundry/DependencyTreeModal';
 import { MirrorConfigCard } from '../components/MirrorConfigCard';
 import { ApprovalQueuePanel } from '../components/ApprovalQueuePanel';
+import { useVaultConfig, useUpdateVaultConfig, useTestVaultConnection, useVaultStatus } from '../hooks/useVaultConfig';
 
 // --- Sub-components for Admin ---
 
@@ -1664,6 +1668,656 @@ const MirrorsTab = () => {
     );
 };
 
+interface SIEMConfigResponse {
+  backend: string;
+  destination: string;
+  syslog_port: number;
+  syslog_protocol: string;
+  cef_device_vendor: string;
+  cef_device_product: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface VaultConfigPanelProps {
+  isEE: boolean;
+}
+
+// SIEM Configuration Tab Component
+function SIEMTab() {
+  const [config, setConfig] = useState<SIEMConfigResponse | null>(null);
+  const [status, setStatus] = useState<"healthy" | "degraded" | "disabled">("disabled");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+
+  // Form state with proper typing
+  type FormDataType = {
+    backend: "webhook" | "syslog";
+    destination: string;
+    syslog_port: number;
+    syslog_protocol: "UDP" | "TCP";
+    cef_device_vendor: string;
+    cef_device_product: string;
+    enabled: boolean;
+  };
+
+  const [formData, setFormData] = useState<FormDataType>({
+    backend: "webhook",
+    destination: "",
+    syslog_port: 514,
+    syslog_protocol: "UDP",
+    cef_device_vendor: "Axiom",
+    cef_device_product: "MasterOfPuppets",
+    enabled: false,
+  });
+
+  // Fetch config and status on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const [configRes, statusRes] = await Promise.all([
+          authenticatedFetch("/admin/siem/config"),
+          authenticatedFetch("/admin/siem/status"),
+        ]);
+
+        if (configRes.ok) {
+          const data = await configRes.json();
+          setConfig(data);
+          setFormData(data);
+        }
+
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          setStatus(statusData.status);
+        }
+      } catch (err) {
+        setError(`Failed to load SIEM config: ${(err as Error).message}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setError(null);
+    try {
+      const res = await authenticatedFetch("/admin/siem/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          backend: formData.backend,
+          destination: formData.destination,
+          syslog_port: formData.syslog_port,
+          syslog_protocol: formData.syslog_protocol,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("✓ Connection successful");
+      } else {
+        setError(data.error_detail || data.message || "Connection test failed");
+      }
+    } catch (err) {
+      setError(`Test failed: ${(err as Error).message}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await authenticatedFetch("/admin/siem/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        setError(errData.detail || "Failed to save SIEM config");
+      } else {
+        const updated = await res.json();
+        setConfig(updated);
+        setMode("view");
+        toast.success("SIEM configuration saved");
+      }
+    } catch (err) {
+      setError(`Save failed: ${(err as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const statusIcon = status === "healthy" ? (
+    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+  ) : status === "degraded" ? (
+    <AlertTriangle className="w-4 h-4 text-amber-500" />
+  ) : (
+    <AlertCircle className="w-4 h-4 text-muted-foreground" />
+  );
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          {statusIcon}
+          <CardTitle>SIEM Integration</CardTitle>
+        </div>
+        {mode === "view" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMode("edit")}
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-600 flex gap-2">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div>{error}</div>
+          </div>
+        )}
+
+        {loading ? (
+          <Skeleton className="h-96" />
+        ) : (
+          <>
+            {mode === "view" ? (
+              // View mode
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-mono">{status}</span>
+                </div>
+                {config && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Backend</span>
+                      <span className="font-mono">{config.backend}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Destination</span>
+                      <span className="font-mono truncate">{config.destination}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Enabled</span>
+                      <span className="font-mono">{config.enabled ? "Yes" : "No"}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              // Edit mode
+              <div className="space-y-4">
+                {/* Backend selector */}
+                <div>
+                  <Label htmlFor="backend">Backend</Label>
+                  <Select
+                    value={formData.backend}
+                    onValueChange={(val) =>
+                      setFormData({ ...formData, backend: val as "webhook" | "syslog" })
+                    }
+                  >
+                    <SelectTrigger id="backend">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="webhook">Webhook (HTTP POST)</SelectItem>
+                      <SelectItem value="syslog">Syslog (UDP/TCP)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Destination / URL */}
+                <div>
+                  <Label htmlFor="destination">
+                    {formData.backend === "webhook" ? "Webhook URL" : "Syslog Host"}
+                  </Label>
+                  <Input
+                    id="destination"
+                    placeholder={
+                      formData.backend === "webhook"
+                        ? "https://siem.example.com/events"
+                        : "siem.example.com"
+                    }
+                    value={formData.destination}
+                    onChange={(e) =>
+                      setFormData({ ...formData, destination: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Syslog port (conditional) */}
+                {formData.backend === "syslog" && (
+                  <div>
+                    <Label htmlFor="port">Syslog Port</Label>
+                    <Input
+                      id="port"
+                      type="number"
+                      value={formData.syslog_port}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          syslog_port: parseInt(e.target.value, 10) || 514,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+
+                {/* Syslog protocol (conditional) */}
+                {formData.backend === "syslog" && (
+                  <div>
+                    <Label htmlFor="protocol">Protocol</Label>
+                    <Select
+                      value={formData.syslog_protocol}
+                      onValueChange={(val) =>
+                        setFormData({
+                          ...formData,
+                          syslog_protocol: val as "UDP" | "TCP",
+                        })
+                      }
+                    >
+                      <SelectTrigger id="protocol">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="UDP">UDP (fire-and-forget)</SelectItem>
+                        <SelectItem value="TCP">TCP (connection-oriented)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* CEF Vendor */}
+                <div>
+                  <Label htmlFor="vendor">CEF Device Vendor</Label>
+                  <Input
+                    id="vendor"
+                    placeholder="Axiom"
+                    value={formData.cef_device_vendor}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cef_device_vendor: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* CEF Product */}
+                <div>
+                  <Label htmlFor="product">CEF Device Product</Label>
+                  <Input
+                    id="product"
+                    placeholder="MasterOfPuppets"
+                    value={formData.cef_device_product}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cef_device_product: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Enabled toggle */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="enabled"
+                    checked={formData.enabled}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, enabled: checked === true })
+                    }
+                  />
+                  <Label htmlFor="enabled" className="cursor-pointer">
+                    Enable SIEM integration
+                  </Label>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={handleTestConnection}
+                    disabled={testing || !formData.destination}
+                    variant="outline"
+                  >
+                    {testing ? "Testing..." : "Test Connection"}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setMode("view");
+                      setError(null);
+                    }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function VaultConfigPanel({ isEE }: VaultConfigPanelProps) {
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testFormData, setTestFormData] = useState({
+    vault_address: '',
+    role_id: '',
+    secret_id: '',
+    mount_path: 'secret',
+    namespace: '',
+  });
+
+  const { data: config, isLoading: configLoading } = useVaultConfig();
+  const { data: status, isLoading: statusLoading } = useVaultStatus();
+  const updateMutation = useUpdateVaultConfig();
+  const testMutation = useTestVaultConnection();
+
+  const [formData, setFormData] = useState<any>({
+    vault_address: '',
+    role_id: '',
+    secret_id: '',
+    mount_path: 'secret',
+    namespace: '',
+    provider_type: 'vault',
+    enabled: false,
+  });
+
+  // Populate form when config loads
+  useEffect(() => {
+    if (config) {
+      setFormData({
+        vault_address: config.vault_address,
+        role_id: config.role_id,
+        secret_id: '',  // Never populate from response (masked)
+        mount_path: config.mount_path,
+        namespace: config.namespace || '',
+        provider_type: config.provider_type,
+        enabled: config.enabled,
+      });
+    }
+  }, [config]);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      await updateMutation.mutateAsync({
+        vault_address: formData.vault_address,
+        role_id: formData.role_id,
+        secret_id: formData.secret_id || undefined,  // Only send if provided
+        mount_path: formData.mount_path,
+        namespace: formData.namespace || undefined,
+        provider_type: formData.provider_type,
+        enabled: formData.enabled,
+      });
+    } catch (e) {
+      // Error is handled by mutation onError
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      const result = await testMutation.mutateAsync({
+        vault_address: testFormData.vault_address || formData.vault_address,
+        role_id: testFormData.role_id || formData.role_id,
+        secret_id: testFormData.secret_id,
+        mount_path: testFormData.mount_path || formData.mount_path || 'secret',
+        namespace: testFormData.namespace || formData.namespace,
+      });
+
+      if (result.success) {
+        toast.success(`Connection test passed: ${result.message}`);
+      } else {
+        toast.error(`Connection test failed: ${result.message}`);
+      }
+    } catch (e) {
+      // Error is handled by mutation onError
+    }
+  };
+
+  if (!isEE) {
+    return (
+      <div className="space-y-6">
+        <UpgradePlaceholder
+          feature="Vault Integration"
+          description="Manage HashiCorp Vault as a secrets backend. Available in Enterprise Edition."
+        />
+      </div>
+    );
+  }
+
+  if (configLoading) {
+    return <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin" /></div>;
+  }
+
+  // Status badge color
+  const getStatusColor = (st?: string) => {
+    switch (st) {
+      case 'healthy': return 'bg-emerald-500/20 text-emerald-400';
+      case 'degraded': return 'bg-amber-500/20 text-amber-400';
+      case 'disabled': return 'bg-slate-500/20 text-slate-400';
+      default: return 'bg-gray-500/20 text-gray-400';
+    }
+  };
+
+  const statusIcon = status?.status === 'healthy' ? CheckCircle2 : status?.status === 'degraded' ? AlertTriangle : ShieldAlert;
+  const StatusIcon = statusIcon;
+
+  return (
+    <div className="space-y-6">
+      {/* Status Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5" />
+            Vault Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <StatusIcon className="h-6 w-6" />
+              <div>
+                <div className="font-medium">{status?.status || 'unknown'}</div>
+                <div className="text-sm text-gray-400">{status?.vault_address || 'Not configured'}</div>
+              </div>
+            </div>
+            <Badge className={getStatusColor(status?.status)}>
+              {status?.status || 'disabled'}
+            </Badge>
+          </div>
+          {status?.renewal_failures > 0 && (
+            <div className="mt-3 text-sm text-amber-400">
+              ⚠ {status.renewal_failures} consecutive renewal failure{status.renewal_failures !== 1 ? 's' : ''}
+            </div>
+          )}
+          {status?.error_detail && (
+            <div className="mt-3 text-sm text-red-400">
+              {status.error_detail}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Configuration Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Vault Configuration</CardTitle>
+          <CardDescription>
+            AppRole credentials for Vault integration. Secret ID is encrypted at rest.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Vault Address</Label>
+            <Input
+              placeholder="https://vault.example.com:8200"
+              value={formData.vault_address}
+              onChange={(e) => handleInputChange('vault_address', e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Role ID</Label>
+              <Input
+                placeholder="AppRole Role ID"
+                value={formData.role_id}
+                onChange={(e) => handleInputChange('role_id', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Secret ID</Label>
+              <Input
+                type="password"
+                placeholder="AppRole Secret ID (masked)"
+                value={formData.secret_id}
+                onChange={(e) => handleInputChange('secret_id', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Mount Path</Label>
+              <Input
+                placeholder="secret"
+                value={formData.mount_path}
+                onChange={(e) => handleInputChange('mount_path', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Namespace (Optional)</Label>
+              <Input
+                placeholder="Vault Enterprise namespace"
+                value={formData.namespace}
+                onChange={(e) => handleInputChange('namespace', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Provider Type</Label>
+              <Select value={formData.provider_type} onValueChange={(v) => handleInputChange('provider_type', v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vault">HashiCorp Vault</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Enabled</Label>
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  checked={formData.enabled}
+                  onChange={(e) => handleInputChange('enabled', e.target.checked)}
+                  className="h-5 w-5 rounded border border-gray-600 bg-slate-800"
+                />
+                <span className="text-sm">{formData.enabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex gap-3">
+          <Button
+            onClick={handleSaveConfig}
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Configuration
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowTestDialog(true)}
+            disabled={testMutation.isPending || !formData.vault_address || !formData.role_id}
+          >
+            {testMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Test Connection
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Test Connection Dialog */}
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Test Vault Connection</DialogTitle>
+            <DialogDescription>
+              Enter credentials to test the connection. These are not saved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Vault Address</Label>
+              <Input
+                placeholder="https://vault.example.com:8200"
+                value={testFormData.vault_address}
+                onChange={(e) => setTestFormData({...testFormData, vault_address: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role ID</Label>
+              <Input
+                placeholder="AppRole Role ID"
+                value={testFormData.role_id}
+                onChange={(e) => setTestFormData({...testFormData, role_id: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Secret ID</Label>
+              <Input
+                type="password"
+                placeholder="AppRole Secret ID"
+                value={testFormData.secret_id}
+                onChange={(e) => setTestFormData({...testFormData, secret_id: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTestDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleTestConnection}
+              disabled={testMutation.isPending || !testFormData.secret_id}
+            >
+              {testMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Test
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 const Admin = () => {
     const { isEnterprise } = useLicence();
     const features = useFeatures();
@@ -1847,6 +2501,12 @@ const Admin = () => {
                     <TabsTrigger value="system-health" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">System Health</TabsTrigger>
                     <TabsTrigger value="licence" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Licence</TabsTrigger>
                     <TabsTrigger value="data" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Data</TabsTrigger>
+                    {isEnterprise && (
+                        <TabsTrigger value="hashicorp-vault" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Vault</TabsTrigger>
+                    )}
+                    {isEnterprise && (
+                        <TabsTrigger value="siem" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">SIEM</TabsTrigger>
+                    )}
                     {features.foundry && (
                         <>
                             <TabsTrigger value="mirrors" className="px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-foreground font-bold">Mirrors</TabsTrigger>
@@ -2168,6 +2828,18 @@ const Admin = () => {
                         </div>
                     </div>
                 </TabsContent>
+
+                {isEnterprise && (
+                    <TabsContent value="hashicorp-vault" className="space-y-6">
+                        <VaultConfigPanel isEE={isEnterprise} />
+                    </TabsContent>
+                )}
+
+                {isEnterprise && (
+                    <TabsContent value="siem" className="space-y-6">
+                        <SIEMTab />
+                    </TabsContent>
+                )}
 
                 <TabsContent value="mirrors" className="space-y-6">
                     <MirrorsTab />

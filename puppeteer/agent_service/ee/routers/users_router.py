@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.future import select
 
 from ...db import get_db, AsyncSession, User, RolePermission
-from ...deps import require_permission, audit, _invalidate_perm_cache
+from ...deps import require_permission, audit
 from ...auth import get_password_hash
 from ...models import UserCreate, UserResponse, PermissionGrant
 
@@ -77,7 +77,6 @@ async def grant_role_permission(role: str, req: PermissionGrant, current_user: U
     db.add(RolePermission(role=role, permission=req.permission))
     audit(db, current_user, "permission:grant", role, {"permission": req.permission})
     await db.commit()
-    _invalidate_perm_cache(role)
     return {"status": "granted", "role": role, "permission": req.permission}
 
 
@@ -90,7 +89,6 @@ async def revoke_role_permission(role: str, permission: str, current_user: User 
     audit(db, current_user, "permission:revoke", role, {"permission": permission})
     await db.delete(perm)
     await db.commit()
-    _invalidate_perm_cache(role)
     return {"status": "revoked", "role": role, "permission": permission}
 
 

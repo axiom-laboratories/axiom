@@ -4,8 +4,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, LargeBinary, UniqueConstraint, ForeignKey, Index
 from datetime import datetime
 import json
+import logging
 from typing import Optional, List
 from uuid import uuid4
+
+logger = logging.getLogger(__name__)
 
 # Database URL (Default to Postgres, fallback to SQLite for local dev if needed)
 # In Docker, this will be: postgresql+asyncpg://user:pass@db/dbname
@@ -27,6 +30,9 @@ engine = create_async_engine(DATABASE_URL, echo=False, **_pool_kwargs)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 class Base(DeclarativeBase):
+    pass
+
+class EE_Base(DeclarativeBase):
     pass
 
 class Job(Base):
@@ -64,6 +70,8 @@ class Job(Base):
     cpu_limit: Mapped[Optional[str]] = mapped_column(String, nullable=True)     # e.g., "2", "0.5"
     workflow_step_run_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # FK to workflow_step_runs.id (Phase 147)
     depth: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Nesting depth for ENGINE-02 override
+    use_vault_secrets: Mapped[bool] = mapped_column(Boolean, default=False)  # Phase 167-02: Vault secret resolution enabled
+    vault_secrets: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Phase 167-02: JSON list of secret names
 
     __table_args__ = (
         Index("ix_jobs_status_created_at", "status", "created_at"),
@@ -104,6 +112,47 @@ class ScheduledJob(Base):
     runtime: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="python")  # RT-07
     allow_overlap: Mapped[bool] = mapped_column(Boolean, default=False)  # SRCH-08: default safe — no concurrent runs
     dispatch_timeout_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Phase 53
+
+
+class VaultConfig(Base):
+    """Vault integration configuration (EE only). Per D-05.
+
+    Stored in DB for runtime editability without restart.
+    secret_id is Fernet-encrypted at rest (same cipher as ENCRYPTION_KEY).
+    Env var bootstrap (VAULT_ADDRESS, VAULT_ROLE_ID, VAULT_SECRET_ID) seeds this on first boot.
+    """
+    __tablename__ = "vault_config"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    vault_address: Mapped[str] = mapped_column(String(512), nullable=False)
+    role_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    secret_id: Mapped[str] = mapped_column(Text, nullable=False)  # Fernet-encrypted at rest
+    mount_path: Mapped[str] = mapped_column(String(255), default="secret", nullable=False)
+    namespace: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Vault Enterprise
+    provider_type: Mapped[str] = mapped_column(String(32), default="vault", nullable=False)  # D-15: future extensibility
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SIEMConfig(Base):
+    """SIEM integration configuration (EE only, Phase 168).
+
+    Stores webhook URL or syslog host:port, backend type, protocol (UDP/TCP),
+    and optional CEF device vendor/product for branding.
+    Env var bootstrap: SIEM_BACKEND, SIEM_DESTINATION, SIEM_ENABLED, SIEM_SYSLOG_PORT, SIEM_SYSLOG_PROTOCOL.
+    """
+    __tablename__ = "siem_config"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    backend: Mapped[str] = mapped_column(String(32), nullable=False)  # "webhook" or "syslog"
+    destination: Mapped[str] = mapped_column(String(512), nullable=False)  # webhook URL or syslog host
+    syslog_port: Mapped[int] = mapped_column(Integer, default=514, nullable=False)
+    syslog_protocol: Mapped[str] = mapped_column(String(16), default="UDP", nullable=False)  # "UDP" or "TCP"
+    cef_device_vendor: Mapped[str] = mapped_column(String(255), default="Axiom", nullable=False)
+    cef_device_product: Mapped[str] = mapped_column(String(255), default="MasterOfPuppets", nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class Token(Base):
     __tablename__ = "tokens"
@@ -213,7 +262,7 @@ class ExecutionRecord(Base):
     )
 
 
-class ScheduledFireLog(Base):
+class ScheduledFireLog(EE_Base):
     __tablename__ = "scheduled_fire_log"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     scheduled_job_id: Mapped[str] = mapped_column(String, nullable=False)
@@ -227,7 +276,7 @@ class ScheduledFireLog(Base):
     )
 
 
-class JobTemplate(Base):
+class JobTemplate(EE_Base):
     __tablename__ = "job_templates"
     id: Mapped[str] = mapped_column(String, primary_key=True)  # UUID hex
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -255,7 +304,7 @@ class Ping(Base):
 # that create_all creates them alongside CE tables.
 
 
-class Blueprint(Base):
+class Blueprint(EE_Base):
     __tablename__ = "blueprints"
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     type: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # RUNTIME, NETWORK
@@ -266,7 +315,7 @@ class Blueprint(Base):
     os_family: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
 
-class PuppetTemplate(Base):
+class PuppetTemplate(EE_Base):
     __tablename__ = "puppet_templates"
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     friendly_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -283,7 +332,7 @@ class PuppetTemplate(Base):
     is_starter: Mapped[bool] = mapped_column(Boolean, default=False)  # Flag for starter template immutability
 
 
-class CapabilityMatrix(Base):
+class CapabilityMatrix(EE_Base):
     __tablename__ = "capability_matrix"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     base_os_family: Mapped[str] = mapped_column(String, nullable=False)
@@ -295,7 +344,7 @@ class CapabilityMatrix(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
-class ApprovedOS(Base):
+class ApprovedOS(EE_Base):
     __tablename__ = "approved_os"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -305,7 +354,7 @@ class ApprovedOS(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class ApprovedIngredient(Base):
+class ApprovedIngredient(EE_Base):
     __tablename__ = "approved_ingredients"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -323,7 +372,7 @@ class ApprovedIngredient(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class IngredientDependency(Base):
+class IngredientDependency(EE_Base):
     """Tracks transitive dependencies between approved ingredients (Phase 108)."""
     __tablename__ = "ingredient_dependencies"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -339,7 +388,7 @@ class IngredientDependency(Base):
     )
 
 
-class CuratedBundle(Base):
+class CuratedBundle(EE_Base):
     """Pre-built package bundles for Phase 114 (curated bundles UX)."""
     __tablename__ = "curated_bundles"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -352,7 +401,7 @@ class CuratedBundle(Base):
     items: Mapped[list["CuratedBundleItem"]] = relationship("CuratedBundleItem", cascade="all, delete-orphan")
 
 
-class CuratedBundleItem(Base):
+class CuratedBundleItem(EE_Base):
     """Individual package in a curated bundle."""
     __tablename__ = "curated_bundle_items"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -362,7 +411,7 @@ class CuratedBundleItem(Base):
     ecosystem: Mapped[str] = mapped_column(String(20), nullable=False)  # PYPI, APT, APK, CONDA, NUGET, OCI, NPM
 
 
-class ImageBOM(Base):
+class ImageBOM(EE_Base):
     """Bill of Materials for a built template image."""
     __tablename__ = "image_bom"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -372,7 +421,7 @@ class ImageBOM(Base):
     captured_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class PackageIndex(Base):
+class PackageIndex(EE_Base):
     """Index of packages across all built images for fleet search."""
     __tablename__ = "package_index"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -382,7 +431,7 @@ class PackageIndex(Base):
     image_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
 
-class Trigger(Base):
+class Trigger(EE_Base):
     __tablename__ = "triggers"
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -393,7 +442,7 @@ class Trigger(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class AuditLog(Base):
+class AuditLog(EE_Base):
     __tablename__ = "audit_log"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -403,7 +452,7 @@ class AuditLog(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class RolePermission(Base):
+class RolePermission(EE_Base):
     __tablename__ = "role_permissions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     role: Mapped[str] = mapped_column(String, nullable=False)
@@ -414,7 +463,7 @@ class RolePermission(Base):
     )
 
 
-class UserSigningKey(Base):
+class UserSigningKey(EE_Base):
     __tablename__ = "user_signing_keys"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     username: Mapped[str] = mapped_column(String, nullable=False)
@@ -424,7 +473,7 @@ class UserSigningKey(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class UserApiKey(Base):
+class UserApiKey(EE_Base):
     __tablename__ = "user_api_keys"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     username: Mapped[str] = mapped_column(String, nullable=False)
@@ -436,7 +485,7 @@ class UserApiKey(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class ServicePrincipal(Base):
+class ServicePrincipal(EE_Base):
     __tablename__ = "service_principals"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
@@ -451,7 +500,7 @@ class ServicePrincipal(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class ScriptAnalysisRequest(Base):
+class ScriptAnalysisRequest(EE_Base):
     """Approval queue for script analysis (Phase 113)."""
     __tablename__ = "script_analysis_requests"
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
@@ -471,7 +520,7 @@ class ScriptAnalysisRequest(Base):
     )
 
 
-class Workflow(Base):
+class Workflow(EE_Base):
     __tablename__ = "workflows"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String)
@@ -488,7 +537,7 @@ class Workflow(Base):
     webhooks: Mapped[List["WorkflowWebhook"]] = relationship("WorkflowWebhook", back_populates="workflow", cascade="all, delete-orphan")
 
 
-class WorkflowStep(Base):
+class WorkflowStep(EE_Base):
     __tablename__ = "workflow_steps"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
@@ -501,7 +550,7 @@ class WorkflowStep(Base):
     scheduled_job: Mapped["ScheduledJob"] = relationship("ScheduledJob")
 
 
-class WorkflowEdge(Base):
+class WorkflowEdge(EE_Base):
     __tablename__ = "workflow_edges"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
@@ -513,7 +562,7 @@ class WorkflowEdge(Base):
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="edges")
 
 
-class WorkflowParameter(Base):
+class WorkflowParameter(EE_Base):
     __tablename__ = "workflow_parameters"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
@@ -525,7 +574,7 @@ class WorkflowParameter(Base):
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="parameters")
 
 
-class WorkflowWebhook(Base):
+class WorkflowWebhook(EE_Base):
     __tablename__ = "workflow_webhooks"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)  # UUID, generated by endpoint
@@ -539,7 +588,7 @@ class WorkflowWebhook(Base):
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="webhooks")
 
 
-class WorkflowRun(Base):
+class WorkflowRun(EE_Base):
     __tablename__ = "workflow_runs"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"))
@@ -555,7 +604,7 @@ class WorkflowRun(Base):
     step_runs: Mapped[List["WorkflowStepRun"]] = relationship("WorkflowStepRun", back_populates="workflow_run")
 
 
-class WorkflowStepRun(Base):
+class WorkflowStepRun(EE_Base):
     __tablename__ = "workflow_step_runs"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     workflow_run_id: Mapped[str] = mapped_column(ForeignKey("workflow_runs.id"))
@@ -571,13 +620,75 @@ class WorkflowStepRun(Base):
     workflow_step: Mapped["WorkflowStep"] = relationship("WorkflowStep")
 
 
+async def _bootstrap_vault_config():
+    """Bootstrap VaultConfig from env vars if table is empty (D-05).
+
+    Env vars: VAULT_ADDRESS, VAULT_ROLE_ID, VAULT_SECRET_ID
+    Only creates row if:
+    1. Table exists (metadata.create_all already ran)
+    2. No VaultConfig row exists yet
+    3. All three env vars are set
+
+    Idempotent: running multiple times creates only one row.
+    """
+    from sqlalchemy import func, select
+    from .security import cipher_suite
+
+    vault_addr = os.getenv("VAULT_ADDRESS")
+    vault_role_id = os.getenv("VAULT_ROLE_ID")
+    vault_secret_id = os.getenv("VAULT_SECRET_ID")
+
+    # If any env var missing, skip bootstrap (not configured)
+    if not all([vault_addr, vault_role_id, vault_secret_id]):
+        return
+
+    async with AsyncSessionLocal() as session:
+        # Check if VaultConfig row already exists
+        stmt = select(func.count(VaultConfig.id))
+        result = await session.execute(stmt)
+        count = result.scalar() or 0
+
+        if count > 0:
+            logger.debug("VaultConfig already seeded; skipping env var bootstrap")
+            return
+
+        # Create new VaultConfig row with encrypted secret_id
+        config = VaultConfig(
+            id=str(uuid4()),
+            vault_address=vault_addr,
+            role_id=vault_role_id,
+            secret_id=cipher_suite.encrypt(vault_secret_id.encode()).decode(),  # Fernet encrypt before storing
+            mount_path="secret",  # Default per D-05
+            namespace=os.getenv("VAULT_NAMESPACE"),  # Optional
+            provider_type="vault",
+            enabled=True  # Auto-enable if env vars present
+        )
+        session.add(config)
+        await session.commit()
+        logger.info("VaultConfig seeded from env vars (VAULT_ADDRESS, VAULT_ROLE_ID, VAULT_SECRET_ID)")
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Create EE tables only if EE is enabled
+        # Try importing is_ee_enabled first; fall back to env var check if not available
+        try:
+            from .ee.interfaces.auth import is_ee_enabled
+            if await is_ee_enabled():
+                await conn.run_sync(EE_Base.metadata.create_all)
+        except (ImportError, AttributeError):
+            # is_ee_enabled not available; use env var check
+            if os.getenv("EE_ENABLED", "").lower() in ("true", "1"):
+                await conn.run_sync(EE_Base.metadata.create_all)
+
+    # Bootstrap VaultConfig from env vars if needed
+    await _bootstrap_vault_config()
 
     # Seed default mirror config entries if they don't exist
     async with AsyncSessionLocal() as session:
         await seed_mirror_config(session)
+        await seed_permissions(session)
 
 
 async def seed_mirror_config(session: AsyncSession):
@@ -606,6 +717,54 @@ async def seed_mirror_config(session: AsyncSession):
         existing = result.scalar_one_or_none()
         if not existing:
             session.add(Config(key=key, value=default_value))
+
+    await session.commit()
+
+
+async def seed_permissions(session: AsyncSession):
+    """Seed RolePermission table with default permissions for built-in roles (Phase 171).
+
+    Permissions seeded:
+    - operator role: nodes:read, system:read, system:write, jobs:write, nodes:write, foundry:write, signatures:write, users:write
+    - viewer role: nodes:read, system:read, jobs:read
+
+    Idempotent: only adds permissions that don't already exist (checked via UniqueConstraint).
+    """
+    from sqlalchemy import select
+
+    # Define default permissions for each role
+    role_permissions = {
+        "operator": [
+            "nodes:read",
+            "system:read",
+            "system:write",
+            "jobs:read",
+            "jobs:write",
+            "nodes:write",
+            "foundry:write",
+            "signatures:write",
+            "users:write"
+        ],
+        "viewer": [
+            "nodes:read",
+            "system:read",
+            "jobs:read"
+        ]
+    }
+
+    # Seed permissions for each role
+    for role, permissions in role_permissions.items():
+        for permission in permissions:
+            # Check if permission already exists for this role
+            result = await session.execute(
+                select(RolePermission).where(
+                    RolePermission.role == role,
+                    RolePermission.permission == permission
+                )
+            )
+            existing = result.scalar_one_or_none()
+            if not existing:
+                session.add(RolePermission(role=role, permission=permission))
 
     await session.commit()
 

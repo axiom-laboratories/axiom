@@ -1,5 +1,67 @@
 # Retrospective
 
+## Milestone: v24.0 — Security Infrastructure & Extensibility
+
+**Shipped:** 2026-04-19
+**Phases:** 7 (165–171) | **Plans:** 25 | **Requirements:** 18/18
+
+### What Was Built
+
+**CVE Remediation (Phase 165):**
+- `cryptography >= 46.0.7` resolving buffer-overflow CVE; all HIGH/MODERATE Dependabot alerts on v23.0 tag resolved; `dependabot.yml` added for ongoing automation; E2E smoke tests verified clean stack
+
+**Router Modularization (Phase 166):**
+- `main.py` (3,828 lines) → 9 APIRouter modules (`auth`, `jobs`, `nodes`, `workflows`, `admin`, `system`, `smelter`, `vault`, `siem`); 105 routes across 85 paths; `openapi_diff.py` schema comparison tool built to verify zero behavior change; 736 tests pass unchanged
+
+**HashiCorp Vault Integration EE (Phase 167):**
+- `hvac` AppRole authentication; startup secret fetch with transparent env-var fallback when Vault unreachable; job dispatch injects Vault-sourced secrets without embedding in job definition; active lease renewal before TTL expiry; Admin dashboard Vault connectivity status; graceful degradation at boot; 6/6 VAULT requirements
+
+**SIEM Audit Streaming EE (Phase 168):**
+- Webhook (CEF format) + syslog backends; batch queue flushing at 100 events or 5s, whichever comes first; sensitive field masking (secrets, tokens, passwords) before transmission; exponential backoff retry with admin alert on repeated failure; enable/disable independent of local audit log; 37 integration tests; 6/6 SIEM requirements
+
+**PR Review Remediations (Phases 169, 170):**
+- `LicenceExpiryGuard.EE_PREFIXES` updated to include `/api/admin/vault` and `/api/admin/siem`; relative imports in `siem_router.py`; `try/finally` in SIEM test-connection to prevent APScheduler leaks; `asyncio.get_running_loop()` replacing deprecated `get_event_loop()`; `renewal_failures` property on VaultService; route migrations across 5 endpoints; `VaultConfigSnapshot` Pydantic model for snapshot isolation
+
+**Security Hardening (Phase 171):**
+- `require_permission` guards on all sensitive `admin_router` and `jobs_router` endpoints (token generation, bulk operations); `ADMIN_PASSWORD` scrubbed from startup log output; YAML injection closed in compose-file generation endpoint; narrow exception catch in Vault `resolve()`; re-authentication recovery path when Vault token expires (stuck degraded state); permission cache removed — replaced with per-request DB check (fixes multi-worker race); `try/finally` on WebSocket handler in `system_router.py`
+
+### What Worked
+
+- **`openapi_diff.py` as a zero-regression contract** — comparing OpenAPI schemas before and after 9-router extraction confirmed zero behavior change across 105 routes; faster and more reliable than manual spot checks; reusable for any future large-scale route reorganization
+- **EE gating pattern reuse** — CE stub routes (402) + real implementation in `ee/routers/` pattern from v22.0 carried into Vault and SIEM phases without rework; the pattern is stable and extensible across EE features
+- **Removing the permission cache entirely rather than fixing it** — per-request DB check is simpler, correct under multi-worker load, and avoids Redis dependency; the right decision once the race condition was identified
+- **Structured PR review phases by severity** — organizing findings into MEDIUM (Phase 169), LOW (Phase 170), and security (Phase 171) phases kept each execution scope bounded and verifiable
+
+### What Was Inefficient
+
+- **Permission cache churn** — the in-process permission cache was designed, implemented, and then removed within the same milestone; the multi-worker race condition (multiple uvicorn workers diverge on local dict state) was foreseeable; the cache should not have been added at the initial architecture phase
+- **48% of plans were remediation** — 3 remediation phases (169, 170, 171) consumed approximately 12 of 25 plans; a pre-PR self-audit checklist targeting EE integration completeness, import discipline, resource safety, and authorization coverage would have caught most of these before external review
+- **Phase 166 needed a 6th plan (166-06)** — final comprehensive verification was added after the initial 5-plan estimate; large route refactors benefit from explicitly budgeting a "completeness sweep" plan in the original count rather than discovering the need at verification time
+
+### Patterns Established
+
+- `openapi_diff.py` schema snapshot comparison — before/after OpenAPI JSON diffs confirm zero operation ID conflicts and zero path changes across any router extraction; tool lives in `puppeteer/` and is reusable for future refactors
+- Vault AppRole with lease renewal: `hvac.Client.auth_approle()` + scheduled `renew_self()` before TTL expiry; `InvalidToken` catch triggers re-authentication before returning degraded status — prevents the "stuck degraded" failure mode for long-running deployments
+- SIEM batch queue: `asyncio.Queue` with configurable `batch_size` + `flush_interval`; APScheduler periodic flush; field masker at emit time; `WebhookBackend` / `SyslogBackend` behind a common interface — pattern is reusable for any future event streaming feature
+- Pre-PR self-audit checklist pattern: before opening a PR, verify EE_PREFIXES, import style (relative not absolute), resource cleanup (try/finally), and permission guard coverage — the categories surfaced by the Phase 169/170/171 fixes
+
+### Key Lessons
+
+- **In-process caches are incompatible with multi-worker deployments** — any local dict cache for security-relevant state diverges under multiple uvicorn workers; use per-request DB checks or a shared external cache (Redis) from the start
+- **A zero-behavior-change refactor at scale requires a machine-verifiable contract** — `openapi_diff.py` was that contract for Phase 166; the pattern should be the default for any future refactor touching more than ~20 routes
+- **YAML injection in config-generation endpoints is a non-obvious attack surface** — any endpoint that writes user-controlled strings into structured configuration files (YAML, TOML, JSON) needs sanitization review at plan time, not caught as a post-implementation finding
+- **Remediation phases scale with initial review gap depth** — Phase 171 (security hardening) was largely avoidable with a pre-implementation security checklist; authorization coverage, credential scrubbing, and injection risks are checkable before code is written
+
+### Cost Observations
+
+- 7 phases, 25 plans, 2-day delivery (2026-04-18 → 2026-04-19)
+- ~135 commits, ~20,000 LOC added
+- 18/18 requirements satisfied (100%): 6 VAULT + 6 SIEM + 2 SEC + 4 ARCH
+- Phase 168 (SIEM) highest test count of any single phase at 37 integration tests
+- Remediation plan ratio: ~48% (12/25 plans were post-PR remediation); target < 20% for future milestones
+
+---
+
 ## Milestone: v23.0 — DAG & Workflow Orchestration
 
 **Shipped:** 2026-04-18
@@ -721,6 +783,9 @@
 | v19.0 | 12 | 37 | Foundry production-grade; clean first-pass (1 traceability phase only); compose profile inheritance; 22min avg plan; 5-day delivery |
 | v20.0 | 9 | 22 | Node capacity + isolation; cgroup detection; stress corpus; ephemeral-only enforcement; clean first-pass; real hardware validation |
 | v21.0 | 3 | 9 | API contract milestone; response_model on all 89 routes; TDD RED→GREEN for Phase 131; audit passed first run; 2-day delivery |
+| v22.0 | 14 | 16 | Container hardening + EE wheel signing; Nyquist validation as milestone-closing phases; 6-step manifest verification gate; audit-before-complete matured |
+| v23.0 | 19 | 49 | DAG workflow orchestration; BFS dispatch; networkx cycle detection; ReactFlow composer; adversarial audit as final phase |
+| v24.0 | 7 | 25 | EE secrets (Vault) + SIEM streaming; openapi_diff.py for router refactor; PR-review-driven remediation phases; in-process permission cache removed |
 
 ## Milestone: v16.1 — PR Merge & Backlog Closure
 

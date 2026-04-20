@@ -8,6 +8,7 @@ from .users_router import users_router
 from .smelter_router import smelter_router
 from .analyzer_router import analyzer_router
 from .bundles_router import bundles_router
+from .vault_router import vault_router
 
 __all__ = [
     "foundry_router",
@@ -19,4 +20,5 @@ __all__ = [
     "smelter_router",
     "analyzer_router",
     "bundles_router",
+    "vault_router",
 ]

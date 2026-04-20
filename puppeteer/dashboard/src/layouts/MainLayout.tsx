@@ -41,7 +41,6 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { authenticatedFetch } from '../auth';
-import { useEffect } from 'react';
 
 const MainLayout = () => {
     const [isMobileOpen, setIsMobileOpen] = useState(false);

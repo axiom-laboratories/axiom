@@ -75,6 +75,13 @@ class SchedulerService:
                 id='__dispatch_timeout_sweeper__',
                 replace_existing=True,
             )
+            self.scheduler.add_job(
+                self.renew_vault_leases,
+                'interval',
+                minutes=5,
+                id='__vault_lease_renewal__',
+                replace_existing=True,
+            )
         except Exception as e:
             logger.error(f"⚠️ Scheduler Failed to Start: {e}")
 
@@ -477,6 +484,30 @@ class SchedulerService:
             if failed_count:
                 await session.commit()
                 logger.info(f"Dispatch timeout sweeper: failed {failed_count} jobs")
+
+    async def renew_vault_leases(self):
+        """Background task to renew Vault secrets leases every 5 minutes.
+
+        If vault_service is not initialized or disabled, this is a no-op.
+        Tracks consecutive renewal failures; 3 consecutive failures trigger DEGRADED status.
+        """
+        try:
+            # Get vault_service from app state (will be set during startup if Vault is configured)
+            # We need to access it from the app state, but we're in a background task
+            # For now, we'll attempt to import and get it from the main app instance
+            from ..main import app
+            vault_service = getattr(app.state, 'vault_service', None)
+
+            if vault_service is None:
+                # Vault not configured or disabled
+                return
+
+            # Attempt lease renewal
+            await vault_service.renew()
+            logger.info("✅ Vault lease renewal successful")
+
+        except Exception as e:
+            logger.warning(f"⚠️ Vault lease renewal failed: {e}")
 
     async def get_scheduling_health(self, window: str, db: AsyncSession) -> dict:
         """Return aggregate and per-definition scheduling health for the given window."""

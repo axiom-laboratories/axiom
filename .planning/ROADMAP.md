@@ -26,6 +26,7 @@
 - ✅ **v21.0 — API Maturity & Contract Standardization** — Phases 129–131 (shipped 2026-04-11)
 - ✅ **v22.0 — Security Hardening** — Phases 132–145 (shipped 2026-04-15)
 - ✅ **v23.0 — DAG & Workflow Orchestration** — Phases 146–164 (shipped 2026-04-18)
+- ✅ **v24.0 — Security Infrastructure & Extensibility** — Phases 165–171 (shipped 2026-04-19)
 
 ## Phases
 
@@ -204,6 +205,57 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 
 </details>
 
+<details>
+<summary>✅ v24.0 — Security Infrastructure & Extensibility (Phases 165–171) — SHIPPED 2026-04-19</summary>
+
+- [x] **Phase 165: Dependabot CVE Remediation** — Resolve all HIGH and MODERATE security vulnerabilities flagged on v23.0 release tag (completed 2026-04-18)
+  - [x] Plan 01: Update cryptography >= 46.0.7 and crypto chain (python-jose, PyJWT); rebuild Docker; pytest validation
+  - [x] Plan 02: Update npm packages to resolve HIGH/MODERATE CVEs; create .github/dependabot.yml automation
+  - [x] Plan 03: E2E smoke tests (mop-e2e); Docker verification; final audit snapshot
+
+- [x] **Phase 166: Router Modularization** — Refactor main.py (3,828 lines) into 6 domain-specific APIRouter modules; 105 routes across 85 paths; zero NEW test failures (6 plans, completed 2026-04-18)
+  - [x] Plan 01: Extract auth_router and jobs_router; wire both into main.py (Wave 1) (completed 2026-04-18)
+  - [x] Plan 02: Extract nodes_router and workflows_router; wire all 4 routers; verify pytest (Wave 1) (completed 2026-04-18)
+  - [x] Plan 03: Extract admin_router and system_router; wire all 7 routers; remove duplicate routes from main.py; verify pytest (Wave 2) (completed 2026-04-18)
+  - [x] Plan 04: Create openapi_diff.py; verify OpenAPI schema (105 routes, zero operation ID conflicts, zero behavior change); remove remaining duplicate handlers (Wave 2) (completed 2026-04-18)
+  - [x] Plan 05: Full pytest suite regression validation (736 tests pass, zero NEW failures from refactoring) (Wave 2) (completed 2026-04-18)
+  - [x] Plan 06: Final comprehensive verification (routers, main.py shell, OpenAPI completeness, pytest) (Wave 3) (completed 2026-04-18)
+
+- [x] **Phase 167: HashiCorp Vault Integration (EE)** — External secrets management with AppRole auth, lease renewal, graceful fallback (completed 2026-04-18)
+  - [x] Plan 01: Vault service layer (hvac AppRole client, secret fetch/cache, lease renewal)
+  - [x] Plan 02: Job dispatch secrets injection + admin UI configuration
+  - [x] Plan 03: Health-check endpoint + graceful degradation when Vault unavailable
+  - [x] Plan 04: Dashboard admin panel integration + Vault status display
+  - [x] Plan 05: EE-gating + CE fallback validation
+
+- [x] **Phase 168: SIEM Audit Streaming (EE)** — Real-time audit log export with CEF/syslog formatting, batching, masking ✓ COMPLETE
+  - [x] Plan 01: SIEM service layer (webhook/syslog backends, CEF formatter, batch queue) (completed 2026-04-18)
+  - [x] Plan 02: EE gating + admin routes + lifespan wiring (completed 2026-04-18)
+  - [x] Plan 03: Audit integration + env-var bootstrap (completed 2026-04-18)
+  - [x] Plan 04: Admin Dashboard UI — SIEM configuration tab (completed 2026-04-18)
+  - [x] Plan 05: Integration test suite (completed 2026-04-18)
+
+- [x] **Phase 169: PR Review Fix — EE Licence Guard and Import Correctness (MEDIUM)** — Fix three MEDIUM issues from PR #24 review: add /api/admin/vault and /api/admin/siem to LicenceExpiryGuard.EE_PREFIXES; replace absolute imports in siem_router.py with relative imports; add test_service.shutdown() in try/finally to prevent APScheduler job leaks from test-connection calls ✓ COMPLETE
+
+- [x] **Phase 170: PR Review Fix — Code Hygiene and Resource Safety (LOW)** — Fix four LOW issues from PR #24 review ✓ COMPLETE
+  - [x] Plan 01: asyncio.get_running_loop() (D-01) + renewal_failures property (D-02) + route migrations (D-03–07) + VaultConfigSnapshot (D-08–11) (Wave 1)
+
+- [x] **Phase 171: Security Hardening — Authorization, Credential Safety, and Vault Recovery** ✓ COMPLETE
+  - [x] Plan 01: Authorization hardening — replace require_auth with require_permission on sensitive admin_router and jobs_router endpoints (token generation, bulk operations)
+  - [x] Plan 02: Credential safety — scrub ADMIN_PASSWORD from startup log output; fix YAML injection in compose-file generation endpoint
+  - [x] Plan 03: Vault service hardening — narrow exception catch in resolve(); add re-authentication recovery path when token expires (stuck degraded state); fix vault_router enabled-only filter blocking disabled-config CRUD
+  - [x] Plan 04: Deps hardening — fix perm cache multi-worker race condition (per-request DB check or Redis-backed cache); add try/finally to WebSocket handler in system_router.py to prevent resource leak
+
+Archive: `.planning/milestones/v24.0-ROADMAP.md`
+
+</details>
+
+## Active Phases
+
+- [x] **Phase 172: PR Review Fix — Critical CE/EE Table Isolation, Permission Cache Cleanup, and SIEM/Vault Hardening** — Fix remaining CRITICAL, HIGH, and MEDIUM issues from PR #24 review before merging to main ✓ COMPLETE
+  - [x] Plan 01: Critical fixes — remove ghost perm-cache import from main.py; create EE_Base split to fix failing test_ce_table_count
+  - [x] Plan 02: Hardening — cap Vault reauth retry loop; expand SIEM SENSITIVE_KEYS; add SIEM hot-reload rollback; add queue-overflow admin alert
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -264,4 +316,11 @@ Archive: `.planning/milestones/v23.0-ROADMAP.md`
 | 162. Frontend Component Fixes | v23.0 | 1/1 | Complete | 2026-04-17 |
 | 163. v23.0 Tech Debt Closure | v23.0 | 2/2 | Complete | 2026-04-17 |
 | 164. Adversarial Audit Remediation | v23.0 | 4/4 | Complete | 2026-04-18 |
-
+| 165. Dependabot CVE Remediation | v24.0 | 3/3 | Complete | 2026-04-18 |
+| 166. Router Modularization | v24.0 | 6/6 | Complete | 2026-04-18 |
+| 167. Vault Integration (EE) | v24.0 | 5/5 | Complete | 2026-04-18 |
+| 168. SIEM Streaming (EE) | v24.0 | 5/5 | Complete | 2026-04-18 |
+| 169. PR Review Fix — EE Licence Guard and Import Correctness | v24.0 | 1/1 | Complete | 2026-04-19 |
+| 170. PR Review Fix — Code Hygiene and Resource Safety | v24.0 | 1/1 | Complete | 2026-04-19 |
+| 171. Security Hardening — Authorization, Credential Safety, and Vault Recovery | v24.0 | 4/4 | Complete | 2026-04-19 |
+| 172. PR Review Fix — Critical CE/EE Table Isolation, Permission Cache Cleanup, and SIEM/Vault Hardening | v25.0 | 2/2 | Complete | 2026-04-20 |

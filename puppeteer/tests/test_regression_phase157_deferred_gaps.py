@@ -117,38 +117,23 @@ async def test_min7_foundry_build_dir_cleanup_on_failure():
 
 
 @pytest.mark.asyncio
-async def test_min8_require_permission_uses_cache(async_client: AsyncClient, auth_headers: dict):
+async def test_min8_require_permission_queries_db_directly(async_client: AsyncClient, auth_headers: dict):
     """
-    MIN-8: Verify that require_permission() uses a cache and doesn't hit DB repeatedly.
+    MIN-8 (updated Phase 171-04): Verify that require_permission() queries DB on every request.
 
-    This test verifies the cache infrastructure is in place by checking:
-    1. _perm_cache dict exists in deps.py
-    2. _invalidate_perm_cache() function works correctly
-    3. Cache can be populated and used for subsequent lookups
+    The in-memory permission cache was removed in Phase 171-04 to fix multi-worker
+    race conditions. This test verifies the new behaviour: no cache exists, and
+    requests still succeed because the DB is queried directly each time.
     """
-    from agent_service.deps import _perm_cache, _invalidate_perm_cache
+    import agent_service.deps as deps
 
-    # Verify the permission cache exists in deps module
-    assert isinstance(_perm_cache, dict), "Permission cache should be a dict at module level"
+    # Confirm the cache dict and invalidation function no longer exist
+    assert not hasattr(deps, "_perm_cache"), "Permission cache should not exist after Phase 171-04 removal"
+    assert not hasattr(deps, "_invalidate_perm_cache"), "Cache invalidation function should not exist"
 
-    # Verify we can invalidate it
-    _invalidate_perm_cache()
-    assert len(_perm_cache) == 0, "Cache should be empty after full invalidation"
-
-    # Verify we can invalidate by role
-    _perm_cache["test_role"] = {"permission1", "permission2"}
-    _invalidate_perm_cache("test_role")
-    assert "test_role" not in _perm_cache, "Cache invalidation by role should work"
-
-    # Verify we can repopulate
-    _perm_cache["admin"] = {"jobs:read", "jobs:write"}
-    assert "admin" in _perm_cache, "Cache population should work"
-    assert "jobs:read" in _perm_cache["admin"], "Permission should be in cache"
-
-    # Make a request to verify cache is used during request processing
-    _invalidate_perm_cache()  # Start fresh
+    # Verify require_permission still works end-to-end (DB query path)
     response = await async_client.get("/nodes", headers=auth_headers)
-    assert response.status_code == 200, f"Request to /nodes should succeed: {response.status_code}"
+    assert response.status_code == 200, f"Request to /nodes should succeed via DB query: {response.status_code}"
 
 
 @pytest.mark.asyncio

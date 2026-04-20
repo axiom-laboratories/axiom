@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.future import select
 
@@ -71,7 +71,12 @@ async def get_current_user_optional(
         return None
 
     result = await db.execute(select(User).where(User.username == username))
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+    if user is None:
+        return None
+    if payload.get("tv", 0) != user.token_version:
+        return None
+    return user
 
 
 # ---------------------------------------------------------------------------
@@ -80,39 +85,60 @@ async def get_current_user_optional(
 # the EE routes return 402 stubs.
 # ---------------------------------------------------------------------------
 
-_perm_cache: dict[str, set[str]] = {}
 
+def require_ee():
+    """Dependency factory that enforces EE licence requirement.
+    Raises HTTP 403 if EE is not active (CE mode or expired licence).
+    Phase 167 - EE gating for Vault integration.
 
-def _invalidate_perm_cache(role: str | None = None) -> None:
-    """Clear cached permissions for a role (or all roles)."""
-    if role:
-        _perm_cache.pop(role, None)
-    else:
-        _perm_cache.clear()
+    Usage in route:
+        async def some_route(current_user = Depends(require_ee()), request: Request = None):
+    """
+    async def _check(current_user = Depends(get_current_user), request: Request = None) -> User:
+        # Check if EE licence is active via app state
+        if request is None:
+            raise HTTPException(
+                status_code=403,
+                detail="EE licence required for this feature"
+            )
+
+        licence_state = getattr(request.app.state, 'licence_state', None)
+        if licence_state is None or not licence_state.is_ee_active:
+            raise HTTPException(
+                status_code=403,
+                detail="EE licence required for this feature"
+            )
+
+        return current_user
+    return _check
 
 
 def require_permission(perm: str):
     """Dependency factory that enforces a named permission via DB-backed RBAC.
-    Used by EE routers only — CE routes use require_auth instead."""
+    Used by EE routers only — CE routes use require_auth instead.
+
+    Queries DB on every request (no caching) to fix multi-worker race conditions.
+    """
     async def _check(current_user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
         # EE tables (RolePermission) must exist for this to work.
         # In CE mode this code path is never reached.
         if getattr(current_user, 'role', None) == "admin":
             return current_user
-        from .db import Base
-        RolePermission = Base.metadata.tables.get("role_permissions")
-        if RolePermission is None:
+        from .db import Base, EE_Base, RolePermission
+        # RolePermission is on EE_Base; check both Base and EE_Base for the table
+        if (Base.metadata.tables.get("role_permissions") is None and
+            EE_Base.metadata.tables.get("role_permissions") is None):
             # CE mode — no RBAC table, just authenticate
             return current_user
-        if getattr(current_user, 'role', 'viewer') not in _perm_cache:
-            from sqlalchemy import select as sa_select, text
-            result = await db.execute(
-                sa_select(text("permission")).select_from(text("role_permissions")).where(
-                    text(f"role = :role")
-                ), {"role": current_user.role}
+
+        # Always query DB on every request (no cache)
+        result = await db.execute(
+            select(RolePermission).where(
+                RolePermission.role == current_user.role,
+                RolePermission.permission == perm
             )
-            _perm_cache[current_user.role] = {row[0] for row in result.all()}
-        if perm not in _perm_cache.get(getattr(current_user, 'role', 'viewer'), set()):
+        )
+        if not result.scalars().first():
             raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
         return current_user
     return _check
@@ -124,6 +150,8 @@ def audit(db: AsyncSession, user, action: str, resource_id: str = None, detail: 
 
     Intentionally sync so callers don't need await. The DB write is scheduled as
     a background task on the running event loop so the coroutine is properly awaited.
+    Also enqueues to SIEM service if enabled (fire-and-forget, never blocks).
+    Per Phase 168 — D-03, D-09.
     """
     import asyncio
 
@@ -139,8 +167,26 @@ def audit(db: AsyncSession, user, action: str, resource_id: str = None, detail: 
             pass
 
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(_insert())
+        loop = asyncio.get_running_loop()
+        loop.create_task(_insert())
+    except RuntimeError:
+        # Called outside async context
+        pass
+
+    # Fire-and-forget SIEM enqueue (Phase 168 — D-03, D-09)
+    try:
+        from ee.services.siem_service import get_siem_service
+
+        siem = get_siem_service()
+        if siem:
+            event = {
+                "username": user.username,
+                "action": action,
+                "resource_id": resource_id,
+                "detail": detail,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            siem.enqueue(event)
     except Exception:
+        # Never block audit path due to SIEM errors (D-03)
         pass
