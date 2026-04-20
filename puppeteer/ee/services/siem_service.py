@@ -12,6 +12,7 @@ import socket
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional, Literal
+from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 import httpx
@@ -308,15 +309,9 @@ class SIEMService:
         Masks sensitive fields (password, secret, token, api_key, *_key, *_secret).
         Masking happens at format time only; never modifies the stored audit_log.
         """
-        # Mask sensitive fields in detail (D-11, D-12)
+        # Mask sensitive fields in detail (D-11, D-12) — recursive to cover nested dicts
         detail = event.get("detail") or {}
-        masked_detail = {}
-        for key, value in detail.items():
-            key_lower = key.lower()
-            if key_lower in SENSITIVE_KEYS or key_lower.endswith(("_key", "_secret")):
-                masked_detail[key] = "***"
-            else:
-                masked_detail[key] = value
+        masked_detail = _mask_sensitive(detail)
 
         # Build CEF header and extensions
         # CEF:0|Vendor|Product|Version|SignatureID|Name|Severity|[Extensions]
@@ -449,48 +444,28 @@ class SIEMService:
         """Deliver payload to syslog server via UDP or TCP."""
 
         def _sync_send():
-            # Parse destination (host:port or just host)
-            destination = self.config.destination
-            if ":" in destination:
-                host, port_str = destination.rsplit(":", 1)
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    port = self.config.syslog_port
-            else:
-                host = destination
-                port = self.config.syslog_port
-
+            host, port = _parse_syslog_destination(
+                self.config.destination, self.config.syslog_port
+            )
             protocol = self.config.syslog_protocol.upper()
-            socktype = (
-                socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
-            )
-
-            # Use logging.handlers.SysLogHandler for syslog delivery
-            import logging.handlers
-
-            handler = logging.handlers.SysLogHandler(
-                address=(host, port), socktype=socktype
-            )
-            # Override default formatter so the raw CEF string is sent without
-            # the "INFO:siem:" prefix that the default formatter would prepend.
-            handler.setFormatter(logging.Formatter("%(message)s"))
-
-            # Send each CEF line as a syslog message
-            for line in payload.split("\n"):
-                if line.strip():
-                    record = logging.makeRecord(
-                        name="siem",
-                        level=logging.INFO,
-                        pathname="",
-                        lineno=0,
-                        msg=line,
-                        args=(),
-                        exc_info=None,
-                    )
-                    handler.emit(record)
-
-            handler.close()
+            socktype = socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
+            af_info = socket.getaddrinfo(host, port, type=socktype)
+            if not af_info:
+                raise Exception(f"Syslog: could not resolve {host!r}")
+            af, _, _, _, addr = af_info[0]
+            sock = socket.socket(af, socktype)
+            try:
+                if protocol == "TCP":
+                    sock.connect(addr)
+                for line in payload.split("\n"):
+                    if line.strip():
+                        data = (line + "\n").encode("utf-8")
+                        if protocol == "UDP":
+                            sock.sendto(data, addr)
+                        else:
+                            sock.sendall(data)
+            finally:
+                sock.close()
 
         # Run sync syslog send in thread pool to avoid blocking event loop
         await asyncio.to_thread(_sync_send)
@@ -521,32 +496,20 @@ class SIEMService:
         """Test syslog destination reachability."""
 
         def _sync_test():
-            # Parse destination (host:port or just host)
-            destination = self.config.destination
-            if ":" in destination:
-                host, port_str = destination.rsplit(":", 1)
-                try:
-                    port = int(port_str)
-                except ValueError:
-                    port = self.config.syslog_port
-            else:
-                host = destination
-                port = self.config.syslog_port
-
-            protocol = self.config.syslog_protocol.upper()
-            socktype = (
-                socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
+            host, port = _parse_syslog_destination(
+                self.config.destination, self.config.syslog_port
             )
-
-            # Create socket and test connection
-            sock = socket.socket(socket.AF_INET, socktype)
+            protocol = self.config.syslog_protocol.upper()
+            socktype = socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM
+            af_info = socket.getaddrinfo(host, port, type=socktype)
+            if not af_info:
+                raise Exception(f"Syslog: could not resolve {host!r}")
+            af, _, _, _, addr = af_info[0]
+            sock = socket.socket(af, socktype)
             try:
                 if protocol == "TCP":
-                    sock.connect((host, port))
-                    sock.close()
-                else:
-                    # UDP: just create socket and close (no connect needed)
-                    sock.close()
+                    sock.connect(addr)
+                sock.close()
             except Exception as e:
                 raise Exception(f"Syslog connection failed: {e}")
 
