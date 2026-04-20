@@ -52,6 +52,72 @@ SENSITIVE_KEYS = {
 }
 
 
+def _mask_sensitive(obj: object) -> object:
+    """Recursively mask sensitive fields in a nested dict/list structure.
+
+    Never modifies the input; always returns a new object.
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for k, v in obj.items():
+            k_lower = k.lower()
+            if k_lower in SENSITIVE_KEYS or k_lower.endswith(("_key", "_secret", "_token")):
+                result[k] = "***"
+            else:
+                result[k] = _mask_sensitive(v)
+        return result
+    if isinstance(obj, list):
+        return [_mask_sensitive(item) for item in obj]
+    return obj
+
+
+def _parse_syslog_destination(destination: str, default_port: int) -> tuple[str, int]:
+    """Parse syslog destination into (host, port), handling IPv4, hostname, and IPv6.
+
+    Accepted formats:
+      hostname:514  →  ("hostname", 514)
+      1.2.3.4:514   →  ("1.2.3.4", 514)
+      [::1]:514     →  ("::1", 514)   # bracketed IPv6 with port
+      ::1           →  ("::1", default_port)  # bare IPv6, no port
+      hostname      →  ("hostname", default_port)
+    """
+    # Bracketed IPv6: [::1]:514 or [::1]
+    if destination.startswith("["):
+        bracket_end = destination.find("]")
+        if bracket_end != -1:
+            host = destination[1:bracket_end]
+            remainder = destination[bracket_end + 1:]
+            if remainder.startswith(":"):
+                try:
+                    return host, int(remainder[1:])
+                except ValueError:
+                    pass
+            return host, default_port
+    # Bare IPv6 (multiple colons, no brackets) — no port extractable
+    if destination.count(":") > 1:
+        return destination, default_port
+    # hostname:port or IPv4:port
+    if ":" in destination:
+        host, port_str = destination.rsplit(":", 1)
+        try:
+            return host, int(port_str)
+        except ValueError:
+            return host, default_port
+    return destination, default_port
+
+
+def _redact_destination(destination: str) -> str:
+    """Redact query parameters from webhook URLs to avoid leaking embedded tokens."""
+    try:
+        parsed = urlparse(destination)
+        if parsed.scheme in ("http", "https") and parsed.query:
+            return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "***", ""))
+    except Exception:
+        pass
+    return destination
+
+
+
 class SIEMService:
     """Real-time audit log streaming to SIEM platforms (webhook/syslog) with CEF formatting.
 
