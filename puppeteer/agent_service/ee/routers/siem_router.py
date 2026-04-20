@@ -83,22 +83,49 @@ async def update_config(
 
     # Hot-reload: reinitialize singleton so config takes effect without restart (SIEM-01)
     # Without this, changes only apply after a process restart.
+    # MEDIUM-02: Use rollback pattern — if new startup fails, restore old service
+    old_siem = None
     try:
         from ee.services.siem_service import SIEMService, set_active, get_siem_service
         from ...services.scheduler_service import scheduler_service
 
-        old = get_siem_service()
-        if old:
-            await old.shutdown()
+        old_siem = get_siem_service()
+
         if config.enabled:
+            # Start new service before shutting down old (rollback-safe)
             new_siem = SIEMService(config, db, scheduler_service.scheduler)
-            await new_siem.startup()
+            try:
+                await new_siem.startup()
+            except Exception as startup_error:
+                # New startup failed — keep old service running, raise to caller
+                logger.error(f"SIEM hot-reload failed, keeping existing service: {startup_error}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"SIEM reinit failed: {startup_error}"
+                )
+            # New startup succeeded — shut down old and activate new
+            if old_siem:
+                try:
+                    await old_siem.shutdown()
+                except Exception as shutdown_e:
+                    logger.warning(f"Old SIEM shutdown warning: {shutdown_e}")
             set_active(new_siem)
+            logger.info("SIEM hot-reload completed successfully")
         else:
+            # Disabling SIEM — shut down old service
+            if old_siem:
+                await old_siem.shutdown()
             set_active(None)
+            logger.info("SIEM disabled")
+    except HTTPException:
+        raise  # Re-raise HTTPException to caller
     except Exception as e:
-        logger.warning(f"Failed to reinitialize SIEM service: {e}")
-        # Don't fail the response — config was saved; reinit is best-effort
+        logger.warning(f"SIEM hot-reload failed unexpectedly: {e}")
+        # If old service exists, it's still running (not shut down)
+        raise HTTPException(
+            status_code=500,
+            detail=f"SIEM reinit failed: {e}"
+        )
 
     return SIEMConfigResponse.from_siem_config(config)
 
