@@ -96,6 +96,7 @@ class SIEMService:
         )
         self._consecutive_failures = 0
         self._dropped_events_count = 0
+        self._alert_pending = False
         self._last_error: Optional[str] = None
         self._last_checked_at: Optional[datetime] = None
 
@@ -141,10 +142,11 @@ class SIEMService:
         except asyncio.QueueFull:
             # Oldest event is always discarded on overflow — count it before retrying
             self._dropped_events_count += 1
-            if self._dropped_events_count % 100 == 0:
+            if self._dropped_events_count % 100 == 0 and not self._alert_pending:
                 logger.warning(
                     f"SIEM event queue overflow: {self._dropped_events_count} events dropped so far"
                 )
+                self._alert_pending = True
                 asyncio.create_task(self._fire_queue_overflow_alert())
             # Drop oldest and retry once
             try:
@@ -330,6 +332,8 @@ class SIEMService:
                 await session.commit()
         except Exception as e:
             logger.warning(f"Failed to create SIEM queue overflow alert: {e}")
+        finally:
+            self._alert_pending = False
 
     def _map_severity(self, action: str) -> int:
         """Map audit action to CEF severity (1-10).
@@ -488,11 +492,17 @@ class SIEMService:
 
     async def shutdown(self) -> None:
         """Gracefully stop background scheduler jobs for this service instance."""
-        for job_id in ("__siem_flush__",):
-            try:
-                self.scheduler.remove_job(job_id)
-            except Exception:
-                pass
+        try:
+            self.scheduler.remove_job("__siem_flush__")
+        except Exception:
+            pass
+        # Cancel any pending retry jobs (scheduled with siem_retry_{uuid} IDs)
+        for job in list(self.scheduler.get_jobs()):
+            if job.id.startswith("siem_retry_"):
+                try:
+                    job.remove()
+                except Exception:
+                    pass
 
     async def status(self) -> Literal["healthy", "degraded", "disabled"]:
         """Return current SIEM status."""
