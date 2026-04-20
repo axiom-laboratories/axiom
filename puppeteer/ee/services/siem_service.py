@@ -146,14 +146,18 @@ class SIEMService:
                 pass
             try:
                 self.queue.put_nowait(event)
-                self._dropped_events_count += 1
-                logger.warning(
-                    "siem_queue_overflow",
-                    extra={"dropped_total": self._dropped_events_count},
-                )
             except asyncio.QueueFull:
                 # Queue still full after dropping oldest; give up
                 pass
+
+            # MEDIUM-03: Increment dropped counter; fire admin alert every 100 events
+            self._dropped_events_count += 1
+            if self._dropped_events_count % 100 == 0:
+                logger.warning(
+                    f"SIEM event queue overflow: {self._dropped_events_count} events dropped so far"
+                )
+                # Fire admin alert asynchronously (non-blocking, best-effort)
+                asyncio.create_task(self._fire_queue_overflow_alert())
         except Exception:
             # Never propagate exceptions from enqueue to caller
             pass
@@ -312,6 +316,23 @@ class SIEMService:
             [f"{k}={_escape_cef_extension_value(v)}" for k, v in extensions.items()]
         )
         return f"{cef_header}|{cef_extensions}"
+
+    async def _fire_queue_overflow_alert(self) -> None:
+        """Fire admin alert when SIEM queue overflows (MEDIUM-03)."""
+        try:
+            from agent_service.db import Alert, AsyncSessionLocal
+            async with AsyncSessionLocal() as session:
+                alert = Alert(
+                    type="siem_queue_overflow",
+                    severity="WARNING",
+                    message=f"SIEM event queue overflow: {self._dropped_events_count} events dropped. "
+                            f"Increase queue size or reduce audit event rate. "
+                            f"Local audit_log is canonical; events are queued for transmission only.",
+                )
+                session.add(alert)
+                await session.commit()
+        except Exception as e:
+            logger.warning(f"Failed to create SIEM queue overflow alert: {e}")
 
     def _map_severity(self, action: str) -> int:
         """Map audit action to CEF severity (1-10).
