@@ -1,9 +1,9 @@
 # Milestones
 
-## v24.0 Security Infrastructure & Extensibility (Shipped: 2026-04-19)
+## v24.0 Security Infrastructure & Extensibility (Shipped: 2026-04-20)
 
-**Phases completed:** 7 phases (165–171), 25 plans
-**Stats:** ~135 commits | ~20,000 LOC added | 2 days (2026-04-18 → 2026-04-19)
+**Phases completed:** 8 phases (165–172), 27 plans
+**Stats:** ~155 commits | ~22,000 LOC added | 3 days (2026-04-18 → 2026-04-20)
 **Requirements:** 18/18 satisfied (100%) — SEC-03/04, ARCH-01/04, VAULT-01/06, SIEM-01/06
 **Audit:** `.planning/milestones/v24.0-MILESTONE-AUDIT.md` — PASSED
 
@@ -14,8 +14,9 @@
 - Phase 168 — SIEM audit streaming EE: CEF-formatted webhook + syslog backends, asyncio.Queue batching (100-event / 5s flush), sensitive field masking at format time, exponential backoff retry (5s→10s→20s), hot-reload config via singleton swap; 37 tests passing; all 6 SIEM requirements satisfied
 - Phase 169/170 — PR review remediations: LicenceExpiryGuard EE_PREFIXES wired for vault + siem; correct relative imports in EE routers; route migrations from main.py; VaultConfigSnapshot immutability; WebSocket resource safety
 - Phase 171 — Security hardening: granular `require_permission()` guards on all sensitive admin_router + jobs_router endpoints; ADMIN_PASSWORD scrubbed from startup logs; YAML injection vector closed in compose-file generation; Vault re-auth recovery for stuck degraded state; per-request permission DB check (cache removed)
+- Phase 172 — Critical CE/EE isolation: removed ghost perm-cache import from `main.py`; migrated 26 EE models to `EE_Base` (separate `DeclarativeBase`); CE deployments now guaranteed exactly 15 tables; SIEM `SENSITIVE_KEYS` expanded (jwt, connection_string, cert, webhook); Vault reauth capped at `MAX_REAUTH_ATTEMPTS=10`; SIEM hot-reload atomicity fix; queue-overflow admin alert
 
-**Delivered:** Production-grade security layer: external secrets management (Vault EE), real-time audit streaming (SIEM EE), hardened authorization (granular permissions on all sensitive routes), and a clean modular router architecture replacing the monolithic main.py.
+**Delivered:** Production-grade security layer: external secrets management (Vault EE), real-time audit streaming (SIEM EE), hardened authorization (granular permissions on all sensitive routes), clean modular router architecture replacing the monolithic main.py, and enforced CE/EE model boundary at the SQLAlchemy layer.
 
 ---
 
