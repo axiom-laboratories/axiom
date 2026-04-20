@@ -62,7 +62,7 @@ def _mask_sensitive(obj: object) -> object:
         result = {}
         for k, v in obj.items():
             k_lower = k.lower()
-            if k_lower in SENSITIVE_KEYS or k_lower.endswith(("_key", "_secret")):
+            if k_lower in SENSITIVE_KEYS or k_lower.endswith(("_key", "_secret", "_token")):
                 result[k] = "***"
             else:
                 result[k] = _mask_sensitive(v)
