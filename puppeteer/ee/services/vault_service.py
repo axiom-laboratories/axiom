@@ -20,6 +20,9 @@ from agent_service.security import cipher_suite
 
 logger = logging.getLogger(__name__)
 
+# Maximum consecutive Vault reauth attempts before exhaustion (HIGH-01)
+MAX_REAUTH_ATTEMPTS = 10
+
 
 @dataclass(frozen=True)
 class VaultConfigSnapshot:
@@ -166,6 +169,29 @@ class VaultService(SecretsProvider):
         """Renew Vault token lease. Called by background task (D-10)."""
         # Auto re-auth if stuck in degraded state
         if self._status == "degraded" and self.config is not None:
+            if self._consecutive_renewal_failures >= MAX_REAUTH_ATTEMPTS:
+                # Escalate: stop retrying, fire admin alert, log ERROR
+                logger.error(
+                    f"Vault re-authentication exhausted after {MAX_REAUTH_ATTEMPTS} attempts. "
+                    f"Manual intervention required. Last error: {self._last_error}"
+                )
+                # Fire admin alert
+                try:
+                    from agent_service.db import Alert, AsyncSessionLocal
+                    async with AsyncSessionLocal() as session:
+                        alert = Alert(
+                            type="vault_reauth_exhausted",
+                            severity="CRITICAL",
+                            message=f"Vault re-authentication failed {MAX_REAUTH_ATTEMPTS} times. "
+                                    f"Vault integration disabled. Check Vault connectivity and credentials. "
+                                    f"Last error: {self._last_error}",
+                        )
+                        session.add(alert)
+                        await session.commit()
+                except Exception as alert_e:
+                    logger.warning(f"Failed to create Vault exhaustion alert: {alert_e}")
+                return  # Stop retrying
+
             try:
                 await self._connect()
                 self._status = "healthy"
@@ -173,7 +199,10 @@ class VaultService(SecretsProvider):
                 logger.info("Vault re-authentication succeeded — status restored to healthy")
             except Exception as e:
                 self._consecutive_renewal_failures += 1
-                logger.warning("Vault re-authentication attempt failed: %s", e)
+                self._last_error = str(e)
+                logger.warning(
+                    f"Vault re-authentication attempt failed (attempt {self._consecutive_renewal_failures}/{MAX_REAUTH_ATTEMPTS}): {e}"
+                )
                 return  # keep _status = "degraded", don't attempt normal renew
 
         if self._status == "disabled":
