@@ -52,6 +52,25 @@ SENSITIVE_KEYS = {
 }
 
 
+def _mask_sensitive(obj: object) -> object:
+    """Recursively mask sensitive fields in a nested dict/list structure.
+
+    Never modifies the input; always returns a new object.
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for k, v in obj.items():
+            k_lower = k.lower()
+            if k_lower in SENSITIVE_KEYS or k_lower.endswith(("_key", "_secret")):
+                result[k] = "***"
+            else:
+                result[k] = _mask_sensitive(v)
+        return result
+    if isinstance(obj, list):
+        return [_mask_sensitive(item) for item in obj]
+    return obj
+
+
 class SIEMService:
     """Real-time audit log streaming to SIEM platforms (webhook/syslog) with CEF formatting.
 
@@ -244,15 +263,9 @@ class SIEMService:
         Masks sensitive fields (password, secret, token, api_key, *_key, *_secret).
         Masking happens at format time only; never modifies the stored audit_log.
         """
-        # Mask sensitive fields in detail (D-11, D-12)
+        # Mask sensitive fields in detail recursively (D-11, D-12)
         detail = event.get("detail") or {}
-        masked_detail = {}
-        for key, value in detail.items():
-            key_lower = key.lower()
-            if key_lower in SENSITIVE_KEYS or key_lower.endswith(("_key", "_secret")):
-                masked_detail[key] = "***"
-            else:
-                masked_detail[key] = value
+        masked_detail = _mask_sensitive(detail)
 
         # Build CEF header and extensions
         # CEF:0|Vendor|Product|Version|SignatureID|Name|Severity|[Extensions]
@@ -278,7 +291,7 @@ class SIEMService:
 
         extensions = {
             "rt": timestamp_ms,
-            "msg": json.dumps(masked_detail),
+            "msg": json.dumps(masked_detail, default=str),
             "duser": event.get("username", "unknown"),
             "cs1Label": "audit_action",
             "cs1": action,
