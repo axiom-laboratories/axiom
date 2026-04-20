@@ -532,7 +532,7 @@ class SIEMService:
         return {
             "status": self._status,
             "backend": self.config.backend if self.config else None,
-            "destination": self.config.destination if self.config else None,
+            "destination": _redact_destination(self.config.destination) if self.config else None,
             "last_checked_at": (
                 self._last_checked_at.isoformat()
                 if self._last_checked_at
