@@ -139,7 +139,14 @@ class SIEMService:
         try:
             self.queue.put_nowait(event)
         except asyncio.QueueFull:
-            # Drop oldest event on overflow (D-10)
+            # Oldest event is always discarded on overflow — count it before retrying
+            self._dropped_events_count += 1
+            if self._dropped_events_count % 100 == 0:
+                logger.warning(
+                    f"SIEM event queue overflow: {self._dropped_events_count} events dropped so far"
+                )
+                asyncio.create_task(self._fire_queue_overflow_alert())
+            # Drop oldest and retry once
             try:
                 self.queue.get_nowait()
             except asyncio.QueueEmpty:
@@ -147,17 +154,7 @@ class SIEMService:
             try:
                 self.queue.put_nowait(event)
             except asyncio.QueueFull:
-                # Queue still full after dropping oldest; give up
                 pass
-
-            # MEDIUM-03: Increment dropped counter; fire admin alert every 100 events
-            self._dropped_events_count += 1
-            if self._dropped_events_count % 100 == 0:
-                logger.warning(
-                    f"SIEM event queue overflow: {self._dropped_events_count} events dropped so far"
-                )
-                # Fire admin alert asynchronously (non-blocking, best-effort)
-                asyncio.create_task(self._fire_queue_overflow_alert())
         except Exception:
             # Never propagate exceptions from enqueue to caller
             pass
