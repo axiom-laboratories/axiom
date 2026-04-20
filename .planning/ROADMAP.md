@@ -264,7 +264,7 @@ Archive: `.planning/milestones/v24.0-ROADMAP.md`
 ---
 
 ### Phase 173: EE Behavioural Validation Test Suite
-**Goal**: Build a comprehensive automated test suite in `mop_validation` covering all 13 CE/EE behavioural scenarios plus automated coverage assertion — zero manual-only steps.
+**Goal**: Build a comprehensive automated test suite in `mop_validation` covering all 14 CE/EE behavioural scenarios (VAL-01 through VAL-14) — zero manual-only steps.
 **Depends on**: Nothing
 **Requirements**: VAL-01, VAL-02, VAL-03, VAL-04, VAL-05, VAL-06, VAL-07, VAL-08, VAL-09, VAL-10, VAL-11, VAL-12, VAL-13, VAL-14
 **Success Criteria** (what must be TRUE):
@@ -274,13 +274,13 @@ Archive: `.planning/milestones/v24.0-ROADMAP.md`
   4. Wheel security chain: tampered SHA256 manifest raises `RuntimeError`; non-whitelisted entry point raises `RuntimeError`; EE does not load in either case
   5. Boot log HMAC: clock-rollback raises `RuntimeError` on EE; CE emits warning only
   6. Node limit: enrollment returns 402 when `active_nodes ≥ node_limit`; existing enrolled nodes continue
-  7. All 14 VAL requirements covered by automated pytest tests; `pytest mop_validation/tests/` passes with zero skips
+  7. All 14 VAL scenarios covered by automated pytest tests; `pytest mop_validation/tests/` passes with zero skips
 
 Plans:
-- [ ] 173-01: Test fixtures + CE validation (VAL-01, VAL-02, VAL-03) — shared pytest fixtures for CE-only and EE installs; table count assertion; feature flag endpoint; stub route sweep
-- [ ] 173-02: Licence state machine tests (VAL-04 through VAL-09) — valid, GRACE, EXPIRED, absent, tampered-signature scenarios
-- [ ] 173-03: Wheel + boot log security tests (VAL-10, VAL-11, VAL-13) — bad SHA256 manifest, non-whitelisted entry point, clock-rollback HMAC
-- [ ] 173-04: Node limit test + coverage assertion (VAL-12, VAL-14) — enrollment 402 at capacity; assert all VAL scenarios covered
+- [x] **173-01: Test fixtures + CE validation (VAL-01, VAL-02, VAL-03)** — shared pytest fixtures for CE-only and EE installs; table count assertion; feature flag endpoint; stub route sweep (PLAN created)
+- [x] **173-02: Licence state machine tests (VAL-04 through VAL-09)** — valid, GRACE, EXPIRED, absent, tampered-signature scenarios (PLAN created)
+- [x] **173-03: Wheel + boot log security tests (VAL-10, VAL-11, VAL-13)** — bad SHA256 manifest, non-whitelisted entry point, clock-rollback HMAC (PLAN created)
+- [x] **173-04: Node limit test + coverage assertion (VAL-12, VAL-14)** — enrollment 402 at capacity; assert all VAL scenarios covered (PLAN created)
 
 ---
 
@@ -319,11 +319,11 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 173. EE Behavioural Validation | 0/4 | Not started | - |
+| 173. EE Behavioural Validation | 4/4 | Planned ✓ | 2026-04-20 |
 | 174. mop_validation Repo Migration | 0/2 | Not started | - |
 | 175. Licence Architecture Analysis | 0/1 | Not started | - |
 
-## Progress
+## Historical Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
