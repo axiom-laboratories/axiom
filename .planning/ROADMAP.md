@@ -250,6 +250,12 @@ Archive: `.planning/milestones/v24.0-ROADMAP.md`
 
 </details>
 
+## Active Phases
+
+- [x] **Phase 172: PR Review Fix — Critical CE/EE Table Isolation, Permission Cache Cleanup, and SIEM/Vault Hardening** — Fix remaining CRITICAL, HIGH, and MEDIUM issues from PR #24 review before merging to main ✓ COMPLETE
+  - [x] Plan 01: Critical fixes — remove ghost perm-cache import from main.py; create EE_Base split to fix failing test_ce_table_count
+  - [x] Plan 02: Hardening — cap Vault reauth retry loop; expand SIEM SENSITIVE_KEYS; add SIEM hot-reload rollback; add queue-overflow admin alert
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -317,3 +323,4 @@ Archive: `.planning/milestones/v24.0-ROADMAP.md`
 | 169. PR Review Fix — EE Licence Guard and Import Correctness | v24.0 | 1/1 | Complete | 2026-04-19 |
 | 170. PR Review Fix — Code Hygiene and Resource Safety | v24.0 | 1/1 | Complete | 2026-04-19 |
 | 171. Security Hardening — Authorization, Credential Safety, and Vault Recovery | v24.0 | 4/4 | Complete | 2026-04-19 |
+| 172. PR Review Fix — Critical CE/EE Table Isolation, Permission Cache Cleanup, and SIEM/Vault Hardening | v25.0 | 2/2 | Complete | 2026-04-20 |
