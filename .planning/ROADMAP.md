@@ -285,18 +285,18 @@ Plans:
 ---
 
 ### Phase 174: mop_validation Repo Migration
-**Goal**: Transfer `mop_validation` to the `axiom` GitHub organisation as a private repo; update all references so tooling, scripts, and CI continue to work without modification.
+**Goal**: Transfer `mop_validation` to the `axiom-laboratories` GitHub organisation as a private repo; update all references so tooling, scripts, and CI continue to work without modification.
 **Depends on**: Phase 173 (tests exist and pass before moving the repo)
 **Requirements**: MIG-01, MIG-02, MIG-03, MIG-04
 **Success Criteria** (what must be TRUE):
-  1. `mop_validation` is accessible at `github.com/axiom/mop_validation` (private repo)
+  1. `mop_validation` is accessible at `github.com/axiom-laboratories/mop_validation` (private repo)
   2. All scripts in `mop_validation/scripts/` execute correctly from the new remote
-  3. Local git remote `origin` points to `github.com/axiom/mop_validation`
+  3. Local git remote `origin` points to `github.com/axiom-laboratories/mop_validation`
   4. `CLAUDE.md` and `GEMINI.md` in `master_of_puppets` updated to reference the new org URL
 
 Plans:
-- [ ] 174-01: GitHub org transfer — initiate repo transfer to `axiom` org; verify clone, push, and all scripts work from new URL
-- [ ] 174-02: Reference updates — update local git remote; update `CLAUDE.md` and `GEMINI.md` sister repo section
+- [x] **174-01: GitHub org transfer** — initiate repo transfer to `axiom-laboratories` org; verify repo is accessible; update local git remote (PLAN created)
+- [x] **174-02: Reference updates** — update `CLAUDE.md`, `GEMINI.md`, and `ROADMAP.md` with `axiom-laboratories` org references (PLAN created)
 
 ---
 
@@ -320,7 +320,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 173. EE Behavioural Validation | 4/4 | Planned ✓ | 2026-04-20 |
-| 174. mop_validation Repo Migration | 0/2 | Not started | - |
+| 174. mop_validation Repo Migration | 2/2 | Planned ✓ | 2026-04-21 |
 | 175. Licence Architecture Analysis | 0/1 | Not started | - |
 
 ## Historical Progress
