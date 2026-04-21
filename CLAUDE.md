@@ -232,6 +232,7 @@ See `.agent/reports/core-pipeline-gaps.md` for full details. Deferred items: MIN
 ## Sister Repositories
 
 ### `~/Development/mop_validation`
+GitHub: `https://github.com/axiom-laboratories/mop_validation` (private)
 Validation, diagnostics, and development tooling that is kept **separate from the main repo** to avoid cluttering it with test infrastructure.
 
 | Directory | Contents |
