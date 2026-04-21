@@ -284,19 +284,19 @@ Plans:
 
 ---
 
-### Phase 174: mop_validation Repo Migration
+### ✅ Phase 174: mop_validation Repo Migration (completed 2026-04-21)
 **Goal**: Transfer `mop_validation` to the `axiom-laboratories` GitHub organisation as a private repo; update all references so tooling, scripts, and CI continue to work without modification.
 **Depends on**: Phase 173 (tests exist and pass before moving the repo)
 **Requirements**: MIG-01, MIG-02, MIG-03, MIG-04
 **Success Criteria** (what must be TRUE):
-  1. `mop_validation` is accessible at `github.com/axiom-laboratories/mop_validation` (private repo)
-  2. All scripts in `mop_validation/scripts/` execute correctly from the new remote
-  3. Local git remote `origin` points to `github.com/axiom-laboratories/mop_validation`
-  4. `CLAUDE.md` and `GEMINI.md` in `master_of_puppets` updated to reference the new org URL
+  1. `mop_validation` is accessible at `github.com/axiom-laboratories/mop_validation` (private repo) ✓
+  2. All scripts in `mop_validation/scripts/` execute correctly from the new remote ✓
+  3. Local git remote `origin` points to `github.com/axiom-laboratories/mop_validation` ✓
+  4. `CLAUDE.md` and `GEMINI.md` in `master_of_puppets` updated to reference the new org URL ✓
 
 Plans:
-- [x] **174-01: GitHub org transfer** — initiate repo transfer to `axiom-laboratories` org; verify repo is accessible; update local git remote (PLAN created)
-- [x] **174-02: Reference updates** — update `CLAUDE.md`, `GEMINI.md`, and `ROADMAP.md` with `axiom-laboratories` org references (PLAN created)
+- [x] **174-01: GitHub org transfer** — initiate repo transfer to `axiom-laboratories` org; verify repo is accessible; update local git remote (completed 2026-04-21)
+- [x] **174-02: Reference updates** — update `CLAUDE.md`, `GEMINI.md`, and `ROADMAP.md` with `axiom-laboratories` org references (completed 2026-04-21)
 
 ---
 

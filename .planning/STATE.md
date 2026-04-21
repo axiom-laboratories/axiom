@@ -1,16 +1,22 @@
 ---
 gsd_state_version: 1.0
 milestone: v25.0
-milestone_name: EE Validation & Infrastructure
-current_phase: planning
-status: planning
-last_updated: "2026-04-20T12:00:00.000Z"
+milestone_name: — EE Validation & Infrastructure
+status: executing
+last_updated: "2026-04-21T12:00:00.000Z"
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 6
+  completed_plans: 6
+  current_phase: 175
+  completed_plans_list:
+    - "173-01"
+    - "173-02"
+    - "173-03"
+    - "173-04"
+    - "174-01"
+    - "174-02"
 ---
 
 # Session State — v25.0 Roadmap
@@ -27,9 +33,9 @@ See: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` (pending), `.planning/R
 ## Current Position
 
 **Milestone:** v25.0  
-**Status:** Requirements definition in progress  
-**Last phase (v24.0):** Phase 172  
-**Next phase (v25.0):** Phase 173 (TBD)
+**Status:** Phase 174 complete — Phase 175 is next  
+**Last phase (v25.0):** Phase 174 — mop_validation Repo Migration (complete, 2 plans executed 2026-04-21)  
+**Next phase (v25.0):** Phase 175 — Licence Architecture Analysis (not yet planned)
 
 ## Milestone Goals
 
