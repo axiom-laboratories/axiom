@@ -311,7 +311,7 @@ Plans:
   4. Delivered as `.planning/LIC-ANALYSIS.md`
 
 Plans:
-- [ ] 175-01: Research + comparison + recommendation — investigate `axiom-licences` repo structure; survey three options; write `LIC-ANALYSIS.md` with table, rationale, and (if needed) migration path
+- [x] 175-01: Research + comparison + recommendation — investigate `axiom-licences` repo structure; survey three options; write `LIC-ANALYSIS.md` with table, rationale, and (if needed) migration path
 
 ---
 
@@ -321,7 +321,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 173. EE Behavioural Validation | 4/4 | Planned ✓ | 2026-04-20 |
 | 174. mop_validation Repo Migration | 2/2 | Planned ✓ | 2026-04-21 |
-| 175. Licence Architecture Analysis | 0/1 | Not started | - |
+| 175. Licence Architecture Analysis | 1/1 | Complete | 2026-04-21 |
 
 ## Historical Progress
 
