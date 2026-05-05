@@ -14,14 +14,9 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Current State
 
-**Latest shipped:** v24.0 Security Infrastructure & Extensibility (2026-04-19)
-**Previous:** v23.0 DAG & Workflow Orchestration (2026-04-18)
-**Current milestone:** v25.0 — EE Validation & Infrastructure (planning)
-
-**v25.0 Goals:**
-1. **EE behavioural validation** — confirm CE/EE segregation, licence gating (VALID/GRACE/EXPIRED/CE state machine), feature flags, wheel security chain, and boot-log enforcement all behave as specified under adversarial conditions
-2. **Migrate `mop_validation`** to the `axiom` GitHub organisation as a private repo (consolidate all Axiom tooling under one org)
-3. **Licence repo architecture** — structured comparison of issued-licence storage options (current separate Git repo vs DB vs hybrid) with a concrete recommendation
+**Latest shipped:** v25.0 EE Validation & Infrastructure (2026-05-05)
+**Previous:** v24.0 Security Infrastructure & Extensibility (2026-04-19)
+**Current milestone:** v26.0 — (not yet defined)
 
 ## Requirements
 
@@ -388,11 +383,11 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 - ✓ **SIEM-05**: Failed webhook deliveries retried with exponential backoff (5s → 10s → 20s); status degrades at 3 failures — v24.0 (Phase 168)
 - ✓ **SIEM-06**: SIEM streaming disabled/enabled without affecting local audit log; hot-reload config — v24.0 (Phase 168)
 
-### Active — v25.0 (Current Milestone)
+### Validated — v25.0 EE Validation & Infrastructure
 
-- [ ] EE behavioural validation — CE/EE segregation, licence gating, feature flags, wheel security chain (v25.0)
-- [ ] Migrate `mop_validation` to `axiom` GitHub org as private repo (v25.0)
-- [ ] Licence repo architecture analysis — comparison of Git repo vs DB vs hybrid, with recommendation (v25.0)
+- ✓ EE behavioural validation — 14-scenario automated test suite; CE/EE segregation, licence state machine (VALID/GRACE/EXPIRED/CE), wheel security chain, boot log HMAC, node limit enforcement all verified under adversarial conditions (v25.0)
+- ✓ Migrated `mop_validation` to `axiom-laboratories` GitHub org as private repo; all references updated (v25.0)
+- ✓ Licence repo architecture analysis — two-phase recommendation: Git repo now (pre-public launch), VPS licence server at scale for online tier; air-gapped tier stays Git; `.planning/LIC-ANALYSIS.md` (v25.0)
 
 ### Active — Future Milestones (v26.0+)
 
@@ -418,7 +413,7 @@ Jobs run reliably — on the right node, when scheduled, with their output captu
 
 ## Context
 
-Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), API contract fully typed with unified signature path (v21.0), container security posture fully hardened with layered EE licence protection (v22.0), full DAG workflow orchestration operational (v23.0), and security infrastructure extended with Vault integration + SIEM streaming (v24.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod) with Alembic migration framework. Frontend is React/Vite with light/dark theming and ReactFlow visual DAG editor. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~85,000+ LOC (Python + TypeScript). v24.0 shipped 2026-04-19.
+Codebase is functional, deployed, security-hardened, commercially ready, scale-hardened (v17.0), first-user-validated (v18.0), Foundry/Smelter production-grade for air-gapped deployments (v19.0), container isolation and resource limits proven end-to-end (v20.0), API contract fully typed with unified signature path (v21.0), container security posture fully hardened with layered EE licence protection (v22.0), full DAG workflow orchestration operational (v23.0), security infrastructure extended with Vault integration + SIEM streaming (v24.0), and CE/EE boundary + licence enforcement fully validated under adversarial conditions with a 14-scenario automated test suite (v25.0). Backend is FastAPI + SQLAlchemy (SQLite dev, Postgres prod) with Alembic migration framework. Frontend is React/Vite with light/dark theming and ReactFlow visual DAG editor. Node agent is Python, runs inside Docker. Infrastructure uses Caddy (TLS termination) + Cloudflare tunnel for dashboard access. 7 mirror ecosystem backends (PyPI, APT, apk, npm, NuGet, OCI, Conda) behind compose profiles. ~85,000+ LOC (Python + TypeScript). v25.0 shipped 2026-05-05.
 
 All 89 API routes have explicit `response_model` declarations. The full dispatch pipeline is covered by service-layer integration tests and a live E2E orchestration script. All server-side job signing flows through `SignatureService.countersign_for_node()` — no unsigned jobs can be created or scheduled.
 

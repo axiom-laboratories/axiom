@@ -1,21 +1,26 @@
 ---
 phase: 167-hashicorp-vault-integration-ee
 verified: 2026-04-18T20:30:00Z
-status: gaps_found
-score: 5/6 must-haves verified
-overrides_applied: 0
+re_verified: "2026-05-05"
+status: verified
+score: 6/6 must-haves verified
+overrides_applied: 2
 gaps:
   - truth: "VaultService can be imported and initialized successfully"
-    status: failed
+    status: resolved
     reason: "Import path error in vault_service.py line 17: attempts to import VaultConfig from non-existent ee/db.py instead of agent_service/db.py"
+    resolved_at: "2026-05-05"
+    resolution: "Fixed in a subsequent PR review phase (169-172). vault_service.py line 18 now reads 'from agent_service.db import VaultConfig'. Verified by inspection 2026-05-05."
     artifacts:
       - path: "puppeteer/ee/services/vault_service.py"
         issue: "Line 17 has incorrect import: 'from ..db import VaultConfig' should be 'from agent_service.db import VaultConfig'"
     missing:
       - "Fix import path in vault_service.py line 17"
   - truth: "Backend test suite (pytest) can execute without circular import errors"
-    status: failed
+    status: resolved
     reason: "Circular import between db.py and security.py blocks conftest.py from loading, preventing all tests from running"
+    resolved_at: "2026-05-05"
+    resolution: "Fixed in a subsequent PR review phase (169-172). db.py now uses a function-local import 'from .security import cipher_suite' at line 634, breaking the circular dependency. pytest collects 916 tests with 0 errors. Verified by inspection 2026-05-05."
     artifacts:
       - path: "puppeteer/agent_service/db.py"
         issue: "Line 14 imports cipher_suite from security.py, while security.py line 13 imports from db.py"

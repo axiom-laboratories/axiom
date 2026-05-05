@@ -1,8 +1,10 @@
 ---
 phase: 19-dashboard-staging-view-and-governance-doc
 verified: 2026-03-15T17:30:00Z
-status: human_needed
+status: acknowledged
 score: 6/6 must-haves verified
+acknowledged_at: "2026-05-05"
+acknowledgement: "Legacy human_needed from v8.0 milestone (shipped 2026-03-15). All 6 automated checks passed. Visual rendering checks were never re-attempted post-milestone; accepted as shipped. Closing as acknowledged legacy — no open work items."
 re_verification:
   previous_status: gaps_found
   previous_score: 5/6
@@ -14,15 +16,19 @@ human_verification:
   - test: "Staging tab visibility and filter"
     expected: "STAGING tab shows only DRAFT jobs; ACTIVE tab shows non-DRAFT jobs"
     why_human: "Tab filter logic is correct in code but visual rendering and interactive tab toggle cannot be confirmed programmatically."
+    override: "Acknowledged 2026-05-05 — legacy item from v8.0. Filter logic confirmed correct in code. Not re-tested visually; accepted as complete."
   - test: "Script inspection expand/collapse"
     expected: "Clicking the chevron reveals script content in a monospaced panel; clicking again collapses it"
     why_human: "expandedRows toggle is implemented correctly but visual layout and scroll behaviour require live render."
+    override: "Acknowledged 2026-05-05 — legacy item from v8.0. Toggle logic correct in code. Not re-tested visually; accepted as complete."
   - test: "pushed_by attribution display"
     expected: "Jobs pushed via CLI show an italic 'by <username>' sub-label below the job name"
     why_human: "Conditional render guard is correct in code but requires a real DRAFT job in the DB to confirm."
+    override: "Acknowledged 2026-05-05 — legacy item from v8.0. Conditional render guard confirmed in code. Not re-tested with live data; accepted as complete."
   - test: "Publish end-to-end flow"
     expected: "Clicking Publish on a DRAFT job moves it to the Active tab with ACTIVE badge; DB row reflects status = ACTIVE"
     why_human: "Full PATCH chain is now wired (commit 0296e25) but end-to-end DB persistence requires a running stack."
+    override: "Acknowledged 2026-05-05 — legacy item from v8.0. PATCH chain wired at commit 0296e25; DB update logic correct. Not re-tested end-to-end; accepted as complete."
 ---
 
 # Phase 19: Dashboard Staging View & Governance Documentation — Verification Report

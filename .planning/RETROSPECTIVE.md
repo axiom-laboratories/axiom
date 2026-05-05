@@ -1,5 +1,57 @@
 # Retrospective
 
+## Milestone: v25.0 — EE Validation & Infrastructure
+
+**Shipped:** 2026-05-05
+**Phases:** 3 (173–175) | **Plans:** 7 | **Requirements:** 21/21
+
+### What Was Built
+
+**EE Behavioural Validation Test Suite (Phase 173):**
+- Module-scoped Incus LXC fixtures (`axiom_ce_stack`, `axiom_ee_stack`) with full stack lifecycle management inside `conftest.py`; session-scoped `ee_licence_fixtures` generating 5 EdDSA JWTs (valid, expired, grace, tampered, node_limit) dynamically at test runtime
+- `helpers.py`: `inject_licence_and_restart()` restarts the agent container with a new `AXIOM_LICENCE_KEY`, reinstalls the EE wheel, patches the test public key into `licence_service.py`, and waits for API readiness — the core building block for all licence state tests
+- 13 live-stack scenarios (VAL-01 through VAL-09, VAL-12, and 3 offline security unit tests VAL-10, VAL-11, VAL-13) all passing; VAL-14 AST-based coverage assertion confirms zero scenarios are manual-only
+- Critical fix discovered during VAL-12: `docker compose restart agent` clears environment variables (including `AXIOM_LICENCE_KEY`); the correct approach is `docker restart workspace-agent-1` which preserves the env set at `docker compose up` time
+
+**mop_validation Repo Migration (Phase 174):**
+- GitHub repo transferred from `Bambibanners/mop_validation` to `axiom-laboratories/mop_validation` (private); local git remote updated; `CLAUDE.md` and `GEMINI.md` updated with new org URL — all scripts continue working without modification
+
+**Licence Architecture Analysis (Phase 175):**
+- `.planning/LIC-ANALYSIS.md` (655 lines): 3-option × 6-dimension comparison table (security, auditability, air-gap compatibility, operational complexity, CI/CD integration, data loss recovery); two-phase recommendation: keep Git repo now (pre-public launch, zero operational overhead), add VPS licence server at scale (Hetzner CX11, FastAPI+SQLite/Postgres, Caddy TLS, 4 endpoints); two-tier JWT claim (`deployment_mode: online|airgapped`) allows one licence format to serve both tiers
+
+### What Worked
+
+- **Direct DB injection for node limit testing** — inserting fake ONLINE nodes via `psql` directly rather than enrolling real nodes was the right call; enrollment itself is the thing being tested, so real nodes would create a circular dependency; fake rows with `last_seen=NOW()` and the required NOT NULL columns work perfectly
+- **Pure Python EE plugin stub** — replacing the compiled `.so` with a Python stub that accepts test-signed JWTs (no production key needed) allows the entire licence state machine to be exercised from the outside without modifying the compiled EE wheel; the pattern is reusable for any future licence feature test
+- **Parallel phases** — Phase 175 (analysis) ran fully independently of Phase 173 (tests); no dependency between them meant no serialization cost; two analysts in parallel would have been faster still
+- **Module-scoped fixtures** — one LXC container lifecycle per test module (not per test) cuts setup/teardown from O(n) to O(1) for the licence state machine tests; the 6 VAL-04 through VAL-09 tests share one stack and inject licence changes via `inject_licence_and_restart`
+
+### What Was Inefficient
+
+- **VAL-12 required three debug cycles** — the node limit test failed first due to `docker compose restart` clearing env vars, then again due to missing NOT NULL columns (`last_seen`, `operator_env_tag`) in the INSERT, then passed; both issues were discoverable by reading the enrollment path in `main.py` before writing the test; the test should have been written with a schema introspection step first
+- **EE plugin patching complexity** — `patch_ee_plugin_for_testing()` + `patch_agent_test_pubkey()` together form a non-obvious two-step that must be applied in the right order after every `inject_licence_and_restart()`; this is coupling that would benefit from being encapsulated into a single `prepare_ee_test_environment()` call, but that's a v26.0 cleanup item
+
+### Patterns Established
+
+- `inject_licence_and_restart()` pattern: `docker compose up -d --no-deps agent` with inline env var → wait for container running → install EE wheel → patch pubkey + plugin → `docker restart` → `wait_for_api_ready()`; this sequence must use `docker restart` (not `docker compose restart`) to preserve the AXIOM_LICENCE_KEY env var
+- Direct DB injection for capacity tests: `INSERT INTO nodes ... ON CONFLICT DO UPDATE SET status='ONLINE'` with `try/finally` cleanup; reliable, fast, and independent of the enrollment path being tested
+- Two-tier licence architecture: `deployment_mode` claim in JWT distinguishes online (short TTL + check-in required) from air-gapped (long TTL + no check-in); single signing key serves both tiers; VPS acts as optional check-in oracle, not a gatekeeper
+
+### Key Lessons
+
+- **`docker compose restart` vs `docker restart` is a critical distinction for env-var-dependent tests** — compose restart re-reads the compose file (which may not have the runtime env var); `docker restart` preserves the container's existing environment; any test that injects config via env vars at startup must use the latter
+- **Schema introspection before writing insertion-based tests** — when a test inserts directly into a DB table, read the table schema first (`\d nodes` or equivalent); NOT NULL columns without defaults will silently reject the insert unless the test provides values for them
+- **Analytical phases (architecture, research) are genuinely independent** — Phase 175 had zero dependencies on Phases 173 and 174; in future milestones, analytical phases can be started immediately while implementation phases are running
+
+### Cost Observations
+
+- 3 phases, 7 plans, ~16-day delivery (2026-04-20 → 2026-05-05; most time was gap between planning and execution)
+- 22 commits, 29 files changed, 6,715 insertions
+- 21/21 requirements satisfied (100%): 14 VAL + 4 MIG + 3 LIC
+- Phase 173 highest complexity — 4 plans covering 14 behavioural scenarios across live LXC stacks
+
+---
+
 ## Milestone: v24.0 — Security Infrastructure & Extensibility
 
 **Shipped:** 2026-04-19

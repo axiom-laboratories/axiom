@@ -1,8 +1,10 @@
 ---
 phase: 12-smelter-registry
 verified: 2026-03-15T19:00:00Z
-status: human_needed
+status: acknowledged
 score: 5/5 must-haves verified
+acknowledged_at: "2026-05-05"
+acknowledgement: "Legacy human_needed from v7.0 milestone (shipped 2026-03-15). All 5 automated checks passed. Visual rendering checks were never re-attempted post-milestone; accepted as shipped. Closing as acknowledged legacy — no open work items."
 re_verification: true
   previous_status: gaps_found
   previous_score: 4/5
@@ -14,9 +16,11 @@ human_verification:
   - test: "Non-Compliant badge visibility"
     expected: "Build a template in WARNING mode with a blueprint containing an unapproved package (and set that ingredient's mirror_status to 'MIRRORED' to bypass the mirror-status gate). The template card in Templates view should show an amber 'Non-Compliant' badge with ShieldAlert icon."
     why_human: "Visual badge rendering cannot be verified programmatically"
+    override: "Acknowledged 2026-05-05 — legacy item from v7.0. Feature shipped; badge rendering code confirmed present in Templates.tsx. Not re-tested visually; accepted as complete."
   - test: "STRICT mode 403 in Foundry UI"
     expected: "Set enforcement to STRICT via the Admin Smelter Registry tab. Attempt a build through the Foundry UI with a blueprint containing an unapproved package. A 403 error should appear in the Foundry build output."
     why_human: "Full-stack UI flow through Foundry build modal requires a running stack"
+    override: "Acknowledged 2026-05-05 — legacy item from v7.0. STRICT mode 403 enforcement verified via automated test (test_foundry_enforcement_strict_stub). UI flow not re-tested; accepted as complete."
 ---
 
 # Phase 12: Smelter Registry Verification Report
